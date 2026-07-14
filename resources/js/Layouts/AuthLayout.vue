@@ -4,7 +4,7 @@ import IconButton from '../Components/IconButton.vue';
 import { useTheme } from '../Composables/useTheme';
 import type { AtlasPageProps } from '../Types/inertia';
 import { usePage } from '@inertiajs/vue3';
-import { IconMoon, IconSun } from '@tabler/icons-vue';
+import { IconLanguage, IconMoon, IconSun } from '@tabler/icons-vue';
 
 defineProps<{
     title: string;
@@ -48,7 +48,8 @@ const page = usePage<AtlasPageProps>();
                 <div class="lg:hidden">
                     <AtlasLogo />
                 </div>
-                <div class="ml-auto">
+                <div class="ml-auto flex items-center gap-2">
+                    <IconButton label="Zmień język" :icon="IconLanguage" />
                     <IconButton
                         :label="isDark ? 'Włącz jasny motyw' : 'Włącz ciemny motyw'"
                         :icon="isDark ? IconSun : IconMoon"

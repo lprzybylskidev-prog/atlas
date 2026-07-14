@@ -41,11 +41,18 @@ const items: NavigationItem[] = [
         class="hidden min-h-screen shrink-0 border-r border-zinc-200 bg-white transition-[width] duration-200 lg:block dark:border-zinc-800 dark:bg-zinc-950"
         :class="isSidebarCollapsed ? 'w-[5.25rem]' : 'w-72'"
     >
-        <div class="flex h-16 items-center justify-between gap-2 border-b border-zinc-200 px-4 dark:border-zinc-800">
+        <div
+            class="border-b border-zinc-200 px-4 dark:border-zinc-800"
+            :class="
+                isSidebarCollapsed
+                    ? 'flex min-h-24 flex-col items-center justify-center gap-2 py-3'
+                    : 'flex h-16 items-center justify-between gap-2'
+            "
+        >
             <AtlasLogo :show-text="!isSidebarCollapsed" />
             <button
                 type="button"
-                class="inline-flex h-9 w-9 items-center justify-center rounded-lg text-zinc-500 transition hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-900 dark:hover:text-zinc-50"
+                class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-zinc-500 transition hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-900 dark:hover:text-zinc-50"
                 :aria-label="isSidebarCollapsed ? 'Rozwiń panel boczny' : 'Zwiń panel boczny'"
                 @click="toggleSidebar"
             >

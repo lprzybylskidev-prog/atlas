@@ -16,7 +16,8 @@ const logoPath = '/brand/atlas-logo.svg';
 <template>
     <div class="flex min-w-0 items-center gap-3">
         <div
-            class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-teal-700 text-white shadow-sm shadow-teal-950/15 dark:bg-teal-400 dark:text-zinc-950"
+            class="flex shrink-0 items-center justify-center rounded-lg bg-teal-700 text-white shadow-sm shadow-teal-950/15 dark:bg-teal-700"
+            :class="markClass"
         >
             <img :src="logoPath" alt="" class="h-6 w-6" />
         </div>

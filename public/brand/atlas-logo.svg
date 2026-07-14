@@ -4,9 +4,9 @@
      aria-labelledby="atlas-logo-title">
   <title id="atlas-logo-title">Atlas logo</title>
 
-  <!-- Transparent background. Color is inherited from CSS via currentColor. -->
+  <!-- Transparent background. The standalone mark is white to match the favicon. -->
   <path
-    fill="currentColor"
+    fill="#f8fafc"
     fill-rule="evenodd"
     clip-rule="evenodd"
     d="
