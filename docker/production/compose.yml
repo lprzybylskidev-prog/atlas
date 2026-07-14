@@ -1,0 +1,201 @@
+name: atlas
+
+services:
+  nginx:
+    build:
+      context: ../..
+      dockerfile: docker/production/nginx/Dockerfile
+    depends_on:
+      php-fpm:
+        condition: service_started
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - app-storage:/var/www/html/storage:ro
+    networks:
+      - public
+      - internal
+
+  php-fpm:
+    build:
+      context: ../..
+      dockerfile: docker/production/php/Dockerfile
+    environment:
+      APP_NAME: ${APP_NAME}
+      APP_ENV: ${APP_ENV}
+      APP_DEBUG: ${APP_DEBUG}
+      APP_URL: ${APP_URL}
+      APP_TIMEZONE: ${APP_TIMEZONE:-Europe/Warsaw}
+      PRODUCTION_DEPLOYED: ${PRODUCTION_DEPLOYED}
+      DB_CONNECTION: ${DB_CONNECTION}
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_DATABASE: ${DB_DATABASE}
+      DB_USERNAME: ${DB_USERNAME}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      MEILISEARCH_HOST: http://meilisearch:7700
+    volumes:
+      - app-storage:/var/www/html/storage
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      meilisearch:
+        condition: service_healthy
+    networks:
+      - internal
+
+  worker:
+    build:
+      context: ../..
+      dockerfile: docker/production/php/Dockerfile
+    environment:
+      APP_NAME: ${APP_NAME}
+      APP_ENV: ${APP_ENV}
+      APP_DEBUG: ${APP_DEBUG}
+      APP_URL: ${APP_URL}
+      APP_TIMEZONE: ${APP_TIMEZONE:-Europe/Warsaw}
+      PRODUCTION_DEPLOYED: ${PRODUCTION_DEPLOYED}
+      DB_CONNECTION: ${DB_CONNECTION}
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_DATABASE: ${DB_DATABASE}
+      DB_USERNAME: ${DB_USERNAME}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      MEILISEARCH_HOST: http://meilisearch:7700
+    command: ["php", "artisan", "queue:work", "--sleep=3", "--tries=3"]
+    depends_on:
+      php-fpm:
+        condition: service_started
+      redis:
+        condition: service_healthy
+    volumes:
+      - app-storage:/var/www/html/storage
+    networks:
+      - internal
+
+  scheduler:
+    build:
+      context: ../..
+      dockerfile: docker/production/php/Dockerfile
+    environment:
+      APP_NAME: ${APP_NAME}
+      APP_ENV: ${APP_ENV}
+      APP_DEBUG: ${APP_DEBUG}
+      APP_URL: ${APP_URL}
+      APP_TIMEZONE: ${APP_TIMEZONE:-Europe/Warsaw}
+      PRODUCTION_DEPLOYED: ${PRODUCTION_DEPLOYED}
+      DB_CONNECTION: ${DB_CONNECTION}
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_DATABASE: ${DB_DATABASE}
+      DB_USERNAME: ${DB_USERNAME}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      MEILISEARCH_HOST: http://meilisearch:7700
+    command: ["php", "artisan", "schedule:work"]
+    depends_on:
+      php-fpm:
+        condition: service_started
+      redis:
+        condition: service_healthy
+    volumes:
+      - app-storage:/var/www/html/storage
+    networks:
+      - internal
+
+  postgres:
+    image: postgres:18-bookworm
+    environment:
+      POSTGRES_DB: ${DB_DATABASE}
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+      TZ: ${APP_TIMEZONE:-Europe/Warsaw}
+      PGTZ: ${APP_TIMEZONE:-Europe/Warsaw}
+    secrets:
+      - postgres_password
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - internal
+
+  redis:
+    image: redis:8-bookworm
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - internal
+
+  meilisearch:
+    image: getmeili/meilisearch:v1.15
+    environment:
+      MEILI_ENV: production
+      MEILI_MASTER_KEY_FILE: /run/secrets/meilisearch_master_key
+      TZ: ${APP_TIMEZONE:-Europe/Warsaw}
+    secrets:
+      - meilisearch_master_key
+    volumes:
+      - meilisearch-data:/meili_data
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--spider", "http://127.0.0.1:7700/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - internal
+
+  backup:
+    build:
+      context: ../..
+      dockerfile: docker/production/backup/Dockerfile
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_DATABASE: ${DB_DATABASE}
+      DB_USERNAME: ${DB_USERNAME}
+      PGPASSWORD_FILE: /run/secrets/postgres_password
+      TZ: ${APP_TIMEZONE:-Europe/Warsaw}
+    secrets:
+      - postgres_password
+    volumes:
+      - backup-data:/backups
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - internal
+
+secrets:
+  postgres_password:
+    file: ./secrets/postgres_password.txt
+  meilisearch_master_key:
+    file: ./secrets/meilisearch_master_key.txt
+
+volumes:
+  app-storage:
+  postgres-data:
+  redis-data:
+  meilisearch-data:
+  backup-data:
+
+networks:
+  public:
+    driver: bridge
+  internal:
+    driver: bridge
+    internal: true

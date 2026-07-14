@@ -25,6 +25,46 @@ Development services:
 - RedisInsight;
 - Playwright browsers.
 
+## Initial Dev Container start
+
+Open the repository in VS Code and choose:
+
+```text
+Dev Containers: Reopen in Container
+```
+
+The Dev Container uses:
+
+- `.devcontainer/devcontainer.json`;
+- `.devcontainer/docker-compose.yml`;
+- `docker/dev/app/Dockerfile`;
+- `.env.example` for documented development defaults.
+
+The application container runs as the non-root `vscode` user.
+
+Forwarded/local development ports:
+
+- `8000` for Laravel once installed;
+- `5173` for Vite once installed;
+- `5432` for PostgreSQL;
+- `6379` for Redis;
+- `7700` for Meilisearch;
+- `8025` for Mailpit UI;
+- `5050` for pgAdmin;
+- `5540` for RedisInsight.
+
+Run static validation from the host with:
+
+```text
+docker compose -f .devcontainer/docker-compose.yml --env-file .env.example config
+```
+
+Validate required environment defaults with:
+
+```text
+bash scripts/validate-env.sh .env.example
+```
+
 ### Dev Container rebuild rule
 
 After the first successful Dev Container start, rebuilding is categorically forbidden as normal work because it may break the Codex VS Code extension.

@@ -35,11 +35,11 @@ Do not replace this index after the initial technical foundation is completed. C
 
 ## Current phase
 
-**Phase 0 — Repository bootstrap**
+**Phase 1 — Dev Container and Docker skeleton**
 
 **Status:** `in progress`
 
-[Open phase details](docs/roadmap/phase-00-bootstrap.md)
+[Open phase details](docs/roadmap/phase-01-devcontainer.md)
 
 ## Phase index
 
@@ -53,7 +53,7 @@ Initialize the independent repository, naming, seed strategy, source-delivery mo
 
 ### Phase 1 — Dev Container and Docker skeleton
 
-**Status:** `not started`
+**Status:** `in progress`
 
 Create the reproducible development container and initial Docker skeleton while protecting the Codex development workflow.
 

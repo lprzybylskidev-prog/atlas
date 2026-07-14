@@ -1,0 +1,133 @@
+name: atlas
+
+services:
+  app:
+    build:
+      context: ..
+      dockerfile: docker/dev/app/Dockerfile
+      args:
+        USER_UID: ${USER_UID:-1000}
+        USER_GID: ${USER_GID:-1000}
+    environment:
+      APP_TIMEZONE: ${APP_TIMEZONE:-Europe/Warsaw}
+      TZ: ${APP_TIMEZONE:-Europe/Warsaw}
+    volumes:
+      - ..:/workspace:cached
+      - composer-cache:/home/vscode/.composer/cache
+      - pnpm-store:/home/vscode/.local/share/pnpm/store
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      meilisearch:
+        condition: service_healthy
+      mailpit:
+        condition: service_started
+    command: sleep infinity
+    networks:
+      - atlas-dev
+    ports:
+      - "127.0.0.1:8000:8000"
+      - "127.0.0.1:5173:5173"
+
+  postgres:
+    image: postgres:18-bookworm
+    environment:
+      POSTGRES_DB: ${DB_DATABASE:-atlas}
+      POSTGRES_USER: ${DB_USERNAME:-atlas}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-atlas_dev_password}
+      TZ: ${APP_TIMEZONE:-Europe/Warsaw}
+      PGTZ: ${APP_TIMEZONE:-Europe/Warsaw}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - atlas-dev
+    ports:
+      - "127.0.0.1:5432:5432"
+
+  redis:
+    image: redis:8-bookworm
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - atlas-dev
+    ports:
+      - "127.0.0.1:6379:6379"
+
+  meilisearch:
+    image: getmeili/meilisearch:v1.15
+    environment:
+      MEILI_ENV: development
+      MEILI_MASTER_KEY: ${MEILISEARCH_KEY:-atlas_dev_meili_master_key}
+      TZ: ${APP_TIMEZONE:-Europe/Warsaw}
+    volumes:
+      - meilisearch-data:/meili_data
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--spider", "http://127.0.0.1:7700/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - atlas-dev
+    ports:
+      - "127.0.0.1:7700:7700"
+
+  mailpit:
+    image: axllent/mailpit:v1.21
+    networks:
+      - atlas-dev
+    ports:
+      - "127.0.0.1:1025:1025"
+      - "127.0.0.1:8025:8025"
+
+  pgadmin:
+    image: dpage/pgadmin4:9
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:-admin@example.test}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD:-atlas_dev_pgadmin_password}
+    volumes:
+      - pgadmin-data:/var/lib/pgadmin
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - atlas-dev
+    ports:
+      - "127.0.0.1:5050:80"
+
+  redisinsight:
+    image: redis/redisinsight:2.68
+    volumes:
+      - redisinsight-data:/data
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - atlas-dev
+    ports:
+      - "127.0.0.1:5540:5540"
+
+volumes:
+  composer-cache:
+  pnpm-store:
+  postgres-data:
+  redis-data:
+  meilisearch-data:
+  pgadmin-data:
+  redisinsight-data:
+
+networks:
+  atlas-dev:
+    driver: bridge

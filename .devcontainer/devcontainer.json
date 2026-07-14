@@ -1,0 +1,60 @@
+{
+  "name": "Atlas",
+  "dockerComposeFile": "docker-compose.yml",
+  "service": "app",
+  "workspaceFolder": "/workspace",
+  "remoteUser": "vscode",
+  "shutdownAction": "stopCompose",
+  "postStartCommand": "bash scripts/validate-env.sh .env.example",
+  "forwardPorts": [8000, 5173, 8025, 5050, 5540, 7700],
+  "portsAttributes": {
+    "8000": {
+      "label": "Laravel"
+    },
+    "5173": {
+      "label": "Vite"
+    },
+    "8025": {
+      "label": "Mailpit"
+    },
+    "5050": {
+      "label": "pgAdmin"
+    },
+    "5540": {
+      "label": "RedisInsight"
+    },
+    "7700": {
+      "label": "Meilisearch"
+    }
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "bmewburn.vscode-intelephense-client",
+        "laravel.vscode-laravel",
+        "MehediDracula.php-namespace-resolver",
+        "xdebug.php-debug",
+        "shufo.vscode-blade-formatter",
+        "Vue.volar",
+        "bradlc.vscode-tailwindcss",
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode",
+        "stylelint.vscode-stylelint",
+        "cweijan.vscode-database-client2",
+        "docker.docker",
+        "redhat.vscode-yaml",
+        "EditorConfig.EditorConfig",
+        "mikestead.dotenv",
+        "DavidAnson.vscode-markdownlint",
+        "usernamehw.errorlens"
+      ],
+      "settings": {
+        "editor.formatOnSave": true,
+        "files.eol": "\n",
+        "files.trimTrailingWhitespace": true,
+        "files.insertFinalNewline": true,
+        "php.validate.executablePath": "/usr/local/bin/php"
+      }
+    }
+  }
+}

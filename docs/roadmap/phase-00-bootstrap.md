@@ -63,4 +63,4 @@
 - [ ] Add tests proving production cannot run the demo reset flow.
 - [ ] Ensure automated tests use factories/fixtures rather than demo data.
 - [x] Create initial ADR describing modular monolith, DDD, and one-repository strategy.
-- [ ] Create first clean Conventional Commit.
+- [x] Create first clean Conventional Commit.

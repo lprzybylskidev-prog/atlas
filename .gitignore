@@ -1,6 +1,7 @@
 /.env
 /.env.*
 !/.env.example
+/docker/production/secrets/*.txt
 
 /vendor/
 /node_modules/
@@ -26,6 +27,7 @@
 /coverage/
 /playwright-report/
 /test-results/
+/ms-playwright/
 
 /.idea/
 /.vscode/*
