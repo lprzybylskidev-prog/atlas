@@ -38,7 +38,7 @@ final class FrontendShellTest extends TestCase
             ->assertInertia(fn (AssertableInertia $page) => $page
                 ->component('Dashboard')
                 ->has('navigation.breadcrumbs', 1)
-                ->where('navigation.breadcrumbs.0.label', 'Dashboard')
+                ->where('navigation.breadcrumbs.0.label', 'Dashboard aplikacyjny')
                 ->where('navigation.breadcrumbs.0.url', 'http://localhost:8000'));
 
         $this->actingAs($user)

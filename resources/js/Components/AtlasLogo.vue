@@ -1,16 +1,21 @@
 <script setup lang="ts">
-withDefaults(
+import { useTranslator } from '../Localization/translator';
+
+const props = withDefaults(
     defineProps<{
         showText?: boolean;
         markClass?: string;
+        uiLocale?: string;
     }>(),
     {
         showText: true,
         markClass: 'h-9 w-9',
+        uiLocale: undefined,
     },
 );
 
 const logoPath = '/brand/atlas-logo.svg';
+const { t } = useTranslator(props.uiLocale);
 </script>
 
 <template>
@@ -23,7 +28,7 @@ const logoPath = '/brand/atlas-logo.svg';
         </div>
         <div v-if="showText" class="min-w-0">
             <p class="truncate text-sm font-semibold leading-5 text-zinc-950 dark:text-zinc-50">Atlas</p>
-            <p class="truncate text-xs leading-4 text-zinc-500 dark:text-zinc-400">Debt operations</p>
+            <p class="truncate text-xs leading-4 text-zinc-500 dark:text-zinc-400">{{ t('brand.subtitle') }}</p>
         </div>
     </div>
 </template>

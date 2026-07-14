@@ -26,7 +26,7 @@ const items = [
         <button type="button" class="absolute inset-0 bg-zinc-950/45" :aria-label="t('actions.close_navigation')" @click="emit('close')" />
         <div class="absolute inset-y-0 left-0 flex w-[min(22rem,calc(100vw-2rem))] flex-col bg-white shadow-2xl dark:bg-zinc-950">
             <div class="flex h-16 items-center justify-between border-b border-zinc-200 px-4 dark:border-zinc-800">
-                <AtlasLogo />
+                <AtlasLogo :ui-locale="uiLocale" />
                 <button
                     type="button"
                     class="inline-flex h-10 w-10 items-center justify-center rounded-lg text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-900 dark:hover:text-zinc-50"

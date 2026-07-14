@@ -36,7 +36,7 @@ const items: NavigationItem[] = [
             class="flex h-16 items-center border-b border-zinc-200 px-4 dark:border-zinc-800"
             :class="isSidebarCollapsed ? 'justify-center' : 'justify-start'"
         >
-            <AtlasLogo :show-text="!isSidebarCollapsed" />
+            <AtlasLogo :show-text="!isSidebarCollapsed" :ui-locale="uiLocale" />
         </div>
 
         <nav class="space-y-1 px-3 py-4" :aria-label="t('navigation.aria.main')">

@@ -10,10 +10,10 @@ Breadcrumbs::for('login', function (Generator $breadcrumbs): void {
 });
 
 Breadcrumbs::for('dashboard', function (Generator $breadcrumbs): void {
-    $breadcrumbs->push(__('breadcrumbs.dashboard'), route('dashboard'));
+    $breadcrumbs->push(__('breadcrumbs.app_dashboard'), route('dashboard'));
 });
 
 Breadcrumbs::for('admin.system-status', function (Generator $breadcrumbs): void {
     $breadcrumbs->push(__('breadcrumbs.admin'));
-    $breadcrumbs->push(__('breadcrumbs.dashboard'));
+    $breadcrumbs->push(__('breadcrumbs.admin_dashboard'));
 });
