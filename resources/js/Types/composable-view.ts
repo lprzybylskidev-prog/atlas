@@ -4,6 +4,8 @@ export type ComposableHostViewType = 'dashboard' | 'overview' | 'manager-workspa
 
 export type ComposableHostViewKey = 'app.dashboard' | 'admin.system-status';
 
+export type ComposableHostViewLayout = 'dashboard-sidebar' | 'overview-grid' | 'manager-workspace' | 'operational-status';
+
 export type ComposableViewElementKey = string;
 
 export type ComposableViewElementArea = 'main' | 'aside' | 'full';
@@ -58,6 +60,7 @@ export interface ComposableViewAcceptedElement {
 export interface ComposableHostViewDefinition {
     key: ComposableHostViewKey;
     type: ComposableHostViewType;
+    layout: ComposableHostViewLayout;
     titleKey: string;
     fallbackTitle: string;
     acceptedElements: readonly ComposableViewAcceptedElement[];

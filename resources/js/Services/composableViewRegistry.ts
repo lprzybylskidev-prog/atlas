@@ -12,6 +12,7 @@ export const COMPOSABLE_HOST_VIEWS: readonly ComposableHostViewDefinition[] = [
     {
         key: 'app.dashboard',
         type: 'dashboard',
+        layout: 'dashboard-sidebar',
         titleKey: 'views.dashboard.title',
         fallbackTitle: 'Dashboard operacyjny',
         acceptedElements: [
@@ -70,6 +71,7 @@ export const COMPOSABLE_HOST_VIEWS: readonly ComposableHostViewDefinition[] = [
     {
         key: 'admin.system-status',
         type: 'operational-status',
+        layout: 'operational-status',
         titleKey: 'views.admin.system_status.title',
         fallbackTitle: 'System status',
         acceptedElements: [],

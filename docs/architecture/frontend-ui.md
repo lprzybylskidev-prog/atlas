@@ -195,12 +195,20 @@ Current contracts live in:
 
 - `resources/js/Types/composable-view.ts`;
 - `resources/js/Services/composableViewRegistry.ts`;
+- `resources/js/Services/composableViewHostLayouts.ts`;
 - `resources/js/Components/ComposableView/ComposableViewHost.vue`.
 
 Host views have explicit technical keys, view types, accepted element keys, ordering, areas, and dimensions in code. The current host keys are:
 
 - `app.dashboard`;
 - `admin.system-status`.
+
+Reusable host layout presets are:
+
+- `dashboard-sidebar` for dashboards and module landing pages;
+- `overview-grid` for overview and module landing pages;
+- `manager-workspace` for manager workspaces;
+- `operational-status` for system and operational status views.
 
 View elements declare:
 
