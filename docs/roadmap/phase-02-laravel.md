@@ -20,11 +20,11 @@
 - Every request, job, integration, and audit-relevant flow must support a correlation/request ID.
 - The frontend and backend share one release/version identity.
 
-- [ ] Install latest stable Laravel inside the workspace root.
-- [ ] Use the latest stable PHP version supported by the selected Laravel release.
-- [ ] Configure PostgreSQL as the only application database.
-- [ ] Configure Redis for cache, sessions, queues, locks, and rate limits.
-- [ ] Install Laravel Boost as the first development package after Laravel exists.
+- [x] Install latest stable Laravel inside the workspace root.
+- [x] Use the latest stable PHP version supported by the selected Laravel release.
+- [x] Configure PostgreSQL as the only application database.
+- [x] Configure Redis for cache, sessions, queues, locks, and rate limits.
+- [x] Install Laravel Boost as the first development package after Laravel exists.
 - [ ] Install and configure Fortify.
 - [ ] Install and configure Horizon.
 - [ ] Install Scout.
@@ -35,12 +35,12 @@
 - [ ] Install Ziggy.
 - [ ] Install Pest and required Laravel testing support.
 - [ ] Install PHPStan and Larastan.
-- [ ] Configure Pint.
-- [ ] Add `declare(strict_types=1);` to all applicable PHP files and generation templates.
+- [x] Configure Pint.
+- [x] Add `declare(strict_types=1);` to all applicable PHP files and generation templates.
 - [ ] Define immutable Money value object with integer minor units and ISO 4217 currency.
 - [ ] Configure default application currency as `PLN` without permitting implicit currency loss.
 - [ ] Add tests preventing mixed-currency arithmetic/comparison without explicit conversion.
-- [ ] Configure centralized application timezone.
+- [x] Configure centralized application timezone.
 - [ ] Configure technical timestamps and presentation timezone rules.
 - [ ] Configure base logging with correlation/request IDs.
 - [ ] Add application version and release ID foundations.

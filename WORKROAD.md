@@ -37,7 +37,7 @@ Do not replace this index after the initial technical foundation is completed. C
 
 **Phase 2 — Laravel foundation**
 
-**Status:** `not started`
+**Status:** `in progress`
 
 [Open phase details](docs/roadmap/phase-02-laravel.md)
 
@@ -61,7 +61,7 @@ Create the reproducible development container and initial Docker skeleton while 
 
 ### Phase 2 — Laravel foundation
 
-**Status:** `not started`
+**Status:** `in progress`
 
 Install and configure the Laravel backend foundation, shared primitives, timezone, money model, Redis, and core runtime services.
 

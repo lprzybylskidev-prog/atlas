@@ -156,7 +156,9 @@ The development application container includes Docker CLI and the Docker Compose
 
 ## Current status
 
-Atlas currently has a detailed architecture, implementation roadmap, documentation system, and technical foundation plan. The implementation status and first unfinished phase are always shown in [`WORKROAD.md`](WORKROAD.md).
+Atlas currently has a detailed architecture, implementation roadmap, documentation system, Docker/Dev Container foundation, and a Laravel 13 application foundation running on PostgreSQL and Redis in development.
+
+The implementation status and first unfinished phase are always shown in [`WORKROAD.md`](WORKROAD.md).
 
 As the project grows, this README must present the current high-level system scope, major modules, supported workflows, setup entry points, and operational expectations.
 

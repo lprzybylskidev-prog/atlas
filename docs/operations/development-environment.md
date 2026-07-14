@@ -95,6 +95,18 @@ Validate required environment defaults with:
 bash scripts/validate-env.sh .env.example
 ```
 
+After Laravel is installed, run the local application server inside the Dev Container with:
+
+```text
+php artisan serve --host=0.0.0.0 --port=8000
+```
+
+Open the application from the host browser at:
+
+```text
+http://localhost:8000
+```
+
 ### Dev Container rebuild rule
 
 After the first successful Dev Container start, rebuilding is categorically forbidden as normal work because it may break the Codex VS Code extension.
