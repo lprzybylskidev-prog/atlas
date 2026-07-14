@@ -14,7 +14,7 @@ export const COMPOSABLE_HOST_VIEWS: readonly ComposableHostViewDefinition[] = [
         type: 'dashboard',
         layout: 'dashboard-sidebar',
         titleKey: 'views.dashboard.title',
-        fallbackTitle: 'Dashboard operacyjny',
+        fallbackTitle: 'Pulpit',
         acceptedElements: [],
     },
     {
