@@ -1,14 +1,6 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
-import {
-    IconGauge,
-    IconLayoutSidebarLeftCollapse,
-    IconLayoutSidebarLeftExpand,
-    IconReportAnalytics,
-    IconSearch,
-    IconShieldLock,
-    IconUsers,
-} from '@tabler/icons-vue';
+import { IconGauge, IconReportAnalytics, IconSearch, IconShieldLock, IconUsers } from '@tabler/icons-vue';
 import type { FunctionalComponent } from 'vue';
 
 import AtlasLogo from './AtlasLogo.vue';
@@ -25,7 +17,7 @@ const props = defineProps<{
     currentPath: string;
 }>();
 
-const { isSidebarCollapsed, toggleSidebar } = useSidebar();
+const { isSidebarCollapsed } = useSidebar();
 
 const items: NavigationItem[] = [
     { label: 'Dashboard', href: '/dashboard', icon: IconGauge, active: props.currentPath === '/dashboard' },
@@ -42,27 +34,10 @@ const items: NavigationItem[] = [
         :class="isSidebarCollapsed ? 'w-[5.25rem]' : 'w-72'"
     >
         <div
-            class="border-b border-zinc-200 px-4 dark:border-zinc-800"
-            :class="
-                isSidebarCollapsed
-                    ? 'flex min-h-24 flex-col items-center justify-center gap-2 py-3'
-                    : 'flex h-16 items-center justify-between gap-2'
-            "
+            class="flex h-16 items-center border-b border-zinc-200 px-4 dark:border-zinc-800"
+            :class="isSidebarCollapsed ? 'justify-center' : 'justify-start'"
         >
             <AtlasLogo :show-text="!isSidebarCollapsed" />
-            <button
-                type="button"
-                class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-zinc-500 transition hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-900 dark:hover:text-zinc-50"
-                :aria-label="isSidebarCollapsed ? 'Rozwiń panel boczny' : 'Zwiń panel boczny'"
-                @click="toggleSidebar"
-            >
-                <component
-                    :is="isSidebarCollapsed ? IconLayoutSidebarLeftExpand : IconLayoutSidebarLeftCollapse"
-                    aria-hidden="true"
-                    class="h-5 w-5"
-                    :stroke-width="1.8"
-                />
-            </button>
         </div>
 
         <nav class="space-y-1 px-3 py-4" aria-label="Główna nawigacja">

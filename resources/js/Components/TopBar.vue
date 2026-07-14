@@ -5,6 +5,8 @@ import {
     IconCircleCheck,
     IconClockHour4,
     IconLanguage,
+    IconLayoutSidebarLeftCollapse,
+    IconLayoutSidebarLeftExpand,
     IconLogout,
     IconMenu2,
     IconMoon,
@@ -13,10 +15,11 @@ import {
     IconUserCircle,
     IconUsersGroup,
 } from '@tabler/icons-vue';
-import { computed, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 
 import IconButton from './IconButton.vue';
 import StatusPill from './StatusPill.vue';
+import { useSidebar } from '../Composables/useSidebar';
 import { useTheme } from '../Composables/useTheme';
 import type { AtlasPageProps } from '../Types/inertia';
 
@@ -30,8 +33,11 @@ const emit = defineEmits<{
 }>();
 
 const page = usePage<AtlasPageProps>();
+const { isSidebarCollapsed, toggleSidebar } = useSidebar();
 const { isDark, toggleTheme } = useTheme();
 const userMenuOpen = ref(false);
+const userMenuButton = ref<HTMLElement | null>(null);
+const userMenuPanel = ref<HTMLElement | null>(null);
 
 const notifications = [
     { title: 'Nowa notatka w sprawie AT-2041', meta: '2 min temu', unread: true },
@@ -59,6 +65,40 @@ const logout = (): void => {
 const toggleUserMenu = (): void => {
     userMenuOpen.value = !userMenuOpen.value;
 };
+
+const closeUserMenu = (): void => {
+    userMenuOpen.value = false;
+};
+
+const handleOutsidePointerDown = (event: PointerEvent): void => {
+    const target = event.target;
+
+    if (!(target instanceof Node)) {
+        return;
+    }
+
+    if (userMenuButton.value?.contains(target) || userMenuPanel.value?.contains(target)) {
+        return;
+    }
+
+    closeUserMenu();
+};
+
+const handleEscape = (event: KeyboardEvent): void => {
+    if (event.key === 'Escape') {
+        closeUserMenu();
+    }
+};
+
+onMounted(() => {
+    document.addEventListener('pointerdown', handleOutsidePointerDown);
+    document.addEventListener('keydown', handleEscape);
+});
+
+onBeforeUnmount(() => {
+    document.removeEventListener('pointerdown', handleOutsidePointerDown);
+    document.removeEventListener('keydown', handleEscape);
+});
 </script>
 
 <template>
@@ -72,6 +112,19 @@ const toggleUserMenu = (): void => {
                     @click="emit('openMobileMenu')"
                 >
                     <IconMenu2 aria-hidden="true" class="h-5 w-5" :stroke-width="1.8" />
+                </button>
+                <button
+                    type="button"
+                    class="hidden h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-zinc-200 text-zinc-600 transition hover:border-teal-200 hover:bg-teal-50 hover:text-teal-800 lg:inline-flex dark:border-zinc-800 dark:text-zinc-300 dark:hover:border-teal-700 dark:hover:bg-teal-950/50 dark:hover:text-teal-100"
+                    :aria-label="isSidebarCollapsed ? 'Rozwiń panel boczny' : 'Zwiń panel boczny'"
+                    @click="toggleSidebar"
+                >
+                    <component
+                        :is="isSidebarCollapsed ? IconLayoutSidebarLeftExpand : IconLayoutSidebarLeftCollapse"
+                        aria-hidden="true"
+                        class="h-5 w-5"
+                        :stroke-width="1.8"
+                    />
                 </button>
                 <div class="min-w-0">
                     <div class="flex items-center gap-2 text-xs text-zinc-500 dark:text-zinc-400">
@@ -116,6 +169,7 @@ const toggleUserMenu = (): void => {
 
                 <div class="relative hidden pl-1 sm:block">
                     <button
+                        ref="userMenuButton"
                         type="button"
                         class="flex h-10 items-center gap-2 rounded-lg border border-zinc-200 bg-white px-1.5 pr-2 text-sm font-medium text-zinc-700 transition hover:border-teal-200 hover:bg-teal-50 hover:text-teal-800 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:border-teal-700 dark:hover:bg-teal-950/50 dark:hover:text-teal-100"
                         aria-haspopup="menu"
@@ -133,6 +187,7 @@ const toggleUserMenu = (): void => {
 
                     <div
                         v-if="userMenuOpen"
+                        ref="userMenuPanel"
                         class="absolute right-0 top-12 z-50 w-80 overflow-hidden rounded-lg border border-zinc-200 bg-white shadow-xl shadow-zinc-950/10 dark:border-zinc-800 dark:bg-zinc-900 dark:shadow-black/30"
                         role="menu"
                         aria-label="Menu użytkownika"
