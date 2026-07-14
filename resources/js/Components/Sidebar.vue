@@ -29,7 +29,7 @@ const items: NavigationItem[] = [
 
 <template>
     <aside
-        class="hidden min-h-screen shrink-0 border-r border-zinc-200 bg-white transition-[width] duration-200 lg:block dark:border-zinc-800 dark:bg-zinc-950"
+        class="hidden min-h-screen shrink-0 overflow-visible border-r border-zinc-200 bg-white transition-[width] duration-300 ease-in-out lg:block dark:border-zinc-800 dark:bg-zinc-950"
         :class="isSidebarCollapsed ? 'w-[5.25rem]' : 'w-72'"
     >
         <div
@@ -53,9 +53,18 @@ const items: NavigationItem[] = [
                 ]"
             >
                 <component :is="item.icon" aria-hidden="true" class="h-5 w-5 shrink-0" :stroke-width="1.8" />
-                <span v-if="!isSidebarCollapsed" class="truncate">{{ item.label }}</span>
+                <Transition
+                    enter-active-class="transition duration-200 ease-out"
+                    enter-from-class="-translate-x-1 opacity-0"
+                    enter-to-class="translate-x-0 opacity-100"
+                    leave-active-class="transition duration-150 ease-in"
+                    leave-from-class="translate-x-0 opacity-100"
+                    leave-to-class="-translate-x-1 opacity-0"
+                >
+                    <span v-if="!isSidebarCollapsed" class="truncate whitespace-nowrap">{{ item.label }}</span>
+                </Transition>
                 <span
-                    v-else
+                    v-if="isSidebarCollapsed"
                     class="pointer-events-none absolute left-full z-50 ml-2 hidden rounded-md bg-zinc-950 px-2 py-1 text-xs font-medium text-white shadow-lg group-hover:block group-focus-visible:block dark:bg-zinc-100 dark:text-zinc-950"
                 >
                     {{ item.label }}

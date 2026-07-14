@@ -26,9 +26,18 @@ const { t } = useTranslator(props.uiLocale);
         >
             <img :src="logoPath" alt="" class="h-6 w-6" />
         </div>
-        <div v-if="showText" class="min-w-0">
-            <p class="truncate text-sm font-semibold leading-5 text-zinc-950 dark:text-zinc-50">Atlas</p>
-            <p class="truncate text-xs leading-4 text-zinc-500 dark:text-zinc-400">{{ t('brand.subtitle') }}</p>
-        </div>
+        <Transition
+            enter-active-class="transition duration-200 ease-out"
+            enter-from-class="-translate-x-1 opacity-0"
+            enter-to-class="translate-x-0 opacity-100"
+            leave-active-class="transition duration-150 ease-in"
+            leave-from-class="translate-x-0 opacity-100"
+            leave-to-class="-translate-x-1 opacity-0"
+        >
+            <div v-if="showText" class="min-w-0">
+                <p class="truncate text-sm font-semibold leading-5 text-zinc-950 dark:text-zinc-50">Atlas</p>
+                <p class="truncate text-xs leading-4 text-zinc-500 dark:text-zinc-400">{{ t('brand.subtitle') }}</p>
+            </div>
+        </Transition>
     </div>
 </template>
