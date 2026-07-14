@@ -27,6 +27,11 @@ const applyTheme = (nextTheme: Theme): void => {
     window.localStorage.setItem(storageKey, nextTheme);
 };
 
+if (typeof window !== 'undefined') {
+    document.documentElement.classList.toggle('dark', theme.value === 'dark');
+    document.documentElement.dataset.theme = theme.value;
+}
+
 export const useTheme = () => {
     const isDark = computed(() => theme.value === 'dark');
 

@@ -34,6 +34,10 @@ At the frontend foundation checkpoint, `composer lint` also runs `pnpm lint` and
 
 `pnpm check` runs TypeScript checking, ESLint, Stylelint, Vitest, and the production Vite build.
 
+`pnpm test:e2e` runs Playwright against isolated local servers on `127.0.0.1:8010` for Laravel and `127.0.0.1:5174` for Vite. The Playwright setup migrates the configured local database, clears cache-backed test state, and seeds `DevelopmentDemoSeeder` so authenticated shell checks can log in through the real login form.
+
+E2E tests must import `test` and `expect` from `tests/e2e/support/test`. The shared fixture fails tests on browser `pageerror`, `console.error`, failed monitored asset/API requests, and HTTP 4xx/5xx responses for documents, scripts, stylesheets, fonts, images, fetch, and XHR resources.
+
 Configure VS Code format-on-save for backend and frontend.
 
 ---

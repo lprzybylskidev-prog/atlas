@@ -8,6 +8,7 @@
 /.pnpm-store/
 
 /public/build/
+/public/fonts-manifest.dev.json
 /public/hot
 /tsconfig.tsbuildinfo
 /storage/*.key

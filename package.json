@@ -8,15 +8,17 @@
         "build": "vite build",
         "check": "pnpm typecheck && pnpm lint && pnpm stylelint && pnpm test && pnpm build",
         "dev": "vite",
-        "format": "prettier --write resources/js resources/css eslint.config.js prettier.config.js stylelint.config.js vite.config.js",
-        "lint": "eslint resources/js --max-warnings=0",
+        "format": "prettier --write resources/js resources/css tests/e2e eslint.config.js playwright.config.ts prettier.config.js stylelint.config.js tsconfig.e2e.json vite.config.js",
+        "lint": "eslint resources/js tests/e2e playwright.config.ts --max-warnings=0",
         "stylelint": "stylelint resources/css/**/*.css",
-        "test": "vitest run --passWithNoTests",
+        "test": "vitest run resources/js --passWithNoTests",
         "test:e2e": "playwright test",
-        "typecheck": "vue-tsc --noEmit"
+        "typecheck": "vue-tsc --noEmit && tsc --noEmit --project tsconfig.e2e.json"
     },
     "devDependencies": {
+        "@playwright/test": "^1.61.1",
         "@tailwindcss/vite": "^4.0.0",
+        "@types/node": "^26.1.1",
         "concurrently": "^9.0.1",
         "eslint": "^10.7.0",
         "eslint-plugin-tailwindcss": "^4.2.0",
