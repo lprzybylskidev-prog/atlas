@@ -16,6 +16,12 @@ export interface AtlasPageProps {
         user: AtlasUser | null;
     };
     locale: string;
+    navigation: {
+        breadcrumbs: {
+            label: string;
+            url: string | null;
+        }[];
+    };
     flash: {
         success: string | null;
         error: string | null;

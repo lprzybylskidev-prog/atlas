@@ -139,7 +139,7 @@
 - [x] Build collapsible module sidebar.
 - [x] Build top bar.
 - [x] Build active-team selector.
-- [ ] Add centralized breadcrumbs.
+- [x] Add centralized breadcrumbs.
 - [ ] Implement PL/EN localization with Polish as default.
 - [ ] Add translation-parity checks.
 - [x] Establish light and dark themes in parallel.

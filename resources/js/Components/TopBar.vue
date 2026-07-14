@@ -70,6 +70,8 @@ const closeUserMenu = (): void => {
     userMenuOpen.value = false;
 };
 
+const breadcrumbs = computed(() => page.props.navigation.breadcrumbs);
+
 const handleOutsidePointerDown = (event: PointerEvent): void => {
     const target = event.target;
 
@@ -127,11 +129,22 @@ onBeforeUnmount(() => {
                     />
                 </button>
                 <div class="min-w-0">
-                    <div class="flex items-center gap-2 text-xs text-zinc-500 dark:text-zinc-400">
+                    <nav class="flex min-w-0 items-center gap-2 text-xs text-zinc-500 dark:text-zinc-400" aria-label="Breadcrumb">
                         <span>{{ section }}</span>
-                        <span aria-hidden="true">/</span>
-                        <span>Atlas</span>
-                    </div>
+                        <template v-for="(breadcrumb, index) in breadcrumbs" :key="`${breadcrumb.label}-${index}`">
+                            <span aria-hidden="true">/</span>
+                            <Link
+                                v-if="breadcrumb.url !== null && index < breadcrumbs.length - 1"
+                                :href="breadcrumb.url"
+                                class="truncate hover:text-teal-700 focus-visible:outline focus-visible:outline-amber-500 dark:hover:text-teal-300"
+                            >
+                                {{ breadcrumb.label }}
+                            </Link>
+                            <span v-else class="truncate" :aria-current="index === breadcrumbs.length - 1 ? 'page' : undefined">
+                                {{ breadcrumb.label }}
+                            </span>
+                        </template>
+                    </nav>
                     <h1 class="truncate text-base font-semibold text-zinc-950 dark:text-zinc-50 sm:text-lg">{{ title }}</h1>
                 </div>
             </div>

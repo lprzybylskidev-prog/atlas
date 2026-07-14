@@ -136,6 +136,8 @@ Breadcrumbs use:
 - permissions;
 - team context.
 
+Breadcrumb definitions live in `routes/breadcrumbs.php` and are shared with Inertia as `navigation.breadcrumbs`.
+
 ### Routes
 
 Every route:

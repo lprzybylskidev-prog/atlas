@@ -35,11 +35,20 @@ final class FrontendShellTest extends TestCase
         $this->actingAs($user)
             ->get('/')
             ->assertOk()
-            ->assertInertia(fn (AssertableInertia $page) => $page->component('Dashboard'));
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->component('Dashboard')
+                ->has('navigation.breadcrumbs', 1)
+                ->where('navigation.breadcrumbs.0.label', 'Dashboard')
+                ->where('navigation.breadcrumbs.0.url', 'http://localhost:8000'));
 
         $this->actingAs($user)
             ->get('/admin')
             ->assertOk()
-            ->assertInertia(fn (AssertableInertia $page) => $page->component('Admin/SystemStatus'));
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->component('Admin/SystemStatus')
+                ->has('navigation.breadcrumbs', 3)
+                ->where('navigation.breadcrumbs.0.label', 'Dashboard')
+                ->where('navigation.breadcrumbs.1.label', 'Admin')
+                ->where('navigation.breadcrumbs.2.label', 'Status systemu'));
     }
 }
