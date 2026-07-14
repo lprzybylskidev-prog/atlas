@@ -8,8 +8,13 @@ use Tests\TestCase;
 
 final class HomePageTest extends TestCase
 {
-    public function test_home_page_redirects_to_the_application_entrypoint(): void
+    public function test_home_page_redirects_guests_to_login(): void
     {
-        $this->get('/')->assertRedirect('/dashboard');
+        $this->get('/')->assertRedirect('/login');
+    }
+
+    public function test_legacy_dashboard_path_redirects_to_home(): void
+    {
+        $this->get('/dashboard')->assertRedirect('/');
     }
 }

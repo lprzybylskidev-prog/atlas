@@ -13,10 +13,10 @@ const emit = defineEmits<{
 }>();
 
 const items = [
-    { label: 'Dashboard', href: '/dashboard', icon: IconGauge },
-    { label: 'Sprawy', href: '/dashboard', icon: IconReportAnalytics },
-    { label: 'Dłużnicy', href: '/dashboard', icon: IconUsers },
-    { label: 'Wyszukiwanie', href: '/dashboard', icon: IconSearch },
+    { label: 'Dashboard', href: '/', icon: IconGauge },
+    { label: 'Sprawy', href: '/', icon: IconReportAnalytics },
+    { label: 'Dłużnicy', href: '/', icon: IconUsers },
+    { label: 'Wyszukiwanie', href: '/', icon: IconSearch },
     { label: 'Admin', href: '/admin', icon: IconShieldLock },
 ];
 </script>

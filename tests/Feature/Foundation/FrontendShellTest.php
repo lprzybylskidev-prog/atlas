@@ -24,7 +24,7 @@ final class FrontendShellTest extends TestCase
 
     public function test_application_and_admin_previews_require_authentication(): void
     {
-        $this->get('/dashboard')->assertRedirect('/login');
+        $this->get('/')->assertRedirect('/login');
         $this->get('/admin')->assertRedirect('/login');
     }
 
@@ -33,7 +33,7 @@ final class FrontendShellTest extends TestCase
         $user = User::factory()->create();
 
         $this->actingAs($user)
-            ->get('/dashboard')
+            ->get('/')
             ->assertOk()
             ->assertInertia(fn (AssertableInertia $page) => $page->component('Dashboard'));
 

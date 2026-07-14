@@ -20,10 +20,10 @@ const props = defineProps<{
 const { isSidebarCollapsed } = useSidebar();
 
 const items: NavigationItem[] = [
-    { label: 'Dashboard', href: '/dashboard', icon: IconGauge, active: props.currentPath === '/dashboard' },
-    { label: 'Sprawy', href: '/dashboard', icon: IconReportAnalytics, active: false },
-    { label: 'Dłużnicy', href: '/dashboard', icon: IconUsers, active: false },
-    { label: 'Wyszukiwanie', href: '/dashboard', icon: IconSearch, active: false },
+    { label: 'Dashboard', href: '/', icon: IconGauge, active: props.currentPath === '/' },
+    { label: 'Sprawy', href: '/', icon: IconReportAnalytics, active: false },
+    { label: 'Dłużnicy', href: '/', icon: IconUsers, active: false },
+    { label: 'Wyszukiwanie', href: '/', icon: IconSearch, active: false },
     { label: 'Admin', href: '/admin', icon: IconShieldLock, active: props.currentPath.startsWith('/admin') },
 ];
 </script>
