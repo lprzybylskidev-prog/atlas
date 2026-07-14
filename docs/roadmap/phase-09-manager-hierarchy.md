@@ -42,4 +42,5 @@
 - [ ] Require reason for changes.
 - [ ] Audit all changes.
 - [ ] Add permissions for read, create, update, and end relationship.
+- [ ] Add development-only demo seeders for example manager relationships after real hierarchy tables exist.
 - [ ] Commit manager hierarchy.

@@ -42,7 +42,7 @@ Do not replace this index after the initial technical foundation is completed. C
 
 ### Phase 0 — Repository bootstrap
 
-**Status:** `in progress`
+**Status:** `complete`
 
 Initialize the independent repository, naming, seed strategy, source-delivery model, and foundational documentation.
 

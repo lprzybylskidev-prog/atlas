@@ -30,6 +30,8 @@
   - example TimeTracking scenarios;
   - example imports and process statuses;
   - later neutral or debt-collection demonstration scenarios.
+- Phase 0 creates only the production-safe seeding boundary, the reset command, and the current foundation-level preview user.
+- Module-specific demo seeders are created in the owning module phases after their real tables and invariants exist; Phase 0 must not introduce placeholder tables or fake module implementations to satisfy demo data.
 - Demo users use unmistakably non-production addresses under reserved domains such as `example.test`.
 - Any known demo credentials are permitted only in development, must be clearly documented, and must never be reusable in production.
 - Provide one explicit command to recreate or reset the complete demo environment.
@@ -54,13 +56,14 @@
 - [x] Create initial documentation tree under `docs/`.
 - [x] Separate technical seeders from development-only demo seeders.
 - [x] Define the minimal technical seed contract for starter roles, permission catalogs, and required bootstrap reference data.
-- [ ] Create development-only demo seeders for teams, users, managers, notifications, TimeTracking, and import scenarios.
+- [x] Create development-only demo seeders for the current foundation preview user.
+- [x] Defer teams, managers, notifications, TimeTracking, import scenarios, and other module-specific demo seeders to their owning module phases.
 - [x] Use reserved `example.test` addresses for all demo accounts.
 - [x] Document development-only demo credentials without exposing them to production.
-- [ ] Add one command to recreate/reset the complete demo environment.
-- [ ] Make the demo reset command refuse non-development environments.
-- [ ] Ensure production deploy commands never invoke demo seeders.
-- [ ] Add tests proving production cannot run the demo reset flow.
-- [ ] Ensure automated tests use factories/fixtures rather than demo data.
+- [x] Add one command to recreate/reset the complete current demo environment.
+- [x] Make the demo reset command refuse non-development environments.
+- [x] Ensure production deploy commands never invoke demo seeders.
+- [x] Add tests proving production cannot run the demo reset flow.
+- [x] Ensure automated tests use factories/fixtures rather than demo data.
 - [x] Create initial ADR describing modular monolith, DDD, and one-repository strategy.
 - [x] Create first clean Conventional Commit.

@@ -38,4 +38,5 @@
 - [ ] Add session invalidation events.
 - [ ] Add system alerts.
 - [ ] Add progress events for queued operations.
+- [ ] Add development-only demo seeders for example notifications after real notification tables exist.
 - [ ] Commit notifications and realtime foundation.

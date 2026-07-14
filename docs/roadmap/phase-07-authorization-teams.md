@@ -145,4 +145,5 @@
 - [ ] Ensure package definition changes never mutate roles automatically.
 - [ ] Show a role-versus-current-template diff.
 - [ ] Allow Core starter templates without forcing one organizational model.
+- [ ] Add development-only demo seeders for example teams and users after real team and authorization tables exist.
 - [ ] Commit authorization foundation.

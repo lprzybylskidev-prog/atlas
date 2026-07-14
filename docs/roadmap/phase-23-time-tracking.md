@@ -236,6 +236,7 @@
 - [ ] Add optional period comparison.
 - [ ] Add TailAdmin Pro charts after license confirmation.
 - [ ] Ensure impersonation time is simulated and excluded from official records.
+- [ ] Add development-only demo seeders for example TimeTracking scenarios after real TimeTracking tables exist.
 - [ ] Add complete audit.
 - [ ] Add complete tests.
 - [ ] Add module documentation.
