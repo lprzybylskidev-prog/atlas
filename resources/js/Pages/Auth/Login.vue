@@ -68,12 +68,6 @@ const submit = (): void => {
             >
                 {{ form.processing ? 'Logowanie...' : 'Zaloguj' }}
             </button>
-
-            <div
-                class="rounded-lg border border-zinc-200 bg-zinc-50 p-3 text-xs leading-5 text-zinc-600 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-300"
-            >
-                Demo: <span class="font-medium">atlas@example.test</span> / <span class="font-medium">password</span>
-            </div>
         </form>
     </AuthLayout>
 </template>

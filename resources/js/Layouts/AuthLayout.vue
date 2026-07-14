@@ -29,7 +29,7 @@ const page = usePage<AtlasPageProps>();
                     windykacyjnymi.
                 </p>
             </div>
-            <div class="grid grid-cols-3 gap-3 text-xs text-zinc-500 dark:text-zinc-400">
+            <div class="grid grid-cols-2 gap-3 text-xs text-zinc-500 dark:text-zinc-400">
                 <div class="rounded-lg border border-zinc-200 p-3 dark:border-zinc-800">
                     <span class="block text-[0.7rem] text-zinc-400 dark:text-zinc-500">Wersja</span>
                     <span class="mt-1 block truncate font-medium text-zinc-800 dark:text-zinc-100">{{
@@ -39,10 +39,6 @@ const page = usePage<AtlasPageProps>();
                 <div class="rounded-lg border border-zinc-200 p-3 dark:border-zinc-800">
                     <span class="block text-[0.7rem] text-zinc-400 dark:text-zinc-500">Język</span>
                     <span class="mt-1 block truncate font-medium uppercase text-zinc-800 dark:text-zinc-100">{{ page.props.locale }}</span>
-                </div>
-                <div class="rounded-lg border border-zinc-200 p-3 dark:border-zinc-800">
-                    <span class="block text-[0.7rem] text-zinc-400 dark:text-zinc-500">Release</span>
-                    <span class="mt-1 block truncate font-medium text-zinc-800 dark:text-zinc-100">{{ page.props.app.release.id }}</span>
                 </div>
             </div>
         </section>
