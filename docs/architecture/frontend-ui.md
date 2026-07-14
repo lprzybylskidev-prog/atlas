@@ -114,14 +114,14 @@ Top bar:
 
 Team switching must be visible enough to avoid accidental context mistakes.
 
-The initial review shell includes:
+The baseline frontend shell includes:
 
 - `AuthLayout` for login;
 - `AppLayout` for authenticated application screens;
 - `AdminLayout` for authenticated administrative screens;
 - collapsible desktop sidebar;
 - mobile navigation drawer;
-- top bar with theme, notification, settings, admin, active team, avatar, and logout controls.
+- top bar with theme, language, admin, active team, avatar, and logout controls.
 
 The active team selector is currently a visible placeholder. Real team switching, backend authorization, and team-scoped state clearing are implemented in later identity, team, authorization, and settings phases.
 

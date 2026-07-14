@@ -1,21 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
-import activeTeamElement from './Elements/DashboardActiveTeamElement.vue?raw';
-import contractElement from './Elements/DashboardContractElement.vue?raw';
 import host from './ComposableViewHost.vue?raw';
-import introductionElement from './Elements/DashboardIntroductionElement.vue?raw';
-import metricsElement from './Elements/DashboardMetricsElement.vue?raw';
-import nextStepsElement from './Elements/DashboardNextStepsElement.vue?raw';
 import viewElement from './ComposableViewElement.vue?raw';
 
 const files: Record<string, string> = {
     'ComposableViewElement.vue': viewElement,
     'ComposableViewHost.vue': host,
-    'Elements/DashboardActiveTeamElement.vue': activeTeamElement,
-    'Elements/DashboardContractElement.vue': contractElement,
-    'Elements/DashboardIntroductionElement.vue': introductionElement,
-    'Elements/DashboardMetricsElement.vue': metricsElement,
-    'Elements/DashboardNextStepsElement.vue': nextStepsElement,
 };
 
 describe('composable view UI guardrails', () => {
@@ -26,7 +16,7 @@ describe('composable view UI guardrails', () => {
     });
 
     it('keeps light and dark theme classes in composable view renderers', () => {
-        const themedFiles = ['ComposableViewElement.vue', 'Elements/DashboardIntroductionElement.vue', 'Elements/DashboardMetricsElement.vue'];
+        const themedFiles = ['ComposableViewElement.vue', 'ComposableViewHost.vue'];
 
         for (const file of themedFiles) {
             const contents = files[file];

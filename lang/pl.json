@@ -6,7 +6,7 @@
     "breadcrumbs.admin": "Admin",
     "breadcrumbs.dashboard": "Dashboard",
     "breadcrumbs.login": "Logowanie",
-    "breadcrumbs.system_status": "Status systemu",
+    "breadcrumbs.system_status": "System status",
     "Encrypted environment file already exists.": "Zaszyfrowany plik konfiguracji środowiska już istnieje.",
     "Encrypted environment file not found.": "Nie znaleziono zaszyfrowanego pliku konfiguracji środowiska.",
     "Environment file already exists.": "Plik konfiguracji środowiska już istnieje.",

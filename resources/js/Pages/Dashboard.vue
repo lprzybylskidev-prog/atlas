@@ -1,17 +1,13 @@
 <script setup lang="ts">
 import { Head } from '@inertiajs/vue3';
 
-import ComposableViewHost from '../Components/ComposableView/ComposableViewHost.vue';
 import AppLayout from '../Layouts/AppLayout.vue';
-import { resolveComposableHostView } from '../Services/composableViewRegistry';
-import { foundationDashboardElements } from '../Services/foundationDashboardElements';
+import { useTranslator } from '../Localization/translator';
 
-const view = resolveComposableHostView('app.dashboard', foundationDashboardElements);
+const { t } = useTranslator();
 </script>
 
 <template>
-    <Head title="Dashboard" />
-    <AppLayout title="Dashboard operacyjny">
-        <ComposableViewHost :view="view" />
-    </AppLayout>
+    <Head :title="t('pages.dashboard.head_title')" />
+    <AppLayout :title="t('pages.dashboard.title')" />
 </template>

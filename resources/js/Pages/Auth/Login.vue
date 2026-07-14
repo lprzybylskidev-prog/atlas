@@ -2,12 +2,15 @@
 import { Head, useForm } from '@inertiajs/vue3';
 
 import AuthLayout from '../../Layouts/AuthLayout.vue';
+import { useTranslator } from '../../Localization/translator';
 
 const form = useForm({
     email: '',
     password: '',
     remember: false,
 });
+
+const { t } = useTranslator();
 
 const submit = (): void => {
     form.post('/login', {
@@ -17,11 +20,11 @@ const submit = (): void => {
 </script>
 
 <template>
-    <Head title="Logowanie" />
-    <AuthLayout title="Zaloguj się" subtitle="Uzyskaj dostęp do swojego obszaru pracy, aktywnego zespołu oraz narzędzi operacyjnych Atlas.">
+    <Head :title="t('auth.login.head_title')" />
+    <AuthLayout :title="t('auth.login.title')" :subtitle="t('auth.login.subtitle')">
         <form class="space-y-5" novalidate @submit.prevent="submit">
             <div>
-                <label for="email" class="block text-sm font-medium text-zinc-800 dark:text-zinc-100">Email</label>
+                <label for="email" class="block text-sm font-medium text-zinc-800 dark:text-zinc-100">{{ t('auth.login.email') }}</label>
                 <div class="auth-input-frame mt-2">
                     <input
                         id="email"
@@ -39,7 +42,7 @@ const submit = (): void => {
             </div>
 
             <div>
-                <label for="password" class="block text-sm font-medium text-zinc-800 dark:text-zinc-100">Hasło</label>
+                <label for="password" class="block text-sm font-medium text-zinc-800 dark:text-zinc-100">{{ t('auth.login.password') }}</label>
                 <div class="auth-input-frame mt-2">
                     <input
                         id="password"
@@ -58,7 +61,7 @@ const submit = (): void => {
 
             <label class="flex items-center gap-3 text-sm text-zinc-700 dark:text-zinc-200">
                 <input v-model="form.remember" type="checkbox" class="auth-checkbox" />
-                Zapamiętaj mnie
+                {{ t('auth.login.remember') }}
             </label>
 
             <button
@@ -66,7 +69,7 @@ const submit = (): void => {
                 class="inline-flex h-11 w-full items-center justify-center rounded-lg bg-teal-700 px-4 text-sm font-semibold text-white transition hover:bg-teal-800 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-teal-400 dark:text-zinc-950 dark:hover:bg-teal-300"
                 :disabled="form.processing"
             >
-                {{ form.processing ? 'Logowanie...' : 'Zaloguj' }}
+                {{ form.processing ? t('auth.login.submitting') : t('auth.login.submit') }}
             </button>
         </form>
     </AuthLayout>

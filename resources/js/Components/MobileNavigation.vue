@@ -1,42 +1,43 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
-import { IconGauge, IconReportAnalytics, IconSearch, IconShieldLock, IconUsers, IconX } from '@tabler/icons-vue';
+import { IconGauge, IconShieldLock, IconX } from '@tabler/icons-vue';
 
 import AtlasLogo from './AtlasLogo.vue';
+import { useTranslator } from '../Localization/translator';
 
-defineProps<{
+const props = defineProps<{
     open: boolean;
+    uiLocale?: string;
 }>();
 
 const emit = defineEmits<{
     close: [];
 }>();
 
+const { t } = useTranslator(props.uiLocale);
+
 const items = [
-    { label: 'Dashboard', href: '/', icon: IconGauge },
-    { label: 'Sprawy', href: '/', icon: IconReportAnalytics },
-    { label: 'Dłużnicy', href: '/', icon: IconUsers },
-    { label: 'Wyszukiwanie', href: '/', icon: IconSearch },
-    { label: 'Admin', href: '/admin', icon: IconShieldLock },
+    { label: t('navigation.dashboard'), href: '/', icon: IconGauge },
+    { label: t('navigation.admin'), href: '/admin', icon: IconShieldLock },
 ];
 </script>
 
 <template>
     <div v-if="open" class="fixed inset-0 z-50 lg:hidden" role="dialog" aria-modal="true">
-        <button type="button" class="absolute inset-0 bg-zinc-950/45" aria-label="Zamknij nawigację" @click="emit('close')" />
+        <button type="button" class="absolute inset-0 bg-zinc-950/45" :aria-label="t('actions.close_navigation')" @click="emit('close')" />
         <div class="absolute inset-y-0 left-0 flex w-[min(22rem,calc(100vw-2rem))] flex-col bg-white shadow-2xl dark:bg-zinc-950">
             <div class="flex h-16 items-center justify-between border-b border-zinc-200 px-4 dark:border-zinc-800">
                 <AtlasLogo />
                 <button
                     type="button"
                     class="inline-flex h-10 w-10 items-center justify-center rounded-lg text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-900 dark:hover:text-zinc-50"
-                    aria-label="Zamknij nawigację"
+                    :aria-label="t('actions.close_navigation')"
                     @click="emit('close')"
                 >
                     <IconX aria-hidden="true" class="h-5 w-5" :stroke-width="1.8" />
                 </button>
             </div>
-            <nav class="space-y-1 p-4" aria-label="Mobilna nawigacja">
+            <nav class="space-y-1 p-4" :aria-label="t('navigation.aria.mobile')">
                 <Link
                     v-for="item in items"
                     :key="item.label"

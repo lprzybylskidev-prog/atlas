@@ -2,6 +2,7 @@
 import AtlasLogo from '../Components/AtlasLogo.vue';
 import IconButton from '../Components/IconButton.vue';
 import { useTheme } from '../Composables/useTheme';
+import { useTranslator } from '../Localization/translator';
 import type { AtlasPageProps } from '../Types/inertia';
 import { usePage } from '@inertiajs/vue3';
 import { IconLanguage, IconMoon, IconSun } from '@tabler/icons-vue';
@@ -13,6 +14,7 @@ defineProps<{
 
 const { isDark, toggleTheme } = useTheme();
 const page = usePage<AtlasPageProps>();
+const { t } = useTranslator();
 </script>
 
 <template>
@@ -23,21 +25,20 @@ const page = usePage<AtlasPageProps>();
             <AtlasLogo />
             <div class="max-w-md">
                 <p class="text-sm font-medium text-teal-700 dark:text-teal-300">Atlas</p>
-                <h1 class="mt-3 text-3xl font-semibold leading-tight text-zinc-950 dark:text-zinc-50">Operacyjny pulpit windykacji</h1>
+                <h1 class="mt-3 text-3xl font-semibold leading-tight text-zinc-950 dark:text-zinc-50">{{ t('auth.shell.heading') }}</h1>
                 <p class="mt-4 text-sm leading-6 text-zinc-600 dark:text-zinc-300">
-                    Bezpieczne centrum pracy dla zespołów obsługujących sprawy, działania terenowe, komunikację i nadzór nad procesami
-                    windykacyjnymi.
+                    {{ t('auth.shell.body') }}
                 </p>
             </div>
             <div class="grid grid-cols-2 gap-3 text-xs text-zinc-500 dark:text-zinc-400">
                 <div class="rounded-lg border border-zinc-200 p-3 dark:border-zinc-800">
-                    <span class="block text-[0.7rem] text-zinc-400 dark:text-zinc-500">Wersja</span>
+                    <span class="block text-[0.7rem] text-zinc-400 dark:text-zinc-500">{{ t('app.version') }}</span>
                     <span class="mt-1 block truncate font-medium text-zinc-800 dark:text-zinc-100">{{
                         page.props.app.release.version
                     }}</span>
                 </div>
                 <div class="rounded-lg border border-zinc-200 p-3 dark:border-zinc-800">
-                    <span class="block text-[0.7rem] text-zinc-400 dark:text-zinc-500">Język</span>
+                    <span class="block text-[0.7rem] text-zinc-400 dark:text-zinc-500">{{ t('app.locale') }}</span>
                     <span class="mt-1 block truncate font-medium uppercase text-zinc-800 dark:text-zinc-100">{{ page.props.locale }}</span>
                 </div>
             </div>
@@ -49,9 +50,9 @@ const page = usePage<AtlasPageProps>();
                     <AtlasLogo />
                 </div>
                 <div class="ml-auto flex items-center gap-2">
-                    <IconButton label="Zmień język" :icon="IconLanguage" />
+                    <IconButton :label="t('actions.change_language')" :icon="IconLanguage" />
                     <IconButton
-                        :label="isDark ? 'Włącz jasny motyw' : 'Włącz ciemny motyw'"
+                        :label="isDark ? t('actions.switch_light_theme') : t('actions.switch_dark_theme')"
                         :icon="isDark ? IconSun : IconMoon"
                         :active="isDark"
                         @click="toggleTheme"

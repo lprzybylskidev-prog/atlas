@@ -15,58 +15,7 @@ export const COMPOSABLE_HOST_VIEWS: readonly ComposableHostViewDefinition[] = [
         layout: 'dashboard-sidebar',
         titleKey: 'views.dashboard.title',
         fallbackTitle: 'Dashboard operacyjny',
-        acceptedElements: [
-            {
-                elementKey: 'foundation.dashboard.introduction',
-                area: 'main',
-                order: 10,
-                dimensions: {
-                    minHeightClass: 'min-h-36',
-                    spanClass: 'xl:col-span-4',
-                },
-                structural: true,
-            },
-            {
-                elementKey: 'foundation.dashboard.metrics',
-                area: 'main',
-                order: 20,
-                dimensions: {
-                    minHeightClass: 'min-h-32',
-                    spanClass: 'xl:col-span-4',
-                },
-                structural: true,
-            },
-            {
-                elementKey: 'foundation.dashboard.composable-view-contract',
-                area: 'main',
-                order: 30,
-                dimensions: {
-                    minHeightClass: 'min-h-44',
-                    spanClass: 'xl:col-span-4',
-                },
-                structural: true,
-            },
-            {
-                elementKey: 'foundation.dashboard.active-team',
-                area: 'aside',
-                order: 10,
-                dimensions: {
-                    minHeightClass: 'min-h-36',
-                    spanClass: 'xl:col-span-1',
-                },
-                structural: true,
-            },
-            {
-                elementKey: 'foundation.dashboard.next-steps',
-                area: 'aside',
-                order: 20,
-                dimensions: {
-                    minHeightClass: 'min-h-36',
-                    spanClass: 'xl:col-span-1',
-                },
-                structural: false,
-            },
-        ],
+        acceptedElements: [],
     },
     {
         key: 'admin.system-status',
@@ -89,6 +38,14 @@ export function resolveComposableHostView(
         throw new Error(`Composable host view is not registered: ${hostKey}`);
     }
 
+    return resolveComposableHostViewDefinition(host, elementDefinitions, availability);
+}
+
+export function resolveComposableHostViewDefinition(
+    host: ComposableHostViewDefinition,
+    elementDefinitions: readonly ComposableViewElementDefinition[],
+    availability: readonly ComposableViewAvailability[] = [],
+): ResolvedComposableHostView {
     const definitionsByKey = new Map<ComposableViewElementKey, ComposableViewElementDefinition>(
         elementDefinitions.map((definition) => [definition.key, definition]),
     );

@@ -22,6 +22,23 @@ class LocalizationTest extends TestCase
         self::assertFileExists(lang_path('en/validation.php'));
     }
 
+    public function test_polish_and_english_json_language_catalogs_have_matching_keys(): void
+    {
+        $polish = json_decode((string) file_get_contents(lang_path('pl.json')), true);
+        $english = json_decode((string) file_get_contents(lang_path('en.json')), true);
+
+        self::assertIsArray($polish);
+        self::assertIsArray($english);
+
+        $polishKeys = array_keys($polish);
+        $englishKeys = array_keys($english);
+
+        sort($polishKeys);
+        sort($englishKeys);
+
+        self::assertSame($englishKeys, $polishKeys);
+    }
+
     public function test_generated_fortify_password_message_has_polish_translation(): void
     {
         self::assertSame(

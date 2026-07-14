@@ -49,6 +49,6 @@ final class FrontendShellTest extends TestCase
                 ->has('navigation.breadcrumbs', 3)
                 ->where('navigation.breadcrumbs.0.label', 'Dashboard')
                 ->where('navigation.breadcrumbs.1.label', 'Admin')
-                ->where('navigation.breadcrumbs.2.label', 'Status systemu'));
+                ->where('navigation.breadcrumbs.2.label', 'System status'));
     }
 }

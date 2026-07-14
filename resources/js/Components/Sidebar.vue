@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
-import { IconGauge, IconReportAnalytics, IconSearch, IconShieldLock, IconUsers } from '@tabler/icons-vue';
+import { IconGauge, IconShieldLock } from '@tabler/icons-vue';
 import type { FunctionalComponent } from 'vue';
 
 import AtlasLogo from './AtlasLogo.vue';
 import { useSidebar } from '../Composables/useSidebar';
+import { useTranslator } from '../Localization/translator';
 
 interface NavigationItem {
     label: string;
@@ -15,16 +16,15 @@ interface NavigationItem {
 
 const props = defineProps<{
     currentPath: string;
+    uiLocale?: string;
 }>();
 
 const { isSidebarCollapsed } = useSidebar();
+const { t } = useTranslator(props.uiLocale);
 
 const items: NavigationItem[] = [
-    { label: 'Dashboard', href: '/', icon: IconGauge, active: props.currentPath === '/' },
-    { label: 'Sprawy', href: '/', icon: IconReportAnalytics, active: false },
-    { label: 'Dłużnicy', href: '/', icon: IconUsers, active: false },
-    { label: 'Wyszukiwanie', href: '/', icon: IconSearch, active: false },
-    { label: 'Admin', href: '/admin', icon: IconShieldLock, active: props.currentPath.startsWith('/admin') },
+    { label: t('navigation.dashboard'), href: '/', icon: IconGauge, active: props.currentPath === '/' },
+    { label: t('navigation.admin'), href: '/admin', icon: IconShieldLock, active: props.currentPath.startsWith('/admin') },
 ];
 </script>
 
@@ -40,7 +40,7 @@ const items: NavigationItem[] = [
             <AtlasLogo :show-text="!isSidebarCollapsed" />
         </div>
 
-        <nav class="space-y-1 px-3 py-4" aria-label="Główna nawigacja">
+        <nav class="space-y-1 px-3 py-4" :aria-label="t('navigation.aria.main')">
             <Link
                 v-for="item in items"
                 :key="item.label"

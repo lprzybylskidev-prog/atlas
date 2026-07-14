@@ -140,8 +140,8 @@
 - [x] Build top bar.
 - [x] Build active-team selector.
 - [x] Add centralized breadcrumbs.
-- [ ] Implement PL/EN localization with Polish as default.
-- [ ] Add translation-parity checks.
+- [x] Implement PL/EN localization with Polish as default.
+- [x] Add translation-parity checks.
 - [x] Establish light and dark themes in parallel.
 - [x] Add theme persistence through user settings contract.
 - [ ] Add key light/dark visual test coverage.
