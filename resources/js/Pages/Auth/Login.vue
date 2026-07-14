@@ -67,7 +67,7 @@ const submit = (): void => {
                 <input
                     v-model="form.remember"
                     type="checkbox"
-                    class="h-4 w-4 rounded border-zinc-300 accent-teal-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-700 dark:border-zinc-700 dark:bg-zinc-950"
+                    class="h-4 w-4 rounded border-zinc-300 accent-teal-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-700 dark:border-zinc-700 dark:bg-zinc-950"
                 />
                 {{ t('auth.login.remember') }}
             </label>

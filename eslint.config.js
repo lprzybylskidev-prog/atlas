@@ -1,4 +1,5 @@
 import pluginVue from 'eslint-plugin-vue';
+import pluginTailwindcss from 'eslint-plugin-tailwindcss';
 import tseslint from 'typescript-eslint';
 import vueParser from 'vue-eslint-parser';
 
@@ -20,9 +21,18 @@ export default [
     },
     {
         files: ['resources/js/**/*.{ts,vue}'],
+        plugins: {
+            tailwindcss: pluginTailwindcss,
+        },
+        settings: {
+            tailwindcss: {
+                cssConfigPath: 'resources/css/app.css',
+            },
+        },
         rules: {
             '@typescript-eslint/consistent-type-imports': ['error', { prefer: 'type-imports' }],
             '@typescript-eslint/no-explicit-any': 'error',
+            'tailwindcss/no-contradicting-classname': 'error',
             'vue/attributes-order': 'off',
             'vue/html-indent': 'off',
             'vue/html-self-closing': 'off',

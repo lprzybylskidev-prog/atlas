@@ -175,7 +175,7 @@ onBeforeUnmount(() => {
                     <button
                         ref="userMenuButton"
                         type="button"
-                        class="flex h-10 w-10 items-center justify-center rounded-full bg-zinc-950 text-sm font-semibold text-white shadow-sm ring-2 ring-white transition hover:bg-teal-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-500 dark:bg-zinc-100 dark:text-zinc-950 dark:ring-zinc-950 dark:hover:bg-teal-200"
+                        class="flex h-10 w-10 items-center justify-center rounded-full bg-zinc-950 text-sm font-semibold text-white shadow-sm ring-2 ring-white transition hover:bg-teal-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-500 dark:bg-zinc-100 dark:text-zinc-950 dark:ring-zinc-950 dark:hover:bg-teal-200"
                         aria-haspopup="menu"
                         :aria-expanded="userMenuOpen"
                         :aria-label="t('user.menu')"
