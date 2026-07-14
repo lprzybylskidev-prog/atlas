@@ -7,6 +7,12 @@ use Monolog\Handler\StreamHandler;
 use Monolog\Handler\SyslogUdpHandler;
 use Monolog\Processor\PsrLogMessageProcessor;
 
+$logStack = env('LOG_STACK', 'single');
+
+if (! is_string($logStack)) {
+    throw new InvalidArgumentException('LOG_STACK must be a comma-separated string.');
+}
+
 return [
 
     /*
@@ -56,7 +62,7 @@ return [
 
         'stack' => [
             'driver' => 'stack',
-            'channels' => explode(',', (string) env('LOG_STACK', 'single')),
+            'channels' => explode(',', $logStack),
             'ignore_exceptions' => false,
         ],
 

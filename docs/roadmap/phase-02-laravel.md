@@ -41,8 +41,8 @@
 - [x] Configure default application currency as `PLN` without permitting implicit currency loss.
 - [x] Add tests preventing mixed-currency arithmetic/comparison without explicit conversion.
 - [x] Configure centralized application timezone.
-- [ ] Configure technical timestamps and presentation timezone rules.
-- [ ] Configure base logging with correlation/request IDs.
-- [ ] Add application version and release ID foundations.
-- [ ] Add startup configuration validation.
-- [ ] Commit Laravel foundation.
+- [x] Configure technical timestamps and presentation timezone rules.
+- [x] Configure base logging with correlation/request IDs.
+- [x] Add application version and release ID foundations.
+- [x] Add startup configuration validation.
+- [x] Commit Laravel foundation.

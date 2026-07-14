@@ -14,6 +14,9 @@ required_vars=(
   APP_NAME
   APP_ENV
   APP_TIMEZONE
+  ATLAS_DEFAULT_CURRENCY
+  ATLAS_RELEASE_ID
+  ATLAS_RELEASE_VERSION
   PRODUCTION_DEPLOYED
   DB_CONNECTION
   DB_HOST
@@ -40,6 +43,11 @@ fi
 
 if [[ "${APP_TIMEZONE}" != "Europe/Warsaw" ]]; then
   printf 'APP_TIMEZONE must default to Europe/Warsaw for Atlas bootstrap.\n' >&2
+  exit 1
+fi
+
+if [[ ! "${ATLAS_DEFAULT_CURRENCY}" =~ ^[A-Z]{3}$ ]]; then
+  printf 'ATLAS_DEFAULT_CURRENCY must be a three-letter ISO 4217 currency code.\n' >&2
   exit 1
 fi
 

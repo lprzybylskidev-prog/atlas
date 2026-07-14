@@ -35,11 +35,11 @@ Do not replace this index after the initial technical foundation is completed. C
 
 ## Current phase
 
-**Phase 2 — Laravel foundation**
+**Phase 3 — Frontend foundation**
 
-**Status:** `in progress`
+**Status:** `not started`
 
-[Open phase details](docs/roadmap/phase-02-laravel.md)
+[Open phase details](docs/roadmap/phase-03-frontend.md)
 
 ## Phase index
 
@@ -61,7 +61,7 @@ Create the reproducible development container and initial Docker skeleton while 
 
 ### Phase 2 — Laravel foundation
 
-**Status:** `in progress`
+**Status:** `complete`
 
 Install and configure the Laravel backend foundation, shared primitives, timezone, money model, Redis, and core runtime services.
 

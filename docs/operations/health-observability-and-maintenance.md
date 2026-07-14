@@ -4,6 +4,9 @@ Canonical runtime rules for health, readiness, maintenance, logging, correlation
 
 ## Logging and Observability
 
+- Every HTTP response includes an `X-Request-Id` header.
+- If a valid `X-Request-Id` arrives with the request, Atlas preserves it; otherwise Atlas generates a ULID request id.
+- The request id is attached to Laravel context and log context as both `request_id` and initial `correlation_id`.
 - Use readable text logs in development and structured JSON logs in production.
 - Every HTTP request, queue job, CLI command, and integration call must carry a `correlation_id`.
 - Propagate the originating correlation ID into jobs and downstream integration work where available.
@@ -60,6 +63,8 @@ Use maintenance only for incompatible changes.
 
 ### Versioning
 
+The foundation release identity is configured through `ATLAS_RELEASE_VERSION` and `ATLAS_RELEASE_ID`.
+
 Record:
 
 - Git tag;
@@ -78,6 +83,12 @@ Show version in:
 Frontend and backend must share one release version.
 
 Cache and assets use release versioning.
+
+### Time
+
+Business time uses `APP_TIMEZONE`, defaulting to `Europe/Warsaw`.
+
+Technical storage timestamps use UTC unless a later module contract states otherwise.
 
 ### Production Docker
 
