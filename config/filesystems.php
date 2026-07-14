@@ -2,6 +2,12 @@
 
 declare(strict_types=1);
 
+$appUrl = env('APP_URL', 'http://localhost');
+
+if (! is_string($appUrl)) {
+    throw new InvalidArgumentException('APP_URL must be a string.');
+}
+
 return [
 
     /*
@@ -43,7 +49,7 @@ return [
         'public' => [
             'driver' => 'local',
             'root' => storage_path('app/public'),
-            'url' => rtrim(env('APP_URL', 'http://localhost'), '/').'/storage',
+            'url' => rtrim($appUrl, '/').'/storage',
             'visibility' => 'public',
             'throw' => false,
             'report' => false,

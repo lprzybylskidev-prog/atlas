@@ -7,11 +7,20 @@
     "license": "MIT",
     "require": {
         "php": "^8.3",
+        "diglactic/laravel-breadcrumbs": "^10.1",
+        "laravel/fortify": "^1.36",
         "laravel/framework": "^13.8",
-        "laravel/tinker": "^3.0"
+        "laravel/horizon": "^5.47",
+        "laravel/scout": "^11.3",
+        "laravel/tinker": "^3.0",
+        "meilisearch/meilisearch-php": "^1.16",
+        "sentry/sentry-laravel": "^4.26",
+        "spatie/laravel-permission": "^8.3",
+        "tightenco/ziggy": "^2.6"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",
+        "larastan/larastan": "^3.10",
         "laravel/boost": "^2.4",
         "laravel/pail": "^1.2.5",
         "laravel/pao": "^1.0.6",
@@ -56,7 +65,7 @@
             "vendor/bin/pint --test"
         ],
         "analyse": [
-            "@php -r \"fwrite(STDERR, 'Static analysis is configured later in Phase 2.\\n'); exit(1);\""
+            "vendor/bin/phpstan analyse --memory-limit=512M"
         ],
         "test:unit": [
             "@php artisan test --testsuite=Unit"
@@ -69,7 +78,9 @@
         ],
         "check": [
             "@lint",
-            "@test"
+            "@analyse",
+            "@test",
+            "pnpm build"
         ],
         "post-autoload-dump": [
             "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",

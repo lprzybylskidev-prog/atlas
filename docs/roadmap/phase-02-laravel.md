@@ -25,16 +25,17 @@
 - [x] Configure PostgreSQL as the only application database.
 - [x] Configure Redis for cache, sessions, queues, locks, and rate limits.
 - [x] Install Laravel Boost as the first development package after Laravel exists.
-- [ ] Install and configure Fortify.
-- [ ] Install and configure Horizon.
-- [ ] Install Scout.
-- [ ] Install Meilisearch integration.
-- [ ] Install Sentry.
-- [ ] Install `spatie/laravel-permission` with teams support.
-- [ ] Install `diglactic/laravel-breadcrumbs`.
-- [ ] Install Ziggy.
+- [x] Install and configure Fortify.
+- [x] Install and configure Horizon.
+- [x] Install Scout.
+- [x] Install Meilisearch integration.
+- [x] Install Sentry.
+- [x] Install `spatie/laravel-permission` with teams support.
+- [x] Install `diglactic/laravel-breadcrumbs`.
+- [x] Install Ziggy.
 - [ ] Install Pest and required Laravel testing support.
-- [ ] Install PHPStan and Larastan.
+- [ ] Recheck stable Pest Laravel plugin compatibility with Laravel 13 before replacing PHPUnit tests.
+- [x] Install PHPStan and Larastan.
 - [x] Configure Pint.
 - [x] Add `declare(strict_types=1);` to all applicable PHP files and generation templates.
 - [ ] Define immutable Money value object with integer minor units and ISO 4217 currency.
