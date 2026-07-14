@@ -2,6 +2,7 @@
 import { Link } from '@inertiajs/vue3';
 import { IconGauge } from '@tabler/icons-vue';
 import type { FunctionalComponent } from 'vue';
+import { computed } from 'vue';
 
 import AtlasLogo from './AtlasLogo.vue';
 import { useSidebar } from '../Composables/useSidebar';
@@ -19,12 +20,12 @@ const props = defineProps<{
     uiLocale?: string;
 }>();
 
-const { isSidebarCollapsed } = useSidebar();
+const { isSidebarCollapsed, isSidebarCompact, isSidebarTextVisible } = useSidebar();
 const { t } = useTranslator(props.uiLocale);
 
-const items: NavigationItem[] = [
+const items = computed<NavigationItem[]>(() => [
     { label: t('navigation.dashboard'), href: '/', icon: IconGauge, active: props.currentPath === '/' },
-];
+]);
 </script>
 
 <template>
@@ -34,37 +35,33 @@ const items: NavigationItem[] = [
     >
         <div
             class="flex h-16 items-center border-b border-zinc-200 px-4 dark:border-zinc-800"
-            :class="isSidebarCollapsed ? 'justify-center' : 'justify-start'"
+            :class="isSidebarCompact ? 'justify-center' : 'justify-start'"
         >
-            <AtlasLogo :show-text="!isSidebarCollapsed" :ui-locale="uiLocale" />
+            <AtlasLogo :show-text="isSidebarTextVisible" :ui-locale="uiLocale" />
         </div>
 
-        <nav class="space-y-1 px-3 py-4" :aria-label="t('navigation.aria.main')">
+        <nav class="space-y-1 py-4" :class="isSidebarCompact ? 'px-5' : 'px-3'" :aria-label="t('navigation.aria.main')">
             <Link
                 v-for="item in items"
                 :key="item.label"
                 :href="item.href"
-                class="group relative flex h-11 items-center rounded-lg px-3 text-sm font-medium transition"
+                class="group relative flex h-11 items-center rounded-lg text-sm font-medium transition"
                 :class="[
-                    isSidebarCollapsed ? 'justify-center' : 'gap-3',
+                    isSidebarCompact ? 'w-11 justify-center px-0' : 'w-full gap-3 px-3',
                     item.active
                         ? 'bg-teal-50 text-teal-900 ring-1 ring-teal-100 dark:bg-teal-950 dark:text-teal-100 dark:ring-teal-900'
                         : 'text-zinc-600 hover:bg-zinc-100 hover:text-zinc-950 dark:text-zinc-300 dark:hover:bg-zinc-900 dark:hover:text-zinc-50',
                 ]"
             >
                 <component :is="item.icon" aria-hidden="true" class="h-5 w-5 shrink-0" :stroke-width="1.8" />
-                <Transition
-                    enter-active-class="transition duration-200 ease-out"
-                    enter-from-class="-translate-x-1 opacity-0"
-                    enter-to-class="translate-x-0 opacity-100"
-                    leave-active-class="transition duration-150 ease-in"
-                    leave-from-class="translate-x-0 opacity-100"
-                    leave-to-class="-translate-x-1 opacity-0"
-                >
-                    <span v-if="!isSidebarCollapsed" class="truncate whitespace-nowrap">{{ item.label }}</span>
-                </Transition>
                 <span
-                    v-if="isSidebarCollapsed"
+                    class="overflow-hidden truncate whitespace-nowrap transition-[max-width,opacity,transform] duration-150 ease-out"
+                    :class="isSidebarTextVisible ? 'max-w-40 translate-x-0 opacity-100' : 'pointer-events-none max-w-0 -translate-x-1 opacity-0'"
+                >
+                    {{ item.label }}
+                </span>
+                <span
+                    v-if="isSidebarCompact"
                     class="pointer-events-none absolute left-full z-50 ml-2 hidden rounded-md bg-zinc-950 px-2 py-1 text-xs font-medium text-white shadow-lg group-hover:block group-focus-visible:block dark:bg-zinc-100 dark:text-zinc-950"
                 >
                     {{ item.label }}

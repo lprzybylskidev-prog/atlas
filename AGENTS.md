@@ -316,7 +316,10 @@ Do not copy detailed module contracts into the README. Link to canonical documen
 ## Git and commits
 
 - Use English Conventional Commits.
-- The agent creates commits unless the user explicitly says otherwise.
+- The agent must not create commits automatically.
+- Before committing, the agent must present the final diff summary, quality commands run, and proposed Conventional Commit message for user review.
+- The agent creates a commit only after explicit user approval for that exact reviewed change.
+- The agent must not push commits unless the user explicitly approves the push after reviewing the committed state.
 - Keep commits small, logical, reviewable, and buildable.
 - Do not mix unrelated changes.
 - Never rewrite published history without explicit instruction.

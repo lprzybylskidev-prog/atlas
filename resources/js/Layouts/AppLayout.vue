@@ -6,10 +6,19 @@ import MobileNavigation from '../Components/MobileNavigation.vue';
 import Sidebar from '../Components/Sidebar.vue';
 import TopBar from '../Components/TopBar.vue';
 
-defineProps<{
-    title: string;
-    uiLocale?: string;
-}>();
+withDefaults(
+    defineProps<{
+        title: string;
+        mode?: 'app' | 'admin';
+        showLocaleSwitcher?: boolean;
+        uiLocale?: string;
+    }>(),
+    {
+        mode: 'app',
+        showLocaleSwitcher: true,
+        uiLocale: undefined,
+    },
+);
 
 const page = usePage();
 const mobileMenuOpen = ref(false);
@@ -20,7 +29,13 @@ const mobileMenuOpen = ref(false);
         <div class="flex min-h-screen">
             <Sidebar :current-path="page.url" :ui-locale="uiLocale" />
             <div class="flex min-w-0 flex-1 flex-col">
-                <TopBar :title="title" :ui-locale="uiLocale" @open-mobile-menu="mobileMenuOpen = true" />
+                <TopBar
+                    :title="title"
+                    :mode="mode"
+                    :show-locale-switcher="showLocaleSwitcher"
+                    :ui-locale="uiLocale"
+                    @open-mobile-menu="mobileMenuOpen = true"
+                />
                 <main class="flex-1 px-4 py-5 sm:px-6 lg:px-8">
                     <slot />
                 </main>

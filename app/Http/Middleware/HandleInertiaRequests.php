@@ -33,6 +33,7 @@ final class HandleInertiaRequests extends Middleware
                 ],
             ],
             'locale' => app()->getLocale(),
+            'supportedLocales' => ['pl', 'en'],
             'navigation' => [
                 'breadcrumbs' => $this->breadcrumbs($request),
             ],

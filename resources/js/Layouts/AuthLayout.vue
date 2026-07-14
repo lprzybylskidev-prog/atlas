@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import AtlasLogo from '../Components/AtlasLogo.vue';
 import IconButton from '../Components/IconButton.vue';
+import { useLocaleSwitcher } from '../Composables/useLocaleSwitcher';
 import { useTheme } from '../Composables/useTheme';
 import { useTranslator } from '../Localization/translator';
 import type { AtlasPageProps } from '../Types/inertia';
@@ -13,6 +14,7 @@ defineProps<{
 }>();
 
 const { isDark, toggleTheme } = useTheme();
+const { switchLocale } = useLocaleSwitcher();
 const page = usePage<AtlasPageProps>();
 const { t } = useTranslator();
 </script>
@@ -50,7 +52,7 @@ const { t } = useTranslator();
                     <AtlasLogo />
                 </div>
                 <div class="ml-auto flex items-center gap-2">
-                    <IconButton :label="t('actions.change_language')" :icon="IconLanguage" />
+                    <IconButton :label="t('actions.change_language')" :icon="IconLanguage" @click="switchLocale" />
                     <IconButton
                         :label="isDark ? t('actions.switch_light_theme') : t('actions.switch_dark_theme')"
                         :icon="isDark ? IconSun : IconMoon"

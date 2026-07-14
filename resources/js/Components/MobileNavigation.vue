@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
 import { IconGauge, IconX } from '@tabler/icons-vue';
+import { computed } from 'vue';
 
 import AtlasLogo from './AtlasLogo.vue';
 import { useTranslator } from '../Localization/translator';
@@ -16,9 +17,9 @@ const emit = defineEmits<{
 
 const { t } = useTranslator(props.uiLocale);
 
-const items = [
+const items = computed(() => [
     { label: t('navigation.dashboard'), href: '/', icon: IconGauge },
-];
+]);
 </script>
 
 <template>

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Foundation;
 
+use Inertia\Testing\AssertableInertia;
 use Tests\TestCase;
 
 class LocalizationTest extends TestCase
@@ -45,5 +46,25 @@ class LocalizationTest extends TestCase
             'Podane hasło nie jest zgodne z aktualnym hasłem.',
             __('The provided password does not match your current password.'),
         );
+    }
+
+    public function test_locale_can_be_changed_for_the_browser_cookie(): void
+    {
+        $this->post('/locale', ['locale' => 'en'])
+            ->assertRedirect()
+            ->assertCookie('atlas_locale', 'en');
+
+        $this->withCookie('atlas_locale', 'en')
+            ->get('/login')
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('locale', 'en')
+                ->where('supportedLocales', ['pl', 'en']));
+    }
+
+    public function test_locale_change_rejects_unsupported_locale(): void
+    {
+        $this->post('/locale', ['locale' => 'de'])
+            ->assertSessionHasErrors('locale');
     }
 }

@@ -16,6 +16,7 @@ export interface AtlasPageProps {
         user: AtlasUser | null;
     };
     locale: string;
+    supportedLocales: string[];
     navigation: {
         breadcrumbs: {
             label: string;

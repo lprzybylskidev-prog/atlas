@@ -13,15 +13,25 @@ import {
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 
 import IconButton from './IconButton.vue';
+import { useLocaleSwitcher } from '../Composables/useLocaleSwitcher';
 import { useSidebar } from '../Composables/useSidebar';
 import { useTheme } from '../Composables/useTheme';
 import { useTranslator } from '../Localization/translator';
 import type { AtlasPageProps } from '../Types/inertia';
 
-const props = defineProps<{
-    title: string;
-    uiLocale?: string;
-}>();
+const props = withDefaults(
+    defineProps<{
+        title: string;
+        mode?: 'app' | 'admin';
+        showLocaleSwitcher?: boolean;
+        uiLocale?: string;
+    }>(),
+    {
+        mode: 'app',
+        showLocaleSwitcher: true,
+        uiLocale: undefined,
+    },
+);
 
 const emit = defineEmits<{
     openMobileMenu: [];
@@ -30,6 +40,7 @@ const emit = defineEmits<{
 const page = usePage<AtlasPageProps>();
 const { isSidebarCollapsed, toggleSidebar } = useSidebar();
 const { isDark, toggleTheme } = useTheme();
+const { switchLocale } = useLocaleSwitcher();
 const { t } = useTranslator(props.uiLocale);
 const userMenuOpen = ref(false);
 const userMenuButton = ref<HTMLElement | null>(null);
@@ -59,6 +70,7 @@ const closeUserMenu = (): void => {
 };
 
 const breadcrumbs = computed(() => page.props.navigation.breadcrumbs);
+const isAdminMode = computed(() => props.mode === 'admin');
 
 const handleOutsidePointerDown = (event: PointerEvent): void => {
     const target = event.target;
@@ -92,7 +104,14 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-    <header class="sticky top-0 z-30 border-b border-zinc-200 bg-white/95 backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/90">
+    <header
+        class="sticky top-0 z-30 border-b backdrop-blur"
+        :class="
+            isAdminMode
+                ? 'border-zinc-300 bg-zinc-950 text-zinc-50 dark:border-zinc-800 dark:bg-black'
+                : 'border-zinc-200 bg-white/95 dark:border-zinc-800 dark:bg-zinc-950/90'
+        "
+    >
         <div class="flex min-h-16 items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
             <div class="flex min-w-0 items-center gap-3">
                 <button
@@ -117,7 +136,11 @@ onBeforeUnmount(() => {
                     />
                 </button>
                 <div class="min-w-0">
-                    <nav class="flex min-w-0 items-center gap-2 text-xs text-zinc-500 dark:text-zinc-400" :aria-label="t('navigation.aria.breadcrumb')">
+                    <nav
+                        class="flex min-w-0 items-center gap-2 text-xs"
+                        :class="isAdminMode ? 'text-zinc-400' : 'text-zinc-500 dark:text-zinc-400'"
+                        :aria-label="t('navigation.aria.breadcrumb')"
+                    >
                         <template v-for="(breadcrumb, index) in breadcrumbs" :key="`${breadcrumb.label}-${index}`">
                             <span v-if="index > 0" aria-hidden="true">/</span>
                             <Link
@@ -132,7 +155,9 @@ onBeforeUnmount(() => {
                             </span>
                         </template>
                     </nav>
-                    <h1 class="truncate text-base font-semibold text-zinc-950 dark:text-zinc-50 sm:text-lg">{{ title }}</h1>
+                    <h1 class="truncate text-base font-semibold sm:text-lg" :class="isAdminMode ? 'text-zinc-50' : 'text-zinc-950 dark:text-zinc-50'">
+                        {{ title }}
+                    </h1>
                 </div>
             </div>
 
@@ -144,7 +169,7 @@ onBeforeUnmount(() => {
                     @click="toggleTheme"
                 />
 
-                <IconButton :label="t('actions.change_language')" :icon="IconLanguage" />
+                <IconButton v-if="showLocaleSwitcher" :label="t('actions.change_language')" :icon="IconLanguage" @click="switchLocale" />
 
                 <div class="relative pl-1">
                     <button
@@ -181,7 +206,7 @@ onBeforeUnmount(() => {
                                 @click="closeUserMenu"
                             >
                                 <IconShieldLock aria-hidden="true" class="h-5 w-5" :stroke-width="1.8" />
-                                {{ t('navigation.admin') }}
+                                {{ t('navigation.admin_panel') }}
                             </Link>
                             <button
                                 type="button"
