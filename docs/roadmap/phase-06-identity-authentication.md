@@ -45,6 +45,7 @@
 - Do not provide a global rate-limit disable switch.
 - Login and MFA policies are mandatory and cannot be disabled.
 - User-facing responses remain generic and do not disclose exact thresholds where that would facilitate attack tuning.
+- Replace generated Fortify action messages with stable technical translation keys while implementing the final authentication flows.
 
 - [ ] Register stable named rate-limit policies for authentication, API, imports, exports, and high-risk Admin operations.
 - [ ] Support policy keying by IP, user, team, API client, and explicit combinations.
@@ -67,6 +68,7 @@
 - [ ] Implement short-lived one-time reset links.
 - [ ] Invalidate previous reset links when a new one is issued.
 - [ ] Implement generic account-existence-safe messaging.
+- [ ] Replace generated Fortify action source-string translations with stable technical keys.
 - [ ] Implement login rate limiting by user and IP.
 - [ ] Lock after 10 failed attempts.
 - [ ] Add escalating lock durations.

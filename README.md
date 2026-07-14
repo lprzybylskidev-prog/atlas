@@ -158,7 +158,7 @@ The development application container includes Docker CLI and the Docker Compose
 
 Atlas currently has a detailed architecture, implementation roadmap, documentation system, Docker/Dev Container foundation, and a Laravel 13 application foundation running on PostgreSQL and Redis in development.
 
-The Laravel foundation includes Fortify, Horizon, Scout with Meilisearch, Sentry, Spatie Laravel Permission with teams, Diglactic Breadcrumbs, Ziggy, Pint, PHPUnit, PHPStan/Larastan, and Vite/Tailwind assets.
+The Laravel foundation includes Fortify, Horizon, Scout with Meilisearch, Sentry, Spatie Laravel Permission with teams, Diglactic Breadcrumbs, Ziggy, Pint, PHPUnit, PHPStan/Larastan, Vite/Tailwind assets, and committed Polish/English Laravel translation catalogs.
 
 The implementation status and first unfinished phase are always shown in [`WORKROAD.md`](WORKROAD.md).
 
