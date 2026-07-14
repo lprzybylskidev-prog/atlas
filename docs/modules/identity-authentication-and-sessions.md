@@ -12,6 +12,7 @@ Current technical ownership:
 - The Fortify service provider lives under `App\Modules\Core\Identity\Presentation\Providers`.
 - The current user Eloquent persistence model lives under `App\Modules\Core\Identity\Infrastructure\Persistence`.
 - `App\Models\User` is intentionally not used.
+- Authentication and access-related Markdown emails use the Atlas-owned light email layout under `resources/views/vendor/mail` with Atlas branding and logo; fixed layout elements are localized through the application locale, while message body content remains owned by the notification/mailable.
 
 Rules:
 

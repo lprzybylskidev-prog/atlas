@@ -23,6 +23,8 @@
     "Location": "Location",
     "Login": "Login",
     "Logout": "Logout",
+    "mail.brand_subtitle": "Debt collection operations",
+    "mail.operational_notice": "This message was generated automatically. Please do not reply.",
     "Not Found": "Not Found",
     "of": "of",
     "Page Expired": "Page Expired",
