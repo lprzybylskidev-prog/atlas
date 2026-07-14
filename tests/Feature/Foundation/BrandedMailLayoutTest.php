@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Feature\Foundation;
 
 use Illuminate\Notifications\Messages\MailMessage;
+use Illuminate\Support\Facades\Config;
 use Tests\TestCase;
 
 final class BrandedMailLayoutTest extends TestCase
@@ -17,7 +18,7 @@ final class BrandedMailLayoutTest extends TestCase
             ->subject('Atlas email preview')
             ->greeting('MESSAGE CONTENT GREETING')
             ->line('MESSAGE CONTENT BODY')
-            ->action('MESSAGE CONTENT ACTION', config('app.url'))
+            ->action('MESSAGE CONTENT ACTION', Config::string('app.url'))
             ->line('MESSAGE CONTENT SECOND LINE')
             ->render();
 
@@ -38,7 +39,7 @@ final class BrandedMailLayoutTest extends TestCase
             ->subject('Atlas email preview')
             ->greeting('MESSAGE CONTENT GREETING')
             ->line('MESSAGE CONTENT BODY')
-            ->action('MESSAGE CONTENT ACTION', config('app.url'))
+            ->action('MESSAGE CONTENT ACTION', Config::string('app.url'))
             ->line('MESSAGE CONTENT SECOND LINE')
             ->render();
 

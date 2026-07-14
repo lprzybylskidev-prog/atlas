@@ -3,21 +3,21 @@
 ### Implementation contract
 
 - Required Composer commands:
-  - `composer format`
-  - `composer lint`
-  - `composer analyse`
-  - `composer test`
-  - `composer test:unit`
-  - `composer test:integration`
-  - `composer test:feature`
-  - `composer check`
+    - `composer format`
+    - `composer lint`
+    - `composer analyse`
+    - `composer test`
+    - `composer test:unit`
+    - `composer test:integration`
+    - `composer test:feature`
+    - `composer check`
 - Required pnpm commands:
-  - `pnpm format`
-  - `pnpm lint`
-  - `pnpm test`
-  - `pnpm test:e2e`
-  - `pnpm build`
-  - `pnpm check`
+    - `pnpm format`
+    - `pnpm lint`
+    - `pnpm test`
+    - `pnpm test:e2e`
+    - `pnpm build`
+    - `pnpm check`
 - `composer format` formats backend and frontend.
 - `composer check` performs complete verification and never silently changes files.
 - Lefthook is installed from the beginning.
@@ -39,26 +39,26 @@
 - A task is not complete unless required checks ran successfully, documentation and translations are updated, light/dark themes are verified, and a logical Conventional Commit is created.
 - When verification cannot run, Codex must state exactly what remains unverified and may not claim full completion.
 
-- [ ] Add Composer quality commands.
-- [ ] Add pnpm quality commands.
-- [ ] Make `composer format` format backend and frontend.
-- [ ] Make `composer check` run full non-mutating project verification.
-- [ ] Configure maximum practical PHPStan/Larastan level.
-- [ ] Configure Pint.
-- [ ] Configure ESLint.
-- [ ] Configure Prettier.
-- [ ] Configure Stylelint.
-- [ ] Configure Vitest.
-- [ ] Configure PHPUnit test suites for unit, integration, and feature tests.
-- [ ] Configure Playwright for Chromium and Firefox.
-- [ ] Add browserslist for current Chrome, Edge, and Firefox.
-- [ ] Add Lefthook.
-- [ ] Add fast pre-commit checks.
-- [ ] Add pre-push PHPStan, PHPUnit, Vitest, and production build.
-- [ ] Add secrets and unwanted-file detection.
-- [ ] Ensure hooks call public project commands.
-- [ ] Do not create any GitHub Actions, GitLab CI, or other CI workflow in the Atlas.
-- [ ] Document Lefthook and public quality commands as the required quality gate.
-- [ ] Document how a derived project may add CI later by calling the same public commands.
-- [ ] Document quality workflow.
-- [ ] Commit quality workflow.
+- [x] Add Composer quality commands.
+- [x] Add pnpm quality commands.
+- [x] Make `composer format` format backend and frontend.
+- [x] Make `composer check` run full non-mutating project verification.
+- [x] Configure maximum practical PHPStan/Larastan level.
+- [x] Configure Pint.
+- [x] Configure ESLint.
+- [x] Configure Prettier.
+- [x] Configure Stylelint.
+- [x] Configure Vitest.
+- [x] Configure PHPUnit test suites for unit, integration, and feature tests.
+- [x] Configure Playwright for Chromium and Firefox.
+- [x] Add browserslist for current Chrome, Edge, and Firefox.
+- [x] Add Lefthook.
+- [x] Add fast pre-commit checks.
+- [x] Add pre-push PHPStan, PHPUnit, Vitest, and production build.
+- [x] Add secrets and unwanted-file detection.
+- [x] Ensure hooks call public project commands.
+- [x] Do not create any GitHub Actions, GitLab CI, or other CI workflow in the Atlas.
+- [x] Document Lefthook and public quality commands as the required quality gate.
+- [x] Document how a derived project may add CI later by calling the same public commands.
+- [x] Document quality workflow.
+- [x] Commit quality workflow.

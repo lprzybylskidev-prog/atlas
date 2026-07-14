@@ -155,7 +155,10 @@ onBeforeUnmount(() => {
                             </span>
                         </template>
                     </nav>
-                    <h1 class="truncate text-base font-semibold sm:text-lg" :class="isAdminMode ? 'text-zinc-50' : 'text-zinc-950 dark:text-zinc-50'">
+                    <h1
+                        class="truncate text-base font-semibold sm:text-lg"
+                        :class="isAdminMode ? 'text-zinc-50' : 'text-zinc-950 dark:text-zinc-50'"
+                    >
                         {{ title }}
                     </h1>
                 </div>

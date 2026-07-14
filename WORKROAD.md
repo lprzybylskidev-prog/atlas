@@ -35,7 +35,7 @@ Do not replace this index after the initial technical foundation is completed. C
 
 ## Current phase
 
-- Phase: [Phase 4 — Quality workflow](docs/roadmap/phase-04-quality.md)
+- Phase: [Phase 5 — Modular architecture skeleton](docs/roadmap/phase-05-modular-architecture.md)
 - Status: `not started`
 
 ## Phase index
@@ -74,7 +74,7 @@ Build the Vue/Inertia/Tailwind frontend foundation, fixed composable views, them
 
 ### Phase 4 — Quality workflow
 
-**Status:** `not started`
+**Status:** `complete`
 
 Establish deterministic local quality commands, tests, static analysis, formatting, and Lefthook gates without bundled CI.
 

@@ -26,19 +26,26 @@ At the frontend foundation checkpoint, `composer lint` also runs `pnpm lint` and
 ### pnpm
 
 - `pnpm format`
+- `pnpm format:check`
 - `pnpm lint`
 - `pnpm test`
 - `pnpm test:e2e`
 - `pnpm build`
+- `pnpm check:secrets`
+- `pnpm check:unwanted`
 - `pnpm check`
 
 `pnpm check` runs TypeScript checking, ESLint, Stylelint, Vitest, and the production Vite build.
 
 `pnpm test:e2e` runs Playwright against isolated local servers on `127.0.0.1:8010` for Laravel and `127.0.0.1:5174` for Vite. The Playwright setup migrates the configured local database, clears cache-backed test state, and seeds `DevelopmentDemoSeeder` so authenticated shell checks can log in through the real login form.
 
+Do not run `pnpm test:e2e` in parallel with `composer test` or `composer check` against the same local database. PHPUnit and Playwright both prepare application state, so run those gates sequentially unless a derived CI setup gives each job an isolated database.
+
 E2E tests must import `test` and `expect` from `tests/e2e/support/test`. The shared fixture fails tests on browser `pageerror`, `console.error`, failed monitored asset/API requests, and HTTP 4xx/5xx responses for documents, scripts, stylesheets, fonts, images, fetch, and XHR resources.
 
 Configure VS Code format-on-save for backend and frontend.
+
+The browser support baseline is current stable Chrome, Edge, and Firefox, recorded through the project `browserslist` entry.
 
 ---
 
@@ -57,6 +64,13 @@ Fast changed/staged checks:
 - secret detection;
 - unwanted-file detection.
 
+The pre-commit hook runs public commands only:
+
+- `composer lint`;
+- `pnpm format:check`;
+- `pnpm check:secrets`;
+- `pnpm check:unwanted`.
+
 ### Pre-push
 
 - PHPStan/Larastan at maximum practical level;
@@ -64,7 +78,16 @@ Fast changed/staged checks:
 - Vitest;
 - production frontend build.
 
+The pre-push hook runs public commands only:
+
+- `composer analyse`;
+- `composer test`;
+- `pnpm test`;
+- `pnpm build`.
+
 Playwright runs before deployment.
+
+Run `pnpm exec lefthook install` after dependency installation if Git hooks were not synchronized automatically.
 
 Atlas intentionally starts without bundled CI workflows.
 

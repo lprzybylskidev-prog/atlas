@@ -1,0 +1,23 @@
+pre-commit:
+    parallel: true
+    jobs:
+        - name: pint-eslint-stylelint
+          run: composer lint
+        - name: prettier
+          run: pnpm format:check
+        - name: secrets
+          run: pnpm check:secrets
+        - name: unwanted-files
+          run: pnpm check:unwanted
+
+pre-push:
+    parallel: false
+    jobs:
+        - name: phpstan
+          run: composer analyse
+        - name: phpunit
+          run: composer test
+        - name: vitest
+          run: pnpm test
+        - name: frontend-build
+          run: pnpm build

@@ -111,7 +111,7 @@ export function getComposableViewHostLayout(host: ComposableHostViewDefinition):
         throw new Error(`Composable host layout is not registered: ${host.layout}`);
     }
 
-    if (! layout.supportedHostTypes.includes(host.type)) {
+    if (!layout.supportedHostTypes.includes(host.type)) {
         throw new Error(`Composable host layout [${host.layout}] does not support host type [${host.type}].`);
     }
 

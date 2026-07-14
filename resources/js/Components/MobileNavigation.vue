@@ -17,9 +17,7 @@ const emit = defineEmits<{
 
 const { t } = useTranslator(props.uiLocale);
 
-const items = computed(() => [
-    { label: t('navigation.dashboard'), href: '/', icon: IconGauge },
-]);
+const items = computed(() => [{ label: t('navigation.dashboard'), href: '/', icon: IconGauge }]);
 </script>
 
 <template>

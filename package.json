@@ -6,9 +6,12 @@
     "type": "module",
     "scripts": {
         "build": "vite build",
+        "check:secrets": "bash tools/quality/check-secrets.sh",
+        "check:unwanted": "bash tools/quality/check-unwanted-files.sh",
         "check": "pnpm typecheck && pnpm lint && pnpm stylelint && pnpm test && pnpm build",
         "dev": "vite",
-        "format": "prettier --write resources/js resources/css tests/e2e eslint.config.js playwright.config.ts prettier.config.js stylelint.config.js tsconfig.e2e.json vite.config.js",
+        "format": "prettier --write resources/js resources/css tests/e2e eslint.config.js lefthook.yml package.json playwright.config.ts pnpm-workspace.yaml prettier.config.js stylelint.config.js tsconfig.e2e.json vite.config.js",
+        "format:check": "prettier --check resources/js resources/css tests/e2e eslint.config.js lefthook.yml package.json playwright.config.ts pnpm-workspace.yaml prettier.config.js stylelint.config.js tsconfig.e2e.json vite.config.js",
         "lint": "eslint resources/js tests/e2e playwright.config.ts --max-warnings=0",
         "stylelint": "stylelint resources/css/**/*.css",
         "test": "vitest run resources/js --passWithNoTests",
@@ -24,6 +27,7 @@
         "eslint-plugin-tailwindcss": "^4.2.0",
         "eslint-plugin-vue": "^10.9.2",
         "laravel-vite-plugin": "^3.1",
+        "lefthook": "^2.1.10",
         "playwright": "^1.61.1",
         "prettier": "^3.9.5",
         "stylelint": "^17.14.0",
@@ -41,5 +45,11 @@
         "@tanstack/vue-table": "^8.21.3",
         "@vitejs/plugin-vue": "^6.0.7",
         "vue": "^3.5.39"
-    }
+    },
+    "browserslist": [
+        "last 2 Chrome major versions",
+        "last 2 Edge major versions",
+        "last 2 Firefox major versions",
+        "not dead"
+    ]
 }

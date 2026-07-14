@@ -137,7 +137,7 @@ Before non-trivial work:
 5. Read only directly related ADRs, architecture documents, and operations documents.
 6. Continue from the first unfinished applicable roadmap item unless the user explicitly selects another.
 
-Local quality gates and Lefthook are the baseline workflow. Atlas intentionally does not bundle a CI provider; CI may be added later if the company requires it, using the same public quality commands.
+Local quality gates and Lefthook are the baseline workflow. Use the public Composer and pnpm commands documented in [`docs/operations/quality-gates-and-git.md`](docs/operations/quality-gates-and-git.md); hooks call those same commands for pre-commit and pre-push checks. Atlas intentionally does not bundle a CI provider; CI may be added later if the company requires it, using the same public quality commands.
 
 ## Environments
 

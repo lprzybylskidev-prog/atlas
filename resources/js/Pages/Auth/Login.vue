@@ -44,7 +44,9 @@ const submit = (): void => {
             </div>
 
             <div>
-                <label for="password" class="block text-sm font-medium text-zinc-800 dark:text-zinc-100">{{ t('auth.login.password') }}</label>
+                <label for="password" class="block text-sm font-medium text-zinc-800 dark:text-zinc-100">{{
+                    t('auth.login.password')
+                }}</label>
                 <div
                     class="mt-2 flex h-11 rounded-lg border border-zinc-300 bg-white shadow-sm transition focus-within:border-zinc-500 dark:border-zinc-700 dark:bg-zinc-950 dark:focus-within:border-zinc-500"
                 >

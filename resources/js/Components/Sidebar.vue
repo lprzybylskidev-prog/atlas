@@ -56,7 +56,9 @@ const items = computed<NavigationItem[]>(() => [
                 <component :is="item.icon" aria-hidden="true" class="h-5 w-5 shrink-0" :stroke-width="1.8" />
                 <span
                     class="overflow-hidden truncate whitespace-nowrap transition-[max-width,opacity,transform] duration-150 ease-out"
-                    :class="isSidebarTextVisible ? 'max-w-40 translate-x-0 opacity-100' : 'pointer-events-none max-w-0 -translate-x-1 opacity-0'"
+                    :class="
+                        isSidebarTextVisible ? 'max-w-40 translate-x-0 opacity-100' : 'pointer-events-none max-w-0 -translate-x-1 opacity-0'
+                    "
                 >
                     {{ item.label }}
                 </span>
