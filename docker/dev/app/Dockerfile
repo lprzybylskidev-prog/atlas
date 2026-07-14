@@ -64,11 +64,28 @@ RUN apt-get update \
     && npx -y playwright@latest install --with-deps chromium firefox webkit \
     && groupadd --gid "${USER_GID}" "${USERNAME}" \
     && if getent group docker >/dev/null; then groupmod --gid "${DOCKER_GID}" docker; elif getent group "${DOCKER_GID}" >/dev/null; then groupadd --non-unique --gid "${DOCKER_GID}" docker; else groupadd --gid "${DOCKER_GID}" docker; fi \
-    && useradd --uid "${USER_UID}" --gid "${USER_GID}" -m "${USERNAME}" \
+    && useradd --uid "${USER_UID}" --gid "${USER_GID}" --shell /bin/bash -m "${USERNAME}" \
     && usermod --append --groups docker "${USERNAME}" \
     && echo "${USERNAME} ALL=(root) NOPASSWD:ALL" > "/etc/sudoers.d/${USERNAME}" \
     && chmod 0440 "/etc/sudoers.d/${USERNAME}" \
     && mkdir -p /workspace "/home/${USERNAME}/.composer" "/home/${USERNAME}/.local/share/pnpm" \
+    && { \
+      echo '"\\e[A": history-search-backward'; \
+      echo '"\\e[B": history-search-forward'; \
+      echo '"\\e[1;5C": forward-word'; \
+      echo '"\\e[1;5D": backward-word'; \
+    } > "/home/${USERNAME}/.inputrc" \
+    && { \
+      echo 'export SHELL=/bin/bash'; \
+      echo 'export HISTSIZE=50000'; \
+      echo 'export HISTFILESIZE=100000'; \
+      echo 'export HISTCONTROL=ignoreboth:erasedups'; \
+      echo 'shopt -s histappend'; \
+      echo 'PROMPT_COMMAND="history -a; history -n${PROMPT_COMMAND:+; $PROMPT_COMMAND}"'; \
+      echo 'alias ll="ls -lah"'; \
+      echo 'alias gs="git status --short --branch"'; \
+      echo 'alias art="php artisan"'; \
+    } > "/home/${USERNAME}/.bash_aliases" \
     && chown -R "${USERNAME}:${USERNAME}" /workspace "/home/${USERNAME}" /ms-playwright \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* /tmp/pear

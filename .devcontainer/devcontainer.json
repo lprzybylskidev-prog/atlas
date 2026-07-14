@@ -4,6 +4,9 @@
   "service": "app",
   "workspaceFolder": "/workspace",
   "remoteUser": "vscode",
+  "remoteEnv": {
+    "SHELL": "/bin/bash"
+  },
   "shutdownAction": "stopCompose",
   "postStartCommand": "bash scripts/validate-env.sh .env.example",
   "forwardPorts": [8000, 5173, 8025, 5050, 5540, 7700],
@@ -54,7 +57,14 @@
         "files.trimTrailingWhitespace": true,
         "files.insertFinalNewline": true,
         "extensions.supportNodeGlobalNavigator": true,
-        "php.validate.executablePath": "/usr/local/bin/php"
+        "php.validate.executablePath": "/usr/local/bin/php",
+        "terminal.integrated.defaultProfile.linux": "bash",
+        "terminal.integrated.profiles.linux": {
+          "bash": {
+            "path": "/bin/bash",
+            "args": ["-l"]
+          }
+        }
       }
     }
   }

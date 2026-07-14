@@ -47,6 +47,7 @@ The Dev Container uses:
 - `.env.example` for documented development defaults.
 
 The application container runs as the non-root `vscode` user.
+The `vscode` user uses `/bin/bash` as its login shell, and VS Code opens integrated terminals with the `bash` profile so command history, readline shortcuts, and bash completion work consistently.
 
 To allow `vscode` to run Docker commands without `sudo`, set `DOCKER_GID` in the local development environment to the group id of the host Docker socket before the Dev Container is created:
 
