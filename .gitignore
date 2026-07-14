@@ -9,6 +9,7 @@
 
 /public/build/
 /public/hot
+/tsconfig.tsbuildinfo
 /storage/*.key
 /storage/app/private/
 /storage/app/public/

@@ -100,24 +100,24 @@
 - Before introducing TailAdmin Pro assets into Atlas, verify that the company license permits their intended use.
 - If the license does not permit the intended use, Atlas must use TailAdmin Free or project-owned components.
 
-- [ ] Use TailAdmin Free and project-owned components until a Pro-only need is encountered.
-- [ ] Add a documented one-time TailAdmin Pro purchase/license confirmation checkpoint.
+- [x] Use TailAdmin Free and project-owned components until a Pro-only need is encountered.
+- [x] Add a documented one-time TailAdmin Pro purchase/license confirmation checkpoint.
 - [ ] Record confirmed license state so future work does not repeat the question.
-- [ ] Add a release checklist item verifying redistribution/source-transfer rights for any TailAdmin Pro assets.
-- [ ] Ensure a non-Pro fallback exists when redistribution is not permitted.
-- [ ] Install Vue 3, Inertia, TypeScript, Vite, and Tailwind CSS.
-- [ ] Configure pnpm as the only package manager.
-- [ ] Remove and forbid other lockfiles.
+- [x] Add a release checklist item verifying redistribution/source-transfer rights for any TailAdmin Pro assets.
+- [x] Ensure a non-Pro fallback exists when redistribution is not permitted.
+- [x] Install Vue 3, Inertia, TypeScript, Vite, and Tailwind CSS.
+- [x] Configure pnpm as the only package manager.
+- [x] Remove and forbid other lockfiles.
 - [ ] Install TailAdmin Vue Starter.
-- [ ] Add TailAdmin Pro license guard and first-use warning workflow.
-- [ ] Install Tabler Icons.
-- [ ] Install TanStack Table for Vue.
-- [ ] Install Vitest.
-- [ ] Install Playwright.
-- [ ] Install ESLint.
-- [ ] Install Prettier.
-- [ ] Install Stylelint.
-- [ ] Define frontend directory structure.
+- [x] Add TailAdmin Pro license guard and first-use warning workflow.
+- [x] Install Tabler Icons.
+- [x] Install TanStack Table for Vue.
+- [x] Install Vitest.
+- [x] Install Playwright.
+- [x] Install ESLint.
+- [x] Install Prettier.
+- [x] Install Stylelint.
+- [x] Define frontend directory structure.
 - [ ] Define the generic composable-view host contract.
 - [ ] Define typed view-element registration contracts.
 - [ ] Define explicit host view keys and coded accepted-element contracts.
@@ -132,17 +132,17 @@
 - [ ] Add architecture tests preventing element components from accessing Eloquent or foreign module internals.
 - [ ] Add reusable host layouts for dashboards, overview pages, manager workspaces, and operational status views.
 - [ ] Add light/dark and accessibility tests for composable host views and elements.
-- [ ] Enable strict TypeScript.
-- [ ] Define shared frontend type conventions.
-- [ ] Build base application layout.
-- [ ] Build base admin layout.
-- [ ] Build collapsible module sidebar.
-- [ ] Build top bar.
-- [ ] Build active-team selector.
+- [x] Enable strict TypeScript.
+- [x] Define shared frontend type conventions.
+- [x] Build base application layout.
+- [x] Build base admin layout.
+- [x] Build collapsible module sidebar.
+- [x] Build top bar.
+- [x] Build active-team selector.
 - [ ] Add centralized breadcrumbs.
 - [ ] Implement PL/EN localization with Polish as default.
 - [ ] Add translation-parity checks.
-- [ ] Establish light and dark themes in parallel.
-- [ ] Add theme persistence through user settings contract.
+- [x] Establish light and dark themes in parallel.
+- [x] Add theme persistence through user settings contract.
 - [ ] Add key light/dark visual test coverage.
 - [ ] Commit frontend foundation.

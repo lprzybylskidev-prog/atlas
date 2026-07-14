@@ -21,6 +21,8 @@ Provide project-level commands.
 
 `composer check` runs full verification and must not silently modify code.
 
+At the frontend foundation checkpoint, `composer lint` also runs `pnpm lint` and `pnpm stylelint`, while `composer check` delegates frontend verification to `pnpm check`.
+
 ### pnpm
 
 - `pnpm format`
@@ -29,6 +31,8 @@ Provide project-level commands.
 - `pnpm test:e2e`
 - `pnpm build`
 - `pnpm check`
+
+`pnpm check` runs TypeScript checking, ESLint, Stylelint, Vitest, and the production Vite build.
 
 Configure VS Code format-on-save for backend and frontend.
 

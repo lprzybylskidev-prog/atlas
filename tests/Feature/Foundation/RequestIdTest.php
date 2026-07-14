@@ -7,11 +7,11 @@ namespace Tests\Feature\Foundation;
 use App\Http\Middleware\AttachRequestId;
 use Tests\TestCase;
 
-class RequestIdTest extends TestCase
+final class RequestIdTest extends TestCase
 {
     public function test_request_id_header_is_added_to_http_responses(): void
     {
-        $response = $this->get('/');
+        $response = $this->get('/login');
 
         $response->assertOk();
 
@@ -23,7 +23,7 @@ class RequestIdTest extends TestCase
 
     public function test_incoming_request_id_is_preserved_when_valid(): void
     {
-        $response = $this->withHeader(AttachRequestId::HEADER, 'atlas-test-request-1')->get('/');
+        $response = $this->withHeader(AttachRequestId::HEADER, 'atlas-test-request-1')->get('/login');
 
         $response
             ->assertOk()

@@ -37,7 +37,7 @@ Do not replace this index after the initial technical foundation is completed. C
 
 **Phase 3 — Frontend foundation**
 
-**Status:** `not started`
+**Status:** `in progress`
 
 [Open phase details](docs/roadmap/phase-03-frontend.md)
 
@@ -69,7 +69,7 @@ Install and configure the Laravel backend foundation, shared primitives, timezon
 
 ### Phase 3 — Frontend foundation
 
-**Status:** `not started`
+**Status:** `in progress`
 
 Build the Vue/Inertia/Tailwind frontend foundation, fixed composable views, themes, accessibility, and TailAdmin licensing guard.
 

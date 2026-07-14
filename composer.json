@@ -8,6 +8,7 @@
     "require": {
         "php": "^8.3",
         "diglactic/laravel-breadcrumbs": "^10.1",
+        "inertiajs/inertia-laravel": "^3.1",
         "laravel/fortify": "^1.36",
         "laravel/framework": "^13.8",
         "laravel/horizon": "^5.47",
@@ -48,22 +49,25 @@
             "@php -r \"file_exists('.env') || copy('.env.example', '.env');\"",
             "@php artisan key:generate",
             "@php artisan migrate --force",
-            "npm install --ignore-scripts",
-            "npm run build"
+            "pnpm install",
+            "pnpm build"
         ],
         "dev": [
             "Composer\\Config::disableProcessTimeout",
-            "npx concurrently -c \"#93c5fd,#c4b5fd,#fb7185,#fdba74\" \"php artisan serve\" \"php artisan queue:listen --tries=1 --timeout=0\" \"php artisan pail --timeout=0\" \"npm run dev\" --names=server,queue,logs,vite --kill-others"
+            "pnpm exec concurrently -c \"#93c5fd,#c4b5fd,#fb7185,#fdba74\" \"php artisan serve\" \"php artisan queue:listen --tries=1 --timeout=0\" \"php artisan pail --timeout=0\" \"pnpm dev\" --names=server,queue,logs,vite --kill-others"
         ],
         "test": [
             "@php artisan config:clear --ansi @no_additional_args",
             "@php artisan test"
         ],
         "format": [
-            "vendor/bin/pint"
+            "vendor/bin/pint",
+            "pnpm format"
         ],
         "lint": [
-            "vendor/bin/pint --test"
+            "vendor/bin/pint --test",
+            "pnpm lint",
+            "pnpm stylelint"
         ],
         "analyse": [
             "vendor/bin/phpstan analyse --memory-limit=512M"
@@ -81,7 +85,7 @@
             "@lint",
             "@analyse",
             "@test",
-            "pnpm build"
+            "pnpm check"
         ],
         "post-autoload-dump": [
             "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",

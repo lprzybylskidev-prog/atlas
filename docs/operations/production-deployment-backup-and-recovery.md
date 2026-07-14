@@ -11,3 +11,12 @@ Canonical production topology and operational procedures. This document compleme
 - Use versioned releases tied to exact commits/tags/images and switch through a `current` symlink only after readiness succeeds.
 - Do not introduce Kubernetes, Docker Swarm, or a distributed cluster unless explicitly requested for a concrete project.
 - Secrets stay outside the repository and application containers are never edited manually in place.
+
+## Release checklist
+
+Before any release containing TailAdmin Pro assets, verify and record that:
+
+- the company has purchased the appropriate TailAdmin Pro license;
+- the license permits the intended Atlas use;
+- redistribution and source-transfer rights are compatible with the delivery model;
+- any Pro-only asset has a documented non-Pro fallback when redistribution is not permitted.

@@ -16,6 +16,24 @@ Keep custom CSS minimal, ideally zero.
 
 Reuse and extend existing shared components before creating new ones.
 
+### TailAdmin licensing guard
+
+Atlas starts with TailAdmin Free patterns and project-owned components only.
+
+TailAdmin Pro source, paid charts, paid assets, or Pro-only template fragments must not be copied, reproduced one-to-one, or introduced before the project owner explicitly confirms that the appropriate company license has been purchased and verified for Atlas use.
+
+The current TailAdmin Pro license state is **not confirmed**.
+
+If a Pro-only need appears:
+
+- stop implementation before introducing the asset;
+- ask for one explicit confirmation that the license has been purchased;
+- verify redistribution/source-transfer rights before release;
+- document the confirmed state so future work does not repeat the same question;
+- keep or build a non-Pro fallback when redistribution is not permitted.
+
+The first frontend review checkpoint uses project-owned components and no TailAdmin Pro assets.
+
 Do not create duplicate:
 
 - tooltips;
@@ -57,6 +75,8 @@ Do not postpone dark-theme fixes to the end.
 
 Key visual and E2E tests should cover both themes.
 
+The initial shell persists the selected theme in local storage as a temporary user-settings contract until typed backend user settings are implemented.
+
 ### Layout
 
 Use:
@@ -84,6 +104,17 @@ Top bar:
 - logout.
 
 Team switching must be visible enough to avoid accidental context mistakes.
+
+The initial review shell includes:
+
+- `AuthLayout` for login;
+- `AppLayout` for authenticated application screens;
+- `AdminLayout` for authenticated administrative screens;
+- collapsible desktop sidebar;
+- mobile navigation drawer;
+- top bar with theme, notification, settings, admin, active team, avatar, and logout controls.
+
+The active team selector is currently a visible placeholder. Real team switching, backend authorization, and team-scoped state clearing are implemented in later identity, team, authorization, and settings phases.
 
 ### Breadcrumbs
 

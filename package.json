@@ -2,16 +2,42 @@
     "$schema": "https://www.schemastore.org/package.json",
     "private": true,
     "name": "atlas",
+    "packageManager": "pnpm@11.13.0",
     "type": "module",
     "scripts": {
         "build": "vite build",
-        "dev": "vite"
+        "check": "pnpm check:package-manager && pnpm typecheck && pnpm lint && pnpm stylelint && pnpm test && pnpm build",
+        "check:package-manager": "bash scripts/check-js-package-manager.sh",
+        "dev": "vite",
+        "format": "prettier --write resources/js resources/css eslint.config.js prettier.config.js stylelint.config.js vite.config.js",
+        "lint": "eslint resources/js --max-warnings=0",
+        "stylelint": "stylelint resources/css/**/*.css",
+        "test": "vitest run --passWithNoTests",
+        "test:e2e": "playwright test",
+        "typecheck": "vue-tsc --noEmit"
     },
     "devDependencies": {
         "@tailwindcss/vite": "^4.0.0",
         "concurrently": "^9.0.1",
+        "eslint": "^10.7.0",
+        "eslint-plugin-vue": "^10.9.2",
         "laravel-vite-plugin": "^3.1",
+        "playwright": "^1.61.1",
+        "prettier": "^3.9.5",
+        "stylelint": "^17.14.0",
         "tailwindcss": "^4.0.0",
-        "vite": "^8.0.0"
+        "typescript": "^6.0.3",
+        "typescript-eslint": "^8.63.0",
+        "vite": "^8.0.0",
+        "vitest": "^4.1.10",
+        "vue-eslint-parser": "^10.4.1",
+        "vue-tsc": "^3.3.7"
+    },
+    "dependencies": {
+        "@inertiajs/vue3": "^3.6.1",
+        "@tabler/icons-vue": "^3.44.0",
+        "@tanstack/vue-table": "^8.21.3",
+        "@vitejs/plugin-vue": "^6.0.7",
+        "vue": "^3.5.39"
     }
 }

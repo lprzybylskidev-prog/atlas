@@ -1,0 +1,4 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000">
+  <rect width="1000" height="1000" rx="180" fill="#0f766e"/>
+  <path fill="#f8fafc" fill-rule="evenodd" clip-rule="evenodd" d="M430 80H570L900 900H780L500 620L220 900H100L430 80ZM500 300L650 620H350L500 300Z"/>
+</svg>

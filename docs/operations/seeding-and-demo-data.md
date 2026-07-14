@@ -42,3 +42,12 @@ The demo reset command must refuse to run outside approved local or development 
 Production deployment commands must never invoke demo seeders.
 
 Automated tests use factories and explicit fixtures, never demo seeders or demo account credentials.
+
+## Current development demo account
+
+The default database seeder currently creates one local development preview account so the first frontend shell can be reviewed through the real Fortify login flow:
+
+- email: `atlas@example.test`;
+- password: `password`.
+
+This account is for local development review only. It must not be reused as a production bootstrap credential.

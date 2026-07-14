@@ -160,6 +160,8 @@ Atlas currently has a detailed architecture, implementation roadmap, documentati
 
 The Laravel foundation includes Fortify, Horizon, Scout with Meilisearch, Sentry, Spatie Laravel Permission with teams, Diglactic Breadcrumbs, Ziggy, Pint, PHPUnit, PHPStan/Larastan, Vite/Tailwind assets, committed Polish/English Laravel translation catalogs, request IDs, release identity, and startup configuration validation.
 
+The first frontend review shell is available through Inertia/Vue with strict TypeScript, light and dark themes, responsive auth/application/admin layouts, the Atlas logo and favicon, and a local demo account documented in [`docs/operations/seeding-and-demo-data.md`](docs/operations/seeding-and-demo-data.md).
+
 The implementation status and first unfinished phase are always shown in [`WORKROAD.md`](WORKROAD.md).
 
 As the project grows, this README must present the current high-level system scope, major modules, supported workflows, setup entry points, and operational expectations.

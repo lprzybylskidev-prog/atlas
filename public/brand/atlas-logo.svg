@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg"
+     viewBox="0 0 1000 1000"
+     role="img"
+     aria-labelledby="atlas-logo-title">
+  <title id="atlas-logo-title">Atlas logo</title>
+
+  <!-- Transparent background. Color is inherited from CSS via currentColor. -->
+  <path
+    fill="currentColor"
+    fill-rule="evenodd"
+    clip-rule="evenodd"
+    d="
+      M 430 80
+      L 570 80
+      L 900 900
+      L 780 900
+      L 500 620
+      L 220 900
+      L 100 900
+      Z
+
+      M 500 300
+      L 650 620
+      L 350 620
+      Z
+    "
+  />
+</svg>
