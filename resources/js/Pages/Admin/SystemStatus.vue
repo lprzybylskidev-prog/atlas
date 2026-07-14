@@ -5,6 +5,6 @@ import AdminLayout from '../../Layouts/AdminLayout.vue';
 </script>
 
 <template>
-    <Head title="Admin system status" />
+    <Head title="Admin dashboard" />
     <AdminLayout />
 </template>

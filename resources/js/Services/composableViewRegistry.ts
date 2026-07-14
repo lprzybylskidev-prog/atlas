@@ -22,7 +22,7 @@ export const COMPOSABLE_HOST_VIEWS: readonly ComposableHostViewDefinition[] = [
         type: 'operational-status',
         layout: 'operational-status',
         titleKey: 'views.admin.system_status.title',
-        fallbackTitle: 'System status',
+        fallbackTitle: 'Dashboard',
         acceptedElements: [],
     },
 ];

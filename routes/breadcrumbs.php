@@ -14,7 +14,6 @@ Breadcrumbs::for('dashboard', function (Generator $breadcrumbs): void {
 });
 
 Breadcrumbs::for('admin.system-status', function (Generator $breadcrumbs): void {
-    $breadcrumbs->parent('dashboard');
-    $breadcrumbs->push(__('breadcrumbs.admin'), route('admin.system-status'));
-    $breadcrumbs->push(__('breadcrumbs.system_status'));
+    $breadcrumbs->push(__('breadcrumbs.admin'));
+    $breadcrumbs->push(__('breadcrumbs.dashboard'));
 });

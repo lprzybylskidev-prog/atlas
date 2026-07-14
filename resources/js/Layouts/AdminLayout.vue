@@ -3,7 +3,7 @@ import AppLayout from './AppLayout.vue';
 </script>
 
 <template>
-    <AppLayout title="System status" section="Admin" ui-locale="en">
+    <AppLayout title="Dashboard" ui-locale="en">
         <slot />
     </AppLayout>
 </template>

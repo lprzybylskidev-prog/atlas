@@ -46,9 +46,10 @@ final class FrontendShellTest extends TestCase
             ->assertOk()
             ->assertInertia(fn (AssertableInertia $page) => $page
                 ->component('Admin/SystemStatus')
-                ->has('navigation.breadcrumbs', 3)
-                ->where('navigation.breadcrumbs.0.label', 'Dashboard')
-                ->where('navigation.breadcrumbs.1.label', 'Admin')
-                ->where('navigation.breadcrumbs.2.label', 'System status'));
+                ->has('navigation.breadcrumbs', 2)
+                ->where('navigation.breadcrumbs.0.label', 'Admin')
+                ->where('navigation.breadcrumbs.0.url', null)
+                ->where('navigation.breadcrumbs.1.label', 'Dashboard')
+                ->where('navigation.breadcrumbs.1.url', null));
     }
 }

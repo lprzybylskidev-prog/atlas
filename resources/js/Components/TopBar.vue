@@ -20,7 +20,6 @@ import type { AtlasPageProps } from '../Types/inertia';
 
 const props = defineProps<{
     title: string;
-    section: string;
     uiLocale?: string;
 }>();
 
@@ -119,9 +118,8 @@ onBeforeUnmount(() => {
                 </button>
                 <div class="min-w-0">
                     <nav class="flex min-w-0 items-center gap-2 text-xs text-zinc-500 dark:text-zinc-400" :aria-label="t('navigation.aria.breadcrumb')">
-                        <span>{{ section }}</span>
                         <template v-for="(breadcrumb, index) in breadcrumbs" :key="`${breadcrumb.label}-${index}`">
-                            <span aria-hidden="true">/</span>
+                            <span v-if="index > 0" aria-hidden="true">/</span>
                             <Link
                                 v-if="breadcrumb.url !== null && index < breadcrumbs.length - 1"
                                 :href="breadcrumb.url"

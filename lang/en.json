@@ -6,7 +6,6 @@
     "breadcrumbs.admin": "Admin",
     "breadcrumbs.dashboard": "Dashboard",
     "breadcrumbs.login": "Login",
-    "breadcrumbs.system_status": "System status",
     "Encrypted environment file already exists.": "Encrypted environment file already exists.",
     "Encrypted environment file not found.": "Encrypted environment file not found.",
     "Environment file already exists.": "Environment file already exists.",
