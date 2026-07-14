@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace Tests\Unit;
+namespace Tests\Unit\Foundation;
 
 use PHPUnit\Framework\TestCase;
 
-class ExampleTest extends TestCase
+class ComposerIdentityTest extends TestCase
 {
     public function test_composer_package_identity_is_atlas(): void
     {
-        $contents = file_get_contents(__DIR__.'/../../composer.json');
+        $contents = file_get_contents(__DIR__.'/../../../composer.json');
 
         self::assertIsString($contents);
 
