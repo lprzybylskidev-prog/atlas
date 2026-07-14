@@ -27,7 +27,7 @@ export const translations = {
         'auth.shell.body':
             'Bezpieczne centrum pracy dla zespołów obsługujących sprawy, działania terenowe, komunikację i nadzór nad procesami windykacyjnymi.',
         'auth.shell.heading': 'Operacyjny pulpit windykacji',
-        'brand.subtitle': 'Operacje windykacyjne',
+        'brand.subtitle': 'System Windykacyjny',
         'navigation.admin': 'Admin',
         'navigation.aria.breadcrumb': 'Breadcrumb',
         'navigation.aria.main': 'Główna nawigacja',
