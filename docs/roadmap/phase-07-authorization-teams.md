@@ -1,0 +1,148 @@
+## Phase 7 — Authorization and teams
+
+### Implementation contract
+
+- `spatie/laravel-permission` teams mode is mandatory.
+- Permission is the smallest authorization unit.
+- Every protected route has a permission exactly equal to its English route name, except explicitly documented public or purely technical routes.
+- Add business permissions when route access alone does not authorize the operation.
+- Business code never checks role names.
+- Roles are small functional packages of permissions, not department mega-roles.
+- Cumulative role/package patterns may be used, for example `read -> create -> update -> delete`, where higher levels include lower permissions.
+- Every backend operation checks active team context.
+- UI permission checks never replace backend checks.
+- Administrator receives the complete permission set but still goes through normal use cases, validations, confirmations, module activation checks, and audit. No hidden `if admin then allow` bypass is allowed.
+- Permission catalogs are typed and owned by modules; permission strings must not be scattered through code.
+- Admin permission screens show owning module, assignment source, selected team, module activation, effectiveness, and the exact reason a permission is ineffective.
+- Permissions of inactive modules can be assigned in advance but cannot authorize an operation.
+- A module may provide optional onboarding permission packages for newly created users.
+- An onboarding package is a one-time starting preset, not a persistent relationship, role template, synchronization mechanism, or policy engine.
+- Selecting a package during user creation explicitly assigns the package's declared initial roles and/or permissions.
+- Before user creation, Admin shows exactly what the selected package will assign.
+- After the user is created, all further authorization changes use the normal role and permission administration mechanisms.
+- Later changes to a package never alter existing users or roles.
+- Packages are not applied to existing users and are never used to compare, repair, supplement, or synchronize roles.
+- A module owns and declares the exact permissions in each named package.
+- Admin may use a package to create a new role or add only the missing permissions to an existing role.
+- Later package changes never modify existing roles automatically.
+- Admin shows a role-versus-current-template diff.
+- Core may provide starter templates but cannot impose a company-wide role model.
+- Module activation integration is completed later in the Module Availability and Activation phase, after this authorization foundation exists.
+- Atlas creates only three neutral starter roles:
+  - `user`;
+  - `manager`;
+  - `administrator`.
+- Roles are permission bundles only and must never be checked by name in business code.
+- The `user` starter role covers the user's own profile, own settings, own sessions, own notifications, and team selection.
+- Access to business or optional modules still requires the corresponding module permissions.
+- The `manager` starter role extends the ordinary user baseline with manager-facing permissions.
+- Manager data scope still comes from the team-scoped manager hierarchy:
+  - ordinary manager: direct reports;
+  - head manager: authorized subtree.
+- The `manager` role name alone never grants direct-report or subtree scope.
+- The `administrator` starter role receives the complete currently registered permission catalog.
+- Administrator permissions do not bypass:
+  - administrative-mode reauthentication;
+  - module technical availability;
+  - module operational activation;
+  - active-team context;
+  - Application use cases;
+  - validation;
+  - domain invariants;
+  - confirmation requirements;
+  - audit.
+- Do not implement a hidden superadmin or role-name bypass.
+- Every module owns and registers a typed permission catalog.
+- Do not maintain one manually duplicated central permission-string list.
+- Core permission catalogs cover at least:
+  - users;
+  - teams;
+  - roles;
+  - permissions;
+  - managers;
+  - audit;
+  - settings;
+  - module activation;
+  - system status;
+  - queues and failed jobs;
+  - files;
+  - administrative mode;
+  - impersonation.
+- Starter roles are created from the permission catalogs available during installation/bootstrap.
+- Adding or changing a permission later never silently mutates existing roles.
+- Updating an existing administrator role to include newly introduced permissions is an explicit operation.
+- The explicit administrator-role update flow may exist as:
+  - an Admin screen;
+  - a CLI command;
+  - or both.
+- Before applying an administrator-role update, show the exact permission diff.
+- Require explicit confirmation and audit the resulting changes.
+- The first administrator is created through a dedicated CLI bootstrap command.
+- The bootstrap command is available only while no administrator account exists.
+- Do not seed a default login, default password, known email, or shared credential.
+- The command collects the user's identity and email details but does not accept or generate the final password.
+- The created account receives the standard short-lived one-time first-password link.
+- Setting the first password verifies the email through the normal Identity flow.
+- After the first administrator exists, further users and administrators are created through the Admin UI and normal audited use cases.
+- Spatie Permission is an Infrastructure implementation detail of Authorization.
+- Domain code never imports Spatie/Eloquent authorization types.
+- Normal authorization occurs in Presentation/Application before domain execution.
+- Other modules use typed contracts from `Authorization/Application/Public` when they need authorization information and never query Spatie tables directly.
+
+- [ ] Define Authorization public contracts for effective permission/capability checks needed by other modules.
+- [ ] Keep Spatie models and APIs inside Authorization Infrastructure.
+- [ ] Add architecture tests preventing Spatie/Eloquent authorization imports in Domain and foreign modules.
+- [ ] Create `Teams` module.
+- [ ] Create `Authorization` module.
+- [ ] Configure permission teams support.
+- [ ] Enforce route-name-equals-permission for protected routes.
+- [ ] Add route/permission consistency tests.
+- [ ] Define public and technical-route exceptions.
+- [ ] Add business permissions where route permission is insufficient.
+- [ ] Prohibit role-name checks in code.
+- [ ] Define small functional role conventions.
+- [ ] Create neutral starter roles `user`, `manager`, and `administrator`.
+- [ ] Define the `user` starter-role permission baseline.
+- [ ] Define the `manager` starter-role permission baseline without embedding hierarchy scope in the role name.
+- [ ] Build the `administrator` starter role from all currently registered permission catalogs.
+- [ ] Add regression tests proving business code never checks starter-role names.
+- [ ] Add module-owned typed permission catalog registration.
+- [ ] Add Core permission catalogs for users, teams, roles, permissions, managers, audit, settings, module activation, system status, queues, files, Admin mode, and impersonation.
+- [ ] Ensure permission additions never silently update existing roles.
+- [ ] Implement an explicit administrator-role permission diff.
+- [ ] Implement explicit confirmed administrator-role update through CLI and/or Admin UI.
+- [ ] Audit administrator-role permission updates.
+- [ ] Implement the first-administrator bootstrap CLI command.
+- [ ] Make the bootstrap command unavailable after an administrator exists.
+- [ ] Ensure bootstrap never seeds or accepts a default/shared password.
+- [ ] Send the normal first-password link to the bootstrapped administrator.
+- [ ] Ensure first-password setup verifies email through the standard Identity flow.
+- [ ] Route every later administrator creation through normal Admin UI use cases.
+- [ ] Add tests for first-administrator bootstrap and lockout after initial use.
+- [ ] Implement cumulative hierarchical permission packages.
+- [ ] Require active-team authorization for protected operations.
+- [ ] Build team administration.
+- [ ] Build role administration.
+- [ ] Build permission administration.
+- [ ] Show module ownership and current module activation state for every permission.
+- [ ] Show whether each permission is assigned, effective, or ineffective in the selected team context.
+- [ ] Explain ineffectiveness caused by an inactive module separately from missing role/user assignment.
+- [ ] Support preparing role assignments for modules that are currently inactive.
+- [ ] Define typed module permission catalogs instead of scattering permission strings.
+- [ ] Define optional onboarding permission packages for newly created users.
+- [ ] Let each package declare its initial roles and/or direct permissions.
+- [ ] Show the exact package contents during user creation before confirmation.
+- [ ] Apply the selected package only once as part of user creation.
+- [ ] Ensure packages cannot be applied to existing users or roles.
+- [ ] Ensure package changes never mutate previously created users or existing roles.
+- [ ] Route all later authorization changes through normal role and permission administration.
+- [ ] Audit the selected onboarding package and resulting assignments during user creation.
+- [ ] Add tests proving that packages are one-time onboarding presets only.
+- [ ] Store exact module-owned permission membership for every named package.
+- [ ] Let Admin create a role from a selected package.
+- [ ] Let Admin add only missing package permissions to an existing role without removing unrelated permissions.
+- [ ] Show exact additions and unchanged extra permissions before confirmation.
+- [ ] Ensure package definition changes never mutate roles automatically.
+- [ ] Show a role-versus-current-template diff.
+- [ ] Allow Core starter templates without forcing one organizational model.
+- [ ] Commit authorization foundation.

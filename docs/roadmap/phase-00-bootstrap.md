@@ -1,0 +1,66 @@
+## Phase 0 — Repository bootstrap
+
+### Implementation contract
+
+- The repository contains Atlas, a large debt collection system developed for the company.
+- The initial technical and operational foundation is completed and stabilized before the main debt collection `Application` modules are added.
+- Atlas remains one continuously developed repository and one system.
+- `AGENTS.md` contains permanent repository rules.
+- `WORKROAD.md` contains the lightweight ordered phase index; binding executable specifications live in linked `docs/roadmap/phase-*.md` files.
+- `CHATGPT_PROMPT.md` supports future conceptual work on Atlas.
+- `OPEN_DISCUSSION.md` contains only genuinely unresolved matters while conceptual work is active.
+- The continuation context must let a fresh ChatGPT session resume Atlas work without reading historical chat.
+- All documentation, code, commits, technical errors, CLI output, and Admin UI use English.
+- The regular end-user UI supports Polish and English, with Polish as the default.
+- The first repository operation is `git init`.
+- The project uses English Conventional Commits, produced by the agent in the smallest logical units.
+- Before the first real production deployment, migrations may be edited in place. After production deployment they are forward-only.
+- Use `App` as the permanent PHP root namespace.
+- Do not introduce a branded root namespace such as `Atlas`.
+- Repository, Docker project, database, application name, and branding use the Atlas identity defined by the project.
+- Separate mandatory technical seeders from development-only demo seeders.
+- Technical seeders create only required system reference/configuration data, such as starter roles, registered permission catalogs, and explicitly required bootstrap records.
+- Demo seeders are optional development tooling and never run automatically in production.
+- Demo seeders are excluded from the normal production deploy flow.
+- Demo data may include:
+  - example teams;
+  - example users;
+  - example manager relationships;
+  - example notifications;
+  - example TimeTracking scenarios;
+  - example imports and process statuses;
+  - later neutral or debt-collection demonstration scenarios.
+- Demo users use unmistakably non-production addresses under reserved domains such as `example.test`.
+- Any known demo credentials are permitted only in development, must be clearly documented, and must never be reusable in production.
+- Provide one explicit command to recreate or reset the complete demo environment.
+- The demo reset command refuses to run outside approved local/development environments.
+- Tests create their own fixtures/factories and never depend on demo seeders or demo account credentials.
+- Production operation never depends on development demo records.
+- The root `README.md` describes Atlas as a debt collection system and begins as high-level documentation of the planned technical foundation.
+- The root `README.md` is living documentation and must be expanded as business modules, supported workflows, integrations, setup, and operations are implemented.
+
+- [x] Initialize Git repository as the first project action.
+- [x] Add final root `AGENTS.md`.
+- [x] Add `WORKROAD.md`.
+- [x] Add `CHATGPT_PROMPT.md`.
+- [x] Add `CONTINUATION.md` as the Atlas continuation context file for future ChatGPT sessions.
+- [x] Add open-discussion register.
+- [x] Add `.editorconfig`.
+- [x] Add `.gitignore`.
+- [x] Add initial English `README.md` describing Atlas as a debt collection system and explaining the current technical scope and module categories.
+- [x] Configure `App` as the permanent PHP root namespace.
+- [x] Define Atlas repository, Docker project, database, application-name, and branding values.
+- [x] Define `PRODUCTION_DEPLOYED=false` lifecycle flag and document migration consequences.
+- [x] Create initial documentation tree under `docs/`.
+- [x] Separate technical seeders from development-only demo seeders.
+- [x] Define the minimal technical seed contract for starter roles, permission catalogs, and required bootstrap reference data.
+- [ ] Create development-only demo seeders for teams, users, managers, notifications, TimeTracking, and import scenarios.
+- [x] Use reserved `example.test` addresses for all demo accounts.
+- [x] Document development-only demo credentials without exposing them to production.
+- [ ] Add one command to recreate/reset the complete demo environment.
+- [ ] Make the demo reset command refuse non-development environments.
+- [ ] Ensure production deploy commands never invoke demo seeders.
+- [ ] Add tests proving production cannot run the demo reset flow.
+- [ ] Ensure automated tests use factories/fixtures rather than demo data.
+- [x] Create initial ADR describing modular monolith, DDD, and one-repository strategy.
+- [ ] Create first clean Conventional Commit.

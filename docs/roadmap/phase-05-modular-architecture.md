@@ -1,0 +1,144 @@
+## Phase 5 — Modular architecture skeleton
+
+### Implementation contract
+
+- The repository is one modular monolith divided into `Core`, optional modules, shared cross-cutting capabilities, and `Application`.
+- All modules remain in one repository. Modules are never physically removed.
+- Each module uses `Domain`, `Application`, `Infrastructure`, and `Presentation`.
+- Domain is pure PHP and cannot depend on Laravel, Eloquent, Redis, queues, filesystem, HTTP, or external clients.
+- Application contains use-case orchestration, Commands, Queries, Handlers, immutable DTOs, public contracts, and transaction boundaries.
+- Infrastructure contains Eloquent persistence models, repository implementations, Redis, jobs, external adapters, search, and filesystem implementations.
+- Presentation contains controllers, Form Requests, Resources, routes, console commands, and Inertia entrypoints.
+- Controllers are thin.
+- Form Requests perform validation and authorization only. They cannot construct domain entities or contain business rules.
+- Eloquent models are persistence-only and remain separate from domain entities.
+- Repository interfaces live in Domain and implementations in Infrastructure.
+- Generic CRUD BaseRepository is forbidden.
+- Writes use aggregate repositories. Reads use Query Handlers/read models.
+- CQRS is application-level: Commands mutate, Queries read. Do not introduce event sourcing or a separate read database by default.
+- Aggregates enforce invariants and expose intent methods, not public setters.
+- Value Objects are immutable and validate their own invariants.
+- Relations between aggregates use typed IDs.
+- Domain Events and Integration Events are separate. Events are past tense and must not obscure simple sequential logic.
+- External side effects occur after commit. Reliable Integration Events use an Outbox Pattern.
+- One transaction belongs to one use case and is opened in Application.
+- Modules cannot access another module's Eloquent model, tables, Infrastructure, or internal classes.
+- Cross-module communication uses public application contracts or Integration Events.
+- Module dependencies must remain acyclic.
+- Shared code contains only truly cross-domain concepts, never a generic helper dump.
+- Every module has its own Service Provider and explicitly registers bindings, routes, migrations, listeners, commands, configuration, health checks, and schedules.
+- Constructor injection is required. Service locator patterns and magical scanning are forbidden.
+- Each module has a typed manifest implementing `ModuleDefinition`.
+- Manifest fields include stable key, category, required dependencies, optional dependencies, Service Provider, integrations, global/per-team activation support, health checks, and frontend entrypoints.
+- Manifests are registered explicitly in `config/modules.php`; directory and namespace scanning are forbidden.
+- `ModuleRegistry` rejects duplicate keys, missing dependencies, and cycles, computes deterministic startup order, and stops startup with clear exceptions on invalid configuration.
+- Core modules initially include Identity, Users, Teams, Authorization, Audit, Notifications, Settings, Files, Admin, and Health.
+- Optional modules initially include TimeTracking, Imports, Search, Integrations, and FeatureFlags. Reports/exports/print and realtime/WebSockets are shared capabilities by default and become dedicated modules only after an explicit business-boundary decision.
+- Application modules are concrete business domains and must not be assumed by the Atlas.
+- Every module exposes cross-module API only through `Application/Public`.
+- Recommended public structure:
+  - `Application/Public/Contracts`;
+  - `Application/Public/DTOs`;
+  - `Application/Public/Commands`;
+  - `Application/Public/Queries`;
+  - `Application/Public/Events`.
+- Everything outside `Application/Public` is internal to the module unless a separate explicit exception is documented.
+- Public contracts are owned by the module that provides the data or operation.
+- A consuming module must not redefine another module's internal API as its own pseudo-contract.
+- External-system ports remain owned by the module that needs them and are implemented by Infrastructure adapters.
+- Public contracts use concrete business names such as `UserDirectory`, `TeamDirectory`, or `NotificationPublisher`.
+- Avoid generic public names such as `ModuleService`, `DataProvider`, `CommonService`, `Manager`, or `Helper`.
+- Public DTOs are immutable, minimal, framework-independent, and do not expose Eloquent models, aggregates, or table structure.
+- Use synchronous public contracts only when the caller requires a result during the current use case.
+- Use Integration Events when no immediate response is needed, multiple consumers may react, processing may occur after commit, or receiver unavailability must not block the source use case.
+- Do not introduce an event only to avoid a clear synchronous method call.
+- Because modules live in one monolith and one repository, do not create `V1`/`V2` contract namespaces preemptively.
+- Change synchronous contracts atomically with all in-repository consumers, tests, and documentation.
+- A breaking public-contract change requires a separate logical commit.
+- Add parallel contract versions only when two versions must genuinely coexist during a migration.
+- Every Integration Event includes:
+  - stable event type;
+  - unique `event_id`;
+  - `occurred_at`;
+  - `correlation_id`;
+  - optional `causation_id`;
+  - source module identifier;
+  - integer schema version;
+  - minimal payload.
+- Integration-event type names are stable technical names such as `users.user_deactivated`.
+- Schema version lives in event metadata rather than class names until multiple versions must coexist.
+- Compatible event evolution may add optional fields.
+- Existing field meaning must not change.
+- Removing a field or making a breaking change requires a migration period and a new schema version.
+- Consumers must ignore unknown fields.
+- Public contract deprecation requires:
+  1. deprecation marker;
+  2. documented replacement;
+  3. discovery of all consumers;
+  4. migration of all consumers;
+  5. a test confirming no remaining usage;
+  6. a separate removal commit.
+- Architecture tests allow cross-module imports only from `<OtherModule>\Application\Public\*` and explicitly approved shared types.
+- Architecture tests reject cross-module imports from another module's Domain, Infrastructure, Presentation, or internal Application namespaces.
+- Implement one shared transactional Outbox before any module depends on reliable Integration Events.
+- The Outbox schema stores event identity, stable type, schema version, source module, payload, occurred time, correlation ID, optional causation ID, status, attempts, next-attempt time, published time, and failure details.
+- Originating business data and Outbox record are committed in the same transaction.
+- A dedicated relay publishes after commit with at-least-once delivery, bounded backoff, failed/dead-letter state, retention cleanup, lag metrics, and safe replay.
+- Consumers are idempotent and deduplicate by stable event ID.
+- Define one central `ModuleGate` as the source of truth for deployed availability, dependencies, global/team activation, active team, and effective permission.
+- A required dependency missing from the deployed registry fails startup/readiness.
+- Define a typed module deactivation-guard contract for unsafe in-flight processes; modules return blockers and supported safe actions without foreign-table inspection.
+- Public Query contracts use framework-independent DTO collections and typed page/cursor results, never Laravel paginator or Eloquent collection types.
+- Define the minimal cross-module deletion/anonymization participation contract now: modules declare affected data, preview impact, execute idempotent deletion/anonymization steps, report blockers, and emit auditable results. Phase 24 builds the full administrative orchestration on this contract.
+
+- [ ] Design and migrate the shared Outbox table.
+- [ ] Implement transactional Outbox recording.
+- [ ] Implement the Outbox relay/dispatcher.
+- [ ] Implement bounded retry, backoff, failed/dead-letter state, retention cleanup, lag metrics, and safe replay.
+- [ ] Add idempotent consumer/event-ID deduplication support.
+- [ ] Add architecture tests preventing reliable Integration Event publication outside the Outbox.
+- [ ] Add Outbox integration tests covering commit, rollback, duplicate delivery, retry, failure, replay, and cleanup.
+- [ ] Define and implement the central `ModuleGate`.
+- [ ] Make missing deployed required dependencies fail startup/readiness.
+- [ ] Define the module active-process/deactivation-guard contract.
+- [ ] Define framework-independent typed collection, page, and cursor Query results.
+- [ ] Add architecture tests rejecting Laravel paginator/Eloquent collection types in public contracts.
+- [ ] Define the minimal module deletion/anonymization participation contract.
+- [ ] Create `Core`, `Optional`, and `Application` module roots.
+- [ ] Create shared `Domain`, `Application`, `Infrastructure`, and `Presentation` conventions.
+- [ ] Define typed `ModuleDefinition` contract.
+- [ ] Define module key and module category value types/enums.
+- [ ] Define required and optional dependency declarations.
+- [ ] Define module capability declarations.
+- [ ] Create explicit `config/modules.php` manifest registry.
+- [ ] Implement `ModuleRegistry`.
+- [ ] Detect duplicate module keys.
+- [ ] Detect missing dependencies.
+- [ ] Detect dependency cycles.
+- [ ] Compute deterministic startup order.
+- [ ] Fail startup with clear exceptions on invalid module configuration.
+- [ ] Define module Service Provider conventions.
+- [ ] Define module route registration conventions.
+- [ ] Define module migration ownership.
+- [ ] Define module menu contribution contracts.
+- [ ] Define module permission contribution contracts.
+- [ ] Define module breadcrumb contribution contracts.
+- [ ] Define module health-check contribution contracts.
+- [ ] Define module scheduler contribution contracts.
+- [ ] Define module frontend entrypoint conventions.
+- [ ] Define public module API conventions.
+- [ ] Create and document the `Application/Public` namespace convention.
+- [ ] Define public-contract, DTO, Command, Query, and Integration Event subnamespace conventions.
+- [ ] Enforce provider-owned public contracts.
+- [ ] Add naming rules for business-specific public contracts.
+- [ ] Add immutable minimal public DTO rules.
+- [ ] Define synchronous-contract versus Integration Event decision rules.
+- [ ] Define Integration Event metadata and schema-version contract.
+- [ ] Define compatible and breaking Integration Event evolution rules.
+- [ ] Define public-contract deprecation and removal workflow.
+- [ ] Add architecture tests allowing only cross-module imports from `Application/Public`.
+- [ ] Add architecture tests rejecting cross-module Domain, Infrastructure, Presentation, and internal Application imports.
+- [ ] Add tests proving synchronous contracts can be changed atomically without preemptive `V1` namespaces.
+- [ ] Add architecture tests preventing forbidden cross-module dependencies.
+- [ ] Add documentation and ADRs.
+- [ ] Commit modular architecture skeleton.

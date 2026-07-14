@@ -1,0 +1,82 @@
+## Phase 6 — Core identity and authentication
+
+### Implementation contract
+
+- Public registration is disabled.
+- Administrators create users and assign teams.
+- The system sends a short-lived one-time first-password link. It never sends a generated password.
+- Setting the first password verifies the user's email.
+- An account must be active to log in. Deactivation does not delete it.
+- Password policy:
+  - minimum 12 characters;
+  - at least 1 uppercase letter;
+  - at least 2 digits;
+  - at least 1 special character;
+  - no 3 identical consecutive characters;
+  - reject known breached passwords;
+  - reject passwords based on user data;
+  - block reuse of the previous 10 passwords;
+  - no arbitrary periodic rotation.
+- Password reset links are short-lived and one-time. Issuing a new one invalidates all previous reset tokens.
+- Password and recovery flows use generic responses that do not reveal account existence.
+- Login protection uses user plus IP rate limits, locks after 10 failed attempts, escalating lock durations, suspicious-attempt notifications, audited admin unlock, and reset of the counter after success.
+- Support TOTP, WebAuthn/passkeys, FIDO2 hardware keys, and one-time recovery codes.
+- MFA may be optional or required globally, per team, per user, per permission, or per operation.
+- MFA reset is a separate audited Admin flow and does not reactivate blocked or deactivated accounts.
+- Security audit covers login success/failure, suspicious attempts, locks, password changes, MFA changes, recovery-code use, activation, sessions, role/permission/team changes, and impersonation.
+- Sensitive security events may notify the user.
+- Define rate limiting through stable named policies in code, including at least:
+  - `auth.login`;
+  - `auth.password-reset`;
+  - `auth.mfa`;
+  - `api.default`;
+  - `api.sensitive`;
+  - `exports.create`;
+  - `imports.create`;
+  - `admin.high-risk`.
+- A policy may define:
+  - request limit;
+  - time window;
+  - key composition using IP, user, team, API client, or an explicit combination;
+  - progressive delay;
+  - temporary lock duration.
+- Baseline values come from configuration and require a normal reviewed deployment to change.
+- Do not provide policy or threshold editing in Admin UI.
+- Do not provide a global rate-limit disable switch.
+- Login and MFA policies are mandatory and cannot be disabled.
+- User-facing responses remain generic and do not disclose exact thresholds where that would facilitate attack tuning.
+
+- [ ] Register stable named rate-limit policies for authentication, API, imports, exports, and high-risk Admin operations.
+- [ ] Support policy keying by IP, user, team, API client, and explicit combinations.
+- [ ] Support progressive delay and temporary locks where required.
+- [ ] Keep policy thresholds in configuration rather than editable database settings.
+- [ ] Ensure login and MFA rate limits cannot be disabled.
+- [ ] Add tests for generic user-facing rate-limit errors and threshold non-disclosure.
+- [ ] Create `Identity` module.
+- [ ] Create `Users` module.
+- [ ] Create domain IDs, public ULIDs, and persistence mappings.
+- [ ] Disable public registration.
+- [ ] Implement admin-created users.
+- [ ] Implement one-time first-password links.
+- [ ] Verify email during first-password setup.
+- [ ] Prevent generated-password delivery.
+- [ ] Implement activation/deactivation.
+- [ ] Implement password policy.
+- [ ] Add breached-password verification.
+- [ ] Add password history for last 10 passwords.
+- [ ] Implement short-lived one-time reset links.
+- [ ] Invalidate previous reset links when a new one is issued.
+- [ ] Implement generic account-existence-safe messaging.
+- [ ] Implement login rate limiting by user and IP.
+- [ ] Lock after 10 failed attempts.
+- [ ] Add escalating lock durations.
+- [ ] Add suspicious-login notifications.
+- [ ] Implement audited admin unlock.
+- [ ] Reset failed-attempt count on success.
+- [ ] Implement TOTP MFA.
+- [ ] Implement WebAuthn/passkeys.
+- [ ] Implement FIDO2 hardware-key support.
+- [ ] Implement recovery codes.
+- [ ] Implement configurable MFA requirements.
+- [ ] Implement audited MFA reset.
+- [ ] Commit authentication foundation.

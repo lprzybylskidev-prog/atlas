@@ -1,0 +1,119 @@
+## Phase 16 — Shared table, saved views, reports, exports, charts, and print
+
+### Implementation contract
+
+- Every application table uses one shared TanStack Table wrapper.
+- No module may build a separate table framework.
+- Tables use server-side pagination, sorting, and filtering.
+- Backend validates allowed columns, filters, sorting, pagination, and export fields.
+- Query string uses stable English names and never stores sensitive values.
+- Support column visibility, order, selection, grouping where justified, loading, empty, error, and no-results states.
+- Saved views contain safe configuration only, never row data.
+- Saved view types:
+  - private;
+  - team-shared;
+  - system.
+- A user may set a default view.
+- A view may persist filters, sorting, columns, column order, grouping, and dynamic or fixed time ranges.
+- Shared views require permission and are team-scoped.
+- System views cannot be overwritten or deleted, but can be copied.
+- Shared/system-view changes are audited.
+- Provide CSV, XLSX, PDF, and browser print from the beginning.
+- Export/print uses exactly the active filters, sort, time range, visible columns, active team, and effective permissions.
+- Backend rechecks every field; UI visibility is not authorization.
+- Small exports may run synchronously. Large exports run through queues and notify when ready.
+- Generated artifacts are stored privately with expiry and cleanup.
+- PDF and print use a clean report layout, not a raw print of the application screen.
+- PDF, XLSX, and print headers include report name, active team, filters, date range, generation timestamp, generating user, and totals.
+- PDF and print include page numbering.
+- Company identity, logo, and footer come from centralized report configuration.
+- Ordinary exports show final values and meaningful markers. Detailed history uses a separate audit export permission.
+- Charts use TailAdmin Pro first after license confirmation.
+- Charts share the table's filters and data contract, supplement rather than replace the table, and may appear in PDF/print.
+- Large ranges aggregate by day, week, or month.
+- Do not add decorative analytics without a real interpretive purpose.
+- Use HTML/CSS rendered by headless Chromium through Playwright as the shared PDF engine.
+- Browser print and generated PDF use the same report layout and data contract.
+- Do not maintain a separate Dompdf-style report implementation with different HTML/CSS behavior.
+- PDF rendering must not depend on the user's live authenticated browser session.
+- A PDF render job receives access through a short-lived one-time render token or an equivalent internal signed mechanism.
+- The render credential is bound to:
+  - one concrete report/export request;
+  - the requesting user;
+  - active team;
+  - allowed dataset and columns;
+  - a short expiration time.
+- A render credential must not grant access to unrelated reports or application data.
+- Invalidate or consume the render credential after successful use.
+- Package required fonts locally in the application or production image.
+- Do not fetch Google Fonts or other external fonts during PDF generation.
+- Define explicit report-print rules for:
+  - A4 format by default;
+  - margins;
+  - controlled page breaks;
+  - repeated table headers;
+  - page numbers;
+  - report footer;
+  - company identity;
+  - print-safe colors and contrast.
+- Charts included in PDF must signal that rendering is complete before Chromium prints the document.
+- If a required chart or other required visual fails to render, fail the PDF job rather than generating an incomplete artifact.
+- Large PDFs always run through queues.
+- Small PDFs may be synchronous only when explicit size and execution-time thresholds make it safe; queued generation is preferred for consistency.
+- PDF generation failures are visible, retryable only when safe, audited where relevant, and reported through the shared notification/progress system.
+- Generated reports/exports use one lifecycle: authorize, snapshot request, select sync/queued path, generate idempotently with concurrency limits, store privately, notify, reauthorize download, expire.
+- Retries never expose duplicate or partial artifacts.
+- Concurrency limits are configurable per user, team, and report type.
+
+- [ ] Implement immutable report/export request snapshots and authorization fingerprints.
+- [ ] Implement idempotent generation jobs and concurrency controls.
+- [ ] Prevent partial or duplicate artifacts from becoming downloadable.
+- [ ] Store checksum, content type, size, creator, status, release/rule version, and expiry metadata.
+- [ ] Reauthorize every artifact download and implement retention cleanup.
+- [ ] Build shared TanStack Table wrapper.
+- [ ] Add server-side pagination.
+- [ ] Add server-side sorting.
+- [ ] Add server-side filtering.
+- [ ] Add backend allowlists for columns, filters, and sorting.
+- [ ] Add URL query synchronization.
+- [ ] Add column visibility.
+- [ ] Add column ordering.
+- [ ] Add selection.
+- [ ] Add loading, empty, error, and no-results states.
+- [ ] Add private saved views.
+- [ ] Add team-shared saved views.
+- [ ] Add system views.
+- [ ] Add default-view support.
+- [ ] Add view copy.
+- [ ] Prevent overwrite/delete of system views.
+- [ ] Audit shared-view changes.
+- [ ] Add CSV exports.
+- [ ] Add XLSX exports.
+- [ ] Add PDF exports.
+- [ ] Implement shared HTML/CSS report layouts for both browser print and PDF.
+- [ ] Implement headless Chromium/Playwright PDF rendering.
+- [ ] Implement short-lived one-time report render credentials bound to report, user, team, dataset, and allowed columns.
+- [ ] Ensure PDF rendering never depends on a live user browser session.
+- [ ] Package report fonts locally and prohibit network font loading during rendering.
+- [ ] Define A4, margins, repeated table headers, page-break, page-number, footer, and print-color rules.
+- [ ] Implement a render-ready contract for charts and other asynchronous visuals.
+- [ ] Fail PDF generation when required visuals do not finish rendering.
+- [ ] Queue all large PDFs and define safe thresholds for any synchronous PDF path.
+- [ ] Integrate PDF progress, failure, retry, storage, expiry, and notifications with shared reporting infrastructure.
+- [ ] Add Chromium-based tests for multipage tables, repeated headers, charts, fonts, page numbers, and failure handling.
+- [ ] Add browser print layouts.
+- [ ] Make exports honor filters, sorting, visible columns, permissions, and active team.
+- [ ] Add synchronous small exports.
+- [ ] Add queued large exports.
+- [ ] Add export-ready notifications.
+- [ ] Add storage expiry and cleanup.
+- [ ] Add centralized report header configuration.
+- [ ] Add company data, logo, and footer configuration.
+- [ ] Add report page numbering.
+- [ ] Add totals.
+- [ ] Add separate audit export permission.
+- [ ] Before first TailAdmin Pro chart use, stop and request license confirmation.
+- [ ] Build shared TailAdmin Pro chart wrappers.
+- [ ] Add charts to PDF and print where justified.
+- [ ] Verify all report/table/chart states in light and dark themes.
+- [ ] Commit shared table and reporting foundation.
