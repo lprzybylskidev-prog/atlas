@@ -41,6 +41,8 @@ If a Pro-only need appears:
 
 The first frontend review checkpoint uses project-owned components and no TailAdmin Pro assets.
 
+TailAdmin Vue Starter is installed as the reviewed Free TailAdmin source checkpoint documented in [TailAdmin Vue Starter](tailadmin-vue-starter.md). Atlas does not vendor the upstream source tree unless the exact asset/license status is verified for source transfer.
+
 Do not create duplicate:
 
 - tooltips;
@@ -184,6 +186,44 @@ State rules:
 - Pinia only for true cross-screen persistent state;
 - stores do not contain business logic;
 - clear team-scoped state on team switch.
+
+### Composable Views
+
+Atlas uses a generic composable-view system for coded host views made of independently registered elements.
+
+Current contracts live in:
+
+- `resources/js/Types/composable-view.ts`;
+- `resources/js/Services/composableViewRegistry.ts`;
+- `resources/js/Components/ComposableView/ComposableViewHost.vue`.
+
+Host views have explicit technical keys, view types, accepted element keys, ordering, areas, and dimensions in code. The current host keys are:
+
+- `app.dashboard`;
+- `admin.system-status`.
+
+View elements declare:
+
+- stable technical key;
+- supported host view types;
+- explicit supported host keys;
+- translation keys and current fallback copy;
+- permission, module, and active-team requirements for later backend enforcement;
+- component;
+- data provider;
+- cache TTL;
+- realtime support;
+- whether the element is optional or structural.
+
+Users and administrators cannot reorder, resize, hide, show, or personalize view elements in the current scope.
+
+Composable-view layout configuration is not stored in Settings.
+
+Unavailable optional elements are removed from the coded layout without leaving broken empty slots. Unavailable structural elements remain visible with their independent state.
+
+Each element owns its own loading, empty, error, unavailable, and permission-denied state. A failed data provider renders that element's error state and does not prevent the rest of the host view from rendering.
+
+The active-team, permission, and module-gate requirements are metadata only until the later Authorization, Sessions/active-team, and Module Activation phases connect real backend enforcement.
 
 ### Accessibility
 

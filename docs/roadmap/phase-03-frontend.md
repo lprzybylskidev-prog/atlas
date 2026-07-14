@@ -108,7 +108,7 @@
 - [x] Install Vue 3, Inertia, TypeScript, Vite, and Tailwind CSS.
 - [x] Configure pnpm as the only package manager.
 - [x] Remove and forbid other lockfiles.
-- [ ] Install TailAdmin Vue Starter.
+- [x] Install TailAdmin Vue Starter as the reviewed Free source checkpoint without vendoring upstream source.
 - [x] Add TailAdmin Pro license guard and first-use warning workflow.
 - [x] Install Tabler Icons.
 - [x] Install TanStack Table for Vue.
@@ -118,17 +118,17 @@
 - [x] Install Prettier.
 - [x] Install Stylelint.
 - [x] Define frontend directory structure.
-- [ ] Define the generic composable-view host contract.
-- [ ] Define typed view-element registration contracts.
-- [ ] Define explicit host view keys and coded accepted-element contracts.
-- [ ] Define element metadata for permissions, module activation, component, data provider, cache TTL, realtime support, and structural requirement.
-- [ ] Implement fixed element ordering, placement, and dimensions in code.
-- [ ] Ensure users and administrators cannot reorder, resize, hide, show, or personalize view elements.
-- [ ] Ensure no view-layout configuration is stored in Settings.
-- [ ] Make coded layouts support absent/unavailable elements without broken empty regions; integrate real permission/module decisions in Phase 13.
-- [ ] Implement independent element loading, empty, error, and permission-denied states.
-- [ ] Ensure one element failure cannot break the complete host view.
-- [ ] Define extension points for later active-team, permission, and module-gate enforcement without implementing provisional authorization logic.
+- [x] Define the generic composable-view host contract.
+- [x] Define typed view-element registration contracts.
+- [x] Define explicit host view keys and coded accepted-element contracts.
+- [x] Define element metadata for permissions, module activation, component, data provider, cache TTL, realtime support, and structural requirement.
+- [x] Implement fixed element ordering, placement, and dimensions in code.
+- [x] Ensure users and administrators cannot reorder, resize, hide, show, or personalize view elements.
+- [x] Ensure no view-layout configuration is stored in Settings.
+- [x] Make coded layouts support absent/unavailable elements without broken empty regions; integrate real permission/module decisions in Phase 13.
+- [x] Implement independent element loading, empty, error, and permission-denied states.
+- [x] Ensure one element failure cannot break the complete host view.
+- [x] Define extension points for later active-team, permission, and module-gate enforcement without implementing provisional authorization logic.
 - [ ] Add architecture tests preventing element components from accessing Eloquent or foreign module internals.
 - [ ] Add reusable host layouts for dashboards, overview pages, manager workspaces, and operational status views.
 - [ ] Add light/dark and accessibility tests for composable host views and elements.
