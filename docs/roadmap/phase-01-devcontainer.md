@@ -40,4 +40,4 @@
 - [x] Document the hard Dev Container no-rebuild rule after first successful start.
 - [ ] Start the Dev Container successfully for the first time.
 - [x] Record the exact non-rebuild workflow for future Dev Container changes.
-- [ ] Commit the infrastructure skeleton.
+- [x] Commit the infrastructure skeleton.
