@@ -22,14 +22,21 @@ Atlas starts with TailAdmin Free patterns and project-owned components only.
 
 TailAdmin Pro source, paid charts, paid assets, or Pro-only template fragments must not be copied, reproduced one-to-one, or introduced before the project owner explicitly confirms that the appropriate company license has been purchased and verified for Atlas use.
 
-The current TailAdmin Pro license state is **not confirmed**.
+The current TailAdmin Pro license state is **not confirmed** and is recorded in `config/atlas.php` as `atlas.ui.tailadmin.pro_license_state = not_confirmed`.
+
+The related environment variables are:
+
+- `ATLAS_TAILADMIN_PRO_LICENSE_STATE`;
+- `ATLAS_TAILADMIN_PRO_LICENSE_CONFIRMED_AT`;
+- `ATLAS_TAILADMIN_PRO_LICENSE_CONFIRMED_BY`;
+- `ATLAS_TAILADMIN_PRO_REDISTRIBUTION_CONFIRMED`.
 
 If a Pro-only need appears:
 
 - stop implementation before introducing the asset;
 - ask for one explicit confirmation that the license has been purchased;
 - verify redistribution/source-transfer rights before release;
-- document the confirmed state so future work does not repeat the same question;
+- update the recorded license state so future work does not repeat the same question;
 - keep or build a non-Pro fallback when redistribution is not permitted.
 
 The first frontend review checkpoint uses project-owned components and no TailAdmin Pro assets.

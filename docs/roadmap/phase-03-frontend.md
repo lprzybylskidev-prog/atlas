@@ -102,7 +102,7 @@
 
 - [x] Use TailAdmin Free and project-owned components until a Pro-only need is encountered.
 - [x] Add a documented one-time TailAdmin Pro purchase/license confirmation checkpoint.
-- [ ] Record confirmed license state so future work does not repeat the question.
+- [x] Record TailAdmin Pro license state so future work does not repeat the question.
 - [x] Add a release checklist item verifying redistribution/source-transfer rights for any TailAdmin Pro assets.
 - [x] Ensure a non-Pro fallback exists when redistribution is not permitted.
 - [x] Install Vue 3, Inertia, TypeScript, Vite, and Tailwind CSS.
