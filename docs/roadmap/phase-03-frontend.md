@@ -129,7 +129,7 @@
 - [x] Implement independent element loading, empty, error, and permission-denied states.
 - [x] Ensure one element failure cannot break the complete host view.
 - [x] Define extension points for later active-team, permission, and module-gate enforcement without implementing provisional authorization logic.
-- [ ] Add architecture tests preventing element components from accessing Eloquent or foreign module internals.
+- [x] Add architecture tests preventing element components from accessing Eloquent or foreign module internals.
 - [ ] Add reusable host layouts for dashboards, overview pages, manager workspaces, and operational status views.
 - [ ] Add light/dark and accessibility tests for composable host views and elements.
 - [x] Enable strict TypeScript.
