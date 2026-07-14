@@ -48,6 +48,11 @@ if [[ "${PRODUCTION_DEPLOYED}" != "false" && "${PRODUCTION_DEPLOYED}" != "true" 
   exit 1
 fi
 
+if [[ -n "${DOCKER_GID:-}" && ! "${DOCKER_GID}" =~ ^[0-9]+$ ]]; then
+  printf 'DOCKER_GID must be numeric when set.\n' >&2
+  exit 1
+fi
+
 if [[ "${APP_ENV}" == "production" && "${PRODUCTION_DEPLOYED}" != "true" ]]; then
   printf 'Production environment requires PRODUCTION_DEPLOYED=true after first real deployment.\n' >&2
   exit 1

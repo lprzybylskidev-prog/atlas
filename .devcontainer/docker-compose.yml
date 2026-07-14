@@ -8,11 +8,13 @@ services:
       args:
         USER_UID: ${USER_UID:-1000}
         USER_GID: ${USER_GID:-1000}
+        DOCKER_GID: ${DOCKER_GID:-998}
     environment:
       APP_TIMEZONE: ${APP_TIMEZONE:-Europe/Warsaw}
       TZ: ${APP_TIMEZONE:-Europe/Warsaw}
     volumes:
       - ..:/workspace:cached
+      - /var/run/docker.sock:/var/run/docker.sock
       - composer-cache:/home/vscode/.composer/cache
       - pnpm-store:/home/vscode/.local/share/pnpm/store
     depends_on:

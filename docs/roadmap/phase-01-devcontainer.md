@@ -22,6 +22,8 @@
 - This rule does not restrict rebuilding production images or production containers.
 - Production containers must be rebuilt whenever required by code, dependency, configuration, base-image, or security changes.
 - Temporary changes made inside a running Dev Container must also be reflected in repository-controlled Dev Container/Docker configuration.
+- The application Dev Container exposes Docker CLI and the Docker Compose plugin through Docker-outside-of-Docker for local development stack inspection and control.
+- Docker-outside-of-Docker mounts the host Docker socket only in development and must not be copied into production containers.
 
 - [x] Create Docker and Dev Container architecture before Laravel installation.
 - [x] Add development containers for application, PostgreSQL, Redis, Meilisearch, Mailpit, pgAdmin, and RedisInsight.
@@ -37,7 +39,8 @@
 - [x] Add startup validation for critical environment variables.
 - [x] Configure required VS Code extensions.
 - [x] Configure format-on-save.
+- [x] Add Docker CLI and Docker Compose plugin access inside the Dev Container.
 - [x] Document the hard Dev Container no-rebuild rule after first successful start.
-- [ ] Start the Dev Container successfully for the first time.
+- [x] Start the Dev Container successfully for the first time.
 - [x] Record the exact non-rebuild workflow for future Dev Container changes.
 - [x] Commit the infrastructure skeleton.

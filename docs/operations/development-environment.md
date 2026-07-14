@@ -25,6 +25,10 @@ Development services:
 - RedisInsight;
 - Playwright browsers.
 
+The application Dev Container also includes Docker CLI and the Docker Compose plugin.
+It uses Docker-outside-of-Docker by mounting the host Docker socket at `/var/run/docker.sock`.
+This is development-only tooling for inspecting and controlling the local Atlas Compose stack from inside VS Code.
+
 ## Initial Dev Container start
 
 Open the repository in VS Code and choose:
@@ -41,6 +45,20 @@ The Dev Container uses:
 - `.env.example` for documented development defaults.
 
 The application container runs as the non-root `vscode` user.
+
+To allow `vscode` to run Docker commands without `sudo`, set `DOCKER_GID` in the local development environment to the group id of the host Docker socket before the Dev Container is created:
+
+```text
+stat -c '%g' /var/run/docker.sock
+```
+
+The documented default is:
+
+```text
+DOCKER_GID=998
+```
+
+If the host uses a different socket group id, keep `.env.example` as the documented default and set the local `.env` override instead.
 
 Forwarded/local development ports:
 
@@ -59,6 +77,18 @@ Run static validation from the host with:
 docker compose -f .devcontainer/docker-compose.yml --env-file .env.example config
 ```
 
+After the Dev Container is running with the Docker socket mounted, the same command can also be run from inside the container:
+
+```text
+docker compose -f .devcontainer/docker-compose.yml --env-file .env.example config
+```
+
+To inspect the local Atlas development stack from inside the Dev Container:
+
+```text
+docker compose -f .devcontainer/docker-compose.yml --env-file .env.example ps
+```
+
 Validate required environment defaults with:
 
 ```text
@@ -74,6 +104,8 @@ When Dev Container changes are required:
 1. edit Dev Container files;
 2. apply equivalent commands inside the currently running container;
 3. document that a rebuild will apply the changes cleanly in the future.
+
+Changes that require new mounts, such as the Docker socket mount, cannot be fully applied to an already running container. In that case, install any equivalent in-container packages if useful, document the limitation, and apply the mount by reopening the Dev Container when the user is ready.
 
 A rebuild is allowed only as a final unavoidable option and with explicit user awareness.
 

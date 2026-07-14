@@ -152,6 +152,8 @@ The baseline production topology uses one host or VM with Docker Compose. Postgr
 
 The Dev Container no-rebuild restriction applies only to the development Dev Container after its first successful start. It does not restrict normal rebuilding of production images and containers.
 
+The development application container includes Docker CLI and the Docker Compose plugin through a development-only host Docker socket mount, allowing the local Atlas Compose stack to be inspected from inside VS Code.
+
 ## Current status
 
 Atlas currently has a detailed architecture, implementation roadmap, documentation system, and technical foundation plan. The implementation status and first unfinished phase are always shown in [`WORKROAD.md`](WORKROAD.md).

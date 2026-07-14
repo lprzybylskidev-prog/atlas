@@ -35,11 +35,11 @@ Do not replace this index after the initial technical foundation is completed. C
 
 ## Current phase
 
-**Phase 1 — Dev Container and Docker skeleton**
+**Phase 2 — Laravel foundation**
 
-**Status:** `in progress`
+**Status:** `not started`
 
-[Open phase details](docs/roadmap/phase-01-devcontainer.md)
+[Open phase details](docs/roadmap/phase-02-laravel.md)
 
 ## Phase index
 
@@ -53,7 +53,7 @@ Initialize the independent repository, naming, seed strategy, source-delivery mo
 
 ### Phase 1 — Dev Container and Docker skeleton
 
-**Status:** `in progress`
+**Status:** `complete`
 
 Create the reproducible development container and initial Docker skeleton while protecting the Codex development workflow.
 

@@ -5,6 +5,7 @@ FROM php:8.5-cli-bookworm
 ARG USERNAME=vscode
 ARG USER_UID=1000
 ARG USER_GID=1000
+ARG DOCKER_GID=998
 
 ENV APP_TIMEZONE=Europe/Warsaw \
     TZ=Europe/Warsaw \
@@ -40,6 +41,14 @@ RUN apt-get update \
       unzip \
       wget \
       zip \
+    && install -m 0755 -d /etc/apt/keyrings \
+    && curl -fsSL https://download.docker.com/linux/debian/gpg -o /etc/apt/keyrings/docker.asc \
+    && chmod a+r /etc/apt/keyrings/docker.asc \
+    && echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/debian bookworm stable" > /etc/apt/sources.list.d/docker.list \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends \
+      docker-ce-cli \
+      docker-compose-plugin \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install -j"$(nproc)" bcmath \
     && docker-php-ext-install -j"$(nproc)" gd \
@@ -53,7 +62,9 @@ RUN apt-get update \
     && npm install -g pnpm@latest \
     && npx -y playwright@latest install --with-deps chromium firefox webkit \
     && groupadd --gid "${USER_GID}" "${USERNAME}" \
+    && if getent group docker >/dev/null; then groupmod --gid "${DOCKER_GID}" docker; elif getent group "${DOCKER_GID}" >/dev/null; then groupadd --non-unique --gid "${DOCKER_GID}" docker; else groupadd --gid "${DOCKER_GID}" docker; fi \
     && useradd --uid "${USER_UID}" --gid "${USER_GID}" -m "${USERNAME}" \
+    && usermod --append --groups docker "${USERNAME}" \
     && echo "${USERNAME} ALL=(root) NOPASSWD:ALL" > "/etc/sudoers.d/${USERNAME}" \
     && chmod 0440 "/etc/sudoers.d/${USERNAME}" \
     && mkdir -p /workspace "/home/${USERNAME}/.composer" "/home/${USERNAME}/.local/share/pnpm" \
