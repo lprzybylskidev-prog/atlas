@@ -35,11 +35,8 @@ Do not replace this index after the initial technical foundation is completed. C
 
 ## Current phase
 
-**Phase 3 — Frontend foundation**
-
-**Status:** `in progress`
-
-[Open phase details](docs/roadmap/phase-03-frontend.md)
+- Phase: [Phase 3 — Frontend foundation](docs/roadmap/phase-03-frontend.md)
+- Status: `in progress`
 
 ## Phase index
 
