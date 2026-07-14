@@ -37,11 +37,11 @@
 - Application modules are concrete business domains and must not be assumed by the Atlas.
 - Every module exposes cross-module API only through `Application/Public`.
 - Recommended public structure:
-  - `Application/Public/Contracts`;
-  - `Application/Public/DTOs`;
-  - `Application/Public/Commands`;
-  - `Application/Public/Queries`;
-  - `Application/Public/Events`.
+    - `Application/Public/Contracts`;
+    - `Application/Public/DTOs`;
+    - `Application/Public/Commands`;
+    - `Application/Public/Queries`;
+    - `Application/Public/Events`.
 - Everything outside `Application/Public` is internal to the module unless a separate explicit exception is documented.
 - Public contracts are owned by the module that provides the data or operation.
 - A consuming module must not redefine another module's internal API as its own pseudo-contract.
@@ -57,14 +57,14 @@
 - A breaking public-contract change requires a separate logical commit.
 - Add parallel contract versions only when two versions must genuinely coexist during a migration.
 - Every Integration Event includes:
-  - stable event type;
-  - unique `event_id`;
-  - `occurred_at`;
-  - `correlation_id`;
-  - optional `causation_id`;
-  - source module identifier;
-  - integer schema version;
-  - minimal payload.
+    - stable event type;
+    - unique `event_id`;
+    - `occurred_at`;
+    - `correlation_id`;
+    - optional `causation_id`;
+    - source module identifier;
+    - integer schema version;
+    - minimal payload.
 - Integration-event type names are stable technical names such as `users.user_deactivated`.
 - Schema version lives in event metadata rather than class names until multiple versions must coexist.
 - Compatible event evolution may add optional fields.
@@ -72,12 +72,12 @@
 - Removing a field or making a breaking change requires a migration period and a new schema version.
 - Consumers must ignore unknown fields.
 - Public contract deprecation requires:
-  1. deprecation marker;
-  2. documented replacement;
-  3. discovery of all consumers;
-  4. migration of all consumers;
-  5. a test confirming no remaining usage;
-  6. a separate removal commit.
+    1. deprecation marker;
+    2. documented replacement;
+    3. discovery of all consumers;
+    4. migration of all consumers;
+    5. a test confirming no remaining usage;
+    6. a separate removal commit.
 - Architecture tests allow cross-module imports only from `<OtherModule>\Application\Public\*` and explicitly approved shared types.
 - Architecture tests reject cross-module imports from another module's Domain, Infrastructure, Presentation, or internal Application namespaces.
 - Implement one shared transactional Outbox before any module depends on reliable Integration Events.
@@ -90,7 +90,27 @@
 - Define a typed module deactivation-guard contract for unsafe in-flight processes; modules return blockers and supported safe actions without foreign-table inspection.
 - Public Query contracts use framework-independent DTO collections and typed page/cursor results, never Laravel paginator or Eloquent collection types.
 - Define the minimal cross-module deletion/anonymization participation contract now: modules declare affected data, preview impact, execute idempotent deletion/anonymization steps, report blockers, and emit auditable results. Phase 24 builds the full administrative orchestration on this contract.
+- Before expanding module, permission, active-team, and UI visibility tests, define the durable testing-environment strategy.
+- PHPUnit, feature tests, and Playwright e2e tests must not mutate the same database or Redis state in parallel.
+- Until isolated databases and Redis logical databases exist for every parallel test lane, stateful test gates run sequentially.
+- The target testing topology separates at least:
+    - Laravel/PHPUnit database and Redis state;
+    - Playwright/e2e database and Redis state;
+    - development/demo data state.
+- Playwright e2e keeps using isolated application and Vite ports that are not normal development ports.
+- Test seeders are deterministic and explicit. They must create stable users, teams, permissions, module states, and visibility fixtures needed by the tested workflow.
+- Permission-gated and module-gated UI behavior must receive Playwright coverage where manual visibility checks would be error-prone.
+- Browser-console cleanliness remains mandatory for e2e tests.
+- Future CI or parallel local execution may split test commands only when each job has isolated database and Redis state.
 
+- [ ] Document the testing-environment strategy for PHPUnit, feature tests, Vitest, Playwright, local development, and future CI.
+- [ ] Define separate database and Redis-state policy for PHPUnit and Playwright e2e.
+- [ ] Define `.env.testing` and e2e environment-variable conventions without relying on developer-local state.
+- [ ] Define deterministic test seeding rules for users, teams, permissions, active team, module activation, and UI visibility fixtures.
+- [ ] Document that stateful gates sharing the same database or Redis instance must run sequentially until isolation exists.
+- [ ] Extend `AGENTS.md` and operations documentation with testing-environment and e2e visibility-check rules.
+- [ ] Add or update automated checks proving e2e setup does not depend on the normal development server ports.
+- [ ] Add the first permission/module-gated UI visibility e2e scenarios when the corresponding authorization and ModuleGate primitives exist.
 - [ ] Design and migrate the shared Outbox table.
 - [ ] Implement transactional Outbox recording.
 - [ ] Implement the Outbox relay/dispatcher.
