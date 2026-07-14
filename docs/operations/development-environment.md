@@ -30,6 +30,7 @@ Development services:
 The application Dev Container also includes Docker CLI and the Docker Compose plugin.
 It uses Docker-outside-of-Docker by mounting the host Docker socket at `/var/run/docker.sock`.
 This is development-only tooling for inspecting and controlling the local Atlas Compose stack from inside VS Code.
+The application Dev Container also includes Python 3, `pip`, and `venv` as development tooling for local automation, scripts, and future AI-adjacent experiments. Python is not part of the Atlas application runtime unless a later accepted phase explicitly adds it.
 
 ## Initial Dev Container start
 
