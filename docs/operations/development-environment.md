@@ -16,7 +16,9 @@ Because PHP, Composer, and Node are not assumed to exist on the host, establish 
 
 Development services:
 
-- application;
+- application workspace container;
+- nginx;
+- php-fpm;
 - PostgreSQL;
 - Redis;
 - Meilisearch;
@@ -62,7 +64,7 @@ If the host uses a different socket group id, keep `.env.example` as the documen
 
 Forwarded/local development ports:
 
-- `8000` for Laravel once installed;
+- `8000` for nginx serving Laravel through php-fpm;
 - `5173` for Vite once installed;
 - `5432` for PostgreSQL;
 - `6379` for Redis;
@@ -95,17 +97,22 @@ Validate required environment defaults with:
 bash scripts/validate-env.sh .env.example
 ```
 
-After Laravel is installed, run the local application server inside the Dev Container with:
-
-```text
-php artisan serve --host=0.0.0.0 --port=8000
-```
-
 Open the application from the host browser at:
 
 ```text
 http://localhost:8000
 ```
+
+The `app` service is the VS Code/Codex workspace container and intentionally runs `sleep infinity`.
+HTTP traffic goes through the development `nginx` service and the separate `php-fpm` service.
+
+To apply nginx/php-fpm service changes without rebuilding the Dev Container:
+
+```text
+docker compose -f .devcontainer/docker-compose.yml up -d --no-build nginx php-fpm
+```
+
+This may start existing runtime images and recreate only the affected runtime services. It must not rebuild the Dev Container.
 
 ### Dev Container rebuild rule
 
