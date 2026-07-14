@@ -37,9 +37,9 @@
 - [x] Install PHPStan and Larastan.
 - [x] Configure Pint.
 - [x] Add `declare(strict_types=1);` to all applicable PHP files and generation templates.
-- [ ] Define immutable Money value object with integer minor units and ISO 4217 currency.
-- [ ] Configure default application currency as `PLN` without permitting implicit currency loss.
-- [ ] Add tests preventing mixed-currency arithmetic/comparison without explicit conversion.
+- [x] Define immutable Money value object with integer minor units and ISO 4217 currency.
+- [x] Configure default application currency as `PLN` without permitting implicit currency loss.
+- [x] Add tests preventing mixed-currency arithmetic/comparison without explicit conversion.
 - [x] Configure centralized application timezone.
 - [ ] Configure technical timestamps and presentation timezone rules.
 - [ ] Configure base logging with correlation/request IDs.
