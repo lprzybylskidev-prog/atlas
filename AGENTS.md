@@ -108,7 +108,7 @@ Infrastructure and quality:
 
 - Docker Compose;
 - VS Code Dev Containers;
-- Pest/PHPUnit;
+- PHPUnit;
 - Larastan at maximum practical strictness;
 - Pint;
 - ESLint;

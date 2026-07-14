@@ -26,7 +26,7 @@ Atlas is designed around:
 - Redis for cache, sessions, queues, locks, and rate limiting
 - Vue 3, TypeScript, Inertia, Vite, and Tailwind CSS
 - TailAdmin Free initially, with an explicit licensing checkpoint before any Pro-only use
-- Pest/PHPUnit, PHPStan/Larastan, and Pint
+- PHPUnit, PHPStan/Larastan, and Pint
 - ESLint, Prettier, Stylelint, Vitest, and Playwright
 - Docker Compose and VS Code Dev Containers
 - Horizon, Sentry, Meilisearch, ClamAV, and Chromium/Playwright where their capabilities are active

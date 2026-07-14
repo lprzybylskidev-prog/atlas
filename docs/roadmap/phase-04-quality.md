@@ -22,7 +22,7 @@
 - `composer check` performs complete verification and never silently changes files.
 - Lefthook is installed from the beginning.
 - Pre-commit performs fast staged/changed-file checks: Pint, Prettier, ESLint, Stylelint, secrets, and unwanted files.
-- Pre-push performs maximum-level PHPStan/Larastan, Pest, Vitest, and a production frontend build.
+- Pre-push performs maximum-level PHPStan/Larastan, PHPUnit, Vitest, and a production frontend build.
 - Playwright is mandatory before deployment.
 - Hooks call the same public project commands; hidden duplicate command logic is forbidden.
 - VS Code formats backend and frontend on save.
@@ -49,12 +49,12 @@
 - [ ] Configure Prettier.
 - [ ] Configure Stylelint.
 - [ ] Configure Vitest.
-- [ ] Configure Pest test suites for unit, integration, and feature tests.
+- [ ] Configure PHPUnit test suites for unit, integration, and feature tests.
 - [ ] Configure Playwright for Chromium and Firefox.
 - [ ] Add browserslist for current Chrome, Edge, and Firefox.
 - [ ] Add Lefthook.
 - [ ] Add fast pre-commit checks.
-- [ ] Add pre-push PHPStan, Pest, Vitest, and production build.
+- [ ] Add pre-push PHPStan, PHPUnit, Vitest, and production build.
 - [ ] Add secrets and unwanted-file detection.
 - [ ] Ensure hooks call public project commands.
 - [ ] Do not create any GitHub Actions, GitLab CI, or other CI workflow in the Atlas.

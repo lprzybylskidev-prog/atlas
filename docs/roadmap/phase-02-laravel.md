@@ -14,7 +14,7 @@
 - Use Sentry for application error monitoring.
 - Use `spatie/laravel-permission` with teams.
 - Use centralized breadcrumbs and Ziggy according to the frontend routing contract.
-- Use Pest/PHPUnit and PHPStan/Larastan at the highest practical level.
+- Use PHPUnit and PHPStan/Larastan at the highest practical level.
 - Add `declare(strict_types=1);` to all applicable PHP files and generators.
 - Technical timestamps may be stored in UTC, while business calendar logic and presentation use the configured application timezone.
 - Every request, job, integration, and audit-relevant flow must support a correlation/request ID.
@@ -33,8 +33,7 @@
 - [x] Install `spatie/laravel-permission` with teams support.
 - [x] Install `diglactic/laravel-breadcrumbs`.
 - [x] Install Ziggy.
-- [ ] Install Pest and required Laravel testing support.
-- [ ] Recheck stable Pest Laravel plugin compatibility with Laravel 13 before replacing PHPUnit tests.
+- [x] Install PHPUnit and required Laravel testing support.
 - [x] Install PHPStan and Larastan.
 - [x] Configure Pint.
 - [x] Add `declare(strict_types=1);` to all applicable PHP files and generation templates.

@@ -52,7 +52,7 @@ Fast changed/staged checks:
 ### Pre-push
 
 - PHPStan/Larastan at maximum practical level;
-- Pest;
+- PHPUnit;
 - Vitest;
 - production frontend build.
 
