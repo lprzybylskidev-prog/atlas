@@ -24,8 +24,6 @@ Route::post('/locale', function (Request $request) {
     ));
 })->name('locale.update');
 
-Route::redirect('/dashboard', '/');
-
 Route::middleware('auth')->group(function (): void {
     Route::get('/', fn () => Inertia::render('Dashboard'))->name('dashboard');
     Route::get('/admin', fn () => Inertia::render('Admin/SystemStatus'))->name('admin.system-status');

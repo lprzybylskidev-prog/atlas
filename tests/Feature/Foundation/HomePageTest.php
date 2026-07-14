@@ -13,8 +13,8 @@ final class HomePageTest extends TestCase
         $this->get('/')->assertRedirect('/login');
     }
 
-    public function test_legacy_dashboard_path_redirects_to_home(): void
+    public function test_dashboard_alias_is_not_supported(): void
     {
-        $this->get('/dashboard')->assertRedirect('/');
+        $this->get('/dashboard')->assertNotFound();
     }
 }
