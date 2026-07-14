@@ -7,6 +7,8 @@ const viteUrl = process.env.PLAYWRIGHT_VITE_URL ?? 'http://127.0.0.1:5174';
 
 export default defineConfig({
     testDir: './tests/e2e',
+    globalSetup: './tests/e2e/support/global-setup.ts',
+    globalTeardown: './tests/e2e/support/global-teardown.ts',
     fullyParallel: false,
     forbidOnly: Boolean(process.env.CI),
     retries: process.env.CI ? 2 : 0,

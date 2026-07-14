@@ -20,7 +20,7 @@ const props = defineProps<{
     uiLocale?: string;
 }>();
 
-const { isSidebarCollapsed, isSidebarCompact, isSidebarTextVisible } = useSidebar();
+const { isSidebarCollapsed, isSidebarTextVisible } = useSidebar();
 const { t } = useTranslator(props.uiLocale);
 
 const items = computed<NavigationItem[]>(() => [
@@ -33,29 +33,36 @@ const items = computed<NavigationItem[]>(() => [
         class="hidden min-h-screen shrink-0 overflow-visible border-r border-zinc-200 bg-white transition-[width] duration-300 ease-in-out lg:block dark:border-zinc-800 dark:bg-zinc-950"
         :class="isSidebarCollapsed ? 'w-[5.25rem]' : 'w-72'"
     >
-        <div
-            class="flex h-16 items-center border-b border-zinc-200 px-4 dark:border-zinc-800"
-            :class="isSidebarCompact ? 'justify-center' : 'justify-start'"
-        >
-            <AtlasLogo :show-text="isSidebarTextVisible" :ui-locale="uiLocale" />
+        <div class="flex h-16 items-center justify-start border-b border-zinc-200 px-4 dark:border-zinc-800">
+            <AtlasLogo
+                :show-text="isSidebarTextVisible"
+                :animate-text="isSidebarCollapsed || !isSidebarTextVisible"
+                :ui-locale="uiLocale"
+                :class="{ 'translate-x-2 transition-transform duration-300 ease-in-out': isSidebarCollapsed }"
+            />
         </div>
 
-        <nav class="space-y-1 py-4" :class="isSidebarCompact ? 'px-5' : 'px-3'" :aria-label="t('navigation.aria.main')">
+        <nav class="space-y-1 px-3 py-4" :aria-label="t('navigation.aria.main')">
             <Link
                 v-for="item in items"
                 :key="item.label"
                 :href="item.href"
-                class="group relative flex h-11 items-center rounded-lg text-sm font-medium transition"
+                class="group relative flex h-11 w-full items-center gap-3 rounded-lg px-3 text-sm font-medium transition"
                 :class="[
-                    isSidebarCompact ? 'w-11 justify-center px-0' : 'w-full gap-3 px-3',
                     item.active
                         ? 'bg-teal-50 text-teal-900 ring-1 ring-teal-100 dark:bg-teal-950 dark:text-teal-100 dark:ring-teal-900'
                         : 'text-zinc-600 hover:bg-zinc-100 hover:text-zinc-950 dark:text-zinc-300 dark:hover:bg-zinc-900 dark:hover:text-zinc-50',
                 ]"
             >
-                <component :is="item.icon" aria-hidden="true" class="h-5 w-5 shrink-0" :stroke-width="1.8" />
+                <component
+                    :is="item.icon"
+                    aria-hidden="true"
+                    class="h-5 w-5 shrink-0 transition-transform duration-300 ease-in-out"
+                    :class="{ 'translate-x-2': isSidebarCollapsed }"
+                    :stroke-width="1.8"
+                />
                 <span
-                    class="overflow-hidden truncate whitespace-nowrap transition-[max-width,opacity,transform] duration-150 ease-out"
+                    class="overflow-hidden truncate whitespace-nowrap transition-[max-width,opacity,transform] duration-300 ease-in-out"
                     :class="
                         isSidebarTextVisible ? 'max-w-40 translate-x-0 opacity-100' : 'pointer-events-none max-w-0 -translate-x-1 opacity-0'
                     "
@@ -63,7 +70,7 @@ const items = computed<NavigationItem[]>(() => [
                     {{ item.label }}
                 </span>
                 <span
-                    v-if="isSidebarCompact"
+                    v-if="isSidebarCollapsed"
                     class="pointer-events-none absolute left-full z-50 ml-2 hidden rounded-md bg-zinc-950 px-2 py-1 text-xs font-medium text-white shadow-lg group-hover:block group-focus-visible:block dark:bg-zinc-100 dark:text-zinc-950"
                 >
                     {{ item.label }}

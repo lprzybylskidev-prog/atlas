@@ -2,6 +2,7 @@ import { ref } from 'vue';
 
 const storageKey = 'atlas.sidebar.collapsed';
 const textVisibilityDelayMs = 300;
+const textHideDelayMs = 80;
 
 const initialCollapsed = (): boolean => {
     if (typeof window === 'undefined') {
@@ -13,9 +14,7 @@ const initialCollapsed = (): boolean => {
 
 const isSidebarCollapsed = ref(initialCollapsed());
 const isSidebarTextVisible = ref(!isSidebarCollapsed.value);
-const isSidebarCompact = ref(isSidebarCollapsed.value);
 let textVisibilityTimeout: ReturnType<typeof window.setTimeout> | undefined;
-let compactLayoutTimeout: ReturnType<typeof window.setTimeout> | undefined;
 
 const persistCollapsedState = (): void => {
     if (typeof window === 'undefined') {
@@ -34,22 +33,11 @@ const clearTextVisibilityTimeout = (): void => {
     textVisibilityTimeout = undefined;
 };
 
-const clearCompactLayoutTimeout = (): void => {
-    if (compactLayoutTimeout === undefined) {
-        return;
-    }
-
-    window.clearTimeout(compactLayoutTimeout);
-    compactLayoutTimeout = undefined;
-};
-
 export const useSidebar = () => {
     const toggleSidebar = (): void => {
         clearTextVisibilityTimeout();
-        clearCompactLayoutTimeout();
 
         if (isSidebarCollapsed.value) {
-            isSidebarCompact.value = false;
             isSidebarCollapsed.value = false;
             persistCollapsedState();
 
@@ -61,19 +49,17 @@ export const useSidebar = () => {
             return;
         }
 
-        isSidebarTextVisible.value = false;
         isSidebarCollapsed.value = true;
         persistCollapsedState();
 
-        compactLayoutTimeout = window.setTimeout(() => {
-            isSidebarCompact.value = true;
-            compactLayoutTimeout = undefined;
-        }, textVisibilityDelayMs);
+        textVisibilityTimeout = window.setTimeout(() => {
+            isSidebarTextVisible.value = false;
+            textVisibilityTimeout = undefined;
+        }, textHideDelayMs);
     };
 
     return {
         isSidebarCollapsed,
-        isSidebarCompact,
         isSidebarTextVisible,
         toggleSidebar,
     };

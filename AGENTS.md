@@ -236,7 +236,7 @@ Use:
 
 Tests must verify meaningful behavior, not implementation trivia.
 
-For UI work, use Playwright coverage for critical rendered workflows, light/dark theme behavior, browser-console cleanliness, and permission/module-gated visibility where manual checking would be error-prone. E2E tests must keep the browser console clean: fail on runtime page errors, `console.error`, failed monitored asset/API requests, and unexpected HTTP 4xx/5xx responses. New Playwright tests should use the shared `tests/e2e/support/test` fixture so these guards apply consistently.
+For UI work, use Playwright coverage for critical rendered workflows, light/dark theme behavior, browser-console cleanliness, and permission/module-gated visibility where manual checking would be error-prone. E2E tests are comparatively heavy: run them at the end of a phase, when the user asks for them, before release/deployment, or when they are genuinely useful for debugging a browser/UI problem; do not run them reflexively after every small UI edit. E2E tests must keep the browser console clean: fail on runtime page errors, `console.error`, failed monitored asset/API requests, and unexpected HTTP 4xx/5xx responses. New Playwright tests should use the shared `tests/e2e/support/test` fixture so these guards apply consistently.
 
 Do not reduce strictness, skip failing checks, delete tests, or weaken assertions merely to make a task pass.
 
