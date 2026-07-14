@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
-import { IconGauge, IconShieldLock } from '@tabler/icons-vue';
+import { IconGauge } from '@tabler/icons-vue';
 import type { FunctionalComponent } from 'vue';
 
 import AtlasLogo from './AtlasLogo.vue';
@@ -24,7 +24,6 @@ const { t } = useTranslator(props.uiLocale);
 
 const items: NavigationItem[] = [
     { label: t('navigation.dashboard'), href: '/', icon: IconGauge, active: props.currentPath === '/' },
-    { label: t('navigation.admin'), href: '/admin', icon: IconShieldLock, active: props.currentPath.startsWith('/admin') },
 ];
 </script>
 

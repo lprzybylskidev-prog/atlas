@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
-import { IconGauge, IconShieldLock, IconX } from '@tabler/icons-vue';
+import { IconGauge, IconX } from '@tabler/icons-vue';
 
 import AtlasLogo from './AtlasLogo.vue';
 import { useTranslator } from '../Localization/translator';
@@ -18,7 +18,6 @@ const { t } = useTranslator(props.uiLocale);
 
 const items = [
     { label: t('navigation.dashboard'), href: '/', icon: IconGauge },
-    { label: t('navigation.admin'), href: '/admin', icon: IconShieldLock },
 ];
 </script>
 

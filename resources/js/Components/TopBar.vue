@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { Link, router, usePage } from '@inertiajs/vue3';
 import {
-    IconChevronDown,
     IconLanguage,
     IconLayoutSidebarLeftCollapse,
     IconLayoutSidebarLeftExpand,
@@ -10,13 +9,10 @@ import {
     IconMoon,
     IconShieldLock,
     IconSun,
-    IconUserCircle,
-    IconUsersGroup,
 } from '@tabler/icons-vue';
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 
 import IconButton from './IconButton.vue';
-import StatusPill from './StatusPill.vue';
 import { useSidebar } from '../Composables/useSidebar';
 import { useTheme } from '../Composables/useTheme';
 import { useTranslator } from '../Localization/translator';
@@ -143,19 +139,6 @@ onBeforeUnmount(() => {
             </div>
 
             <div class="flex min-w-0 items-center gap-2">
-                <div
-                    class="hidden items-center gap-2 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-700 md:flex dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200"
-                >
-                    <IconUsersGroup aria-hidden="true" class="h-4 w-4 text-teal-700 dark:text-teal-300" :stroke-width="1.8" />
-                    <span class="font-medium">{{ t('team.current') }}</span>
-                    <IconChevronDown aria-hidden="true" class="h-4 w-4 text-zinc-400" :stroke-width="1.8" />
-                </div>
-
-                <StatusPill tone="info">
-                    <span class="hidden sm:inline">{{ t('team.active') }}</span>
-                    <span class="sm:hidden">{{ t('team.active_short') }}</span>
-                </StatusPill>
-
                 <IconButton
                     :label="isDark ? t('actions.switch_light_theme') : t('actions.switch_dark_theme')"
                     :icon="isDark ? IconSun : IconMoon"
@@ -165,30 +148,17 @@ onBeforeUnmount(() => {
 
                 <IconButton :label="t('actions.change_language')" :icon="IconLanguage" />
 
-                <Link
-                    href="/admin"
-                    class="hidden h-10 items-center gap-2 rounded-lg border border-zinc-200 bg-white px-3 text-sm font-medium text-zinc-700 transition hover:border-teal-200 hover:bg-teal-50 hover:text-teal-800 lg:inline-flex dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:border-teal-700 dark:hover:bg-teal-950/50 dark:hover:text-teal-100"
-                >
-                    <IconShieldLock aria-hidden="true" class="h-4 w-4" :stroke-width="1.8" />
-                    {{ t('navigation.admin') }}
-                </Link>
-
-                <div class="relative hidden pl-1 sm:block">
+                <div class="relative pl-1">
                     <button
                         ref="userMenuButton"
                         type="button"
-                        class="flex h-10 items-center gap-2 rounded-lg border border-zinc-200 bg-white px-1.5 pr-2 text-sm font-medium text-zinc-700 transition hover:border-teal-200 hover:bg-teal-50 hover:text-teal-800 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:border-teal-700 dark:hover:bg-teal-950/50 dark:hover:text-teal-100"
+                        class="flex h-10 w-10 items-center justify-center rounded-full bg-zinc-950 text-sm font-semibold text-white shadow-sm ring-2 ring-white transition hover:bg-teal-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-500 dark:bg-zinc-100 dark:text-zinc-950 dark:ring-zinc-950 dark:hover:bg-teal-200"
                         aria-haspopup="menu"
                         :aria-expanded="userMenuOpen"
                         :aria-label="t('user.menu')"
                         @click="toggleUserMenu"
                     >
-                        <span
-                            class="flex h-7 w-7 items-center justify-center rounded-md bg-zinc-900 text-xs font-semibold text-white dark:bg-zinc-100 dark:text-zinc-950"
-                        >
-                            {{ userInitials }}
-                        </span>
-                        <IconChevronDown aria-hidden="true" class="h-4 w-4 text-zinc-400" :stroke-width="1.8" />
+                        {{ userInitials }}
                     </button>
 
                     <div
@@ -206,15 +176,15 @@ onBeforeUnmount(() => {
                         </div>
 
                         <div class="p-2">
-                            <a
-                                href="/profile"
+                            <Link
+                                href="/admin"
                                 class="flex h-10 items-center gap-3 rounded-lg px-2 text-sm font-medium text-zinc-700 transition hover:bg-zinc-100 hover:text-zinc-950 dark:text-zinc-200 dark:hover:bg-zinc-800 dark:hover:text-zinc-50"
                                 role="menuitem"
-                                @click.prevent
+                                @click="closeUserMenu"
                             >
-                                <IconUserCircle aria-hidden="true" class="h-5 w-5" :stroke-width="1.8" />
-                                {{ t('user.profile') }}
-                            </a>
+                                <IconShieldLock aria-hidden="true" class="h-5 w-5" :stroke-width="1.8" />
+                                {{ t('navigation.admin') }}
+                            </Link>
                             <button
                                 type="button"
                                 class="flex h-10 w-full items-center gap-3 rounded-lg px-2 text-sm font-medium text-zinc-700 transition hover:bg-zinc-100 hover:text-zinc-950 dark:text-zinc-200 dark:hover:bg-zinc-800 dark:hover:text-zinc-50"

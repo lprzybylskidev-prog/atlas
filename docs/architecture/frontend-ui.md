@@ -105,14 +105,10 @@ Top bar:
 - actions;
 - local search where relevant;
 - avatar;
-- unread notification count;
-- profile;
-- settings;
-- team switch;
-- active sessions;
+- admin entry in the user menu;
 - logout.
 
-Team switching must be visible enough to avoid accidental context mistakes.
+Team switching must be visible enough to avoid accidental context mistakes after active-team context exists.
 
 The baseline frontend shell includes:
 
@@ -121,9 +117,9 @@ The baseline frontend shell includes:
 - `AdminLayout` for authenticated administrative screens;
 - collapsible desktop sidebar;
 - mobile navigation drawer;
-- top bar with theme, language, admin, active team, avatar, and logout controls.
+- top bar with theme, language, avatar menu, admin entry, and logout controls.
 
-The active team selector is currently a visible placeholder. Real team switching, backend authorization, and team-scoped state clearing are implemented in later identity, team, authorization, and settings phases.
+Real team switching, backend authorization, profile routes, notification counts, settings, active sessions, and team-scoped state clearing are implemented in later identity, team, authorization, notifications, sessions, and settings phases.
 
 ### Breadcrumbs
 

@@ -35,12 +35,8 @@ export const translations = {
         'pages.dashboard.head_title': 'Dashboard',
         'pages.dashboard.section': 'Aplikacja',
         'pages.dashboard.title': 'Dashboard operacyjny',
-        'team.active_short': 'Team',
-        'team.active': 'Aktywny zespół',
-        'team.current': 'Atlas Operations',
         'user.default_name': 'Atlas User',
         'user.menu': 'Menu użytkownika',
-        'user.profile': 'Profil użytkownika',
     },
     en: {
         'actions.change_language': 'Change language',
@@ -72,12 +68,8 @@ export const translations = {
         'pages.dashboard.head_title': 'Dashboard',
         'pages.dashboard.section': 'App',
         'pages.dashboard.title': 'Operations dashboard',
-        'team.active_short': 'Team',
-        'team.active': 'Active team',
-        'team.current': 'Atlas Operations',
         'user.default_name': 'Atlas User',
         'user.menu': 'User menu',
-        'user.profile': 'User profile',
     },
 } as const;
 
