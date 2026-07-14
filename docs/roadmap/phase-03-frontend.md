@@ -22,7 +22,7 @@
 - Use custom tooltips/popovers; native HTML `title` attributes are forbidden.
 - Use Tabler Icons consistently. An unclear action cannot rely on an icon alone.
 - Target WCAG 2.2 AA. TailAdmin components must be corrected when inaccessible.
-- Frontend structure uses `Pages`, `Layouts`, `Components`, `Composables`, `Types`, `Services`, and `Utils`.
+- Frontend structure uses `Pages`, `Layouts`, `Components`, `Composables`, `Types`, and `Services`. `Utils` is created only when the first real shared frontend utility exists.
 - Pages compose screens and contain no business rules.
 - Inertia plus local state is the default. Composables hold shared UI logic. Pinia is used only for true persistent cross-screen state and may not contain domain logic.
 - Team-scoped frontend state is cleared on team switch.

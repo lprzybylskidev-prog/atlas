@@ -6,6 +6,13 @@ Canonical module behavior for user lifecycle, passwords, login protection, MFA, 
 
 Use Fortify as backend authentication with Inertia/Vue UI.
 
+Current technical ownership:
+
+- Fortify action implementations live under `App\Modules\Core\Identity\Presentation\Fortify\Actions`.
+- The Fortify service provider lives under `App\Modules\Core\Identity\Presentation\Providers`.
+- The current user Eloquent persistence model lives under `App\Modules\Core\Identity\Infrastructure\Persistence`.
+- `App\Models\User` is intentionally not used.
+
 Rules:
 
 - public registration disabled;

@@ -93,12 +93,6 @@ To inspect the local Atlas development stack from inside the Dev Container:
 docker compose -f .devcontainer/docker-compose.yml --env-file .env.example ps
 ```
 
-Validate required environment defaults with:
-
-```text
-bash scripts/validate-env.sh .env.example
-```
-
 Open the application from the host browser at:
 
 ```text

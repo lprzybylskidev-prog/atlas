@@ -132,7 +132,7 @@ Breadcrumbs use:
 - permissions;
 - team context.
 
-Breadcrumb definitions live in `routes/breadcrumbs.php` and are shared with Inertia as `navigation.breadcrumbs`.
+Breadcrumb definitions live in small files under `routes/breadcrumbs/` and are shared with Inertia as `navigation.breadcrumbs`.
 
 ### Routes
 
@@ -166,7 +166,8 @@ Use:
 - `Composables`
 - `Types`
 - `Services`
-- `Utils`
+
+Create `Utils` only when the first real shared frontend utility exists. Do not keep empty placeholder directories.
 
 Rules:
 

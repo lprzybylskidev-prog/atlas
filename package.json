@@ -6,8 +6,7 @@
     "type": "module",
     "scripts": {
         "build": "vite build",
-        "check": "pnpm check:package-manager && pnpm typecheck && pnpm lint && pnpm stylelint && pnpm test && pnpm build",
-        "check:package-manager": "bash scripts/check-js-package-manager.sh",
+        "check": "pnpm typecheck && pnpm lint && pnpm stylelint && pnpm test && pnpm build",
         "dev": "vite",
         "format": "prettier --write resources/js resources/css eslint.config.js prettier.config.js stylelint.config.js vite.config.js",
         "lint": "eslint resources/js --max-warnings=0",

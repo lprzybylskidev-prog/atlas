@@ -8,8 +8,7 @@
 - `AGENTS.md` contains permanent repository rules.
 - `WORKROAD.md` contains the lightweight ordered phase index; binding executable specifications live in linked `docs/roadmap/phase-*.md` files.
 - `CHATGPT_PROMPT.md` supports future conceptual work on Atlas.
-- `OPEN_DISCUSSION.md` contains only genuinely unresolved matters while conceptual work is active.
-- The continuation context must let a fresh ChatGPT session resume Atlas work without reading historical chat.
+- Temporary discussion and continuation files are not part of the working repository. Accepted context must live in canonical documentation.
 - All documentation, code, commits, technical errors, CLI output, and Admin UI use English.
 - The regular end-user UI supports Polish and English, with Polish as the default.
 - The first repository operation is `git init`.
@@ -45,8 +44,7 @@
 - [x] Add final root `AGENTS.md`.
 - [x] Add `WORKROAD.md`.
 - [x] Add `CHATGPT_PROMPT.md`.
-- [x] Add `CONTINUATION.md` as the Atlas continuation context file for future ChatGPT sessions.
-- [x] Add open-discussion register.
+- [x] Retire temporary continuation and open-discussion files in favor of canonical documentation.
 - [x] Add `.editorconfig`.
 - [x] Add `.gitignore`.
 - [x] Add initial English `README.md` describing Atlas as a debt collection system and explaining the current technical scope and module categories.

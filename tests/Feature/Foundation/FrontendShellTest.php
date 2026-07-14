@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Foundation;
 
-use App\Models\User;
+use App\Modules\Core\Identity\Infrastructure\Persistence\User;
 use Inertia\Testing\AssertableInertia;
 use Tests\TestCase;
 

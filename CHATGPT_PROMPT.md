@@ -59,12 +59,6 @@ Do not reduce a detailed implementation contract to the wording of a shorter che
 
 Explains how to work on a real application built on the completed Atlas foundation.
 
-### `OPEN_DISCUSSION.md`
-
-Contains unresolved matters only.
-
-Do not reopen decisions already resolved in `AGENTS.md` or `WORKROAD.md`.
-
 ---
 
 ## Source of Truth
@@ -77,7 +71,7 @@ When the user accepts a new decision:
 
 - permanent repository rules go to `AGENTS.md`;
 - concrete implementation behavior and acceptance criteria go to `WORKROAD.md`;
-- unresolved alternatives go to `OPEN_DISCUSSION.md`;
+- unresolved alternatives remain in the active discussion until accepted or rejected;
 - architectural decisions may additionally require an ADR;
 - module-specific behavior belongs in the relevant module documentation.
 

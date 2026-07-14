@@ -36,7 +36,7 @@
 - [ ] Review documentation completeness.
 - [ ] Review ADR completeness.
 - [ ] Review `CHATGPT_PROMPT.md`.
-- [ ] Cross-check all accepted decisions against `AGENTS.md`, `WORKROAD.md`, and `OPEN_DISCUSSION.md`.
+- [ ] Cross-check all accepted decisions against `AGENTS.md`, `WORKROAD.md`, ADRs, and canonical documentation under `docs/`.
 - [ ] Verify that no accepted rule exists only in historical chat context.
 - [ ] Review starter cloning procedure.
 - [ ] Mark Atlas stable.

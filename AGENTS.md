@@ -131,6 +131,9 @@ Do not add hidden scanning, implicit cross-module discovery, broad service-locat
 - Infrastructure contains persistence and external adapters.
 - Presentation contains delivery concerns such as HTTP, CLI, queues, and UI endpoints.
 - Controllers and Form Requests remain thin.
+- Console commands are classes owned by the appropriate module or shared infrastructure. Do not define console commands as closures in `routes/console.php`.
+- Web routes are split into small files under `routes/web/` until module Presentation route registration is implemented. Do not recreate a monolithic `routes/web.php`.
+- Breadcrumb definitions are split into small files under `routes/breadcrumbs/` until module breadcrumb registration is implemented. Do not recreate a monolithic `routes/breadcrumbs.php`.
 - Eloquent models are persistence models, not domain entities.
 - Business rules do not belong in controllers, requests, Eloquent models, policies, Filament/Admin components, Vue components, or infrastructure adapters.
 

@@ -8,9 +8,6 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         $teams = config()->boolean('permission.teams');
@@ -27,11 +24,8 @@ return new class extends Migration
         $pivotRole = is_string($rolePivotConfig) ? $rolePivotConfig : 'role_id';
         $pivotPermission = is_string($permissionPivotConfig) ? $permissionPivotConfig : 'permission_id';
 
-        /**
-         * See `docs/prerequisites.md` for suggested lengths on 'name' and 'guard_name' if "1071 Specified key was too long" errors are encountered.
-         */
         Schema::create($permissionsTable, static function (Blueprint $table) {
-            $table->id(); // permission id
+            $table->id();
             $table->string('name');
             $table->string('guard_name');
             $table->timestamps();
@@ -39,12 +33,9 @@ return new class extends Migration
             $table->unique(['name', 'guard_name']);
         });
 
-        /**
-         * See `docs/prerequisites.md` for suggested lengths on 'name' and 'guard_name' if "1071 Specified key was too long" errors are encountered.
-         */
         Schema::create($rolesTable, static function (Blueprint $table) use ($teamForeignKey, $teams) {
-            $table->id(); // role id
-            if ($teams || config('permission.testing')) { // permission.testing is a fix for sqlite testing
+            $table->id();
+            if ($teams || config('permission.testing')) {
                 $table->unsignedBigInteger($teamForeignKey)->nullable();
                 $table->index($teamForeignKey, 'roles_team_foreign_key_index');
             }
@@ -66,7 +57,7 @@ return new class extends Migration
             $table->index([$modelMorphKey, 'model_type'], 'model_has_permissions_model_id_model_type_index');
 
             $table->foreign($pivotPermission)
-                ->references('id') // permission id
+                ->references('id')
                 ->on($permissionsTable)
                 ->restrictOnDelete();
             if ($teams) {
@@ -89,7 +80,7 @@ return new class extends Migration
             $table->index([$modelMorphKey, 'model_type'], 'model_has_roles_model_id_model_type_index');
 
             $table->foreign($pivotRole)
-                ->references('id') // role id
+                ->references('id')
                 ->on($rolesTable)
                 ->restrictOnDelete();
             if ($teams) {
@@ -109,12 +100,12 @@ return new class extends Migration
             $table->unsignedBigInteger($pivotRole);
 
             $table->foreign($pivotPermission)
-                ->references('id') // permission id
+                ->references('id')
                 ->on($permissionsTable)
                 ->restrictOnDelete();
 
             $table->foreign($pivotRole)
-                ->references('id') // role id
+                ->references('id')
                 ->on($rolesTable)
                 ->restrictOnDelete();
 
@@ -130,9 +121,6 @@ return new class extends Migration
             ->forget($cacheKey);
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         $permissionsTable = config()->string('permission.table_names.permissions');

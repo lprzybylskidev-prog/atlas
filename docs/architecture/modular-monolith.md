@@ -19,7 +19,14 @@ app/Modules/
   Core/
   Optional/
   Application/
+app/Shared/
 ```
+
+Current foundation structure:
+
+- `app/Modules/Core/Identity` owns the current Fortify authentication actions, Identity presentation provider, and user persistence model.
+- `app/Shared/Domain/Money` owns framework-independent money and currency primitives.
+- The default Laravel skeleton directories `app/Actions`, `app/Models`, `app/Support`, and `app/Http/Controllers` are intentionally not used.
 
 Each module uses:
 
