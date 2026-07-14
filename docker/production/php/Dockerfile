@@ -20,15 +20,13 @@ RUN apt-get update \
       unzip \
       zip \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
-    && docker-php-ext-install -j"$(nproc)" \
-      bcmath \
-      gd \
-      intl \
-      opcache \
-      pcntl \
-      pdo_pgsql \
-      pgsql \
-      zip \
+    && docker-php-ext-install -j"$(nproc)" bcmath \
+    && docker-php-ext-install -j"$(nproc)" gd \
+    && docker-php-ext-install -j"$(nproc)" intl \
+    && docker-php-ext-install -j"$(nproc)" pcntl \
+    && docker-php-ext-install -j"$(nproc)" pdo_pgsql \
+    && docker-php-ext-install -j"$(nproc)" pgsql \
+    && docker-php-ext-install -j"$(nproc)" zip \
     && pecl install redis \
     && docker-php-ext-enable redis \
     && usermod -u 1000 www-data \

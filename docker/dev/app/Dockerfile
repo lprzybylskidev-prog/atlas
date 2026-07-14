@@ -41,19 +41,16 @@ RUN apt-get update \
       wget \
       zip \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
-    && docker-php-ext-install -j"$(nproc)" \
-      bcmath \
-      gd \
-      intl \
-      opcache \
-      pcntl \
-      pdo_pgsql \
-      pgsql \
-      zip \
+    && docker-php-ext-install -j"$(nproc)" bcmath \
+    && docker-php-ext-install -j"$(nproc)" gd \
+    && docker-php-ext-install -j"$(nproc)" intl \
+    && docker-php-ext-install -j"$(nproc)" pcntl \
+    && docker-php-ext-install -j"$(nproc)" pdo_pgsql \
+    && docker-php-ext-install -j"$(nproc)" pgsql \
+    && docker-php-ext-install -j"$(nproc)" zip \
     && pecl install redis \
     && docker-php-ext-enable redis \
-    && corepack enable \
-    && corepack prepare pnpm@latest --activate \
+    && npm install -g pnpm@latest \
     && npx -y playwright@latest install --with-deps chromium firefox webkit \
     && groupadd --gid "${USER_GID}" "${USERNAME}" \
     && useradd --uid "${USER_UID}" --gid "${USER_GID}" -m "${USERNAME}" \
