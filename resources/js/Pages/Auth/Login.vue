@@ -4,9 +4,9 @@ import { Head, useForm } from '@inertiajs/vue3';
 import AuthLayout from '../../Layouts/AuthLayout.vue';
 
 const form = useForm({
-    email: 'atlas@example.test',
-    password: 'password',
-    remember: true,
+    email: '',
+    password: '',
+    remember: false,
 });
 
 const submit = (): void => {
@@ -18,19 +18,21 @@ const submit = (): void => {
 
 <template>
     <Head title="Logowanie" />
-    <AuthLayout title="Zaloguj się" subtitle="Użyj konta demonstracyjnego, żeby obejrzeć pierwsze layouty aplikacji i panelu admina.">
+    <AuthLayout title="Zaloguj się" subtitle="Uzyskaj dostęp do swojego obszaru pracy, aktywnego zespołu oraz narzędzi operacyjnych Atlas.">
         <form class="space-y-5" novalidate @submit.prevent="submit">
             <div>
                 <label for="email" class="block text-sm font-medium text-zinc-800 dark:text-zinc-100">Email</label>
-                <input
-                    id="email"
-                    v-model="form.email"
-                    type="email"
-                    autocomplete="username"
-                    class="mt-2 block h-11 w-full rounded-lg border border-zinc-300 bg-white px-3 text-sm text-zinc-950 shadow-sm transition placeholder:text-zinc-400 focus:border-teal-600 focus:ring-2 focus:ring-teal-600/20 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-50"
-                    :aria-invalid="form.errors.email ? 'true' : 'false'"
-                    aria-describedby="email-error"
-                />
+                <div class="auth-input-frame mt-2">
+                    <input
+                        id="email"
+                        v-model="form.email"
+                        type="email"
+                        autocomplete="username"
+                        class="auth-input"
+                        :aria-invalid="form.errors.email ? 'true' : 'false'"
+                        aria-describedby="email-error"
+                    />
+                </div>
                 <p v-if="form.errors.email" id="email-error" class="mt-2 text-sm text-rose-700 dark:text-rose-300">
                     {{ form.errors.email }}
                 </p>
@@ -38,26 +40,24 @@ const submit = (): void => {
 
             <div>
                 <label for="password" class="block text-sm font-medium text-zinc-800 dark:text-zinc-100">Hasło</label>
-                <input
-                    id="password"
-                    v-model="form.password"
-                    type="password"
-                    autocomplete="current-password"
-                    class="mt-2 block h-11 w-full rounded-lg border border-zinc-300 bg-white px-3 text-sm text-zinc-950 shadow-sm transition placeholder:text-zinc-400 focus:border-teal-600 focus:ring-2 focus:ring-teal-600/20 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-50"
-                    :aria-invalid="form.errors.password ? 'true' : 'false'"
-                    aria-describedby="password-error"
-                />
+                <div class="auth-input-frame mt-2">
+                    <input
+                        id="password"
+                        v-model="form.password"
+                        type="password"
+                        autocomplete="current-password"
+                        class="auth-input"
+                        :aria-invalid="form.errors.password ? 'true' : 'false'"
+                        aria-describedby="password-error"
+                    />
+                </div>
                 <p v-if="form.errors.password" id="password-error" class="mt-2 text-sm text-rose-700 dark:text-rose-300">
                     {{ form.errors.password }}
                 </p>
             </div>
 
             <label class="flex items-center gap-3 text-sm text-zinc-700 dark:text-zinc-200">
-                <input
-                    v-model="form.remember"
-                    type="checkbox"
-                    class="h-4 w-4 rounded border-zinc-300 text-teal-700 focus:ring-teal-600 dark:border-zinc-700 dark:bg-zinc-950"
-                />
+                <input v-model="form.remember" type="checkbox" class="auth-checkbox" />
                 Zapamiętaj mnie
             </label>
 
