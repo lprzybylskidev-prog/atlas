@@ -103,13 +103,13 @@
 - Browser-console cleanliness remains mandatory for e2e tests.
 - Future CI or parallel local execution may split test commands only when each job has isolated database and Redis state.
 
-- [ ] Document the testing-environment strategy for PHPUnit, feature tests, Vitest, Playwright, local development, and future CI.
-- [ ] Define separate database and Redis-state policy for PHPUnit and Playwright e2e.
-- [ ] Define `.env.testing` and e2e environment-variable conventions without relying on developer-local state.
-- [ ] Define deterministic test seeding rules for users, teams, permissions, active team, module activation, and UI visibility fixtures.
-- [ ] Document that stateful gates sharing the same database or Redis instance must run sequentially until isolation exists.
-- [ ] Extend `AGENTS.md` and operations documentation with testing-environment and e2e visibility-check rules.
-- [ ] Add or update automated checks proving e2e setup does not depend on the normal development server ports.
+- [x] Document the testing-environment strategy for PHPUnit, feature tests, Vitest, Playwright, local development, and future CI.
+- [x] Define separate database and Redis-state policy for PHPUnit and Playwright e2e.
+- [x] Define `.env.testing` and e2e environment-variable conventions without relying on developer-local state.
+- [x] Define deterministic test seeding rules for users, teams, permissions, active team, module activation, and UI visibility fixtures.
+- [x] Document that stateful gates sharing the same database or Redis instance must run sequentially until isolation exists.
+- [x] Extend `AGENTS.md` and operations documentation with testing-environment and e2e visibility-check rules.
+- [x] Add or update automated checks proving e2e setup does not depend on the normal development server ports.
 - [ ] Add the first permission/module-gated UI visibility e2e scenarios when the corresponding authorization and ModuleGate primitives exist.
 - [ ] Design and migrate the shared Outbox table.
 - [ ] Implement transactional Outbox recording.

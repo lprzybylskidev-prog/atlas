@@ -60,7 +60,11 @@
         "demo:reset": [
             "@php artisan demo:reset"
         ],
+        "test:prepare": [
+            "bash tools/testing/ensure-test-databases.sh phpunit"
+        ],
         "test": [
+            "@test:prepare",
             "@php artisan config:clear --ansi @no_additional_args",
             "@php artisan test"
         ],
@@ -80,9 +84,11 @@
             "@php artisan test --testsuite=Unit"
         ],
         "test:integration": [
-            "@php artisan test --testsuite=Feature"
+            "@test:prepare",
+            "@php artisan test --testsuite=Integration"
         ],
         "test:feature": [
+            "@test:prepare",
             "@php artisan test --testsuite=Feature"
         ],
         "check": [

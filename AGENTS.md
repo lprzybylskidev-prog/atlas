@@ -236,6 +236,10 @@ Use:
 
 Tests must verify meaningful behavior, not implementation trivia.
 
+Stateful PHPUnit tests and Playwright e2e tests use separate PostgreSQL databases, Redis state, and local ports as documented in [`docs/operations/testing-environment.md`](docs/operations/testing-environment.md). Do not run stateful PHPUnit and Playwright gates in parallel unless every lane has isolated PostgreSQL and Redis state.
+
+Permission-gated and module-gated UI visibility needs Playwright coverage where manual checks would be error-prone, but backend authorization tests remain mandatory.
+
 For UI work, use Playwright coverage for critical rendered workflows, light/dark theme behavior, browser-console cleanliness, and permission/module-gated visibility where manual checking would be error-prone. E2E tests are comparatively heavy: run them at the end of a phase, when the user asks for them, before release/deployment, or when they are genuinely useful for debugging a browser/UI problem; do not run them reflexively after every small UI edit. E2E tests must keep the browser console clean: fail on runtime page errors, `console.error`, failed monitored asset/API requests, and unexpected HTTP 4xx/5xx responses. New Playwright tests should use the shared `tests/e2e/support/test` fixture so these guards apply consistently.
 
 Do not reduce strictness, skip failing checks, delete tests, or weaken assertions merely to make a task pass.

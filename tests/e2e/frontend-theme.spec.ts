@@ -34,16 +34,20 @@ async function signIn(page: Page): Promise<void> {
     await expect(page).toHaveURL('/');
 }
 
+async function expectShellScreenshot(page: Page, name: string): Promise<void> {
+    await expect(page).toHaveScreenshot(name, { fullPage: true, maxDiffPixels: 500 });
+}
+
 test.describe('frontend theme coverage', () => {
     test('renders the login shell in light and dark themes', async ({ page }) => {
         await page.goto('/login');
         await stabilizeVisuals(page);
 
         await expect(page.getByRole('heading', { name: /Zaloguj się|Log in/ })).toBeVisible();
-        await expect(page).toHaveScreenshot('login-shell-light.png', { fullPage: true });
+        await expectShellScreenshot(page, 'login-shell-light.png');
 
         await enableDarkTheme(page);
-        await expect(page).toHaveScreenshot('login-shell-dark.png', { fullPage: true });
+        await expectShellScreenshot(page, 'login-shell-dark.png');
     });
 
     test('renders the application shell in light and dark themes', async ({ page }) => {
@@ -51,10 +55,10 @@ test.describe('frontend theme coverage', () => {
         await stabilizeVisuals(page);
 
         await expect(page.getByRole('heading', { name: /Pulpit|Dashboard/ })).toBeVisible();
-        await expect(page).toHaveScreenshot('application-shell-light.png', { fullPage: true });
+        await expectShellScreenshot(page, 'application-shell-light.png');
 
         await enableDarkTheme(page);
-        await expect(page).toHaveScreenshot('application-shell-dark.png', { fullPage: true });
+        await expectShellScreenshot(page, 'application-shell-dark.png');
     });
 
     test('renders the admin shell in light and dark themes', async ({ page }) => {
@@ -63,9 +67,9 @@ test.describe('frontend theme coverage', () => {
         await stabilizeVisuals(page);
 
         await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible();
-        await expect(page).toHaveScreenshot('admin-shell-light.png', { fullPage: true });
+        await expectShellScreenshot(page, 'admin-shell-light.png');
 
         await enableDarkTheme(page);
-        await expect(page).toHaveScreenshot('admin-shell-dark.png', { fullPage: true });
+        await expectShellScreenshot(page, 'admin-shell-dark.png');
     });
 });

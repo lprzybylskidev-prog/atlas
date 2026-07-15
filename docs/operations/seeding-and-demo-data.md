@@ -53,7 +53,7 @@ The demo reset command must refuse to run outside approved local or development 
 
 Production deployment commands must never invoke demo seeders.
 
-Automated tests use factories and explicit fixtures, never demo seeders or demo account credentials.
+Automated tests use factories and explicit fixtures. The current Playwright shell smoke tests may use `DevelopmentDemoSeeder` only until dedicated identity, authorization, team, and module visibility fixtures exist. Permission-gated and module-gated e2e scenarios must use explicit deterministic test fixtures rather than generic demo data.
 
 ## Current development demo account
 

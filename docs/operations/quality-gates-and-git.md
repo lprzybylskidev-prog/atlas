@@ -37,7 +37,13 @@ At the frontend foundation checkpoint, `composer lint` also runs `pnpm lint` and
 
 `pnpm check` runs TypeScript checking, ESLint, Stylelint, Vitest, and the production Vite build.
 
-`pnpm test:e2e` runs Playwright against isolated local servers on `127.0.0.1:8010` for Laravel and `127.0.0.1:5174` for Vite. The Playwright setup migrates the configured local database, clears cache-backed test state, and seeds `DevelopmentDemoSeeder` so authenticated shell checks can log in through the real login form.
+PHPUnit uses separate `Unit`, `Integration`, and `Feature` test suites. `Integration` is reserved for persistence, Redis, queues, cache, search, filesystem adapters, module providers, transaction boundaries, and other infrastructure behavior. `Feature` is reserved for HTTP, middleware, validation and authorization boundaries, Inertia responses, and protected backend workflows.
+
+Stateful PHPUnit tests use the dedicated `atlas_testing` PostgreSQL database, Redis DB `2`, Redis cache DB `3`, and the `atlas_testing_cache` prefix. `composer test`, `composer test:integration`, and `composer test:feature` prepare the PHPUnit database through `tools/testing/ensure-test-databases.sh`.
+
+`pnpm test:e2e` runs Playwright against isolated local servers on `127.0.0.1:8010` for Laravel and `127.0.0.1:5174` for Vite. The Playwright setup uses the dedicated `atlas_e2e` PostgreSQL database, Redis DB `4`, Redis cache DB `5`, and the `atlas_e2e_cache` prefix. It clears Laravel config, runs `migrate:fresh --force`, clears cache-backed test state, and seeds `DevelopmentDemoSeeder` so authenticated shell checks can log in through the real login form. The e2e Laravel server uses PHP's built-in server directly instead of `php artisan serve` so the full e2e environment reaches the request process.
+
+The durable testing environment strategy lives in [Testing environment](testing-environment.md).
 
 Do not run `pnpm test:e2e` in parallel with `composer test` or `composer check` against the same local database. PHPUnit and Playwright both prepare application state, so run those gates sequentially unless a derived CI setup gives each job an isolated database.
 
