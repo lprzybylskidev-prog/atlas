@@ -4,6 +4,15 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Shared\Application\Modules\Contracts\ModuleDefinition;
+use App\Shared\Application\Modules\ModuleRegistry;
+use App\Shared\Application\Outbox\Contracts\OutboxConsumerDeduplicator;
+use App\Shared\Application\Outbox\Contracts\OutboxEventRecorder;
+use App\Shared\Application\Outbox\Contracts\OutboxMaintenance;
+use App\Shared\Infrastructure\Outbox\DatabaseOutboxConsumerDeduplicator;
+use App\Shared\Infrastructure\Outbox\DatabaseOutboxEventRecorder;
+use App\Shared\Infrastructure\Outbox\DatabaseOutboxMaintenance;
+use Illuminate\Database\ConnectionInterface;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\ServiceProvider;
 use Laravel\Telescope\TelescopeApplicationServiceProvider;
@@ -14,7 +23,63 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->validateCriticalConfiguration();
+        $this->registerModuleRegistry();
+        $this->registerSharedInfrastructure();
         $this->registerLocalDevelopmentProviders();
+    }
+
+    private function registerModuleRegistry(): void
+    {
+        $this->app->singleton(ModuleRegistry::class, function (): ModuleRegistry {
+            return new ModuleRegistry($this->deployedModuleDefinitions());
+        });
+
+        $this->app->make(ModuleRegistry::class);
+    }
+
+    /**
+     * @return list<ModuleDefinition>
+     */
+    private function deployedModuleDefinitions(): array
+    {
+        $deployed = config('modules.deployed');
+
+        if (! is_array($deployed)) {
+            throw new RuntimeException('Configured deployed modules must be an array of ModuleDefinition class names.');
+        }
+
+        $modules = [];
+
+        foreach ($deployed as $moduleClass) {
+            if (! is_string($moduleClass) || ! is_subclass_of($moduleClass, ModuleDefinition::class)) {
+                throw new RuntimeException('Every deployed module entry must be a ModuleDefinition class name.');
+            }
+
+            $module = $this->app->make($moduleClass);
+
+            if (! $module instanceof ModuleDefinition) {
+                throw new RuntimeException('Every deployed module entry must resolve to a ModuleDefinition instance.');
+            }
+
+            $modules[] = $module;
+        }
+
+        return $modules;
+    }
+
+    private function registerSharedInfrastructure(): void
+    {
+        $this->app->bind(OutboxEventRecorder::class, function (): DatabaseOutboxEventRecorder {
+            return new DatabaseOutboxEventRecorder($this->app->make(ConnectionInterface::class));
+        });
+
+        $this->app->bind(OutboxMaintenance::class, function (): DatabaseOutboxMaintenance {
+            return new DatabaseOutboxMaintenance($this->app->make(ConnectionInterface::class));
+        });
+
+        $this->app->bind(OutboxConsumerDeduplicator::class, function (): DatabaseOutboxConsumerDeduplicator {
+            return new DatabaseOutboxConsumerDeduplicator($this->app->make(ConnectionInterface::class));
+        });
     }
 
     private function registerLocalDevelopmentProviders(): void

@@ -25,7 +25,10 @@ app/Shared/
 Current foundation structure:
 
 - `app/Modules/Core/Identity` owns the current Fortify authentication actions, Identity presentation provider, and user persistence model.
+- `app/Modules/Optional` is reserved for optional foundation modules.
+- `app/Modules/Application` is reserved for concrete business-domain modules.
 - `app/Shared/Domain/Money` owns framework-independent money and currency primitives.
+- `app/Shared/Application`, `app/Shared/Domain`, `app/Shared/Infrastructure`, and `app/Shared/Presentation` are the only shared layer roots.
 - The default Laravel skeleton directories `app/Actions`, `app/Models`, `app/Support`, and `app/Http/Controllers` are intentionally not used.
 
 Each module uses:
@@ -161,6 +164,67 @@ Dependencies must be acyclic.
 
 ---
 
+## Module Registry and Public API
+
+Every deployed module has an explicit `ModuleDefinition` manifest registered in `config/modules.php`.
+
+The manifest declares the module key, category, required dependencies, optional dependencies, Service Provider, activation support, integrations, health checks, and frontend entrypoints. `ModuleRegistry` rejects duplicate keys, missing required dependencies, dependency cycles, and invalid startup order during application registration.
+
+Modules expose cross-module synchronous APIs only through:
+
+```text
+Application/Public/
+  Contracts/
+  DTOs/
+  Commands/
+  Queries/
+  Events/
+```
+
+Everything outside `Application/Public` is internal to the owning module unless a dedicated architecture document grants a narrow exception.
+
+Public contracts are owned by the provider module. A consuming module must depend on the provider's public contract instead of redefining a pseudo-contract for the provider's internal behavior.
+
+Public names must be business-specific, for example `UserDirectory`, `TeamDirectory`, or `NotificationPublisher`. Avoid generic names such as `ModuleService`, `DataProvider`, `CommonService`, `Manager`, or `Helper`.
+
+Public DTOs are immutable, minimal, framework-independent, and must not expose Eloquent models, aggregates, table names, or persistence structure.
+
+Interfaces and public capability contracts live in local `Contracts` namespaces. Typed exceptions live in local `Exceptions` namespaces. Traits are not created speculatively; if a trait is genuinely needed, it belongs in a local `Concerns` namespace and must keep behavior explicit.
+
+Use synchronous public contracts when the caller requires a result inside the current use case. Use Integration Events when no immediate response is needed, multiple consumers may react, processing may occur after commit, or receiver unavailability must not block the source use case.
+
+Do not create preemptive `V1` or `V2` public-contract namespaces inside the monolith. Change synchronous contracts atomically with all in-repository consumers, tests, and documentation. Add parallel versions only when two versions must genuinely coexist during a migration.
+
+Public-contract deprecation requires:
+
+1. deprecation marker;
+2. documented replacement;
+3. discovery of all consumers;
+4. migration of all consumers;
+5. a test confirming no remaining usage;
+6. a separate removal commit.
+
+### Module registration conventions
+
+Each module owns one Service Provider under its `Presentation/Providers` namespace unless a documented technical reason places it elsewhere inside the same module. The provider is the module's explicit integration point with Laravel and registers only that module's bindings, routes, migrations, commands, listeners, schedules, views, frontend entrypoints, and contribution providers.
+
+Do not register module behavior through directory scanning. Module registration is explicit through the manifest and provider.
+
+Module web routes live under module-owned Presentation route files once module route registration is active. Until then, root route files remain split by delivery area. Controllers stay thin and route files do not contain business logic.
+
+Module migrations are owned by the module whose tables they create or modify. Cross-module table changes require an explicit architecture decision and must not be hidden inside another module's migration.
+
+Module contribution contracts are framework-independent declarations consumed by shared Presentation/Admin infrastructure:
+
+- `ModuleMenuContribution` returns `ModuleMenuItem` values;
+- `ModulePermissionContribution` returns `ModulePermissionDefinition` values;
+- `ModuleBreadcrumbContribution` returns `ModuleBreadcrumbDefinition` values;
+- `ModuleHealthCheckContribution` returns `ModuleHealthCheckDefinition` values;
+- `ModuleScheduleContribution` returns `ModuleScheduledTask` values;
+- frontend entrypoints use `ModuleFrontendEntrypoint` values or manifest entrypoint declarations.
+
+Contribution consumers must still pass through backend authorization and `ModuleGate`. UI visibility is never authorization.
+
 ## Integration Events and Outbox
 
 Reliable Integration Events use one shared Outbox infrastructure.
@@ -178,6 +242,72 @@ Rules:
 - operational status, lag, retries, failures, and manual safe replay are visible in Admin;
 - replay never changes the original event identity;
 - correlation and causation metadata are propagated through dispatch and consumption.
+
+Current durable storage uses the shared `outbox_events` table.
+
+The table stores:
+
+- internal BIGINT `id`;
+- unique ULID `event_id`;
+- stable technical `event_type`;
+- integer `schema_version`;
+- `source_module`;
+- JSONB `payload`;
+- `occurred_at`;
+- required `correlation_id`;
+- optional `causation_id`;
+- `status`;
+- `attempts`;
+- `next_attempt_at`;
+- `published_at`;
+- `failed_at`;
+- `failure_details`;
+- timestamps.
+
+Application use cases record reliable Integration Events through `App\Shared\Application\Outbox\Contracts\OutboxEventRecorder` while the owning business transaction is open. The current infrastructure implementation inserts `pending` records.
+
+The Outbox relay uses `App\Shared\Application\Outbox\Contracts\OutboxRelay` with an explicit `OutboxEventPublisher`. It claims due `pending` records in a database transaction, marks them `publishing`, commits, publishes after commit, and marks successful records `published`.
+
+If publishing fails, the relay increments attempts and either schedules a bounded backoff retry or moves the record to `failed`. Failed records are inspectable dead-letter records.
+
+`App\Shared\Application\Outbox\Contracts\OutboxMaintenance` owns retention cleanup, safe replay of failed records without changing the original `event_id`, and lag metrics for pending, publishing, failed, and oldest-pending age.
+
+Consumers use `App\Shared\Application\Outbox\Contracts\OutboxConsumerDeduplicator` to atomically record `(event_id, consumer)` delivery. The shared `outbox_consumed_events` table prevents duplicate processing for the same consumer while allowing multiple independent consumers to process the same Integration Event.
+
+### Integration Event schema evolution
+
+Every Integration Event includes stable event type, unique event ID, occurrence time, correlation ID, optional causation ID, source module, integer schema version, and minimal payload.
+
+Schema version lives in event metadata. Compatible evolution may add optional fields and consumers must ignore unknown fields. Existing field meaning must not change. Removing a field or making a breaking change requires a migration period and a new schema version.
+
+---
+
+## Deactivation Guards
+
+Modules that can have unsafe in-flight work expose a typed `ModuleDeactivationGuard`.
+
+The guard receives a `ModuleDeactivationRequest` containing module key, optional team ID, and requester identity. It returns `ModuleDeactivationAssessment` with:
+
+- blocking process identifiers;
+- human-readable reasons;
+- supported safe actions such as complete, cancel, or retry.
+
+Module deactivation must use this contract and must not inspect foreign module tables to guess active work.
+
+---
+
+## Data Lifecycle Participation
+
+Modules participate in cross-module deletion and anonymization through `App\Shared\Application\DataLifecycle\Contracts\DataLifecycleParticipant`.
+
+Each participant can:
+
+- preview affected data sets;
+- report blockers;
+- execute idempotent deletion or anonymization steps;
+- return auditable step results tied to a correlation ID.
+
+The full administrative orchestration is implemented later, but modules must shape their deletion/anonymization behavior around this minimal shared contract.
 
 ## Base Module Classification
 
@@ -223,6 +353,12 @@ For collections:
 - do not expose Laravel paginator classes, Eloquent collections, query builders, or database cursors across module boundaries;
 - cursor pagination is preferred for large mutable datasets;
 - ordering and continuation semantics are part of the public Query contract.
+
+The shared foundation types are:
+
+- `TypedCollectionResult`;
+- `PageResult` with `PageMetadata`;
+- `CursorPageResult` with `PageCursor`.
 
 ## Identity and Public IDs
 

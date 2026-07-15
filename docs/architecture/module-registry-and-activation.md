@@ -4,6 +4,37 @@ Canonical rules for deployed modules, dependencies, ModuleGate, global/team acti
 
 ## Module Registry
 
+Atlas uses an explicit module manifest registry. There is no directory, namespace, or attribute scanning.
+
+Deployed manifests are listed in `config/modules.php` under `deployed`.
+
+Each entry must be a class-string implementing `App\Shared\Application\Modules\Contracts\ModuleDefinition`. During application registration, `App\Providers\AppServiceProvider` instantiates the configured manifests and builds `App\Shared\Application\Modules\ModuleRegistry`. Invalid configuration fails startup before the application can serve requests.
+
+The current first deployed manifest is `App\Modules\Core\Identity\IdentityModule`.
+
+`ModuleDefinition` declares:
+
+- stable `ModuleKey`;
+- `ModuleCategory`: `core`, `optional`, or `application`;
+- required dependency keys;
+- optional dependency keys;
+- Service Provider class;
+- global activation support;
+- team activation support;
+- integration identifiers;
+- health-check identifiers;
+- frontend entrypoints.
+
+`ModuleRegistry` is the canonical deployed-module catalog. It:
+
+- stores one manifest per key;
+- rejects duplicate keys;
+- rejects missing required dependencies;
+- rejects required-dependency cycles;
+- computes deterministic startup order with dependencies before dependents.
+
+Optional dependencies may be absent from the deployed registry, but the consuming module must enter a documented reduced mode when using behavior that depends on them.
+
 ### Central module enforcement
 
 One central `ModuleGate`/module-access service is the source of truth for effective module access.
@@ -20,37 +51,13 @@ It evaluates in this order:
 
 Controllers, middleware, jobs, commands, public endpoints, and composable-view data providers use this central gate rather than reproducing activation logic.
 
+The current central evaluator is `App\Shared\Application\Modules\Contracts\ModuleGate`.
+
+`DefaultModuleGate` evaluates a `ModuleAccessRequest` from a `ModuleGateStateProvider` in the canonical order above and returns a stable `ModuleAccessDecision` with a `ModuleAccessDenialReason`.
+
 A declared required dependency that is not deployed is an invalid configuration and must fail startup/readiness with a clear error.
 
-Modules that may have unsafe in-flight work implement a typed active-process/deactivation-guard contract. It returns blocking process identifiers, human-readable reasons, safe completion/cancellation options, and whether deactivation may proceed. Module deactivation must not guess this from foreign tables.
-
-Every module has a typed manifest implementing a shared contract such as `ModuleDefinition`.
-
-A manifest declares at least:
-
-- stable technical key;
-- category: `core`, `optional`, or `application`;
-- required dependencies;
-- optional dependencies;
-- Service Provider;
-- supported global activation;
-- supported per-team activation;
-- integrations;
-- health checks;
-- frontend entrypoints when required.
-
-Manifest registration is explicit in a central catalog such as `config/modules.php`.
-
-No directory or namespace scanning.
-
-`ModuleRegistry` must:
-
-- instantiate only explicitly registered manifests;
-- reject duplicate keys;
-- detect missing dependencies;
-- detect dependency cycles;
-- determine a safe startup order;
-- fail application startup with a clear exception on invalid configuration.
+Modules that may have unsafe in-flight work implement `App\Shared\Application\Modules\Contracts\ModuleDeactivationGuard`. It returns blocking process identifiers, human-readable reasons, safe completion/cancellation options, and whether deactivation may proceed. Module deactivation must not guess this from foreign tables.
 
 ### Module activation
 

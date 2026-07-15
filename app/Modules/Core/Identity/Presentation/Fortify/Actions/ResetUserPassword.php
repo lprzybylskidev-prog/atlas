@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Core\Identity\Presentation\Fortify\Actions;
 
 use App\Modules\Core\Identity\Infrastructure\Persistence\User;
+use App\Modules\Core\Identity\Presentation\Fortify\Concerns\PasswordValidationRules;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;

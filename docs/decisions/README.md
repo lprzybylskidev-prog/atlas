@@ -5,3 +5,4 @@ Use one ADR per durable decision. Do not rewrite accepted ADR history; supersede
 - [ADR-0001: Split the roadmap into a lightweight index and phase files](ADR-0001-roadmap-documentation-split.md)
 - [ADR-0002: Keep AGENTS.md concise and move system specifications to canonical documentation](ADR-0002-agents-documentation-boundary.md)
 - [ADR-0003: Build Atlas as a DDD modular monolith in one repository](ADR-0003-modular-monolith-and-single-repository.md)
+- [ADR-0004: Establish explicit modular foundation contracts](ADR-0004-modular-foundation-contracts.md)

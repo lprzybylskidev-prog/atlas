@@ -156,6 +156,9 @@ Read [`docs/architecture/modular-monolith.md`](docs/architecture/modular-monolit
 - Use immutable DTOs and value objects at public boundaries.
 - Use enums for closed sets.
 - Use typed identifiers where identity mistakes are possible.
+- Keep interfaces and public capability contracts in a local `Contracts` namespace/directory instead of mixing them with DTOs, value objects, services, or result classes.
+- Keep typed exceptions in a local `Exceptions` namespace/directory.
+- Do not create trait/concern directories speculatively; when a trait is genuinely justified, place it in a local `Concerns` namespace/directory and keep behavior explicit.
 - Represent money as integer minor units plus ISO 4217 currency.
 - Do not perform implicit mixed-currency operations.
 - Public query results must not expose Eloquent collections or Laravel paginator types.

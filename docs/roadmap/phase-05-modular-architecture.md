@@ -111,54 +111,54 @@
 - [x] Extend `AGENTS.md` and operations documentation with testing-environment and e2e visibility-check rules.
 - [x] Add or update automated checks proving e2e setup does not depend on the normal development server ports.
 - [ ] Add the first permission/module-gated UI visibility e2e scenarios when the corresponding authorization and ModuleGate primitives exist.
-- [ ] Design and migrate the shared Outbox table.
-- [ ] Implement transactional Outbox recording.
-- [ ] Implement the Outbox relay/dispatcher.
-- [ ] Implement bounded retry, backoff, failed/dead-letter state, retention cleanup, lag metrics, and safe replay.
-- [ ] Add idempotent consumer/event-ID deduplication support.
-- [ ] Add architecture tests preventing reliable Integration Event publication outside the Outbox.
-- [ ] Add Outbox integration tests covering commit, rollback, duplicate delivery, retry, failure, replay, and cleanup.
-- [ ] Define and implement the central `ModuleGate`.
-- [ ] Make missing deployed required dependencies fail startup/readiness.
-- [ ] Define the module active-process/deactivation-guard contract.
-- [ ] Define framework-independent typed collection, page, and cursor Query results.
-- [ ] Add architecture tests rejecting Laravel paginator/Eloquent collection types in public contracts.
-- [ ] Define the minimal module deletion/anonymization participation contract.
-- [ ] Create `Core`, `Optional`, and `Application` module roots.
-- [ ] Create shared `Domain`, `Application`, `Infrastructure`, and `Presentation` conventions.
-- [ ] Define typed `ModuleDefinition` contract.
-- [ ] Define module key and module category value types/enums.
-- [ ] Define required and optional dependency declarations.
-- [ ] Define module capability declarations.
-- [ ] Create explicit `config/modules.php` manifest registry.
-- [ ] Implement `ModuleRegistry`.
-- [ ] Detect duplicate module keys.
-- [ ] Detect missing dependencies.
-- [ ] Detect dependency cycles.
-- [ ] Compute deterministic startup order.
-- [ ] Fail startup with clear exceptions on invalid module configuration.
-- [ ] Define module Service Provider conventions.
-- [ ] Define module route registration conventions.
-- [ ] Define module migration ownership.
-- [ ] Define module menu contribution contracts.
-- [ ] Define module permission contribution contracts.
-- [ ] Define module breadcrumb contribution contracts.
-- [ ] Define module health-check contribution contracts.
-- [ ] Define module scheduler contribution contracts.
-- [ ] Define module frontend entrypoint conventions.
-- [ ] Define public module API conventions.
-- [ ] Create and document the `Application/Public` namespace convention.
-- [ ] Define public-contract, DTO, Command, Query, and Integration Event subnamespace conventions.
-- [ ] Enforce provider-owned public contracts.
-- [ ] Add naming rules for business-specific public contracts.
-- [ ] Add immutable minimal public DTO rules.
-- [ ] Define synchronous-contract versus Integration Event decision rules.
-- [ ] Define Integration Event metadata and schema-version contract.
-- [ ] Define compatible and breaking Integration Event evolution rules.
-- [ ] Define public-contract deprecation and removal workflow.
-- [ ] Add architecture tests allowing only cross-module imports from `Application/Public`.
-- [ ] Add architecture tests rejecting cross-module Domain, Infrastructure, Presentation, and internal Application imports.
-- [ ] Add tests proving synchronous contracts can be changed atomically without preemptive `V1` namespaces.
-- [ ] Add architecture tests preventing forbidden cross-module dependencies.
-- [ ] Add documentation and ADRs.
+- [x] Design and migrate the shared Outbox table.
+- [x] Implement transactional Outbox recording.
+- [x] Implement the Outbox relay/dispatcher.
+- [x] Implement bounded retry, backoff, failed/dead-letter state, retention cleanup, lag metrics, and safe replay.
+- [x] Add idempotent consumer/event-ID deduplication support.
+- [x] Add architecture tests preventing reliable Integration Event publication outside the Outbox.
+- [x] Add Outbox integration tests covering commit, rollback, duplicate delivery, retry, failure, replay, and cleanup.
+- [x] Define and implement the central `ModuleGate`.
+- [x] Make missing deployed required dependencies fail startup/readiness.
+- [x] Define the module active-process/deactivation-guard contract.
+- [x] Define framework-independent typed collection, page, and cursor Query results.
+- [x] Add architecture tests rejecting Laravel paginator/Eloquent collection types in public contracts.
+- [x] Define the minimal module deletion/anonymization participation contract.
+- [x] Create `Core`, `Optional`, and `Application` module roots.
+- [x] Create shared `Domain`, `Application`, `Infrastructure`, and `Presentation` conventions.
+- [x] Define typed `ModuleDefinition` contract.
+- [x] Define module key and module category value types/enums.
+- [x] Define required and optional dependency declarations.
+- [x] Define module capability declarations.
+- [x] Create explicit `config/modules.php` manifest registry.
+- [x] Implement `ModuleRegistry`.
+- [x] Detect duplicate module keys.
+- [x] Detect missing dependencies.
+- [x] Detect dependency cycles.
+- [x] Compute deterministic startup order.
+- [x] Fail startup with clear exceptions on invalid module configuration.
+- [x] Define module Service Provider conventions.
+- [x] Define module route registration conventions.
+- [x] Define module migration ownership.
+- [x] Define module menu contribution contracts.
+- [x] Define module permission contribution contracts.
+- [x] Define module breadcrumb contribution contracts.
+- [x] Define module health-check contribution contracts.
+- [x] Define module scheduler contribution contracts.
+- [x] Define module frontend entrypoint conventions.
+- [x] Define public module API conventions.
+- [x] Create and document the `Application/Public` namespace convention.
+- [x] Define public-contract, DTO, Command, Query, and Integration Event subnamespace conventions.
+- [x] Enforce provider-owned public contracts.
+- [x] Add naming rules for business-specific public contracts.
+- [x] Add immutable minimal public DTO rules.
+- [x] Define synchronous-contract versus Integration Event decision rules.
+- [x] Define Integration Event metadata and schema-version contract.
+- [x] Define compatible and breaking Integration Event evolution rules.
+- [x] Define public-contract deprecation and removal workflow.
+- [x] Add architecture tests allowing only cross-module imports from `Application/Public`.
+- [x] Add architecture tests rejecting cross-module Domain, Infrastructure, Presentation, and internal Application imports.
+- [x] Add tests proving synchronous contracts can be changed atomically without preemptive `V1` namespaces.
+- [x] Add architecture tests preventing forbidden cross-module dependencies.
+- [x] Add documentation and ADRs.
 - [ ] Commit modular architecture skeleton.
