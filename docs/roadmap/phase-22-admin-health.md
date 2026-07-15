@@ -35,6 +35,8 @@
 - Never log passwords, password or first-password secrets, MFA secrets, recovery codes, access tokens, API keys, cookies, session identifiers, full request bodies, full request/response headers, or unnecessary personal and financial data.
 - Sentry receives exception details, release, environment, correlation ID, module, and sanitized context only.
 - Do not include Prometheus, OpenTelemetry, distributed tracing, or a separate telemetry stack in the initial Atlas scope.
+- Keep Laravel Telescope and Laravel Debugbar as development-only diagnostics; they must remain disabled for tests, E2E, production, and untrusted environments.
+- Add Laravel Pulse as the later internal performance dashboard when Atlas has real operational traffic from workflows, queues, imports, exports, reports, and integrations.
 - Health, readiness, scheduler checks, queue checks, backup checks, integration status, and Admin System Status are the baseline operational visibility.
 - Support configurable alert delivery such as email and webhook.
 - Baseline alerts cover readiness failures, repeated failed jobs, scheduler heartbeat failure, backup failure, persistent integration failure, and critical Sentry exceptions.
@@ -57,6 +59,7 @@
 - [ ] Implement one centralized sensitive-field redaction policy.
 - [ ] Add regression tests preventing secrets, cookies, sessions, full bodies, full headers, and sensitive personal data from reaching logs or Sentry.
 - [ ] Configure sanitized Sentry scope with release, environment, module, and correlation ID.
+- [ ] Add Laravel Pulse as an internal performance dashboard after real operational workflows generate useful runtime signals.
 - [ ] Implement scheduler heartbeat visibility.
 - [ ] Implement configurable email/webhook operational alert channels.
 - [ ] Add deduplicated/throttled alerts for readiness, repeated failed jobs, scheduler, backup, integration, and critical Sentry failures.

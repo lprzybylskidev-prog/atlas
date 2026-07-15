@@ -29,7 +29,7 @@ Atlas is designed around:
 - PHPUnit, PHPStan/Larastan, and Pint
 - ESLint, Prettier, Stylelint, Vitest, and Playwright
 - Docker Compose and VS Code Dev Containers
-- Horizon, Sentry, Meilisearch, ClamAV, and Chromium/Playwright where their capabilities are active
+- Horizon, Sentry, Meilisearch, ClamAV, Chromium/Playwright, and local-only Laravel Telescope/Debugbar where their capabilities are active
 
 The permanent PHP root namespace is:
 
@@ -139,6 +139,8 @@ Before non-trivial work:
 
 Local quality gates and Lefthook are the baseline workflow. Use the public Composer and pnpm commands documented in [`docs/operations/quality-gates-and-git.md`](docs/operations/quality-gates-and-git.md); hooks call those same commands for pre-commit and pre-push checks. Atlas intentionally does not bundle a CI provider; CI may be added later if the company requires it, using the same public quality commands.
 
+Local diagnostics use Laravel Telescope at `/telescope` and Laravel Debugbar for trusted local browser work only. Both stay disabled in tests, E2E, production, and untrusted environments. Laravel Pulse is planned later as the internal performance dashboard once real operational workflows produce useful runtime traffic.
+
 ## Environments
 
 Atlas requires:
@@ -158,7 +160,7 @@ The development application container includes Docker CLI and the Docker Compose
 
 Atlas currently has a detailed architecture, implementation roadmap, documentation system, Docker/Dev Container foundation, and a Laravel 13 application foundation running on PostgreSQL and Redis in development.
 
-The Laravel foundation includes Fortify, Horizon, Scout with Meilisearch, Sentry, Spatie Laravel Permission with teams, Diglactic Breadcrumbs, Ziggy, Pint, PHPUnit, PHPStan/Larastan, Vite/Tailwind assets, committed Polish/English Laravel translation catalogs, request IDs, release identity, and startup configuration validation.
+The Laravel foundation includes Fortify, Horizon, Scout with Meilisearch, Sentry, Spatie Laravel Permission with teams, Diglactic Breadcrumbs, Ziggy, local-only Telescope/Debugbar diagnostics, Pint, PHPUnit, PHPStan/Larastan, Vite/Tailwind assets, committed Polish/English Laravel translation catalogs, request IDs, release identity, and startup configuration validation.
 
 The baseline frontend shell is available through Inertia/Vue with strict TypeScript, light and dark themes, responsive auth/application/admin layouts, PL/EN frontend localization with Polish default for regular UI, English-only Admin shell copy, the Atlas logo and favicon, and a local demo reset command documented in [`docs/operations/seeding-and-demo-data.md`](docs/operations/seeding-and-demo-data.md).
 

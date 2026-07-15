@@ -6,6 +6,7 @@ namespace App\Providers;
 
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\ServiceProvider;
+use Laravel\Telescope\TelescopeApplicationServiceProvider;
 use RuntimeException;
 
 class AppServiceProvider extends ServiceProvider
@@ -13,6 +14,20 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->validateCriticalConfiguration();
+        $this->registerLocalDevelopmentProviders();
+    }
+
+    private function registerLocalDevelopmentProviders(): void
+    {
+        if (! $this->app->environment(['local', 'development'])) {
+            return;
+        }
+
+        if (! class_exists(TelescopeApplicationServiceProvider::class)) {
+            return;
+        }
+
+        $this->app->register(TelescopeServiceProvider::class);
     }
 
     private function validateCriticalConfiguration(): void

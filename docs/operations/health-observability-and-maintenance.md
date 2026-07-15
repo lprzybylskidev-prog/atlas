@@ -4,6 +4,11 @@ Canonical runtime rules for health, readiness, maintenance, logging, correlation
 
 ## Logging and Observability
 
+- Laravel Telescope and Laravel Debugbar are development-only diagnostics tools.
+- Telescope is the default local request, query, exception, log, job, cache, mail, notification, event, and dump inspector at `/telescope`.
+- Debugbar is enabled only for trusted local/development browser work and must stay disabled in tests, E2E, production, and every untrusted environment.
+- Telescope and Debugbar must not replace production-safe logs, Sentry, health checks, readiness checks, alerts, audit trails, or Admin operational screens.
+- Laravel Pulse is the planned later application performance dashboard for runtime usage and bottleneck trends after real workflows, queues, imports, exports, and integrations exist.
 - Every HTTP response includes an `X-Request-Id` header.
 - If a valid `X-Request-Id` arrives with the request, Atlas preserves it; otherwise Atlas generates a ULID request id.
 - The request id is attached to Laravel context and log context as both `request_id` and initial `correlation_id`.

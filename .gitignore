@@ -12,6 +12,7 @@
 /public/hot
 /tsconfig.tsbuildinfo
 /storage/*.key
+/storage/debugbar/
 /storage/app/private/
 /storage/app/public/
 /storage/framework/cache/
