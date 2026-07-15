@@ -36,9 +36,10 @@ const items = computed<NavigationItem[]>(() => [
         <div class="flex h-16 items-center justify-start border-b border-zinc-200 px-4 dark:border-zinc-800">
             <AtlasLogo
                 :show-text="isSidebarTextVisible"
-                :animate-text="isSidebarCollapsed || !isSidebarTextVisible"
+                animate-text
                 :ui-locale="uiLocale"
-                :class="{ 'translate-x-2 transition-transform duration-300 ease-in-out': isSidebarCollapsed }"
+                class="transition-transform duration-300 ease-in-out will-change-transform"
+                :style="{ transform: isSidebarCollapsed ? 'translateX(0.5rem)' : 'translateX(0)' }"
             />
         </div>
 

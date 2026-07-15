@@ -33,7 +33,7 @@ const { t } = useTranslator(props.uiLocale);
             :class="
                 animateText
                     ? showText
-                        ? 'max-w-44 opacity-100 transition-[max-width,opacity,transform] duration-300 ease-in-out'
+                        ? 'max-w-44 translate-x-0 opacity-100 transition-[max-width,opacity,transform] duration-300 ease-in-out'
                         : 'max-w-0 -translate-x-1 opacity-0 transition-[max-width,opacity,transform] duration-300 ease-in-out'
                     : showText
                       ? ''
