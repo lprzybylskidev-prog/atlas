@@ -211,6 +211,7 @@ Read [`docs/architecture/security-baseline.md`](docs/architecture/security-basel
 ## Frontend rules
 
 - Use shared UI primitives before creating new local components.
+- Explicitly tell the user when a change introduces or materially changes visible frontend UI so they can review it in the browser.
 - Maintain light and dark themes together.
 - Meet WCAG 2.2 AA where applicable.
 - Preserve keyboard navigation, focus management, semantics, and screen-reader behavior.

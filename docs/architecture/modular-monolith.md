@@ -25,6 +25,7 @@ app/Shared/
 Current foundation structure:
 
 - `app/Modules/Core/Identity` owns the current Fortify authentication actions, Identity presentation provider, and user persistence model.
+- `app/Modules/Core/Users` is the Core user-lifecycle module root and currently depends on Identity while user administration use cases are being built.
 - `app/Modules/Optional` is reserved for optional foundation modules.
 - `app/Modules/Application` is reserved for concrete business-domain modules.
 - `app/Shared/Domain/Money` owns framework-independent money and currency primitives.

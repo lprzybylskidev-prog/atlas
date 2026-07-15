@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\Foundation;
 
 use App\Modules\Core\Identity\IdentityModule;
+use App\Modules\Core\Users\UsersModule;
 use App\Shared\Application\Modules\Contracts\ModuleDefinition;
 use App\Shared\Application\Modules\Exceptions\DuplicateModuleKey;
 use App\Shared\Application\Modules\Exceptions\MissingRequiredModuleDependency;
@@ -82,7 +83,7 @@ final class ModuleRegistryTest extends TestCase
         self::assertIsArray($configured);
         self::assertArrayHasKey('deployed', $configured);
         self::assertIsArray($configured['deployed']);
-        self::assertSame([IdentityModule::class], $configured['deployed']);
+        self::assertSame([IdentityModule::class, UsersModule::class], $configured['deployed']);
 
         foreach ($configured['deployed'] as $moduleClass) {
             $interfaces = class_implements($moduleClass);

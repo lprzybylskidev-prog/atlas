@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Core\Identity\Presentation\Fortify\Actions;
 
+use App\Modules\Core\Identity\Application\PasswordHistory;
 use App\Modules\Core\Identity\Infrastructure\Persistence\User;
 use App\Modules\Core\Identity\Presentation\Fortify\Concerns\PasswordValidationRules;
 use Illuminate\Support\Facades\Hash;
@@ -15,6 +16,10 @@ class UpdateUserPassword implements UpdatesUserPasswords
 {
     use PasswordValidationRules;
 
+    public function __construct(
+        private readonly PasswordHistory $passwordHistory,
+    ) {}
+
     /**
      * @param  array<string, string>  $input
      *
@@ -24,13 +29,23 @@ class UpdateUserPassword implements UpdatesUserPasswords
     {
         Validator::make($input, [
             'current_password' => ['required', 'string', 'current_password:web'],
-            'password' => $this->passwordRules(),
+            'password' => $this->passwordRules($user),
         ], [
-            'current_password.current_password' => __('The provided password does not match your current password.'),
+            'current_password.current_password' => __('auth.password_current_mismatch'),
         ])->validateWithBag('updatePassword');
 
+        $userId = $user->internalId();
+        $previousPasswordHash = $user->password;
+
+        $this->passwordHistory->ensureNotRecentlyUsed($userId, $input['password'], $previousPasswordHash);
+
+        $passwordHash = Hash::make($input['password']);
+
         $user->forceFill([
-            'password' => Hash::make($input['password']),
+            'password' => $passwordHash,
         ])->save();
+
+        $this->passwordHistory->recordNewPassword($userId, $previousPasswordHash);
+        $this->passwordHistory->recordNewPassword($userId, $passwordHash);
     }
 }

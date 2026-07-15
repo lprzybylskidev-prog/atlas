@@ -7,6 +7,7 @@ namespace Database\Seeders;
 use App\Modules\Core\Identity\Infrastructure\Persistence\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 
 class DevelopmentDemoSeeder extends Seeder
 {
@@ -21,9 +22,11 @@ class DevelopmentDemoSeeder extends Seeder
         ]);
 
         $user->forceFill([
+            'public_id' => $user->public_id ?: (string) Str::ulid(),
             'name' => 'Atlas Demo',
             'password' => Hash::make(self::PREVIEW_PASSWORD),
             'email_verified_at' => now(),
+            'first_password_set_at' => now(),
         ])->save();
     }
 }

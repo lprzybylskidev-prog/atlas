@@ -24,6 +24,7 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->validateCriticalConfiguration();
         $this->registerModuleRegistry();
+        $this->registerModuleServiceProviders();
         $this->registerSharedInfrastructure();
         $this->registerLocalDevelopmentProviders();
     }
@@ -35,6 +36,15 @@ class AppServiceProvider extends ServiceProvider
         });
 
         $this->app->make(ModuleRegistry::class);
+    }
+
+    private function registerModuleServiceProviders(): void
+    {
+        $registry = $this->app->make(ModuleRegistry::class);
+
+        foreach ($registry->startupOrder() as $module) {
+            $this->app->register($module->serviceProvider());
+        }
     }
 
     /**

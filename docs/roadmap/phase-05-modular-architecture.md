@@ -161,4 +161,4 @@
 - [x] Add tests proving synchronous contracts can be changed atomically without preemptive `V1` namespaces.
 - [x] Add architecture tests preventing forbidden cross-module dependencies.
 - [x] Add documentation and ADRs.
-- [ ] Commit modular architecture skeleton.
+- [x] Commit modular architecture skeleton.

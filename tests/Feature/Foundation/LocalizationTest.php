@@ -40,11 +40,11 @@ class LocalizationTest extends TestCase
         self::assertSame($englishKeys, $polishKeys);
     }
 
-    public function test_generated_fortify_password_message_has_polish_translation(): void
+    public function test_current_password_mismatch_has_stable_polish_translation(): void
     {
         self::assertSame(
             'Podane hasło nie jest zgodne z aktualnym hasłem.',
-            __('The provided password does not match your current password.'),
+            __('auth.password_current_mismatch'),
         );
     }
 

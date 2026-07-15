@@ -35,7 +35,7 @@ Do not replace this index after the initial technical foundation is completed. C
 
 ## Current phase
 
-- Phase: [Phase 5 — Modular architecture skeleton](docs/roadmap/phase-05-modular-architecture.md)
+- Phase: [Phase 7 — Authorization and teams](docs/roadmap/phase-07-authorization-teams.md)
 - Status: `not started`
 
 ## Phase index
@@ -82,7 +82,7 @@ Establish deterministic local quality commands, tests, static analysis, formatti
 
 ### Phase 5 — Modular architecture skeleton
 
-**Status:** `not started`
+**Status:** `blocked pending Phase 6/7 UI visibility primitives`
 
 Create modular-monolith boundaries, public contracts, ModuleGate, Outbox, architecture tests, and shared cross-module primitives.
 
@@ -90,7 +90,7 @@ Create modular-monolith boundaries, public contracts, ModuleGate, Outbox, archit
 
 ### Phase 6 — Core identity and authentication
 
-**Status:** `not started`
+**Status:** `complete`
 
 Implement identity, login security, password lifecycle, email verification, MFA, lockouts, and authentication rate limits.
 

@@ -47,38 +47,38 @@
 - User-facing responses remain generic and do not disclose exact thresholds where that would facilitate attack tuning.
 - Replace generated Fortify action messages with stable technical translation keys while implementing the final authentication flows.
 
-- [ ] Register stable named rate-limit policies for authentication, API, imports, exports, and high-risk Admin operations.
-- [ ] Support policy keying by IP, user, team, API client, and explicit combinations.
-- [ ] Support progressive delay and temporary locks where required.
-- [ ] Keep policy thresholds in configuration rather than editable database settings.
-- [ ] Ensure login and MFA rate limits cannot be disabled.
-- [ ] Add tests for generic user-facing rate-limit errors and threshold non-disclosure.
-- [ ] Create `Identity` module.
-- [ ] Create `Users` module.
-- [ ] Create domain IDs, public ULIDs, and persistence mappings.
-- [ ] Disable public registration.
-- [ ] Implement admin-created users.
-- [ ] Implement one-time first-password links.
-- [ ] Verify email during first-password setup.
-- [ ] Prevent generated-password delivery.
-- [ ] Implement activation/deactivation.
-- [ ] Implement password policy.
-- [ ] Add breached-password verification.
-- [ ] Add password history for last 10 passwords.
-- [ ] Implement short-lived one-time reset links.
-- [ ] Invalidate previous reset links when a new one is issued.
-- [ ] Implement generic account-existence-safe messaging.
-- [ ] Replace generated Fortify action source-string translations with stable technical keys.
-- [ ] Implement login rate limiting by user and IP.
-- [ ] Lock after 10 failed attempts.
-- [ ] Add escalating lock durations.
-- [ ] Add suspicious-login notifications.
-- [ ] Implement audited admin unlock.
-- [ ] Reset failed-attempt count on success.
-- [ ] Implement TOTP MFA.
-- [ ] Implement WebAuthn/passkeys.
-- [ ] Implement FIDO2 hardware-key support.
-- [ ] Implement recovery codes.
-- [ ] Implement configurable MFA requirements.
-- [ ] Implement audited MFA reset.
-- [ ] Commit authentication foundation.
+- [x] Register stable named rate-limit policies for authentication, API, imports, exports, and high-risk Admin operations.
+- [x] Support policy keying by IP, user, team, API client, and explicit combinations.
+- [x] Support progressive delay and temporary locks where required.
+- [x] Keep policy thresholds in configuration rather than editable database settings.
+- [x] Ensure login and MFA rate limits cannot be disabled.
+- [x] Add tests for generic user-facing rate-limit errors and threshold non-disclosure.
+- [x] Create `Identity` module.
+- [x] Create `Users` module.
+- [x] Create domain IDs, public ULIDs, and persistence mappings.
+- [x] Disable public registration.
+- [x] Implement admin-created users.
+- [x] Implement one-time first-password links.
+- [x] Verify email during first-password setup.
+- [x] Prevent generated-password delivery.
+- [x] Implement activation/deactivation.
+- [x] Implement password policy.
+- [x] Add breached-password verification.
+- [x] Add password history for last 10 passwords.
+- [x] Implement short-lived one-time reset links.
+- [x] Invalidate previous reset links when a new one is issued.
+- [x] Implement generic account-existence-safe messaging.
+- [x] Replace generated Fortify action source-string translations with stable technical keys.
+- [x] Implement login rate limiting by user and IP.
+- [x] Lock after 10 failed attempts.
+- [x] Add escalating lock durations.
+- [x] Add suspicious-login notifications.
+- [x] Implement audited admin unlock.
+- [x] Reset failed-attempt count on success.
+- [x] Implement TOTP MFA.
+- [x] Implement WebAuthn/passkeys.
+- [x] Implement FIDO2 hardware-key support.
+- [x] Implement recovery codes.
+- [x] Implement configurable MFA requirements.
+- [x] Implement audited MFA reset.
+- [x] Commit authentication foundation.

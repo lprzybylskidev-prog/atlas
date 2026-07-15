@@ -15,8 +15,8 @@ return [
     'domain' => null,
     'middleware' => ['web'],
     'limiters' => [
-        'login' => 'login',
-        'two-factor' => 'two-factor',
+        'login' => 'auth.login',
+        'two-factor' => 'auth.mfa',
     ],
     'views' => false,
     'features' => [
