@@ -98,7 +98,7 @@ onBeforeUnmount(() => {
         <button
             ref="button"
             type="button"
-            class="inline-flex h-10 w-full items-center justify-between gap-2 rounded-lg border border-zinc-300 bg-white px-3 text-left text-sm text-zinc-950 outline-none transition hover:border-zinc-400 hover:bg-zinc-50 focus:border-teal-600 focus:ring-2 focus:ring-teal-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50 dark:hover:border-zinc-600 dark:hover:bg-zinc-800 dark:focus:ring-teal-950"
+            class="inline-flex h-10 w-full items-center justify-between gap-2 rounded-lg border border-zinc-300 bg-white px-3 text-left text-sm leading-5 text-zinc-950 outline-none transition hover:border-zinc-400 hover:bg-zinc-50 focus:border-teal-600 focus:ring-2 focus:ring-teal-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50 dark:hover:border-zinc-600 dark:hover:bg-zinc-800 dark:focus:ring-teal-950"
             :class="buttonClass"
             role="combobox"
             :aria-label="ariaLabel ?? label"
@@ -109,7 +109,7 @@ onBeforeUnmount(() => {
             @click="open = !open"
             @keydown="handleButtonKeydown"
         >
-            <span class="truncate" :class="{ 'text-zinc-500 dark:text-zinc-400': selectedOption === null }">
+            <span class="flex min-h-5 items-center truncate" :class="{ 'text-zinc-500 dark:text-zinc-400': selectedOption === null }">
                 {{ selectedOption?.label ?? placeholder }}
             </span>
             <IconChevronDown

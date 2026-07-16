@@ -191,6 +191,7 @@ final class AdminAdministrationCrudTest extends TestCase
         $view = DB::table('table_saved_views')->where('name', 'Team active users')->first();
         self::assertIsObject($view);
         self::assertSame(['name', 'email'], $this->jsonStringList($view, 'state', 'columns'));
+        $viewPublicId = $this->recordString($view, 'public_id');
 
         $this->actingAs($actor)
             ->withSession($session)
@@ -210,6 +211,36 @@ final class AdminAdministrationCrudTest extends TestCase
         $emptyColumnsView = DB::table('table_saved_views')->where('name', 'No visible data columns')->first();
         self::assertIsObject($emptyColumnsView);
         self::assertSame([], $this->jsonStringList($emptyColumnsView, 'state', 'columns'));
+
+        $this->actingAs($actor)
+            ->withSession($session)
+            ->patch("/admin/table-views/{$viewPublicId}", [
+                'name' => 'Team active users',
+                'state' => [
+                    'sort' => 'email',
+                    'direction' => 'asc',
+                    'search' => 'alpha',
+                    'columns' => ['name', 'email'],
+                    'columnOrder' => ['email', 'name'],
+                    'filters' => [
+                        'module' => 'authorization',
+                        'team' => $activeTeam->public_id,
+                        'security' => 'yes',
+                        'empty' => '',
+                        'flag' => true,
+                    ],
+                ],
+            ])
+            ->assertRedirect();
+
+        $updatedView = DB::table('table_saved_views')->where('name', 'Team active users')->first();
+        self::assertIsObject($updatedView);
+        $updatedFilters = $this->jsonObject($updatedView, 'state', 'filters');
+        self::assertSame('authorization', $updatedFilters['module'] ?? null);
+        self::assertSame($activeTeam->public_id, $updatedFilters['team'] ?? null);
+        self::assertSame('yes', $updatedFilters['security'] ?? null);
+        self::assertNull($updatedFilters['empty'] ?? null);
+        self::assertTrue($updatedFilters['flag'] ?? false);
     }
 
     private function assignStarterRoleInTeam(User $user, Team $team, string $roleName): void
@@ -261,5 +292,40 @@ final class AdminAdministrationCrudTest extends TestCase
         }
 
         return array_values(array_filter($decoded, 'is_string'));
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function jsonObject(object $record, string $property, ?string $nestedProperty = null): array
+    {
+        $values = get_object_vars($record);
+        $decoded = json_decode(is_string($values[$property] ?? null) ? $values[$property] : '[]', true);
+
+        if ($nestedProperty !== null && is_array($decoded)) {
+            $decoded = $decoded[$nestedProperty] ?? [];
+        }
+
+        if (! is_array($decoded)) {
+            return [];
+        }
+
+        $result = [];
+
+        foreach ($decoded as $key => $value) {
+            if (is_string($key)) {
+                $result[$key] = $value;
+            }
+        }
+
+        return $result;
+    }
+
+    private function recordString(object $record, string $property): string
+    {
+        $values = get_object_vars($record);
+        $value = $values[$property] ?? '';
+
+        return is_scalar($value) ? (string) $value : '';
     }
 }

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Head, router } from '@inertiajs/vue3';
 import { IconClipboardList, IconFilter, IconX } from '@tabler/icons-vue';
-import { reactive } from 'vue';
+import { reactive, watch } from 'vue';
 
 import DataTable from '../../../Components/DataTable.vue';
 import FormInput from '../../../Components/Form/FormInput.vue';
@@ -90,6 +90,8 @@ const actionOptions = [anyOption('Any action'), ...props.filterOptions.actions];
 const sourceOptions = [anyOption('Any source'), ...props.filterOptions.sources];
 const targetTypeOptions = [anyOption('Any target type'), ...props.filterOptions.targetTypes];
 const teamOptions = [anyOption('Any team'), ...props.filterOptions.teams];
+const tableQueryKeys = ['per_page', 'sort', 'direction', 'search', 'columns', 'column_order', 'view'] as const;
+const selectedViewStorageKey = `atlas.table.${props.table.key}.selectedView`;
 
 const columns: DataTableColumn<AuditEventRow>[] = [
     { key: 'publicId', label: 'Public ID', hidden: true },
@@ -115,9 +117,13 @@ const columns: DataTableColumn<AuditEventRow>[] = [
 ];
 
 function applyFilters(): void {
+    const tableState = currentTableQuery();
+
     router.get(
         '/admin/audit',
         {
+            ...tableState,
+            page: 1,
             actor: filters.actor,
             actual_actor: filters.actualActor,
             impersonated_user: filters.impersonatedUser,
@@ -134,8 +140,39 @@ function applyFilters(): void {
             date_from: filters.dateFrom,
             date_to: filters.dateTo,
         },
-        { preserveScroll: true, replace: true },
+        { preserveScroll: true, preserveState: false, replace: true },
     );
+}
+
+function currentTableQuery(): Record<string, string> {
+    if (typeof window === 'undefined') {
+        return props.table.state.view === null ? {} : { view: props.table.state.view };
+    }
+
+    const params = new URLSearchParams(window.location.search);
+    const state: Record<string, string> = {};
+
+    for (const key of tableQueryKeys) {
+        const value = params.get(key);
+
+        if (value !== null && value !== '') {
+            state[key] = value;
+        }
+    }
+
+    if (state.view === undefined && props.table.state.view !== null) {
+        state.view = props.table.state.view;
+    }
+
+    if (state.view === undefined) {
+        const storedView = window.sessionStorage.getItem(selectedViewStorageKey);
+
+        if (storedView !== null && storedView !== '') {
+            state.view = storedView;
+        }
+    }
+
+    return state;
 }
 
 function clearFilters(): void {
@@ -156,6 +193,14 @@ function clearFilters(): void {
     filters.dateTo = '';
     applyFilters();
 }
+
+watch(
+    () => props.filters,
+    (nextFilters) => {
+        Object.assign(filters, nextFilters);
+    },
+    { deep: true },
+);
 </script>
 
 <template>
@@ -185,13 +230,13 @@ function clearFilters(): void {
                     </div>
                 </div>
                 <div class="grid gap-3 md:grid-cols-3 xl:grid-cols-6">
-                    <FormSelect v-model="filters.module" aria-label="Module" :options="moduleOptions" />
-                    <FormSelect v-model="filters.action" aria-label="Action" :options="actionOptions" />
-                    <FormSelect v-model="filters.source" aria-label="Source" :options="sourceOptions" />
-                    <FormSelect v-model="filters.targetType" aria-label="Target type" :options="targetTypeOptions" />
-                    <FormSelect v-model="filters.team" aria-label="Team" :options="teamOptions" />
-                    <FormSelect v-model="filters.result" aria-label="Result" :options="resultOptions" />
-                    <FormSelect v-model="filters.security" aria-label="Security filter" :options="securityOptions" />
+                    <FormSelect v-model="filters.module" class="mt-1" aria-label="Module" :options="moduleOptions" />
+                    <FormSelect v-model="filters.action" class="mt-1" aria-label="Action" :options="actionOptions" />
+                    <FormSelect v-model="filters.source" class="mt-1" aria-label="Source" :options="sourceOptions" />
+                    <FormSelect v-model="filters.targetType" class="mt-1" aria-label="Target type" :options="targetTypeOptions" />
+                    <FormSelect v-model="filters.team" class="mt-1" aria-label="Team" :options="teamOptions" />
+                    <FormSelect v-model="filters.result" class="mt-1" aria-label="Result" :options="resultOptions" />
+                    <FormSelect v-model="filters.security" class="mt-1" aria-label="Security filter" :options="securityOptions" />
                     <FormInput v-model="filters.actor" aria-label="Actor public ID" placeholder="Actor" />
                     <FormInput v-model="filters.actualActor" aria-label="Actual actor public ID" placeholder="Actual actor" />
                     <FormInput

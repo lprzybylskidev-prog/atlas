@@ -17,6 +17,8 @@ import {
     IconChevronLeft,
     IconChevronRight,
     IconChevronUp,
+    IconCopy,
+    IconDeviceFloppy,
     IconDownload,
     IconEraser,
     IconFileSpreadsheet,
@@ -31,6 +33,7 @@ import {
     IconSelectAll,
     IconSelector,
     IconSettings,
+    IconStar,
     IconTrash,
     IconUserCheck,
     IconUserOff,
@@ -117,9 +120,11 @@ interface SavedViewStatePayload {
 
 type QueryPrimitive = string | number | boolean | null | undefined;
 
+const tableQueryKeys = new Set(['page', 'per_page', 'sort', 'direction', 'search', 'columns', 'column_order', 'view']);
 const defaultColumnVisibility = (): VisibilityState =>
     Object.fromEntries(props.columns.map((column) => [column.key, column.hidden !== true]));
 const serverDriven = computed(() => props.table !== undefined);
+const selectedViewStorageKey = computed(() => (props.table === undefined ? null : `atlas.table.${props.table.key}.selectedView`));
 const persistedState = readPersistedState();
 const sorting = ref<SortingState>(initialSorting());
 const globalFilter = ref(serverDriven.value ? (props.table?.state.search ?? '') : (persistedState.globalFilter ?? ''));
@@ -410,6 +415,7 @@ function syncServerStateFromProps(): void {
         };
         columnVisibility.value = serverColumnVisibility();
         selectedViewId.value = props.table?.state.view ?? '';
+        rememberSelectedView(selectedViewId.value);
         rowSelection.value = {};
     });
 }
@@ -442,8 +448,24 @@ function currentServerState(): Record<string, string | number> {
         columns: visibleColumns.join(','),
         column_order: orderedColumns.value.map((column) => column.key).join(','),
         view: selectedViewId.value,
-        ...queryFilters(props.table?.state.filters),
+        ...queryFilters(currentFilterState()),
     };
+}
+
+function currentFilterState(): Record<string, QueryPrimitive> {
+    const filters: Record<string, QueryPrimitive> = { ...(props.table?.state.filters ?? {}) };
+
+    if (typeof window === 'undefined') {
+        return filters;
+    }
+
+    for (const [key, value] of new URLSearchParams(window.location.search).entries()) {
+        if (!tableQueryKeys.has(key)) {
+            filters[key] = value;
+        }
+    }
+
+    return filters;
 }
 
 function queryFilters(filters?: Record<string, QueryPrimitive>): Record<string, string | number> {
@@ -489,7 +511,7 @@ function savedViewState(): SavedViewStatePayload {
         search: globalFilter.value,
         columns: props.columns.filter((column) => columnVisibility.value[column.key] ?? true).map((column) => column.key),
         columnOrder: orderedColumns.value.map((column) => column.key),
-        filters: props.table?.state.filters ?? {},
+        filters: queryFilters(currentFilterState()),
         grouping: props.table?.state.grouping ?? [],
         timeRange: props.table?.state.timeRange ?? null,
     };
@@ -501,6 +523,7 @@ function selectedView(): DataTableSavedView | undefined {
 
 function applySavedView(viewId: string | number): void {
     selectedViewId.value = String(viewId);
+    rememberSelectedView(selectedViewId.value);
     const view = selectedView();
 
     if (view === undefined) {
@@ -527,6 +550,19 @@ function applySavedView(viewId: string | number): void {
     );
 }
 
+function rememberSelectedView(viewId: string): void {
+    if (typeof window === 'undefined' || selectedViewStorageKey.value === null) {
+        return;
+    }
+
+    if (viewId === '') {
+        window.sessionStorage.removeItem(selectedViewStorageKey.value);
+        return;
+    }
+
+    window.sessionStorage.setItem(selectedViewStorageKey.value, viewId);
+}
+
 function saveView(): void {
     if (props.table === undefined || savedViewName.value.trim() === '') {
         return;
@@ -540,7 +576,7 @@ function saveView(): void {
             type: savedViewType.value,
             state: savedViewState(),
         },
-        { preserveScroll: true },
+        { preserveScroll: true, preserveState: false },
     );
 }
 
@@ -557,7 +593,7 @@ function updateView(): void {
             name: savedViewName.value.trim() || view.name,
             state: savedViewState(),
         },
-        { preserveScroll: true },
+        { preserveScroll: true, preserveState: false },
     );
 }
 
@@ -568,7 +604,7 @@ function deleteView(): void {
         return;
     }
 
-    router.delete(`/admin/table-views/${view.publicId}`, { preserveScroll: true });
+    router.delete(`/admin/table-views/${view.publicId}`, { preserveScroll: true, preserveState: false });
 }
 
 function copyView(): void {
@@ -584,7 +620,7 @@ function copyView(): void {
             name: savedViewName.value.trim() || `Copy of ${view.name}`,
             type: savedViewType.value,
         },
-        { preserveScroll: true },
+        { preserveScroll: true, preserveState: false },
     );
 }
 
@@ -595,7 +631,7 @@ function makeDefaultView(): void {
         return;
     }
 
-    router.post(`/admin/table-views/${view.publicId}/default`, {}, { preserveScroll: true });
+    router.post(`/admin/table-views/${view.publicId}/default`, {}, { preserveScroll: true, preserveState: false });
 }
 
 function formatCell(value: unknown, format: DataTableColumn<TRow>['format']): VNodeChild {
@@ -1487,42 +1523,47 @@ onBeforeUnmount(() => {
                         <div class="grid grid-cols-2 gap-2">
                             <button
                                 type="button"
-                                class="h-9 rounded-lg bg-teal-700 px-3 text-sm font-medium text-white transition hover:bg-teal-800 dark:bg-teal-600 dark:hover:bg-teal-500"
+                                class="inline-flex h-9 items-center justify-center gap-2 rounded-lg bg-teal-700 px-3 text-sm font-medium text-white transition hover:bg-teal-800 dark:bg-teal-600 dark:hover:bg-teal-500"
                                 :disabled="savedViewName.trim() === ''"
                                 @click="saveView"
                             >
+                                <IconDeviceFloppy aria-hidden="true" class="h-4 w-4" :stroke-width="1.8" />
                                 Save
                             </button>
                             <button
                                 type="button"
-                                class="h-9 rounded-lg border border-zinc-300 px-3 text-sm font-medium text-zinc-700 transition hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-900"
+                                class="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-zinc-300 px-3 text-sm font-medium text-zinc-700 transition hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-900"
                                 :disabled="selectedView() === undefined || selectedView()?.type === 'system'"
                                 @click="updateView"
                             >
+                                <IconPencil aria-hidden="true" class="h-4 w-4" :stroke-width="1.8" />
                                 Update
                             </button>
                             <button
                                 type="button"
-                                class="h-9 rounded-lg border border-zinc-300 px-3 text-sm font-medium text-zinc-700 transition hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-900"
+                                class="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-zinc-300 px-3 text-sm font-medium text-zinc-700 transition hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-900"
                                 :disabled="selectedView() === undefined"
                                 @click="copyView"
                             >
+                                <IconCopy aria-hidden="true" class="h-4 w-4" :stroke-width="1.8" />
                                 Copy
                             </button>
                             <button
                                 type="button"
-                                class="h-9 rounded-lg border border-zinc-300 px-3 text-sm font-medium text-zinc-700 transition hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-900"
+                                class="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-zinc-300 px-3 text-sm font-medium text-zinc-700 transition hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-900"
                                 :disabled="selectedView() === undefined"
                                 @click="makeDefaultView"
                             >
+                                <IconStar aria-hidden="true" class="h-4 w-4" :stroke-width="1.8" />
                                 Default
                             </button>
                             <button
                                 type="button"
-                                class="h-9 rounded-lg border border-rose-200 px-3 text-sm font-medium text-rose-700 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-rose-900 dark:text-rose-300 dark:hover:bg-rose-950"
+                                class="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-rose-200 px-3 text-sm font-medium text-rose-700 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-rose-900 dark:text-rose-300 dark:hover:bg-rose-950"
                                 :disabled="selectedView() === undefined || selectedView()?.type === 'system'"
                                 @click="deleteView"
                             >
+                                <IconTrash aria-hidden="true" class="h-4 w-4" :stroke-width="1.8" />
                                 Delete
                             </button>
                         </div>

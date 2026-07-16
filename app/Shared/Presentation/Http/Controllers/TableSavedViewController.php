@@ -105,6 +105,8 @@ final readonly class TableSavedViewController
             'state.columns.*' => ['string', 'max:80'],
             'state.columnOrder' => ['nullable', 'array'],
             'state.columnOrder.*' => ['string', 'max:80'],
+            'state.filters' => ['nullable', 'array'],
+            'state.filters.*' => ['nullable'],
         ]);
 
         return self::arrayValue($validated);
