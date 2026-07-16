@@ -4,6 +4,7 @@ import type { Component } from 'vue';
 import { usePage } from '@inertiajs/vue3';
 
 import MobileNavigation from '../Components/MobileNavigation.vue';
+import FullscreenTransitionLoader from '../Components/FullscreenTransitionLoader.vue';
 import ModalHost from '../Components/ModalHost.vue';
 import Sidebar from '../Components/Sidebar.vue';
 import TopBar from '../Components/TopBar.vue';
@@ -48,6 +49,7 @@ const mobileMenuOpen = ref(false);
             </div>
         </div>
         <MobileNavigation :open="mobileMenuOpen" :mode="mode" :ui-locale="uiLocale" @close="mobileMenuOpen = false" />
+        <FullscreenTransitionLoader />
         <ModalHost :ui-locale="uiLocale" />
         <ToastViewport :ui-locale="uiLocale" />
     </div>

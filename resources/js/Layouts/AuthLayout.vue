@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import AtlasLogo from '../Components/AtlasLogo.vue';
+import FullscreenTransitionLoader from '../Components/FullscreenTransitionLoader.vue';
 import IconButton from '../Components/IconButton.vue';
 import { useLocaleSwitcher } from '../Composables/useLocaleSwitcher';
 import { useTheme } from '../Composables/useTheme';
@@ -76,4 +77,5 @@ const { t } = useTranslator();
             </div>
         </section>
     </main>
+    <FullscreenTransitionLoader />
 </template>

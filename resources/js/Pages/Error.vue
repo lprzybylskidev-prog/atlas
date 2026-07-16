@@ -4,6 +4,7 @@ import { Head, Link } from '@inertiajs/vue3';
 import { IconArrowLeft, IconHome, IconLock, IconRefresh, IconServerOff } from '@tabler/icons-vue';
 
 import AtlasLogo from '../Components/AtlasLogo.vue';
+import FullscreenTransitionLoader from '../Components/FullscreenTransitionLoader.vue';
 import IconButton from '../Components/IconButton.vue';
 import { useLocaleSwitcher } from '../Composables/useLocaleSwitcher';
 import { useTheme } from '../Composables/useTheme';
@@ -108,4 +109,5 @@ const content = computed(() => {
             </div>
         </section>
     </main>
+    <FullscreenTransitionLoader />
 </template>

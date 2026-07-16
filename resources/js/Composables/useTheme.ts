@@ -1,11 +1,13 @@
 import { router, usePage } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
 
+import { beginFullscreenTransitionLoading } from '../Services/fullscreenTransitionLoading';
 import type { AtlasPageProps } from '../Types/inertia';
 
 type Theme = 'light' | 'dark';
 
 const storageKey = 'atlas.theme';
+const loaderEnterDurationMs = 180;
 
 const initialTheme = (): Theme => {
     if (typeof window === 'undefined') {
@@ -54,18 +56,22 @@ export const useTheme = () => {
 
     const toggleTheme = (): void => {
         const nextTheme = isDark.value ? 'light' : 'dark';
+        const finishLoading = beginFullscreenTransitionLoading(theme.value);
 
-        applyTheme(nextTheme);
+        window.setTimeout(() => {
+            applyTheme(nextTheme);
 
-        router.post(
-            '/theme',
-            {
-                theme: nextTheme,
-            },
-            {
-                preserveScroll: true,
-            },
-        );
+            router.post(
+                '/theme',
+                {
+                    theme: nextTheme,
+                },
+                {
+                    preserveScroll: true,
+                    onFinish: finishLoading,
+                },
+            );
+        }, loaderEnterDurationMs);
     };
 
     return {
