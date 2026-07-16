@@ -1,6 +1,6 @@
 ## Phase 12 — Settings and localization
 
-**Status:** `not started`
+**Status:** `in progress`
 
 ## Objective
 
@@ -33,23 +33,23 @@ Implement typed settings and real PL/EN localization before sessions, Admin mode
 
 ## Tasks
 
-- [ ] Create `Settings` module.
-- [ ] Implement typed global settings.
-- [ ] Implement typed team settings.
-- [ ] Implement typed user settings.
-- [ ] Separate security settings.
-- [ ] Add defaults and inheritance.
-- [ ] Add language preference.
+- [x] Create `Settings` module.
+- [x] Implement typed global settings.
+- [x] Implement typed team settings.
+- [x] Implement typed user settings.
+- [x] Separate security settings.
+- [x] Add defaults and inheritance.
+- [x] Add language preference.
 - [ ] Wire Auth, App, and Admin language switch controls to the effective language preference.
-- [ ] Persist authenticated user language selection and provide a temporary guest-language fallback for login.
-- [ ] Ensure switching language refreshes Inertia-visible UI copy without leaving stale shell labels.
-- [ ] Add theme preference.
-- [ ] Add notification preferences.
-- [ ] Add default-team preference.
-- [ ] Add table-view preferences.
-- [ ] Add dashboard preferences.
-- [ ] Add accessibility preferences.
-- [ ] Audit security-setting changes.
+- [x] Persist authenticated user language selection and provide a temporary guest-language fallback for login.
+- [x] Ensure switching language refreshes Inertia-visible UI copy without leaving stale shell labels.
+- [x] Add theme preference.
+- [x] Add notification preferences.
+- [x] Add default-team preference.
+- [x] Add table-view preferences.
+- [x] Add dashboard preferences.
+- [x] Add accessibility preferences.
+- [x] Audit security-setting changes.
 - [ ] Add PL and EN translation catalogs.
 - [ ] Add missing-key and parity checks.
 - [ ] Ensure admin panel remains English only.
@@ -57,7 +57,7 @@ Implement typed settings and real PL/EN localization before sessions, Admin mode
 
 ## Completion criteria
 
-- [ ] Typed global, team, user, and security settings exist with defaults, inheritance, validation, caching, and audit where required.
+- [x] Typed global, team, user, and security settings exist with defaults, inheritance, validation, caching, and audit where required.
 - [ ] Auth/App language controls switch real PL/EN UI copy instead of preview-only state.
-- [ ] Later phases can store preferences and security timeouts without temporary local storage or config mutation.
+- [x] Later phases can store preferences and security timeouts without temporary local storage or config mutation.
 - [ ] PL/EN parity and missing-key checks pass.

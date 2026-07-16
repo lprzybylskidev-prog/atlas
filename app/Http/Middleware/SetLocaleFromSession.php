@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\Http\Middleware;
 
+use App\Modules\Core\Settings\Application\Settings\EffectiveSettings;
 use Closure;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpFoundation\Response;
 
 final class SetLocaleFromSession
@@ -17,20 +19,38 @@ final class SetLocaleFromSession
      */
     public function handle(Request $request, Closure $next): Response
     {
-        $locale = $request->cookie(self::COOKIE_KEY);
+        $guestLocale = $request->cookie(self::COOKIE_KEY);
+        $userId = $request->user()?->getAuthIdentifier();
+        $teamId = $this->activeTeamId($request);
 
-        if (is_string($locale) && in_array($locale, $this->supportedLocales(), true)) {
-            app()->setLocale($locale);
-        }
+        /** @var EffectiveSettings $settings */
+        $settings = app(EffectiveSettings::class);
+
+        app()->setLocale($settings->locale(
+            userId: is_int($userId) ? $userId : null,
+            teamId: $teamId,
+            guestLocale: is_string($guestLocale) ? $guestLocale : null,
+        ));
 
         return $next($request);
     }
 
-    /**
-     * @return list<string>
-     */
-    private function supportedLocales(): array
+    private function activeTeamId(Request $request): ?int
     {
-        return ['pl', 'en'];
+        if (! $request->hasSession()) {
+            return null;
+        }
+
+        $teamPublicId = $request->session()->get('active_team_public_id');
+
+        if (! is_string($teamPublicId)) {
+            return null;
+        }
+
+        $teamId = DB::table('teams')
+            ->where('public_id', $teamPublicId)
+            ->value('id');
+
+        return is_int($teamId) ? $teamId : null;
     }
 }

@@ -2,39 +2,59 @@
 
 Canonical current behavior for typed settings, scopes, precedence, validation, caching, administration, and audit.
 
-### Settings
+## Settings
 
-Provide a typed settings system.
+Atlas has a typed Core `Settings` module registered as `settings`.
 
-Do not use an uncontrolled JSON blob.
+Settings are stored in separate PostgreSQL tables by scope:
 
-Separate:
+- `settings_global_values`;
+- `settings_team_values`;
+- `settings_user_values`;
+- `settings_security_values`.
 
-- user settings;
-- team settings;
-- global settings;
-- security settings.
+The tables use JSONB for the physical value column, but callers do not write uncontrolled universal JSON blobs. All supported settings are addressed through explicit typed keys under `App\Modules\Core\Settings\Application\Enums` and validated before persistence.
 
-User-controlled examples:
+Current typed key groups:
 
-- UI language;
-- theme;
-- notification preferences;
-- default team;
-- table preferences;
-- dashboard preferences;
-- accessibility preferences.
+- global settings: default locale and default theme;
+- team settings: default locale and default theme;
+- user settings: UI language, theme, notification preferences, default team, table preferences, dashboard preferences, and accessibility preferences;
+- security settings: idle session timeout, password-confirmation timeout, and MFA requirement.
 
-Admin-controlled examples:
+## Defaults And Precedence
 
-- timeouts;
-- MFA requirements;
-- team assignments;
-- roles;
-- permissions;
-- activation.
+Defaults are explicit in `SettingsDefaults`.
 
-Security-setting changes are audited.
+Effective locale precedence is:
+
+1. authenticated user language preference;
+2. active team default locale;
+3. safe temporary guest locale cookie;
+4. global default locale;
+5. Polish fallback.
+
+Effective theme precedence is:
+
+1. authenticated user theme preference;
+2. active team default theme;
+3. global default theme.
+
+Polish is the default regular UI language.
+
+## Caching And Validation
+
+Settings reads are cached by exact scope and typed key. Writes validate the typed value and invalidate the matching cache entry.
+
+Invalid values are rejected explicitly. Unsupported locales are rejected; supported regular UI locales are `pl` and `en`.
+
+## Localization Preference
+
+The `/locale` route stores the selected language as a typed user setting for authenticated users and also keeps the temporary `atlas_locale` cookie for guest/login flows. Inertia shared props expose the effective `locale` and supported locale list.
+
+## Security Audit
+
+Security-setting changes are recorded through the Audit module as security audit events with before and after values. Audit entries must not contain secrets or unnecessary personal data.
 
 ---
 
