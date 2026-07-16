@@ -1,6 +1,16 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
-import { IconGauge, IconKey, IconPackages, IconShieldCheck, IconUserPlus, IconUsersGroup, IconX } from '@tabler/icons-vue';
+import {
+    IconClipboardList,
+    IconGauge,
+    IconKey,
+    IconPackages,
+    IconPuzzle,
+    IconShieldCheck,
+    IconUserPlus,
+    IconUsersGroup,
+    IconX,
+} from '@tabler/icons-vue';
 import { computed } from 'vue';
 
 import AtlasLogo from './AtlasLogo.vue';
@@ -42,6 +52,13 @@ const groups = computed(() => {
         {
             label: t('navigation.group.organization'),
             items: [{ label: t('navigation.teams'), href: '/admin/teams', icon: IconUsersGroup }],
+        },
+        {
+            label: t('navigation.group.oversight'),
+            items: [
+                { label: t('navigation.audit'), href: '/admin/audit', icon: IconClipboardList },
+                { label: t('navigation.modules'), href: '/admin/modules', icon: IconPuzzle },
+            ],
         },
     ];
 });

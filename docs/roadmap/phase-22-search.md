@@ -59,6 +59,8 @@ Implement module-owned Meilisearch projections after Outbox, audit, module activ
 - [ ] Define searchable, filterable, and sortable fields.
 - [ ] Enforce team filtering.
 - [ ] Enforce permission filtering.
+- [ ] Enforce ModuleGate for search queries, indexing jobs, rebuild commands, and Admin search operations.
+- [ ] Document degraded or unavailable behavior when Search or a searched module is inactive.
 - [ ] Queue index updates.
 - [ ] Add rebuild commands.
 - [ ] Remove indexed data during deletion/anonymization.

@@ -55,11 +55,22 @@ The current central evaluator is `App\Shared\Application\Modules\Contracts\Modul
 
 `DefaultModuleGate` evaluates a `ModuleAccessRequest` from a `ModuleGateStateProvider` in the canonical order above and returns a stable `ModuleAccessDecision` with a `ModuleAccessDenialReason`.
 
-During the Phase 8 foundation closure, the runtime provider is `App\Shared\Infrastructure\Modules\RegistryModuleGateStateProvider`. It uses the explicit deployed registry, active `teams` table state, and `App\Modules\Core\Authorization\Application\Public\EffectivePermissionChecker` to decide current access. Until Phase 14 adds operational activation tables, schedules, and cache invalidation, deployed modules are treated as globally and team active.
+The runtime provider is `App\Shared\Infrastructure\Modules\RegistryModuleGateStateProvider`. It uses the explicit deployed registry, active `teams` table state, operational module activation state, and `App\Modules\Core\Authorization\Application\Public\EffectivePermissionChecker` to decide current access.
+
+Operational activation is persisted in typed PostgreSQL tables:
+
+- `module_global_states` stores the current global state per module;
+- `module_team_states` stores explicit team overrides, while no row means inheritance from global state;
+- `module_activation_schedules` stores future scheduled changes and their outcome;
+- `module_activation_history` stores append-only activation history.
+
+Runtime checks cache effective module state in Redis through `App\Shared\Application\Modules\Activation\Contracts\ModuleActivationService`; PostgreSQL remains the source of truth.
 
 A declared required dependency that is not deployed is an invalid configuration and must fail startup/readiness with a clear error.
 
-Modules that may have unsafe in-flight work implement `App\Shared\Application\Modules\Contracts\ModuleDeactivationGuard`. It returns blocking process identifiers, human-readable reasons, safe completion/cancellation options, and whether deactivation may proceed. Module deactivation must not guess this from foreign tables.
+Modules that may have unsafe in-flight work implement `App\Shared\Application\Modules\Contracts\ModuleDeactivationGuard` and register it with the central `App\Shared\Application\Modules\Contracts\ModuleDeactivationGuardRegistry`. It returns blocking process identifiers, human-readable reasons, safe completion/cancellation options, and whether deactivation may proceed. Module deactivation must not guess this from foreign tables.
+
+Phase 14 provides the registry and enforcement hook. Concrete guards are owned by the later modules that introduce real unsafe processes such as imports, integrations, report generation, or TimeTracking sessions.
 
 ### Module activation
 
@@ -100,5 +111,7 @@ Rules:
 All migrations of technically available modules run during deploy, even when operationally inactive.
 
 Core modules must not hold foreign keys to optional module tables.
+
+Admin module activation screens are available at `/admin/modules`. Administrators can inspect deployed modules, see active-team effective state, manage global state where supported, manage team overrides from the module detail screen, manage the same team overrides from team create/edit workflows, schedule future activation changes, cancel scheduled changes, and inspect recent history.
 
 ---

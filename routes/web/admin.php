@@ -26,6 +26,7 @@ use App\Modules\Core\Users\Presentation\Http\Controllers\UpdateUserAccountContro
 use App\Modules\Core\Users\Presentation\Http\Controllers\UserAccountActionController;
 use App\Modules\Core\Users\Presentation\Http\Controllers\UserAdministrationController;
 use App\Shared\Presentation\Http\Controllers\AdminSystemStatusController;
+use App\Shared\Presentation\Http\Controllers\Modules\ModuleActivationController;
 use App\Shared\Presentation\Http\Controllers\TableSavedViewController;
 use Illuminate\Support\Facades\Route;
 
@@ -69,6 +70,14 @@ Route::middleware(['auth', 'password.confirm', 'route.permission'])->group(funct
     Route::delete('/admin/authorization/packages/{package}', DestroyOnboardingPackageController::class)->name('admin.authorization.packages.destroy');
     Route::get('/admin/authorization/permissions', PermissionAdministrationController::class)->name('admin.authorization.permissions.index');
     Route::get('/admin/audit', AuditBrowserController::class)->name('admin.audit.index');
+    Route::get('/admin/modules', [ModuleActivationController::class, 'index'])->name('admin.modules.index');
+    Route::get('/admin/modules/{module}', [ModuleActivationController::class, 'show'])->name('admin.modules.show');
+    Route::patch('/admin/modules/{module}/global', [ModuleActivationController::class, 'updateGlobal'])->name('admin.modules.global.update');
+    Route::post('/admin/modules/{module}/global/schedules', [ModuleActivationController::class, 'scheduleGlobal'])->name('admin.modules.global.schedule');
+    Route::patch('/admin/modules/{module}/teams/{team}', [ModuleActivationController::class, 'updateTeam'])->name('admin.modules.team.update');
+    Route::post('/admin/modules/{module}/teams/{team}/schedules', [ModuleActivationController::class, 'scheduleTeam'])->name('admin.modules.team.schedule');
+    Route::delete('/admin/modules/{module}/teams/{team}', [ModuleActivationController::class, 'clearTeam'])->name('admin.modules.team.clear');
+    Route::delete('/admin/modules/{module}/schedules/{schedule}', [ModuleActivationController::class, 'cancelSchedule'])->name('admin.modules.schedules.cancel');
     Route::post('/admin/table-views', [TableSavedViewController::class, 'store'])->name('admin.table-views.store');
     Route::patch('/admin/table-views/{view}', [TableSavedViewController::class, 'update'])->name('admin.table-views.update');
     Route::delete('/admin/table-views/{view}', [TableSavedViewController::class, 'destroy'])->name('admin.table-views.destroy');

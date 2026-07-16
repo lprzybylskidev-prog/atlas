@@ -74,6 +74,8 @@ Build the shared report/export generation lifecycle after tables, saved views, f
 - [ ] Add Chromium-based tests for multipage tables, repeated headers, charts, fonts, page numbers, and failure handling.
 - [ ] Add browser print layouts.
 - [ ] Make exports honor filters, sorting, visible columns, permissions, and active team.
+- [ ] Enforce ModuleGate for report views, export requests, queued export/PDF jobs, download authorization, and render-token access.
+- [ ] Register report/export deactivation guards for unsafe in-flight generation where a module owns report jobs.
 - [ ] Add synchronous small exports.
 - [ ] Add queued large exports.
 - [ ] Add export-ready notifications.

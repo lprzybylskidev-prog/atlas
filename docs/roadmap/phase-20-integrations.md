@@ -47,6 +47,9 @@ Implement typed external integration foundations before imports or business modu
 - [ ] Add correlation IDs.
 - [ ] Add secret-safe logging.
 - [ ] Add integration status admin screen.
+- [ ] Enforce ModuleGate, active-team context, and module activation in every integration adapter, test-connection action, webhook/public endpoint, and queued integration job.
+- [ ] Register integration deactivation guards for unsafe in-flight transitions and circuit states.
+- [ ] Document optional-dependency reduced mode for integrations that depend on inactive optional modules.
 - [ ] Add last success and last error.
 - [ ] Add test-connection action.
 - [ ] Add source-of-truth documentation pattern.

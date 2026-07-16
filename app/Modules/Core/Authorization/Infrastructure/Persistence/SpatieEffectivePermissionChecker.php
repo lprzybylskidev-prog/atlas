@@ -7,11 +7,18 @@ namespace App\Modules\Core\Authorization\Infrastructure\Persistence;
 use App\Modules\Core\Authorization\Application\Public\Contracts\EffectivePermissionChecker;
 use App\Modules\Core\Authorization\Application\Public\DTOs\EffectivePermissionDecision;
 use App\Modules\Core\Authorization\Application\Public\DTOs\EffectivePermissionRequest;
+use App\Shared\Application\Modules\Activation\Contracts\ModuleActivationService;
+use App\Shared\Application\Modules\ModuleKeyResolver;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Facades\DB;
 
 final class SpatieEffectivePermissionChecker implements EffectivePermissionChecker
 {
+    public function __construct(
+        private readonly ModuleActivationService $activation,
+        private readonly ModuleKeyResolver $moduleKeys,
+    ) {}
+
     public function check(EffectivePermissionRequest $request): EffectivePermissionDecision
     {
         if ($request->teamPublicId === null) {
@@ -42,6 +49,12 @@ final class SpatieEffectivePermissionChecker implements EffectivePermissionCheck
 
         if ($team === null || ! property_exists($team, 'id') || ! is_int($team->id)) {
             return $this->deny('authorization.active_team_invalid');
+        }
+
+        $moduleState = $this->activation->effectiveState($this->moduleKeys->forPermission($request->permission), $team->id);
+
+        if (! $moduleState->effectiveEnabled) {
+            return $this->deny('authorization.module_inactive');
         }
 
         if (! $this->userBelongsToTeam($user->id, $team->id)) {

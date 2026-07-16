@@ -44,6 +44,8 @@ Implement reusable import pipelines after files, notifications, audit, integrati
 - [ ] Route imported data through domain use cases.
 - [ ] Store process ID, source, file, status, statistics, and row/field errors.
 - [ ] Queue large imports.
+- [ ] Enforce ModuleGate and active-team context for import creation, API adapters, queued import jobs, retry actions, and progress endpoints.
+- [ ] Register import deactivation guards for running or retryable imports.
 - [ ] Preserve original import files.
 - [ ] Add retry rules.
 - [ ] Add import administration.

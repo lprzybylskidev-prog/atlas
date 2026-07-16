@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head, Link, useForm } from '@inertiajs/vue3';
-import { IconArrowLeft, IconPlus, IconTrash, IconUsersGroup } from '@tabler/icons-vue';
+import { IconArrowLeft, IconPlus, IconPuzzle, IconTrash, IconUsersGroup } from '@tabler/icons-vue';
 import { computed } from 'vue';
 
 import AtlasForm from '../../../Components/Form/AtlasForm.vue';
@@ -16,6 +16,12 @@ const props = defineProps<{
     userOptions: FormSelectOption[];
     roleOptions: string[];
     permissionOptions: string[];
+    moduleOptions: {
+        moduleKey: string;
+        category: string;
+        supportsTeamActivation: boolean;
+        readOnly: boolean;
+    }[];
 }>();
 const { t } = useTranslator('en');
 const form = useForm({
@@ -25,11 +31,18 @@ const form = useForm({
         role_names: string[];
         direct_permission_names: string[];
     }[],
+    module_overrides: [] as {
+        module_key: string;
+        enabled: boolean;
+        reason: string;
+    }[],
 });
 
 type UserAssignmentForm = (typeof form.user_assignments)[number];
 
 const canAddUserAssignment = computed(() => form.user_assignments.length < props.userOptions.length);
+const assignableModules = computed(() => props.moduleOptions.filter((module) => module.supportsTeamActivation && !module.readOnly));
+const canAddModuleOverride = computed(() => form.module_overrides.length < assignableModules.value.length);
 const canAdd = computed(() => canAddUserAssignment.value);
 
 function userOptionsForAssignment(assignment: UserAssignmentForm): FormSelectOption[] {
@@ -61,6 +74,38 @@ const add = addUserAssignment;
 
 function removeUserAssignment(index: number): void {
     form.user_assignments.splice(index, 1);
+}
+
+function moduleOptionsForOverride(override: (typeof form.module_overrides)[number]): FormSelectOption[] {
+    const selectedModuleKeys = new Set(
+        form.module_overrides
+            .filter((candidate) => candidate !== override)
+            .map((candidate) => candidate.module_key)
+            .filter((moduleKey) => moduleKey !== ''),
+    );
+
+    return [
+        { value: '', label: assignableModules.value.length === 0 ? 'No team-activatable modules' : 'Select module' },
+        ...assignableModules.value
+            .filter((module) => !selectedModuleKeys.has(module.moduleKey))
+            .map((module) => ({ value: module.moduleKey, label: `${module.moduleKey} · ${module.category}` })),
+    ];
+}
+
+function addModuleOverride(): void {
+    if (!canAddModuleOverride.value) {
+        return;
+    }
+
+    form.module_overrides.push({
+        module_key: '',
+        enabled: true,
+        reason: '',
+    });
+}
+
+function removeModuleOverride(index: number): void {
+    form.module_overrides.splice(index, 1);
 }
 
 function changeAssignedUser(assignment: UserAssignmentForm): void {
@@ -159,6 +204,51 @@ function submit(): void {
                                 </div>
                             </section>
                         </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="rounded-lg border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950">
+                <div class="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                        <h2 class="text-sm font-semibold uppercase text-zinc-500 dark:text-zinc-400">Module overrides</h2>
+                        <p class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">Set team-specific module state while creating the team.</p>
+                    </div>
+                    <FormButton
+                        type="button"
+                        tone="neutral"
+                        :icon="IconPuzzle"
+                        :disabled="!canAddModuleOverride"
+                        @click="addModuleOverride"
+                    >
+                        Add module
+                    </FormButton>
+                </div>
+
+                <div class="mt-5 space-y-4">
+                    <div
+                        v-if="form.module_overrides.length === 0"
+                        class="rounded-lg border border-dashed border-zinc-300 p-4 text-sm text-zinc-500 dark:border-zinc-700 dark:text-zinc-400"
+                    >
+                        No team module overrides.
+                    </div>
+
+                    <div
+                        v-for="(override, index) in form.module_overrides"
+                        :key="index"
+                        class="grid gap-3 rounded-lg border border-zinc-200 p-4 xl:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)_auto] dark:border-zinc-800"
+                    >
+                        <FormSelect
+                            v-model="override.module_key"
+                            label="Module"
+                            :options="moduleOptionsForOverride(override)"
+                            :error="form.errors[`module_overrides.${index}.module_key`]"
+                        />
+                        <FormCheckbox v-model="override.enabled" class="mt-0 xl:mt-6">Enabled</FormCheckbox>
+                        <FormInput v-model="override.reason" label="Reason" :error="form.errors[`module_overrides.${index}.reason`]" />
+                        <FormButton type="button" tone="danger" class="mt-0 xl:mt-6" :icon="IconTrash" @click="removeModuleOverride(index)">
+                            Remove
+                        </FormButton>
                     </div>
                 </div>
             </section>

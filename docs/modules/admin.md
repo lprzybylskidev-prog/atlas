@@ -49,6 +49,8 @@ Initial areas:
 - Audit
 - Module activation
 
+Module activation administration is available at `/admin/modules`. It lists deployed modules, technical availability, global state, active-team effective state, dependencies, and activation support. A module detail screen lets administrators manage global activation where supported, attach or override teams for the module, schedule future changes, cancel pending schedules, and review recent activation history. Team creation and editing also expose module override management so administrators can work from either the module context or the team context.
+
 System Status includes:
 
 - PostgreSQL;

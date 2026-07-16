@@ -4,14 +4,19 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Shared\Application\Modules\Activation\Contracts\ModuleActivationService;
+use App\Shared\Application\Modules\Contracts\ModuleDeactivationGuard;
+use App\Shared\Application\Modules\Contracts\ModuleDeactivationGuardRegistry;
 use App\Shared\Application\Modules\Contracts\ModuleDefinition;
 use App\Shared\Application\Modules\Contracts\ModuleGate;
 use App\Shared\Application\Modules\Contracts\ModuleGateStateProvider;
+use App\Shared\Application\Modules\DefaultModuleDeactivationGuardRegistry;
 use App\Shared\Application\Modules\DefaultModuleGate;
 use App\Shared\Application\Modules\ModuleRegistry;
 use App\Shared\Application\Outbox\Contracts\OutboxConsumerDeduplicator;
 use App\Shared\Application\Outbox\Contracts\OutboxEventRecorder;
 use App\Shared\Application\Outbox\Contracts\OutboxMaintenance;
+use App\Shared\Infrastructure\Modules\Activation\DatabaseModuleActivationService;
 use App\Shared\Infrastructure\Modules\RegistryModuleGateStateProvider;
 use App\Shared\Infrastructure\Outbox\DatabaseOutboxConsumerDeduplicator;
 use App\Shared\Infrastructure\Outbox\DatabaseOutboxEventRecorder;
@@ -85,6 +90,10 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->app->bind(ModuleGateStateProvider::class, RegistryModuleGateStateProvider::class);
         $this->app->bind(ModuleGate::class, DefaultModuleGate::class);
+        $this->app->bind(ModuleActivationService::class, DatabaseModuleActivationService::class);
+        $this->app->singleton(ModuleDeactivationGuardRegistry::class, fn (): DefaultModuleDeactivationGuardRegistry => new DefaultModuleDeactivationGuardRegistry(
+            $this->moduleDeactivationGuards(),
+        ));
 
         $this->app->bind(OutboxEventRecorder::class, function (): DatabaseOutboxEventRecorder {
             return new DatabaseOutboxEventRecorder($this->app->make(ConnectionInterface::class));
@@ -110,6 +119,22 @@ class AppServiceProvider extends ServiceProvider
         }
 
         $this->app->register(TelescopeServiceProvider::class);
+    }
+
+    /**
+     * @return list<ModuleDeactivationGuard>
+     */
+    private function moduleDeactivationGuards(): array
+    {
+        $guards = [];
+
+        foreach ($this->app->tagged('atlas.module_deactivation_guards') as $guard) {
+            if ($guard instanceof ModuleDeactivationGuard) {
+                $guards[] = $guard;
+            }
+        }
+
+        return $guards;
     }
 
     private function validateCriticalConfiguration(): void

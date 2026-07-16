@@ -79,6 +79,8 @@ Complete operational health, readiness, logging, alerts, queues, diagnostics, an
 - [ ] Configure sanitized Sentry scope with release, environment, module, and correlation ID.
 - [ ] Add Laravel Pulse as an internal performance dashboard after real operational workflows generate useful runtime signals.
 - [ ] Implement scheduler heartbeat visibility.
+- [ ] Enforce ModuleGate for module-owned queued jobs, scheduled tasks, and operational retry actions.
+- [ ] Audit and surface module activation scheduler failures as Admin operational diagnostics.
 - [ ] Implement configurable email/webhook operational alert channels.
 - [ ] Add deduplicated/throttled alerts for readiness, repeated failed jobs, scheduler, backup, integration, and critical Sentry failures.
 - [ ] Build a curated Admin application-log browser without arbitrary filesystem access.

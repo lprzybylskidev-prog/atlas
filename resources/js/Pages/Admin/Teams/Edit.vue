@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
-import { IconArrowLeft, IconTrash, IconUsersGroup } from '@tabler/icons-vue';
+import { IconArrowLeft, IconPuzzle, IconTrash, IconUsersGroup } from '@tabler/icons-vue';
 import { computed, reactive } from 'vue';
 
 import AdminRecordActions from '../../../Components/AdminRecordActions.vue';
@@ -30,12 +30,24 @@ interface MemberRow {
     directPermissionNames: string[];
 }
 
+interface ModuleStateRow {
+    moduleKey: string;
+    category: string;
+    teamEnabled: boolean;
+    effectiveEnabled: boolean;
+    source: string;
+    version: number | null;
+    supportsTeamActivation: boolean;
+    readOnly: boolean;
+}
+
 const props = defineProps<{
     team: TeamFormData;
     memberships: MemberRow[];
     assignableUsers: FormSelectOption[];
     roleOptions: string[];
     permissionOptions: string[];
+    moduleStates: ModuleStateRow[];
 }>();
 
 const { t } = useTranslator('en');
@@ -59,6 +71,19 @@ const memberAuthorizationForms = reactive<Record<string, { role_names: string[];
     ),
 );
 const removalReasons = reactive<Record<string, string>>({});
+const moduleForms = reactive<Record<string, { enabled: boolean; reason: string; version: number | null; clearReason: string }>>(
+    Object.fromEntries(
+        props.moduleStates.map((module) => [
+            module.moduleKey,
+            {
+                enabled: module.teamEnabled,
+                reason: '',
+                version: module.version,
+                clearReason: '',
+            },
+        ]),
+    ),
+);
 const recordActions = [
     { key: 'activate', label: 'Activate', method: 'post' as const, href: `/admin/teams/${props.team.publicId}/activate` },
     { key: 'deactivate', label: 'Deactivate', method: 'post' as const, href: `/admin/teams/${props.team.publicId}/deactivate` },
@@ -112,6 +137,42 @@ function removeMember(userPublicId: string): void {
     router.delete(`/admin/users/${userPublicId}/teams/${props.team.publicId}`, {
         data: {
             reason: removalReasons[userPublicId] ?? '',
+        },
+        preserveScroll: true,
+    });
+}
+
+function moduleForm(module: ModuleStateRow): { enabled: boolean; reason: string; version: number | null; clearReason: string } {
+    moduleForms[module.moduleKey] ??= {
+        enabled: module.teamEnabled,
+        reason: '',
+        version: module.version,
+        clearReason: '',
+    };
+
+    return moduleForms[module.moduleKey];
+}
+
+function updateModule(module: ModuleStateRow): void {
+    const values = moduleForm(module);
+
+    router.patch(
+        `/admin/modules/${module.moduleKey}/teams/${props.team.publicId}`,
+        {
+            enabled: values.enabled,
+            reason: values.reason,
+            version: values.version,
+        },
+        { preserveScroll: true },
+    );
+}
+
+function clearModule(module: ModuleStateRow): void {
+    const values = moduleForm(module);
+
+    router.delete(`/admin/modules/${module.moduleKey}/teams/${props.team.publicId}`, {
+        data: {
+            reason: values.clearReason,
         },
         preserveScroll: true,
     });
@@ -246,6 +307,57 @@ function removeMember(userPublicId: string): void {
                                     label="Removal reason"
                                     placeholder="Required before removal"
                                 />
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="rounded-lg border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950">
+                        <h2 class="text-sm font-semibold uppercase text-zinc-500 dark:text-zinc-400">Modules</h2>
+                        <div
+                            class="mt-5 divide-y divide-zinc-200 rounded-lg border border-zinc-200 dark:divide-zinc-800 dark:border-zinc-800"
+                        >
+                            <div v-for="module in moduleStates" :key="module.moduleKey" class="space-y-4 p-4">
+                                <div class="flex flex-wrap items-center justify-between gap-3">
+                                    <div>
+                                        <p class="font-medium text-zinc-950 dark:text-zinc-50">{{ module.moduleKey }}</p>
+                                        <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+                                            {{ module.category }} · {{ module.source }}
+                                        </p>
+                                    </div>
+                                    <StatusBadge :value="module.effectiveEnabled" />
+                                </div>
+
+                                <div class="grid gap-3 xl:grid-cols-[auto_minmax(0,1fr)_auto]">
+                                    <FormCheckbox
+                                        v-model="moduleForm(module).enabled"
+                                        :disabled="module.readOnly || !module.supportsTeamActivation"
+                                    >
+                                        Enabled override
+                                    </FormCheckbox>
+                                    <FormInput v-model="moduleForm(module).reason" label="Override reason" />
+                                    <FormButton
+                                        type="button"
+                                        class="mt-0 xl:mt-6"
+                                        :icon="IconPuzzle"
+                                        :disabled="module.readOnly || !module.supportsTeamActivation || !moduleForm(module).reason.trim()"
+                                        @click="updateModule(module)"
+                                    >
+                                        Save module
+                                    </FormButton>
+                                </div>
+
+                                <div class="grid gap-3 xl:grid-cols-[minmax(0,1fr)_auto]">
+                                    <FormInput v-model="moduleForm(module).clearReason" label="Clear override reason" />
+                                    <FormButton
+                                        type="button"
+                                        tone="danger"
+                                        class="mt-0 xl:mt-6"
+                                        :disabled="module.source !== 'team' || !moduleForm(module).clearReason.trim()"
+                                        @click="clearModule(module)"
+                                    >
+                                        Inherit global
+                                    </FormButton>
+                                </div>
                             </div>
                         </div>
                     </section>

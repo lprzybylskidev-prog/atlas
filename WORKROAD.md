@@ -37,8 +37,8 @@ Do not replace this index after the initial technical foundation is completed. C
 
 ## Current phase
 
-- Phase: [Phase 14 — Module availability and activation](docs/roadmap/phase-14-module-activation.md)
-- Status: `in progress`
+- Phase: [Phase 15 — Notifications and realtime foundation](docs/roadmap/phase-15-notifications-realtime.md)
+- Status: `not started`
 
 ## Roadmap dependency repair note
 
@@ -160,7 +160,7 @@ Implement Redis-backed sessions, active-team context, session administration, se
 
 ### Phase 14 — Module availability and activation
 
-**Status:** `in progress`
+**Status:** `complete`
 
 Implement deployment availability, global/team activation, schedules, dependencies, cache invalidation, deactivation guards, and central gate enforcement.
 

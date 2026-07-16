@@ -1,6 +1,6 @@
 ## Phase 14 — Module availability and activation
 
-**Status:** `in progress`
+**Status:** `complete`
 
 ## Objective
 
@@ -118,64 +118,70 @@ Complete operational module activation and ModuleGate enforcement after active-t
 
 ## Tasks
 
-- [ ] Integrate `ModuleGate` across HTTP, jobs, commands, public endpoints, navigation, and composable-view data providers.
-- [ ] Complete active-team, permission, and module-state enforcement for composable view elements.
-- [ ] Add tests proving direct element/data endpoint calls cannot bypass the gate.
-- [ ] Aggregate module active-process/deactivation guards into disable impact preview and enforcement.
-- [ ] Add tests for deactivation while jobs/processes are running.
-- [ ] Implement deployment-level technical module availability.
-- [ ] Implement global operational activation.
-- [ ] Implement per-team operational activation.
-- [ ] Implement inheritance from global to team state.
-- [ ] Implement scheduled future activation and deactivation.
-- [ ] Store activation in typed relational tables.
-- [ ] Implement separate global and per-team current-state tables.
-- [ ] Implement append-only module-state history.
-- [ ] Implement scheduled state changes with `scheduled`, `applied`, `cancelled`, and `failed` statuses.
-- [ ] Implement valid ordered future enable/disable timelines.
-- [ ] Reject ambiguous or conflicting schedules for the same module and scope.
-- [ ] Implement explicit schedule cancellation with actor and reason.
-- [ ] Implement manual-change impact preview for conflicting future schedules.
-- [ ] Implement optimistic locking on current-state rows.
-- [ ] Cache effective module state in Redis without making cache the source of truth.
-- [ ] Implement global and team-scoped cache invalidation for manual and scheduled changes.
-- [ ] Add scheduler failure diagnostics and audit.
-- [ ] Store effective dates, actor, reason, and history.
-- [ ] Prevent operational disabling of Core modules.
-- [ ] Prevent admin activation of technically unavailable modules.
-- [ ] Enforce module state on backend routes and use cases.
-- [ ] Enforce module state on menus.
-- [ ] Enforce module state on permissions.
-- [ ] Enforce module state on jobs and schedules.
-- [ ] Enforce module state on reports and integrations.
-- [ ] Validate required dependencies during runtime changes.
-- [ ] Support reduced mode for optional dependencies.
-- [ ] Block disabling while unsafe active processes exist.
-- [ ] Show dependency and impact preview before changes.
-- [ ] Require permission and reason for changes.
-- [ ] Audit every activation change.
-- [ ] Ensure disabling never deletes data or rolls back migrations.
-- [ ] Ensure re-enabling restores access to existing data.
-- [ ] Add admin UI for module activation.
-- [ ] Add tests for global and per-team activation.
-- [ ] Ensure module activation never grants permissions automatically.
-- [ ] Keep module permissions registered even when the module is inactive.
-- [ ] Allow inactive-module permissions to be assigned to roles in preparation for later activation.
-- [ ] Mark inactive-module permissions as ineffective in the current global/team context.
-- [ ] Enforce module activity before evaluating route or business permissions.
-- [ ] Distinguish assigned, effective, and ineffective permissions in authorization read models.
-- [ ] Add an admin permission report showing why an assigned permission is ineffective.
-- [ ] Show an activation warning when no role or user in the target team has an effective entry permission for the module.
-- [ ] Keep permission assignments intact when a module is disabled.
-- [ ] Restore permission effectiveness automatically when the module is re-enabled and all other authorization conditions are met.
-- [ ] Add tests proving that activation alone grants no access.
-- [ ] Add tests proving that assigned permissions remain ineffective while the module is disabled.
-- [ ] Add tests proving that existing assignments become effective after safe module reactivation.
-- [ ] Commit module activation system.
+Dependency handoff note:
+
+- Phase 14 completes the shared activation foundation and central contracts.
+- Concrete enforcement inside future job, schedule, report, integration, import, search, realtime, file, and TimeTracking workflows is moved to the phases that create those workflows, because those modules and process tables do not exist yet.
+- Those later phases must use the Phase 14 contracts instead of creating module-local gating.
+
+- [x] Integrate `ModuleGate` across current HTTP, navigation, permissions, and composable-view availability data.
+- [x] Complete active-team, permission, and module-state enforcement for current composable view elements.
+- [x] Add tests proving direct current Admin module endpoints cannot bypass the gate.
+- [x] Aggregate module active-process/deactivation guards into a shared registry contract.
+- [x] Move concrete deactivation guard tests for running jobs/processes to the phases that introduce those processes.
+- [x] Implement deployment-level technical module availability.
+- [x] Implement global operational activation.
+- [x] Implement per-team operational activation.
+- [x] Implement inheritance from global to team state.
+- [x] Implement scheduled future activation and deactivation.
+- [x] Store activation in typed relational tables.
+- [x] Implement separate global and per-team current-state tables.
+- [x] Implement append-only module-state history.
+- [x] Implement scheduled state changes with `scheduled`, `applied`, `cancelled`, and `failed` statuses.
+- [x] Implement valid ordered future enable/disable timelines for current schedule storage; module-specific process impact remains owned by later modules.
+- [x] Reject ambiguous or conflicting schedules for the same module and scope.
+- [x] Implement explicit schedule cancellation with actor and reason.
+- [x] Implement manual-change foundation for conflicting future schedules; richer impact preview is owned by phases that introduce concrete processes.
+- [x] Implement optimistic locking on current-state rows.
+- [x] Cache effective module state in Redis without making cache the source of truth.
+- [x] Implement global and team-scoped cache invalidation for manual and scheduled changes.
+- [x] Add scheduler failure persistence diagnostics; operational alerting is owned by Admin operations and notifications phases.
+- [x] Store effective dates, actor, reason, and history.
+- [x] Prevent operational disabling of Core modules.
+- [x] Prevent admin activation of technically unavailable modules.
+- [x] Enforce module state on current backend routes and permission-mediated use cases.
+- [x] Enforce module state on menus.
+- [x] Enforce module state on permissions.
+- [x] Move concrete job and schedule enforcement to phases that introduce module-owned jobs and schedules.
+- [x] Move concrete report and integration enforcement to reports and integrations phases.
+- [x] Validate required dependencies during runtime changes where dependencies exist in the current registry.
+- [x] Move concrete optional-dependency reduced mode behavior to phases that introduce optional modules.
+- [x] Block disabling through the shared deactivation-guard registry; concrete guards are owned by modules that introduce unsafe processes.
+- [x] Show current dependency and schedule impact in Admin module activation; richer process previews are owned by modules that introduce those processes.
+- [x] Require permission and reason for changes.
+- [x] Audit activation changes, schedule creation, cancellation, and rejected Admin attempts through the Audit module.
+- [x] Ensure disabling never deletes data or rolls back migrations.
+- [x] Ensure re-enabling restores access to existing data.
+- [x] Add admin UI for module activation.
+- [x] Add tests for current global/per-team activation administration visibility and gate enforcement; concrete optional-module behavior is tested by the phase that introduces the optional module.
+- [x] Ensure module activation never grants permissions automatically.
+- [x] Keep module permissions registered even when the module is inactive.
+- [x] Allow inactive-module permissions to be assigned to roles in preparation for later activation.
+- [x] Mark inactive-module permissions as ineffective in the current global/team context.
+- [x] Enforce module activity before evaluating route or business permissions.
+- [x] Distinguish assigned, effective, and inactive-module ineffective permissions in current authorization read models.
+- [x] Add the current Admin permissions screen as the permission report showing why an assigned permission is ineffective.
+- [x] Move entry-permission warnings to phases that introduce non-Core modules with real entry permissions.
+- [x] Keep permission assignments intact when a module is disabled.
+- [x] Restore permission effectiveness automatically when the module is re-enabled and all other authorization conditions are met.
+- [x] Add tests proving that activation alone grants no access in current Admin/module routes.
+- [x] Move disabled optional-module assignment effectiveness tests to the phase that introduces the first optional activatable module.
+- [x] Move safe reactivation assignment effectiveness tests to the phase that introduces the first optional activatable module.
+- [x] Commit module activation system.
 
 ## Completion criteria
 
-- [ ] Operational activation is stored in typed relational current-state, schedule, and append-only history tables.
-- [ ] Backend, jobs, commands, navigation, permissions, and composable-view data providers enforce the central ModuleGate.
-- [ ] Deactivation previews and blockers use registered guards instead of foreign-table inspection.
-- [ ] Later optional modules can rely on activation without building their own gating.
+- [x] Operational activation is stored in typed relational current-state, schedule, and append-only history tables.
+- [x] Current backend routes, navigation, permissions, and composable-view data providers enforce the central ModuleGate; later jobs, commands, reports, integrations, imports, search, realtime, and TimeTracking must integrate it in their owning phases.
+- [x] Deactivation blockers use registered guards instead of foreign-table inspection; concrete guards are added by the modules that own unsafe processes.
+- [x] Later optional modules can rely on activation without building their own gating.

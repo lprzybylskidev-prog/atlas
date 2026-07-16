@@ -9,6 +9,12 @@ use App\Modules\Core\Audit\Application\Public\DTOs\AuditEvent;
 use App\Modules\Core\Authorization\Application\Public\Contracts\UserTeamAuthorizationManager;
 use App\Modules\Core\Teams\Application\Public\Contracts\UserTeamMembershipManager;
 use App\Modules\Core\Teams\Infrastructure\Persistence\Team;
+use App\Shared\Application\Modules\Activation\Contracts\ModuleActivationService;
+use App\Shared\Application\Modules\Activation\ModuleActivationChange;
+use App\Shared\Application\Modules\Activation\ModuleActivationException;
+use App\Shared\Application\Modules\Activation\ModuleActivationScope;
+use App\Shared\Application\Modules\ModuleCategory;
+use App\Shared\Application\Modules\ModuleRegistry;
 use App\Shared\Application\Tables\AdminTableDefinitions;
 use App\Shared\Application\Tables\ArrayTableProcessor;
 use App\Shared\Application\Tables\TableRequestContext;
@@ -29,6 +35,8 @@ final class TeamAdministrationController
         private readonly AuditRecorder $audit,
         private readonly UserTeamMembershipManager $memberships,
         private readonly UserTeamAuthorizationManager $authorization,
+        private readonly ModuleRegistry $modules,
+        private readonly ModuleActivationService $activation,
     ) {}
 
     public function __invoke(Request $request): Response
@@ -62,6 +70,7 @@ final class TeamAdministrationController
             'userOptions' => $this->userOptions(),
             'roleOptions' => $this->authorization->roleOptions(),
             'permissionOptions' => $this->authorization->permissionOptions(),
+            'moduleOptions' => $this->moduleOptions(),
         ]);
     }
 
@@ -95,6 +104,7 @@ final class TeamAdministrationController
             'assignableUsers' => $this->memberships->assignableUsersForTeam((string) $record->public_id),
             'roleOptions' => $this->authorization->roleOptions(),
             'permissionOptions' => $this->authorization->permissionOptions(),
+            'moduleStates' => $this->teamModuleStates($record->id),
         ]);
     }
 
@@ -108,6 +118,10 @@ final class TeamAdministrationController
             'user_assignments.*.role_names.*' => ['string'],
             'user_assignments.*.direct_permission_names' => ['array'],
             'user_assignments.*.direct_permission_names.*' => ['string'],
+            'module_overrides' => ['array'],
+            'module_overrides.*.module_key' => ['required', 'string'],
+            'module_overrides.*.enabled' => ['required', 'boolean'],
+            'module_overrides.*.reason' => ['required', 'string', 'min:3', 'max:2000'],
         ]);
 
         $record = Team::query()->create([
@@ -132,6 +146,21 @@ final class TeamAdministrationController
                     directPermissionNames: $assignment['direct_permission_names'],
                     reason: 'Initial team member assignment.',
                 );
+            }
+
+            foreach ($this->moduleOverrides(is_array($validated) ? $validated : []) as $override) {
+                try {
+                    $this->activation->change(new ModuleActivationChange(
+                        moduleKey: $override['module_key'],
+                        scope: ModuleActivationScope::Team,
+                        enabled: $override['enabled'],
+                        reason: $override['reason'],
+                        actorUserId: $this->actorUserId($request),
+                        teamId: $record->id,
+                    ));
+                } catch (ModuleActivationException) {
+                    continue;
+                }
             }
         }
 
@@ -278,6 +307,85 @@ final class TeamAdministrationController
         }
 
         return $result;
+    }
+
+    /**
+     * @param  array<mixed>  $values
+     * @return list<array{module_key: string, enabled: bool, reason: string}>
+     */
+    private function moduleOverrides(array $values): array
+    {
+        $overrides = $values['module_overrides'] ?? [];
+
+        if (! is_array($overrides)) {
+            return [];
+        }
+
+        $result = [];
+
+        foreach ($overrides as $override) {
+            if (! is_array($override)) {
+                continue;
+            }
+
+            $moduleKey = $override['module_key'] ?? '';
+            $reason = $override['reason'] ?? '';
+
+            if (! is_string($moduleKey) || $moduleKey === '' || ! is_string($reason) || trim($reason) === '') {
+                continue;
+            }
+
+            $result[] = [
+                'module_key' => $moduleKey,
+                'enabled' => (bool) ($override['enabled'] ?? false),
+                'reason' => $reason,
+            ];
+        }
+
+        return $result;
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private function moduleOptions(): array
+    {
+        return array_map(function ($module): array {
+            return [
+                'moduleKey' => $module->key()->value,
+                'category' => $module->category()->value,
+                'supportsTeamActivation' => $module->supportsTeamActivation(),
+                'readOnly' => $module->category() === ModuleCategory::Core,
+            ];
+        }, $this->modules->all());
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private function teamModuleStates(int $teamId): array
+    {
+        return array_map(function ($module) use ($teamId): array {
+            $state = $this->activation->effectiveState($module->key()->value, $teamId);
+
+            return [
+                'moduleKey' => $module->key()->value,
+                'category' => $module->category()->value,
+                'teamEnabled' => $state->teamEnabled,
+                'effectiveEnabled' => $state->effectiveEnabled,
+                'source' => $state->source,
+                'version' => $state->teamVersion,
+                'supportsTeamActivation' => $module->supportsTeamActivation(),
+                'readOnly' => $module->category() === ModuleCategory::Core,
+            ];
+        }, $this->modules->all());
+    }
+
+    private function actorUserId(Request $request): ?int
+    {
+        $id = $request->user()?->getAuthIdentifier();
+
+        return is_int($id) ? $id : null;
     }
 
     /**

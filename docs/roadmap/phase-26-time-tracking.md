@@ -192,6 +192,8 @@ Implement optional TimeTracking only after every known foundation it depends on 
 - [ ] Document that HR, payroll, bonus, sanction, and disciplinary automation are outside scope.
 - [ ] Create `TimeTracking` module manifest and contracts.
 - [ ] Ensure it can be disabled globally and per team.
+- [ ] Register TimeTracking deactivation guards that block disabling while active work, break, other-work, maintenance, pending corrections, or unsafe reporting jobs exist.
+- [ ] Feed module activation into TimeTracking module-context segments and enforce ModuleGate for TimeTracking routes, jobs, reports, and live status channels.
 - [ ] Ensure TimeTracking remains self-contained and has no HR/payroll dependency.
 - [ ] Define TimeTracking public API.
 - [ ] Implement user-team tracking enablement.

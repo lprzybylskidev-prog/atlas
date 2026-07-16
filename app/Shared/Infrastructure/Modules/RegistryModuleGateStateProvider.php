@@ -6,6 +6,7 @@ namespace App\Shared\Infrastructure\Modules;
 
 use App\Modules\Core\Authorization\Application\Public\Contracts\EffectivePermissionChecker;
 use App\Modules\Core\Authorization\Application\Public\DTOs\EffectivePermissionRequest;
+use App\Shared\Application\Modules\Activation\Contracts\ModuleActivationService;
 use App\Shared\Application\Modules\Contracts\ModuleGateStateProvider;
 use App\Shared\Application\Modules\ModuleAccessRequest;
 use App\Shared\Application\Modules\ModuleAccessState;
@@ -19,6 +20,7 @@ final readonly class RegistryModuleGateStateProvider implements ModuleGateStateP
         private ModuleRegistry $registry,
         private EffectivePermissionChecker $permissions,
         private ConnectionInterface $database,
+        private ModuleActivationService $activation,
     ) {}
 
     public function stateFor(ModuleAccessRequest $request): ModuleAccessState
@@ -26,13 +28,15 @@ final readonly class RegistryModuleGateStateProvider implements ModuleGateStateP
         $moduleKey = new ModuleKey($request->moduleKey);
         $deployed = $this->registry->has($moduleKey);
         $activeTeamValid = $this->activeTeamIsValid($request);
+        $activeTeamId = $request->activeTeamId ?? $this->teamId($request->activeTeamPublicId);
+        $effectiveState = $this->activation->effectiveState($request->moduleKey, $activeTeamId);
 
         return new ModuleAccessState(
             deployed: $deployed,
             requiredDependenciesSatisfied: $deployed,
-            technicallyAvailable: $deployed,
-            globallyActive: true,
-            teamActive: true,
+            technicallyAvailable: $effectiveState->technicallyAvailable,
+            globallyActive: $effectiveState->globallyEnabled,
+            teamActive: $effectiveState->teamEnabled,
             activeTeamValid: $activeTeamValid,
             permissionGranted: $this->permissionIsGranted($request, $activeTeamValid),
         );
@@ -91,5 +95,18 @@ final readonly class RegistryModuleGateStateProvider implements ModuleGateStateP
             ->value('public_id');
 
         return is_string($publicId) ? $publicId : null;
+    }
+
+    private function teamId(?string $teamPublicId): ?int
+    {
+        if ($teamPublicId === null) {
+            return null;
+        }
+
+        $id = $this->database->table('teams')
+            ->where('public_id', $teamPublicId)
+            ->value('id');
+
+        return is_numeric($id) ? (int) $id : null;
     }
 }

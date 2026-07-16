@@ -18,6 +18,8 @@ final class AdminTableDefinitions
 
     public const AUDIT = 'admin.audit';
 
+    public const MODULES = 'admin.modules';
+
     public static function get(string $key): TableDefinition
     {
         return match ($key) {
@@ -111,6 +113,19 @@ final class AdminTableDefinitions
                 new TableColumn('security', searchable: false),
                 new TableColumn('metadata', defaultVisible: false),
             ], 'occurredAt', 'desc'),
+            self::MODULES => new TableDefinition($key, [
+                new TableColumn('moduleKey'),
+                new TableColumn('category'),
+                new TableColumn('technicallyAvailable', searchable: false),
+                new TableColumn('globallyEnabled', searchable: false),
+                new TableColumn('teamEnabled', searchable: false),
+                new TableColumn('effectiveEnabled', searchable: false),
+                new TableColumn('teamStateSource'),
+                new TableColumn('supportsGlobalActivation', searchable: false, defaultVisible: false),
+                new TableColumn('supportsTeamActivation', searchable: false, defaultVisible: false),
+                new TableColumn('requiredDependencies', defaultVisible: false),
+                new TableColumn('optionalDependencies', defaultVisible: false),
+            ], 'moduleKey'),
             default => abort(404),
         };
     }
@@ -120,6 +135,6 @@ final class AdminTableDefinitions
      */
     public static function keys(): array
     {
-        return [self::USERS, self::TEAMS, self::ROLES, self::PACKAGES, self::PERMISSIONS, self::AUDIT];
+        return [self::USERS, self::TEAMS, self::ROLES, self::PACKAGES, self::PERMISSIONS, self::AUDIT, self::MODULES];
     }
 }

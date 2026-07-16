@@ -87,3 +87,14 @@ Breadcrumbs::for('admin.audit.index', function (Generator $breadcrumbs): void {
     $breadcrumbs->push(__('breadcrumbs.admin'));
     $breadcrumbs->push('Audit');
 });
+
+Breadcrumbs::for('admin.modules.index', function (Generator $breadcrumbs): void {
+    $breadcrumbs->push(__('breadcrumbs.admin'));
+    $breadcrumbs->push('Modules');
+});
+
+Breadcrumbs::for('admin.modules.show', function (Generator $breadcrumbs): void {
+    $breadcrumbs->push(__('breadcrumbs.admin'));
+    $breadcrumbs->push('Modules');
+    $breadcrumbs->push('Details');
+});

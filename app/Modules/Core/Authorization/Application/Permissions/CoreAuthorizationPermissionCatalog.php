@@ -39,6 +39,22 @@ final class CoreAuthorizationPermissionCatalog implements ModulePermissionContri
 
     public const ADMIN_AUTHORIZATION_PERMISSIONS = 'admin.authorization.permissions.index';
 
+    public const ADMIN_MODULES_INDEX = 'admin.modules.index';
+
+    public const ADMIN_MODULES_SHOW = 'admin.modules.show';
+
+    public const ADMIN_MODULES_GLOBAL_UPDATE = 'admin.modules.global.update';
+
+    public const ADMIN_MODULES_TEAM_UPDATE = 'admin.modules.team.update';
+
+    public const ADMIN_MODULES_TEAM_CLEAR = 'admin.modules.team.clear';
+
+    public const ADMIN_MODULES_GLOBAL_SCHEDULE = 'admin.modules.global.schedule';
+
+    public const ADMIN_MODULES_TEAM_SCHEDULE = 'admin.modules.team.schedule';
+
+    public const ADMIN_MODULES_SCHEDULE_CANCEL = 'admin.modules.schedules.cancel';
+
     public const ADMIN_TABLE_VIEWS_STORE = 'admin.table-views.store';
 
     public const ADMIN_TABLE_VIEWS_UPDATE = 'admin.table-views.update';
@@ -105,6 +121,14 @@ final class CoreAuthorizationPermissionCatalog implements ModulePermissionContri
             new ModulePermissionDefinition(self::ADMIN_AUTHORIZATION_PACKAGES_UPDATE, 'Update presets.'),
             new ModulePermissionDefinition(self::ADMIN_AUTHORIZATION_PACKAGES_DELETE, 'Delete presets.'),
             new ModulePermissionDefinition(self::ADMIN_AUTHORIZATION_PERMISSIONS, 'View permission administration.'),
+            new ModulePermissionDefinition(self::ADMIN_MODULES_INDEX, 'View module activation administration.'),
+            new ModulePermissionDefinition(self::ADMIN_MODULES_SHOW, 'View module activation details.'),
+            new ModulePermissionDefinition(self::ADMIN_MODULES_GLOBAL_UPDATE, 'Update global module activation.'),
+            new ModulePermissionDefinition(self::ADMIN_MODULES_TEAM_UPDATE, 'Update team module activation overrides.'),
+            new ModulePermissionDefinition(self::ADMIN_MODULES_TEAM_CLEAR, 'Clear team module activation overrides.'),
+            new ModulePermissionDefinition(self::ADMIN_MODULES_GLOBAL_SCHEDULE, 'Schedule global module activation changes.'),
+            new ModulePermissionDefinition(self::ADMIN_MODULES_TEAM_SCHEDULE, 'Schedule team module activation changes.'),
+            new ModulePermissionDefinition(self::ADMIN_MODULES_SCHEDULE_CANCEL, 'Cancel scheduled module activation changes.'),
             new ModulePermissionDefinition(self::ADMIN_TABLE_VIEWS_STORE, 'Create saved table views.'),
             new ModulePermissionDefinition(self::ADMIN_TABLE_VIEWS_UPDATE, 'Update saved table views.'),
             new ModulePermissionDefinition(self::ADMIN_TABLE_VIEWS_DELETE, 'Delete saved table views.'),

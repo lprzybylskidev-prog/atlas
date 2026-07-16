@@ -72,6 +72,7 @@ Current producers include:
 - Admin role create, update, and delete attempts;
 - Admin team create, update, activation, deactivation, and delete attempts;
 - shared DataTable team/system saved-view create, update, and delete.
+- module activation global changes, team override changes, schedule creation, schedule cancellation, rejected activation attempts, and rejected schedule attempts.
 
 Future session administration, manager hierarchy, module activation, impersonation, imports, integrations, files, reports, privacy, and TimeTracking workflows use the same Audit module writer instead of creating separate audit tables.
 

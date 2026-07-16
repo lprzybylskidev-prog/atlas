@@ -20,6 +20,7 @@ Admin user-team access management:
 
 - Admin user creation requires at least one team assignment;
 - Admin user creation/editing and team creation/editing list and manage active user-team memberships;
+- Admin team creation/editing also manages team-scoped module activation overrides. The same override can be managed from `/admin/modules/{module}` by attaching teams to a module, and from `/admin/teams/{team}/edit` by attaching modules to a team.
 - Admin can add access to an active team the user does not currently belong to, including team-scoped roles and direct permissions;
 - Admin can update a user's team-scoped roles and direct permissions from either User or Team administration;
 - Admin can remove access from a team only with a reason;

@@ -48,6 +48,7 @@ Current implementation foundation:
 - Admin role administration screens are available at `/admin/authorization/roles`; role creation and editing use separate Admin views instead of inline index forms and let administrators manage the role's direct permission membership.
 - Admin preset administration is available at `/admin/authorization/packages`; preset creation and editing use separate Admin views and let administrators manage team-scoped local presets from existing roles and permissions.
 - Admin team administration screens are available at `/admin/teams`; team creation and editing use separate Admin views, show team identity and active state, and manage team members with team-scoped roles and direct permissions.
+- Admin module activation screens are available at `/admin/modules`; module activation can also be managed from team creation and editing workflows.
 - Admin user administration is available at `/admin/users`, shows users in the shared TanStack `DataTable`, supports current account-status actions, requires at least one team assignment during user creation, shows exact effective team-scoped assignments before submission, can apply a package or copy another user's role/direct-permission assignments in the selected team, manages user team access and team-scoped role/direct-permission assignments, and routes account creation through the normal user creation use case.
 - Current Admin tables use the shared `DataTable` wrapper with backend-validated query-string state, server-side pagination/sorting/filtering, saved views, and client CSV, XLSX, PDF, and print export actions for the currently loaded visible dataset. Server-side queued exports remain part of the later reporting/export lifecycle.
 
@@ -78,5 +79,8 @@ Presets:
 - user and team creation may also provide explicit team-scoped user role and direct-permission assignments;
 - users do not receive global role or permission assignments outside a team context.
 - removing a user's team access also removes that user's direct role and permission assignments in the removed team.
+- operational module activation never grants permissions automatically;
+- assigned permissions remain stored while a module is inactive;
+- effective permission checks include module activation and return `authorization.module_inactive` when the assigned permission belongs to an inactive module in the selected team context.
 
 ---

@@ -52,6 +52,7 @@ Implement platform notifications and the minimal realtime foundation before repo
 - [ ] Add notification center.
 - [ ] Add WebSocket/realtime infrastructure only for real server-push needs.
 - [ ] Add live notification delivery.
+- [ ] Enforce ModuleGate and active-team context on realtime channels and notification delivery routes.
 - [ ] Add session invalidation events.
 - [ ] Add system alerts.
 - [ ] Add progress events for queued operations.
