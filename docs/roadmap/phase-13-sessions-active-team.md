@@ -1,6 +1,6 @@
 ## Phase 13 — Sessions and active team
 
-**Status:** `not started`
+**Status:** `in progress`
 
 ## Objective
 
@@ -38,7 +38,7 @@ Implement Redis-backed sessions, active-team context, user/admin session managem
 
 ## Tasks
 
-- [ ] Store sessions in Redis.
+- [x] Store sessions in Redis.
 - [ ] Add per-user inactivity timeout.
 - [ ] Add per-user maximum session lifetime.
 - [ ] Store session creation and last activity.

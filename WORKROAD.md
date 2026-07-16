@@ -38,7 +38,7 @@ Do not replace this index after the initial technical foundation is completed. C
 ## Current phase
 
 - Phase: [Phase 13 — Sessions and active team](docs/roadmap/phase-13-sessions-active-team.md)
-- Status: `not started`
+- Status: `in progress`
 
 ## Roadmap dependency repair note
 
@@ -152,7 +152,7 @@ Implement typed settings, localization, precedence, validation, caching, and saf
 
 ### Phase 13 — Sessions and active team
 
-**Status:** `not started`
+**Status:** `in progress`
 
 Implement Redis-backed sessions, active-team context, session administration, session security controls, and centralized frontend network handling.
 
