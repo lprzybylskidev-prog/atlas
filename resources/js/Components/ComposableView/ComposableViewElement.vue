@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
 
+import { useTranslator } from '../../Localization/translator';
 import type { ComposableViewDataProviderResult, ResolvedComposableViewElement } from '../../Types/composable-view';
 
 const props = defineProps<{
@@ -10,6 +11,7 @@ const props = defineProps<{
 const loading = ref(true);
 const error = ref<string | null>(null);
 const result = ref<ComposableViewDataProviderResult<unknown> | null>(null);
+const { t } = useTranslator();
 
 const isPermissionDenied = computed(() => props.element.availability.reason === 'permission-denied');
 
@@ -42,19 +44,23 @@ onMounted(async () => {
             </p>
         </div>
 
-        <div v-if="loading" class="p-4 text-sm text-zinc-500 dark:text-zinc-400">Loading...</div>
+        <div v-if="loading" class="p-4 text-sm text-zinc-500 dark:text-zinc-400">{{ t('composable_view.loading') }}</div>
 
-        <div v-else-if="isPermissionDenied" class="p-4 text-sm text-zinc-600 dark:text-zinc-300">Permission required.</div>
+        <div v-else-if="isPermissionDenied" class="p-4 text-sm text-zinc-600 dark:text-zinc-300">
+            {{ t('composable_view.permission_required') }}
+        </div>
 
         <div v-else-if="element.availability.reason !== 'available'" class="p-4 text-sm text-zinc-600 dark:text-zinc-300">
-            Element unavailable.
+            {{ t('composable_view.unavailable') }}
         </div>
 
         <div v-else-if="error" class="p-4 text-sm text-red-700 dark:text-red-300">
             {{ error }}
         </div>
 
-        <div v-else-if="result?.empty" class="p-4 text-sm text-zinc-500 dark:text-zinc-400">No data available.</div>
+        <div v-else-if="result?.empty" class="p-4 text-sm text-zinc-500 dark:text-zinc-400">
+            {{ t('composable_view.empty') }}
+        </div>
 
         <component :is="element.definition.component" v-else :data="result?.data" />
     </article>

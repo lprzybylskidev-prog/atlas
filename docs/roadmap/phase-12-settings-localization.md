@@ -1,6 +1,6 @@
 ## Phase 12 — Settings and localization
 
-**Status:** `in progress`
+**Status:** `complete`
 
 ## Objective
 
@@ -50,14 +50,14 @@ Implement typed settings and real PL/EN localization before sessions, Admin mode
 - [x] Add dashboard preferences.
 - [x] Add accessibility preferences.
 - [x] Audit security-setting changes.
-- [ ] Add PL and EN translation catalogs.
-- [ ] Add missing-key and parity checks.
+- [x] Add PL and EN translation catalogs.
+- [x] Add missing-key and parity checks.
 - [x] Ensure admin panel remains English only.
-- [ ] Commit settings and localization.
+- [x] Commit settings and localization.
 
 ## Completion criteria
 
 - [x] Typed global, team, user, and security settings exist with defaults, inheritance, validation, caching, and audit where required.
-- [ ] Auth/App language controls switch real PL/EN UI copy instead of preview-only state.
+- [x] Auth/App language controls switch real PL/EN UI copy instead of preview-only state.
 - [x] Later phases can store preferences and security timeouts without temporary local storage or config mutation.
-- [ ] PL/EN parity and missing-key checks pass.
+- [x] PL/EN parity and missing-key checks pass.

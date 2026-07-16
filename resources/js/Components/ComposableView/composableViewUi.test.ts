@@ -28,9 +28,10 @@ describe('composable view UI guardrails', () => {
     it('keeps independent loading, empty, error, unavailable, and permission states visible', () => {
         const contents = files['ComposableViewElement.vue'];
 
-        expect(contents).toContain('Loading...');
-        expect(contents).toContain('Permission required.');
-        expect(contents).toContain('Element unavailable.');
+        expect(contents).toContain("t('composable_view.loading')");
+        expect(contents).toContain("t('composable_view.permission_required')");
+        expect(contents).toContain("t('composable_view.unavailable')");
+        expect(contents).toContain("t('composable_view.empty')");
         expect(contents).toContain('result?.empty');
         expect(contents).toContain('error');
     });

@@ -37,8 +37,8 @@ Do not replace this index after the initial technical foundation is completed. C
 
 ## Current phase
 
-- Phase: [Phase 12 — Settings and localization](docs/roadmap/phase-12-settings-localization.md)
-- Status: `in progress`
+- Phase: [Phase 13 — Sessions and active team](docs/roadmap/phase-13-sessions-active-team.md)
+- Status: `not started`
 
 ## Roadmap dependency repair note
 
@@ -144,7 +144,7 @@ Implement application and security audit trails with immutable context, correlat
 
 ### Phase 12 — Settings and localization
 
-**Status:** `in progress`
+**Status:** `complete`
 
 Implement typed settings, localization, precedence, validation, caching, and safe administrative configuration.
 

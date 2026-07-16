@@ -46,6 +46,25 @@ class LocalizationTest extends TestCase
         self::assertSame($englishKeys, $polishKeys);
     }
 
+    public function test_polish_and_english_php_language_catalogs_have_matching_keys(): void
+    {
+        $catalogs = ['auth', 'pagination', 'passwords', 'validation'];
+
+        foreach ($catalogs as $catalog) {
+            $polish = require lang_path(sprintf('pl/%s.php', $catalog));
+            $english = require lang_path(sprintf('en/%s.php', $catalog));
+
+            self::assertIsArray($polish);
+            self::assertIsArray($english);
+
+            self::assertSame(
+                $this->flattenTranslationKeys($english),
+                $this->flattenTranslationKeys($polish),
+                sprintf('The [%s] language catalog must keep PL/EN key parity.', $catalog),
+            );
+        }
+    }
+
     public function test_current_password_mismatch_has_stable_polish_translation(): void
     {
         self::assertSame(
@@ -141,5 +160,36 @@ class LocalizationTest extends TestCase
     {
         $this->post('/theme', ['theme' => 'sepia'])
             ->assertSessionHasErrors('theme');
+    }
+
+    /**
+     * @param  array<array-key, mixed>  $values
+     * @return list<string>
+     */
+    private function flattenTranslationKeys(array $values, string $prefix = ''): array
+    {
+        $keys = [];
+
+        foreach ($values as $key => $value) {
+            if (! is_string($key)) {
+                $keys[] = $prefix === '' ? '__non_string_key__' : sprintf('%s.__non_string_key__', $prefix);
+
+                continue;
+            }
+
+            $fullKey = $prefix === '' ? $key : sprintf('%s.%s', $prefix, $key);
+
+            if (is_array($value)) {
+                array_push($keys, ...$this->flattenTranslationKeys($value, $fullKey));
+
+                continue;
+            }
+
+            $keys[] = $fullKey;
+        }
+
+        sort($keys);
+
+        return $keys;
     }
 }
