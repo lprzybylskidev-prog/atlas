@@ -6,17 +6,18 @@ namespace App\Modules\Core\Identity\Infrastructure\Persistence;
 
 use App\Modules\Core\Identity\Domain\ValueObjects\UserPublicId;
 use App\Modules\Core\Identity\Infrastructure\Database\Factories\UserFactory;
+use App\Modules\Core\Identity\Infrastructure\Notifications\UserEmailVerificationNotification;
+use Illuminate\Contracts\Auth\MustVerifyEmail as MustVerifyEmailContract;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Carbon;
 use Laravel\Fortify\TwoFactorAuthenticatable;
-use Spatie\Permission\Traits\HasRoles;
 
-class User extends Authenticatable
+class User extends Authenticatable implements MustVerifyEmailContract
 {
     /** @use HasFactory<UserFactory> */
-    use HasFactory, HasRoles, Notifiable, TwoFactorAuthenticatable;
+    use HasFactory, Notifiable, TwoFactorAuthenticatable;
 
     /** @var list<string> */
     protected $fillable = [
@@ -97,6 +98,11 @@ class User extends Authenticatable
         if ($this->email_verified_at === null) {
             $this->setAttribute('email_verified_at', now());
         }
+    }
+
+    public function sendEmailVerificationNotification(): void
+    {
+        $this->notify(new UserEmailVerificationNotification);
     }
 
     /** @return array<string, string> */

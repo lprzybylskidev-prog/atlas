@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
-import { IconGauge, IconX } from '@tabler/icons-vue';
+import { IconGauge, IconKey, IconPackages, IconShieldCheck, IconUserPlus, IconUsersGroup, IconX } from '@tabler/icons-vue';
 import { computed } from 'vue';
 
 import AtlasLogo from './AtlasLogo.vue';
@@ -8,6 +8,7 @@ import { useTranslator } from '../Localization/translator';
 
 const props = defineProps<{
     open: boolean;
+    mode?: 'app' | 'admin';
     uiLocale?: string;
 }>();
 
@@ -17,7 +18,33 @@ const emit = defineEmits<{
 
 const { t } = useTranslator(props.uiLocale);
 
-const items = computed(() => [{ label: t('navigation.dashboard'), href: '/', icon: IconGauge }]);
+const groups = computed(() => {
+    const workspace = {
+        label: t('navigation.group.workspace'),
+        items: [{ label: t('navigation.dashboard'), href: '/', icon: IconGauge }],
+    };
+
+    if (props.mode !== 'admin') {
+        return [workspace];
+    }
+
+    return [
+        workspace,
+        {
+            label: t('navigation.group.identity_access'),
+            items: [
+                { label: t('navigation.users'), href: '/admin/users', icon: IconUserPlus },
+                { label: t('navigation.roles'), href: '/admin/authorization/roles', icon: IconShieldCheck },
+                { label: t('navigation.packages'), href: '/admin/authorization/packages', icon: IconPackages },
+                { label: t('navigation.permissions'), href: '/admin/authorization/permissions', icon: IconKey },
+            ],
+        },
+        {
+            label: t('navigation.group.organization'),
+            items: [{ label: t('navigation.teams'), href: '/admin/teams', icon: IconUsersGroup }],
+        },
+    ];
+});
 </script>
 
 <template>
@@ -35,9 +62,9 @@ const items = computed(() => [{ label: t('navigation.dashboard'), href: '/', ico
                     <IconX aria-hidden="true" class="h-5 w-5" :stroke-width="1.8" />
                 </button>
             </div>
-            <nav class="space-y-1 p-4" :aria-label="t('navigation.aria.mobile')">
+            <nav v-if="mode !== 'admin'" class="space-y-1 p-4" :aria-label="t('navigation.aria.mobile')">
                 <Link
-                    v-for="item in items"
+                    v-for="item in groups[0]?.items ?? []"
                     :key="item.label"
                     :href="item.href"
                     class="flex h-12 items-center gap-3 rounded-lg px-3 text-sm font-medium text-zinc-700 hover:bg-zinc-100 dark:text-zinc-200 dark:hover:bg-zinc-900"
@@ -46,6 +73,24 @@ const items = computed(() => [{ label: t('navigation.dashboard'), href: '/', ico
                     <component :is="item.icon" aria-hidden="true" class="h-5 w-5" :stroke-width="1.8" />
                     {{ item.label }}
                 </Link>
+            </nav>
+
+            <nav v-else class="space-y-4 p-4" :aria-label="t('navigation.aria.mobile')">
+                <details v-for="group in groups" :key="group.label" open>
+                    <summary class="list-none px-3 text-xs font-semibold uppercase text-zinc-400">{{ group.label }}</summary>
+                    <div class="mt-2 space-y-1">
+                        <Link
+                            v-for="item in group.items"
+                            :key="item.label"
+                            :href="item.href"
+                            class="flex h-12 items-center gap-3 rounded-lg px-3 text-sm font-medium text-zinc-700 hover:bg-zinc-100 dark:text-zinc-200 dark:hover:bg-zinc-900"
+                            @click="emit('close')"
+                        >
+                            <component :is="item.icon" aria-hidden="true" class="h-5 w-5" :stroke-width="1.8" />
+                            {{ item.label }}
+                        </Link>
+                    </div>
+                </details>
             </nav>
         </div>
     </div>

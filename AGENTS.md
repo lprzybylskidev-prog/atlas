@@ -49,6 +49,7 @@ Do not ask questions whose answers already follow unambiguously from accepted co
 - Binding contracts and executable checkboxes live in `docs/roadmap/phase-*.md`.
 - Never delete or rewrite completed checkboxes.
 - Expand unfinished work when needed.
+- When current work depends on a later shared foundation to meet the repository's accepted quality bar, pull the required foundation forward and document the roadmap adjustment instead of leaving a throwaway or partial implementation for a later refactor.
 - Substantial later evolution of completed work receives a new sequential phase.
 - Update `WORKROAD.md` only when phase status or phase inventory changes.
 - Do not place detailed implementation contracts back into the index.
@@ -212,11 +213,13 @@ Read [`docs/architecture/security-baseline.md`](docs/architecture/security-basel
 
 - Use shared UI primitives before creating new local components.
 - Explicitly tell the user when a change introduces or materially changes visible frontend UI so they can review it in the browser.
+- When creating or changing views, inspect nearby existing views, shared components, and established UI patterns first; keep screens visually and behaviorally coherent instead of making each page feel designed in isolation.
 - Maintain light and dark themes together.
 - Meet WCAG 2.2 AA where applicable.
 - Preserve keyboard navigation, focus management, semantics, and screen-reader behavior.
 - Do not use native `alert`, `confirm`, or title-only tooltips.
 - Use centralized forms, validation display, dialogs, toasts, formatters, and table wrappers.
+- Do not leave native form controls in pages or ordinary feature components. Inputs, selects, textareas, checkboxes, radios, and switches must go through shared form primitives such as `FormInput`, `FormSelect`, and `FormCheckbox`; those primitives must use explicit Tailwind classes from the Atlas design system and must not rely on browser, OS, editor theme, or extension default styling.
 - Keep business decisions on the backend.
 - Do not duplicate backend permission logic in the client.
 - Query-string state must be deterministic and shareable where applicable.

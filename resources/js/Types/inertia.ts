@@ -26,5 +26,11 @@ export interface AtlasPageProps {
     flash: {
         success: string | null;
         error: string | null;
+        messages?: {
+            type: 'success' | 'info' | 'warning' | 'error';
+            key?: string;
+            message?: string;
+            description?: string | null;
+        }[];
     };
 }

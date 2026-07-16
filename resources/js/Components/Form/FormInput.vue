@@ -1,0 +1,61 @@
+<script setup lang="ts">
+import type { Component } from 'vue';
+
+const model = defineModel<string>({ required: true });
+
+const props = withDefaults(
+    defineProps<{
+        label?: string;
+        ariaLabel?: string;
+        id?: string;
+        type?: 'email' | 'password' | 'text';
+        autocomplete?: string;
+        error?: string;
+        placeholder?: string;
+        monospace?: boolean;
+        leadingIcon?: Component;
+    }>(),
+    {
+        label: undefined,
+        ariaLabel: undefined,
+        id: undefined,
+        type: 'text',
+        autocomplete: undefined,
+        error: undefined,
+        placeholder: undefined,
+        monospace: false,
+        leadingIcon: undefined,
+    },
+);
+
+const inputId = props.id ?? `form-input-${crypto.randomUUID()}`;
+const errorId = `${inputId}-error`;
+</script>
+
+<template>
+    <label class="block" :for="inputId">
+        <span v-if="label" class="text-sm font-medium text-zinc-700 dark:text-zinc-200">{{ label }}</span>
+        <span class="relative mt-1 block">
+            <component
+                :is="leadingIcon"
+                v-if="leadingIcon"
+                aria-hidden="true"
+                class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400"
+                :stroke-width="1.8"
+            />
+            <input
+                :id="inputId"
+                v-model="model"
+                :type="type"
+                :autocomplete="autocomplete"
+                :placeholder="placeholder"
+                :aria-label="ariaLabel"
+                :aria-invalid="error ? 'true' : 'false'"
+                :aria-describedby="error ? errorId : undefined"
+                class="h-10 w-full rounded-lg border border-zinc-300 bg-white px-3 text-sm text-zinc-950 outline-none transition placeholder:text-zinc-400 focus:border-teal-600 focus:ring-2 focus:ring-teal-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50 dark:placeholder:text-zinc-500 dark:focus:ring-teal-950"
+                :class="[{ 'font-mono': monospace }, leadingIcon ? 'pl-9' : '']"
+            />
+        </span>
+        <p v-if="error" :id="errorId" class="mt-1 text-xs text-rose-600 dark:text-rose-300">{{ error }}</p>
+    </label>
+</template>

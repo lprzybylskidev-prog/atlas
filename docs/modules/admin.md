@@ -19,6 +19,10 @@ Rules:
 - no hidden superadmin bypass;
 - not a generic CRUD incubator.
 
+Entering `/admin...` routes requires authenticated users to confirm their password through the shared Identity confirmation screen.
+
+Current Admin tables use the shared `DataTable` wrapper. Their first data column is `public_id`, they keep the most important operational columns visible by default, and they expose remaining safe non-secret table columns through the Columns menu. Search, sorting, pagination, and column visibility persist per table across refreshes and Admin actions. When an Admin index exposes safe row actions, the same supported mutating actions are also available as selected-row bulk actions.
+
 Initial areas:
 
 - Users

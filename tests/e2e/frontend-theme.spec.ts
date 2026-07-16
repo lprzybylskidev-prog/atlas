@@ -3,7 +3,7 @@ import type { Page } from '@playwright/test';
 import { expect, test } from './support/test';
 
 const demoUser = {
-    email: 'atlas@example.test',
+    email: 'admin@example.test',
     password: 'password',
 };
 

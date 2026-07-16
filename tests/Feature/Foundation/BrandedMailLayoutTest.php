@@ -4,7 +4,12 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Foundation;
 
+use App\Modules\Core\Identity\Infrastructure\Notifications\AccountLockedNotification;
+use App\Modules\Core\Identity\Infrastructure\Persistence\User;
+use App\Modules\Core\Users\Infrastructure\Notifications\FirstPasswordSetupNotification;
+use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Notifications\Messages\MailMessage;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Config;
 use Tests\TestCase;
 
@@ -50,5 +55,28 @@ final class BrandedMailLayoutTest extends TestCase
         $this->assertStringContainsString('MESSAGE CONTENT BODY', $html);
         $this->assertStringNotContainsString('Debt collection operations', $html);
         $this->assertStringNotContainsString('This message was generated automatically', $html);
+    }
+
+    public function test_atlas_notifications_render_through_branded_mail_layout(): void
+    {
+        app()->setLocale('en');
+
+        $user = new User([
+            'name' => 'Mail User',
+            'email' => 'mail@example.test',
+        ]);
+
+        $renderedMessages = [
+            (string) (new FirstPasswordSetupNotification('token', 'mail@example.test'))->toMail($user)->render(),
+            (string) (new AccountLockedNotification(Carbon::parse('2026-07-15 12:00:00', 'Europe/Warsaw')))->toMail($user)->render(),
+            (string) (new ResetPassword('token'))->toMail($user)->render(),
+        ];
+
+        foreach ($renderedMessages as $html) {
+            $this->assertStringContainsString('brand-logo-cell', $html);
+            $this->assertStringContainsString('/brand/atlas-mail-logo.png', $html);
+            $this->assertStringContainsString('Debt collection operations', $html);
+            $this->assertStringNotContainsString('laravel.com/img/notification-logo', $html);
+        }
     }
 }

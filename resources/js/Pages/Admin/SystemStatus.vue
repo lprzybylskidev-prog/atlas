@@ -6,5 +6,5 @@ import AdminLayout from '../../Layouts/AdminLayout.vue';
 
 <template>
     <Head title="Admin dashboard" />
-    <AdminLayout />
+    <AdminLayout title="Dashboard" />
 </template>

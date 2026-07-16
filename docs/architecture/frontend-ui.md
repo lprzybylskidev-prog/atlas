@@ -271,6 +271,8 @@ Use `novalidate`.
 
 Backend validation is the source of truth.
 
+Ordinary feature pages must not render native form controls directly. Native `input`, `select`, `textarea`, checkbox, radio, and switch controls belong inside shared form primitives, currently including `FormInput`, `FormSelect`, and `FormCheckbox`, so styling, focus states, validation display, and theme behavior stay consistent across the system.
+
 Use shared form components for:
 
 - text;

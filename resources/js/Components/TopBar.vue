@@ -11,6 +11,7 @@ import {
     IconSun,
 } from '@tabler/icons-vue';
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import type { Component } from 'vue';
 
 import IconButton from './IconButton.vue';
 import { useLocaleSwitcher } from '../Composables/useLocaleSwitcher';
@@ -22,12 +23,14 @@ import type { AtlasPageProps } from '../Types/inertia';
 const props = withDefaults(
     defineProps<{
         title: string;
+        titleIcon?: Component;
         mode?: 'app' | 'admin';
         showLocaleSwitcher?: boolean;
         uiLocale?: string;
     }>(),
     {
         mode: 'app',
+        titleIcon: undefined,
         showLocaleSwitcher: true,
         uiLocale: undefined,
     },
@@ -108,7 +111,7 @@ onBeforeUnmount(() => {
         class="sticky top-0 z-30 border-b backdrop-blur"
         :class="
             isAdminMode
-                ? 'border-zinc-300 bg-zinc-950 text-zinc-50 dark:border-zinc-800 dark:bg-black'
+                ? 'border-zinc-200 bg-white/95 text-zinc-950 dark:border-zinc-800 dark:bg-black/95 dark:text-zinc-50'
                 : 'border-zinc-200 bg-white/95 dark:border-zinc-800 dark:bg-zinc-950/90'
         "
     >
@@ -138,7 +141,7 @@ onBeforeUnmount(() => {
                 <div class="min-w-0">
                     <nav
                         class="flex min-w-0 items-center gap-2 text-xs"
-                        :class="isAdminMode ? 'text-zinc-400' : 'text-zinc-500 dark:text-zinc-400'"
+                        :class="isAdminMode ? 'text-zinc-500 dark:text-zinc-400' : 'text-zinc-500 dark:text-zinc-400'"
                         :aria-label="t('navigation.aria.breadcrumb')"
                     >
                         <template v-for="(breadcrumb, index) in breadcrumbs" :key="`${breadcrumb.label}-${index}`">
@@ -156,10 +159,17 @@ onBeforeUnmount(() => {
                         </template>
                     </nav>
                     <h1
-                        class="truncate text-base font-semibold sm:text-lg"
-                        :class="isAdminMode ? 'text-zinc-50' : 'text-zinc-950 dark:text-zinc-50'"
+                        class="flex min-w-0 items-center gap-2 text-base font-semibold sm:text-lg"
+                        :class="isAdminMode ? 'text-zinc-950 dark:text-zinc-50' : 'text-zinc-950 dark:text-zinc-50'"
                     >
-                        {{ title }}
+                        <component
+                            :is="titleIcon"
+                            v-if="titleIcon"
+                            aria-hidden="true"
+                            class="h-5 w-5 shrink-0 text-zinc-400"
+                            :stroke-width="1.8"
+                        />
+                        <span class="truncate">{{ title }}</span>
                     </h1>
                 </div>
             </div>

@@ -7,6 +7,9 @@ namespace App\Shared\Infrastructure\Console;
 use Database\Seeders\DatabaseSeeder;
 use Database\Seeders\DevelopmentDemoSeeder;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Redis;
+use Throwable;
 
 final class ResetDemoEnvironment extends Command
 {
@@ -33,7 +36,10 @@ final class ResetDemoEnvironment extends Command
             return self::FAILURE;
         }
 
-        $this->warn('Resetting the local Atlas demo database.');
+        $this->warn('Resetting the local Atlas demo environment.');
+
+        $this->clearRuntimeState();
+        $this->clearSessionState();
 
         $this->call('migrate:fresh', [
             '--force' => true,
@@ -49,8 +55,52 @@ final class ResetDemoEnvironment extends Command
             '--force' => true,
         ]);
 
+        $this->clearRuntimeState();
+        $this->clearSessionState();
+
         $this->info('Atlas demo environment has been reset.');
 
         return self::SUCCESS;
+    }
+
+    private function clearRuntimeState(): void
+    {
+        $this->line('Clearing cached application state.');
+
+        $this->call('optimize:clear');
+        $this->call('cache:clear');
+        $this->call('event:clear');
+
+        if ($this->laravel->bound('cache')) {
+            $this->laravel->make('cache')->forget(config()->string('permission.cache.key'));
+        }
+    }
+
+    private function clearSessionState(): void
+    {
+        $this->line('Clearing session state.');
+
+        if (is_dir(storage_path('framework/sessions'))) {
+            File::cleanDirectory(storage_path('framework/sessions'));
+        }
+
+        $sessionDriver = config()->string('session.driver');
+
+        if ($sessionDriver !== 'redis') {
+            return;
+        }
+
+        $connection = config('session.connection');
+        $connection = is_string($connection) && $connection !== '' ? $connection : 'default';
+
+        try {
+            Redis::connection($connection)->flushdb();
+        } catch (Throwable $exception) {
+            $this->warn(sprintf(
+                'Could not flush Redis session connection [%s]: %s',
+                $connection,
+                $exception->getMessage(),
+            ));
+        }
     }
 }

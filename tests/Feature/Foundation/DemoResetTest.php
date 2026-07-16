@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Foundation;
 
+use App\Modules\Core\Authorization\Application\Roles\StarterRoleName;
 use App\Modules\Core\Identity\Infrastructure\Persistence\User;
 use Database\Seeders\DatabaseSeeder;
 use Database\Seeders\DevelopmentDemoSeeder;
@@ -48,8 +49,16 @@ final class DemoResetTest extends TestCase
             ->where('email', DevelopmentDemoSeeder::PREVIEW_EMAIL)
             ->firstOrFail();
 
-        $this->assertSame('Atlas Demo', $user->name);
+        $this->assertSame('Admin', $user->name);
         $this->assertTrue(Hash::check(DevelopmentDemoSeeder::PREVIEW_PASSWORD, $user->password));
         $this->assertNotNull($user->email_verified_at);
+        $this->assertDatabaseHas('teams', ['name' => 'Collections North']);
+        $this->assertDatabaseHas('teams', ['name' => 'Collections South']);
+        $this->assertDatabaseHas('teams', ['name' => 'Back Office']);
+        $this->assertDatabaseHas('roles', ['name' => StarterRoleName::Administrator->value]);
+        $this->assertDatabaseHas('users', ['email' => 'demo.user.01@example.test']);
+        $this->assertDatabaseHas('user_onboarding_packages', ['package_name' => 'collections.agent']);
+        $this->assertDatabaseHas('user_onboarding_packages', ['package_name' => 'collections.team_leader']);
+        $this->assertDatabaseHas('user_onboarding_packages', ['package_name' => 'back_office.specialist']);
     }
 }

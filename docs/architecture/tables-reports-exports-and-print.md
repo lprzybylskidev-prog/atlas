@@ -6,6 +6,10 @@ Canonical shared contract for data tables, query strings, saved views, exports, 
 
 Every table uses the shared TanStack Table wrapper.
 
+The current Phase 7 foundation provides the first shared TanStack `DataTable` wrapper, initially used by operational Admin tables and reusable by later application tables. It includes local search, sorting, pagination, column visibility, row selection, empty state, row actions, and CSV export for the currently loaded dataset. Persisted table instances store search, sorting, pagination, and column visibility under a stable table key; row selection is intentionally not persisted. The full server-side reporting/export lifecycle below remains the target for larger datasets and later business reports.
+
+Admin table data columns place `public_id` first. Admin tables expose all safe non-secret columns from their backing table through the column visibility menu, while default visibility stays limited to the most operationally important fields. Secret values such as passwords, remember tokens, authentication tokens, MFA secrets, and recovery codes are never exposed as table columns.
+
 It must support:
 
 - server-side pagination;

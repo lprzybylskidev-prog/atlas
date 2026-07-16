@@ -8,6 +8,7 @@ use App\Modules\Core\Identity\Application\Contracts\PasswordHistoryRepository;
 use App\Modules\Core\Identity\Application\Contracts\SuspiciousLoginNotifier;
 use App\Modules\Core\Identity\Application\LoginProtection\LoginAttemptProtection;
 use App\Modules\Core\Identity\Application\Public\Contracts\SecurityAuditRecorder;
+use App\Modules\Core\Identity\Application\Public\Contracts\UserCredentialAccountDirectory;
 use App\Modules\Core\Identity\Application\Public\Contracts\UserCredentialAccountStatusManager;
 use App\Modules\Core\Identity\Application\Public\Contracts\UserCredentialAccountStore;
 use App\Modules\Core\Identity\Application\RateLimiting\RateLimitKeyBuilder;
@@ -18,6 +19,7 @@ use App\Modules\Core\Identity\Infrastructure\Notifications\UserSuspiciousLoginNo
 use App\Modules\Core\Identity\Infrastructure\Persistence\DatabasePasswordHistoryRepository;
 use App\Modules\Core\Identity\Infrastructure\Persistence\DatabaseSecurityAuditRecorder;
 use App\Modules\Core\Identity\Infrastructure\Persistence\DatabaseWebAuthnCredentialRepository;
+use App\Modules\Core\Identity\Infrastructure\Persistence\EloquentUserCredentialAccountDirectory;
 use App\Modules\Core\Identity\Infrastructure\Persistence\EloquentUserCredentialAccountStatusManager;
 use App\Modules\Core\Identity\Infrastructure\Persistence\EloquentUserCredentialAccountStore;
 use App\Modules\Core\Identity\Infrastructure\Persistence\User;
@@ -39,6 +41,7 @@ class FortifyServiceProvider extends ServiceProvider
         $this->app->bind(SecurityAuditRecorder::class, DatabaseSecurityAuditRecorder::class);
         $this->app->bind(SuspiciousLoginNotifier::class, UserSuspiciousLoginNotifier::class);
         $this->app->bind(WebAuthnCredentialRepository::class, DatabaseWebAuthnCredentialRepository::class);
+        $this->app->bind(UserCredentialAccountDirectory::class, EloquentUserCredentialAccountDirectory::class);
         $this->app->bind(UserCredentialAccountStore::class, EloquentUserCredentialAccountStore::class);
         $this->app->bind(UserCredentialAccountStatusManager::class, EloquentUserCredentialAccountStatusManager::class);
     }

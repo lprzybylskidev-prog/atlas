@@ -1,9 +1,22 @@
 <script setup lang="ts">
+import type { Component } from 'vue';
+
 import AppLayout from './AppLayout.vue';
+
+withDefaults(
+    defineProps<{
+        title?: string;
+        titleIcon?: Component;
+    }>(),
+    {
+        title: 'Dashboard',
+        titleIcon: undefined,
+    },
+);
 </script>
 
 <template>
-    <AppLayout title="Dashboard" mode="admin" :show-locale-switcher="false" ui-locale="en">
+    <AppLayout :title="title" :title-icon="titleIcon" mode="admin" :show-locale-switcher="false" ui-locale="en">
         <slot />
     </AppLayout>
 </template>

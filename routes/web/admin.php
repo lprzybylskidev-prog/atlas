@@ -2,9 +2,62 @@
 
 declare(strict_types=1);
 
+use App\Modules\Core\Authorization\Presentation\Http\Controllers\CreateOnboardingPackageController;
+use App\Modules\Core\Authorization\Presentation\Http\Controllers\CreateRoleController;
+use App\Modules\Core\Authorization\Presentation\Http\Controllers\DestroyOnboardingPackageController;
+use App\Modules\Core\Authorization\Presentation\Http\Controllers\DestroyRoleController;
+use App\Modules\Core\Authorization\Presentation\Http\Controllers\EditOnboardingPackageController;
+use App\Modules\Core\Authorization\Presentation\Http\Controllers\EditRoleController;
+use App\Modules\Core\Authorization\Presentation\Http\Controllers\OnboardingPackageAdministrationController;
+use App\Modules\Core\Authorization\Presentation\Http\Controllers\PermissionAdministrationController;
+use App\Modules\Core\Authorization\Presentation\Http\Controllers\RoleAdministrationController;
+use App\Modules\Core\Authorization\Presentation\Http\Controllers\StoreOnboardingPackageController;
+use App\Modules\Core\Authorization\Presentation\Http\Controllers\StoreRoleController;
+use App\Modules\Core\Authorization\Presentation\Http\Controllers\UpdateOnboardingPackageController;
+use App\Modules\Core\Authorization\Presentation\Http\Controllers\UpdateRoleController;
+use App\Modules\Core\Teams\Presentation\Http\Controllers\TeamAdministrationController;
+use App\Modules\Core\Users\Presentation\Http\Controllers\CreateUserAccountController;
+use App\Modules\Core\Users\Presentation\Http\Controllers\EditUserAccountController;
+use App\Modules\Core\Users\Presentation\Http\Controllers\StoreUserAccountController;
+use App\Modules\Core\Users\Presentation\Http\Controllers\UpdateUserAccountController;
+use App\Modules\Core\Users\Presentation\Http\Controllers\UserAccountActionController;
+use App\Modules\Core\Users\Presentation\Http\Controllers\UserAdministrationController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
-Route::middleware('auth')->group(function (): void {
+Route::middleware(['auth', 'password.confirm', 'route.permission'])->group(function (): void {
     Route::get('/admin', fn () => Inertia::render('Admin/SystemStatus'))->name('admin.system-status');
+    Route::get('/admin/users', UserAdministrationController::class)->name('admin.users.index');
+    Route::get('/admin/users/create', CreateUserAccountController::class)->name('admin.users.create');
+    Route::post('/admin/users', StoreUserAccountController::class)->name('admin.users.store');
+    Route::get('/admin/users/{user}/edit', EditUserAccountController::class)->name('admin.users.edit');
+    Route::patch('/admin/users/{user}', UpdateUserAccountController::class)->name('admin.users.update');
+    Route::post('/admin/users/{user}/activate', [UserAccountActionController::class, 'activate'])->name('admin.users.activate');
+    Route::post('/admin/users/{user}/deactivate', [UserAccountActionController::class, 'deactivate'])->name('admin.users.deactivate');
+    Route::post('/admin/users/{user}/verify-email', [UserAccountActionController::class, 'verifyEmail'])->name('admin.users.verify-email');
+    Route::post('/admin/users/{user}/require-email-verification', [UserAccountActionController::class, 'requireEmailVerification'])->name('admin.users.require-email-verification');
+    Route::post('/admin/users/{user}/resend-first-password', [UserAccountActionController::class, 'resendFirstPassword'])->name('admin.users.resend-first-password');
+    Route::post('/admin/users/{user}/unlock', [UserAccountActionController::class, 'unlock'])->name('admin.users.unlock');
+    Route::post('/admin/users/{user}/reset-mfa', [UserAccountActionController::class, 'resetMfa'])->name('admin.users.reset-mfa');
+    Route::get('/admin/teams', TeamAdministrationController::class)->name('admin.teams.index');
+    Route::get('/admin/teams/create', [TeamAdministrationController::class, 'create'])->name('admin.teams.create');
+    Route::post('/admin/teams', [TeamAdministrationController::class, 'store'])->name('admin.teams.store');
+    Route::get('/admin/teams/{team}/edit', [TeamAdministrationController::class, 'edit'])->name('admin.teams.edit');
+    Route::patch('/admin/teams/{team}', [TeamAdministrationController::class, 'update'])->name('admin.teams.update');
+    Route::post('/admin/teams/{team}/activate', [TeamAdministrationController::class, 'activate'])->name('admin.teams.activate');
+    Route::post('/admin/teams/{team}/deactivate', [TeamAdministrationController::class, 'deactivate'])->name('admin.teams.deactivate');
+    Route::delete('/admin/teams/{team}', [TeamAdministrationController::class, 'destroy'])->name('admin.teams.destroy');
+    Route::get('/admin/authorization/roles', RoleAdministrationController::class)->name('admin.authorization.roles.index');
+    Route::get('/admin/authorization/roles/create', CreateRoleController::class)->name('admin.authorization.roles.create');
+    Route::post('/admin/authorization/roles', StoreRoleController::class)->name('admin.authorization.roles.store');
+    Route::get('/admin/authorization/roles/{role}/edit', EditRoleController::class)->name('admin.authorization.roles.edit');
+    Route::patch('/admin/authorization/roles/{role}', UpdateRoleController::class)->name('admin.authorization.roles.update');
+    Route::delete('/admin/authorization/roles/{role}', DestroyRoleController::class)->name('admin.authorization.roles.destroy');
+    Route::get('/admin/authorization/packages', OnboardingPackageAdministrationController::class)->name('admin.authorization.packages.index');
+    Route::get('/admin/authorization/packages/create', CreateOnboardingPackageController::class)->name('admin.authorization.packages.create');
+    Route::post('/admin/authorization/packages', StoreOnboardingPackageController::class)->name('admin.authorization.packages.store');
+    Route::get('/admin/authorization/packages/{package}/edit', EditOnboardingPackageController::class)->name('admin.authorization.packages.edit');
+    Route::patch('/admin/authorization/packages/{package}', UpdateOnboardingPackageController::class)->name('admin.authorization.packages.update');
+    Route::delete('/admin/authorization/packages/{package}', DestroyOnboardingPackageController::class)->name('admin.authorization.packages.destroy');
+    Route::get('/admin/authorization/permissions', PermissionAdministrationController::class)->name('admin.authorization.permissions.index');
 });

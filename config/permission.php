@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Modules\Core\Teams\Infrastructure\Persistence\Team;
 use Spatie\Permission\DefaultTeamResolver;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
@@ -10,7 +11,7 @@ return [
     'models' => [
         'permission' => Permission::class,
         'role' => Role::class,
-        'team' => null,
+        'team' => Team::class,
         'default_model' => null,
     ],
 

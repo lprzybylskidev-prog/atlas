@@ -6,7 +6,7 @@ Canonical security and behavior contract for Admin mode, high-risk reauthenticat
 
 Administrators use ordinary user accounts with an explicit administrative mode.
 
-Entering administrative mode requires reauthentication.
+Entering administrative mode requires reauthentication. Current Admin panel routes require Laravel password confirmation before access to `/admin...` pages and actions.
 
 While the administrative session remains valid, multiple impersonations may be started without repeating password and MFA each time. High-risk operations may still require separate reauthentication.
 

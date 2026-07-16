@@ -26,6 +26,7 @@ return new class extends Migration
 
         Schema::create($permissionsTable, static function (Blueprint $table) {
             $table->id();
+            $table->ulid('public_id')->unique();
             $table->string('name');
             $table->string('guard_name');
             $table->timestamps();
@@ -35,6 +36,7 @@ return new class extends Migration
 
         Schema::create($rolesTable, static function (Blueprint $table) use ($teamForeignKey, $teams) {
             $table->id();
+            $table->ulid('public_id')->unique();
             if ($teams || config('permission.testing')) {
                 $table->unsignedBigInteger($teamForeignKey)->nullable();
                 $table->index($teamForeignKey, 'roles_team_foreign_key_index');

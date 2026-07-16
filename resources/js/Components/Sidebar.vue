@@ -1,31 +1,107 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
-import { IconGauge } from '@tabler/icons-vue';
+import { IconChevronDown, IconGauge, IconKey, IconPackages, IconShieldCheck, IconUserPlus, IconUsersGroup } from '@tabler/icons-vue';
 import type { FunctionalComponent } from 'vue';
 import { computed } from 'vue';
 
 import AtlasLogo from './AtlasLogo.vue';
+import SidebarNavNode from './SidebarNavNode.vue';
+import Tooltip from './Tooltip.vue';
 import { useSidebar } from '../Composables/useSidebar';
 import { useTranslator } from '../Localization/translator';
+import type { NavigationNode } from '../Types/navigation';
 
-interface NavigationItem {
+interface NavigationGroup {
+    key: string;
     label: string;
-    href: string;
     icon: FunctionalComponent;
-    active: boolean;
+    items: NavigationNode[];
 }
 
 const props = defineProps<{
     currentPath: string;
+    mode?: 'app' | 'admin';
     uiLocale?: string;
 }>();
 
-const { isSidebarCollapsed, isSidebarTextVisible } = useSidebar();
+const { isNavigationNodeExpanded, isSidebarCollapsed, isSidebarTextVisible, setNavigationNodeExpanded } = useSidebar();
 const { t } = useTranslator(props.uiLocale);
 
-const items = computed<NavigationItem[]>(() => [
-    { label: t('navigation.dashboard'), href: '/', icon: IconGauge, active: props.currentPath === '/' },
-]);
+const groups = computed<NavigationGroup[]>(() => {
+    const workspace = {
+        key: 'workspace',
+        label: t('navigation.group.workspace'),
+        icon: IconGauge,
+        items: [
+            { key: 'workspace.dashboard', label: t('navigation.dashboard'), href: '/', icon: IconGauge, active: props.currentPath === '/' },
+        ],
+    };
+
+    if (props.mode !== 'admin') {
+        return [workspace];
+    }
+
+    return [
+        workspace,
+        {
+            key: 'identity-access',
+            label: t('navigation.group.identity_access'),
+            icon: IconShieldCheck,
+            items: [
+                {
+                    key: 'identity-access.users',
+                    label: t('navigation.users'),
+                    href: '/admin/users',
+                    icon: IconUserPlus,
+                    active: props.currentPath.startsWith('/admin/users'),
+                },
+                {
+                    key: 'identity-access.roles',
+                    label: t('navigation.roles'),
+                    href: '/admin/authorization/roles',
+                    icon: IconShieldCheck,
+                    active: props.currentPath === '/admin/authorization/roles',
+                },
+                {
+                    key: 'identity-access.packages',
+                    label: t('navigation.packages'),
+                    href: '/admin/authorization/packages',
+                    icon: IconPackages,
+                    active: props.currentPath === '/admin/authorization/packages',
+                },
+                {
+                    key: 'identity-access.permissions',
+                    label: t('navigation.permissions'),
+                    href: '/admin/authorization/permissions',
+                    icon: IconKey,
+                    active: props.currentPath === '/admin/authorization/permissions',
+                },
+            ],
+        },
+        {
+            key: 'organization',
+            label: t('navigation.group.organization'),
+            icon: IconUsersGroup,
+            items: [
+                {
+                    key: 'organization.teams',
+                    label: t('navigation.teams'),
+                    href: '/admin/teams',
+                    icon: IconUsersGroup,
+                    active: props.currentPath === '/admin/teams',
+                },
+            ],
+        },
+    ];
+});
+
+function updateExpandedNavigationState(key: string, event: Event): void {
+    const target = event.currentTarget;
+
+    if (target instanceof HTMLDetailsElement) {
+        setNavigationNodeExpanded(key, target.open);
+    }
+}
 </script>
 
 <template>
@@ -43,40 +119,103 @@ const items = computed<NavigationItem[]>(() => [
             />
         </div>
 
-        <nav class="space-y-1 px-3 py-4" :aria-label="t('navigation.aria.main')">
-            <Link
-                v-for="item in items"
-                :key="item.label"
-                :href="item.href"
-                class="group relative flex h-11 w-full items-center gap-3 rounded-lg px-3 text-sm font-medium transition"
-                :class="[
-                    item.active
-                        ? 'bg-teal-50 text-teal-900 ring-1 ring-teal-100 dark:bg-teal-950 dark:text-teal-100 dark:ring-teal-900'
-                        : 'text-zinc-600 hover:bg-zinc-100 hover:text-zinc-950 dark:text-zinc-300 dark:hover:bg-zinc-900 dark:hover:text-zinc-50',
-                ]"
+        <nav v-if="mode !== 'admin'" class="space-y-1 px-3 py-4" :aria-label="t('navigation.aria.main')">
+            <Tooltip
+                v-for="item in groups[0]?.items ?? []"
+                :key="item.key"
+                :text="item.label"
+                :disabled="isSidebarTextVisible"
+                placement="right"
+                class="w-full"
             >
-                <component
-                    :is="item.icon"
-                    aria-hidden="true"
-                    class="h-5 w-5 shrink-0 transition-transform duration-300 ease-in-out"
-                    :class="{ 'translate-x-2': isSidebarCollapsed }"
-                    :stroke-width="1.8"
-                />
-                <span
-                    class="overflow-hidden truncate whitespace-nowrap transition-[max-width,opacity,transform] duration-300 ease-in-out"
-                    :class="
-                        isSidebarTextVisible ? 'max-w-40 translate-x-0 opacity-100' : 'pointer-events-none max-w-0 -translate-x-1 opacity-0'
-                    "
+                <Link
+                    :href="item.href ?? '#'"
+                    class="group relative flex h-11 w-full items-center rounded-lg text-sm font-medium transition"
+                    :class="[
+                        item.active
+                            ? 'bg-teal-50 text-teal-900 ring-1 ring-teal-100 dark:bg-teal-950 dark:text-teal-100 dark:ring-teal-900'
+                            : 'text-zinc-600 hover:bg-zinc-100 hover:text-zinc-950 dark:text-zinc-300 dark:hover:bg-zinc-900 dark:hover:text-zinc-50',
+                        isSidebarTextVisible ? 'gap-3 px-3' : 'justify-center gap-0 px-0',
+                    ]"
                 >
-                    {{ item.label }}
-                </span>
-                <span
-                    v-if="isSidebarCollapsed"
-                    class="pointer-events-none absolute left-full z-50 ml-2 hidden rounded-md bg-zinc-950 px-2 py-1 text-xs font-medium text-white shadow-lg group-hover:block group-focus-visible:block dark:bg-zinc-100 dark:text-zinc-950"
+                    <component
+                        :is="item.icon"
+                        aria-hidden="true"
+                        class="h-5 w-5 shrink-0 transition-transform duration-300 ease-in-out"
+                        :stroke-width="1.8"
+                    />
+                    <span
+                        class="overflow-hidden truncate whitespace-nowrap transition-[max-width,opacity,transform] duration-300 ease-in-out"
+                        :class="
+                            isSidebarTextVisible
+                                ? 'max-w-40 translate-x-0 opacity-100'
+                                : 'pointer-events-none max-w-0 -translate-x-1 opacity-0'
+                        "
+                    >
+                        {{ item.label }}
+                    </span>
+                </Link>
+            </Tooltip>
+        </nav>
+
+        <nav v-else class="space-y-3 px-3 py-4" :aria-label="t('navigation.aria.main')">
+            <details
+                v-for="group in groups"
+                :key="group.key"
+                class="group/nav"
+                :open="isNavigationNodeExpanded(group.key)"
+                @toggle="updateExpandedNavigationState(group.key, $event)"
+            >
+                <summary
+                    class="group/main-nav relative flex h-9 w-full cursor-pointer list-none items-center rounded-lg border border-zinc-200/70 bg-zinc-50/70 text-xs font-semibold text-zinc-500 transition-[padding,color,background-color,border-color] duration-300 ease-in-out hover:border-zinc-300 hover:bg-zinc-100 hover:text-zinc-800 dark:border-zinc-800/80 dark:bg-zinc-900/45 dark:text-zinc-300 dark:hover:border-zinc-700 dark:hover:bg-zinc-900 dark:hover:text-zinc-100 [&::-webkit-details-marker]:hidden"
+                    :class="isSidebarTextVisible ? 'justify-between px-3 uppercase' : 'justify-center gap-0.5 px-1'"
                 >
-                    {{ item.label }}
-                </span>
-            </Link>
+                    <span
+                        class="flex min-w-0 items-center transition-[gap,transform] duration-300 ease-in-out"
+                        :class="isSidebarTextVisible ? 'gap-2' : 'gap-0'"
+                    >
+                        <component
+                            :is="group.icon"
+                            aria-hidden="true"
+                            class="h-5 w-5 shrink-0 transition-transform duration-300 ease-in-out"
+                            :stroke-width="1.8"
+                        />
+                        <span
+                            class="overflow-hidden truncate whitespace-nowrap transition-[max-width,opacity,transform] duration-300 ease-in-out"
+                            :class="
+                                isSidebarTextVisible
+                                    ? 'max-w-44 translate-x-0 opacity-100'
+                                    : 'pointer-events-none max-w-0 -translate-x-1 opacity-0'
+                            "
+                        >
+                            {{ group.label }}
+                        </span>
+                    </span>
+                    <IconChevronDown
+                        aria-hidden="true"
+                        class="h-4 w-4 shrink-0 text-zinc-400 transition-transform duration-300 ease-in-out dark:text-zinc-500"
+                        :class="[isNavigationNodeExpanded(group.key) ? 'rotate-180' : 'rotate-0', { 'h-3.5 w-3.5': isSidebarCollapsed }]"
+                        :stroke-width="1.8"
+                    />
+                    <span
+                        v-if="!isSidebarTextVisible"
+                        role="tooltip"
+                        class="pointer-events-none absolute top-1/2 left-full z-50 ml-2 -translate-y-1/2 translate-x-1 rounded-md bg-zinc-950 px-2 py-1 text-xs font-medium whitespace-nowrap text-white opacity-0 shadow-lg transition-[opacity,transform] duration-300 ease-in-out group-hover/main-nav:translate-x-0 group-hover/main-nav:opacity-100 group-focus-within/main-nav:translate-x-0 group-focus-within/main-nav:opacity-100 dark:bg-zinc-100 dark:text-zinc-950"
+                    >
+                        {{ group.label }}
+                    </span>
+                </summary>
+                <div class="space-y-1 pt-2" :class="isSidebarTextVisible ? 'pl-2' : ''">
+                    <SidebarNavNode
+                        v-for="item in group.items"
+                        :key="item.key"
+                        :node="item"
+                        :collapsed="isSidebarCollapsed"
+                        :text-visible="isSidebarTextVisible"
+                        :depth="0"
+                    />
+                </div>
+            </details>
         </nav>
     </aside>
 </template>

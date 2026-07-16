@@ -25,6 +25,8 @@ final class UsersModule implements ModuleDefinition
     {
         return [
             new ModuleKey('identity'),
+            new ModuleKey('authorization'),
+            new ModuleKey('teams'),
         ];
     }
 

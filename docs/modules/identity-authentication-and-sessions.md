@@ -43,6 +43,8 @@ Current persistence baseline:
 
 Administrator-created accounts are stored active but awaiting first-password setup. The system stores only an internal random password hash during account creation and never sends that generated value to the user. The user receives a reset-token-backed first-password link. When the first password is set, `first_password_set_at` and `email_verified_at` are populated together.
 
+Administrators may require email re-verification for an existing user. This clears `email_verified_at` and sends an Atlas-owned email verification link only; it does not clear `first_password_set_at`, reset the password, send a first-password link, or require the user to choose a new password.
+
 User lifecycle activation and deactivation are exposed through `App\Modules\Core\Users\Application\ActivateUserAccount` and `App\Modules\Core\Users\Application\DeactivateUserAccount`. Deactivation sets `users.is_active` to false and records `users.deactivated_at`; activation sets `users.is_active` to true and clears `users.deactivated_at`. Deactivated users receive the same generic failed-login behavior as invalid credentials.
 
 The guest reset password page is owned by Atlas at `/reset-password/{token}` and posts to Fortify's reset endpoint. Reset tokens are short-lived according to `config/auth.php`; Laravel's password broker deletes older tokens when a new token is created and deletes the used token after a successful reset.

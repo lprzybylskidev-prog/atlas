@@ -47,7 +47,7 @@ Atlas provides one explicit command to recreate or reset the complete local/deve
 composer demo:reset
 ```
 
-The command runs `php artisan demo:reset`, recreates the database schema, runs production-safe technical seeders, and then runs development-only demo seeders.
+The command runs `php artisan demo:reset`, clears cached application state and sessions, recreates the database schema, runs production-safe technical seeders, runs development-only demo seeders, and clears cached/session state again so stale browser sessions do not retain old active-team data.
 
 The demo reset command must refuse to run outside approved local or development environments.
 
@@ -57,9 +57,9 @@ Automated tests use factories and explicit fixtures. The current Playwright shel
 
 ## Current development demo account
 
-The development demo reset currently creates one local preview account so the first frontend shell can be reviewed through the real Fortify login flow:
+The development demo reset creates one local administrator account plus three teams, three admin-managed onboarding presets, and faker-generated users with preset assignments so the frontend shell and authorization screens can be reviewed through the real Fortify login flow:
 
-- email: `atlas@example.test`;
+- email: `admin@example.test`;
 - password: `password`.
 
 This account is for local development review only. It must not be reused as a production bootstrap credential.

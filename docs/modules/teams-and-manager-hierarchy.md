@@ -6,6 +6,15 @@ Canonical behavior for teams, assignments, effective dates, manager DAG, direct 
 
 A user may belong to multiple teams but has one active team per session.
 
+Current implementation foundation:
+
+- `App\Modules\Core\Teams\TeamsModule` owns team identity and team permission declarations;
+- `teams.id` is the internal BIGINT identifier;
+- `teams.public_id` is the public ULID identifier;
+- `App\Modules\Core\Teams\Domain\ValueObjects\TeamPublicId` is the typed domain identifier for team public IDs;
+- `team_user_assignments` stores the current team membership foundation used by active-team authorization checks.
+- `App\Modules\Core\Teams\Application\Public\Contracts\BootstrapTeamProvider` exposes the narrow public bootstrap contract used by first-administrator and demo setup flows.
+
 Manager relationships are team-scoped.
 
 Support:

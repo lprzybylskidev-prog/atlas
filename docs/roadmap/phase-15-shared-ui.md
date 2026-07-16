@@ -2,6 +2,8 @@
 
 ### Implementation contract
 
+Partial pull-forward note: Phase 7 Admin table work may implement the minimum shared modal, toast, DataTable i18n, selection, export-scope, and bulk-action foundations required by current Admin screens. The remaining Phase 15 items stay open until the full shared UI foundation, destructive/typed confirmation variants, form components, formatters, accessibility coverage, and theme verification are completed.
+
 - Build shared components before business modules need local substitutes.
 - Reuse or extend an existing component before creating another.
 - Avoid duplicates while also avoiding god-components; extract a stable common core with focused variants/adapters.
