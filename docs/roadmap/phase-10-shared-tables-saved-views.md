@@ -1,6 +1,6 @@
 ## Phase 10 — Shared tables and saved views
 
-**Status:** `not started`
+**Status:** `complete`
 
 ## Objective
 
@@ -37,32 +37,32 @@ The Phase 7 Admin work created the first shared DataTable foundation for current
 
 ## Tasks
 
-- [ ] Build or complete the shared TanStack Table wrapper for all current and planned table screens.
-- [ ] Add server-side pagination.
-- [ ] Add server-side sorting.
-- [ ] Add server-side filtering.
-- [ ] Add backend allowlists for columns, filters, and sorting.
-- [ ] Add deterministic URL query synchronization.
-- [ ] Add column visibility.
-- [ ] Add column ordering.
-- [ ] Add selection.
-- [ ] Add loading, empty, error, and no-results states.
-- [ ] Add private saved views.
-- [ ] Add team-shared saved views.
-- [ ] Add system views.
-- [ ] Add default-view support.
-- [ ] Add view copy.
-- [ ] Prevent overwrite/delete of system views.
-- [ ] Define stable audit events for shared-view changes and wire them to the current audit bridge without creating a later producer-contract change.
-- [ ] Verify all table and saved-view states in light and dark themes.
-- [ ] Add frontend, backend, and browser coverage for table state, authorization boundaries, and query-string determinism.
-- [ ] Update architecture documentation for table versus report/export scope.
-- [ ] Commit shared tables and saved views.
+- [x] Build or complete the shared TanStack Table wrapper for all current and planned table screens.
+- [x] Add server-side pagination.
+- [x] Add server-side sorting.
+- [x] Add server-side filtering.
+- [x] Add backend allowlists for columns, filters, and sorting.
+- [x] Add deterministic URL query synchronization.
+- [x] Add column visibility.
+- [x] Add column ordering.
+- [x] Add selection.
+- [x] Add loading, empty, error, and no-results states.
+- [x] Add private saved views.
+- [x] Add team-shared saved views.
+- [x] Add system views.
+- [x] Add default-view support.
+- [x] Add view copy.
+- [x] Prevent overwrite/delete of system views.
+- [x] Define stable audit events for shared-view changes and wire them to the current audit bridge without creating a later producer-contract change.
+- [x] Verify all table and saved-view states in light and dark themes.
+- [x] Add frontend, backend, and browser coverage for table state, authorization boundaries, and query-string determinism.
+- [x] Update architecture documentation for table versus report/export scope.
+- [x] Commit shared tables and saved views.
 
 ## Completion criteria
 
-- [ ] New tabular screens can use the shared table/saved-view framework without local substitutes.
-- [ ] Table state is deterministic, shareable where appropriate, and free of sensitive URL values.
-- [ ] Backend validation covers columns, filters, sorting, pagination, and saved-view mutations.
-- [ ] Full report/export/PDF artifact lifecycle work remains explicitly deferred to Phase 24 without leaving table gaps.
-- [ ] Relevant tests and documentation are current.
+- [x] New tabular screens can use the shared table/saved-view framework without local substitutes.
+- [x] Table state is deterministic, shareable where appropriate, and free of sensitive URL values.
+- [x] Backend validation covers columns, filters, sorting, pagination, and saved-view mutations.
+- [x] Full report/export/PDF artifact lifecycle work remains explicitly deferred to Phase 24 without leaving table gaps.
+- [x] Relevant tests and documentation are current.

@@ -39,6 +39,16 @@ final class CoreAuthorizationPermissionCatalog implements ModulePermissionContri
 
     public const ADMIN_AUTHORIZATION_PERMISSIONS = 'admin.authorization.permissions.index';
 
+    public const ADMIN_TABLE_VIEWS_STORE = 'admin.table-views.store';
+
+    public const ADMIN_TABLE_VIEWS_UPDATE = 'admin.table-views.update';
+
+    public const ADMIN_TABLE_VIEWS_DELETE = 'admin.table-views.destroy';
+
+    public const ADMIN_TABLE_VIEWS_COPY = 'admin.table-views.copy';
+
+    public const ADMIN_TABLE_VIEWS_DEFAULT = 'admin.table-views.default';
+
     public const ROLES_VIEW = 'authorization.roles.view';
 
     public const ROLES_CREATE = 'authorization.roles.create';
@@ -97,6 +107,11 @@ final class CoreAuthorizationPermissionCatalog implements ModulePermissionContri
             new ModulePermissionDefinition(self::ADMIN_AUTHORIZATION_PACKAGES_UPDATE, 'Update onboarding packages.'),
             new ModulePermissionDefinition(self::ADMIN_AUTHORIZATION_PACKAGES_DELETE, 'Delete onboarding packages.'),
             new ModulePermissionDefinition(self::ADMIN_AUTHORIZATION_PERMISSIONS, 'View permission administration.'),
+            new ModulePermissionDefinition(self::ADMIN_TABLE_VIEWS_STORE, 'Create saved table views.'),
+            new ModulePermissionDefinition(self::ADMIN_TABLE_VIEWS_UPDATE, 'Update saved table views.'),
+            new ModulePermissionDefinition(self::ADMIN_TABLE_VIEWS_DELETE, 'Delete saved table views.'),
+            new ModulePermissionDefinition(self::ADMIN_TABLE_VIEWS_COPY, 'Copy saved table views.'),
+            new ModulePermissionDefinition(self::ADMIN_TABLE_VIEWS_DEFAULT, 'Set a default saved table view.'),
             new ModulePermissionDefinition(self::ROLES_VIEW, 'View roles.'),
             new ModulePermissionDefinition(self::ROLES_CREATE, 'Create roles.'),
             new ModulePermissionDefinition(self::ROLES_UPDATE, 'Update roles.'),

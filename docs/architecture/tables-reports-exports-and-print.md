@@ -6,9 +6,11 @@ Canonical shared contract for data tables, query strings, saved views, exports, 
 
 Every table uses the shared TanStack Table wrapper.
 
-The current Phase 7 foundation provides the first shared TanStack `DataTable` wrapper, initially used by operational Admin tables and reusable by later application tables. Phase 8 verifies and closes any remaining current-screen inconsistencies. The current wrapper includes local search, sorting, pagination, column visibility, row selection, empty state, row actions, and local CSV/XLSX/PDF/print actions for the currently loaded visible dataset. Persisted table instances store search, sorting, pagination, and column visibility under a stable table key; row selection is intentionally not persisted.
+The Phase 10 shared `DataTable` wrapper is the only application table framework. Current Admin tables use backend-validated table state, server-side pagination, sorting, and filtering, deterministic English query-string keys, column visibility/order state, row selection for the currently loaded page, loading/empty/error/no-results states, row actions, and local CSV/XLSX/PDF/print actions for the currently loaded visible dataset.
 
-Phase 10 completes the full shared table and saved-view foundation, including server-side pagination, filtering, sorting, backend allowlists, URL synchronization, and saved views. Phase 24 implements the later report/export/PDF/chart/print artifact lifecycle after files, notifications, audit, active-team context, and operational visibility exist.
+Saved views persist safe table configuration only: search/filter state, sorting, visible columns, column order, grouping keys, and fixed or dynamic time-range metadata. They never persist row data. Private views are owner-scoped, team-shared views are active-team scoped, and system views are read-only from the normal table UI. System views may be copied into private or team-shared views. Shared/system view changes are recorded through the current security audit bridge until the full Phase 11 Audit module exists.
+
+Phase 24 implements the later report/export/PDF/chart/print artifact lifecycle after files, notifications, audit, active-team context, and operational visibility exist.
 
 Admin table data columns place `public_id` first. Admin tables expose all safe non-secret columns from their backing table through the column visibility menu, while default visibility stays limited to the most operationally important fields. Secret values such as passwords, remember tokens, authentication tokens, MFA secrets, and recovery codes are never exposed as table columns.
 
@@ -36,7 +38,7 @@ Filters, sorting, page, and search use stable English query names.
 
 Do not put sensitive information in URLs.
 
-Backend validates all requested filters, columns, and sorting.
+Backend validates all requested filters, columns, sorting, pagination, saved-view state, and saved-view mutations.
 
 ### Saved views
 
@@ -59,7 +61,7 @@ System views:
 
 - cannot be deleted;
 - cannot be overwritten;
-- may be copied;
+- may be copied into private or team-shared views;
 - may be managed centrally where justified.
 
 Shared-view changes are audited.

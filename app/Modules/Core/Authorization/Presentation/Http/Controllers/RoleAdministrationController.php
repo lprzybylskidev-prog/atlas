@@ -4,15 +4,30 @@ declare(strict_types=1);
 
 namespace App\Modules\Core\Authorization\Presentation\Http\Controllers;
 
+use App\Shared\Application\Tables\AdminTableDefinitions;
+use App\Shared\Application\Tables\ArrayTableProcessor;
+use App\Shared\Application\Tables\TableRequestContext;
+use App\Shared\Application\Tables\TableSavedViewService;
+use App\Shared\Application\Tables\TableState;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 
-final class RoleAdministrationController
+final readonly class RoleAdministrationController
 {
-    public function __invoke(): Response
+    public function __construct(
+        private ArrayTableProcessor $tables,
+        private TableSavedViewService $views,
+        private TableRequestContext $context,
+    ) {}
+
+    public function __invoke(Request $request): Response
     {
-        $roles = DB::table('roles')
+        $definition = AdminTableDefinitions::get(AdminTableDefinitions::ROLES);
+        $state = TableState::fromRequest($request, $definition);
+        [$userId, $teamId] = $this->context->userTeam($request);
+        $roles = array_values(DB::table('roles')
             ->leftJoin('role_has_permissions', 'roles.id', '=', 'role_has_permissions.role_id')
             ->select(
                 'roles.id',
@@ -25,13 +40,15 @@ final class RoleAdministrationController
                 DB::raw('count(role_has_permissions.permission_id) as permissions_count'),
             )
             ->groupBy('roles.id', 'roles.public_id', 'roles.team_id', 'roles.name', 'roles.guard_name', 'roles.created_at', 'roles.updated_at')
-            ->orderBy('roles.name')
             ->get()
             ->map(static fn (object $role): array => self::roleRow($role))
-            ->all();
+            ->all());
+        $result = $this->tables->process($roles, $definition, $state)
+            ->withSavedViews($this->views->listFor($definition->key, $userId, $teamId));
 
         return Inertia::render('Admin/Authorization/Roles', [
-            'roles' => $roles,
+            'roles' => $result->rows,
+            'table' => $result->tableMeta($definition->key),
         ]);
     }
 

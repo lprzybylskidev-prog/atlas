@@ -23,9 +23,9 @@ Entering `/admin...` routes requires authenticated users to confirm their passwo
 
 The regular application shell shows the Admin entry only when the backend-provided `auth.availableAdminRoutes` includes an available Admin route for the current user/team context. This is UI visibility only; Admin route middleware remains the authorization boundary.
 
-Current Admin tables use the shared `DataTable` wrapper. Their first data column is `public_id`, they keep the most important operational columns visible by default, and they expose remaining safe non-secret table columns through the Columns menu. Search, sorting, pagination, and column visibility persist per table across refreshes and Admin actions. When an Admin index exposes safe row actions, the same supported mutating actions are also available as selected-row bulk actions.
+Current Admin tables use the shared `DataTable` wrapper. Their first data column is `public_id`, they keep the most important operational columns visible by default, and they expose remaining safe non-secret table columns through the Columns menu. Search, sorting, pagination, column visibility, and column order are backend-validated and synchronized through deterministic English query-string keys. Admin users can save private or active-team-shared table views, set a default view, copy a system/shared view, and delete only editable non-system views. Team-shared saved-view changes are recorded through the current security audit bridge. When an Admin index exposes safe row actions, the same supported mutating actions are also available as selected-row bulk actions for the currently loaded page.
 
-Phase 8 verifies the current Admin UI/table foundation after Phase 7. Phase 9 completes shared UI primitives and Phase 10 completes the full shared table/saved-view contract before additional Admin areas rely on broader table behavior.
+Phase 8 verifies the current Admin UI/table foundation after Phase 7. Phase 9 completes shared UI primitives and Phase 10 completes the shared table/saved-view contract before additional Admin areas rely on broader table behavior.
 
 Initial areas:
 

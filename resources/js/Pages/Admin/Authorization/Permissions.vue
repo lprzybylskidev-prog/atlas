@@ -3,7 +3,7 @@ import { Head } from '@inertiajs/vue3';
 
 import DataTable from '../../../Components/DataTable.vue';
 import AdminLayout from '../../../Layouts/AdminLayout.vue';
-import type { DataTableColumn } from '../../../Types/data-table';
+import type { DataTableColumn, DataTableMeta } from '../../../Types/data-table';
 import { useTranslator } from '../../../Localization/translator';
 
 interface PermissionRow extends Record<string, unknown> {
@@ -24,6 +24,7 @@ interface PermissionRow extends Record<string, unknown> {
 
 defineProps<{
     permissions: PermissionRow[];
+    table: DataTableMeta;
 }>();
 
 const { t } = useTranslator('en');
@@ -48,14 +49,7 @@ const columns: DataTableColumn<PermissionRow>[] = [
     <Head :title="t('pages.admin.permissions.head_title')" />
     <AdminLayout :title="t('pages.admin.permissions.title')">
         <section class="space-y-5">
-            <DataTable
-                title="Permissions"
-                :rows="permissions"
-                :columns="columns"
-                row-key="publicId"
-                ui-locale="en"
-                state-key="admin.authorization.permissions"
-            />
+            <DataTable title="Permissions" :rows="permissions" :columns="columns" row-key="publicId" :table="table" ui-locale="en" />
         </section>
     </AdminLayout>
 </template>

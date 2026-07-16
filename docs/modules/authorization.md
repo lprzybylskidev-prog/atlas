@@ -48,7 +48,7 @@ Current implementation foundation:
 - Admin onboarding preset administration is available at `/admin/authorization/packages`; preset creation and editing use separate Admin views and let administrators manage local presets from existing roles and permissions.
 - Admin team administration screens are available at `/admin/teams`; team creation and editing use separate Admin views and show team identity and active state.
 - Admin user administration is available at `/admin/users`, shows users in the shared TanStack `DataTable`, supports current account-status actions, shows exact onboarding package contents before submission, can copy active-team role/direct-permission assignments from another user with preview, and routes account creation through the normal user creation use case.
-- Current Admin tables use the shared `DataTable` wrapper with client CSV, XLSX, PDF, and print export actions for the visible/filterable operational dataset. Server-side queued exports remain part of the later reporting/export lifecycle.
+- Current Admin tables use the shared `DataTable` wrapper with backend-validated query-string state, server-side pagination/sorting/filtering, saved views, and client CSV, XLSX, PDF, and print export actions for the currently loaded visible dataset. Server-side queued exports remain part of the later reporting/export lifecycle.
 
 Starter roles:
 

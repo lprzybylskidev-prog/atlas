@@ -1,5 +1,5 @@
 <script setup lang="ts" generic="TRow extends Record<string, unknown>">
-import { Link } from '@inertiajs/vue3';
+import { Link, router } from '@inertiajs/vue3';
 import {
     FlexRender,
     getCoreRowModel,
@@ -42,7 +42,7 @@ import { useModal } from '../Composables/useModal';
 import { useToast } from '../Composables/useToast';
 import type { TranslationKey } from '../Localization/catalog';
 import { useTranslator } from '../Localization/translator';
-import type { DataTableAction, DataTableBulkAction, DataTableColumn } from '../Types/data-table';
+import type { DataTableAction, DataTableBulkAction, DataTableColumn, DataTableMeta, DataTableSavedView } from '../Types/data-table';
 import {
     formatDate,
     formatDateTime,
@@ -73,6 +73,9 @@ const props = withDefaults(
         uiLocale?: string;
         stateKey?: string;
         bulkActionHandler?: (payload: { action: DataTableBulkAction; rowIds: string[] }) => void | Promise<void>;
+        table?: DataTableMeta;
+        loading?: boolean;
+        errorLabel?: string | null;
     }>(),
     {
         actions: () => [],
@@ -83,6 +86,9 @@ const props = withDefaults(
         uiLocale: undefined,
         stateKey: undefined,
         bulkActionHandler: undefined,
+        table: undefined,
+        loading: false,
+        errorLabel: null,
     },
 );
 
@@ -97,24 +103,60 @@ interface PersistedTableState {
     pagination?: PaginationState;
 }
 
+interface SavedViewStatePayload {
+    [key: string]: string | string[] | Record<string, string | number | boolean | null> | null | undefined;
+    sort: string;
+    direction: 'asc' | 'desc';
+    search: string;
+    columns: string[];
+    columnOrder: string[];
+    filters?: Record<string, string | number | boolean | null>;
+    grouping?: string[];
+    timeRange?: DataTableMeta['state']['timeRange'];
+}
+
 const defaultColumnVisibility = (): VisibilityState =>
     Object.fromEntries(props.columns.map((column) => [column.key, column.hidden !== true]));
+const serverDriven = computed(() => props.table !== undefined);
 const persistedState = readPersistedState();
-const sorting = ref<SortingState>(persistedState.sorting ?? []);
-const globalFilter = ref(persistedState.globalFilter ?? '');
-const pagination = ref<PaginationState>(persistedState.pagination ?? { pageIndex: 0, pageSize: 10 });
+const sorting = ref<SortingState>(initialSorting());
+const globalFilter = ref(serverDriven.value ? (props.table?.state.search ?? '') : (persistedState.globalFilter ?? ''));
+const pagination = ref<PaginationState>(
+    serverDriven.value
+        ? { pageIndex: Math.max(0, (props.table?.state.page ?? 1) - 1), pageSize: props.table?.state.perPage ?? 10 }
+        : (persistedState.pagination ?? { pageIndex: 0, pageSize: 10 }),
+);
 const rowSelection = ref({});
 const columnsMenu = ref<HTMLDetailsElement | null>(null);
 const exportMenu = ref<HTMLDetailsElement | null>(null);
+const viewsMenu = ref<HTMLDetailsElement | null>(null);
 const { t } = useTranslator(props.uiLocale);
 const { busy, confirm } = useModal();
 const toast = useToast();
 const columnVisibility = ref<VisibilityState>(normalizeColumnVisibility(persistedState.columnVisibility));
+const savedViewName = ref('');
+const savedViewType = ref<'private' | 'team'>('private');
+const selectedViewId = ref(props.table?.state.view ?? '');
+let serverSyncTimer: ReturnType<typeof window.setTimeout> | undefined;
+let syncingServerState = false;
 
 const selectable = computed(() => props.exportable || props.bulkActions.length > 0);
+const orderedColumns = computed(() => {
+    const order = props.table?.state.columnOrder ?? [];
+
+    if (order.length === 0) {
+        return props.columns;
+    }
+
+    const rank = new Map(order.map((key, index) => [key, index]));
+
+    return [...props.columns].sort(
+        (first, second) => (rank.get(first.key) ?? Number.MAX_SAFE_INTEGER) - (rank.get(second.key) ?? Number.MAX_SAFE_INTEGER),
+    );
+});
 
 const tableColumns = computed<ColumnDef<TRow, unknown>[]>(() => {
-    const dataColumns = props.columns.map(
+    const dataColumns = orderedColumns.value.map(
         (column) =>
             ({
                 id: column.key,
@@ -192,13 +234,26 @@ const table = useVueTable({
     onPaginationChange: (updater) => {
         pagination.value = typeof updater === 'function' ? updater(pagination.value) : updater;
     },
+    manualFiltering: serverDriven.value,
+    manualSorting: serverDriven.value,
+    manualPagination: serverDriven.value,
+    get pageCount() {
+        if (!serverDriven.value) {
+            return undefined;
+        }
+
+        const total = props.table?.pagination.total ?? props.rows.length;
+        const pageSize = pagination.value.pageSize || 10;
+
+        return Math.max(1, Math.ceil(total / pageSize));
+    },
     getCoreRowModel: getCoreRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
+    getFilteredRowModel: serverDriven.value ? undefined : getFilteredRowModel(),
+    getSortedRowModel: serverDriven.value ? undefined : getSortedRowModel(),
+    getPaginationRowModel: serverDriven.value ? undefined : getPaginationRowModel(),
 });
 
-const visibleDataColumns = computed(() => props.columns.filter((column) => table.getColumn(column.key)?.getIsVisible() ?? false));
+const visibleDataColumns = computed(() => orderedColumns.value.filter((column) => table.getColumn(column.key)?.getIsVisible() ?? false));
 const selectedCount = computed(() => Object.keys(rowSelection.value).length);
 const selectedRowIds = computed(() => Object.keys(rowSelection.value));
 const selectedRows = computed(() => table.getSelectedRowModel().rows.map((row) => row.original));
@@ -213,6 +268,28 @@ const pageOptions = computed(() => Array.from({ length: table.getPageCount() || 
 const pageSelectOptions = computed(() => pageOptions.value.map((index) => ({ value: index, label: String(index + 1) })));
 const pageSizeOptions = [10, 25, 50, 100, 250];
 const pageSizeSelectOptions = pageSizeOptions.map((size) => ({ value: size, label: String(size) }));
+const savedViewOptions = computed(() => [
+    { value: '', label: 'Current table' },
+    ...(props.table?.savedViews ?? []).map((view) => ({
+        value: view.publicId,
+        label: `${view.name}${view.isDefault ? ' (default)' : ''}`,
+    })),
+]);
+const renderedColumnCount = computed(
+    () => visibleDataColumns.value.length + (selectable.value ? 1 : 0) + (props.actions.length > 0 ? 1 : 0),
+);
+const tableRenderKey = computed(() =>
+    [
+        props.table?.key ?? props.stateKey ?? props.title,
+        selectedViewId.value,
+        sorting.value.map((sort) => `${sort.id}:${sort.desc ? 'desc' : 'asc'}`).join('|'),
+        globalFilter.value,
+        pagination.value.pageIndex,
+        pagination.value.pageSize,
+        visibleDataColumns.value.map((column) => column.key).join('|'),
+        orderedColumns.value.map((column) => column.key).join('|'),
+    ].join('::'),
+);
 const menuButtonClass =
     'inline-flex h-9 cursor-pointer list-none items-center gap-2 rounded-lg border border-zinc-300 bg-white px-3 text-sm font-medium text-zinc-700 transition hover:border-zinc-400 hover:bg-zinc-100 hover:text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:border-zinc-600 dark:hover:bg-zinc-800 dark:hover:text-zinc-50';
 const selectionButtonClass =
@@ -229,6 +306,10 @@ function stateStorageKey(): string | null {
 }
 
 function readPersistedState(): PersistedTableState {
+    if (serverDriven.value) {
+        return {};
+    }
+
     const key = stateStorageKey();
 
     if (key === null || typeof window === 'undefined') {
@@ -252,6 +333,10 @@ function readPersistedState(): PersistedTableState {
 function normalizeColumnVisibility(persisted?: VisibilityState): VisibilityState {
     const defaults = defaultColumnVisibility();
 
+    if (serverDriven.value && props.table !== undefined) {
+        return visibilityFromColumnKeys(props.table.state.columns);
+    }
+
     if (persisted === undefined) {
         return defaults;
     }
@@ -259,7 +344,15 @@ function normalizeColumnVisibility(persisted?: VisibilityState): VisibilityState
     return Object.fromEntries(props.columns.map((column) => [column.key, persisted[column.key] ?? defaults[column.key] ?? true]));
 }
 
+function visibilityFromColumnKeys(columns: string[]): VisibilityState {
+    return Object.fromEntries(props.columns.map((column) => [column.key, columns.includes(column.key)]));
+}
+
 function persistState(): void {
+    if (serverDriven.value) {
+        return;
+    }
+
     const key = stateStorageKey();
 
     if (key === null || typeof window === 'undefined') {
@@ -275,6 +368,218 @@ function persistState(): void {
             pagination: pagination.value,
         } satisfies PersistedTableState),
     );
+}
+
+function initialSorting(): SortingState {
+    if (props.table !== undefined) {
+        return [{ id: props.table.state.sort, desc: props.table.state.direction === 'desc' }];
+    }
+
+    return persistedState.sorting ?? [];
+}
+
+function serverColumnVisibility(): VisibilityState {
+    if (props.table === undefined) {
+        return normalizeColumnVisibility();
+    }
+
+    return visibilityFromColumnKeys(props.table.state.columns);
+}
+
+function withServerStateSync(operation: () => void): void {
+    syncingServerState = true;
+    operation();
+    void nextTick(() => {
+        syncingServerState = false;
+    });
+}
+
+function syncServerStateFromProps(): void {
+    if (props.table === undefined) {
+        return;
+    }
+
+    withServerStateSync(() => {
+        sorting.value = [{ id: props.table?.state.sort ?? props.columns[0]?.key ?? '', desc: props.table?.state.direction === 'desc' }];
+        globalFilter.value = props.table?.state.search ?? '';
+        pagination.value = {
+            pageIndex: Math.max(0, (props.table?.state.page ?? 1) - 1),
+            pageSize: props.table?.state.perPage ?? 10,
+        };
+        columnVisibility.value = serverColumnVisibility();
+        selectedViewId.value = props.table?.state.view ?? '';
+        rowSelection.value = {};
+    });
+}
+
+function applyViewStateLocally(view: DataTableSavedView): void {
+    const columns =
+        view.state.columns ?? props.table?.state.columns ?? props.columns.filter((column) => !column.hidden).map((column) => column.key);
+
+    withServerStateSync(() => {
+        sorting.value = [
+            { id: view.state.sort ?? props.table?.state.sort ?? props.columns[0]?.key ?? '', desc: view.state.direction === 'desc' },
+        ];
+        globalFilter.value = view.state.search ?? '';
+        pagination.value = { ...pagination.value, pageIndex: 0 };
+        columnVisibility.value = visibilityFromColumnKeys(columns);
+        rowSelection.value = {};
+    });
+}
+
+function currentServerState(): Record<string, string | number> {
+    const currentSort = sorting.value[0];
+    const visibleColumns = props.columns.filter((column) => columnVisibility.value[column.key] ?? true).map((column) => column.key);
+
+    return {
+        page: pagination.value.pageIndex + 1,
+        per_page: pagination.value.pageSize,
+        sort: currentSort?.id ?? props.table?.state.sort ?? props.columns[0]?.key ?? '',
+        direction: currentSort?.desc ? 'desc' : 'asc',
+        search: globalFilter.value,
+        columns: visibleColumns.join(','),
+        column_order: orderedColumns.value.map((column) => column.key).join(','),
+        view: selectedViewId.value,
+    };
+}
+
+function scheduleServerSync(resetPage = false): void {
+    if (!serverDriven.value || syncingServerState || typeof window === 'undefined') {
+        return;
+    }
+
+    if (resetPage) {
+        pagination.value = { ...pagination.value, pageIndex: 0 };
+    }
+
+    if (serverSyncTimer !== undefined) {
+        window.clearTimeout(serverSyncTimer);
+    }
+
+    serverSyncTimer = window.setTimeout(() => {
+        router.get(window.location.pathname, currentServerState(), {
+            preserveScroll: true,
+            preserveState: true,
+            replace: true,
+        });
+    }, 250);
+}
+
+function savedViewState(): SavedViewStatePayload {
+    const currentSort = sorting.value[0];
+
+    return {
+        sort: currentSort?.id ?? props.table?.state.sort ?? props.columns[0]?.key ?? '',
+        direction: currentSort?.desc ? 'desc' : 'asc',
+        search: globalFilter.value,
+        columns: props.columns.filter((column) => columnVisibility.value[column.key] ?? true).map((column) => column.key),
+        columnOrder: orderedColumns.value.map((column) => column.key),
+        filters: props.table?.state.filters ?? {},
+        grouping: props.table?.state.grouping ?? [],
+        timeRange: props.table?.state.timeRange ?? null,
+    };
+}
+
+function selectedView(): DataTableSavedView | undefined {
+    return props.table?.savedViews.find((view) => view.publicId === selectedViewId.value);
+}
+
+function applySavedView(viewId: string | number): void {
+    selectedViewId.value = String(viewId);
+    const view = selectedView();
+
+    if (view === undefined) {
+        scheduleServerSync(true);
+        return;
+    }
+
+    applyViewStateLocally(view);
+
+    router.get(
+        window.location.pathname,
+        {
+            page: 1,
+            per_page: pagination.value.pageSize,
+            sort: view.state.sort ?? props.table?.state.sort ?? props.columns[0]?.key ?? '',
+            direction: view.state.direction ?? 'asc',
+            search: view.state.search ?? '',
+            columns: (view.state.columns ?? []).join(','),
+            column_order: (view.state.columnOrder ?? []).join(','),
+            view: view.publicId,
+        },
+        { preserveScroll: true, preserveState: true, replace: true },
+    );
+}
+
+function saveView(): void {
+    if (props.table === undefined || savedViewName.value.trim() === '') {
+        return;
+    }
+
+    router.post(
+        '/admin/table-views',
+        {
+            table_key: props.table.key,
+            name: savedViewName.value.trim(),
+            type: savedViewType.value,
+            state: savedViewState(),
+        },
+        { preserveScroll: true },
+    );
+}
+
+function updateView(): void {
+    const view = selectedView();
+
+    if (view === undefined || view.type === 'system') {
+        return;
+    }
+
+    router.patch(
+        `/admin/table-views/${view.publicId}`,
+        {
+            name: savedViewName.value.trim() || view.name,
+            state: savedViewState(),
+        },
+        { preserveScroll: true },
+    );
+}
+
+function deleteView(): void {
+    const view = selectedView();
+
+    if (view === undefined || view.type === 'system') {
+        return;
+    }
+
+    router.delete(`/admin/table-views/${view.publicId}`, { preserveScroll: true });
+}
+
+function copyView(): void {
+    const view = selectedView();
+
+    if (view === undefined) {
+        return;
+    }
+
+    router.post(
+        `/admin/table-views/${view.publicId}/copy`,
+        {
+            name: savedViewName.value.trim() || `Copy of ${view.name}`,
+            type: savedViewType.value,
+        },
+        { preserveScroll: true },
+    );
+}
+
+function makeDefaultView(): void {
+    const view = selectedView();
+
+    if (view === undefined) {
+        return;
+    }
+
+    router.post(`/admin/table-views/${view.publicId}/default`, {}, { preserveScroll: true });
 }
 
 function formatCell(value: unknown, format: DataTableColumn<TRow>['format']): VNodeChild {
@@ -1040,7 +1345,7 @@ function bodyCellClass(columnId: string): string {
 }
 
 function selectAllFiltered(): void {
-    rowSelection.value = Object.fromEntries(table.getFilteredRowModel().rows.map((row) => [row.id, true]));
+    rowSelection.value = Object.fromEntries(table.getRowModel().rows.map((row) => [row.id, true]));
 }
 
 function clearSelection(): void {
@@ -1101,9 +1406,18 @@ function closeMenusOnOutsideClick(event: MouseEvent): void {
     if (exportMenu.value && !exportMenu.value.contains(target)) {
         exportMenu.value.open = false;
     }
+
+    if (viewsMenu.value && !viewsMenu.value.contains(target)) {
+        viewsMenu.value.open = false;
+    }
 }
 
 watch([sorting, globalFilter, columnVisibility, pagination], persistState, { deep: true });
+watch(() => props.table?.state, syncServerStateFromProps, { deep: true });
+watch(sorting, () => scheduleServerSync(), { deep: true });
+watch(globalFilter, () => scheduleServerSync(true));
+watch(columnVisibility, () => scheduleServerSync(), { deep: true });
+watch(pagination, () => scheduleServerSync(), { deep: true });
 
 onMounted(() => {
     document.addEventListener('click', closeMenusOnOutsideClick);
@@ -1111,6 +1425,10 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
     document.removeEventListener('click', closeMenusOnOutsideClick);
+
+    if (serverSyncTimer !== undefined) {
+        window.clearTimeout(serverSyncTimer);
+    }
 });
 </script>
 
@@ -1125,6 +1443,75 @@ onBeforeUnmount(() => {
                     :placeholder="t('datatable.search')"
                     :leading-icon="IconSearch"
                 />
+                <details v-if="serverDriven" ref="viewsMenu" class="relative">
+                    <summary :class="menuButtonClass">
+                        <IconSettings aria-hidden="true" class="h-4 w-4" :stroke-width="1.8" />
+                        Views
+                    </summary>
+                    <div
+                        class="absolute right-0 z-20 mt-2 w-80 space-y-3 rounded-lg border border-zinc-200 bg-white p-3 shadow-lg dark:border-zinc-800 dark:bg-zinc-950"
+                    >
+                        <FormSelect
+                            :model-value="selectedViewId"
+                            aria-label="Saved table view"
+                            :options="savedViewOptions"
+                            button-class="h-9 w-full"
+                            @update:model-value="applySavedView"
+                        />
+                        <FormInput v-model="savedViewName" aria-label="Saved view name" placeholder="View name" />
+                        <FormSelect
+                            v-model="savedViewType"
+                            aria-label="Saved view type"
+                            :options="[
+                                { value: 'private', label: 'Private' },
+                                { value: 'team', label: 'Team shared' },
+                            ]"
+                            button-class="h-9 w-full"
+                        />
+                        <div class="grid grid-cols-2 gap-2">
+                            <button
+                                type="button"
+                                class="h-9 rounded-lg bg-teal-700 px-3 text-sm font-medium text-white transition hover:bg-teal-800 dark:bg-teal-600 dark:hover:bg-teal-500"
+                                :disabled="savedViewName.trim() === ''"
+                                @click="saveView"
+                            >
+                                Save
+                            </button>
+                            <button
+                                type="button"
+                                class="h-9 rounded-lg border border-zinc-300 px-3 text-sm font-medium text-zinc-700 transition hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-900"
+                                :disabled="selectedView() === undefined || selectedView()?.type === 'system'"
+                                @click="updateView"
+                            >
+                                Update
+                            </button>
+                            <button
+                                type="button"
+                                class="h-9 rounded-lg border border-zinc-300 px-3 text-sm font-medium text-zinc-700 transition hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-900"
+                                :disabled="selectedView() === undefined"
+                                @click="copyView"
+                            >
+                                Copy
+                            </button>
+                            <button
+                                type="button"
+                                class="h-9 rounded-lg border border-zinc-300 px-3 text-sm font-medium text-zinc-700 transition hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-900"
+                                :disabled="selectedView() === undefined"
+                                @click="makeDefaultView"
+                            >
+                                Default
+                            </button>
+                            <button
+                                type="button"
+                                class="h-9 rounded-lg border border-rose-200 px-3 text-sm font-medium text-rose-700 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-rose-900 dark:text-rose-300 dark:hover:bg-rose-950"
+                                :disabled="selectedView() === undefined || selectedView()?.type === 'system'"
+                                @click="deleteView"
+                            >
+                                Delete
+                            </button>
+                        </div>
+                    </div>
+                </details>
                 <details ref="columnsMenu" class="relative">
                     <summary :class="menuButtonClass">
                         <IconSettings aria-hidden="true" class="h-4 w-4" :stroke-width="1.8" />
@@ -1134,7 +1521,7 @@ onBeforeUnmount(() => {
                         class="absolute right-0 z-20 mt-2 w-64 rounded-lg border border-zinc-200 bg-white p-3 shadow-lg dark:border-zinc-800 dark:bg-zinc-950"
                     >
                         <div
-                            v-for="column in columns"
+                            v-for="column in orderedColumns"
                             :key="column.key"
                             class="flex items-center gap-2 py-1 text-sm text-zinc-700 dark:text-zinc-200"
                         >
@@ -1237,7 +1624,7 @@ onBeforeUnmount(() => {
 
         <div class="relative overflow-visible rounded-lg border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
             <div class="overflow-x-auto overflow-y-visible rounded-t-lg">
-                <table class="w-full min-w-[72rem] table-fixed divide-y divide-zinc-200 text-sm dark:divide-zinc-800">
+                <table :key="tableRenderKey" class="w-full min-w-[72rem] table-fixed divide-y divide-zinc-200 text-sm dark:divide-zinc-800">
                     <colgroup>
                         <col v-if="selectable" class="w-12" />
                         <col v-for="column in visibleDataColumns" :key="column.key" />
@@ -1269,35 +1656,55 @@ onBeforeUnmount(() => {
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-zinc-200 dark:divide-zinc-800">
-                        <tr v-for="row in table.getRowModel().rows" :key="rowId(row.original)">
-                            <td v-for="cell in row.getVisibleCells()" :key="cell.id" :class="bodyCellClass(cell.column.id)">
-                                <FlexRender :render="cell.column.columnDef.cell" :props="cell.getContext()" />
-                            </td>
-                            <td v-if="actions?.length" class="w-72 px-4 py-3 text-right">
-                                <div class="flex justify-end gap-2 whitespace-nowrap">
-                                    <Tooltip v-for="action in actions" :key="action.key" :text="action.label" align="end" placement="top">
-                                        <Link
-                                            :href="action.href(row.original)"
-                                            :method="action.method ?? 'get'"
-                                            as="button"
-                                            type="button"
-                                            class="inline-flex h-8 w-8 items-center justify-center rounded-md border transition"
-                                            :class="actionClass(action)"
-                                            :aria-label="action.label"
-                                            :preserve-scroll="true"
-                                        >
-                                            <component :is="actionIcon(action)" aria-hidden="true" class="h-4 w-4" :stroke-width="1.8" />
-                                        </Link>
-                                    </Tooltip>
-                                </div>
+                        <tr v-if="loading">
+                            <td :colspan="renderedColumnCount" class="px-4 py-10 text-center text-sm text-zinc-500 dark:text-zinc-400">
+                                Loading...
                             </td>
                         </tr>
-                        <tr v-if="table.getRowModel().rows.length === 0">
-                            <td
-                                :colspan="columns.length + (selectable ? 1 : 0) + (actions?.length ? 1 : 0)"
-                                class="px-4 py-10 text-center text-sm text-zinc-500 dark:text-zinc-400"
-                            >
-                                {{ emptyLabel ?? t('datatable.empty') }}
+                        <tr v-else-if="errorLabel">
+                            <td :colspan="renderedColumnCount" class="px-4 py-10 text-center text-sm text-rose-600 dark:text-rose-300">
+                                {{ errorLabel }}
+                            </td>
+                        </tr>
+                        <template v-else>
+                            <tr v-for="row in table.getRowModel().rows" :key="rowId(row.original)">
+                                <td v-for="cell in row.getVisibleCells()" :key="cell.id" :class="bodyCellClass(cell.column.id)">
+                                    <FlexRender :render="cell.column.columnDef.cell" :props="cell.getContext()" />
+                                </td>
+                                <td v-if="actions?.length" class="w-72 px-4 py-3 text-right">
+                                    <div class="flex justify-end gap-2 whitespace-nowrap">
+                                        <Tooltip
+                                            v-for="action in actions"
+                                            :key="action.key"
+                                            :text="action.label"
+                                            align="end"
+                                            placement="top"
+                                        >
+                                            <Link
+                                                :href="action.href(row.original)"
+                                                :method="action.method ?? 'get'"
+                                                as="button"
+                                                type="button"
+                                                class="inline-flex h-8 w-8 items-center justify-center rounded-md border transition"
+                                                :class="actionClass(action)"
+                                                :aria-label="action.label"
+                                                :preserve-scroll="true"
+                                            >
+                                                <component
+                                                    :is="actionIcon(action)"
+                                                    aria-hidden="true"
+                                                    class="h-4 w-4"
+                                                    :stroke-width="1.8"
+                                                />
+                                            </Link>
+                                        </Tooltip>
+                                    </div>
+                                </td>
+                            </tr>
+                        </template>
+                        <tr v-if="!loading && !errorLabel && table.getRowModel().rows.length === 0">
+                            <td :colspan="renderedColumnCount" class="px-4 py-10 text-center text-sm text-zinc-500 dark:text-zinc-400">
+                                {{ globalFilter ? 'No results match the current table search.' : (emptyLabel ?? t('datatable.empty')) }}
                             </td>
                         </tr>
                     </tbody>

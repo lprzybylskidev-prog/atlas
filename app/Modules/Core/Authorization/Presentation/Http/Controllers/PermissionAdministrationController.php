@@ -7,6 +7,11 @@ namespace App\Modules\Core\Authorization\Presentation\Http\Controllers;
 use App\Modules\Core\Authorization\Application\Permissions\PermissionCatalogRegistry;
 use App\Modules\Core\Authorization\Application\Public\Contracts\EffectivePermissionChecker;
 use App\Modules\Core\Authorization\Application\Public\DTOs\EffectivePermissionRequest;
+use App\Shared\Application\Tables\AdminTableDefinitions;
+use App\Shared\Application\Tables\ArrayTableProcessor;
+use App\Shared\Application\Tables\TableRequestContext;
+use App\Shared\Application\Tables\TableSavedViewService;
+use App\Shared\Application\Tables\TableState;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
@@ -17,10 +22,16 @@ final readonly class PermissionAdministrationController
     public function __construct(
         private PermissionCatalogRegistry $permissions,
         private EffectivePermissionChecker $checker,
+        private ArrayTableProcessor $tables,
+        private TableSavedViewService $views,
+        private TableRequestContext $context,
     ) {}
 
     public function __invoke(Request $request): Response
     {
+        $definition = AdminTableDefinitions::get(AdminTableDefinitions::PERMISSIONS);
+        $state = TableState::fromRequest($request, $definition);
+        [$userId, $teamId] = $this->context->userTeam($request);
         $userPublicId = data_get($request->user(), 'public_id');
         $teamPublicId = $request->hasSession() ? $request->session()->get('active_team_public_id') : null;
         $databasePermissions = DB::table('permissions')
@@ -58,10 +69,12 @@ final readonly class PermissionAdministrationController
             ];
         }, $this->permissions->all());
 
-        usort($permissionRows, static fn (array $first, array $second): int => $first['name'] <=> $second['name']);
+        $result = $this->tables->process($permissionRows, $definition, $state)
+            ->withSavedViews($this->views->listFor($definition->key, $userId, $teamId));
 
         return Inertia::render('Admin/Authorization/Permissions', [
-            'permissions' => $permissionRows,
+            'permissions' => $result->rows,
+            'table' => $result->tableMeta($definition->key),
         ]);
     }
 }

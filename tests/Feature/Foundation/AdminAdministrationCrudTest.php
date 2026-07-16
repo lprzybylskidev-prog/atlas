@@ -12,6 +12,7 @@ use App\Modules\Core\Identity\Infrastructure\Persistence\User;
 use App\Modules\Core\Teams\Infrastructure\Persistence\Team;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Inertia\Testing\AssertableInertia;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
@@ -124,6 +125,93 @@ final class AdminAdministrationCrudTest extends TestCase
         self::assertSame(['dashboard', 'admin.users.index'], $this->jsonStringList($package, 'direct_permission_names'));
     }
 
+    public function test_admin_tables_use_validated_server_state_and_saved_team_views_are_audited(): void
+    {
+        $actor = User::factory()->create(['name' => 'Zeta Owner', 'email' => 'owner@example.test']);
+        $matchingUser = User::factory()->create(['name' => 'Alpha Match', 'email' => 'alpha@example.test']);
+        User::factory()->create(['name' => 'Beta Other', 'email' => 'beta@example.test']);
+        $activeTeam = Team::query()->create(['name' => 'Operations']);
+        $this->assignStarterRoleInTeam($actor, $activeTeam, StarterRoleName::Administrator->value);
+
+        $session = $this->adminSession($activeTeam);
+
+        $this->actingAs($actor)
+            ->withSession($session)
+            ->get('/admin/users?search=alpha&sort=not_allowed&direction=desc&per_page=25&page=1&columns=name,email,unknown')
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->component('Admin/Users/Index')
+                ->where('table.key', 'admin.users')
+                ->where('table.state.sort', 'name')
+                ->where('table.state.direction', 'desc')
+                ->where('table.state.perPage', 25)
+                ->where('table.state.columns', ['name', 'email'])
+                ->where('table.pagination.total', 1)
+                ->where('users.0.publicId', $matchingUser->public_id)
+            );
+
+        $this->actingAs($actor)
+            ->withSession($session)
+            ->get('/admin/users?columns=')
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->component('Admin/Users/Index')
+                ->where('table.state.columns', [])
+            );
+
+        $this->actingAs($actor)
+            ->withSession($session)
+            ->post('/admin/table-views', [
+                'table_key' => 'admin.users',
+                'name' => 'Team active users',
+                'type' => 'team',
+                'state' => [
+                    'sort' => 'email',
+                    'direction' => 'asc',
+                    'search' => 'alpha',
+                    'columns' => ['name', 'email', 'secret'],
+                    'columnOrder' => ['email', 'name'],
+                ],
+            ])
+            ->assertRedirect();
+
+        self::assertDatabaseHas('table_saved_views', [
+            'table_key' => 'admin.users',
+            'name' => 'Team active users',
+            'type' => 'team',
+            'team_id' => $activeTeam->id,
+        ]);
+        self::assertDatabaseHas('security_audit_events', [
+            'module' => 'shared',
+            'action' => 'table_saved_view.created',
+            'result' => 'success',
+            'actor_public_id' => $actor->public_id,
+        ]);
+
+        $view = DB::table('table_saved_views')->where('name', 'Team active users')->first();
+        self::assertIsObject($view);
+        self::assertSame(['name', 'email'], $this->jsonStringList($view, 'state', 'columns'));
+
+        $this->actingAs($actor)
+            ->withSession($session)
+            ->post('/admin/table-views', [
+                'table_key' => 'admin.users',
+                'name' => 'No visible data columns',
+                'type' => 'private',
+                'state' => [
+                    'sort' => 'name',
+                    'direction' => 'asc',
+                    'columns' => [],
+                    'columnOrder' => [],
+                ],
+            ])
+            ->assertRedirect();
+
+        $emptyColumnsView = DB::table('table_saved_views')->where('name', 'No visible data columns')->first();
+        self::assertIsObject($emptyColumnsView);
+        self::assertSame([], $this->jsonStringList($emptyColumnsView, 'state', 'columns'));
+    }
+
     private function assignStarterRoleInTeam(User $user, Team $team, string $roleName): void
     {
         $this->app->make(InstallStarterRoles::class)->handle();
@@ -159,10 +247,14 @@ final class AdminAdministrationCrudTest extends TestCase
     /**
      * @return list<string>
      */
-    private function jsonStringList(object $record, string $property): array
+    private function jsonStringList(object $record, string $property, ?string $nestedProperty = null): array
     {
         $values = get_object_vars($record);
         $decoded = json_decode(is_string($values[$property] ?? null) ? $values[$property] : '[]', true);
+
+        if ($nestedProperty !== null && is_array($decoded)) {
+            $decoded = $decoded[$nestedProperty] ?? [];
+        }
 
         if (! is_array($decoded)) {
             return [];

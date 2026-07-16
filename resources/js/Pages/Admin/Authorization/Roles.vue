@@ -6,7 +6,7 @@ import DataTable from '../../../Components/DataTable.vue';
 import { runBulkRecordAction } from '../../../Composables/useBulkRecordActions';
 import AdminLayout from '../../../Layouts/AdminLayout.vue';
 import { useTranslator } from '../../../Localization/translator';
-import type { DataTableAction, DataTableBulkAction, DataTableColumn } from '../../../Types/data-table';
+import type { DataTableAction, DataTableBulkAction, DataTableColumn, DataTableMeta } from '../../../Types/data-table';
 
 interface RoleRow extends Record<string, unknown> {
     id: number | null;
@@ -21,6 +21,7 @@ interface RoleRow extends Record<string, unknown> {
 
 const props = defineProps<{
     roles: RoleRow[];
+    table: DataTableMeta;
 }>();
 
 const { t } = useTranslator('en');
@@ -80,8 +81,8 @@ async function handleBulkAction(payload: { action: DataTableBulkAction; rowIds: 
                 :actions="actions"
                 :bulk-actions="bulkActions"
                 :bulk-action-handler="handleBulkAction"
+                :table="table"
                 ui-locale="en"
-                state-key="admin.authorization.roles"
             />
         </section>
     </AdminLayout>

@@ -23,6 +23,7 @@ use App\Modules\Core\Users\Presentation\Http\Controllers\UpdateUserAccountContro
 use App\Modules\Core\Users\Presentation\Http\Controllers\UserAccountActionController;
 use App\Modules\Core\Users\Presentation\Http\Controllers\UserAdministrationController;
 use App\Shared\Presentation\Http\Controllers\AdminSystemStatusController;
+use App\Shared\Presentation\Http\Controllers\TableSavedViewController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth', 'password.confirm', 'route.permission'])->group(function (): void {
@@ -60,4 +61,9 @@ Route::middleware(['auth', 'password.confirm', 'route.permission'])->group(funct
     Route::patch('/admin/authorization/packages/{package}', UpdateOnboardingPackageController::class)->name('admin.authorization.packages.update');
     Route::delete('/admin/authorization/packages/{package}', DestroyOnboardingPackageController::class)->name('admin.authorization.packages.destroy');
     Route::get('/admin/authorization/permissions', PermissionAdministrationController::class)->name('admin.authorization.permissions.index');
+    Route::post('/admin/table-views', [TableSavedViewController::class, 'store'])->name('admin.table-views.store');
+    Route::patch('/admin/table-views/{view}', [TableSavedViewController::class, 'update'])->name('admin.table-views.update');
+    Route::delete('/admin/table-views/{view}', [TableSavedViewController::class, 'destroy'])->name('admin.table-views.destroy');
+    Route::post('/admin/table-views/{view}/copy', [TableSavedViewController::class, 'copy'])->name('admin.table-views.copy');
+    Route::post('/admin/table-views/{view}/default', [TableSavedViewController::class, 'default'])->name('admin.table-views.default');
 });

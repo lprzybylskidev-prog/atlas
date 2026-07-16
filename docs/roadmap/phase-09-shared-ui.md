@@ -1,6 +1,6 @@
 ## Phase 9 — Shared UI components
 
-**Status:** `implemented pending commit approval`
+**Status:** `complete`
 
 ## Objective
 
@@ -51,7 +51,7 @@ Partial pull-forward note: Phase 7 Admin table work implemented the minimum shar
 - [x] Add date, time, money, percent, number, status, and empty-value formatters.
 - [x] Verify all components in light and dark themes.
 - [x] Add accessibility tests.
-- [ ] Commit shared UI foundation.
+- [x] Commit shared UI foundation.
 
 ## Completion criteria
 
