@@ -40,7 +40,7 @@ Implement typed settings and real PL/EN localization before sessions, Admin mode
 - [x] Separate security settings.
 - [x] Add defaults and inheritance.
 - [x] Add language preference.
-- [ ] Wire Auth, App, and Admin language switch controls to the effective language preference.
+- [x] Wire Auth, App, and Admin language switch controls to the effective language preference.
 - [x] Persist authenticated user language selection and provide a temporary guest-language fallback for login.
 - [x] Ensure switching language refreshes Inertia-visible UI copy without leaving stale shell labels.
 - [x] Add theme preference.
@@ -52,7 +52,7 @@ Implement typed settings and real PL/EN localization before sessions, Admin mode
 - [x] Audit security-setting changes.
 - [ ] Add PL and EN translation catalogs.
 - [ ] Add missing-key and parity checks.
-- [ ] Ensure admin panel remains English only.
+- [x] Ensure admin panel remains English only.
 - [ ] Commit settings and localization.
 
 ## Completion criteria

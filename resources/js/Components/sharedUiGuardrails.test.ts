@@ -45,4 +45,13 @@ describe('shared UI guardrails', () => {
         expect(modalHost).toContain('previousFocus.value?.focus()');
         expect(modalHost).toContain("event.key === 'Tab'");
     });
+
+    it('keeps admin shell language controls wired while rendering admin chrome in English', () => {
+        const adminLayout = Object.entries(vueFiles).find(([file]) => file.endsWith('/Layouts/AdminLayout.vue'))?.[1];
+
+        expect(adminLayout).toBeDefined();
+        expect(adminLayout).toContain('mode="admin"');
+        expect(adminLayout).toContain('ui-locale="en"');
+        expect(adminLayout).not.toContain('show-locale-switcher="false"');
+    });
 });
