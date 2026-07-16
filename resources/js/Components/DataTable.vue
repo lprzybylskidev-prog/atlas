@@ -115,6 +115,8 @@ interface SavedViewStatePayload {
     timeRange?: DataTableMeta['state']['timeRange'];
 }
 
+type QueryPrimitive = string | number | boolean | null | undefined;
+
 const defaultColumnVisibility = (): VisibilityState =>
     Object.fromEntries(props.columns.map((column) => [column.key, column.hidden !== true]));
 const serverDriven = computed(() => props.table !== undefined);
@@ -440,7 +442,20 @@ function currentServerState(): Record<string, string | number> {
         columns: visibleColumns.join(','),
         column_order: orderedColumns.value.map((column) => column.key).join(','),
         view: selectedViewId.value,
+        ...queryFilters(props.table?.state.filters),
     };
+}
+
+function queryFilters(filters?: Record<string, QueryPrimitive>): Record<string, string | number> {
+    if (filters === undefined) {
+        return {};
+    }
+
+    return Object.fromEntries(
+        Object.entries(filters)
+            .filter(([, value]) => value !== null && value !== undefined && String(value).trim() !== '')
+            .map(([key, value]) => [key, typeof value === 'boolean' ? (value ? 1 : 0) : (value as string | number)]),
+    );
 }
 
 function scheduleServerSync(resetPage = false): void {
@@ -506,8 +521,9 @@ function applySavedView(viewId: string | number): void {
             columns: (view.state.columns ?? []).join(','),
             column_order: (view.state.columnOrder ?? []).join(','),
             view: view.publicId,
+            ...queryFilters(view.state.filters),
         },
-        { preserveScroll: true, preserveState: true, replace: true },
+        { preserveScroll: true, preserveState: false, replace: true },
     );
 }
 

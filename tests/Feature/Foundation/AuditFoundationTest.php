@@ -135,6 +135,68 @@ final class AuditFoundationTest extends TestCase
             );
     }
 
+    public function test_admin_audit_browser_exposes_select_filters_and_view_state_filters(): void
+    {
+        $actor = User::factory()->create();
+        $activeTeam = Team::query()->create(['name' => 'Operations']);
+        $otherTeam = Team::query()->create(['name' => 'Legal']);
+        $this->assignStarterRoleInTeam($actor, $activeTeam);
+
+        $this->app->make(AuditRecorder::class)->record(new AuditEvent(
+            module: 'authorization',
+            action: 'authorization.role_updated',
+            result: 'succeeded',
+            source: 'admin',
+            actorPublicId: $actor->public_id,
+            targetType: 'role',
+            targetPublicId: (string) Str::ulid(),
+            teamPublicId: $activeTeam->public_id,
+            security: true,
+            securityCategory: 'authorization',
+        ));
+        $this->app->make(AuditRecorder::class)->record(new AuditEvent(
+            module: 'identity',
+            action: 'auth.login',
+            result: 'failed',
+            source: 'web',
+            actorPublicId: (string) Str::ulid(),
+            targetType: 'user',
+            targetPublicId: (string) Str::ulid(),
+            teamPublicId: $otherTeam->public_id,
+            security: true,
+            securityCategory: 'authentication',
+        ));
+
+        $this->actingAs($actor)
+            ->withSession([
+                'active_team_public_id' => $activeTeam->public_id,
+                'auth.password_confirmed_at' => now()->unix(),
+            ])
+            ->get(sprintf(
+                '/admin/audit?module=authorization&action=authorization.role_updated&source=admin&target_type=role&team=%s&result=succeeded&security=yes',
+                $activeTeam->public_id,
+            ))
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->component('Admin/Audit/Index')
+                ->where('table.pagination.total', 1)
+                ->where('events.0.module', 'authorization')
+                ->where('events.0.action', 'authorization.role_updated')
+                ->where('table.state.filters.module', 'authorization')
+                ->where('table.state.filters.action', 'authorization.role_updated')
+                ->where('table.state.filters.source', 'admin')
+                ->where('table.state.filters.target_type', 'role')
+                ->where('table.state.filters.team', $activeTeam->public_id)
+                ->where('table.state.filters.result', 'succeeded')
+                ->where('table.state.filters.security', 'yes')
+                ->where('filterOptions.modules.0.value', 'authorization')
+                ->where('filterOptions.actions.0.value', 'auth.login')
+                ->where('filterOptions.sources.0.value', 'admin')
+                ->where('filterOptions.targetTypes.0.value', 'role')
+                ->where('filterOptions.teams.1.value', $activeTeam->public_id)
+            );
+    }
+
     private function assignStarterRoleInTeam(User $user, Team $team): void
     {
         $this->app->make(InstallStarterRoles::class)->handle();

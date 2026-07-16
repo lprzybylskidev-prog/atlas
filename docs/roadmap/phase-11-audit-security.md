@@ -33,7 +33,8 @@ Create the full Audit module before settings, sessions, module activation, admin
   - meaningful before/after;
   - mandatory reason where required.
 - Security audit is distinct enough to query authentication, MFA, sessions, impersonation, rate limits, locks, and authorization changes.
-- Admin audit browser is read-only and filters by actor, actual actor, impersonated user, entity, action, team, module, correlation ID, date, result, and impersonation session.
+- Admin audit browser is read-only and filters by actor, actual actor, impersonated user, entity, action, team, module, source, target type, correlation ID, date, result, and impersonation session.
+- Admin audit browser filters participate in shared DataTable saved views.
 - Logs and audit must not contain secrets or unnecessary sensitive values.
 
 ## Tasks

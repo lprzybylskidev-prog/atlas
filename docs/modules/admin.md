@@ -60,7 +60,7 @@ System Status includes:
 
 Failed jobs support safe retry and strong mass-action confirmation.
 
-Audit browser supports filtering by user, entity, action, team, correlation ID, actual actor, and impersonated user.
+Audit browser supports filtering by actor, actual actor, impersonated user, entity, action, target type, team, module, source, result, correlation ID, and security flag. Audit browser saved views include active audit filters.
 
 Logs and storage browsing must be secure and must not allow arbitrary server manipulation.
 

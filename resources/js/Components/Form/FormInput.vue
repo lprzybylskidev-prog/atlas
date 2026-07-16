@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { Component } from 'vue';
+import { computed } from 'vue';
 
 const model = defineModel<string>({ required: true });
 
@@ -36,6 +37,17 @@ const props = withDefaults(
 
 const inputId = props.id ?? `form-input-${crypto.randomUUID()}`;
 const errorId = `${inputId}-error`;
+const nativeInputType = computed(() => (props.type === 'date' || props.type === 'datetime-local' ? 'text' : props.type));
+const effectivePlaceholder = computed(() => {
+    if (props.placeholder !== undefined) {
+        return props.placeholder;
+    }
+
+    return props.type === 'date' ? 'YYYY-MM-DD' : props.type === 'datetime-local' ? 'YYYY-MM-DD HH:mm' : undefined;
+});
+const effectiveInputmode = computed(
+    () => props.inputmode ?? (props.type === 'date' || props.type === 'datetime-local' ? 'numeric' : undefined),
+);
 </script>
 
 <template>
@@ -52,10 +64,10 @@ const errorId = `${inputId}-error`;
             <input
                 :id="inputId"
                 v-model="model"
-                :type="type"
+                :type="nativeInputType"
                 :autocomplete="autocomplete"
-                :placeholder="placeholder"
-                :inputmode="inputmode"
+                :placeholder="effectivePlaceholder"
+                :inputmode="effectiveInputmode"
                 :step="step"
                 :aria-label="ariaLabel"
                 :aria-invalid="error ? 'true' : 'false'"

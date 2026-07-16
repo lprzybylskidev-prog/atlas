@@ -79,6 +79,8 @@ Future session administration, manager hierarchy, module activation, impersonati
 
 The Admin audit browser is available at `/admin/audit`.
 
-It is read-only and uses the shared `DataTable` wrapper with backend-validated state and saved views. It exposes the audit read model for filtering/searching by visible audit fields such as actor, action, target, team, module, result, source, correlation ID, and security flag.
+It is read-only and uses the shared `DataTable` wrapper with backend-validated state and saved views. It exposes the audit read model for filtering/searching by visible audit fields such as actor, action, target, target type, team, module, source, result, correlation ID, and security flag.
+
+Audit browser saved views include table state and active audit filters.
 
 The route permission is `admin.audit.index`.

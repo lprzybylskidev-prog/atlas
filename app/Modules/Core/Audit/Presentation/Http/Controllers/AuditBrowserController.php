@@ -39,16 +39,22 @@ final readonly class AuditBrowserController
 
         $result = $this->tables->process($rows, $definition, $state)
             ->withSavedViews($this->views->listFor(AdminTableDefinitions::AUDIT, $userId, $teamId));
+        $table = $result->tableMeta(AdminTableDefinitions::AUDIT);
+        $tableState = $table['state'] ?? [];
+        $table['state'] = is_array($tableState)
+            ? [...$tableState, 'filters' => $this->viewFilters($filters)]
+            : ['filters' => $this->viewFilters($filters)];
 
         return Inertia::render('Admin/Audit/Index', [
             'events' => $result->rows,
-            'table' => $result->tableMeta(AdminTableDefinitions::AUDIT),
+            'table' => $table,
             'filters' => $filters,
+            'filterOptions' => $this->filterOptions(),
         ]);
     }
 
     /**
-     * @return array{actor: string, actualActor: string, impersonatedUser: string, impersonationSession: string, target: string, action: string, team: string, module: string, correlation: string, result: string, security: string, dateFrom: string, dateTo: string}
+     * @return array{actor: string, actualActor: string, impersonatedUser: string, impersonationSession: string, target: string, targetType: string, action: string, team: string, module: string, source: string, correlation: string, result: string, security: string, dateFrom: string, dateTo: string}
      */
     private function filters(Request $request): array
     {
@@ -58,9 +64,11 @@ final readonly class AuditBrowserController
             'impersonatedUser' => $this->filterString($request, 'impersonated_user'),
             'impersonationSession' => $this->filterString($request, 'impersonation_session'),
             'target' => $this->filterString($request, 'target'),
+            'targetType' => $this->filterString($request, 'target_type'),
             'action' => $this->filterString($request, 'action'),
             'team' => $this->filterString($request, 'team'),
             'module' => $this->filterString($request, 'module'),
+            'source' => $this->filterString($request, 'source'),
             'correlation' => $this->filterString($request, 'correlation'),
             'result' => $this->filterString($request, 'result'),
             'security' => $this->filterString($request, 'security'),
@@ -77,7 +85,7 @@ final readonly class AuditBrowserController
     }
 
     /**
-     * @param  array{actor: string, actualActor: string, impersonatedUser: string, impersonationSession: string, target: string, action: string, team: string, module: string, correlation: string, result: string, security: string, dateFrom: string, dateTo: string}  $filters
+     * @param  array{actor: string, actualActor: string, impersonatedUser: string, impersonationSession: string, target: string, targetType: string, action: string, team: string, module: string, source: string, correlation: string, result: string, security: string, dateFrom: string, dateTo: string}  $filters
      */
     private function applyFilters(Builder $query, array $filters): void
     {
@@ -86,10 +94,12 @@ final readonly class AuditBrowserController
         $this->whereLike($query, 'impersonated_user_public_id', $filters['impersonatedUser']);
         $this->whereLike($query, 'impersonation_session_id', $filters['impersonationSession']);
         $this->whereLike($query, 'target_public_id', $filters['target']);
-        $this->whereLike($query, 'action', $filters['action']);
-        $this->whereLike($query, 'team_public_id', $filters['team']);
-        $this->whereLike($query, 'module', $filters['module']);
         $this->whereLike($query, 'correlation_id', $filters['correlation']);
+        $this->whereExact($query, 'target_type', $filters['targetType']);
+        $this->whereExact($query, 'action', $filters['action']);
+        $this->whereExact($query, 'team_public_id', $filters['team']);
+        $this->whereExact($query, 'module', $filters['module']);
+        $this->whereExact($query, 'source', $filters['source']);
 
         if (in_array($filters['result'], ['succeeded', 'rejected', 'failed'], true)) {
             $query->where('result', $filters['result']);
@@ -110,6 +120,15 @@ final readonly class AuditBrowserController
         }
     }
 
+    private function whereExact(Builder $query, string $column, string $value): void
+    {
+        if ($value === '') {
+            return;
+        }
+
+        $query->where($column, $value);
+    }
+
     private function whereLike(Builder $query, string $column, string $value): void
     {
         if ($value === '') {
@@ -122,6 +141,106 @@ final readonly class AuditBrowserController
     private function isDate(string $value): bool
     {
         return preg_match('/^\d{4}-\d{2}-\d{2}$/', $value) === 1;
+    }
+
+    /**
+     * @param  array{actor: string, actualActor: string, impersonatedUser: string, impersonationSession: string, target: string, targetType: string, action: string, team: string, module: string, source: string, correlation: string, result: string, security: string, dateFrom: string, dateTo: string}  $filters
+     * @return array<string, string>
+     */
+    private function viewFilters(array $filters): array
+    {
+        return array_filter([
+            'actor' => $filters['actor'],
+            'actual_actor' => $filters['actualActor'],
+            'impersonated_user' => $filters['impersonatedUser'],
+            'impersonation_session' => $filters['impersonationSession'],
+            'target' => $filters['target'],
+            'target_type' => $filters['targetType'],
+            'action' => $filters['action'],
+            'team' => $filters['team'],
+            'module' => $filters['module'],
+            'source' => $filters['source'],
+            'correlation' => $filters['correlation'],
+            'result' => $filters['result'],
+            'security' => $filters['security'],
+            'date_from' => $filters['dateFrom'],
+            'date_to' => $filters['dateTo'],
+        ], static fn (string $value): bool => $value !== '');
+    }
+
+    /**
+     * @return array{modules: list<array{value: string, label: string}>, actions: list<array{value: string, label: string}>, sources: list<array{value: string, label: string}>, targetTypes: list<array{value: string, label: string}>, teams: list<array{value: string, label: string}>}
+     */
+    private function filterOptions(): array
+    {
+        return [
+            'modules' => $this->distinctOptions('module'),
+            'actions' => $this->distinctOptions('action'),
+            'sources' => $this->distinctOptions('source'),
+            'targetTypes' => $this->distinctOptions('target_type'),
+            'teams' => $this->teamOptions(),
+        ];
+    }
+
+    /**
+     * @return list<array{value: string, label: string}>
+     */
+    private function distinctOptions(string $column): array
+    {
+        $options = [];
+
+        foreach (DB::table('audit_events')
+            ->whereNotNull($column)
+            ->where($column, '<>', '')
+            ->distinct()
+            ->orderBy($column)
+            ->pluck($column)
+            ->all() as $value) {
+            if (! is_scalar($value)) {
+                continue;
+            }
+
+            $text = (string) $value;
+            $options[] = [
+                'value' => $text,
+                'label' => $text,
+            ];
+        }
+
+        return $options;
+    }
+
+    /**
+     * @return list<array{value: string, label: string}>
+     */
+    private function teamOptions(): array
+    {
+        $options = [];
+
+        foreach (DB::table('audit_events')
+            ->leftJoin('teams', 'audit_events.team_public_id', '=', 'teams.public_id')
+            ->whereNotNull('audit_events.team_public_id')
+            ->where('audit_events.team_public_id', '<>', '')
+            ->select('audit_events.team_public_id', 'teams.name')
+            ->distinct()
+            ->orderBy('teams.name')
+            ->orderBy('audit_events.team_public_id')
+            ->get() as $row) {
+            $values = get_object_vars($row);
+            $publicId = $this->stringValue($values['team_public_id'] ?? '');
+
+            if ($publicId === '') {
+                continue;
+            }
+
+            $name = $this->stringValue($values['name'] ?? '');
+            $options[] = [
+                'value' => $publicId,
+                'label' => $name === '' ? $publicId : sprintf('%s (%s)', $name, $publicId),
+            ];
+        }
+
+        return $options;
     }
 
     /**
