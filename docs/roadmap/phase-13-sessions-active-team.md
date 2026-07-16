@@ -1,6 +1,6 @@
 ## Phase 13 — Sessions and active team
 
-**Status:** `in progress`
+**Status:** `complete`
 
 ## Objective
 
@@ -68,7 +68,7 @@ Implement Redis-backed sessions, active-team context, user/admin session managem
 - [x] Add centralized handling for 401, 403, 419, 422, 429, and 500.
 - [x] Add offline/online handling and safe retry rules.
 - [x] Add second-device login conflict flow with cancel/continue-and-terminate choices before TimeTracking starts relying on single working sessions.
-- [ ] Commit session and team context foundation.
+- [x] Commit session and team context foundation.
 
 Notes:
 

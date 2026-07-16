@@ -1,6 +1,6 @@
 ## Phase 14 — Module availability and activation
 
-**Status:** `not started`
+**Status:** `in progress`
 
 ## Objective
 

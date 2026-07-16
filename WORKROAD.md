@@ -37,7 +37,7 @@ Do not replace this index after the initial technical foundation is completed. C
 
 ## Current phase
 
-- Phase: [Phase 13 — Sessions and active team](docs/roadmap/phase-13-sessions-active-team.md)
+- Phase: [Phase 14 — Module availability and activation](docs/roadmap/phase-14-module-activation.md)
 - Status: `in progress`
 
 ## Roadmap dependency repair note
@@ -152,7 +152,7 @@ Implement typed settings, localization, precedence, validation, caching, and saf
 
 ### Phase 13 — Sessions and active team
 
-**Status:** `in progress`
+**Status:** `complete`
 
 Implement Redis-backed sessions, active-team context, session administration, session security controls, and centralized frontend network handling.
 
@@ -160,7 +160,7 @@ Implement Redis-backed sessions, active-team context, session administration, se
 
 ### Phase 14 — Module availability and activation
 
-**Status:** `not started`
+**Status:** `in progress`
 
 Implement deployment availability, global/team activation, schedules, dependencies, cache invalidation, deactivation guards, and central gate enforcement.
 
