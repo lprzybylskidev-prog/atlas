@@ -4,6 +4,7 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
 import { useModal } from '../Composables/useModal';
 import { useTranslator } from '../Localization/translator';
+import FormInput from './Form/FormInput.vue';
 
 const props = defineProps<{
     uiLocale?: string;
@@ -14,6 +15,7 @@ const { t } = useTranslator(props.uiLocale);
 const confirmButton = ref<HTMLButtonElement | null>(null);
 const dialog = ref<HTMLElement | null>(null);
 const previousFocus = ref<HTMLElement | null>(null);
+const typedValue = ref('');
 
 const toneClass = computed(() => {
     if (activeModal.value?.tone === 'danger') {
@@ -40,13 +42,46 @@ function confirm(): void {
         return;
     }
 
+    if (activeModal.value?.typedConfirmation && typedValue.value !== activeModal.value.typedConfirmation) {
+        return;
+    }
+
     resolve(true);
 }
 
 function onKeydown(event: KeyboardEvent): void {
-    if (event.key === 'Escape' && activeModal.value !== null) {
+    if (activeModal.value === null) {
+        return;
+    }
+
+    if (event.key === 'Escape') {
         event.preventDefault();
         close();
+        return;
+    }
+
+    if (event.key === 'Tab') {
+        const focusable = dialog.value?.querySelectorAll<HTMLElement>(
+            'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        );
+
+        if (focusable === undefined || focusable.length === 0) {
+            return;
+        }
+
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+
+        if (event.shiftKey && document.activeElement === first) {
+            event.preventDefault();
+            last.focus();
+            return;
+        }
+
+        if (!event.shiftKey && document.activeElement === last) {
+            event.preventDefault();
+            first.focus();
+        }
     }
 }
 
@@ -55,8 +90,9 @@ watch(
     (modal) => {
         if (modal !== null) {
             previousFocus.value = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+            typedValue.value = '';
             window.setTimeout(() => {
-                if (modal.variant === 'confirm') {
+                if (modal.variant === 'confirm' && !modal.typedConfirmation) {
                     confirmButton.value?.focus();
                     return;
                 }
@@ -125,6 +161,31 @@ onBeforeUnmount(() => {
                         <p :id="`${activeModal.id}-description`" class="mt-2 text-sm text-zinc-600 dark:text-zinc-300">
                             {{ t(activeModal.descriptionKey) }}
                         </p>
+                        <dl
+                            v-if="activeModal.subject || activeModal.affectedCount !== undefined || activeModal.irreversible"
+                            class="mt-4 space-y-2 rounded-lg border border-zinc-200 bg-zinc-50 p-3 text-sm dark:border-zinc-800 dark:bg-zinc-900"
+                        >
+                            <div v-if="activeModal.subject" class="flex gap-2">
+                                <dt class="shrink-0 font-medium text-zinc-500 dark:text-zinc-400">{{ t('modal.subject') }}</dt>
+                                <dd class="min-w-0 break-words text-zinc-800 dark:text-zinc-100">{{ activeModal.subject }}</dd>
+                            </div>
+                            <div v-if="activeModal.affectedCount !== undefined" class="flex gap-2">
+                                <dt class="shrink-0 font-medium text-zinc-500 dark:text-zinc-400">{{ t('modal.affected_count') }}</dt>
+                                <dd class="text-zinc-800 dark:text-zinc-100">{{ activeModal.affectedCount }}</dd>
+                            </div>
+                            <div v-if="activeModal.irreversible" class="text-rose-700 dark:text-rose-300">
+                                {{ t('modal.irreversible') }}
+                            </div>
+                        </dl>
+                        <FormInput
+                            v-if="activeModal.typedConfirmation"
+                            v-model="typedValue"
+                            class="mt-4"
+                            :label="t('modal.typed_confirmation_label', { value: activeModal.typedConfirmation })"
+                            :aria-label="t('modal.typed_confirmation_label', { value: activeModal.typedConfirmation })"
+                            autocomplete="off"
+                            monospace
+                        />
                     </div>
                     <button
                         v-if="activeModal.variant === 'confirm'"
@@ -147,8 +208,9 @@ onBeforeUnmount(() => {
                     <button
                         ref="confirmButton"
                         type="button"
-                        class="h-10 rounded-lg px-4 text-sm font-medium transition"
+                        class="h-10 rounded-lg px-4 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-50"
                         :class="toneClass"
+                        :disabled="Boolean(activeModal.typedConfirmation && typedValue !== activeModal.typedConfirmation)"
                         @click="confirm"
                     >
                         {{ t(activeModal.confirmKey ?? 'modal.cancel') }}

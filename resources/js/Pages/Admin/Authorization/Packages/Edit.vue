@@ -3,6 +3,8 @@ import { Head, Link, useForm } from '@inertiajs/vue3';
 import { IconArrowLeft, IconPackages } from '@tabler/icons-vue';
 
 import AdminRecordActions from '../../../../Components/AdminRecordActions.vue';
+import AtlasForm from '../../../../Components/Form/AtlasForm.vue';
+import FormButton from '../../../../Components/Form/FormButton.vue';
 import FormCheckbox from '../../../../Components/Form/FormCheckbox.vue';
 import FormInput from '../../../../Components/Form/FormInput.vue';
 import AdminLayout from '../../../../Layouts/AdminLayout.vue';
@@ -52,7 +54,7 @@ function submit(): void {
                 <AdminRecordActions class="mt-3" :actions="recordActions" />
             </section>
 
-            <form class="grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(24rem,32rem)]" @submit.prevent="submit">
+            <AtlasForm class="grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(24rem,32rem)]" :processing="form.processing" @submit="submit">
                 <section class="rounded-lg border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950">
                     <div class="grid gap-4 sm:grid-cols-2">
                         <div>
@@ -106,13 +108,9 @@ function submit(): void {
                 </section>
 
                 <div class="flex flex-wrap items-center gap-2 xl:col-span-2">
-                    <button
-                        type="submit"
-                        class="inline-flex h-10 items-center rounded-lg bg-teal-700 px-4 text-sm font-medium text-white transition hover:bg-teal-800 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-teal-600 dark:hover:bg-teal-500"
-                        :disabled="form.processing"
-                    >
+                    <FormButton type="submit" :loading="form.processing">
                         {{ form.processing ? 'Saving...' : 'Save changes' }}
-                    </button>
+                    </FormButton>
                     <Link
                         href="/admin/authorization/packages"
                         class="inline-flex h-10 items-center gap-2 rounded-lg border border-zinc-300 bg-white px-4 text-sm font-medium text-zinc-700 transition hover:border-zinc-400 hover:bg-zinc-100 hover:text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:border-zinc-600 dark:hover:bg-zinc-800 dark:hover:text-zinc-50"
@@ -121,7 +119,7 @@ function submit(): void {
                         Back to presets
                     </Link>
                 </div>
-            </form>
+            </AtlasForm>
         </section>
     </AdminLayout>
 </template>

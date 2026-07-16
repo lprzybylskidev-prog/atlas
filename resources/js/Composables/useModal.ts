@@ -10,6 +10,10 @@ export interface ModalRequest {
     confirmKey?: TranslationKey;
     cancelKey?: TranslationKey;
     tone: 'neutral' | 'warning' | 'danger';
+    subject?: string;
+    affectedCount?: number;
+    irreversible?: boolean;
+    typedConfirmation?: string;
 }
 
 const activeModal = ref<ModalRequest | null>(null);
@@ -17,6 +21,10 @@ let activeResolver: ((confirmed: boolean) => void) | null = null;
 
 export function useModal() {
     function confirm(request: Omit<ModalRequest, 'id' | 'variant'>): Promise<boolean> {
+        if (activeModal.value !== null) {
+            activeResolver?.(false);
+        }
+
         activeModal.value = {
             ...request,
             id: crypto.randomUUID(),

@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { Head, useForm } from '@inertiajs/vue3';
 
+import AtlasForm from '../../Components/Form/AtlasForm.vue';
+import FormButton from '../../Components/Form/FormButton.vue';
 import FormCheckbox from '../../Components/Form/FormCheckbox.vue';
 import FormInput from '../../Components/Form/FormInput.vue';
 import AuthLayout from '../../Layouts/AuthLayout.vue';
@@ -24,7 +26,7 @@ const submit = (): void => {
 <template>
     <Head :title="t('auth.login.head_title')" />
     <AuthLayout :title="t('auth.login.title')" :subtitle="t('auth.login.subtitle')">
-        <form class="space-y-5" novalidate @submit.prevent="submit">
+        <AtlasForm class="space-y-5" :processing="form.processing" @submit="submit">
             <FormInput
                 id="email"
                 v-model="form.email"
@@ -45,13 +47,9 @@ const submit = (): void => {
 
             <FormCheckbox v-model="form.remember" :label="t('auth.login.remember')" />
 
-            <button
-                type="submit"
-                class="inline-flex h-11 w-full items-center justify-center rounded-lg bg-teal-700 px-4 text-sm font-semibold text-white transition hover:bg-teal-800 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-teal-400 dark:text-zinc-950 dark:hover:bg-teal-300"
-                :disabled="form.processing"
-            >
+            <FormButton type="submit" class="h-11 w-full" :loading="form.processing">
                 {{ form.processing ? t('auth.login.submitting') : t('auth.login.submit') }}
-            </button>
-        </form>
+            </FormButton>
+        </AtlasForm>
     </AuthLayout>
 </template>

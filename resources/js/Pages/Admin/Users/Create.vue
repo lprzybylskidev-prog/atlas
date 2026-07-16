@@ -3,6 +3,8 @@ import { computed } from 'vue';
 import { Head, useForm } from '@inertiajs/vue3';
 import { IconUserPlus } from '@tabler/icons-vue';
 
+import AtlasForm from '../../../Components/Form/AtlasForm.vue';
+import FormButton from '../../../Components/Form/FormButton.vue';
 import FormInput from '../../../Components/Form/FormInput.vue';
 import FormSelect from '../../../Components/Form/FormSelect.vue';
 import AdminLayout from '../../../Layouts/AdminLayout.vue';
@@ -56,7 +58,7 @@ function submit(): void {
     <Head :title="t('pages.admin.users.create.head_title')" />
     <AdminLayout :title="t('pages.admin.users.create.title')" :title-icon="IconUserPlus">
         <section class="grid gap-5 xl:grid-cols-[minmax(0,1fr)_24rem]">
-            <form class="space-y-4" @submit.prevent="submit">
+            <AtlasForm class="space-y-4" :processing="form.processing" @submit="submit">
                 <div class="rounded-lg border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950">
                     <div class="grid gap-4 sm:grid-cols-2">
                         <FormInput v-model="form.name" label="Name" :error="form.errors.name" />
@@ -86,15 +88,11 @@ function submit(): void {
                         :options="copySourceOptions"
                     />
 
-                    <button
-                        type="submit"
-                        class="mt-5 inline-flex h-10 items-center rounded-lg bg-teal-700 px-4 text-sm font-medium text-white transition hover:bg-teal-800 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-teal-600 dark:hover:bg-teal-500"
-                        :disabled="form.processing"
-                    >
+                    <FormButton type="submit" class="mt-5" :loading="form.processing">
                         {{ form.processing ? 'Creating...' : 'Create user' }}
-                    </button>
+                    </FormButton>
                 </div>
-            </form>
+            </AtlasForm>
 
             <aside class="rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950">
                 <h2 class="text-sm font-semibold uppercase text-zinc-500 dark:text-zinc-400">Package preview</h2>

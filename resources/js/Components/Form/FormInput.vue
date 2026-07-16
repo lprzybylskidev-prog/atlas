@@ -8,12 +8,15 @@ const props = withDefaults(
         label?: string;
         ariaLabel?: string;
         id?: string;
-        type?: 'email' | 'password' | 'text';
+        type?: 'date' | 'datetime-local' | 'email' | 'number' | 'password' | 'text';
         autocomplete?: string;
         error?: string;
         placeholder?: string;
         monospace?: boolean;
         leadingIcon?: Component;
+        suffix?: string;
+        inputmode?: 'decimal' | 'email' | 'numeric' | 'search' | 'tel' | 'text' | 'url';
+        step?: string;
     }>(),
     {
         label: undefined,
@@ -25,6 +28,9 @@ const props = withDefaults(
         placeholder: undefined,
         monospace: false,
         leadingIcon: undefined,
+        suffix: undefined,
+        inputmode: undefined,
+        step: undefined,
     },
 );
 
@@ -49,12 +55,20 @@ const errorId = `${inputId}-error`;
                 :type="type"
                 :autocomplete="autocomplete"
                 :placeholder="placeholder"
+                :inputmode="inputmode"
+                :step="step"
                 :aria-label="ariaLabel"
                 :aria-invalid="error ? 'true' : 'false'"
                 :aria-describedby="error ? errorId : undefined"
                 class="h-10 w-full rounded-lg border border-zinc-300 bg-white px-3 text-sm text-zinc-950 outline-none transition placeholder:text-zinc-400 focus:border-teal-600 focus:ring-2 focus:ring-teal-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50 dark:placeholder:text-zinc-500 dark:focus:ring-teal-950"
-                :class="[{ 'font-mono': monospace }, leadingIcon ? 'pl-9' : '']"
+                :class="[{ 'font-mono': monospace }, leadingIcon ? 'pl-9' : '', suffix ? 'pr-14' : '']"
             />
+            <span
+                v-if="suffix"
+                class="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-xs font-semibold text-zinc-500 dark:text-zinc-400"
+            >
+                {{ suffix }}
+            </span>
         </span>
         <p v-if="error" :id="errorId" class="mt-1 text-xs text-rose-600 dark:text-rose-300">{{ error }}</p>
     </label>

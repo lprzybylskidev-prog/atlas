@@ -3,7 +3,7 @@ export interface DataTableColumn<TRow extends Record<string, unknown>> {
     label: string;
     sortable?: boolean;
     hidden?: boolean;
-    format?: 'boolean' | 'datetime' | 'list' | 'count';
+    format?: 'boolean' | 'count' | 'date' | 'datetime' | 'list' | 'money' | 'number' | 'percent' | 'status' | 'time';
 }
 
 export interface DataTableAction<TRow extends Record<string, unknown>> {

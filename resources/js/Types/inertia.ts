@@ -32,6 +32,9 @@ export interface AtlasPageProps {
             key?: string;
             message?: string;
             description?: string | null;
+            descriptionKey?: string;
+            timeoutMs?: number | null;
+            critical?: boolean;
         }[];
     };
 }

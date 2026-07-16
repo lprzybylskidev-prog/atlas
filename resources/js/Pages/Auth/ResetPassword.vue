@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { Head, useForm } from '@inertiajs/vue3';
 
+import AtlasForm from '../../Components/Form/AtlasForm.vue';
+import FormButton from '../../Components/Form/FormButton.vue';
 import FormInput from '../../Components/Form/FormInput.vue';
 import AuthLayout from '../../Layouts/AuthLayout.vue';
 import { useTranslator } from '../../Localization/translator';
@@ -29,7 +31,7 @@ const submit = (): void => {
 <template>
     <Head :title="t('auth.reset_password.head_title')" />
     <AuthLayout :title="t('auth.reset_password.title')" :subtitle="t('auth.reset_password.subtitle')">
-        <form class="space-y-5" novalidate @submit.prevent="submit">
+        <AtlasForm class="space-y-5" :processing="form.processing" @submit="submit">
             <FormInput
                 id="email"
                 v-model="form.email"
@@ -57,13 +59,9 @@ const submit = (): void => {
                 :error="form.errors.password_confirmation"
             />
 
-            <button
-                type="submit"
-                class="inline-flex h-11 w-full items-center justify-center rounded-lg bg-teal-700 px-4 text-sm font-semibold text-white transition hover:bg-teal-800 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-teal-400 dark:text-zinc-950 dark:hover:bg-teal-300"
-                :disabled="form.processing"
-            >
+            <FormButton type="submit" class="h-11 w-full" :loading="form.processing">
                 {{ form.processing ? t('auth.reset_password.submitting') : t('auth.reset_password.submit') }}
-            </button>
-        </form>
+            </FormButton>
+        </AtlasForm>
     </AuthLayout>
 </template>

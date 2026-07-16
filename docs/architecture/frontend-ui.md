@@ -267,6 +267,8 @@ Tooltips must support hover and focus.
 
 Critical information must not be hover-only.
 
+Atlas owns one shared popover primitive and one shared tooltip component under `resources/js/Components`. New hover/focus hints and floating option panels must extend those components instead of introducing native `title` attributes or local popover state machines.
+
 ### Forms
 
 Use `novalidate`.
@@ -292,6 +294,8 @@ Use shared form components for:
 - field errors;
 - buttons.
 
+Current shared primitives live under `resources/js/Components/Form` and include `AtlasForm`, `FormInput`, `FormTextarea`, `FormSelect`, `FormAutocomplete`, `EntitySearchInput`, `FormCheckbox`, `FormRadioGroup`, date and datetime inputs, `FormMoneyInput`, `FormFileUpload`, `FormFieldError`, and `FormButton`.
+
 Requirements:
 
 - common loading, disabled, success, and error states;
@@ -301,6 +305,8 @@ Requirements:
 - permission-aware UI;
 - map backend field errors;
 - money input converts to backend minor units through one shared formatter.
+
+`AtlasForm` is the ordinary page-level form wrapper. It sets `novalidate`, exposes `aria-busy`, and blocks duplicate submits while processing. Pages should not render native `<form>` submit handling directly.
 
 ### Modals and confirmation
 
@@ -323,6 +329,8 @@ Requirements:
 - affected-row count for mass actions;
 - stronger flows for hard delete and anonymization.
 
+The shared modal host supports focus trap, Escape close for confirm dialogs, focus restoration, destructive metadata, affected-row counts, irreversibility warnings, and typed confirmation text. Avoid modal-on-modal flows by routing confirmations through `useModal`.
+
 ### Alerts and toasts
 
 Use one shared system for backend and frontend messages.
@@ -343,6 +351,14 @@ Support:
 - accessibility.
 
 No native alerts and no local ad hoc toast systems.
+
+The Inertia flash contract accepts queued messages with type, translation key or message text, optional translated description key, configurable timeout, and a critical flag for manual dismissal. Frontend events use `useToast` and render through `ToastViewport`.
+
+### States and formatters
+
+Use the shared `UiState` component for loading, empty, error, and no-results states.
+
+Use shared frontend formatters from `resources/js/Utils/formatters.ts` for date, time, datetime, money, number, percent, status, and empty values. Money conversion uses integer minor units at component boundaries.
 
 ---
 

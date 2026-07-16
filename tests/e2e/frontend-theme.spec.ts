@@ -2,8 +2,13 @@ import type { Page } from '@playwright/test';
 
 import { expect, test } from './support/test';
 
-const demoUser = {
+const adminUser = {
     email: 'admin@example.test',
+    password: 'password',
+};
+
+const appUser = {
+    email: 'limited@example.test',
     password: 'password',
 };
 
@@ -26,12 +31,18 @@ async function enableDarkTheme(page: Page): Promise<void> {
     await expect(page.locator('html')).toHaveClass(/dark/);
 }
 
-async function signIn(page: Page): Promise<void> {
+async function signIn(page: Page, user = appUser): Promise<void> {
     await page.goto('/login');
-    await page.getByLabel('Email').fill(demoUser.email);
-    await page.getByLabel(/Hasło|Password/).fill(demoUser.password);
+    await page.getByLabel('Email').fill(user.email);
+    await page.getByLabel(/Hasło|Password/).fill(user.password);
     await page.getByRole('button', { name: /Zaloguj|Log in/ }).click();
     await expect(page).toHaveURL('/');
+}
+
+async function confirmAdminPassword(page: Page): Promise<void> {
+    await page.getByLabel(/Hasło|Password/).fill(adminUser.password);
+    await page.getByRole('button', { name: /Potwierdź|Confirm/ }).click();
+    await expect(page).toHaveURL('/admin');
 }
 
 async function expectShellScreenshot(page: Page, name: string): Promise<void> {
@@ -62,8 +73,9 @@ test.describe('frontend theme coverage', () => {
     });
 
     test('renders the admin shell in light and dark themes', async ({ page }) => {
-        await signIn(page);
+        await signIn(page, adminUser);
         await page.goto('/admin');
+        await confirmAdminPassword(page);
         await stabilizeVisuals(page);
 
         await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible();

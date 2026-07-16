@@ -37,8 +37,8 @@ Do not replace this index after the initial technical foundation is completed. C
 
 ## Current phase
 
-- Phase: [Phase 8 — Foundation completion and roadmap dependency repair](docs/roadmap/phase-08-foundation-completion.md)
-- Status: `not started`
+- Phase: [Phase 9 — Shared UI components](docs/roadmap/phase-09-shared-ui.md)
+- Status: `implemented pending commit approval`
 
 ## Roadmap dependency repair note
 
@@ -120,7 +120,7 @@ Close partial foundations pulled forward during phases 5-7, including current Ad
 
 ### Phase 9 — Shared UI components
 
-**Status:** `not started`
+**Status:** `implemented pending commit approval`
 
 Build reusable accessible UI primitives, forms, confirmations, alerts, formatters, layouts, and fixed application interaction patterns before additional screens depend on them.
 

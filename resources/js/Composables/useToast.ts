@@ -10,7 +10,9 @@ export interface ToastMessage {
     key?: TranslationKey;
     message?: string;
     description?: string | null;
+    descriptionKey?: TranslationKey;
     timeoutMs: number | null;
+    critical: boolean;
     createdAt: number;
 }
 
@@ -24,9 +26,15 @@ const defaultTimeouts: Record<ToastType, number | null> = {
 };
 
 export function useToast() {
-    function push(message: Omit<ToastMessage, 'id' | 'createdAt' | 'timeoutMs'> & { timeoutMs?: number | null }): string {
+    function push(
+        message: Omit<ToastMessage, 'id' | 'createdAt' | 'timeoutMs' | 'critical'> & {
+            critical?: boolean;
+            timeoutMs?: number | null;
+        },
+    ): string {
         const id = crypto.randomUUID();
-        const timeoutMs = message.timeoutMs === undefined ? defaultTimeouts[message.type] : message.timeoutMs;
+        const critical = message.critical ?? false;
+        const timeoutMs = critical ? null : message.timeoutMs === undefined ? defaultTimeouts[message.type] : message.timeoutMs;
 
         messages.value = [
             ...messages.value,
@@ -34,6 +42,7 @@ export function useToast() {
                 ...message,
                 id,
                 timeoutMs,
+                critical,
                 createdAt: Date.now(),
             },
         ];

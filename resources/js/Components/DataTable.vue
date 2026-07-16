@@ -43,6 +43,16 @@ import { useToast } from '../Composables/useToast';
 import type { TranslationKey } from '../Localization/catalog';
 import { useTranslator } from '../Localization/translator';
 import type { DataTableAction, DataTableBulkAction, DataTableColumn } from '../Types/data-table';
+import {
+    formatDate,
+    formatDateTime,
+    formatEmpty,
+    formatMoney,
+    formatNumber,
+    formatPercent,
+    formatStatus,
+    formatTime,
+} from '../Utils/formatters';
 import FormCheckbox from './Form/FormCheckbox.vue';
 import FormInput from './Form/FormInput.vue';
 import FormSelect from './Form/FormSelect.vue';
@@ -284,24 +294,35 @@ function formatCell(value: unknown, format: DataTableColumn<TRow>['format']): VN
         return String(value.length);
     }
 
-    if (format === 'datetime' && typeof value === 'string' && value !== '') {
-        const date = new Date(value);
-
-        if (Number.isNaN(date.getTime())) {
-            return value;
-        }
-
-        return new Intl.DateTimeFormat(props.uiLocale ?? 'en', {
-            dateStyle: 'medium',
-            timeStyle: 'short',
-        }).format(date);
+    if (format === 'date' && (typeof value === 'string' || value instanceof Date)) {
+        return formatDate(value, props.uiLocale ?? 'en');
     }
 
-    if (value === null || value === undefined || value === '') {
-        return '-';
+    if (format === 'time' && (typeof value === 'string' || value instanceof Date)) {
+        return formatTime(value, props.uiLocale ?? 'en');
     }
 
-    return String(value);
+    if (format === 'datetime' && (typeof value === 'string' || value instanceof Date)) {
+        return formatDateTime(value, props.uiLocale ?? 'en');
+    }
+
+    if (format === 'money' && value !== null && typeof value === 'object' && 'amountMinor' in value && 'currency' in value) {
+        return formatMoney(value as { amountMinor: number; currency: string }, props.uiLocale ?? 'en');
+    }
+
+    if (format === 'number' && typeof value === 'number') {
+        return formatNumber(value, props.uiLocale ?? 'en');
+    }
+
+    if (format === 'percent' && typeof value === 'number') {
+        return formatPercent(value, props.uiLocale ?? 'en');
+    }
+
+    if (format === 'status' && typeof value === 'string') {
+        return formatStatus(value);
+    }
+
+    return formatEmpty(value);
 }
 
 function formatExportCell(value: unknown, format: DataTableColumn<TRow>['format']): string {
@@ -317,15 +338,15 @@ function formatExportCell(value: unknown, format: DataTableColumn<TRow>['format'
         return String(value.length);
     }
 
-    if (format === 'datetime' && typeof value === 'string' && value !== '') {
+    if ((format === 'date' || format === 'time' || format === 'datetime') && typeof value === 'string' && value !== '') {
         return value;
     }
 
-    if (value === null || value === undefined || value === '') {
-        return '-';
+    if (format === 'money' && value !== null && typeof value === 'object' && 'amountMinor' in value && 'currency' in value) {
+        return formatMoney(value as { amountMinor: number; currency: string }, props.uiLocale ?? 'en');
     }
 
-    return String(value);
+    return formatEmpty(value);
 }
 
 function exportPayload(): { headers: string[]; rows: string[][] } {

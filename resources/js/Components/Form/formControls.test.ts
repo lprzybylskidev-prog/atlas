@@ -6,16 +6,25 @@ const vueFiles = import.meta.glob('../../**/*.vue', {
     query: '?raw',
 }) as Record<string, string>;
 
-const nativeControlAllowedFiles = new Set(['./FormInput.vue']);
-
 describe('shared form control guardrails', () => {
     it('keeps native form controls inside shared form primitives', () => {
         for (const [file, contents] of Object.entries(vueFiles)) {
-            if (nativeControlAllowedFiles.has(file)) {
+            if (file.startsWith('./') || file.includes('/Components/Form/')) {
                 continue;
             }
 
             expect(contents, file).not.toMatch(/<(input|select|textarea)\b/);
+        }
+    });
+
+    it('keeps ordinary pages on the shared AtlasForm submit wrapper', () => {
+        for (const [file, contents] of Object.entries(vueFiles)) {
+            if (!file.includes('/Pages/')) {
+                continue;
+            }
+
+            expect(contents, file).not.toMatch(/<form\b/);
+            expect(contents, file).not.toMatch(/<button\s+type="submit"/);
         }
     });
 });

@@ -1,6 +1,6 @@
 ## Phase 9 — Shared UI components
 
-**Status:** `not started`
+**Status:** `implemented pending commit approval`
 
 ## Objective
 
@@ -34,28 +34,28 @@ Partial pull-forward note: Phase 7 Admin table work implemented the minimum shar
 
 ## Tasks
 
-- [ ] Build shared tooltip and popover system.
-- [ ] Remove native `title` usage.
-- [ ] Build shared modal system.
-- [ ] Build shared confirmation system.
-- [ ] Add destructive and typed-confirmation variants.
-- [ ] Build shared alert/toast system.
-- [ ] Add standardized Inertia flash contract.
-- [ ] Add alert queue and progress bars.
-- [ ] Build shared loading, empty, error, and no-results states.
-- [ ] Build shared form controls.
-- [ ] Add unsaved-change warning.
-- [ ] Prevent double submission.
-- [ ] Add shared backend field-error mapping.
-- [ ] Add shared money input and formatter.
-- [ ] Add date, time, money, percent, number, status, and empty-value formatters.
-- [ ] Verify all components in light and dark themes.
-- [ ] Add accessibility tests.
+- [x] Build shared tooltip and popover system.
+- [x] Remove native `title` usage.
+- [x] Build shared modal system.
+- [x] Build shared confirmation system.
+- [x] Add destructive and typed-confirmation variants.
+- [x] Build shared alert/toast system.
+- [x] Add standardized Inertia flash contract.
+- [x] Add alert queue and progress bars.
+- [x] Build shared loading, empty, error, and no-results states.
+- [x] Build shared form controls.
+- [x] Add unsaved-change warning.
+- [x] Prevent double submission.
+- [x] Add shared backend field-error mapping.
+- [x] Add shared money input and formatter.
+- [x] Add date, time, money, percent, number, status, and empty-value formatters.
+- [x] Verify all components in light and dark themes.
+- [x] Add accessibility tests.
 - [ ] Commit shared UI foundation.
 
 ## Completion criteria
 
-- [ ] Future screens can use shared primitives for forms, modals, confirmations, alerts, toasts, loading, empty, error, and formatting without local substitutes.
-- [ ] No native `title`, `window.confirm`, or `window.alert` remains in ordinary application/Admin UI.
-- [ ] Light/dark and accessibility coverage exists for all shared primitives.
-- [ ] Relevant documentation is current.
+- [x] Future screens can use shared primitives for forms, modals, confirmations, alerts, toasts, loading, empty, error, and formatting without local substitutes.
+- [x] No native `title`, `window.confirm`, or `window.alert` remains in ordinary application/Admin UI.
+- [x] Light/dark and accessibility coverage exists for all shared primitives.
+- [x] Relevant documentation is current.

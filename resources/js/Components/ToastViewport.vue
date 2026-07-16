@@ -46,6 +46,14 @@ function messageText(message: ToastMessage): string {
     return message.message ?? '';
 }
 
+function descriptionText(message: ToastMessage): string | null {
+    if (message.descriptionKey) {
+        return t(message.descriptionKey);
+    }
+
+    return message.description ?? null;
+}
+
 function pushFlashMessages(): void {
     const flash = page.props.flash;
 
@@ -55,6 +63,9 @@ function pushFlashMessages(): void {
             key: message.key as ToastMessage['key'],
             message: message.message,
             description: message.description,
+            descriptionKey: message.descriptionKey as ToastMessage['descriptionKey'],
+            timeoutMs: message.timeoutMs,
+            critical: message.critical,
         });
     });
 
@@ -73,7 +84,12 @@ watch(flashSignature, pushFlashMessages);
 
 <template>
     <Teleport to="body">
-        <div class="fixed right-4 bottom-4 z-[90] flex w-[min(24rem,calc(100vw-2rem))] flex-col gap-3" role="status" aria-live="polite">
+        <div
+            class="fixed right-4 bottom-4 z-[90] flex w-[min(24rem,calc(100vw-2rem))] flex-col gap-3"
+            role="status"
+            aria-live="polite"
+            aria-relevant="additions removals"
+        >
             <article
                 v-for="message in messages"
                 :key="message.id"
@@ -84,7 +100,7 @@ watch(flashSignature, pushFlashMessages);
                     <component :is="iconByType[message.type]" aria-hidden="true" class="mt-0.5 h-5 w-5 shrink-0" :stroke-width="1.8" />
                     <div class="min-w-0 flex-1">
                         <p class="text-sm font-semibold">{{ messageText(message) }}</p>
-                        <p v-if="message.description" class="mt-1 text-sm opacity-80">{{ message.description }}</p>
+                        <p v-if="descriptionText(message)" class="mt-1 text-sm opacity-80">{{ descriptionText(message) }}</p>
                     </div>
                     <button
                         type="button"
