@@ -122,6 +122,14 @@ Infrastructure and quality:
 
 ## Engineering principles
 
+### System consistency
+
+- Use one canonical name for each user-facing concept across navigation, labels, actions, breadcrumbs, documentation, demo data, and tests. When renaming or clarifying a concept, search for legacy synonyms and update them or document why a legacy technical name remains internal only.
+- User/team/role/permission behavior is system-wide, not Admin UI-specific. Frontend filtering may improve ergonomics, but backend contracts and use cases must enforce the same team scope and authorization invariants.
+- Validation errors shown to users must use translated human field names and translated accepted values. Never expose raw request keys such as `team_assignments.0.team_public_id`, database column names, enum internals, or other implementation identifiers in user-facing validation messages.
+- Admin UI validation errors, flash messages, breadcrumbs, and backend-rendered interface text must be English regardless of the regular user's selected application locale.
+- Development demo data must evolve with the application and cover representative current workflows, edge cases, and permission/team/module combinations. Demo seeders must not mask authorization or team-scope problems by granting every user every role, permission, team, or module unless that exact scenario is intentional and named.
+
 ### Explicit over magic
 
 Prefer explicit registration, typed contracts, visible control flow, and predictable configuration.
@@ -193,6 +201,7 @@ Read [`docs/architecture/modular-monolith.md`](docs/architecture/modular-monolit
 - Validate business invariants in Domain/Application code.
 - Authorize every protected operation on the backend.
 - UI visibility is not authorization.
+- Roles are small, functional permission bundles. Do not model job titles, account types, hierarchy status, or business scope as role names such as generic user/manager/persona labels; model those concepts through their owning modules and assign explicit permission bundles per team.
 - Reject invalid or unauthorized state changes; do not silently repair them.
 - Use meaningful typed exceptions and stable error mapping.
 - Protect mutable workflows from stale writes and concurrency races.

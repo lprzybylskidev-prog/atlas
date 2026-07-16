@@ -11,10 +11,12 @@ use App\Modules\Core\Identity\Application\Public\Contracts\SecurityAuditRecorder
 use App\Modules\Core\Identity\Application\Public\Contracts\UserCredentialAccountDirectory;
 use App\Modules\Core\Identity\Application\Public\Contracts\UserCredentialAccountStatusManager;
 use App\Modules\Core\Identity\Application\Public\Contracts\UserCredentialAccountStore;
+use App\Modules\Core\Identity\Application\Public\Contracts\UserSessionRegistry;
 use App\Modules\Core\Identity\Application\Public\DTOs\SecurityAuditEvent;
 use App\Modules\Core\Identity\Application\RateLimiting\RateLimitKeyBuilder;
 use App\Modules\Core\Identity\Application\RateLimiting\RateLimitPolicyCatalog;
 use App\Modules\Core\Identity\Application\RateLimiting\RateLimitPolicyRegistrar;
+use App\Modules\Core\Identity\Application\Sessions\SingleSessionLoginGuard;
 use App\Modules\Core\Identity\Application\WebAuthn\Contracts\WebAuthnCredentialRepository;
 use App\Modules\Core\Identity\Infrastructure\Notifications\UserSuspiciousLoginNotifier;
 use App\Modules\Core\Identity\Infrastructure\Persistence\DatabasePasswordHistoryRepository;
@@ -22,6 +24,7 @@ use App\Modules\Core\Identity\Infrastructure\Persistence\DatabaseWebAuthnCredent
 use App\Modules\Core\Identity\Infrastructure\Persistence\EloquentUserCredentialAccountDirectory;
 use App\Modules\Core\Identity\Infrastructure\Persistence\EloquentUserCredentialAccountStatusManager;
 use App\Modules\Core\Identity\Infrastructure\Persistence\EloquentUserCredentialAccountStore;
+use App\Modules\Core\Identity\Infrastructure\Persistence\RedisUserSessionRegistry;
 use App\Modules\Core\Identity\Infrastructure\Persistence\User;
 use App\Modules\Core\Identity\Presentation\Fortify\Actions\CreateNewUser;
 use App\Modules\Core\Identity\Presentation\Fortify\Actions\ResetUserPassword;
@@ -45,6 +48,7 @@ class FortifyServiceProvider extends ServiceProvider
         $this->app->bind(UserCredentialAccountDirectory::class, EloquentUserCredentialAccountDirectory::class);
         $this->app->bind(UserCredentialAccountStore::class, EloquentUserCredentialAccountStore::class);
         $this->app->bind(UserCredentialAccountStatusManager::class, EloquentUserCredentialAccountStatusManager::class);
+        $this->app->bind(UserSessionRegistry::class, RedisUserSessionRegistry::class);
     }
 
     public function boot(): void
@@ -59,8 +63,9 @@ class FortifyServiceProvider extends ServiceProvider
 
         $loginAttempts = $this->app->make(LoginAttemptProtection::class);
         $audit = $this->app->make(SecurityAuditRecorder::class);
+        $singleSessionLoginGuard = $this->app->make(SingleSessionLoginGuard::class);
 
-        Fortify::authenticateUsing(function (Request $request) use ($loginAttempts, $audit): ?User {
+        Fortify::authenticateUsing(function (Request $request) use ($loginAttempts, $audit, $singleSessionLoginGuard): ?User {
             $user = User::query()
                 ->where('email', $request->string(Fortify::username())->lower()->toString())
                 ->first();
@@ -90,6 +95,8 @@ class FortifyServiceProvider extends ServiceProvider
                 return null;
             }
 
+            $singleSessionLoginGuard->resolveLoginConflict($user, $request->boolean('terminate_existing_session'));
+
             $loginAttempts->recordSuccessfulAttempt($user);
 
             return $user;
@@ -97,6 +104,10 @@ class FortifyServiceProvider extends ServiceProvider
 
         Event::listen(Logout::class, function (Logout $event) use ($audit): void {
             $userPublicId = data_get($event->user, 'public_id');
+
+            if (is_string($userPublicId)) {
+                $this->app->make(UserSessionRegistry::class)->invalidateUser($userPublicId);
+            }
 
             $audit->record(new SecurityAuditEvent(
                 module: 'identity',

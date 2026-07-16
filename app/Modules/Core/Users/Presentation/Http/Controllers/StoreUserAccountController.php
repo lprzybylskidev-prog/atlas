@@ -4,15 +4,24 @@ declare(strict_types=1);
 
 namespace App\Modules\Core\Users\Presentation\Http\Controllers;
 
+use App\Modules\Core\Authorization\Application\Public\Contracts\OnboardingPackageDirectory;
+use App\Modules\Core\Authorization\Application\Public\Contracts\UserOnboardingPackageApplier;
+use App\Modules\Core\Authorization\Application\Public\Contracts\UserTeamAuthorizationManager;
+use App\Modules\Core\Teams\Application\Public\Contracts\UserTeamMembershipManager;
 use App\Modules\Core\Users\Application\Commands\CreateUserAccountCommand;
 use App\Modules\Core\Users\Application\CreateUserAccount;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 
 final readonly class StoreUserAccountController
 {
     public function __construct(
         private CreateUserAccount $users,
+        private UserTeamMembershipManager $memberships,
+        private UserTeamAuthorizationManager $authorization,
+        private UserOnboardingPackageApplier $onboardingPackages,
+        private OnboardingPackageDirectory $packageDirectory,
     ) {}
 
     public function __invoke(Request $request): RedirectResponse
@@ -20,28 +29,71 @@ final readonly class StoreUserAccountController
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255'],
-            'authorization_mode' => ['nullable', 'string', 'in:package,copy'],
-            'onboarding_package' => ['nullable', 'string'],
-            'copy_authorization_from_user' => ['nullable', 'string'],
+            'team_assignments' => ['required', 'array', 'min:1'],
+            'team_assignments.*.team_public_id' => ['required', 'string', 'exists:teams,public_id'],
+            'team_assignments.*.source' => ['required', 'string', 'in:manual,package,copy'],
+            'team_assignments.*.onboarding_package' => ['nullable', 'required_if:team_assignments.*.source,package', 'string'],
+            'team_assignments.*.copy_authorization_from_user' => ['nullable', 'required_if:team_assignments.*.source,copy', 'string', 'exists:users,public_id'],
+            'team_assignments.*.role_names' => ['array'],
+            'team_assignments.*.role_names.*' => ['string'],
+            'team_assignments.*.direct_permission_names' => ['array'],
+            'team_assignments.*.direct_permission_names.*' => ['string'],
         ]);
         $validated = is_array($validated) ? $validated : [];
 
-        $teamPublicId = $request->hasSession() ? $request->session()->get('active_team_public_id') : null;
         $actorPublicId = data_get($request->user(), 'public_id');
         $name = $this->stringValue($validated, 'name');
         $email = $this->stringValue($validated, 'email');
-        $mode = $this->nullableStringValue($validated, 'authorization_mode') ?: 'package';
-        $package = $this->nullableStringValue($validated, 'onboarding_package');
-        $copyFromUser = $this->nullableStringValue($validated, 'copy_authorization_from_user');
+        $teamAssignments = $this->teamAssignments($validated);
 
-        $this->users->handle(new CreateUserAccountCommand(
+        $this->validateTeamAssignments($teamAssignments);
+
+        $account = $this->users->handle(new CreateUserAccountCommand(
             name: $name,
             email: $email,
-            onboardingPackageName: $mode === 'package' && $package !== '' ? $package : null,
-            teamPublicId: is_string($teamPublicId) ? $teamPublicId : null,
+            onboardingPackageName: null,
+            teamPublicId: null,
             actorPublicId: is_string($actorPublicId) ? $actorPublicId : null,
-            copyAuthorizationFromUserPublicId: $mode === 'copy' && $copyFromUser !== '' ? $copyFromUser : null,
+            copyAuthorizationFromUserPublicId: null,
         ));
+
+        if (is_string($actorPublicId)) {
+            foreach ($teamAssignments as $assignment) {
+                $this->memberships->addAccess($actorPublicId, $account->publicId, $assignment['team_public_id']);
+
+                if ($assignment['source'] === 'package') {
+                    $this->onboardingPackages->applyDuringUserCreation(
+                        packageName: $assignment['onboarding_package'],
+                        userPublicId: $account->publicId,
+                        teamPublicId: $assignment['team_public_id'],
+                        actorPublicId: $actorPublicId,
+                    );
+
+                    continue;
+                }
+
+                $roleNames = $assignment['role_names'];
+                $directPermissionNames = $assignment['direct_permission_names'];
+
+                if ($assignment['source'] === 'copy') {
+                    $source = $this->authorization->assignmentsForUserTeam(
+                        $assignment['copy_authorization_from_user'],
+                        $assignment['team_public_id'],
+                    );
+                    $roleNames = $source->roleNames;
+                    $directPermissionNames = $source->directPermissionNames;
+                }
+
+                $this->authorization->replaceAssignmentsForUserTeam(
+                    actorPublicId: $actorPublicId,
+                    userPublicId: $account->publicId,
+                    teamPublicId: $assignment['team_public_id'],
+                    roleNames: $roleNames,
+                    directPermissionNames: $directPermissionNames,
+                    reason: 'Initial user team assignment.',
+                );
+            }
+        }
 
         return redirect()
             ->route('admin.users.index')
@@ -60,11 +112,89 @@ final readonly class StoreUserAccountController
 
     /**
      * @param  array<mixed>  $values
+     * @return list<array{team_public_id: string, source: string, onboarding_package: string, copy_authorization_from_user: string, role_names: list<string>, direct_permission_names: list<string>}>
      */
-    private function nullableStringValue(array $values, string $key): string
+    private function teamAssignments(array $values): array
     {
-        $value = $values[$key] ?? '';
+        $assignments = $values['team_assignments'] ?? [];
 
-        return is_string($value) ? $value : '';
+        if (! is_array($assignments)) {
+            return [];
+        }
+
+        $result = [];
+
+        foreach ($assignments as $assignment) {
+            if (! is_array($assignment)) {
+                continue;
+            }
+
+            $teamPublicId = $assignment['team_public_id'] ?? '';
+
+            if (! is_string($teamPublicId) || $teamPublicId === '') {
+                continue;
+            }
+
+            $result[] = [
+                'team_public_id' => $teamPublicId,
+                'source' => $this->stringValue($assignment, 'source') ?: 'manual',
+                'onboarding_package' => $this->stringValue($assignment, 'onboarding_package'),
+                'copy_authorization_from_user' => $this->stringValue($assignment, 'copy_authorization_from_user'),
+                'role_names' => $this->stringList($assignment['role_names'] ?? []),
+                'direct_permission_names' => $this->stringList($assignment['direct_permission_names'] ?? []),
+            ];
+        }
+
+        return $result;
+    }
+
+    /**
+     * @param  list<array{team_public_id: string, source: string, onboarding_package: string, copy_authorization_from_user: string, role_names: list<string>, direct_permission_names: list<string>}>  $assignments
+     */
+    private function validateTeamAssignments(array $assignments): void
+    {
+        foreach ($assignments as $assignment) {
+            if ($assignment['source'] === 'package' && ! $this->packageExistsForTeam($assignment['onboarding_package'], $assignment['team_public_id'])) {
+                throw ValidationException::withMessages([
+                    'team_assignments' => __('validation.custom.team_assignments.preset_team'),
+                ]);
+            }
+
+            if ($assignment['source'] !== 'copy') {
+                continue;
+            }
+
+            if (! $this->memberships->hasActiveMembership(
+                $assignment['copy_authorization_from_user'],
+                $assignment['team_public_id'],
+            )) {
+                throw ValidationException::withMessages([
+                    'team_assignments' => __('validation.custom.team_assignments.copy_source_team'),
+                ]);
+            }
+        }
+    }
+
+    private function packageExistsForTeam(string $packageName, string $teamPublicId): bool
+    {
+        foreach ($this->packageDirectory->all() as $package) {
+            if ($package->name === $packageName && $package->teamPublicId === $teamPublicId) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function stringList(mixed $values): array
+    {
+        if (! is_array($values)) {
+            return [];
+        }
+
+        return array_values(array_filter($values, 'is_string'));
     }
 }

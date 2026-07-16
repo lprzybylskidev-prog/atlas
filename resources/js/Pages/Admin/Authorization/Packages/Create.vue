@@ -6,16 +6,20 @@ import AtlasForm from '../../../../Components/Form/AtlasForm.vue';
 import FormButton from '../../../../Components/Form/FormButton.vue';
 import FormCheckbox from '../../../../Components/Form/FormCheckbox.vue';
 import FormInput from '../../../../Components/Form/FormInput.vue';
+import FormSelect from '../../../../Components/Form/FormSelect.vue';
 import AdminLayout from '../../../../Layouts/AdminLayout.vue';
 import { useTranslator } from '../../../../Localization/translator';
+import type { FormSelectOption } from '../../../../Components/Form/FormSelect.vue';
 
 defineProps<{
     roleOptions: string[];
     permissionOptions: string[];
+    teamOptions: FormSelectOption[];
 }>();
 
 const { t } = useTranslator('en');
 const form = useForm({
+    team_public_id: '',
     name: '',
     label: '',
     initial_roles: [] as string[],
@@ -33,6 +37,12 @@ function submit(): void {
         <AtlasForm class="grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(24rem,32rem)]" :processing="form.processing" @submit="submit">
             <section class="rounded-lg border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950">
                 <div class="grid gap-4 sm:grid-cols-2">
+                    <FormSelect
+                        v-model="form.team_public_id"
+                        label="Team"
+                        :options="[{ value: '', label: 'Select team' }, ...teamOptions]"
+                        :error="form.errors.team_public_id"
+                    />
                     <FormInput
                         v-model="form.name"
                         label="Technical name"

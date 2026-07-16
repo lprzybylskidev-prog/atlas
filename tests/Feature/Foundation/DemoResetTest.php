@@ -11,6 +11,7 @@ use Database\Seeders\DevelopmentDemoSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Symfony\Component\Console\Command\Command;
 use Tests\TestCase;
@@ -57,8 +58,21 @@ final class DemoResetTest extends TestCase
         $this->assertDatabaseHas('teams', ['name' => 'Back Office']);
         $this->assertDatabaseHas('roles', ['name' => StarterRoleName::Administrator->value]);
         $this->assertDatabaseHas('users', ['email' => 'demo.user.01@example.test']);
-        $this->assertDatabaseHas('user_onboarding_packages', ['package_name' => 'collections.agent']);
-        $this->assertDatabaseHas('user_onboarding_packages', ['package_name' => 'collections.team_leader']);
+        $this->assertDatabaseHas('users', ['email' => 'demo.copy.north@example.test']);
+        $this->assertDatabaseHas('users', ['email' => 'demo.copy.south@example.test']);
+        $this->assertDatabaseHas('users', ['email' => 'demo.copy.backoffice@example.test']);
+        $this->assertDatabaseHas('users', ['email' => 'demo.multi.team@example.test']);
+        $this->assertDatabaseHas('user_onboarding_packages', ['package_name' => 'north.collections.agent']);
+        $this->assertDatabaseHas('user_onboarding_packages', ['package_name' => 'north.collections.team_leader']);
+        $this->assertDatabaseHas('user_onboarding_packages', ['package_name' => 'south.collections.skip_tracer']);
         $this->assertDatabaseHas('user_onboarding_packages', ['package_name' => 'back_office.specialist']);
+
+        $multiTeamUser = User::query()
+            ->where('email', 'demo.multi.team@example.test')
+            ->firstOrFail();
+
+        $this->assertSame(2, DB::table('user_onboarding_packages')
+            ->where('user_id', $multiTeamUser->id)
+            ->count());
     }
 }

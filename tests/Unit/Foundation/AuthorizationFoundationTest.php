@@ -107,6 +107,8 @@ final class AuthorizationFoundationTest extends TestCase
             'password.confirmation',
             'password.email',
             'password.reset',
+            'team.select',
+            'team.select.store',
             'theme.update',
         ];
 

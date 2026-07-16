@@ -13,6 +13,8 @@ final readonly class OnboardingPackageDefinition
      */
     public function __construct(
         public string $publicId,
+        public string $teamPublicId,
+        public string $teamName,
         public string $name,
         public string $label,
         public array $initialRoleNames,

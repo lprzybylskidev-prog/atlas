@@ -17,6 +17,7 @@ final readonly class StoreOnboardingPackageController
     public function __invoke(Request $request): RedirectResponse
     {
         $validated = $request->validate([
+            'team_public_id' => ['required', 'string', 'exists:teams,public_id'],
             'name' => ['required', 'string', 'max:120', 'regex:/^[a-z0-9_.-]+$/'],
             'label' => ['required', 'string', 'max:255'],
             'initial_roles' => ['nullable', 'array'],
@@ -28,6 +29,7 @@ final readonly class StoreOnboardingPackageController
         $directPermissions = $this->stringList($validated, 'direct_permissions');
 
         $this->packages->upsert(
+            teamPublicId: $this->stringValue($validated, 'team_public_id'),
             name: $this->stringValue($validated, 'name'),
             label: $this->stringValue($validated, 'label'),
             initialRoleNames: $this->stringList($validated, 'initial_roles'),
@@ -37,7 +39,7 @@ final readonly class StoreOnboardingPackageController
 
         return redirect()
             ->route('admin.authorization.packages.index')
-            ->with('success', 'Onboarding package was saved.');
+            ->with('success', 'Preset was saved.');
     }
 
     /**

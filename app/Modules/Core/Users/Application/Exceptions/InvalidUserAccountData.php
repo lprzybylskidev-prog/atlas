@@ -25,12 +25,12 @@ final class InvalidUserAccountData extends InvalidArgumentException
 
     public static function missingTeamForOnboardingPackage(): self
     {
-        return new self('A team public ID is required when applying an onboarding package.');
+        return new self('A team public ID is required when applying a preset.');
     }
 
     public static function conflictingAuthorizationSources(): self
     {
-        return new self('Choose either an onboarding package or a source user to copy authorization from.');
+        return new self('Choose either a preset or a source user to copy authorization from.');
     }
 
     public static function missingTeamForAuthorizationAssignment(): self

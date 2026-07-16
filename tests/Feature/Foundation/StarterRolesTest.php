@@ -23,8 +23,8 @@ final class StarterRolesTest extends TestCase
             ->where('name', StarterRoleName::Administrator->value)
             ->firstOrFail();
 
-        self::assertDatabaseHas('roles', ['name' => StarterRoleName::User->value]);
-        self::assertDatabaseHas('roles', ['name' => StarterRoleName::Manager->value]);
+        self::assertDatabaseHas('roles', ['name' => StarterRoleName::WorkspaceAccess->value]);
+        self::assertDatabaseHas('roles', ['name' => StarterRoleName::TeamManagersRead->value]);
         self::assertDatabaseHas('roles', ['name' => StarterRoleName::Administrator->value]);
         self::assertCount(
             count($this->app->make(PermissionCatalogRegistry::class)->names()),

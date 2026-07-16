@@ -11,14 +11,28 @@ use Illuminate\Support\Str;
 
 final class DatabaseOnboardingPackageStore implements OnboardingPackageStore
 {
-    public function allActive(): array
+    public function allActive(?string $teamPublicId = null): array
     {
         $packages = [];
 
         foreach (DB::table('authorization_onboarding_packages')
-            ->where('is_active', true)
-            ->orderBy('label')
-            ->get()
+            ->join('teams', 'authorization_onboarding_packages.team_id', '=', 'teams.id')
+            ->where('authorization_onboarding_packages.is_active', true)
+            ->when($teamPublicId !== null, static function ($query) use ($teamPublicId): void {
+                $query->where('teams.public_id', $teamPublicId);
+            })
+            ->orderBy('teams.name')
+            ->orderBy('authorization_onboarding_packages.label')
+            ->get([
+                'authorization_onboarding_packages.public_id',
+                'authorization_onboarding_packages.name',
+                'authorization_onboarding_packages.label',
+                'authorization_onboarding_packages.initial_role_names',
+                'authorization_onboarding_packages.direct_permission_names',
+                'authorization_onboarding_packages.template_permission_names',
+                'teams.public_id as team_public_id',
+                'teams.name as team_name',
+            ])
             ->all() as $row) {
             $packages[] = $this->definitionFromRow($row);
         }
@@ -26,13 +40,60 @@ final class DatabaseOnboardingPackageStore implements OnboardingPackageStore
         return $packages;
     }
 
+    public function findByPublicId(string $publicId): ?OnboardingPackageDefinition
+    {
+        $row = DB::table('authorization_onboarding_packages')
+            ->join('teams', 'authorization_onboarding_packages.team_id', '=', 'teams.id')
+            ->where('authorization_onboarding_packages.public_id', $publicId)
+            ->first([
+                'authorization_onboarding_packages.public_id',
+                'authorization_onboarding_packages.name',
+                'authorization_onboarding_packages.label',
+                'authorization_onboarding_packages.initial_role_names',
+                'authorization_onboarding_packages.direct_permission_names',
+                'authorization_onboarding_packages.template_permission_names',
+                'teams.public_id as team_public_id',
+                'teams.name as team_name',
+            ]);
+
+        return is_object($row) ? $this->definitionFromRow($row) : null;
+    }
+
+    public function findActiveForTeam(string $name, string $teamPublicId): ?OnboardingPackageDefinition
+    {
+        $row = DB::table('authorization_onboarding_packages')
+            ->join('teams', 'authorization_onboarding_packages.team_id', '=', 'teams.id')
+            ->where('authorization_onboarding_packages.name', $name)
+            ->where('authorization_onboarding_packages.is_active', true)
+            ->where('teams.public_id', $teamPublicId)
+            ->first([
+                'authorization_onboarding_packages.public_id',
+                'authorization_onboarding_packages.name',
+                'authorization_onboarding_packages.label',
+                'authorization_onboarding_packages.initial_role_names',
+                'authorization_onboarding_packages.direct_permission_names',
+                'authorization_onboarding_packages.template_permission_names',
+                'teams.public_id as team_public_id',
+                'teams.name as team_name',
+            ]);
+
+        return is_object($row) ? $this->definitionFromRow($row) : null;
+    }
+
     public function upsert(
+        string $teamPublicId,
         string $name,
         string $label,
         array $initialRoleNames,
         array $directPermissionNames,
         array $templatePermissionNames,
     ): void {
+        $teamId = DB::table('teams')->where('public_id', $teamPublicId)->value('id');
+
+        if (! is_int($teamId)) {
+            return;
+        }
+
         $values = [
             'label' => $label,
             'initial_role_names' => json_encode($initialRoleNames, JSON_THROW_ON_ERROR),
@@ -42,23 +103,27 @@ final class DatabaseOnboardingPackageStore implements OnboardingPackageStore
             'updated_at' => now(),
         ];
 
-        if (DB::table('authorization_onboarding_packages')->where('name', $name)->exists()) {
-            DB::table('authorization_onboarding_packages')->where('name', $name)->update($values);
+        if (DB::table('authorization_onboarding_packages')->where('team_id', $teamId)->where('name', $name)->exists()) {
+            DB::table('authorization_onboarding_packages')
+                ->where('team_id', $teamId)
+                ->where('name', $name)
+                ->update($values);
 
             return;
         }
 
         DB::table('authorization_onboarding_packages')->insert($values + [
             'public_id' => (string) Str::ulid(),
+            'team_id' => $teamId,
             'name' => $name,
             'created_at' => now(),
         ]);
     }
 
-    public function deactivate(string $name): void
+    public function deactivate(string $publicId): void
     {
         DB::table('authorization_onboarding_packages')
-            ->where('name', $name)
+            ->where('public_id', $publicId)
             ->update([
                 'is_active' => false,
                 'updated_at' => now(),
@@ -71,6 +136,8 @@ final class DatabaseOnboardingPackageStore implements OnboardingPackageStore
 
         return new OnboardingPackageDefinition(
             publicId: $this->stringValue($values, 'public_id'),
+            teamPublicId: $this->stringValue($values, 'team_public_id'),
+            teamName: $this->stringValue($values, 'team_name'),
             name: $this->stringValue($values, 'name'),
             label: $this->stringValue($values, 'label'),
             initialRoleNames: $this->stringList($values, 'initial_role_names'),

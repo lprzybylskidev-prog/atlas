@@ -63,18 +63,18 @@ Breadcrumbs::for('admin.authorization.roles.edit', function (Generator $breadcru
 
 Breadcrumbs::for('admin.authorization.packages.index', function (Generator $breadcrumbs): void {
     $breadcrumbs->push(__('breadcrumbs.admin'));
-    $breadcrumbs->push('Onboarding packages');
+    $breadcrumbs->push('Presets');
 });
 
 Breadcrumbs::for('admin.authorization.packages.create', function (Generator $breadcrumbs): void {
     $breadcrumbs->push(__('breadcrumbs.admin'));
-    $breadcrumbs->push('Onboarding packages');
+    $breadcrumbs->push('Presets');
     $breadcrumbs->push('Create');
 });
 
 Breadcrumbs::for('admin.authorization.packages.edit', function (Generator $breadcrumbs): void {
     $breadcrumbs->push(__('breadcrumbs.admin'));
-    $breadcrumbs->push('Onboarding packages');
+    $breadcrumbs->push('Presets');
     $breadcrumbs->push('Edit');
 });
 

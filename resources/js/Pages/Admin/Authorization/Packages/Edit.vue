@@ -11,6 +11,9 @@ import AdminLayout from '../../../../Layouts/AdminLayout.vue';
 import { useTranslator } from '../../../../Localization/translator';
 
 interface PackageFormData {
+    publicId: string;
+    teamPublicId: string;
+    teamName: string;
     name: string;
     label: string;
     initialRoles: string[];
@@ -35,13 +38,13 @@ const recordActions = [
         key: 'deactivate-preset',
         label: 'Deactivate',
         method: 'delete' as const,
-        href: `/admin/authorization/packages/${packageRecord.name}`,
+        href: `/admin/authorization/packages/${packageRecord.publicId}`,
         tone: 'danger' as const,
     },
 ];
 
 function submit(): void {
-    form.patch(`/admin/authorization/packages/${packageRecord.name}`, { preserveScroll: true });
+    form.patch(`/admin/authorization/packages/${packageRecord.publicId}`, { preserveScroll: true });
 }
 </script>
 
@@ -57,6 +60,14 @@ function submit(): void {
             <AtlasForm class="grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(24rem,32rem)]" :processing="form.processing" @submit="submit">
                 <section class="rounded-lg border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950">
                     <div class="grid gap-4 sm:grid-cols-2">
+                        <div>
+                            <p class="mb-1 text-sm font-medium text-zinc-700 dark:text-zinc-200">Team</p>
+                            <p
+                                class="min-h-10 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-700 dark:border-zinc-800 dark:bg-zinc-900/60 dark:text-zinc-200"
+                            >
+                                {{ packageRecord.teamName }}
+                            </p>
+                        </div>
                         <div>
                             <p class="mb-1 text-sm font-medium text-zinc-700 dark:text-zinc-200">Technical name</p>
                             <p

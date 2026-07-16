@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Core\Users\Application;
 
 use App\Modules\Core\Identity\Application\Public\Contracts\UserCredentialAccountStatusManager;
+use App\Modules\Core\Identity\Application\Public\Contracts\UserSessionRegistry;
 use App\Modules\Core\Users\Application\Commands\DeactivateUserAccountCommand;
 use App\Modules\Core\Users\Application\DTOs\UserAccountStatus;
 use App\Modules\Core\Users\Application\Exceptions\UserAccountNotFound;
@@ -13,6 +14,7 @@ final readonly class DeactivateUserAccount
 {
     public function __construct(
         private UserCredentialAccountStatusManager $accounts,
+        private UserSessionRegistry $sessions,
     ) {}
 
     public function handle(DeactivateUserAccountCommand $command): UserAccountStatus
@@ -22,6 +24,8 @@ final readonly class DeactivateUserAccount
         if ($status === null) {
             throw UserAccountNotFound::forPublicId($command->publicId);
         }
+
+        $this->sessions->invalidateUser($command->publicId);
 
         return new UserAccountStatus(
             publicId: $status->publicId,

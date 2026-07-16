@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 namespace App\Modules\Core\Users\Presentation\Http\Controllers;
 
+use App\Modules\Core\Identity\Application\Public\Contracts\SecurityAuditRecorder;
 use App\Modules\Core\Identity\Application\Public\Contracts\UserCredentialAccountDirectory;
+use App\Modules\Core\Identity\Application\Public\Contracts\UserSessionRegistry;
+use App\Modules\Core\Identity\Application\Public\DTOs\SecurityAuditEvent;
 use App\Modules\Core\Users\Application\ActivateUserAccount;
 use App\Modules\Core\Users\Application\Commands\ActivateUserAccountCommand;
 use App\Modules\Core\Users\Application\Commands\DeactivateUserAccountCommand;
@@ -26,6 +29,8 @@ final readonly class UserAccountActionController
         private ResetUserMfa $resetMfa,
         private UserCredentialAccountDirectory $accounts,
         private FirstPasswordLinkIssuer $firstPasswordLinks,
+        private UserSessionRegistry $sessions,
+        private SecurityAuditRecorder $audit,
     ) {}
 
     public function activate(string $user): RedirectResponse
@@ -92,5 +97,23 @@ final readonly class UserAccountActionController
         ));
 
         return redirect()->route('admin.users.index')->with('success', 'User MFA was reset.');
+    }
+
+    public function invalidateSessions(Request $request, string $user): RedirectResponse
+    {
+        $this->sessions->invalidateUser($user);
+        $actorPublicId = data_get($request->user(), 'public_id');
+
+        $this->audit->record(new SecurityAuditEvent(
+            module: 'identity',
+            action: 'user.sessions_invalidated',
+            result: 'succeeded',
+            source: 'ui',
+            actorPublicId: is_string($actorPublicId) ? $actorPublicId : null,
+            targetPublicId: $user,
+            reason: 'Admin user action',
+        ));
+
+        return redirect()->route('admin.users.index')->with('success', 'User sessions were invalidated.');
     }
 }

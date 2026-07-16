@@ -12,5 +12,6 @@ return [
         'not_recently_used' => 'To hasło było niedawno używane. Wybierz inne hasło.',
     ],
     'rate_limited' => 'Zbyt wiele prób. Odczekaj chwilę i spróbuj ponownie.',
+    'session_conflict' => 'To konto jest już aktywne w innej sesji. Kontynuuj tutaj, aby zakończyć poprzednią sesję, albo anuluj logowanie.',
     'throttle' => 'Za dużo nieudanych prób logowania. Proszę spróbować za :seconds sekund.',
 ];

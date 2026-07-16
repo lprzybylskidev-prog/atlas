@@ -37,6 +37,7 @@ Current persistence baseline:
 - `users.first_password_set_at` records whether the account completed first-password setup;
 - `users.is_active` and `users.deactivated_at` control whether an account may authenticate;
 - `users.failed_login_attempts`, `users.login_lock_count`, and `users.login_locked_until` track persistent login locks;
+- `users.inactivity_timeout_minutes` and `users.session_max_lifetime_minutes` optionally override the global session security defaults for an individual user;
 - `user_password_histories` keeps the last 10 recorded password hashes per user;
 - accounts without `first_password_set_at` cannot authenticate, even when active;
 - inactive, locked, and invalid users receive the same generic failed-login behavior as invalid credentials.
@@ -128,6 +129,15 @@ MFA reset is a separate audited administrative flow exposed through `App\Modules
 
 Sessions use Redis.
 
+Current implementation foundation:
+
+- Laravel session payloads use the Redis session driver;
+- `App\Modules\Core\Identity\Application\Public\Contracts\UserSessionRegistry` owns the session metadata index used by session administration and online/offline status;
+- session metadata is stored in Redis under Atlas-owned keys and includes the Laravel session ID, user, creation time, last activity time, browser/device summary, approximate IP location, and active team;
+- `App\Http\Middleware\EnforceUserSessionSecurity` enforces inactivity and maximum lifetime without mutating framework session configuration per request;
+- `App\Http\Middleware\EnsureActiveTeamSelected` auto-selects a single available team and redirects multi-team users to explicit team selection;
+- second-device logins are stopped after successful password validation and before a new session is established unless the user explicitly confirms that Atlas should terminate the previous active session and continue on the current device.
+
 Support individual:
 
 - inactivity timeout;
@@ -142,20 +152,20 @@ Session records include:
 - team;
 - login time.
 
-Users can:
+Users do not manage active sessions through a self-service screen. Multiple browser tabs in one session are treated as one logical session.
 
-- view active sessions;
-- terminate one;
-- terminate all other sessions.
+A second-device login attempt lets the user either cancel login or continue on the new device and terminate the previous working session. Users resolve this only during login; they do not manage sessions from a separate self-service screen.
 
 Administrators can invalidate all sessions for a user.
 
 Invalidate sessions after:
 
+- user logout;
 - password change;
 - deactivation;
 - MFA reset;
 - manual lock;
+- forced email-change or email re-verification requirement;
 - removal of team access.
 
 Active team is stored in the session.
@@ -171,5 +181,7 @@ Team switching:
 - reloads permissions, menu, and data;
 - clears team-scoped frontend state;
 - is audited.
+
+The Admin users table includes a default-visible online/offline column. A user is considered online when the Redis session metadata index has recent activity within the current online window.
 
 ---

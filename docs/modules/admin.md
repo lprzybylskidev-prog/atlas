@@ -25,6 +25,8 @@ The regular application shell shows the Admin entry only when the backend-provid
 
 Current Admin tables use the shared `DataTable` wrapper. Their first data column is `public_id`, they keep the most important operational columns visible by default, and they expose remaining safe non-secret table columns through the Columns menu. Search, sorting, pagination, column visibility, and column order are backend-validated and synchronized through deterministic English query-string keys. Admin users can save private or active-team-shared table views, set a default view, copy a system/shared view, and delete only editable non-system views. Team-shared saved-view changes are recorded through the Audit module. When an Admin index exposes safe row actions, the same supported mutating actions are also available as selected-row bulk actions for the currently loaded page.
 
+Admin user and team administration include integrated Team access management. Administrators can assign users to teams during user creation, user editing, team creation, or team editing, and can manage the user's team-scoped roles and direct permissions from either side of the workflow. Team access removal is security-sensitive: it requires a reason, audits the change, removes user-specific authorization assignments in that team, and invalidates sessions operating in that team.
+
 The Admin audit browser is available at `/admin/audit`. It is read-only, uses the shared `DataTable` wrapper, and exposes audit records for operational and security review.
 
 Phase 8 verifies the current Admin UI/table foundation after Phase 7. Phase 9 completes shared UI primitives and Phase 10 completes the shared table/saved-view contract before additional Admin areas rely on broader table behavior.

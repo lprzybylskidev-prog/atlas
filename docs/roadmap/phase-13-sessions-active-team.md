@@ -21,10 +21,13 @@ Implement Redis-backed sessions, active-team context, user/admin session managem
 - Every user may have individual `inactivity_timeout_minutes` and `session_max_lifetime_minutes`; do not mutate global framework configuration per request.
 - Session state stores creation time and last activity.
 - Activity resets only inactivity timeout, never the maximum lifetime.
-- Users can view active sessions with device, browser, approximate IP location, login time, last activity, and team.
-- Users can terminate one session or all other sessions.
+- Session metadata records device, browser, approximate IP location, login time, last activity, and team for security/admin use.
+- Admin user tables show whether each user is currently online or offline in a default-visible column.
+- Users do not receive a self-service active-session management screen in Phase 13.
+- Later TimeTracking work depends on one real active working device/session per user; a login attempt from a second device shows a conflict screen with options to cancel login or continue here and terminate the previous working session.
+- Multiple tabs in one browser session are one logical session and must not be treated as multiple working devices.
 - Admin can invalidate all sessions for a user.
-- Password change, deactivation, MFA reset, manual lock, and security revocation invalidate sessions.
+- Password change, deactivation, MFA reset, manual lock, forced email-change requirement, and security revocation invalidate sessions.
 - Removing team access invalidates sessions operating in that team.
 - After login, select the only available team automatically or require an explicit team choice when several exist.
 - Active team is stored in session.
@@ -39,35 +42,43 @@ Implement Redis-backed sessions, active-team context, user/admin session managem
 ## Tasks
 
 - [x] Store sessions in Redis.
-- [ ] Add per-user inactivity timeout.
-- [ ] Add per-user maximum session lifetime.
-- [ ] Store session creation and last activity.
-- [ ] Store device/browser metadata.
-- [ ] Store approximate IP location.
-- [ ] Store active team.
-- [ ] Build user active-session list.
-- [ ] Allow terminating one session.
-- [ ] Allow terminating all other sessions.
-- [ ] Allow admin to invalidate all sessions for a user.
-- [ ] Invalidate sessions after password change.
-- [ ] Invalidate sessions after deactivation.
-- [ ] Invalidate sessions after MFA reset.
-- [ ] Invalidate sessions after manual lock.
-- [ ] Invalidate team-specific sessions after team access removal.
-- [ ] Auto-select the only team.
-- [ ] Require team choice when several teams exist.
-- [ ] Implement explicit team switching.
-- [ ] Reload permissions, menu, and data after switch.
-- [ ] Clear team-scoped frontend state after switch.
-- [ ] Audit team switching.
-- [ ] Add shared frontend session-expiry handling.
-- [ ] Add centralized handling for 401, 403, 419, 422, 429, and 500.
-- [ ] Add offline/online handling and safe retry rules.
+- [x] Add per-user inactivity timeout.
+- [x] Add per-user maximum session lifetime.
+- [x] Store session creation and last activity.
+- [x] Store device/browser metadata.
+- [x] Store approximate IP location.
+- [x] Store active team.
+- [x] Build Redis-backed active-session metadata for security/admin use.
+- [x] Add a default-visible online/offline column to the Admin users table.
+- [x] Do not expose user self-service session termination UI.
+- [x] Allow admin to invalidate all sessions for a user.
+- [x] Invalidate sessions after password change.
+- [x] Invalidate sessions after deactivation.
+- [x] Invalidate sessions after MFA reset.
+- [x] Invalidate sessions after manual lock.
+- [x] Invalidate sessions after forcing a user email change.
+- [x] Invalidate team-specific sessions after team access removal.
+- [x] Auto-select the only team.
+- [x] Require team choice when several teams exist.
+- [x] Implement explicit team switching.
+- [x] Reload permissions, menu, and data after switch.
+- [x] Clear team-scoped frontend state after switch.
+- [x] Audit team switching.
+- [x] Add shared frontend session-expiry handling.
+- [x] Add centralized handling for 401, 403, 419, 422, 429, and 500.
+- [x] Add offline/online handling and safe retry rules.
+- [x] Add second-device login conflict flow with cancel/continue-and-terminate choices before TimeTracking starts relying on single working sessions.
 - [ ] Commit session and team context foundation.
+
+Notes:
+
+- Phase 13 repaired the missing Phase 7 Admin user-team membership management flow so team access removal now invokes team-specific session invalidation.
+- The user-facing active sessions screen was intentionally removed. Session management is an Admin/security operation; ordinary users resolve multi-device conflicts only at login.
+- Phase 13 also repaired the Phase 7 starter-role naming model while integrating team-scoped user authorization. Ordinary starter roles now represent small functional permission bundles, not `user`/`manager` personae; the full-access bootstrap role is `system.administrator`.
 
 ## Completion criteria
 
-- [ ] Session lifetime, invalidation, team selection, and team switching are backend-authoritative and audited.
-- [ ] Later module activation, impersonation, notifications, manager, and TimeTracking phases can rely on one active-team/session contract.
-- [ ] Frontend network/session expiry handling is centralized and does not store sensitive data.
-- [ ] Relevant tests and documentation are current.
+- [x] Session lifetime, invalidation, team selection, and team switching are backend-authoritative and audited.
+- [x] Later module activation, impersonation, notifications, manager, and TimeTracking phases can rely on one active-team/session contract.
+- [x] Frontend network/session expiry handling is centralized and does not store sensitive data.
+- [x] Relevant tests and documentation are current.

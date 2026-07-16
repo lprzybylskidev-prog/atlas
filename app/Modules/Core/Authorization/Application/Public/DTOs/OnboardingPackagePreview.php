@@ -12,6 +12,9 @@ final readonly class OnboardingPackagePreview
      * @param  list<string>  $templatePermissionNames
      */
     public function __construct(
+        public string $publicId,
+        public string $teamPublicId,
+        public string $teamName,
         public string $name,
         public string $label,
         public array $initialRoleNames,

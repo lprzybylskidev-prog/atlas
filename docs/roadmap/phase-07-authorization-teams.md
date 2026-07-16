@@ -1,5 +1,11 @@
 ## Phase 7 — Authorization and teams
 
+### Post-completion repair note
+
+During Phase 13 session work, Atlas identified that completed Phase 7 team administration lacked an explicit Admin use case for managing user-team access after account creation. The gap was repaired in Phase 13 by adding integrated Admin user-team membership management across User and Team create/edit screens, audited team access removal, authorization assignment cleanup, and team-specific session invalidation.
+
+During the same Phase 13 integration, Atlas replaced the original `user`/`manager` starter-role names with small functional permission bundles. The completed Phase 7 checklist remains historical; current behavior is documented in the Authorization module documentation.
+
 ### Implementation contract
 
 - `spatie/laravel-permission` teams mode is mandatory.
@@ -16,11 +22,14 @@
 - Admin permission screens show owning module, assignment source, selected team, module activation, effectiveness, and the exact reason a permission is ineffective.
 - Permissions of inactive modules can be assigned in advance but cannot authorize an operation.
 - A module may provide optional onboarding permission packages for newly created users.
-- An onboarding package is a one-time starting preset, not a persistent relationship, role template, synchronization mechanism, or policy engine.
-- Selecting a package during user creation explicitly assigns the package's declared initial roles and/or permissions.
-- Before user creation, Admin shows exactly what the selected package will assign.
+- A preset is a one-time starting assignment, not a persistent relationship, role template, synchronization mechanism, or policy engine.
+- Selecting a package during user creation explicitly assigns the package's declared initial roles and/or permissions inside one selected team assignment.
+- Before user creation, Admin shows exactly what every selected team assignment will grant, including direct permissions and permissions granted by selected roles.
 - Admin can create local onboarding presets from existing roles and permissions.
-- Admin user creation can either select an onboarding preset or copy the active-team role and direct-permission assignments from an existing user.
+- Admin user creation requires at least one team assignment and can apply a package, copy another user's assignments in the same team, or manually select roles and direct permissions per team.
+- Admin user creation and editing support assigning teams, team-scoped roles, and team-scoped direct permissions in the same administrative workflow; users do not receive global role or permission assignments outside a team context.
+- Admin team creation and editing support assigning users, team-scoped roles, and team-scoped direct permissions in the same administrative workflow.
+- Removing user team access ends the effective team assignment, removes user-specific role and direct-permission assignments in that team, requires an administrator reason, is audited, and invalidates sessions operating in that team.
 - Current Admin surfaces must use the shared TanStack Table wrapper with export actions instead of local one-off tables.
 - Current Admin table data columns put `public_id` first, expose all safe non-secret table columns through column visibility controls, and persist table state across refreshes and Inertia actions.
 - Current Admin surfaces must expose the complete safe operation set supported by the implemented backend use cases instead of placeholder read-only tables.
@@ -143,13 +152,18 @@
 - [x] Define optional onboarding permission packages for newly created users.
 - [x] Add admin-managed onboarding preset definitions.
 - [x] Let each package declare its initial roles and/or direct permissions.
-- [x] Show the exact package contents during user creation before confirmation.
-- [x] Let user creation copy active-team roles and direct permissions from an existing user instead of selecting a preset.
+- [x] Show the exact effective team-scoped assignment contents during user creation before confirmation.
+- [x] Let user creation copy team-scoped roles and direct permissions from an existing user for the selected team instead of selecting a preset.
 - [x] Apply the selected package only once as part of user creation.
 - [x] Ensure packages cannot be applied to existing users or roles.
 - [x] Ensure package changes never mutate previously created users or existing roles.
 - [x] Route all later authorization changes through normal role and permission administration.
 - [x] Audit the selected onboarding package and resulting assignments during user creation.
+- [x] Add integrated Admin user-team membership management in User create/edit.
+- [x] Add integrated Admin user-team membership management in Team create/edit.
+- [x] Update team-scoped user role and direct-permission assignments from User and Team administration workflows.
+- [x] Remove team-specific user role and direct-permission assignments when team access is removed.
+- [x] Audit user team access addition and removal.
 - [x] Add tests proving that packages are one-time onboarding presets only.
 - [x] Store exact module-owned permission membership for every named package.
 - [x] Let Admin create a role from a selected package.

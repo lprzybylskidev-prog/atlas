@@ -18,7 +18,9 @@ final readonly class UpdateOnboardingPackageController
 
     public function __invoke(Request $request, string $package): RedirectResponse
     {
-        if ($this->catalog->get($package) === null) {
+        $definition = $this->catalog->getByPublicId($package);
+
+        if ($definition === null) {
             abort(404);
         }
 
@@ -33,7 +35,8 @@ final readonly class UpdateOnboardingPackageController
         $directPermissions = $this->stringList($validated, 'direct_permissions');
 
         $this->packages->upsert(
-            name: $package,
+            teamPublicId: $definition->teamPublicId,
+            name: $definition->name,
             label: $this->stringValue($validated, 'label'),
             initialRoleNames: $this->stringList($validated, 'initial_roles'),
             directPermissionNames: $directPermissions,
@@ -42,7 +45,7 @@ final readonly class UpdateOnboardingPackageController
 
         return redirect()
             ->route('admin.authorization.packages.edit', ['package' => $package])
-            ->with('success', 'Onboarding package was updated.');
+            ->with('success', 'Preset was updated.');
     }
 
     /**

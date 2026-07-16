@@ -39,7 +39,7 @@ interface PermissionRoleStore
      */
     public function assignPermissionsToUserInTeam(string $userPublicId, string $teamPublicId, array $permissionNames): void;
 
-    public function userHasOnboardingPackage(string $userPublicId): bool;
+    public function userHasOnboardingPackage(string $userPublicId, string $teamPublicId, string $packageName): bool;
 
     public function recordUserOnboardingPackage(string $userPublicId, string $teamPublicId, string $packageName): void;
 

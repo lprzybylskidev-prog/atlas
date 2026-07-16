@@ -68,7 +68,7 @@ Current producers include:
 - MFA reset;
 - first-administrator bootstrap;
 - administrator role catalog synchronization;
-- onboarding package application during user creation;
+- preset application during user creation;
 - Admin role create, update, and delete attempts;
 - Admin team create, update, activation, deactivation, and delete attempts;
 - shared DataTable team/system saved-view create, update, and delete.

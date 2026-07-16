@@ -6,9 +6,11 @@ namespace App\Modules\Core\Identity\Presentation\Fortify\Actions;
 
 use App\Modules\Core\Identity\Application\PasswordHistory;
 use App\Modules\Core\Identity\Application\Public\Contracts\SecurityAuditRecorder;
+use App\Modules\Core\Identity\Application\Public\Contracts\UserSessionRegistry;
 use App\Modules\Core\Identity\Application\Public\DTOs\SecurityAuditEvent;
 use App\Modules\Core\Identity\Infrastructure\Persistence\User;
 use App\Modules\Core\Identity\Presentation\Fortify\Concerns\PasswordValidationRules;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
@@ -21,6 +23,7 @@ class UpdateUserPassword implements UpdatesUserPasswords
     public function __construct(
         private readonly PasswordHistory $passwordHistory,
         private readonly SecurityAuditRecorder $audit,
+        private readonly UserSessionRegistry $sessions,
     ) {}
 
     /**
@@ -50,6 +53,10 @@ class UpdateUserPassword implements UpdatesUserPasswords
 
         $this->passwordHistory->recordNewPassword($userId, $previousPasswordHash);
         $this->passwordHistory->recordNewPassword($userId, $passwordHash);
+        $this->sessions->invalidateUser((string) $user->public_id);
+        Auth::guard('web')->logout();
+        session()->invalidate();
+        session()->regenerateToken();
 
         $this->audit->record(new SecurityAuditEvent(
             module: 'identity',

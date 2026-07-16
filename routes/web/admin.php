@@ -17,6 +17,8 @@ use App\Modules\Core\Authorization\Presentation\Http\Controllers\StoreRoleContro
 use App\Modules\Core\Authorization\Presentation\Http\Controllers\UpdateOnboardingPackageController;
 use App\Modules\Core\Authorization\Presentation\Http\Controllers\UpdateRoleController;
 use App\Modules\Core\Teams\Presentation\Http\Controllers\TeamAdministrationController;
+use App\Modules\Core\Teams\Presentation\Http\Controllers\UserTeamAuthorizationController;
+use App\Modules\Core\Teams\Presentation\Http\Controllers\UserTeamMembershipController;
 use App\Modules\Core\Users\Presentation\Http\Controllers\CreateUserAccountController;
 use App\Modules\Core\Users\Presentation\Http\Controllers\EditUserAccountController;
 use App\Modules\Core\Users\Presentation\Http\Controllers\StoreUserAccountController;
@@ -41,6 +43,10 @@ Route::middleware(['auth', 'password.confirm', 'route.permission'])->group(funct
     Route::post('/admin/users/{user}/resend-first-password', [UserAccountActionController::class, 'resendFirstPassword'])->name('admin.users.resend-first-password');
     Route::post('/admin/users/{user}/unlock', [UserAccountActionController::class, 'unlock'])->name('admin.users.unlock');
     Route::post('/admin/users/{user}/reset-mfa', [UserAccountActionController::class, 'resetMfa'])->name('admin.users.reset-mfa');
+    Route::post('/admin/users/{user}/invalidate-sessions', [UserAccountActionController::class, 'invalidateSessions'])->name('admin.users.invalidate-sessions');
+    Route::post('/admin/users/{user}/teams', [UserTeamMembershipController::class, 'store'])->name('admin.users.teams.store');
+    Route::delete('/admin/users/{user}/teams/{team}', [UserTeamMembershipController::class, 'destroy'])->name('admin.users.teams.destroy');
+    Route::patch('/admin/users/{user}/teams/{team}/authorization', [UserTeamAuthorizationController::class, 'update'])->name('admin.users.teams.authorization.update');
     Route::get('/admin/teams', TeamAdministrationController::class)->name('admin.teams.index');
     Route::get('/admin/teams/create', [TeamAdministrationController::class, 'create'])->name('admin.teams.create');
     Route::post('/admin/teams', [TeamAdministrationController::class, 'store'])->name('admin.teams.store');

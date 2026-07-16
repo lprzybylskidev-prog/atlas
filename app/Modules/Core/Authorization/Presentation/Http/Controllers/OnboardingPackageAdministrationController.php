@@ -30,10 +30,10 @@ final readonly class OnboardingPackageAdministrationController
         $state = TableState::fromRequest($request, $definition);
         [$userId, $teamId] = $this->context->userTeam($request);
         $databasePackages = DB::table('authorization_onboarding_packages')
-            ->get(['id', 'public_id', 'name', 'is_active', 'created_at', 'updated_at'])
-            ->keyBy('name');
+            ->get(['id', 'public_id', 'is_active', 'created_at', 'updated_at'])
+            ->keyBy('public_id');
         $rows = array_map(static function ($package) use ($databasePackages): array {
-            $databasePackage = $databasePackages->get($package->name);
+            $databasePackage = $databasePackages->get($package->publicId);
             $values = is_object($databasePackage) ? get_object_vars($databasePackage) : [];
             $id = $values['id'] ?? null;
             $isActive = $values['is_active'] ?? true;
@@ -43,6 +43,8 @@ final readonly class OnboardingPackageAdministrationController
             return [
                 'id' => is_numeric($id) ? (int) $id : null,
                 'publicId' => $package->publicId,
+                'teamPublicId' => $package->teamPublicId,
+                'teamName' => $package->teamName,
                 'name' => $package->name,
                 'label' => $package->label,
                 'initialRoles' => $package->initialRoleNames,

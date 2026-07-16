@@ -27,6 +27,27 @@ final readonly class CreateOnboardingPackageController
                 ->values()
                 ->all(),
             'permissionOptions' => $this->permissions->names(),
+            'teamOptions' => $this->teamOptions(),
         ]);
+    }
+
+    /**
+     * @return list<array{value: string, label: string}>
+     */
+    private function teamOptions(): array
+    {
+        $teams = [];
+
+        foreach (DB::table('teams')->where('is_active', true)->orderBy('name')->get(['public_id', 'name']) as $team) {
+            $values = get_object_vars($team);
+            $publicId = $values['public_id'] ?? '';
+            $name = $values['name'] ?? '';
+
+            if (is_string($publicId) && is_string($name)) {
+                $teams[] = ['value' => $publicId, 'label' => $name];
+            }
+        }
+
+        return $teams;
     }
 }

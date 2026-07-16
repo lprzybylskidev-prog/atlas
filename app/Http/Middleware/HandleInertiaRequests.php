@@ -36,6 +36,7 @@ final class HandleInertiaRequests extends Middleware
                     'email' => $request->user()->email,
                 ],
                 'availableAdminRoutes' => $this->availableAdminRoutes($request),
+                'teams' => $this->teams($request),
             ],
             'locale' => app()->getLocale(),
             'supportedLocales' => ['pl', 'en'],
@@ -51,6 +52,59 @@ final class HandleInertiaRequests extends Middleware
                 'messages' => $request->session()->get('flash.messages', []),
             ],
         ];
+    }
+
+    /**
+     * @return array{active: array{publicId: string, name: string}|null, available: list<array{publicId: string, name: string}>}
+     */
+    private function teams(Request $request): array
+    {
+        $userPublicId = data_get($request->user(), 'public_id');
+
+        if (! is_string($userPublicId)) {
+            return [
+                'active' => null,
+                'available' => [],
+            ];
+        }
+
+        $available = [];
+
+        foreach (DB::table('team_user_assignments')
+            ->join('users', 'team_user_assignments.user_id', '=', 'users.id')
+            ->join('teams', 'team_user_assignments.team_id', '=', 'teams.id')
+            ->where('users.public_id', $userPublicId)
+            ->where('teams.is_active', true)
+            ->orderBy('teams.name')
+            ->get(['teams.public_id', 'teams.name'])
+            ->all() as $team) {
+            $available[] = [
+                'publicId' => self::stringValue($team, 'public_id'),
+                'name' => self::stringValue($team, 'name'),
+            ];
+        }
+
+        $activePublicId = $request->hasSession() ? $request->session()->get('active_team_public_id') : null;
+        $active = null;
+
+        foreach ($available as $team) {
+            if (is_string($activePublicId) && $team['publicId'] === $activePublicId) {
+                $active = $team;
+                break;
+            }
+        }
+
+        return [
+            'active' => $active,
+            'available' => $available,
+        ];
+    }
+
+    private static function stringValue(object $record, string $property): string
+    {
+        $value = $record->{$property} ?? '';
+
+        return is_scalar($value) ? (string) $value : '';
     }
 
     private function theme(Request $request): string

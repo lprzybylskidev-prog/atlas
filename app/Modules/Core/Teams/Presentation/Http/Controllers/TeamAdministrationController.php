@@ -6,6 +6,8 @@ namespace App\Modules\Core\Teams\Presentation\Http\Controllers;
 
 use App\Modules\Core\Audit\Application\Public\Contracts\AuditRecorder;
 use App\Modules\Core\Audit\Application\Public\DTOs\AuditEvent;
+use App\Modules\Core\Authorization\Application\Public\Contracts\UserTeamAuthorizationManager;
+use App\Modules\Core\Teams\Application\Public\Contracts\UserTeamMembershipManager;
 use App\Modules\Core\Teams\Infrastructure\Persistence\Team;
 use App\Shared\Application\Tables\AdminTableDefinitions;
 use App\Shared\Application\Tables\ArrayTableProcessor;
@@ -25,6 +27,8 @@ final class TeamAdministrationController
         private readonly TableSavedViewService $views,
         private readonly TableRequestContext $context,
         private readonly AuditRecorder $audit,
+        private readonly UserTeamMembershipManager $memberships,
+        private readonly UserTeamAuthorizationManager $authorization,
     ) {}
 
     public function __invoke(Request $request): Response
@@ -54,7 +58,11 @@ final class TeamAdministrationController
 
     public function create(): Response
     {
-        return Inertia::render('Admin/Teams/Create');
+        return Inertia::render('Admin/Teams/Create', [
+            'userOptions' => $this->userOptions(),
+            'roleOptions' => $this->authorization->roleOptions(),
+            'permissionOptions' => $this->authorization->permissionOptions(),
+        ]);
     }
 
     public function edit(string $team): Response
@@ -71,6 +79,22 @@ final class TeamAdministrationController
                 'name' => $record->name,
                 'isActive' => $record->is_active,
             ],
+            'memberships' => array_map(function ($membership) use ($record): array {
+                $assignments = $this->authorization->assignmentsForUserTeam($membership->userPublicId, (string) $record->public_id);
+
+                return [
+                    'userPublicId' => $membership->userPublicId,
+                    'userName' => $membership->userName,
+                    'userEmail' => $membership->userEmail,
+                    'validFrom' => $membership->validFrom,
+                    'validTo' => $membership->validTo,
+                    'roleNames' => $assignments->roleNames,
+                    'directPermissionNames' => $assignments->directPermissionNames,
+                ];
+            }, $this->memberships->activeMembershipsForTeam((string) $record->public_id)),
+            'assignableUsers' => $this->memberships->assignableUsersForTeam((string) $record->public_id),
+            'roleOptions' => $this->authorization->roleOptions(),
+            'permissionOptions' => $this->authorization->permissionOptions(),
         ]);
     }
 
@@ -78,6 +102,12 @@ final class TeamAdministrationController
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255', 'unique:teams,name'],
+            'user_assignments' => ['array'],
+            'user_assignments.*.user_public_id' => ['nullable', 'string', 'exists:users,public_id'],
+            'user_assignments.*.role_names' => ['array'],
+            'user_assignments.*.role_names.*' => ['string'],
+            'user_assignments.*.direct_permission_names' => ['array'],
+            'user_assignments.*.direct_permission_names.*' => ['string'],
         ]);
 
         $record = Team::query()->create([
@@ -88,6 +118,22 @@ final class TeamAdministrationController
             'name' => $record->name,
             'isActive' => $record->is_active,
         ]);
+
+        $actorPublicId = data_get($request->user(), 'public_id');
+
+        if (is_string($actorPublicId)) {
+            foreach ($this->userAssignments(is_array($validated) ? $validated : []) as $assignment) {
+                $this->memberships->addAccess($actorPublicId, $assignment['user_public_id'], (string) $record->public_id);
+                $this->authorization->replaceAssignmentsForUserTeam(
+                    actorPublicId: $actorPublicId,
+                    userPublicId: $assignment['user_public_id'],
+                    teamPublicId: (string) $record->public_id,
+                    roleNames: $assignment['role_names'],
+                    directPermissionNames: $assignment['direct_permission_names'],
+                    reason: 'Initial team member assignment.',
+                );
+            }
+        }
 
         return redirect()->route('admin.teams.index')->with('success', 'Team was created.');
     }
@@ -177,6 +223,78 @@ final class TeamAdministrationController
             'name' => $record->name,
             'isActive' => $record->is_active,
         ]);
+    }
+
+    /**
+     * @return list<array{value: string, label: string}>
+     */
+    private function userOptions(): array
+    {
+        $users = [];
+
+        foreach (DB::table('users')->where('is_active', true)->orderBy('name')->get(['public_id', 'name', 'email']) as $row) {
+            $values = get_object_vars($row);
+            $name = $this->scalarString($values['name'] ?? '');
+            $email = $this->scalarString($values['email'] ?? '');
+            $users[] = [
+                'value' => $this->scalarString($values['public_id'] ?? ''),
+                'label' => trim($name.' · '.$email),
+            ];
+        }
+
+        return $users;
+    }
+
+    /**
+     * @param  array<mixed>  $values
+     * @return list<array{user_public_id: string, role_names: list<string>, direct_permission_names: list<string>}>
+     */
+    private function userAssignments(array $values): array
+    {
+        $assignments = $values['user_assignments'] ?? [];
+
+        if (! is_array($assignments)) {
+            return [];
+        }
+
+        $result = [];
+
+        foreach ($assignments as $assignment) {
+            if (! is_array($assignment)) {
+                continue;
+            }
+
+            $userPublicId = $assignment['user_public_id'] ?? '';
+
+            if (! is_string($userPublicId) || $userPublicId === '') {
+                continue;
+            }
+
+            $result[] = [
+                'user_public_id' => $userPublicId,
+                'role_names' => $this->stringList($assignment['role_names'] ?? []),
+                'direct_permission_names' => $this->stringList($assignment['direct_permission_names'] ?? []),
+            ];
+        }
+
+        return $result;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function stringList(mixed $values): array
+    {
+        if (! is_array($values)) {
+            return [];
+        }
+
+        return array_values(array_filter($values, 'is_string'));
+    }
+
+    private function scalarString(mixed $value): string
+    {
+        return is_scalar($value) ? (string) $value : '';
     }
 
     /**

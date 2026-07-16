@@ -35,6 +35,9 @@ return [
                 (int) env('ATLAS_LOGIN_LOCK_THIRD_SECONDS', 3600),
             ],
         ],
+        'sessions' => [
+            'max_lifetime_minutes' => (int) env('ATLAS_SESSION_MAX_LIFETIME_MINUTES', 720),
+        ],
         'mfa' => [
             'requirements' => [
                 'global' => (bool) env('ATLAS_MFA_REQUIRED_GLOBAL', false),

@@ -11,6 +11,8 @@ import type { DataTableAction, DataTableBulkAction, DataTableColumn, DataTableMe
 interface PackageRow extends Record<string, unknown> {
     id: number | null;
     publicId: string;
+    teamPublicId: string;
+    teamName: string;
     name: string;
     label: string;
     initialRoles: string[];
@@ -21,7 +23,7 @@ interface PackageRow extends Record<string, unknown> {
     updatedAt: string;
 }
 
-const props = defineProps<{
+defineProps<{
     packages: PackageRow[];
     table: DataTableMeta;
 }>();
@@ -31,6 +33,8 @@ const { t } = useTranslator('en');
 const columns: DataTableColumn<PackageRow>[] = [
     { key: 'publicId', label: 'Public ID' },
     { key: 'id', label: 'ID', hidden: true },
+    { key: 'teamName', label: 'Team' },
+    { key: 'teamPublicId', label: 'Team public ID', hidden: true },
     { key: 'label', label: 'Label' },
     { key: 'name', label: 'Name' },
     { key: 'initialRoles', label: 'Initial roles', format: 'list' },
@@ -42,11 +46,10 @@ const columns: DataTableColumn<PackageRow>[] = [
 ];
 
 const actions: DataTableAction<PackageRow>[] = [
-    { key: 'edit', label: 'Edit', href: (row) => `/admin/authorization/packages/${row.name}/edit` },
-    { key: 'delete', label: 'Deactivate', method: 'delete', href: (row) => `/admin/authorization/packages/${row.name}` },
+    { key: 'edit', label: 'Edit', href: (row) => `/admin/authorization/packages/${row.publicId}/edit` },
+    { key: 'delete', label: 'Deactivate', method: 'delete', href: (row) => `/admin/authorization/packages/${row.publicId}` },
 ];
 const bulkActions: DataTableBulkAction[] = [{ key: 'delete', label: 'Deactivate', tone: 'danger' }];
-const packageNameByPublicId = new Map(props.packages.map((packageRecord) => [packageRecord.publicId, packageRecord.name]));
 
 async function handleBulkAction(payload: { action: DataTableBulkAction; rowIds: string[] }): Promise<void> {
     if (payload.action.key !== 'delete') {
@@ -56,7 +59,7 @@ async function handleBulkAction(payload: { action: DataTableBulkAction; rowIds: 
     await runBulkRecordAction(
         {
             method: 'delete',
-            href: (rowId) => `/admin/authorization/packages/${packageNameByPublicId.get(rowId) ?? rowId}`,
+            href: (rowId) => `/admin/authorization/packages/${rowId}`,
         },
         payload.rowIds,
     );

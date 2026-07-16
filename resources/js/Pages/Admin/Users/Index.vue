@@ -18,6 +18,7 @@ interface UserRow extends Record<string, unknown> {
     firstPasswordSet: boolean;
     loginLocked: boolean;
     mfaEnabled: boolean;
+    online: boolean;
     emailVerifiedAt: string | null;
     twoFactorConfirmedAt: string | null;
     firstPasswordSetAt: string | null;
@@ -46,6 +47,7 @@ const columns: DataTableColumn<UserRow>[] = [
     { key: 'firstPasswordSet', label: 'Password set', format: 'boolean' },
     { key: 'loginLocked', label: 'Locked', format: 'boolean' },
     { key: 'mfaEnabled', label: 'MFA', format: 'boolean' },
+    { key: 'online', label: 'Online', format: 'boolean' },
     { key: 'emailVerifiedAt', label: 'Email verified at', format: 'datetime', hidden: true },
     { key: 'twoFactorConfirmedAt', label: 'MFA confirmed at', format: 'datetime', hidden: true },
     { key: 'firstPasswordSetAt', label: 'First password set at', format: 'datetime', hidden: true },
@@ -71,6 +73,12 @@ const actions: DataTableAction<UserRow>[] = [
     { key: 'first-password', label: 'Send link', method: 'post', href: (row) => `/admin/users/${row.publicId}/resend-first-password` },
     { key: 'unlock', label: 'Unlock', method: 'post', href: (row) => `/admin/users/${row.publicId}/unlock` },
     { key: 'reset-mfa', label: 'Reset MFA', method: 'post', href: (row) => `/admin/users/${row.publicId}/reset-mfa` },
+    {
+        key: 'invalidate-sessions',
+        label: 'Invalidate sessions',
+        method: 'post',
+        href: (row) => `/admin/users/${row.publicId}/invalidate-sessions`,
+    },
 ];
 
 const bulkActions: DataTableBulkAction[] = [
@@ -81,6 +89,7 @@ const bulkActions: DataTableBulkAction[] = [
     { key: 'first-password', label: 'Send link', tone: 'warning' },
     { key: 'unlock', label: 'Unlock', tone: 'success' },
     { key: 'reset-mfa', label: 'Reset MFA', tone: 'warning' },
+    { key: 'invalidate-sessions', label: 'Invalidate sessions', tone: 'danger' },
 ];
 
 async function handleBulkAction(payload: { action: DataTableBulkAction; rowIds: string[] }): Promise<void> {
@@ -92,6 +101,7 @@ async function handleBulkAction(payload: { action: DataTableBulkAction; rowIds: 
         'first-password': 'resend-first-password',
         unlock: 'unlock',
         'reset-mfa': 'reset-mfa',
+        'invalidate-sessions': 'invalidate-sessions',
     };
     const endpoint = endpoints[payload.action.key];
 

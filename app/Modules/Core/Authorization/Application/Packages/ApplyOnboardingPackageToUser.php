@@ -25,17 +25,17 @@ final readonly class ApplyOnboardingPackageToUser
         bool $duringUserCreation = false,
     ): void {
         if (! $duringUserCreation) {
-            throw new InvalidArgumentException('Onboarding packages may only be applied during user creation.');
+            throw new InvalidArgumentException('Presets may only be applied during user creation.');
         }
 
-        $package = $this->packages->get($packageName);
+        $package = $this->packages->get($packageName, $teamPublicId);
 
         if (! $package instanceof OnboardingPackageDefinition) {
-            throw new InvalidArgumentException(sprintf('Onboarding package [%s] is not registered.', $packageName));
+            throw new InvalidArgumentException(sprintf('Preset [%s] is not registered.', $packageName));
         }
 
-        if ($this->store->userHasOnboardingPackage($userPublicId)) {
-            throw new InvalidArgumentException('Onboarding packages are one-time presets and cannot be applied again.');
+        if ($this->store->userHasOnboardingPackage($userPublicId, $teamPublicId, $package->name)) {
+            throw new InvalidArgumentException('Presets are one-time assignments per user team and cannot be applied again.');
         }
 
         foreach ($package->initialRoleNames as $roleName) {
@@ -55,7 +55,7 @@ final readonly class ApplyOnboardingPackageToUser
             source: 'application',
             actorPublicId: $actorPublicId,
             targetPublicId: $userPublicId,
-            reason: 'User creation onboarding package',
+            reason: 'User creation preset',
             metadata: [
                 'package' => $package->name,
                 'team_public_id' => $teamPublicId,

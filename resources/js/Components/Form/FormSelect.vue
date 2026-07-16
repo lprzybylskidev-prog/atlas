@@ -36,6 +36,13 @@ const errorId = `${listboxId}-error`;
 const selectedOption = computed(() => props.options.find((option) => option.value === model.value) ?? null);
 
 function selectOption(option: FormSelectOption): void {
+    if (option.value === model.value) {
+        open.value = false;
+        button.value?.focus();
+
+        return;
+    }
+
     model.value = option.value;
     open.value = false;
     button.value?.focus();

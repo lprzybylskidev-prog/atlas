@@ -18,28 +18,46 @@ final readonly class OnboardingPackageCatalog
     /**
      * @return list<OnboardingPackageDefinition>
      */
-    public function all(): array
+    public function all(?string $teamPublicId = null): array
     {
-        return array_merge($this->store->allActive(), [
-            new OnboardingPackageDefinition(
-                publicId: 'system.core.administrator',
-                name: 'core.administrator',
-                label: 'Core administrator baseline',
-                initialRoleNames: [StarterRoleName::Administrator->value],
-                directPermissionNames: [],
-                templatePermissionNames: $this->permissions->names(),
-            ),
-        ]);
+        return $this->store->allActive($teamPublicId);
     }
 
-    public function get(string $name): ?OnboardingPackageDefinition
+    public function get(string $name, ?string $teamPublicId = null): ?OnboardingPackageDefinition
     {
-        foreach ($this->all() as $package) {
-            if ($package->name === $name) {
-                return $package;
+        if ($teamPublicId === null) {
+            foreach ($this->store->allActive() as $package) {
+                if ($package->name === $name) {
+                    return $package;
+                }
             }
+
+            return null;
         }
 
-        return null;
+        if ($name === 'core.administrator') {
+            return $this->systemAdministratorPreset($teamPublicId);
+        }
+
+        return $this->store->findActiveForTeam($name, $teamPublicId);
+    }
+
+    public function getByPublicId(string $publicId): ?OnboardingPackageDefinition
+    {
+        return $this->store->findByPublicId($publicId);
+    }
+
+    private function systemAdministratorPreset(string $teamPublicId): OnboardingPackageDefinition
+    {
+        return new OnboardingPackageDefinition(
+            publicId: 'system.core.administrator.'.$teamPublicId,
+            teamPublicId: $teamPublicId,
+            teamName: '',
+            name: 'core.administrator',
+            label: 'Core administrator baseline',
+            initialRoleNames: [StarterRoleName::Administrator->value],
+            directPermissionNames: [],
+            templatePermissionNames: $this->permissions->names(),
+        );
     }
 }

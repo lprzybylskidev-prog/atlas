@@ -30,9 +30,11 @@ final class OnboardingPermissionPackageTest extends TestCase
     public function test_admin_can_create_role_from_package_and_add_only_missing_permissions_to_existing_role(): void
     {
         $this->app->make(InstallStarterRoles::class)->handle();
+        $team = Team::query()->create(['name' => 'Operations']);
         $this->createOnboardingPackage(
+            teamPublicId: (string) $team->public_id,
             name: 'collections.team_leader',
-            roleName: StarterRoleName::Manager->value,
+            roleName: StarterRoleName::TeamManagersRead->value,
             templatePermissions: [
                 CoreAuthorizationPermissionCatalog::DASHBOARD,
                 TeamPermissionNames::MANAGERS_VIEW,
@@ -65,24 +67,25 @@ final class OnboardingPermissionPackageTest extends TestCase
     public function test_onboarding_package_is_a_one_time_user_creation_preset(): void
     {
         $this->app->make(InstallStarterRoles::class)->handle();
+        $team = Team::query()->create(['name' => 'Operations']);
         $this->createOnboardingPackage(
+            teamPublicId: (string) $team->public_id,
             name: 'collections.team_leader',
-            roleName: StarterRoleName::Manager->value,
+            roleName: StarterRoleName::TeamManagersRead->value,
             templatePermissions: [
                 CoreAuthorizationPermissionCatalog::DASHBOARD,
                 TeamPermissionNames::MANAGERS_VIEW,
             ],
         );
         $this->createOnboardingPackage(
+            teamPublicId: (string) $team->public_id,
             name: 'collections.agent',
-            roleName: StarterRoleName::User->value,
+            roleName: StarterRoleName::WorkspaceAccess->value,
             templatePermissions: [
                 CoreAuthorizationPermissionCatalog::DASHBOARD,
             ],
         );
-
         $user = User::factory()->create();
-        $team = Team::query()->create(['name' => 'Operations']);
 
         $applier = $this->app->make(ApplyOnboardingPackageToUser::class);
         $applier->apply('collections.team_leader', $user->public_id, $team->public_id, null, duringUserCreation: true);
@@ -106,17 +109,16 @@ final class OnboardingPermissionPackageTest extends TestCase
     {
         Notification::fake();
         $this->app->make(InstallStarterRoles::class)->handle();
+        $team = Team::query()->create(['name' => 'Operations']);
         $this->createOnboardingPackage(
+            teamPublicId: (string) $team->public_id,
             name: 'collections.team_leader',
-            roleName: StarterRoleName::Manager->value,
+            roleName: StarterRoleName::TeamManagersRead->value,
             templatePermissions: [
                 CoreAuthorizationPermissionCatalog::DASHBOARD,
                 TeamPermissionNames::MANAGERS_VIEW,
             ],
         );
-
-        $team = Team::query()->create(['name' => 'Operations']);
-
         $created = $this->app->make(CreateUserAccount::class)->handle(new CreateUserAccountCommand(
             name: 'Packaged User',
             email: 'packaged@example.test',
@@ -143,9 +145,10 @@ final class OnboardingPermissionPackageTest extends TestCase
     /**
      * @param  list<string>  $templatePermissions
      */
-    private function createOnboardingPackage(string $name, string $roleName, array $templatePermissions): void
+    private function createOnboardingPackage(string $teamPublicId, string $name, string $roleName, array $templatePermissions): void
     {
         $this->app->make(OnboardingPackageStore::class)->upsert(
+            teamPublicId: $teamPublicId,
             name: $name,
             label: $name,
             initialRoleNames: [$roleName],

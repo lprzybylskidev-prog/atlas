@@ -6,6 +6,7 @@ namespace App\Modules\Core\Identity\Application\LoginProtection;
 
 use App\Modules\Core\Identity\Application\Contracts\SuspiciousLoginNotifier;
 use App\Modules\Core\Identity\Application\Public\Contracts\SecurityAuditRecorder;
+use App\Modules\Core\Identity\Application\Public\Contracts\UserSessionRegistry;
 use App\Modules\Core\Identity\Application\Public\DTOs\SecurityAuditEvent;
 use App\Modules\Core\Identity\Infrastructure\Persistence\User;
 
@@ -14,6 +15,7 @@ final class LoginAttemptProtection
     public function __construct(
         private readonly SuspiciousLoginNotifier $notifier,
         private readonly SecurityAuditRecorder $audit,
+        private readonly UserSessionRegistry $sessions,
     ) {}
 
     public function canAttempt(User $user): bool
@@ -43,6 +45,7 @@ final class LoginAttemptProtection
         ])->save();
 
         if ($lockedUntil !== null) {
+            $this->sessions->invalidateUser((string) $user->public_id);
             $this->notifier->accountLocked($user, $lockedUntil);
             $this->audit->record(new SecurityAuditEvent(
                 module: 'identity',

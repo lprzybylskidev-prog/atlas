@@ -3,6 +3,9 @@
 declare(strict_types=1);
 
 use App\Http\Middleware\AttachRequestId;
+use App\Http\Middleware\EnforceUserSessionSecurity;
+use App\Http\Middleware\EnsureActiveTeamSelected;
+use App\Http\Middleware\ForceAdminLocale;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\SetLocaleFromSession;
 use App\Modules\Core\Authorization\Presentation\Http\Middleware\AuthorizeRoutePermission;
@@ -34,6 +37,9 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->append(AttachRequestId::class);
         $middleware->web(append: [
             SetLocaleFromSession::class,
+            ForceAdminLocale::class,
+            EnforceUserSessionSecurity::class,
+            EnsureActiveTeamSelected::class,
             HandleInertiaRequests::class,
         ]);
     })

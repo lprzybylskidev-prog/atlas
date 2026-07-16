@@ -31,14 +31,20 @@ final class AdminUserCreationTest extends TestCase
         $actor = User::factory()->create();
         $team = Team::query()->create(['name' => 'Operations']);
         $this->assignStarterRoleInTeam($actor, $team, StarterRoleName::Administrator->value);
-        $this->createOnboardingPackage('collections.agent', StarterRoleName::User->value);
+        $this->createOnboardingPackage((string) $team->public_id, 'collections.agent', StarterRoleName::WorkspaceAccess->value);
 
         $this->actingAs($actor)
             ->withSession($this->adminSession($team))
             ->post('/admin/users', [
                 'name' => 'Created In Admin',
                 'email' => 'created.admin@example.test',
-                'onboarding_package' => 'collections.agent',
+                'team_assignments' => [
+                    [
+                        'team_public_id' => $team->public_id,
+                        'source' => 'package',
+                        'onboarding_package' => 'collections.agent',
+                    ],
+                ],
             ])
             ->assertRedirect(route('admin.users.index'));
 
@@ -60,7 +66,7 @@ final class AdminUserCreationTest extends TestCase
         $source = User::factory()->create();
         $team = Team::query()->create(['name' => 'Operations']);
         $this->assignStarterRoleInTeam($actor, $team, StarterRoleName::Administrator->value);
-        $this->assignStarterRoleInTeam($source, $team, StarterRoleName::Manager->value);
+        $this->assignStarterRoleInTeam($source, $team, StarterRoleName::TeamManagersRead->value);
         $this->assignDirectPermissionInTeam($source, $team, 'admin.authorization.permissions.index');
 
         $this->actingAs($actor)
@@ -68,13 +74,18 @@ final class AdminUserCreationTest extends TestCase
             ->post('/admin/users', [
                 'name' => 'Copied Permissions',
                 'email' => 'copied.permissions@example.test',
-                'authorization_mode' => 'copy',
-                'copy_authorization_from_user' => $source->public_id,
+                'team_assignments' => [
+                    [
+                        'team_public_id' => $team->public_id,
+                        'source' => 'copy',
+                        'copy_authorization_from_user' => $source->public_id,
+                    ],
+                ],
             ])
             ->assertRedirect(route('admin.users.index'));
 
         $created = User::query()->where('email', 'copied.permissions@example.test')->firstOrFail();
-        $managerRole = Role::query()->where('name', StarterRoleName::Manager->value)->firstOrFail();
+        $managerRole = Role::query()->where('name', StarterRoleName::TeamManagersRead->value)->firstOrFail();
         $permission = Permission::query()->where('name', 'admin.authorization.permissions.index')->firstOrFail();
 
         self::assertDatabaseHas('team_user_assignments', [
@@ -97,6 +108,148 @@ final class AdminUserCreationTest extends TestCase
         Notification::assertSentOnDemand(FirstPasswordSetupNotification::class);
     }
 
+    public function test_admin_user_creation_rejects_copy_source_without_selected_team_access(): void
+    {
+        Notification::fake();
+
+        $actor = User::factory()->create();
+        $source = User::factory()->create();
+        $sourceTeam = Team::query()->create(['name' => 'Collections North']);
+        $targetTeam = Team::query()->create(['name' => 'Collections South']);
+        $this->assignStarterRoleInTeam($actor, $targetTeam, StarterRoleName::Administrator->value);
+        $this->assignStarterRoleInTeam($source, $sourceTeam, StarterRoleName::TeamManagersRead->value);
+
+        $this->actingAs($actor)
+            ->withSession($this->adminSession($targetTeam))
+            ->from('/admin/users/create')
+            ->post('/admin/users', [
+                'name' => 'Invalid Copy Source',
+                'email' => 'invalid.copy.source@example.test',
+                'team_assignments' => [
+                    [
+                        'team_public_id' => $targetTeam->public_id,
+                        'source' => 'copy',
+                        'copy_authorization_from_user' => $source->public_id,
+                    ],
+                ],
+            ])
+            ->assertRedirect('/admin/users/create')
+            ->assertSessionHasErrors(['team_assignments']);
+
+        self::assertDatabaseMissing('users', [
+            'email' => 'invalid.copy.source@example.test',
+        ]);
+        Notification::assertNothingSent();
+    }
+
+    public function test_admin_user_creation_rejects_preset_from_another_team(): void
+    {
+        Notification::fake();
+
+        $actor = User::factory()->create();
+        $sourceTeam = Team::query()->create(['name' => 'Collections North']);
+        $targetTeam = Team::query()->create(['name' => 'Collections South']);
+        $this->assignStarterRoleInTeam($actor, $targetTeam, StarterRoleName::Administrator->value);
+        $this->createOnboardingPackage((string) $sourceTeam->public_id, 'north.agent', StarterRoleName::WorkspaceAccess->value);
+
+        $this->actingAs($actor)
+            ->withSession($this->adminSession($targetTeam))
+            ->from('/admin/users/create')
+            ->post('/admin/users', [
+                'name' => 'Invalid Preset Team',
+                'email' => 'invalid.preset.team@example.test',
+                'team_assignments' => [
+                    [
+                        'team_public_id' => $targetTeam->public_id,
+                        'source' => 'package',
+                        'onboarding_package' => 'north.agent',
+                    ],
+                ],
+            ])
+            ->assertRedirect('/admin/users/create')
+            ->assertSessionHasErrors(['team_assignments']);
+
+        self::assertDatabaseMissing('users', [
+            'email' => 'invalid.preset.team@example.test',
+        ]);
+        Notification::assertNothingSent();
+    }
+
+    public function test_admin_user_creation_validation_errors_use_admin_english_field_names(): void
+    {
+        Notification::fake();
+        app()->setLocale('pl');
+
+        $actor = User::factory()->create();
+        $team = Team::query()->create(['name' => 'Operations']);
+        $this->assignStarterRoleInTeam($actor, $team, StarterRoleName::Administrator->value);
+
+        $this->actingAs($actor)
+            ->withSession($this->adminSession($team))
+            ->from('/admin/users/create')
+            ->post('/admin/users', [
+                'name' => 'Invalid Team Assignment',
+                'email' => 'invalid.team.assignment@example.test',
+                'team_assignments' => [
+                    [
+                        'source' => 'manual',
+                    ],
+                ],
+            ])
+            ->assertRedirect('/admin/users/create')
+            ->assertSessionHasErrors([
+                'team_assignments.0.team_public_id' => 'The team in the assignment field is required.',
+            ]);
+
+        Notification::assertNothingSent();
+    }
+
+    public function test_admin_user_creation_accepts_explicit_team_role_and_permission_assignments(): void
+    {
+        Notification::fake();
+
+        $actor = User::factory()->create();
+        $activeTeam = Team::query()->create(['name' => 'Operations']);
+        $assignedTeam = Team::query()->create(['name' => 'Legal']);
+        $this->assignStarterRoleInTeam($actor, $activeTeam, StarterRoleName::Administrator->value);
+
+        $this->actingAs($actor)
+            ->withSession($this->adminSession($activeTeam))
+            ->post('/admin/users', [
+                'name' => 'Explicit Assignments',
+                'email' => 'explicit.assignments@example.test',
+                'team_assignments' => [
+                    [
+                        'team_public_id' => $assignedTeam->public_id,
+                        'source' => 'manual',
+                        'role_names' => [StarterRoleName::TeamManagersRead->value],
+                        'direct_permission_names' => [CoreAuthorizationPermissionCatalog::DASHBOARD],
+                    ],
+                ],
+            ])
+            ->assertRedirect(route('admin.users.index'));
+
+        $created = User::query()->where('email', 'explicit.assignments@example.test')->firstOrFail();
+        $managerRole = Role::query()->where('name', StarterRoleName::TeamManagersRead->value)->firstOrFail();
+        $permission = Permission::query()->where('name', CoreAuthorizationPermissionCatalog::DASHBOARD)->firstOrFail();
+
+        self::assertDatabaseHas('team_user_assignments', [
+            'team_id' => $assignedTeam->id,
+            'user_id' => $created->id,
+            'valid_to' => null,
+        ]);
+        self::assertDatabaseHas('model_has_roles', [
+            'role_id' => $managerRole->id,
+            'model_id' => $created->id,
+            'team_id' => $assignedTeam->id,
+        ]);
+        self::assertDatabaseHas('model_has_permissions', [
+            'permission_id' => $permission->id,
+            'model_id' => $created->id,
+            'team_id' => $assignedTeam->id,
+        ]);
+    }
+
     public function test_admin_can_create_onboarding_package_from_admin_panel(): void
     {
         $actor = User::factory()->create();
@@ -106,9 +259,10 @@ final class AdminUserCreationTest extends TestCase
         $this->actingAs($actor)
             ->withSession($this->adminSession($team))
             ->post('/admin/authorization/packages', [
+                'team_public_id' => $team->public_id,
                 'name' => 'legal.assistant',
                 'label' => 'Legal assistant',
-                'initial_roles' => [StarterRoleName::User->value],
+                'initial_roles' => [StarterRoleName::WorkspaceAccess->value],
                 'direct_permissions' => ['dashboard'],
             ])
             ->assertRedirect(route('admin.authorization.packages.index'));
@@ -196,9 +350,10 @@ final class AdminUserCreationTest extends TestCase
         ]);
     }
 
-    private function createOnboardingPackage(string $name, string $roleName): void
+    private function createOnboardingPackage(string $teamPublicId, string $name, string $roleName): void
     {
         $this->app->make(OnboardingPackageStore::class)->upsert(
+            teamPublicId: $teamPublicId,
             name: $name,
             label: $name,
             initialRoleNames: [$roleName],

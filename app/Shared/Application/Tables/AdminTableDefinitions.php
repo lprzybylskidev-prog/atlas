@@ -31,6 +31,7 @@ final class AdminTableDefinitions
                 new TableColumn('firstPasswordSet', searchable: false),
                 new TableColumn('loginLocked', searchable: false),
                 new TableColumn('mfaEnabled', searchable: false),
+                new TableColumn('online', searchable: false),
                 new TableColumn('emailVerifiedAt', defaultVisible: false),
                 new TableColumn('twoFactorConfirmedAt', defaultVisible: false),
                 new TableColumn('firstPasswordSetAt', defaultVisible: false),
@@ -62,6 +63,8 @@ final class AdminTableDefinitions
             self::PACKAGES => new TableDefinition($key, [
                 new TableColumn('publicId'),
                 new TableColumn('id', searchable: false, defaultVisible: false),
+                new TableColumn('teamName'),
+                new TableColumn('teamPublicId', defaultVisible: false),
                 new TableColumn('label'),
                 new TableColumn('name'),
                 new TableColumn('initialRoles'),

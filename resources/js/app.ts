@@ -4,6 +4,8 @@ import { createInertiaApp } from '@inertiajs/vue3';
 import type { DefineComponent } from 'vue';
 import { createApp, h } from 'vue';
 
+import { registerNetworkHandling } from './Services/networkHandling';
+
 createInertiaApp({
     title: (title) => (title ? `${title} - Atlas` : 'Atlas'),
     resolve: (name) => {
@@ -17,6 +19,8 @@ createInertiaApp({
         return page.default;
     },
     setup({ el, App, props, plugin }) {
+        registerNetworkHandling();
+
         createApp({ render: () => h(App, props) })
             .use(plugin)
             .mount(el);

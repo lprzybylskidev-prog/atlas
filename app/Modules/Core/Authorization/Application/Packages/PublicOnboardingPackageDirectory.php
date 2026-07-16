@@ -17,6 +17,9 @@ final readonly class PublicOnboardingPackageDirectory implements OnboardingPacka
     {
         return array_map(static fn (OnboardingPackageDefinition $package): OnboardingPackagePreview => new OnboardingPackagePreview(
             name: $package->name,
+            publicId: $package->publicId,
+            teamPublicId: $package->teamPublicId,
+            teamName: $package->teamName,
             label: $package->label,
             initialRoleNames: $package->initialRoleNames,
             directPermissionNames: $package->directPermissionNames,

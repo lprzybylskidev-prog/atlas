@@ -5,12 +5,17 @@ declare(strict_types=1);
 namespace App\Modules\Core\Identity\Infrastructure\Persistence;
 
 use App\Modules\Core\Identity\Application\Public\Contracts\UserCredentialAccountDirectory;
+use App\Modules\Core\Identity\Application\Public\Contracts\UserSessionRegistry;
 use App\Modules\Core\Identity\Application\Public\DTOs\AdminUserCredentialAccount;
 use App\Modules\Core\Identity\Application\Public\DTOs\UserCredentialAccountOption;
 use DateTimeInterface;
 
 final class EloquentUserCredentialAccountDirectory implements UserCredentialAccountDirectory
 {
+    public function __construct(
+        private readonly UserSessionRegistry $sessions,
+    ) {}
+
     public function allOptions(): array
     {
         $options = [];
@@ -32,9 +37,10 @@ final class EloquentUserCredentialAccountDirectory implements UserCredentialAcco
     public function allAdminRows(): array
     {
         $rows = [];
+        $online = array_flip($this->sessions->onlineUserPublicIds());
 
         foreach (User::query()->orderBy('name')->get() as $user) {
-            $rows[] = $this->adminRow($user);
+            $rows[] = $this->adminRow($user, isset($online[(string) $user->public_id]));
         }
 
         return $rows;
@@ -48,7 +54,7 @@ final class EloquentUserCredentialAccountDirectory implements UserCredentialAcco
             return null;
         }
 
-        return $this->adminRow($user);
+        return $this->adminRow($user, in_array((string) $user->public_id, $this->sessions->onlineUserPublicIds(), true));
     }
 
     public function updateIdentity(string $publicId, string $name, string $email): ?AdminUserCredentialAccount
@@ -64,7 +70,7 @@ final class EloquentUserCredentialAccountDirectory implements UserCredentialAcco
             'email' => $email,
         ])->save();
 
-        return $this->adminRow($user);
+        return $this->adminRow($user, in_array((string) $user->public_id, $this->sessions->onlineUserPublicIds(), true));
     }
 
     public function verifyEmail(string $publicId): ?AdminUserCredentialAccount
@@ -79,7 +85,7 @@ final class EloquentUserCredentialAccountDirectory implements UserCredentialAcco
             'email_verified_at' => $user->email_verified_at ?? now(),
         ])->save();
 
-        return $this->adminRow($user);
+        return $this->adminRow($user, in_array((string) $user->public_id, $this->sessions->onlineUserPublicIds(), true));
     }
 
     public function requireEmailVerification(string $publicId): ?AdminUserCredentialAccount
@@ -95,11 +101,12 @@ final class EloquentUserCredentialAccountDirectory implements UserCredentialAcco
         ])->save();
 
         $user->sendEmailVerificationNotification();
+        $this->sessions->invalidateUser((string) $user->public_id);
 
-        return $this->adminRow($user);
+        return $this->adminRow($user, false);
     }
 
-    private function adminRow(User $user): AdminUserCredentialAccount
+    private function adminRow(User $user, bool $online = false): AdminUserCredentialAccount
     {
         return new AdminUserCredentialAccount(
             id: $user->internalId(),
@@ -111,6 +118,7 @@ final class EloquentUserCredentialAccountDirectory implements UserCredentialAcco
             firstPasswordSet: $user->first_password_set_at !== null,
             loginLocked: $user->isLoginLocked(),
             mfaEnabled: $user->two_factor_confirmed_at !== null,
+            online: $online,
             emailVerifiedAt: $this->optionalDateTimeString($user->email_verified_at),
             twoFactorConfirmedAt: $this->optionalDateTimeString($user->two_factor_confirmed_at),
             firstPasswordSetAt: $this->optionalDateTimeString($user->first_password_set_at),

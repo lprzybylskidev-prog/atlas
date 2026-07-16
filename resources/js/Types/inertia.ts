@@ -3,6 +3,11 @@ export interface AtlasUser {
     email: string;
 }
 
+export interface AtlasTeam {
+    publicId: string;
+    name: string;
+}
+
 export interface AtlasPageProps {
     [key: string]: unknown;
     app: {
@@ -15,6 +20,10 @@ export interface AtlasPageProps {
     auth: {
         user: AtlasUser | null;
         availableAdminRoutes: string[];
+        teams: {
+            active: AtlasTeam | null;
+            available: AtlasTeam[];
+        };
     };
     locale: string;
     supportedLocales: string[];

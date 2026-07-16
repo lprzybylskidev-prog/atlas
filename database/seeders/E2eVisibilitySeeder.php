@@ -40,7 +40,7 @@ final class E2eVisibilitySeeder extends Seeder
         app(PermissionRoleStore::class)->assignRoleToUserInTeam(
             userPublicId: (string) $limited->public_id,
             teamPublicId: $team->publicId,
-            roleName: StarterRoleName::User->value,
+            roleName: StarterRoleName::WorkspaceAccess->value,
         );
 
         $this->auditEvents((string) $admin->public_id, $team->publicId);

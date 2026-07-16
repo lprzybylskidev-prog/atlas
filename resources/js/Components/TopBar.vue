@@ -14,10 +14,12 @@ import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import type { Component } from 'vue';
 
 import IconButton from './IconButton.vue';
+import FormSelect from './Form/FormSelect.vue';
 import { useLocaleSwitcher } from '../Composables/useLocaleSwitcher';
 import { useSidebar } from '../Composables/useSidebar';
 import { useTheme } from '../Composables/useTheme';
 import { useTranslator } from '../Localization/translator';
+import { clearTeamScopedState } from '../Services/teamScopedState';
 import type { AtlasPageProps } from '../Types/inertia';
 
 const props = withDefaults(
@@ -75,6 +77,8 @@ const closeUserMenu = (): void => {
 const breadcrumbs = computed(() => page.props.navigation.breadcrumbs);
 const isAdminMode = computed(() => props.mode === 'admin');
 const canEnterAdmin = computed(() => page.props.auth.availableAdminRoutes.includes('admin.system-status'));
+const activeTeamPublicId = computed(() => page.props.auth.teams.active?.publicId ?? '');
+const availableTeamOptions = computed(() => page.props.auth.teams.available.map((team) => ({ value: team.publicId, label: team.name })));
 
 const handleOutsidePointerDown = (event: PointerEvent): void => {
     const target = event.target;
@@ -94,6 +98,23 @@ const handleEscape = (event: KeyboardEvent): void => {
     if (event.key === 'Escape') {
         closeUserMenu();
     }
+};
+
+const switchTeam = (teamPublicId: string | number): void => {
+    if (typeof teamPublicId !== 'string' || teamPublicId === activeTeamPublicId.value) {
+        return;
+    }
+
+    clearTeamScopedState();
+
+    router.post(
+        '/team/switch',
+        { team_public_id: teamPublicId },
+        {
+            preserveScroll: false,
+            preserveState: false,
+        },
+    );
 };
 
 onMounted(() => {
@@ -184,6 +205,15 @@ onBeforeUnmount(() => {
                 />
 
                 <IconButton v-if="showLocaleSwitcher" :label="t('actions.change_language')" :icon="IconLanguage" @click="switchLocale" />
+
+                <FormSelect
+                    v-if="availableTeamOptions.length > 1"
+                    :model-value="activeTeamPublicId"
+                    :options="availableTeamOptions"
+                    :aria-label="t('team.active')"
+                    button-class="w-40 sm:w-52"
+                    @update:model-value="switchTeam"
+                />
 
                 <div class="relative pl-1">
                     <button

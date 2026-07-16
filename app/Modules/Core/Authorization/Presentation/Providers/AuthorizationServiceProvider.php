@@ -17,6 +17,8 @@ use App\Modules\Core\Authorization\Application\Public\Contracts\OnboardingPackag
 use App\Modules\Core\Authorization\Application\Public\Contracts\UserAuthorizationAssignmentCopier;
 use App\Modules\Core\Authorization\Application\Public\Contracts\UserAuthorizationAssignmentPreviewer;
 use App\Modules\Core\Authorization\Application\Public\Contracts\UserOnboardingPackageApplier;
+use App\Modules\Core\Authorization\Application\Public\Contracts\UserTeamAuthorizationCleaner;
+use App\Modules\Core\Authorization\Application\Public\Contracts\UserTeamAuthorizationManager;
 use App\Modules\Core\Authorization\Application\Roles\AdministratorAccess;
 use App\Modules\Core\Authorization\Infrastructure\Persistence\DatabaseOnboardingPackageStore;
 use App\Modules\Core\Authorization\Infrastructure\Persistence\SpatieEffectivePermissionChecker;
@@ -38,6 +40,8 @@ final class AuthorizationServiceProvider extends ServiceProvider
         $this->app->bind(UserOnboardingPackageApplier::class, PublicUserOnboardingPackageApplier::class);
         $this->app->bind(UserAuthorizationAssignmentCopier::class, PublicUserAuthorizationAssignmentCopier::class);
         $this->app->bind(UserAuthorizationAssignmentPreviewer::class, SpatieUserAuthorizationAssignmentPreviewer::class);
+        $this->app->bind(UserTeamAuthorizationCleaner::class, SpatiePermissionRoleStore::class);
+        $this->app->bind(UserTeamAuthorizationManager::class, SpatiePermissionRoleStore::class);
         $this->app->bind(OnboardingPackageStore::class, DatabaseOnboardingPackageStore::class);
         $this->app->bind(PermissionRoleStore::class, SpatiePermissionRoleStore::class);
 

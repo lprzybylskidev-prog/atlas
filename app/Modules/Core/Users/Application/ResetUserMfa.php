@@ -6,6 +6,7 @@ namespace App\Modules\Core\Users\Application;
 
 use App\Modules\Core\Identity\Application\Public\Contracts\SecurityAuditRecorder;
 use App\Modules\Core\Identity\Application\Public\Contracts\UserCredentialAccountStatusManager;
+use App\Modules\Core\Identity\Application\Public\Contracts\UserSessionRegistry;
 use App\Modules\Core\Identity\Application\Public\DTOs\SecurityAuditEvent;
 use App\Modules\Core\Users\Application\Commands\ResetUserMfaCommand;
 use App\Modules\Core\Users\Application\DTOs\UserAccountStatus;
@@ -17,6 +18,7 @@ final readonly class ResetUserMfa
     public function __construct(
         private UserCredentialAccountStatusManager $accounts,
         private SecurityAuditRecorder $audit,
+        private UserSessionRegistry $sessions,
     ) {}
 
     public function handle(ResetUserMfaCommand $command): UserAccountStatus
@@ -41,6 +43,7 @@ final readonly class ResetUserMfa
         }
 
         $this->recordAudit($command, $actorPublicId, $reason, 'succeeded');
+        $this->sessions->invalidateUser($command->targetPublicId);
 
         return new UserAccountStatus(
             publicId: $status->publicId,

@@ -51,7 +51,7 @@ final readonly class PackageRoleManager
         $package = $this->packages->get($packageName);
 
         if (! $package instanceof OnboardingPackageDefinition) {
-            throw new InvalidArgumentException(sprintf('Onboarding package [%s] is not registered.', $packageName));
+            throw new InvalidArgumentException(sprintf('Preset [%s] is not registered.', $packageName));
         }
 
         return $package;

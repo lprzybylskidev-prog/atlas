@@ -25,6 +25,7 @@ import {
     IconFileText,
     IconKey,
     IconLockOpen,
+    IconLogout,
     IconMailCheck,
     IconPencil,
     IconPrinter,
@@ -1290,6 +1291,7 @@ function actionIcon(action: DataTableAction<TRow>): Component {
         'first-password': IconKey,
         unlock: IconLockOpen,
         'reset-mfa': IconRefresh,
+        'invalidate-sessions': IconLogout,
     };
 
     return icons[action.key] ?? IconSettings;
@@ -1761,7 +1763,7 @@ onBeforeUnmount(() => {
                         </template>
                         <tr v-if="!loading && !errorLabel && table.getRowModel().rows.length === 0">
                             <td :colspan="renderedColumnCount" class="px-4 py-10 text-center text-sm text-zinc-500 dark:text-zinc-400">
-                                {{ globalFilter ? 'No results match the current table search.' : (emptyLabel ?? t('datatable.empty')) }}
+                                {{ globalFilter ? t('datatable.no_results') : (emptyLabel ?? t('datatable.empty')) }}
                             </td>
                         </tr>
                     </tbody>

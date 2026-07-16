@@ -19,6 +19,8 @@ Technical seeders must be safe for production and idempotent.
 
 Demo seeders are development-only tooling.
 
+Development demo data must grow with implemented product capabilities. Each completed workflow that needs realistic manual review should add representative demo records, including negative or boundary cases where helpful. Demo seeders must not flatten the authorization model by giving every demo user every team, role, permission, module, or workflow state unless the scenario is intentional and clearly named.
+
 Demo seeders may create example:
 
 - teams;
@@ -57,7 +59,9 @@ Automated tests use factories and explicit fixtures. The current Playwright shel
 
 ## Current development demo account
 
-The development demo reset creates one local administrator account plus three teams, three admin-managed onboarding presets, and faker-generated users with preset assignments so the frontend shell and authorization screens can be reviewed through the real Fortify login flow:
+The development demo reset creates one local administrator account plus three teams, distinct team-scoped admin-managed presets, deterministic copy-source users, a multi-team user, and faker-generated users with preset assignments so the frontend shell and authorization screens can be reviewed through the real Fortify login flow:
+
+The team-scoped demo presets must use distinct small functional role bundles and direct permissions per team. They must not recreate generic `user`/`manager` personae or make every team look authorized the same way.
 
 - email: `admin@example.test`;
 - password: `password`.

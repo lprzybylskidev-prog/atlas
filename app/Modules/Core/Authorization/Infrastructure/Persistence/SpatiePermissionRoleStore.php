@@ -4,14 +4,25 @@ declare(strict_types=1);
 
 namespace App\Modules\Core\Authorization\Infrastructure\Persistence;
 
+use App\Modules\Core\Audit\Application\Public\Contracts\AuditRecorder;
+use App\Modules\Core\Audit\Application\Public\DTOs\AuditEvent;
 use App\Modules\Core\Authorization\Application\Contracts\PermissionRoleStore;
+use App\Modules\Core\Authorization\Application\Permissions\PermissionCatalogRegistry;
+use App\Modules\Core\Authorization\Application\Public\Contracts\UserTeamAuthorizationCleaner;
+use App\Modules\Core\Authorization\Application\Public\Contracts\UserTeamAuthorizationManager;
+use App\Modules\Core\Authorization\Application\Public\DTOs\UserTeamAuthorizationAssignments;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 
-final class SpatiePermissionRoleStore implements PermissionRoleStore
+final class SpatiePermissionRoleStore implements PermissionRoleStore, UserTeamAuthorizationCleaner, UserTeamAuthorizationManager
 {
+    public function __construct(
+        private readonly AuditRecorder $audit,
+        private readonly PermissionCatalogRegistry $permissionCatalog,
+    ) {}
+
     public function ensurePermissions(array $permissions): void
     {
         foreach ($permissions as $permission) {
@@ -151,11 +162,15 @@ final class SpatiePermissionRoleStore implements PermissionRoleStore
         }
     }
 
-    public function userHasOnboardingPackage(string $userPublicId): bool
+    public function userHasOnboardingPackage(string $userPublicId, string $teamPublicId, string $packageName): bool
     {
         $userId = $this->userId($userPublicId);
+        $teamId = $this->teamId($teamPublicId);
 
-        return is_int($userId) && DB::table('user_onboarding_packages')->where('user_id', $userId)->exists();
+        return is_int($userId) && is_int($teamId) && DB::table('user_onboarding_packages')
+            ->where('user_id', $userId)
+            ->where('team_id', $teamId)
+            ->exists();
     }
 
     public function recordUserOnboardingPackage(string $userPublicId, string $teamPublicId, string $packageName): void
@@ -227,6 +242,180 @@ final class SpatiePermissionRoleStore implements PermissionRoleStore
                 ]);
             }
         }
+    }
+
+    public function removeAssignmentsForUserTeam(string $userPublicId, string $teamPublicId): void
+    {
+        $userId = $this->userId($userPublicId);
+        $teamId = $this->teamId($teamPublicId);
+
+        if (! is_int($userId) || ! is_int($teamId)) {
+            return;
+        }
+
+        DB::table('model_has_roles')
+            ->where('model_type', config('auth.providers.users.model'))
+            ->where('model_id', $userId)
+            ->where('team_id', $teamId)
+            ->delete();
+
+        DB::table('model_has_permissions')
+            ->where('model_type', config('auth.providers.users.model'))
+            ->where('model_id', $userId)
+            ->where('team_id', $teamId)
+            ->delete();
+    }
+
+    public function roleOptions(): array
+    {
+        return array_values(array_filter(Role::query()
+            ->where('guard_name', 'web')
+            ->whereNull(config()->string('permission.column_names.team_foreign_key'))
+            ->orderBy('name')
+            ->pluck('name')
+            ->all(), 'is_string'));
+    }
+
+    public function permissionOptions(): array
+    {
+        return $this->permissionCatalog->names();
+    }
+
+    public function rolePermissionMap(): array
+    {
+        $map = [];
+
+        foreach ($this->roleOptions() as $roleName) {
+            $map[$roleName] = $this->rolePermissionNames($roleName);
+        }
+
+        return $map;
+    }
+
+    public function assignmentsForUserTeam(string $userPublicId, string $teamPublicId): UserTeamAuthorizationAssignments
+    {
+        $userId = $this->userId($userPublicId);
+        $teamId = $this->teamId($teamPublicId);
+
+        if (! is_int($userId) || ! is_int($teamId)) {
+            return new UserTeamAuthorizationAssignments($userPublicId, $teamPublicId, [], []);
+        }
+
+        $roles = array_values(array_filter(DB::table('model_has_roles')
+            ->join('roles', 'model_has_roles.role_id', '=', 'roles.id')
+            ->where('model_has_roles.model_type', config('auth.providers.users.model'))
+            ->where('model_has_roles.model_id', $userId)
+            ->where('model_has_roles.team_id', $teamId)
+            ->orderBy('roles.name')
+            ->pluck('roles.name')
+            ->all(), 'is_string'));
+
+        $permissions = array_values(array_filter(DB::table('model_has_permissions')
+            ->join('permissions', 'model_has_permissions.permission_id', '=', 'permissions.id')
+            ->where('model_has_permissions.model_type', config('auth.providers.users.model'))
+            ->where('model_has_permissions.model_id', $userId)
+            ->where('model_has_permissions.team_id', $teamId)
+            ->orderBy('permissions.name')
+            ->pluck('permissions.name')
+            ->all(), 'is_string'));
+
+        return new UserTeamAuthorizationAssignments($userPublicId, $teamPublicId, $roles, $permissions);
+    }
+
+    public function replaceAssignmentsForUserTeam(
+        string $actorPublicId,
+        string $userPublicId,
+        string $teamPublicId,
+        array $roleNames,
+        array $directPermissionNames,
+        ?string $reason = null,
+    ): void {
+        $userId = $this->userId($userPublicId);
+        $teamId = $this->teamId($teamPublicId);
+
+        if (! is_int($userId) || ! is_int($teamId)) {
+            return;
+        }
+
+        $before = $this->assignmentsForUserTeam($userPublicId, $teamPublicId);
+        $roleNames = $this->validRoleNames($roleNames);
+        $directPermissionNames = $this->validPermissionNames($directPermissionNames);
+
+        DB::transaction(function () use ($userId, $teamId, $roleNames, $directPermissionNames): void {
+            DB::table('model_has_roles')
+                ->where('model_type', config('auth.providers.users.model'))
+                ->where('model_id', $userId)
+                ->where('team_id', $teamId)
+                ->delete();
+
+            DB::table('model_has_permissions')
+                ->where('model_type', config('auth.providers.users.model'))
+                ->where('model_id', $userId)
+                ->where('team_id', $teamId)
+                ->delete();
+
+            foreach (Role::query()->whereIn('name', $roleNames)->where('guard_name', 'web')->get(['id']) as $role) {
+                DB::table('model_has_roles')->insert([
+                    'role_id' => $role->id,
+                    'model_type' => config('auth.providers.users.model'),
+                    'model_id' => $userId,
+                    'team_id' => $teamId,
+                ]);
+            }
+
+            foreach (Permission::query()->whereIn('name', $directPermissionNames)->where('guard_name', 'web')->get(['id']) as $permission) {
+                DB::table('model_has_permissions')->insert([
+                    'permission_id' => $permission->id,
+                    'model_type' => config('auth.providers.users.model'),
+                    'model_id' => $userId,
+                    'team_id' => $teamId,
+                ]);
+            }
+        });
+
+        $this->audit->record(new AuditEvent(
+            module: 'authorization',
+            action: 'authorization.user_team_assignments_replaced',
+            result: 'succeeded',
+            source: 'admin',
+            actorPublicId: $actorPublicId,
+            targetType: 'user',
+            targetPublicId: $userPublicId,
+            teamPublicId: $teamPublicId,
+            before: [
+                'roles' => $before->roleNames,
+                'direct_permissions' => $before->directPermissionNames,
+            ],
+            after: [
+                'roles' => $roleNames,
+                'direct_permissions' => $directPermissionNames,
+                'reason' => $reason,
+            ],
+            security: true,
+            securityCategory: 'authorization',
+        ));
+    }
+
+    /**
+     * @param  list<string>  $roleNames
+     * @return list<string>
+     */
+    private function validRoleNames(array $roleNames): array
+    {
+        $available = $this->roleOptions();
+
+        return array_values(array_intersect(array_values(array_unique($roleNames)), $available));
+    }
+
+    /**
+     * @param  list<string>  $permissionNames
+     * @return list<string>
+     */
+    private function validPermissionNames(array $permissionNames): array
+    {
+        $available = $this->permissionOptions();
+
+        return array_values(array_intersect(array_values(array_unique($permissionNames)), $available));
     }
 
     private function userId(string $userPublicId): mixed

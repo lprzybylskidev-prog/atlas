@@ -16,7 +16,7 @@ withDefaults(
 </script>
 
 <template>
-    <AppLayout :title="title" :title-icon="titleIcon" mode="admin" ui-locale="en">
+    <AppLayout :title="title" :title-icon="titleIcon" mode="admin" :show-locale-switcher="false" ui-locale="en">
         <slot />
     </AppLayout>
 </template>

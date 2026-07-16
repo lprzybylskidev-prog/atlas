@@ -17,6 +17,6 @@ final readonly class DestroyOnboardingPackageController
     {
         $this->packages->deactivate($package);
 
-        return redirect()->route('admin.authorization.packages.index')->with('success', 'Onboarding package was deactivated.');
+        return redirect()->route('admin.authorization.packages.index')->with('success', 'Preset was deactivated.');
     }
 }

@@ -41,8 +41,21 @@ final class FrontendShellTest extends TestCase
     {
         $user = User::factory()->create();
         $team = Team::query()->create(['name' => 'Operations']);
+        $presetPublicId = '01K00000000000000000000000';
 
         $this->assignStarterRoleInTeam($user, $team, StarterRoleName::Administrator->value);
+        DB::table('authorization_onboarding_packages')->insert([
+            'public_id' => $presetPublicId,
+            'team_id' => $team->id,
+            'name' => 'operations.agent',
+            'label' => 'Operations agent',
+            'initial_role_names' => json_encode([StarterRoleName::WorkspaceAccess->value], JSON_THROW_ON_ERROR),
+            'direct_permission_names' => json_encode([], JSON_THROW_ON_ERROR),
+            'template_permission_names' => json_encode([], JSON_THROW_ON_ERROR),
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
 
         $adminSession = [
             'active_team_public_id' => $team->public_id,
@@ -145,11 +158,11 @@ final class FrontendShellTest extends TestCase
 
         $this->actingAs($user)
             ->withSession(['active_team_public_id' => $team->public_id])
-            ->get('/admin/authorization/packages/core.administrator/edit')
+            ->get('/admin/authorization/packages/'.$presetPublicId.'/edit')
             ->assertOk()
             ->assertInertia(fn (AssertableInertia $page) => $page
                 ->component('Admin/Authorization/Packages/Edit')
-                ->where('package.name', 'core.administrator')
+                ->where('package.name', 'operations.agent')
                 ->has('roleOptions')
                 ->has('permissionOptions'));
 

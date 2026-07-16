@@ -11,7 +11,11 @@ interface OnboardingPackageStore
     /**
      * @return list<OnboardingPackageDefinition>
      */
-    public function allActive(): array;
+    public function allActive(?string $teamPublicId = null): array;
+
+    public function findByPublicId(string $publicId): ?OnboardingPackageDefinition;
+
+    public function findActiveForTeam(string $name, string $teamPublicId): ?OnboardingPackageDefinition;
 
     /**
      * @param  list<string>  $initialRoleNames
@@ -19,6 +23,7 @@ interface OnboardingPackageStore
      * @param  list<string>  $templatePermissionNames
      */
     public function upsert(
+        string $teamPublicId,
         string $name,
         string $label,
         array $initialRoleNames,
@@ -26,5 +31,5 @@ interface OnboardingPackageStore
         array $templatePermissionNames,
     ): void;
 
-    public function deactivate(string $name): void;
+    public function deactivate(string $publicId): void;
 }

@@ -12,5 +12,6 @@ return [
         'not_recently_used' => 'The password was used recently. Choose a different password.',
     ],
     'rate_limited' => 'Too many attempts. Please wait before trying again.',
+    'session_conflict' => 'This account is already active in another session. Continue here to terminate the previous session, or cancel this login.',
     'throttle' => 'Too many login attempts. Please try again in :seconds seconds.',
 ];

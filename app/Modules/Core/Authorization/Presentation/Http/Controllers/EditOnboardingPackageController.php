@@ -19,7 +19,7 @@ final readonly class EditOnboardingPackageController
 
     public function __invoke(string $package): Response
     {
-        $definition = $this->packages->get($package);
+        $definition = $this->packages->getByPublicId($package);
 
         if ($definition === null) {
             abort(404);
@@ -27,6 +27,9 @@ final readonly class EditOnboardingPackageController
 
         return Inertia::render('Admin/Authorization/Packages/Edit', [
             'package' => [
+                'publicId' => $definition->publicId,
+                'teamPublicId' => $definition->teamPublicId,
+                'teamName' => $definition->teamName,
                 'name' => $definition->name,
                 'label' => $definition->label,
                 'initialRoles' => $definition->initialRoleNames,

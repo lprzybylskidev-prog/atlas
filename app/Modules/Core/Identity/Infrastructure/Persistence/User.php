@@ -31,6 +31,8 @@ class User extends Authenticatable implements MustVerifyEmailContract
         'failed_login_attempts',
         'login_lock_count',
         'login_locked_until',
+        'inactivity_timeout_minutes',
+        'session_max_lifetime_minutes',
     ];
 
     /** @var list<string> */
@@ -117,6 +119,8 @@ class User extends Authenticatable implements MustVerifyEmailContract
             'failed_login_attempts' => 'integer',
             'login_lock_count' => 'integer',
             'login_locked_until' => 'datetime',
+            'inactivity_timeout_minutes' => 'integer',
+            'session_max_lifetime_minutes' => 'integer',
             'password' => 'hashed',
         ];
     }

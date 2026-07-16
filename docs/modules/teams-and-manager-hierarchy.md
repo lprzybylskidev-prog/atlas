@@ -14,6 +14,16 @@ Current implementation foundation:
 - `App\Modules\Core\Teams\Domain\ValueObjects\TeamPublicId` is the typed domain identifier for team public IDs;
 - `team_user_assignments` stores the current team membership foundation used by active-team authorization checks.
 - `App\Modules\Core\Teams\Application\Public\Contracts\BootstrapTeamProvider` exposes the narrow public bootstrap contract used by first-administrator and demo setup flows.
+- `App\Modules\Core\Teams\Application\Public\Contracts\UserTeamMembershipManager` exposes Admin user-team membership operations for adding and removing user-team access from User and Team administration workflows.
+
+Admin user-team access management:
+
+- Admin user creation requires at least one team assignment;
+- Admin user creation/editing and team creation/editing list and manage active user-team memberships;
+- Admin can add access to an active team the user does not currently belong to, including team-scoped roles and direct permissions;
+- Admin can update a user's team-scoped roles and direct permissions from either User or Team administration;
+- Admin can remove access from a team only with a reason;
+- removing access ends the effective `team_user_assignments` row through `valid_to`, removes user-specific role and direct-permission assignments in that team, audits the operation, and invalidates user sessions operating in that team.
 
 Manager relationships are team-scoped.
 

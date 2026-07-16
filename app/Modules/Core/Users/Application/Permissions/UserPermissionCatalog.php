@@ -35,6 +35,14 @@ final class UserPermissionCatalog implements ModulePermissionContribution
 
     public const ADMIN_USERS_RESET_MFA = 'admin.users.reset-mfa';
 
+    public const ADMIN_USERS_INVALIDATE_SESSIONS = 'admin.users.invalidate-sessions';
+
+    public const ADMIN_USERS_TEAMS_STORE = 'admin.users.teams.store';
+
+    public const ADMIN_USERS_TEAMS_DESTROY = 'admin.users.teams.destroy';
+
+    public const ADMIN_USERS_TEAMS_AUTHORIZATION_UPDATE = 'admin.users.teams.authorization.update';
+
     public const USERS_CREATE = 'users.create';
 
     public const USERS_UPDATE = 'users.update';
@@ -46,6 +54,8 @@ final class UserPermissionCatalog implements ModulePermissionContribution
     public const USERS_UNLOCK = 'users.unlock';
 
     public const USERS_MFA_RESET = 'users.mfa-reset';
+
+    public const TEAM_SWITCH = 'team.switch';
 
     public function permissions(): array
     {
@@ -63,12 +73,17 @@ final class UserPermissionCatalog implements ModulePermissionContribution
             new ModulePermissionDefinition(self::ADMIN_USERS_RESEND_FIRST_PASSWORD, 'Resend first-password links through Admin UI.'),
             new ModulePermissionDefinition(self::ADMIN_USERS_UNLOCK, 'Unlock users through Admin UI.'),
             new ModulePermissionDefinition(self::ADMIN_USERS_RESET_MFA, 'Reset user MFA through Admin UI.'),
+            new ModulePermissionDefinition(self::ADMIN_USERS_INVALIDATE_SESSIONS, 'Invalidate all user sessions through Admin UI.'),
+            new ModulePermissionDefinition(self::ADMIN_USERS_TEAMS_STORE, 'Add user team access through Admin UI.'),
+            new ModulePermissionDefinition(self::ADMIN_USERS_TEAMS_DESTROY, 'Remove user team access through Admin UI.'),
+            new ModulePermissionDefinition(self::ADMIN_USERS_TEAMS_AUTHORIZATION_UPDATE, 'Update user roles and direct permissions in a team through Admin UI.'),
             new ModulePermissionDefinition(self::USERS_CREATE, 'Create users.'),
             new ModulePermissionDefinition(self::USERS_UPDATE, 'Update users.'),
             new ModulePermissionDefinition(self::USERS_ACTIVATE, 'Activate users.'),
             new ModulePermissionDefinition(self::USERS_DEACTIVATE, 'Deactivate users.'),
             new ModulePermissionDefinition(self::USERS_UNLOCK, 'Unlock user login.'),
             new ModulePermissionDefinition(self::USERS_MFA_RESET, 'Reset user MFA.'),
+            new ModulePermissionDefinition(self::TEAM_SWITCH, 'Switch own active team.'),
         ];
     }
 }

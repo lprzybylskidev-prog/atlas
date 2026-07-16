@@ -30,6 +30,13 @@ Use centralized handling for:
 - 429;
 - 500.
 
+Current implementation foundation:
+
+- `resources/js/Services/networkHandling.ts` registers browser online/offline handling and centralizes messages for 401, 403, 419, 422, 429, and 500-class failures;
+- automatic retry is allowed only for safe idempotent HTTP methods (`GET`, `HEAD`, `OPTIONS`);
+- unsafe mutations are never retried automatically and CSRF failures surface as a refresh/sign-in problem instead of entering retry loops;
+- `resources/js/Services/teamScopedState.ts` clears Atlas-owned team-scoped browser storage prefixes when the active team changes.
+
 Preserve non-sensitive form data where appropriate.
 
 Retry only idempotent safe requests.
