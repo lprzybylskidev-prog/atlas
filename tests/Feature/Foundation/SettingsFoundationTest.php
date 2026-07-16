@@ -50,6 +50,28 @@ final class SettingsFoundationTest extends TestCase
         self::assertSame('en', $settings->locale(userId: (int) $user->id, teamId: (int) $team->id));
     }
 
+    public function test_effective_theme_uses_user_team_guest_global_precedence(): void
+    {
+        $user = User::factory()->create();
+        $team = Team::query()->create(['name' => 'Operations']);
+
+        /** @var SettingsStore $store */
+        $store = $this->app->make(SettingsStore::class);
+        /** @var EffectiveSettings $settings */
+        $settings = $this->app->make(EffectiveSettings::class);
+
+        self::assertSame('dark', $settings->theme(guestTheme: 'dark'));
+
+        $store->putGlobal(GlobalSettingKey::DefaultTheme, 'dark');
+        self::assertSame('dark', $settings->theme());
+
+        $store->putTeam((int) $team->id, TeamSettingKey::DefaultTheme, 'light');
+        self::assertSame('light', $settings->theme(teamId: (int) $team->id, guestTheme: 'dark'));
+
+        $store->putUser((int) $user->id, UserSettingKey::Theme, 'dark');
+        self::assertSame('dark', $settings->theme(userId: (int) $user->id, teamId: (int) $team->id));
+    }
+
     public function test_setting_values_are_validated_by_typed_key(): void
     {
         /** @var SettingsStore $store */

@@ -97,9 +97,49 @@ class LocalizationTest extends TestCase
         self::assertSame('"en"', DB::table('settings_user_values')->where('user_id', $user->id)->value('value'));
     }
 
+    public function test_authenticated_theme_change_is_persisted_as_user_setting(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)
+            ->post('/theme', ['theme' => 'dark'])
+            ->assertRedirect()
+            ->assertCookie('atlas_theme', 'dark');
+
+        self::assertDatabaseHas('settings_user_values', [
+            'user_id' => $user->id,
+            'key' => UserSettingKey::Theme->value,
+            'value' => '"dark"',
+        ]);
+
+        $this->actingAs($user)
+            ->withCookie('atlas_theme', 'light')
+            ->get('/user/confirm-password')
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page->where('preferences.theme', 'dark'));
+    }
+
+    public function test_guest_theme_change_uses_temporary_cookie_preference(): void
+    {
+        $this->post('/theme', ['theme' => 'dark'])
+            ->assertRedirect()
+            ->assertCookie('atlas_theme', 'dark');
+
+        $this->withCookie('atlas_theme', 'dark')
+            ->get('/login')
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page->where('preferences.theme', 'dark'));
+    }
+
     public function test_locale_change_rejects_unsupported_locale(): void
     {
         $this->post('/locale', ['locale' => 'de'])
             ->assertSessionHasErrors('locale');
+    }
+
+    public function test_theme_change_rejects_unsupported_theme(): void
+    {
+        $this->post('/theme', ['theme' => 'sepia'])
+            ->assertSessionHasErrors('theme');
     }
 }

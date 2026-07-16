@@ -42,7 +42,7 @@ Current implementation foundation:
 - `App\Modules\Core\Authorization\Infrastructure\Persistence\SpatieEffectivePermissionChecker` evaluates active-team-scoped direct and role permissions from the Spatie tables without exposing Spatie APIs to other modules;
 - `App\Modules\Core\Authorization\Application\Permissions\PermissionCatalogRegistry` collects module-owned typed permission catalogs registered through the shared module permission contribution contract;
 - protected named web routes use `route.permission`, which requires the effective permission name to match the route name;
-- public or technical route exceptions are currently `login`, `password.email`, `password.reset`, `password.confirm`, `password.confirm.store`, `password.confirmation`, and `locale.update`.
+- public or technical route exceptions are currently `login`, `password.email`, `password.reset`, `password.confirm`, `password.confirm.store`, `password.confirmation`, `locale.update`, and `theme.update`.
 - Admin permission administration screens are available at `/admin/authorization/permissions` and show permission name, owning module, team scope, current module activation state, effective assignment state, and ineffectiveness reason in the selected active-team context.
 - Admin role administration screens are available at `/admin/authorization/roles`; role creation and editing use separate Admin views instead of inline index forms and let administrators manage the role's direct permission membership.
 - Admin onboarding preset administration is available at `/admin/authorization/packages`; preset creation and editing use separate Admin views and let administrators manage local presets from existing roles and permissions.

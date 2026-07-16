@@ -18,6 +18,9 @@ export interface AtlasPageProps {
     };
     locale: string;
     supportedLocales: string[];
+    preferences: {
+        theme: 'light' | 'dark';
+    };
     navigation: {
         breadcrumbs: {
             label: string;

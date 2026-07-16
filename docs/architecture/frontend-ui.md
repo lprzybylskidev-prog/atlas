@@ -84,7 +84,7 @@ Do not postpone dark-theme fixes to the end.
 
 Key visual and E2E tests should cover both themes.
 
-The initial shell persists the selected theme in local storage as a temporary user-settings contract until typed backend user settings are implemented.
+The shell persists the selected theme through typed backend user settings for authenticated users. Guest and pre-login screens may use the non-sensitive `atlas.theme` local-storage value and `atlas_theme` cookie as temporary fallbacks until the user signs in.
 
 ### Layout
 

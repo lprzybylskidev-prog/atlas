@@ -107,6 +107,7 @@ final class AuthorizationFoundationTest extends TestCase
             'password.confirmation',
             'password.email',
             'password.reset',
+            'theme.update',
         ];
 
         foreach (Route::getRoutes()->getRoutes() as $route) {

@@ -38,7 +38,8 @@ Effective theme precedence is:
 
 1. authenticated user theme preference;
 2. active team default theme;
-3. global default theme.
+3. safe temporary guest theme cookie;
+4. global default theme.
 
 Polish is the default regular UI language.
 
@@ -51,6 +52,8 @@ Invalid values are rejected explicitly. Unsupported locales are rejected; suppor
 ## Localization Preference
 
 The `/locale` route stores the selected language as a typed user setting for authenticated users and also keeps the temporary `atlas_locale` cookie for guest/login flows. Inertia shared props expose the effective `locale` and supported locale list.
+
+The `/theme` route stores the selected light/dark theme as a typed user setting for authenticated users and also keeps the temporary `atlas_theme` cookie for guest/login flows. Inertia shared props expose `preferences.theme` so frontend shells can initialize from the effective backend preference.
 
 ## Security Audit
 

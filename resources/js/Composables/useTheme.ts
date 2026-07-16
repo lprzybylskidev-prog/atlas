@@ -1,4 +1,7 @@
+import { router, usePage } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
+
+import type { AtlasPageProps } from '../Types/inertia';
 
 type Theme = 'light' | 'dark';
 
@@ -20,11 +23,18 @@ const initialTheme = (): Theme => {
 
 const theme = ref<Theme>(initialTheme());
 
-const applyTheme = (nextTheme: Theme): void => {
+const normalizeTheme = (value: unknown): Theme | null => {
+    return value === 'light' || value === 'dark' ? value : null;
+};
+
+const applyTheme = (nextTheme: Theme, persist = true): void => {
     theme.value = nextTheme;
     document.documentElement.classList.toggle('dark', nextTheme === 'dark');
     document.documentElement.dataset.theme = nextTheme;
-    window.localStorage.setItem(storageKey, nextTheme);
+
+    if (persist) {
+        window.localStorage.setItem(storageKey, nextTheme);
+    }
 };
 
 if (typeof window !== 'undefined') {
@@ -33,10 +43,29 @@ if (typeof window !== 'undefined') {
 }
 
 export const useTheme = () => {
+    const page = usePage<AtlasPageProps>();
+    const preferredTheme = normalizeTheme(page.props.preferences?.theme);
+
+    if (preferredTheme !== null && preferredTheme !== theme.value) {
+        applyTheme(preferredTheme);
+    }
+
     const isDark = computed(() => theme.value === 'dark');
 
     const toggleTheme = (): void => {
-        applyTheme(isDark.value ? 'light' : 'dark');
+        const nextTheme = isDark.value ? 'light' : 'dark';
+
+        applyTheme(nextTheme);
+
+        router.post(
+            '/theme',
+            {
+                theme: nextTheme,
+            },
+            {
+                preserveScroll: true,
+            },
+        );
     };
 
     return {

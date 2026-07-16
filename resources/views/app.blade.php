@@ -14,7 +14,11 @@
         @routes
         <script>
             (() => {
-                const storedTheme = window.localStorage.getItem('atlas.theme');
+                const cookieTheme = document.cookie
+                    .split('; ')
+                    .find((entry) => entry.startsWith('atlas_theme='))
+                    ?.split('=')[1];
+                const storedTheme = window.localStorage.getItem('atlas.theme') || cookieTheme;
                 const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
                 const theme = storedTheme === 'light' || storedTheme === 'dark' ? storedTheme : (prefersDark ? 'dark' : 'light');
 

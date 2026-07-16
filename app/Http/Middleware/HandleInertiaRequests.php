@@ -6,6 +6,7 @@ namespace App\Http\Middleware;
 
 use App\Modules\Core\Authorization\Application\Public\Contracts\EffectivePermissionChecker;
 use App\Modules\Core\Authorization\Application\Public\DTOs\EffectivePermissionRequest;
+use App\Modules\Core\Settings\Application\Settings\EffectiveSettings;
 use Diglactic\Breadcrumbs\Breadcrumbs;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -38,6 +39,9 @@ final class HandleInertiaRequests extends Middleware
             ],
             'locale' => app()->getLocale(),
             'supportedLocales' => ['pl', 'en'],
+            'preferences' => [
+                'theme' => $this->theme($request),
+            ],
             'navigation' => [
                 'breadcrumbs' => $this->breadcrumbs($request),
             ],
@@ -47,6 +51,30 @@ final class HandleInertiaRequests extends Middleware
                 'messages' => $request->session()->get('flash.messages', []),
             ],
         ];
+    }
+
+    private function theme(Request $request): string
+    {
+        $userId = $request->user()?->getAuthIdentifier();
+        $teamPublicId = $request->hasSession() ? $request->session()->get('active_team_public_id') : null;
+        $teamId = null;
+
+        if (is_string($teamPublicId)) {
+            $teamId = DB::table('teams')
+                ->where('public_id', $teamPublicId)
+                ->value('id');
+        }
+
+        $guestTheme = $request->cookie('atlas_theme');
+
+        /** @var EffectiveSettings $settings */
+        $settings = app(EffectiveSettings::class);
+
+        return $settings->theme(
+            userId: is_int($userId) ? $userId : null,
+            teamId: is_int($teamId) ? $teamId : null,
+            guestTheme: is_string($guestTheme) ? $guestTheme : null,
+        );
     }
 
     /**

@@ -49,7 +49,7 @@ final readonly class EffectiveSettings
         return is_string($defaultLocale) ? $defaultLocale : 'pl';
     }
 
-    public function theme(?int $userId = null, ?int $teamId = null): string
+    public function theme(?int $userId = null, ?int $teamId = null, ?string $guestTheme = null): string
     {
         if ($userId !== null) {
             $userTheme = $this->store->getUser($userId, UserSettingKey::Theme);
@@ -67,6 +67,10 @@ final readonly class EffectiveSettings
             }
         }
 
+        if ($guestTheme === 'light' || $guestTheme === 'dark') {
+            return $guestTheme;
+        }
+
         $globalTheme = $this->store->getGlobal(GlobalSettingKey::DefaultTheme);
 
         if (is_string($globalTheme)) {
@@ -81,5 +85,10 @@ final readonly class EffectiveSettings
     public function setUserLocale(int $userId, string $locale): void
     {
         $this->store->putUser($userId, UserSettingKey::UiLocale, $locale);
+    }
+
+    public function setUserTheme(int $userId, string $theme): void
+    {
+        $this->store->putUser($userId, UserSettingKey::Theme, $theme);
     }
 }

@@ -26,6 +26,7 @@ final class FrontendShellTest extends TestCase
                 fn (AssertableInertia $page) => $page
                     ->component('Auth/Login')
                     ->where('locale', 'pl')
+                    ->where('preferences.theme', 'light')
                     ->where('auth.user', null),
             );
     }
