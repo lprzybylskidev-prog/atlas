@@ -82,3 +82,8 @@ Breadcrumbs::for('admin.authorization.permissions.index', function (Generator $b
     $breadcrumbs->push(__('breadcrumbs.admin'));
     $breadcrumbs->push('Permissions');
 });
+
+Breadcrumbs::for('admin.audit.index', function (Generator $breadcrumbs): void {
+    $breadcrumbs->push(__('breadcrumbs.admin'));
+    $breadcrumbs->push('Audit');
+});

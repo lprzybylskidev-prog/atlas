@@ -6,6 +6,8 @@ The system is designed as a modular monolith with strict module boundaries, type
 
 The current roadmap begins with the technical and operational foundation required before the debt collection business modules are implemented. Atlas is the final product and is developed continuously as one system.
 
+The current foundation includes a Core Audit module with append-only application and security audit records plus a read-only Admin audit browser. Earlier security-audit producers now write through this shared audit foundation instead of a separate legacy table.
+
 ## Core principles
 
 - **Explicit over magic**

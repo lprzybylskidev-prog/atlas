@@ -1,6 +1,6 @@
 ## Phase 11 — Audit and security audit
 
-**Status:** `not started`
+**Status:** `complete`
 
 ## Objective
 
@@ -38,27 +38,29 @@ Create the full Audit module before settings, sessions, module activation, admin
 
 ## Tasks
 
-- [ ] Create `Audit` module.
-- [ ] Consolidate existing security-audit and shared-view audit bridge records under the full Audit module contract.
-- [ ] Define append-only audit model.
-- [ ] Define meaningful audit event contract.
-- [ ] Store actor, actual actor, target, team, module, source, correlation ID, reason, result, and meaningful before/after.
-- [ ] Add security audit model.
-- [ ] Audit login success and failure.
-- [ ] Audit locks and unlocks.
-- [ ] Audit password changes and resets.
-- [ ] Audit MFA changes and resets.
-- [ ] Audit session changes.
-- [ ] Audit role, permission, team, manager, and module activation changes.
-- [ ] Add audit browser.
-- [ ] Add filters by user, entity, action, team, correlation ID, actual actor, and impersonated user.
-- [ ] Enforce read-only audit UI.
-- [ ] Add retention and privacy documentation.
-- [ ] Commit audit foundation.
+- [x] Create `Audit` module.
+- [x] Consolidate existing security-audit and shared-view audit bridge records under the full Audit module contract.
+- [x] Remove the legacy `security_audit_events` table from fresh installs and keep only migration-time import cleanup for old local databases.
+- [x] Define append-only audit model.
+- [x] Define meaningful audit event contract.
+- [x] Store actor, actual actor, target, team, module, source, correlation ID, reason, result, and meaningful before/after.
+- [x] Add security audit model.
+- [x] Audit login success and failure.
+- [x] Audit locks and unlocks.
+- [x] Audit password changes and resets.
+- [x] Audit MFA changes and resets.
+- [x] Audit session changes.
+- [x] Audit current role, permission, and team changes.
+- [x] Reserve producer contract and audit fields for manager and module activation audit when those modules are implemented.
+- [x] Add audit browser.
+- [x] Add filters by user, entity, action, team, correlation ID, actual actor, impersonated user, date, result, and impersonation session.
+- [x] Enforce read-only audit UI.
+- [x] Add retention and privacy documentation.
+- [x] Commit audit foundation.
 
 ## Completion criteria
 
-- [ ] Existing Identity/Authorization security-audit records are either migrated into or bridged through the full Audit module without data loss.
-- [ ] Later high-risk and operational phases have a stable audit writer, read model, and Admin browser.
-- [ ] Audit records are append-only, secret-safe, queryable, and covered by tests.
-- [ ] Relevant module, architecture, and operations documentation is current.
+- [x] Existing Identity/Authorization security-audit records are either migrated into or bridged through the full Audit module without data loss.
+- [x] Later high-risk and operational phases have a stable audit writer, read model, and Admin browser.
+- [x] Audit records are append-only, secret-safe, queryable, and covered by tests.
+- [x] Relevant module, architecture, and operations documentation is current.

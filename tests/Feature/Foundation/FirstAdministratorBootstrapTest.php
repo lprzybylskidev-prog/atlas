@@ -49,7 +49,7 @@ final class FirstAdministratorBootstrapTest extends TestCase
         self::assertDatabaseHas('password_reset_tokens', [
             'email' => 'first.admin@example.test',
         ]);
-        self::assertDatabaseHas('security_audit_events', [
+        self::assertDatabaseHas('audit_events', [
             'module' => 'authorization',
             'action' => 'authorization.first_administrator_bootstrap',
             'target_public_id' => $user->public_id,

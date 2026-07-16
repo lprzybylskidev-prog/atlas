@@ -11,13 +11,13 @@ use App\Modules\Core\Identity\Application\Public\Contracts\SecurityAuditRecorder
 use App\Modules\Core\Identity\Application\Public\Contracts\UserCredentialAccountDirectory;
 use App\Modules\Core\Identity\Application\Public\Contracts\UserCredentialAccountStatusManager;
 use App\Modules\Core\Identity\Application\Public\Contracts\UserCredentialAccountStore;
+use App\Modules\Core\Identity\Application\Public\DTOs\SecurityAuditEvent;
 use App\Modules\Core\Identity\Application\RateLimiting\RateLimitKeyBuilder;
 use App\Modules\Core\Identity\Application\RateLimiting\RateLimitPolicyCatalog;
 use App\Modules\Core\Identity\Application\RateLimiting\RateLimitPolicyRegistrar;
 use App\Modules\Core\Identity\Application\WebAuthn\Contracts\WebAuthnCredentialRepository;
 use App\Modules\Core\Identity\Infrastructure\Notifications\UserSuspiciousLoginNotifier;
 use App\Modules\Core\Identity\Infrastructure\Persistence\DatabasePasswordHistoryRepository;
-use App\Modules\Core\Identity\Infrastructure\Persistence\DatabaseSecurityAuditRecorder;
 use App\Modules\Core\Identity\Infrastructure\Persistence\DatabaseWebAuthnCredentialRepository;
 use App\Modules\Core\Identity\Infrastructure\Persistence\EloquentUserCredentialAccountDirectory;
 use App\Modules\Core\Identity\Infrastructure\Persistence\EloquentUserCredentialAccountStatusManager;
@@ -27,7 +27,9 @@ use App\Modules\Core\Identity\Presentation\Fortify\Actions\CreateNewUser;
 use App\Modules\Core\Identity\Presentation\Fortify\Actions\ResetUserPassword;
 use App\Modules\Core\Identity\Presentation\Fortify\Actions\UpdateUserPassword;
 use App\Modules\Core\Identity\Presentation\Fortify\Actions\UpdateUserProfileInformation;
+use Illuminate\Auth\Events\Logout;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\ServiceProvider;
 use Laravel\Fortify\Actions\RedirectIfTwoFactorAuthenticatable;
@@ -38,7 +40,6 @@ class FortifyServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->bind(PasswordHistoryRepository::class, DatabasePasswordHistoryRepository::class);
-        $this->app->bind(SecurityAuditRecorder::class, DatabaseSecurityAuditRecorder::class);
         $this->app->bind(SuspiciousLoginNotifier::class, UserSuspiciousLoginNotifier::class);
         $this->app->bind(WebAuthnCredentialRepository::class, DatabaseWebAuthnCredentialRepository::class);
         $this->app->bind(UserCredentialAccountDirectory::class, EloquentUserCredentialAccountDirectory::class);
@@ -57,13 +58,27 @@ class FortifyServiceProvider extends ServiceProvider
         Fortify::redirectUserForTwoFactorAuthenticationUsing(RedirectIfTwoFactorAuthenticatable::class);
 
         $loginAttempts = $this->app->make(LoginAttemptProtection::class);
+        $audit = $this->app->make(SecurityAuditRecorder::class);
 
-        Fortify::authenticateUsing(function (Request $request) use ($loginAttempts): ?User {
+        Fortify::authenticateUsing(function (Request $request) use ($loginAttempts, $audit): ?User {
             $user = User::query()
                 ->where('email', $request->string(Fortify::username())->lower()->toString())
                 ->first();
 
             if (! $user instanceof User || ! $user->canAuthenticate()) {
+                $audit->record(new SecurityAuditEvent(
+                    module: 'identity',
+                    action: 'auth.login_failure',
+                    result: 'rejected',
+                    source: 'ui',
+                    actorPublicId: null,
+                    targetPublicId: $user instanceof User ? (string) $user->public_id : null,
+                    reason: null,
+                    metadata: [
+                        'reason' => $user instanceof User ? 'not_authenticatable' : 'invalid_credentials',
+                    ],
+                ));
+
                 return null;
             }
 
@@ -78,6 +93,20 @@ class FortifyServiceProvider extends ServiceProvider
             $loginAttempts->recordSuccessfulAttempt($user);
 
             return $user;
+        });
+
+        Event::listen(Logout::class, function (Logout $event) use ($audit): void {
+            $userPublicId = data_get($event->user, 'public_id');
+
+            $audit->record(new SecurityAuditEvent(
+                module: 'identity',
+                action: 'auth.logout',
+                result: 'succeeded',
+                source: 'ui',
+                actorPublicId: is_string($userPublicId) ? $userPublicId : null,
+                targetPublicId: is_string($userPublicId) ? $userPublicId : null,
+                reason: null,
+            ));
         });
     }
 

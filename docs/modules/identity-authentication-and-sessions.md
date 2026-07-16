@@ -97,7 +97,7 @@ Policy keys may combine IP, user, active team, API client, or an explicit combin
 
 Persistent login protection locks an account after 10 failed password attempts. Lock durations escalate according to `atlas.security.login_lock.durations_seconds`; defaults are 15 minutes, 30 minutes, and 60 minutes, with later locks using the last configured duration. A successful login resets `failed_login_attempts` and clears `login_locked_until`. When a persistent login lock is created, Atlas sends the user a suspicious-login notification.
 
-Administrative login unlock is exposed through `App\Modules\Core\Users\Application\UnlockUserAccount`. It requires an actor, target account, and reason, clears `failed_login_attempts` and `login_locked_until`, and records a `security_audit_events` entry with action `user.login_unlock`. Rejected unlock attempts for missing target accounts are audited as `rejected`.
+Administrative login unlock is exposed through `App\Modules\Core\Users\Application\UnlockUserAccount`. It requires an actor, target account, and reason, clears `failed_login_attempts` and `login_locked_until`, and records an `audit_events` entry with action `user.login_unlock`. Rejected unlock attempts for missing target accounts are audited as `rejected`.
 
 ### MFA
 
@@ -122,7 +122,7 @@ MFA may be required:
 - per permission;
 - per sensitive operation.
 
-MFA reset is a separate audited administrative flow exposed through `App\Modules\Core\Users\Application\ResetUserMfa`. It requires an actor, target account, and reason, clears TOTP secret, recovery codes, and confirmation timestamp, and records a `security_audit_events` entry with action `user.mfa_reset`.
+MFA reset is a separate audited administrative flow exposed through `App\Modules\Core\Users\Application\ResetUserMfa`. It requires an actor, target account, and reason, clears TOTP secret, recovery codes, and confirmation timestamp, and records an `audit_events` entry with action `user.mfa_reset`.
 
 ### Sessions
 

@@ -5,12 +5,15 @@ declare(strict_types=1);
 namespace App\Modules\Core\Identity\Application\LoginProtection;
 
 use App\Modules\Core\Identity\Application\Contracts\SuspiciousLoginNotifier;
+use App\Modules\Core\Identity\Application\Public\Contracts\SecurityAuditRecorder;
+use App\Modules\Core\Identity\Application\Public\DTOs\SecurityAuditEvent;
 use App\Modules\Core\Identity\Infrastructure\Persistence\User;
 
 final class LoginAttemptProtection
 {
     public function __construct(
         private readonly SuspiciousLoginNotifier $notifier,
+        private readonly SecurityAuditRecorder $audit,
     ) {}
 
     public function canAttempt(User $user): bool
@@ -41,7 +44,34 @@ final class LoginAttemptProtection
 
         if ($lockedUntil !== null) {
             $this->notifier->accountLocked($user, $lockedUntil);
+            $this->audit->record(new SecurityAuditEvent(
+                module: 'identity',
+                action: 'auth.login_lock',
+                result: 'succeeded',
+                source: 'ui',
+                actorPublicId: null,
+                targetPublicId: (string) $user->public_id,
+                reason: null,
+                metadata: [
+                    'locked_until' => $lockedUntil->toISOString(),
+                    'lock_count' => $lockCount,
+                ],
+            ));
         }
+
+        $this->audit->record(new SecurityAuditEvent(
+            module: 'identity',
+            action: 'auth.login_failure',
+            result: 'rejected',
+            source: 'ui',
+            actorPublicId: null,
+            targetPublicId: (string) $user->public_id,
+            reason: null,
+            metadata: [
+                'failed_attempts' => $failedAttempts,
+                'locked' => $lockedUntil !== null,
+            ],
+        ));
 
         return new LoginAttemptResult(
             failedAttempts: $failedAttempts,
@@ -56,6 +86,16 @@ final class LoginAttemptProtection
             'failed_login_attempts' => 0,
             'login_locked_until' => null,
         ])->save();
+
+        $this->audit->record(new SecurityAuditEvent(
+            module: 'identity',
+            action: 'auth.login_success',
+            result: 'succeeded',
+            source: 'ui',
+            actorPublicId: (string) $user->public_id,
+            targetPublicId: (string) $user->public_id,
+            reason: null,
+        ));
     }
 
     public function unlock(User $user): void

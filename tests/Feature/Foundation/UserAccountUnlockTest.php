@@ -39,7 +39,7 @@ final class UserAccountUnlockTest extends TestCase
         self::assertNull($target->login_locked_until);
         self::assertSame(2, $target->login_lock_count);
 
-        $this->assertDatabaseHas('security_audit_events', [
+        $this->assertDatabaseHas('audit_events', [
             'module' => 'identity',
             'action' => 'user.login_unlock',
             'result' => 'succeeded',
@@ -78,7 +78,7 @@ final class UserAccountUnlockTest extends TestCase
             // Expected: the failed administrative operation is still audited.
         }
 
-        $this->assertDatabaseHas('security_audit_events', [
+        $this->assertDatabaseHas('audit_events', [
             'action' => 'user.login_unlock',
             'result' => 'rejected',
             'actor_public_id' => $actor->public_id,

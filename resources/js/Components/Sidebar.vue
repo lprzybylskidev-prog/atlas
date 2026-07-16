@@ -1,6 +1,15 @@
 <script setup lang="ts">
 import { Link, usePage } from '@inertiajs/vue3';
-import { IconChevronDown, IconGauge, IconKey, IconPackages, IconShieldCheck, IconUserPlus, IconUsersGroup } from '@tabler/icons-vue';
+import {
+    IconChevronDown,
+    IconClipboardList,
+    IconGauge,
+    IconKey,
+    IconPackages,
+    IconShieldCheck,
+    IconUserPlus,
+    IconUsersGroup,
+} from '@tabler/icons-vue';
 import type { FunctionalComponent } from 'vue';
 import { computed } from 'vue';
 
@@ -100,6 +109,21 @@ const groups = computed<NavigationGroup[]>(() => {
                     icon: IconUsersGroup,
                     active: props.currentPath === '/admin/teams',
                     visible: canSeeAdminRoute('admin.teams.index'),
+                },
+            ].filter((item) => item.visible !== false),
+        },
+        {
+            key: 'oversight',
+            label: t('navigation.group.oversight'),
+            icon: IconClipboardList,
+            items: [
+                {
+                    key: 'oversight.audit',
+                    label: t('navigation.audit'),
+                    href: '/admin/audit',
+                    icon: IconClipboardList,
+                    active: props.currentPath === '/admin/audit',
+                    visible: canSeeAdminRoute('admin.audit.index'),
                 },
             ].filter((item) => item.visible !== false),
         },

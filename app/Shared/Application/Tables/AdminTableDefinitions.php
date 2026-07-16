@@ -16,6 +16,8 @@ final class AdminTableDefinitions
 
     public const PERMISSIONS = 'admin.authorization.permissions';
 
+    public const AUDIT = 'admin.audit';
+
     public static function get(string $key): TableDefinition
     {
         return match ($key) {
@@ -84,6 +86,28 @@ final class AdminTableDefinitions
                 new TableColumn('createdAt', defaultVisible: false),
                 new TableColumn('updatedAt', defaultVisible: false),
             ], 'name'),
+            self::AUDIT => new TableDefinition($key, [
+                new TableColumn('publicId'),
+                new TableColumn('id', searchable: false, defaultVisible: false),
+                new TableColumn('occurredAt'),
+                new TableColumn('module'),
+                new TableColumn('action'),
+                new TableColumn('result'),
+                new TableColumn('source'),
+                new TableColumn('actorPublicId'),
+                new TableColumn('actualActorPublicId', defaultVisible: false),
+                new TableColumn('impersonatedUserPublicId', defaultVisible: false),
+                new TableColumn('impersonationSessionId', defaultVisible: false),
+                new TableColumn('targetType'),
+                new TableColumn('targetPublicId'),
+                new TableColumn('aggregateType', defaultVisible: false),
+                new TableColumn('aggregatePublicId', defaultVisible: false),
+                new TableColumn('teamPublicId'),
+                new TableColumn('correlationId'),
+                new TableColumn('reason', defaultVisible: false),
+                new TableColumn('security', searchable: false),
+                new TableColumn('metadata', defaultVisible: false),
+            ], 'occurredAt', 'desc'),
             default => abort(404),
         };
     }
@@ -93,6 +117,6 @@ final class AdminTableDefinitions
      */
     public static function keys(): array
     {
-        return [self::USERS, self::TEAMS, self::ROLES, self::PACKAGES, self::PERMISSIONS];
+        return [self::USERS, self::TEAMS, self::ROLES, self::PACKAGES, self::PERMISSIONS, self::AUDIT];
     }
 }

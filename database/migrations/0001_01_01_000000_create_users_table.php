@@ -45,24 +45,6 @@ return new class extends Migration
             $table->index(['user_id', 'created_at']);
         });
 
-        Schema::create('security_audit_events', function (Blueprint $table) {
-            $table->id();
-            $table->ulid('public_id')->unique();
-            $table->timestampTz('occurred_at');
-            $table->string('module');
-            $table->string('action');
-            $table->string('result');
-            $table->string('source');
-            $table->ulid('actor_public_id')->nullable();
-            $table->ulid('target_public_id')->nullable();
-            $table->text('reason')->nullable();
-            $table->jsonb('metadata')->nullable();
-
-            $table->index(['module', 'action']);
-            $table->index(['target_public_id', 'occurred_at']);
-            $table->index(['actor_public_id', 'occurred_at']);
-        });
-
         Schema::create('user_webauthn_credentials', function (Blueprint $table) {
             $table->id();
             $table->ulid('public_id')->unique();
@@ -101,7 +83,6 @@ return new class extends Migration
     {
         Schema::dropIfExists('sessions');
         Schema::dropIfExists('user_webauthn_credentials');
-        Schema::dropIfExists('security_audit_events');
         Schema::dropIfExists('user_password_histories');
         Schema::dropIfExists('password_reset_tokens');
         Schema::dropIfExists('users');

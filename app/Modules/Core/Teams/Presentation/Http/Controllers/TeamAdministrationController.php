@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Modules\Core\Teams\Presentation\Http\Controllers;
 
+use App\Modules\Core\Audit\Application\Public\Contracts\AuditRecorder;
+use App\Modules\Core\Audit\Application\Public\DTOs\AuditEvent;
 use App\Modules\Core\Teams\Infrastructure\Persistence\Team;
 use App\Shared\Application\Tables\AdminTableDefinitions;
 use App\Shared\Application\Tables\ArrayTableProcessor;
@@ -22,6 +24,7 @@ final class TeamAdministrationController
         private readonly ArrayTableProcessor $tables,
         private readonly TableSavedViewService $views,
         private readonly TableRequestContext $context,
+        private readonly AuditRecorder $audit,
     ) {}
 
     public function __invoke(Request $request): Response
@@ -77,8 +80,13 @@ final class TeamAdministrationController
             'name' => ['required', 'string', 'max:255', 'unique:teams,name'],
         ]);
 
-        Team::query()->create([
+        $record = Team::query()->create([
             'name' => is_array($validated) && is_string($validated['name'] ?? null) ? $validated['name'] : '',
+        ]);
+
+        $this->recordAudit($request, 'team.created', 'succeeded', 'team', (string) $record->public_id, [], [
+            'name' => $record->name,
+            'isActive' => $record->is_active,
         ]);
 
         return redirect()->route('admin.teams.index')->with('success', 'Team was created.');
@@ -90,35 +98,116 @@ final class TeamAdministrationController
             'name' => ['required', 'string', 'max:255', 'unique:teams,name,'.$team.',public_id'],
         ]);
 
-        Team::query()
-            ->where('public_id', $team)
-            ->update(['name' => is_array($validated) && is_string($validated['name'] ?? null) ? $validated['name'] : '']);
+        $record = Team::query()->where('public_id', $team)->first();
+
+        if (! $record instanceof Team) {
+            abort(404);
+        }
+
+        $before = [
+            'name' => $record->name,
+            'isActive' => $record->is_active,
+        ];
+        $record->forceFill([
+            'name' => is_array($validated) && is_string($validated['name'] ?? null) ? $validated['name'] : '',
+        ])->save();
+
+        $this->recordAudit($request, 'team.updated', 'succeeded', 'team', (string) $record->public_id, $before, [
+            'name' => $record->name,
+            'isActive' => $record->is_active,
+        ]);
 
         return redirect()->route('admin.teams.edit', ['team' => $team])->with('success', 'Team was updated.');
     }
 
-    public function activate(string $team): RedirectResponse
+    public function activate(Request $request, string $team): RedirectResponse
     {
-        Team::query()->where('public_id', $team)->update(['is_active' => true]);
+        $this->changeActivation($request, $team, true);
 
         return redirect()->route('admin.teams.index')->with('success', 'Team was activated.');
     }
 
-    public function deactivate(string $team): RedirectResponse
+    public function deactivate(Request $request, string $team): RedirectResponse
     {
-        Team::query()->where('public_id', $team)->update(['is_active' => false]);
+        $this->changeActivation($request, $team, false);
 
         return redirect()->route('admin.teams.index')->with('success', 'Team was deactivated.');
     }
 
-    public function destroy(string $team): RedirectResponse
+    public function destroy(Request $request, string $team): RedirectResponse
     {
         $record = Team::query()->where('public_id', $team)->first();
 
+        $deleted = false;
+
         if ($record instanceof Team && ! DB::table('team_user_assignments')->where('team_id', $record->id)->exists()) {
+            $before = [
+                'name' => $record->name,
+                'isActive' => $record->is_active,
+            ];
             $record->delete();
+            $deleted = true;
+
+            $this->recordAudit($request, 'team.deleted', 'succeeded', 'team', $team, $before, []);
+        }
+
+        if (! $deleted) {
+            $this->recordAudit($request, 'team.delete_rejected', 'rejected', 'team', $team, [], []);
         }
 
         return redirect()->route('admin.teams.index')->with('success', 'Team delete was attempted.');
+    }
+
+    private function changeActivation(Request $request, string $team, bool $active): void
+    {
+        $record = Team::query()->where('public_id', $team)->first();
+
+        if (! $record instanceof Team) {
+            abort(404);
+        }
+
+        $before = [
+            'name' => $record->name,
+            'isActive' => $record->is_active,
+        ];
+
+        $record->forceFill(['is_active' => $active])->save();
+
+        $this->recordAudit($request, $active ? 'team.activated' : 'team.deactivated', 'succeeded', 'team', $team, $before, [
+            'name' => $record->name,
+            'isActive' => $record->is_active,
+        ]);
+    }
+
+    /**
+     * @param  array<string, mixed>  $before
+     * @param  array<string, mixed>  $after
+     */
+    private function recordAudit(
+        Request $request,
+        string $action,
+        string $result,
+        string $targetType,
+        string $targetPublicId,
+        array $before,
+        array $after,
+    ): void {
+        $actorPublicId = data_get($request->user(), 'public_id');
+        $teamPublicId = $request->hasSession() ? $request->session()->get('active_team_public_id') : null;
+
+        $this->audit->record(new AuditEvent(
+            module: 'teams',
+            action: $action,
+            result: $result,
+            source: 'admin',
+            actorPublicId: is_string($actorPublicId) ? $actorPublicId : null,
+            targetType: $targetType,
+            targetPublicId: $targetPublicId,
+            teamPublicId: is_string($teamPublicId) ? $teamPublicId : null,
+            before: $before,
+            after: $after,
+            security: true,
+            securityCategory: 'authorization',
+        ));
     }
 }

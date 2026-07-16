@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Modules\Core\Identity\Presentation\Fortify\Actions;
 
 use App\Modules\Core\Identity\Application\PasswordHistory;
+use App\Modules\Core\Identity\Application\Public\Contracts\SecurityAuditRecorder;
+use App\Modules\Core\Identity\Application\Public\DTOs\SecurityAuditEvent;
 use App\Modules\Core\Identity\Infrastructure\Persistence\User;
 use App\Modules\Core\Identity\Presentation\Fortify\Concerns\PasswordValidationRules;
 use Illuminate\Support\Facades\Hash;
@@ -18,6 +20,7 @@ class ResetUserPassword implements ResetsUserPasswords
 
     public function __construct(
         private readonly PasswordHistory $passwordHistory,
+        private readonly SecurityAuditRecorder $audit,
     ) {}
 
     /**
@@ -50,5 +53,15 @@ class ResetUserPassword implements ResetsUserPasswords
         }
 
         $this->passwordHistory->recordNewPassword($userId, $passwordHash);
+
+        $this->audit->record(new SecurityAuditEvent(
+            module: 'identity',
+            action: $hadSetFirstPassword ? 'user.password_reset' : 'user.first_password_set',
+            result: 'succeeded',
+            source: 'ui',
+            actorPublicId: (string) $user->public_id,
+            targetPublicId: (string) $user->public_id,
+            reason: null,
+        ));
     }
 }

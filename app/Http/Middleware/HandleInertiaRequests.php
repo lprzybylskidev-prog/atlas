@@ -78,6 +78,7 @@ final class HandleInertiaRequests extends Middleware
             'admin.authorization.roles.index',
             'admin.authorization.packages.index',
             'admin.authorization.permissions.index',
+            'admin.audit.index',
         ];
         $available = [];
 

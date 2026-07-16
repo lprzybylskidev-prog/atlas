@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Modules\Core\Audit\Presentation\Http\Controllers\AuditBrowserController;
 use App\Modules\Core\Authorization\Presentation\Http\Controllers\CreateOnboardingPackageController;
 use App\Modules\Core\Authorization\Presentation\Http\Controllers\CreateRoleController;
 use App\Modules\Core\Authorization\Presentation\Http\Controllers\DestroyOnboardingPackageController;
@@ -61,6 +62,7 @@ Route::middleware(['auth', 'password.confirm', 'route.permission'])->group(funct
     Route::patch('/admin/authorization/packages/{package}', UpdateOnboardingPackageController::class)->name('admin.authorization.packages.update');
     Route::delete('/admin/authorization/packages/{package}', DestroyOnboardingPackageController::class)->name('admin.authorization.packages.destroy');
     Route::get('/admin/authorization/permissions', PermissionAdministrationController::class)->name('admin.authorization.permissions.index');
+    Route::get('/admin/audit', AuditBrowserController::class)->name('admin.audit.index');
     Route::post('/admin/table-views', [TableSavedViewController::class, 'store'])->name('admin.table-views.store');
     Route::patch('/admin/table-views/{view}', [TableSavedViewController::class, 'update'])->name('admin.table-views.update');
     Route::delete('/admin/table-views/{view}', [TableSavedViewController::class, 'destroy'])->name('admin.table-views.destroy');

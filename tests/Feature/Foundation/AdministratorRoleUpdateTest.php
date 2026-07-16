@@ -44,7 +44,7 @@ final class AdministratorRoleUpdateTest extends TestCase
 
         self::assertSame(Command::SUCCESS, $appliedExitCode);
         self::assertTrue($role->fresh()?->hasPermissionTo(CoreAuthorizationPermissionCatalog::ADMIN_SYSTEM_STATUS));
-        self::assertDatabaseHas('security_audit_events', [
+        self::assertDatabaseHas('audit_events', [
             'module' => 'authorization',
             'action' => 'authorization.administrator_role_update',
             'result' => 'succeeded',

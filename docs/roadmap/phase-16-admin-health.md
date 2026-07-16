@@ -54,6 +54,7 @@ Complete operational health, readiness, logging, alerts, queues, diagnostics, an
 - Keep Laravel Telescope and Laravel Debugbar as development-only diagnostics; they must remain disabled for tests, E2E, production, and untrusted environments.
 - Add Laravel Pulse as the later internal performance dashboard when Atlas has real operational traffic from workflows, queues, imports, exports, reports, and integrations.
 - Health, readiness, scheduler checks, queue checks, backup checks, integration status, and Admin System Status are the baseline operational visibility.
+- The Admin operational area includes an Audit browser entry that reuses the Phase 11 read-only audit browser instead of creating a separate audit surface.
 - Support configurable alert delivery such as email and webhook.
 - Baseline alerts cover readiness failures, repeated failed jobs, scheduler heartbeat failure, backup failure, persistent integration failure, and critical Sentry exceptions.
 - Alert deduplication and throttling prevent repeated notification storms.
@@ -82,6 +83,7 @@ Complete operational health, readiness, logging, alerts, queues, diagnostics, an
 - [ ] Implement configurable email/webhook operational alert channels.
 - [ ] Add deduplicated/throttled alerts for readiness, repeated failed jobs, scheduler, backup, integration, and critical Sentry failures.
 - [ ] Build a curated Admin application-log browser without arbitrary filesystem access.
+- [ ] Include the read-only Audit browser in the Admin operations navigation and operational review flow.
 - [ ] Document that Prometheus, OpenTelemetry, and distributed tracing are outside the current Atlas scope.
 - [ ] Create `Health` module.
 - [ ] Add liveness endpoint.

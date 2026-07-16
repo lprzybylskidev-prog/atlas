@@ -52,7 +52,7 @@ Use an internal audit system.
 
 Do not use `owen-it/laravel-auditing`.
 
-Identity and Authorization currently record security-sensitive events through the existing audit bridge used during the foundation phases. Phase 11 consolidates those records and any Phase 10 shared-view audit events into the full Audit module without changing producer contracts.
+The Core Audit module owns audit persistence and read models. Existing Identity, Authorization, and Phase 10 shared-view producers may continue using the earlier `SecurityAuditRecorder` producer contract, but that contract is now implemented by the Audit module and writes into `audit_events` plus `audit_security_events`.
 
 Audit meaningful domain and application events, not every Eloquent timestamp update.
 
@@ -72,7 +72,7 @@ Audit records should include where relevant:
 - reason;
 - result.
 
-Audit is append-only and not normally editable.
+Audit is append-only and not normally editable. PostgreSQL triggers reject ordinary updates and deletes on audit tables.
 
 Maintain a separate security audit for authentication, impersonation, sessions, permissions, MFA, locks, and suspicious activity.
 

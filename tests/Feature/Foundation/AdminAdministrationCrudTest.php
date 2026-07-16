@@ -181,7 +181,7 @@ final class AdminAdministrationCrudTest extends TestCase
             'type' => 'team',
             'team_id' => $activeTeam->id,
         ]);
-        self::assertDatabaseHas('security_audit_events', [
+        self::assertDatabaseHas('audit_events', [
             'module' => 'shared',
             'action' => 'table_saved_view.created',
             'result' => 'success',

@@ -65,8 +65,6 @@ final class CoreAuthorizationPermissionCatalog implements ModulePermissionContri
 
     public const ADMINISTRATOR_ROLE_UPDATE = 'authorization.administrator-role.update';
 
-    public const AUDIT_VIEW = 'audit.security.view';
-
     public const SETTINGS_VIEW = 'settings.view';
 
     public const SETTINGS_UPDATE = 'settings.update';
@@ -120,7 +118,6 @@ final class CoreAuthorizationPermissionCatalog implements ModulePermissionContri
             new ModulePermissionDefinition(self::PERMISSIONS_ASSIGN, 'Assign permissions.'),
             new ModulePermissionDefinition(self::ADMINISTRATOR_ROLE_DIFF, 'Preview administrator role permission updates.'),
             new ModulePermissionDefinition(self::ADMINISTRATOR_ROLE_UPDATE, 'Apply administrator role permission updates.'),
-            new ModulePermissionDefinition(self::AUDIT_VIEW, 'View security audit.'),
             new ModulePermissionDefinition(self::SETTINGS_VIEW, 'View settings.'),
             new ModulePermissionDefinition(self::SETTINGS_UPDATE, 'Update settings.'),
             new ModulePermissionDefinition(self::MODULE_ACTIVATION_VIEW, 'View module activation.'),

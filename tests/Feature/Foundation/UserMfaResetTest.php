@@ -38,7 +38,7 @@ final class UserMfaResetTest extends TestCase
         self::assertNull($target->two_factor_recovery_codes);
         self::assertNull($target->two_factor_confirmed_at);
 
-        $this->assertDatabaseHas('security_audit_events', [
+        $this->assertDatabaseHas('audit_events', [
             'module' => 'identity',
             'action' => 'user.mfa_reset',
             'result' => 'succeeded',

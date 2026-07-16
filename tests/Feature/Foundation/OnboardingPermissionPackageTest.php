@@ -92,7 +92,7 @@ final class OnboardingPermissionPackageTest extends TestCase
             'team_id' => $team->id,
             'package_name' => 'collections.team_leader',
         ]);
-        self::assertDatabaseHas('security_audit_events', [
+        self::assertDatabaseHas('audit_events', [
             'action' => 'authorization.user_onboarding_package_applied',
             'target_public_id' => $user->public_id,
         ]);
@@ -132,7 +132,7 @@ final class OnboardingPermissionPackageTest extends TestCase
             'team_id' => $team->id,
             'package_name' => 'collections.team_leader',
         ]);
-        self::assertDatabaseHas('security_audit_events', [
+        self::assertDatabaseHas('audit_events', [
             'action' => 'authorization.user_onboarding_package_applied',
             'target_public_id' => $created->publicId,
         ]);

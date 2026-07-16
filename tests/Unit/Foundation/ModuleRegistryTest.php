@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Foundation;
 
+use App\Modules\Core\Audit\AuditModule;
 use App\Modules\Core\Authorization\AuthorizationModule;
 use App\Modules\Core\Identity\IdentityModule;
 use App\Modules\Core\Teams\TeamsModule;
@@ -90,6 +91,7 @@ final class ModuleRegistryTest extends TestCase
             AuthorizationModule::class,
             TeamsModule::class,
             UsersModule::class,
+            AuditModule::class,
         ], $configured['deployed']);
 
         foreach ($configured['deployed'] as $moduleClass) {

@@ -37,7 +37,7 @@ Do not replace this index after the initial technical foundation is completed. C
 
 ## Current phase
 
-- Phase: [Phase 11 — Audit and security audit](docs/roadmap/phase-11-audit-security.md)
+- Phase: [Phase 12 — Settings and localization](docs/roadmap/phase-12-settings-localization.md)
 - Status: `not started`
 
 ## Roadmap dependency repair note
@@ -136,7 +136,7 @@ Complete the shared TanStack table and saved-view foundation before future Admin
 
 ### Phase 11 — Audit and security audit
 
-**Status:** `not started`
+**Status:** `complete`
 
 Implement application and security audit trails with immutable context, correlation, querying, retention, and privacy controls before high-risk and operational phases depend on them.
 
