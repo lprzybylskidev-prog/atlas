@@ -35,8 +35,8 @@ Do not replace this index after the initial technical foundation is completed. C
 
 ## Current phase
 
-- Phase: [Phase 7 — Authorization and teams](docs/roadmap/phase-07-authorization-teams.md)
-- Status: `in progress`
+- Phase: [Phase 8 — Sessions and active team](docs/roadmap/phase-08-sessions-active-team.md)
+- Status: `not started`
 
 ## Phase index
 
@@ -98,7 +98,7 @@ Implement identity, login security, password lifecycle, email verification, MFA,
 
 ### Phase 7 — Authorization and teams
 
-**Status:** `in progress`
+**Status:** `complete`
 
 Implement teams, roles, permissions, starter roles, permission catalogs, and the first-administrator bootstrap.
 

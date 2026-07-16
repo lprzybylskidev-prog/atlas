@@ -159,4 +159,4 @@
 - [x] Show a role-versus-current-template diff.
 - [x] Allow Core starter templates without forcing one organizational model.
 - [x] Add development-only demo seeders for example teams and users after real team and authorization tables exist.
-- [ ] Commit authorization foundation.
+- [x] Commit authorization foundation.
