@@ -22,11 +22,11 @@ use App\Modules\Core\Users\Presentation\Http\Controllers\StoreUserAccountControl
 use App\Modules\Core\Users\Presentation\Http\Controllers\UpdateUserAccountController;
 use App\Modules\Core\Users\Presentation\Http\Controllers\UserAccountActionController;
 use App\Modules\Core\Users\Presentation\Http\Controllers\UserAdministrationController;
+use App\Shared\Presentation\Http\Controllers\AdminSystemStatusController;
 use Illuminate\Support\Facades\Route;
-use Inertia\Inertia;
 
 Route::middleware(['auth', 'password.confirm', 'route.permission'])->group(function (): void {
-    Route::get('/admin', fn () => Inertia::render('Admin/SystemStatus'))->name('admin.system-status');
+    Route::get('/admin', AdminSystemStatusController::class)->name('admin.system-status');
     Route::get('/admin/users', UserAdministrationController::class)->name('admin.users.index');
     Route::get('/admin/users/create', CreateUserAccountController::class)->name('admin.users.create');
     Route::post('/admin/users', StoreUserAccountController::class)->name('admin.users.store');

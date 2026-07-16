@@ -1,5 +1,9 @@
 ## Phase 5 — Modular architecture skeleton
 
+**Historical status:** `complete with follow-up closure moved to Phase 8`
+
+Phase 5 originally kept one visibility e2e item open while waiting for the authorization and team primitives completed in phases 6-7. That work is no longer blocked by a future phase; its closure is now tracked explicitly in [Phase 8 — Foundation completion and roadmap dependency repair](phase-08-foundation-completion.md) so the completed Phase 5 checklist remains historical.
+
 ### Implementation contract
 
 - The repository is one modular monolith divided into `Core`, optional modules, shared cross-cutting capabilities, and `Application`.
@@ -89,7 +93,7 @@
 - A required dependency missing from the deployed registry fails startup/readiness.
 - Define a typed module deactivation-guard contract for unsafe in-flight processes; modules return blockers and supported safe actions without foreign-table inspection.
 - Public Query contracts use framework-independent DTO collections and typed page/cursor results, never Laravel paginator or Eloquent collection types.
-- Define the minimal cross-module deletion/anonymization participation contract now: modules declare affected data, preview impact, execute idempotent deletion/anonymization steps, report blockers, and emit auditable results. Phase 24 builds the full administrative orchestration on this contract.
+- Define the minimal cross-module deletion/anonymization participation contract now: modules declare affected data, preview impact, execute idempotent deletion/anonymization steps, report blockers, and emit auditable results. Phase 25 builds the full administrative orchestration on this contract.
 - Before expanding module, permission, active-team, and UI visibility tests, define the durable testing-environment strategy.
 - PHPUnit, feature tests, and Playwright e2e tests must not mutate the same database or Redis state in parallel.
 - Until isolated databases and Redis logical databases exist for every parallel test lane, stateful test gates run sequentially.

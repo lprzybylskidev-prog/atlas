@@ -71,7 +71,7 @@ This README is living system documentation. It must be expanded and updated as A
 
 ## Roadmap
 
-Atlas is implemented from the ordered roadmap in [`WORKROAD.md`](WORKROAD.md).
+Atlas is implemented from the ordered roadmap in [`WORKROAD.md`](WORKROAD.md). After Phase 7, the future roadmap was reordered to follow implementation dependencies rather than broad functional areas: shared foundations are completed before first use, partial foundations are closed explicitly, and later evolution receives new sequential phases instead of rewriting completed history.
 
 Each roadmap phase has its own file under [`docs/roadmap/`](docs/roadmap/). Phase files contain the binding implementation contract and executable checklist. Completed history is never removed or rewritten.
 
@@ -109,6 +109,8 @@ The planned shared system capabilities include:
 - Users
 - Teams
 - Authorization
+- Shared UI components
+- Shared tables and saved views
 - Manager hierarchy
 - Sessions and active-team context
 - Audit and security audit
@@ -122,6 +124,7 @@ The planned shared system capabilities include:
 - Search
 - Integrations
 - Feature flags
+- Reports, exports, PDF, charts, and print
 - TimeTracking
 
 Debt collection business functionality belongs in `Application` modules and will be added as later roadmap phases. These modules may cover areas such as portfolios, debtors, creditors, claims, cases, payments, settlements, contact history, documents, legal proceedings, enforcement proceedings, reporting, and integrations with external debt collection services. Exact scope is defined only through accepted roadmap decisions.
@@ -164,7 +167,7 @@ The Laravel foundation includes Fortify, Horizon, Scout with Meilisearch, Sentry
 
 The baseline frontend shell is available through Inertia/Vue with strict TypeScript, light and dark themes, responsive auth/application/admin layouts, PL/EN frontend localization with Polish default for regular UI, English-only Admin shell copy, the Atlas logo and favicon, and a local demo reset command documented in [`docs/operations/seeding-and-demo-data.md`](docs/operations/seeding-and-demo-data.md).
 
-The implementation status and first unfinished phase are always shown in [`WORKROAD.md`](WORKROAD.md).
+The implementation status and first unfinished phase are always shown in [`WORKROAD.md`](WORKROAD.md). The current post-Phase-7 focus is foundation completion and roadmap dependency repair before sessions and later shared capabilities continue.
 
 As the project grows, this README must present the current high-level system scope, major modules, supported workflows, setup entry points, and operational expectations.
 

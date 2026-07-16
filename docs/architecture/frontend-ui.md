@@ -119,7 +119,9 @@ The baseline frontend shell includes:
 - mobile navigation drawer;
 - top bar with theme, language, avatar menu, admin entry, and logout controls.
 
-Real team switching, backend authorization, profile routes, notification counts, settings, active sessions, and team-scoped state clearing are implemented in later identity, team, authorization, notifications, sessions, and settings phases.
+Real team switching, profile routes, notification counts, settings, active sessions, and team-scoped state clearing are implemented by the dependency-ordered roadmap phases for settings, sessions/active team, notifications, and module activation. Backend authorization primitives already exist after Phase 7 and are completed for UI visibility coverage in Phase 8.
+
+The authenticated Inertia shell receives `auth.availableAdminRoutes` from the backend. The sidebar and top-bar Admin entry use that list only for visibility; protected Admin routes still require backend middleware authorization and password confirmation.
 
 ### Breadcrumbs
 
@@ -230,7 +232,7 @@ Unavailable optional elements are removed from the coded layout without leaving 
 
 Each element owns its own loading, empty, error, unavailable, and permission-denied state. A failed data provider renders that element's error state and does not prevent the rest of the host view from rendering.
 
-The active-team, permission, and module-gate requirements are metadata only until the later Authorization, Sessions/active-team, and Module Activation phases connect real backend enforcement.
+The active-team, permission, and module-gate requirements are metadata for coded view elements until the dependency-ordered sessions/active-team and module-activation phases connect real backend enforcement. Authorization primitives already exist after Phase 7; Phase 8 closes the first permission/module-gated visibility e2e coverage.
 
 ### Accessibility
 

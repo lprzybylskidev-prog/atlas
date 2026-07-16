@@ -14,6 +14,7 @@ export interface AtlasPageProps {
     };
     auth: {
         user: AtlasUser | null;
+        availableAdminRoutes: string[];
     };
     locale: string;
     supportedLocales: string[];

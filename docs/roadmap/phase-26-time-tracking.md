@@ -1,6 +1,26 @@
-## Phase 23 — Optional TimeTracking module
+## Phase 26 — Optional TimeTracking module
 
-### Implementation contract
+**Status:** `not started`
+
+## Objective
+
+Implement optional TimeTracking only after every known foundation it depends on is complete: sessions, active team, module activation, settings, audit, notifications/realtime, manager hierarchy, Admin mode, reports/exports, privacy, and operational visibility.
+
+## Dependencies
+
+- [Phase 12 — Settings and localization](phase-12-settings-localization.md)
+- [Phase 13 — Sessions and active team](phase-13-sessions-active-team.md)
+- [Phase 14 — Module availability and activation](phase-14-module-activation.md)
+- [Phase 15 — Notifications and realtime foundation](phase-15-notifications-realtime.md)
+- [Phase 16 — Admin operations and health](phase-16-admin-health.md)
+- [Phase 17 — Manager hierarchy](phase-17-manager-hierarchy.md)
+- [Phase 18 — Administrative mode and impersonation](phase-18-admin-impersonation.md)
+- [Phase 23 — Feature flags](phase-23-feature-flags.md)
+- [Phase 24 — Reports, exports, PDF, charts, and print](phase-24-reports-exports-print.md)
+- [Phase 25 — Security, privacy, deletion, and anonymization](phase-25-security-privacy.md)
+- [TimeTracking module documentation](../modules/time-tracking.md)
+
+## Implementation contract
 
 - `TimeTracking` is optional and self-contained.
 - It may be enabled for one user-team assignment and disabled for another.
@@ -154,6 +174,8 @@
 - Reconciliation rejects duplicate, reordered, excessive-gap, expired-session, parallel-work, or clock-anomaly events.
 - Closed-period corrections normally require an eligible head manager. If none exists or an emergency override is required, an administrator with a dedicated permission may act only in Admin mode with fresh high-risk reauthentication, mandatory reason, exact before/after preview, and enhanced audit.
 
+## Tasks
+
 - [ ] Implement logical intervals crossing midnight with exact calendar-day allocation for reports, limits, and settlements.
 - [ ] Implement monotonic client elapsed-time capture and backend-authoritative offline reconciliation.
 - [ ] Reject duplicate, reordered, excessive-gap, expired-session, parallel, and clock-anomaly offline events.
@@ -241,3 +263,10 @@
 - [ ] Add complete tests.
 - [ ] Add module documentation.
 - [ ] Commit TimeTracking module.
+
+## Completion criteria
+
+- [ ] TimeTracking is optional, module-gated, team-aware, audited, reportable, and independent of future HR/payroll modules.
+- [ ] Work, break, Other work, maintenance, inactivity, offline reconciliation, corrections, manager decisions, and closed-period flows are complete.
+- [ ] Reports reuse the shared reporting/export foundation and never treat impersonation simulation as official time.
+- [ ] Complete tests and module documentation are current.

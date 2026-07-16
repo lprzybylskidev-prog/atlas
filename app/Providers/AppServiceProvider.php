@@ -5,10 +5,14 @@ declare(strict_types=1);
 namespace App\Providers;
 
 use App\Shared\Application\Modules\Contracts\ModuleDefinition;
+use App\Shared\Application\Modules\Contracts\ModuleGate;
+use App\Shared\Application\Modules\Contracts\ModuleGateStateProvider;
+use App\Shared\Application\Modules\DefaultModuleGate;
 use App\Shared\Application\Modules\ModuleRegistry;
 use App\Shared\Application\Outbox\Contracts\OutboxConsumerDeduplicator;
 use App\Shared\Application\Outbox\Contracts\OutboxEventRecorder;
 use App\Shared\Application\Outbox\Contracts\OutboxMaintenance;
+use App\Shared\Infrastructure\Modules\RegistryModuleGateStateProvider;
 use App\Shared\Infrastructure\Outbox\DatabaseOutboxConsumerDeduplicator;
 use App\Shared\Infrastructure\Outbox\DatabaseOutboxEventRecorder;
 use App\Shared\Infrastructure\Outbox\DatabaseOutboxMaintenance;
@@ -79,6 +83,9 @@ class AppServiceProvider extends ServiceProvider
 
     private function registerSharedInfrastructure(): void
     {
+        $this->app->bind(ModuleGateStateProvider::class, RegistryModuleGateStateProvider::class);
+        $this->app->bind(ModuleGate::class, DefaultModuleGate::class);
+
         $this->app->bind(OutboxEventRecorder::class, function (): DatabaseOutboxEventRecorder {
             return new DatabaseOutboxEventRecorder($this->app->make(ConnectionInterface::class));
         });

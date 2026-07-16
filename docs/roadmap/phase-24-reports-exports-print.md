@@ -1,24 +1,24 @@
-## Phase 16 — Shared table, saved views, reports, exports, charts, and print
+## Phase 24 — Reports, exports, PDF, charts, and print
 
-### Implementation contract
+**Status:** `not started`
 
-- Every application table uses one shared TanStack Table wrapper.
-- No module may build a separate table framework.
-- Tables use server-side pagination, sorting, and filtering.
-- Backend validates allowed columns, filters, sorting, pagination, and export fields.
-- Query string uses stable English names and never stores sensitive values.
-- Support column visibility, order, selection, grouping where justified, loading, empty, error, and no-results states.
-- Saved views contain safe configuration only, never row data.
-- Saved view types:
-  - private;
-  - team-shared;
-  - system.
-- A user may set a default view.
-- A view may persist filters, sorting, columns, column order, grouping, and dynamic or fixed time ranges.
-- Shared views require permission and are team-scoped.
-- System views cannot be overwritten or deleted, but can be copied.
-- Shared/system-view changes are audited.
-- Provide CSV, XLSX, PDF, and browser print from the beginning.
+## Objective
+
+Build the shared report/export generation lifecycle after tables, saved views, files, notifications, audit, active-team context, and operational visibility are available.
+
+## Dependencies
+
+- [Phase 10 — Shared tables and saved views](phase-10-shared-tables-saved-views.md)
+- [Phase 11 — Audit and security audit](phase-11-audit-security.md)
+- [Phase 13 — Sessions and active team](phase-13-sessions-active-team.md)
+- [Phase 15 — Notifications and realtime foundation](phase-15-notifications-realtime.md)
+- [Phase 16 — Admin operations and health](phase-16-admin-health.md)
+- [Phase 19 — Files](phase-19-files.md)
+- [Tables, reports, exports, charts, and print](../architecture/tables-reports-exports-and-print.md)
+
+## Implementation contract
+
+- Provide CSV, XLSX, PDF, and browser print through one shared lifecycle.
 - Export/print uses exactly the active filters, sort, time range, visible columns, active team, and effective permissions.
 - Backend rechecks every field; UI visibility is not authorization.
 - Small exports may run synchronously. Large exports run through queues and notify when ready.
@@ -34,28 +34,14 @@
 - Do not add decorative analytics without a real interpretive purpose.
 - Use HTML/CSS rendered by headless Chromium through Playwright as the shared PDF engine.
 - Browser print and generated PDF use the same report layout and data contract.
-- Do not maintain a separate Dompdf-style report implementation with different HTML/CSS behavior.
 - PDF rendering must not depend on the user's live authenticated browser session.
 - A PDF render job receives access through a short-lived one-time render token or an equivalent internal signed mechanism.
-- The render credential is bound to:
-  - one concrete report/export request;
-  - the requesting user;
-  - active team;
-  - allowed dataset and columns;
-  - a short expiration time.
+- The render credential is bound to one concrete report/export request, requesting user, active team, allowed dataset and columns, and a short expiration time.
 - A render credential must not grant access to unrelated reports or application data.
 - Invalidate or consume the render credential after successful use.
 - Package required fonts locally in the application or production image.
 - Do not fetch Google Fonts or other external fonts during PDF generation.
-- Define explicit report-print rules for:
-  - A4 format by default;
-  - margins;
-  - controlled page breaks;
-  - repeated table headers;
-  - page numbers;
-  - report footer;
-  - company identity;
-  - print-safe colors and contrast.
+- Define explicit report-print rules for A4, margins, controlled page breaks, repeated table headers, page numbers, report footer, company identity, and print-safe colors/contrast.
 - Charts included in PDF must signal that rendering is complete before Chromium prints the document.
 - If a required chart or other required visual fails to render, fail the PDF job rather than generating an incomplete artifact.
 - Large PDFs always run through queues.
@@ -65,28 +51,13 @@
 - Retries never expose duplicate or partial artifacts.
 - Concurrency limits are configurable per user, team, and report type.
 
+## Tasks
+
 - [ ] Implement immutable report/export request snapshots and authorization fingerprints.
 - [ ] Implement idempotent generation jobs and concurrency controls.
 - [ ] Prevent partial or duplicate artifacts from becoming downloadable.
 - [ ] Store checksum, content type, size, creator, status, release/rule version, and expiry metadata.
 - [ ] Reauthorize every artifact download and implement retention cleanup.
-- [ ] Build shared TanStack Table wrapper.
-- [ ] Add server-side pagination.
-- [ ] Add server-side sorting.
-- [ ] Add server-side filtering.
-- [ ] Add backend allowlists for columns, filters, and sorting.
-- [ ] Add URL query synchronization.
-- [ ] Add column visibility.
-- [ ] Add column ordering.
-- [ ] Add selection.
-- [ ] Add loading, empty, error, and no-results states.
-- [ ] Add private saved views.
-- [ ] Add team-shared saved views.
-- [ ] Add system views.
-- [ ] Add default-view support.
-- [ ] Add view copy.
-- [ ] Prevent overwrite/delete of system views.
-- [ ] Audit shared-view changes.
 - [ ] Add CSV exports.
 - [ ] Add XLSX exports.
 - [ ] Add PDF exports.
@@ -115,5 +86,13 @@
 - [ ] Before first TailAdmin Pro chart use, stop and request license confirmation.
 - [ ] Build shared TailAdmin Pro chart wrappers.
 - [ ] Add charts to PDF and print where justified.
-- [ ] Verify all report/table/chart states in light and dark themes.
-- [ ] Commit shared table and reporting foundation.
+- [ ] Verify all report/chart/export/print states in light and dark themes.
+- [ ] Commit reports, exports, PDF, charts, and print.
+
+## Completion criteria
+
+- [ ] Reports and exports use the shared lifecycle end to end.
+- [ ] Generated artifacts are private, authorized, expiring, and safe to retry.
+- [ ] PDF and browser print share the same report contract.
+- [ ] Progress and failures are visible through notifications and Admin operations.
+- [ ] Relevant tests and documentation are current.

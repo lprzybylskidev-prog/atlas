@@ -1,6 +1,20 @@
-## Phase 11 — Settings and localization
+## Phase 12 — Settings and localization
 
-### Implementation contract
+**Status:** `not started`
+
+## Objective
+
+Implement typed settings and real PL/EN localization before sessions, Admin mode, notifications, tables, module activation, reports, and TimeTracking rely on configurable preferences or security settings.
+
+## Dependencies
+
+- [Phase 9 — Shared UI components](phase-09-shared-ui.md)
+- [Phase 10 — Shared tables and saved views](phase-10-shared-tables-saved-views.md)
+- [Phase 11 — Audit and security audit](phase-11-audit-security.md)
+- [Settings module documentation](../modules/settings.md)
+- [Frontend and shared UI architecture](../architecture/frontend-ui.md)
+
+## Implementation contract
 
 - Settings are typed; do not use an uncontrolled universal JSON blob.
 - Separate global, team, user, and security settings.
@@ -16,6 +30,8 @@
 - No hardcoded user-facing strings.
 - PL/EN parity and missing-key checks are required.
 - Backend exceptions, CLI, documentation, and Admin panel remain English.
+
+## Tasks
 
 - [ ] Create `Settings` module.
 - [ ] Implement typed global settings.
@@ -38,3 +54,10 @@
 - [ ] Add missing-key and parity checks.
 - [ ] Ensure admin panel remains English only.
 - [ ] Commit settings and localization.
+
+## Completion criteria
+
+- [ ] Typed global, team, user, and security settings exist with defaults, inheritance, validation, caching, and audit where required.
+- [ ] Auth/App language controls switch real PL/EN UI copy instead of preview-only state.
+- [ ] Later phases can store preferences and security timeouts without temporary local storage or config mutation.
+- [ ] PL/EN parity and missing-key checks pass.

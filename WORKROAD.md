@@ -13,10 +13,12 @@ Rules:
 - never delete or rewrite completed phase tasks;
 - unfinished phase work may be split or expanded;
 - substantial later evolution of completed work receives a new sequential phase;
-- update this index when a phase is added or its status changes;
+- update this index when a phase is added, reordered, split, merged, or its status changes;
 - keep detailed contracts and checkboxes out of this index;
 - chat history must not be required to understand accepted behavior;
-- use `docs/roadmap/_template.md` for every new phase.
+- use `docs/roadmap/_template.md` for every new phase;
+- before adding or reordering phases, analyze dependency order across existing code, completed phases, future phases, canonical module docs, architecture docs, and operational docs;
+- a shared capability must be fully implemented, tested, and documented before the first phase that uses it, unless the genuinely new requirement was not known earlier and is added as a later evolution phase.
 
 ## Purpose and Lifetime
 
@@ -35,8 +37,12 @@ Do not replace this index after the initial technical foundation is completed. C
 
 ## Current phase
 
-- Phase: [Phase 8 — Sessions and active team](docs/roadmap/phase-08-sessions-active-team.md)
+- Phase: [Phase 8 — Foundation completion and roadmap dependency repair](docs/roadmap/phase-08-foundation-completion.md)
 - Status: `not started`
+
+## Roadmap dependency repair note
+
+After Phase 7 completed, the roadmap was reordered because several shared foundations were already used before their full known contracts were scheduled. The repaired order preserves completed phase history, adds an immediate closure phase for partial foundations, splits table/saved-view work from later report/export/PDF generation, and moves audit, settings, sessions, module activation, notifications, health, and Admin foundations before modules that depend on them.
 
 ## Phase index
 
@@ -82,9 +88,9 @@ Establish deterministic local quality commands, tests, static analysis, formatti
 
 ### Phase 5 — Modular architecture skeleton
 
-**Status:** `blocked pending Phase 6/7 UI visibility primitives`
+**Status:** `complete with follow-up closure moved to Phase 8`
 
-Create modular-monolith boundaries, public contracts, ModuleGate, Outbox, architecture tests, and shared cross-module primitives.
+Create modular-monolith boundaries, public contracts, ModuleGate, Outbox, architecture tests, and shared cross-module primitives. The former visibility e2e follow-up is no longer blocked by phases 6-7 and is now tracked in Phase 8.
 
 [Open implementation contract and tasks](docs/roadmap/phase-05-modular-architecture.md)
 
@@ -100,158 +106,174 @@ Implement identity, login security, password lifecycle, email verification, MFA,
 
 **Status:** `complete`
 
-Implement teams, roles, permissions, starter roles, permission catalogs, and the first-administrator bootstrap.
+Implement teams, roles, permissions, starter roles, permission catalogs, onboarding packages, and the first-administrator bootstrap.
 
 [Open implementation contract and tasks](docs/roadmap/phase-07-authorization-teams.md)
 
-### Phase 8 — Sessions and active team
+### Phase 8 — Foundation completion and roadmap dependency repair
+
+**Status:** `complete`
+
+Close partial foundations pulled forward during phases 5-7, including current Admin shared UI/table consistency, visibility e2e coverage, audit/module-gate documentation, and dependency-first roadmap rules.
+
+[Open implementation contract and tasks](docs/roadmap/phase-08-foundation-completion.md)
+
+### Phase 9 — Shared UI components
 
 **Status:** `not started`
 
-Implement Redis-backed sessions, active-team context, session administration, and session security controls.
+Build reusable accessible UI primitives, forms, confirmations, alerts, formatters, layouts, and fixed application interaction patterns before additional screens depend on them.
 
-[Open implementation contract and tasks](docs/roadmap/phase-08-sessions-active-team.md)
+[Open implementation contract and tasks](docs/roadmap/phase-09-shared-ui.md)
 
-### Phase 9 — Manager hierarchy
-
-**Status:** `not started`
-
-Implement effective-dated manager hierarchy, DAG validation, direct-report and subtree scope, and manager administration.
-
-[Open implementation contract and tasks](docs/roadmap/phase-09-manager-hierarchy.md)
-
-### Phase 10 — Audit and security audit
+### Phase 10 — Shared tables and saved views
 
 **Status:** `not started`
 
-Implement application and security audit trails with immutable context, correlation, querying, retention, and privacy controls.
+Complete the shared TanStack table and saved-view foundation before future Admin and business tables are implemented.
 
-[Open implementation contract and tasks](docs/roadmap/phase-10-audit-security.md)
+[Open implementation contract and tasks](docs/roadmap/phase-10-shared-tables-saved-views.md)
 
-### Phase 11 — Settings and localization
+### Phase 11 — Audit and security audit
+
+**Status:** `not started`
+
+Implement application and security audit trails with immutable context, correlation, querying, retention, and privacy controls before high-risk and operational phases depend on them.
+
+[Open implementation contract and tasks](docs/roadmap/phase-11-audit-security.md)
+
+### Phase 12 — Settings and localization
 
 **Status:** `not started`
 
 Implement typed settings, localization, precedence, validation, caching, and safe administrative configuration.
 
-[Open implementation contract and tasks](docs/roadmap/phase-11-settings-localization.md)
+[Open implementation contract and tasks](docs/roadmap/phase-12-settings-localization.md)
 
-### Phase 12 — Notifications and realtime foundation
+### Phase 13 — Sessions and active team
+
+**Status:** `not started`
+
+Implement Redis-backed sessions, active-team context, session administration, session security controls, and centralized frontend network handling.
+
+[Open implementation contract and tasks](docs/roadmap/phase-13-sessions-active-team.md)
+
+### Phase 14 — Module availability and activation
+
+**Status:** `not started`
+
+Implement deployment availability, global/team activation, schedules, dependencies, cache invalidation, deactivation guards, and central gate enforcement.
+
+[Open implementation contract and tasks](docs/roadmap/phase-14-module-activation.md)
+
+### Phase 15 — Notifications and realtime foundation
 
 **Status:** `not started`
 
 Implement typed notifications, delivery channels, preferences, queueing, and the minimal realtime foundation.
 
-[Open implementation contract and tasks](docs/roadmap/phase-12-notifications-realtime.md)
+[Open implementation contract and tasks](docs/roadmap/phase-15-notifications-realtime.md)
 
-### Phase 13 — Module availability and activation
-
-**Status:** `not started`
-
-Implement deployment availability, global/team activation, schedules, dependencies, cache invalidation, and central gate enforcement.
-
-[Open implementation contract and tasks](docs/roadmap/phase-13-module-activation.md)
-
-### Phase 14 — Administrative mode and impersonation
-
-**Status:** `not started`
-
-Implement Admin mode, high-risk reauthentication, account sensitivity, secure impersonation, and isolated TimeTracking simulation.
-
-[Open implementation contract and tasks](docs/roadmap/phase-14-admin-impersonation.md)
-
-### Phase 15 — Shared UI components
-
-**Status:** `not started`
-
-Build reusable accessible UI primitives, forms, confirmations, alerts, formatters, layouts, and fixed application navigation.
-
-[Open implementation contract and tasks](docs/roadmap/phase-15-shared-ui.md)
-
-### Phase 16 — Shared table, saved views, reports, exports, charts, and print
-
-**Status:** `not started`
-
-Build shared tables, saved views, report/export pipelines, charts, browser print, and Chromium-based PDF generation.
-
-[Open implementation contract and tasks](docs/roadmap/phase-16-tables-reports-exports.md)
-
-### Phase 17 — Files
-
-**Status:** `not started`
-
-Implement private file storage, validation, quarantine, ClamAV scanning, retention, authorization, and administrative operations.
-
-[Open implementation contract and tasks](docs/roadmap/phase-17-files.md)
-
-### Phase 18 — Imports
-
-**Status:** `not started`
-
-Implement reusable import pipelines, mapping, validation, previews, idempotency, progress, errors, and audit.
-
-[Open implementation contract and tasks](docs/roadmap/phase-18-imports.md)
-
-### Phase 19 — Search
-
-**Status:** `not started`
-
-Implement full-text search as module-owned Meilisearch projections with Outbox indexing and zero-downtime rebuilds.
-
-[Open implementation contract and tasks](docs/roadmap/phase-19-search.md)
-
-### Phase 20 — Integrations
-
-**Status:** `not started`
-
-Implement typed external integration adapters, idempotency, retries, circuit breaking, API boundaries, and operational visibility.
-
-[Open implementation contract and tasks](docs/roadmap/phase-20-integrations.md)
-
-### Phase 21 — Feature flags
-
-**Status:** `not started`
-
-Implement typed feature flags with safe targeting, evaluation, lifecycle, audit, and administrative controls.
-
-[Open implementation contract and tasks](docs/roadmap/phase-21-feature-flags.md)
-
-### Phase 22 — Admin operations and health
+### Phase 16 — Admin operations and health
 
 **Status:** `not started`
 
 Implement Admin operational screens, structured logging, health/readiness, alerts, queues, scheduler, rate-limit administration, and diagnostics.
 
-[Open implementation contract and tasks](docs/roadmap/phase-22-admin-health.md)
+[Open implementation contract and tasks](docs/roadmap/phase-16-admin-health.md)
 
-### Phase 23 — Optional TimeTracking module
-
-**Status:** `not started`
-
-Implement optional operational TimeTracking, breaks, other work, inactivity, corrections, settlement, reporting, and analysis-ready data.
-
-[Open implementation contract and tasks](docs/roadmap/phase-23-time-tracking.md)
-
-### Phase 24 — Security, privacy, deletion, and anonymization
+### Phase 17 — Manager hierarchy
 
 **Status:** `not started`
 
-Implement privacy, retention, hard deletion, anonymization orchestration, legal holds, previews, approvals, and evidence.
+Implement effective-dated manager hierarchy, DAG validation, direct-report and subtree scope, and manager administration.
 
-[Open implementation contract and tasks](docs/roadmap/phase-24-security-privacy.md)
+[Open implementation contract and tasks](docs/roadmap/phase-17-manager-hierarchy.md)
 
-### Phase 25 — Production deployment, backup, restore, and rollback
+### Phase 18 — Administrative mode and impersonation
+
+**Status:** `not started`
+
+Implement Admin mode, high-risk reauthentication, account sensitivity, secure impersonation, and isolated TimeTracking simulation.
+
+[Open implementation contract and tasks](docs/roadmap/phase-18-admin-impersonation.md)
+
+### Phase 19 — Files
+
+**Status:** `not started`
+
+Implement private file storage, validation, quarantine, ClamAV scanning, retention participation, authorization, and administrative operations.
+
+[Open implementation contract and tasks](docs/roadmap/phase-19-files.md)
+
+### Phase 20 — Integrations
+
+**Status:** `not started`
+
+Implement typed external integration adapters, idempotency, retries, circuit breaking, API boundaries, credentials, and operational visibility.
+
+[Open implementation contract and tasks](docs/roadmap/phase-20-integrations.md)
+
+### Phase 21 — Imports
+
+**Status:** `not started`
+
+Implement reusable import pipelines, mapping, validation, previews, idempotency, progress, errors, and audit after files and integration contracts exist.
+
+[Open implementation contract and tasks](docs/roadmap/phase-21-imports.md)
+
+### Phase 22 — Search
+
+**Status:** `not started`
+
+Implement full-text search as module-owned Meilisearch projections with Outbox indexing, authorization, visibility, and zero-downtime rebuilds.
+
+[Open implementation contract and tasks](docs/roadmap/phase-22-search.md)
+
+### Phase 23 — Feature flags
+
+**Status:** `not started`
+
+Implement typed feature flags with safe targeting, evaluation, lifecycle, audit, and administrative controls.
+
+[Open implementation contract and tasks](docs/roadmap/phase-23-feature-flags.md)
+
+### Phase 24 — Reports, exports, PDF, charts, and print
+
+**Status:** `not started`
+
+Build report/export pipelines, browser print, Chromium-based PDF generation, chart wrappers, artifact storage, notifications, and report layouts after table, file, notification, audit, and health foundations exist.
+
+[Open implementation contract and tasks](docs/roadmap/phase-24-reports-exports-print.md)
+
+### Phase 25 — Security, privacy, deletion, and anonymization
+
+**Status:** `not started`
+
+Implement privacy, retention, hard deletion, anonymization orchestration, legal holds, previews, approvals, and evidence after controlled copy owners exist.
+
+[Open implementation contract and tasks](docs/roadmap/phase-25-security-privacy.md)
+
+### Phase 26 — Optional TimeTracking module
+
+**Status:** `not started`
+
+Implement optional operational TimeTracking, breaks, other work, inactivity, corrections, settlement, reporting, and analysis-ready data after all known shared dependencies exist.
+
+[Open implementation contract and tasks](docs/roadmap/phase-26-time-tracking.md)
+
+### Phase 27 — Production deployment, backup, restore, and rollback
 
 **Status:** `not started`
 
 Implement the single-host production Docker topology, HTTPS, deployment releases, PostgreSQL backups, restore, readiness, and rollback.
 
-[Open implementation contract and tasks](docs/roadmap/phase-25-deployment-backup-rollback.md)
+[Open implementation contract and tasks](docs/roadmap/phase-27-deployment-backup-rollback.md)
 
-### Phase 26 — Final foundation verification
+### Phase 28 — Final foundation verification
 
 **Status:** `not started`
 
 Perform final architecture, security, documentation, testing, restore, deployment, and technical-foundation verification before debt collection business modules begin.
 
-[Open implementation contract and tasks](docs/roadmap/phase-26-final-verification.md)
+[Open implementation contract and tasks](docs/roadmap/phase-28-final-verification.md)

@@ -1,6 +1,19 @@
-## Phase 26 — Final foundation verification
+## Phase 28 — Final foundation verification
 
-### Implementation contract
+**Status:** `not started`
+
+## Objective
+
+Verify the complete technical foundation after every prerequisite phase is finished and before debt collection business modules begin.
+
+## Dependencies
+
+- [Phase 27 — Production deployment, backup, restore, and rollback](phase-27-deployment-backup-rollback.md)
+- [Quality gates and git](../operations/quality-gates-and-git.md)
+- [Testing environment](../operations/testing-environment.md)
+- [Production deployment, backup, and recovery](../operations/production-deployment-backup-and-recovery.md)
+
+## Implementation contract
 
 - Final verification is not a superficial test pass. It must prove that the Atlas can be cloned as a stable corporate base.
 - Cross-check every accepted decision against `AGENTS.md`, this file, documentation, ADRs, and tests.
@@ -14,6 +27,8 @@
 - Working-only files such as temporary discussion notes, continuation prompts, and review drafts are not part of the final package.
 - Before final delivery, ensure every accepted rule, implementation contract, task, module description, architectural decision, and operational procedure exists in its canonical root or `docs/` location.
 - A fresh session must be able to resume by reading the root entry files and only the relevant linked documentation.
+
+## Tasks
 
 - [ ] Run complete backend test suite.
 - [ ] Run complete frontend test suite.
@@ -46,3 +61,10 @@
 - [ ] Verify no accepted decision exists only in a working/context file.
 - [ ] Verify a fresh session can resume from the root entry files plus only the relevant linked documentation.
 - [ ] Exclude all working-only discussion, continuation, and review files from the final delivery package.
+
+## Completion criteria
+
+- [ ] All accepted technical-foundation contracts are implemented, tested, documented, and verifiable from canonical files.
+- [ ] Backup, restore, deploy, rollback, readiness, security controls, module activation, Admin mode, impersonation, manager hierarchy, TimeTracking isolation, reports, translations, and themes are verified.
+- [ ] No accepted behavior exists only in chat history or working-only files.
+- [ ] Atlas is ready for debt collection business-module phases.

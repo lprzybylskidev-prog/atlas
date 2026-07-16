@@ -7,4 +7,5 @@ export interface NavigationNode {
     active?: boolean;
     href?: string;
     children?: NavigationNode[];
+    visible?: boolean;
 }

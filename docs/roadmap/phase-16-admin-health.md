@@ -1,6 +1,22 @@
-## Phase 22 — Admin operations and health
+## Phase 16 — Admin operations and health
 
-### Implementation contract
+**Status:** `not started`
+
+## Objective
+
+Complete operational health, readiness, logging, alerts, queues, diagnostics, and Admin operational screens before files, imports, integrations, search, reporting, privacy, deployment, and TimeTracking depend on operational visibility.
+
+## Dependencies
+
+- [Phase 9 — Shared UI components](phase-09-shared-ui.md)
+- [Phase 10 — Shared tables and saved views](phase-10-shared-tables-saved-views.md)
+- [Phase 11 — Audit and security audit](phase-11-audit-security.md)
+- [Phase 14 — Module availability and activation](phase-14-module-activation.md)
+- [Phase 15 — Notifications and realtime foundation](phase-15-notifications-realtime.md)
+- [Admin module documentation](../modules/admin.md)
+- [Health, observability, and maintenance](../operations/health-observability-and-maintenance.md)
+
+## Implementation contract
 
 - Admin panel is developed in parallel with foundations, is English-only, and has its own layout, route namespace, menu, and permissions.
 - Admin uses the same Domain/Application use cases as the regular UI, with stronger audit and confirmation where needed.
@@ -48,6 +64,8 @@
 - Counter reset must identify the exact policy and limiter key, be narrowly scoped, and be audited.
 - Admin cannot edit policies, change thresholds, or disable rate limiting.
 
+## Tasks
+
 - [ ] Build read-only Admin rate-limit policy and rejection-statistics views.
 - [ ] Implement narrowly scoped confirmed reset of one rate-limit counter.
 - [ ] Audit rate-limit counter resets with policy, limiter key, actor, reason, and correlation ID.
@@ -88,3 +106,10 @@
 - [ ] Build logs browser with strict security.
 - [ ] Ensure logs UI cannot manipulate arbitrary server files.
 - [ ] Commit Admin operations and Health.
+
+## Completion criteria
+
+- [ ] Liveness/readiness, scheduler, queues, logs, alerts, and Admin System Status expose blocking versus degraded state safely.
+- [ ] Correlation IDs, redaction, and sanitized Sentry context are implemented across HTTP, jobs, CLI, scheduler, and integrations.
+- [ ] Later operational modules can expose diagnostics without inventing their own health/logging surface.
+- [ ] Relevant tests and documentation are current.

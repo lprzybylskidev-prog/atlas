@@ -1,6 +1,22 @@
-## Phase 13 — Module availability and activation
+## Phase 14 — Module availability and activation
 
-### Implementation contract
+**Status:** `not started`
+
+## Objective
+
+Complete operational module activation and ModuleGate enforcement after active-team context, audit, settings, shared UI, and table primitives are available.
+
+## Dependencies
+
+- [Phase 9 — Shared UI components](phase-09-shared-ui.md)
+- [Phase 10 — Shared tables and saved views](phase-10-shared-tables-saved-views.md)
+- [Phase 11 — Audit and security audit](phase-11-audit-security.md)
+- [Phase 12 — Settings and localization](phase-12-settings-localization.md)
+- [Phase 13 — Sessions and active team](phase-13-sessions-active-team.md)
+- [Module registry and activation](../architecture/module-registry-and-activation.md)
+- [Modular monolith architecture](../architecture/modular-monolith.md)
+
+## Implementation contract
 
 - Module lifecycle has two independent levels:
   - deployment availability: whether the code is technically available in this application deployment;
@@ -100,6 +116,8 @@
 - This phase completes the active-team, effective-permission, and module-state enforcement declared by the frontend contracts in Phase 3.
 - Deactivation consults every registered active-process guard and returns an exact impact/blocker preview.
 
+## Tasks
+
 - [ ] Integrate `ModuleGate` across HTTP, jobs, commands, public endpoints, navigation, and composable-view data providers.
 - [ ] Complete active-team, permission, and module-state enforcement for composable view elements.
 - [ ] Add tests proving direct element/data endpoint calls cannot bypass the gate.
@@ -154,3 +172,10 @@
 - [ ] Add tests proving that assigned permissions remain ineffective while the module is disabled.
 - [ ] Add tests proving that existing assignments become effective after safe module reactivation.
 - [ ] Commit module activation system.
+
+## Completion criteria
+
+- [ ] Operational activation is stored in typed relational current-state, schedule, and append-only history tables.
+- [ ] Backend, jobs, commands, navigation, permissions, and composable-view data providers enforce the central ModuleGate.
+- [ ] Deactivation previews and blockers use registered guards instead of foreign-table inspection.
+- [ ] Later optional modules can rely on activation without building their own gating.

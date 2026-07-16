@@ -74,6 +74,7 @@ const closeUserMenu = (): void => {
 
 const breadcrumbs = computed(() => page.props.navigation.breadcrumbs);
 const isAdminMode = computed(() => props.mode === 'admin');
+const canEnterAdmin = computed(() => page.props.auth.availableAdminRoutes.includes('admin.system-status'));
 
 const handleOutsidePointerDown = (event: PointerEvent): void => {
     const target = event.target;
@@ -213,6 +214,7 @@ onBeforeUnmount(() => {
 
                         <div class="p-2">
                             <Link
+                                v-if="canEnterAdmin"
                                 href="/admin"
                                 class="flex h-10 items-center gap-3 rounded-lg px-2 text-sm font-medium text-zinc-700 transition hover:bg-zinc-100 hover:text-zinc-950 dark:text-zinc-200 dark:hover:bg-zinc-800 dark:hover:text-zinc-50"
                                 role="menuitem"

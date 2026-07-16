@@ -10,7 +10,7 @@ Deployed manifests are listed in `config/modules.php` under `deployed`.
 
 Each entry must be a class-string implementing `App\Shared\Application\Modules\Contracts\ModuleDefinition`. During application registration, `App\Providers\AppServiceProvider` instantiates the configured manifests and builds `App\Shared\Application\Modules\ModuleRegistry`. Invalid configuration fails startup before the application can serve requests.
 
-The current first deployed manifest is `App\Modules\Core\Identity\IdentityModule`.
+The initial deployed manifests are registered explicitly in `config/modules.php`. Operational activation is completed by the roadmap's Module Availability and Activation phase after authorization, active-team, audit, settings, shared UI, and table foundations exist.
 
 `ModuleDefinition` declares:
 
@@ -49,11 +49,13 @@ It evaluates in this order:
 6. active-team context is valid;
 7. required permission is effective.
 
-Controllers, middleware, jobs, commands, public endpoints, and composable-view data providers use this central gate rather than reproducing activation logic.
+Controllers, middleware, jobs, commands, public endpoints, and composable-view data providers use this central gate rather than reproducing activation logic. Early deployed-state and ModuleGate primitives already exist; full operational activation, scheduling, cache invalidation, and end-to-end enforcement are completed in Phase 14.
 
 The current central evaluator is `App\Shared\Application\Modules\Contracts\ModuleGate`.
 
 `DefaultModuleGate` evaluates a `ModuleAccessRequest` from a `ModuleGateStateProvider` in the canonical order above and returns a stable `ModuleAccessDecision` with a `ModuleAccessDenialReason`.
+
+During the Phase 8 foundation closure, the runtime provider is `App\Shared\Infrastructure\Modules\RegistryModuleGateStateProvider`. It uses the explicit deployed registry, active `teams` table state, and `App\Modules\Core\Authorization\Application\Public\EffectivePermissionChecker` to decide current access. Until Phase 14 adds operational activation tables, schedules, and cache invalidation, deployed modules are treated as globally and team active.
 
 A declared required dependency that is not deployed is an invalid configuration and must fail startup/readiness with a clear error.
 

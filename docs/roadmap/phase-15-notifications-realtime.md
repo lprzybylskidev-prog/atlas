@@ -1,6 +1,21 @@
-## Phase 12 — Notifications and realtime foundation
+## Phase 15 — Notifications and realtime foundation
 
-### Implementation contract
+**Status:** `not started`
+
+## Objective
+
+Implement platform notifications and the minimal realtime foundation before reports, imports, integrations, sessions invalidation, system alerts, and TimeTracking live status depend on server push or progress delivery.
+
+## Dependencies
+
+- [Phase 11 — Audit and security audit](phase-11-audit-security.md)
+- [Phase 12 — Settings and localization](phase-12-settings-localization.md)
+- [Phase 13 — Sessions and active team](phase-13-sessions-active-team.md)
+- [Phase 14 — Module availability and activation](phase-14-module-activation.md)
+- [Notifications module documentation](../modules/notifications.md)
+- [Realtime, network, and browser operations](../operations/realtime-network-and-browser.md)
+
+## Implementation contract
 
 - Use one notification module for the entire platform.
 - Notifications are typed and may target a user and team.
@@ -19,6 +34,8 @@
   - live TimeTracking status;
   - shared live updates with a demonstrated need.
 - Ordinary CRUD, forms, filters, pagination, and user-triggered requests remain HTTP/Inertia.
+
+## Tasks
 
 - [ ] Create `Notifications` module.
 - [ ] Define typed notification events.
@@ -40,3 +57,10 @@
 - [ ] Add progress events for queued operations.
 - [ ] Add development-only demo seeders for example notifications after real notification tables exist.
 - [ ] Commit notifications and realtime foundation.
+
+## Completion criteria
+
+- [ ] Typed notifications support in-app/email delivery, preferences, read state, retention, and deep links.
+- [ ] Realtime infrastructure exists only for documented server-push needs.
+- [ ] Later queued operations can publish progress/failure/success through one notification contract.
+- [ ] Relevant tests and documentation are current.

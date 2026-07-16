@@ -1,5 +1,7 @@
 # Roadmap migration verification
 
+Historical note: this file verifies the earlier structural split from one roadmap file into one file per phase. It intentionally preserves the file names and SHA-256 digests from that split. The current dependency-ordered roadmap index lives in `WORKROAD.md` and supersedes the historical phase file names listed below.
+
 The roadmap was split structurally into one file per phase.
 
 Verification method:

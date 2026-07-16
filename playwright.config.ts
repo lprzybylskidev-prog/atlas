@@ -39,7 +39,7 @@ export default defineConfig({
     webServer: [
         {
             command:
-                'bash tools/testing/ensure-test-databases.sh e2e && php artisan config:clear && php artisan migrate:fresh --force && php artisan cache:clear && php artisan db:seed --class=DevelopmentDemoSeeder --force && cd public && php -S 127.0.0.1:8010 ../vendor/laravel/framework/src/Illuminate/Foundation/resources/server.php',
+                'bash tools/testing/ensure-test-databases.sh e2e && php artisan config:clear && php artisan migrate:fresh --force && php artisan cache:clear && php artisan db:seed --class=E2eVisibilitySeeder --force && cd public && php -S 127.0.0.1:8010 ../vendor/laravel/framework/src/Illuminate/Foundation/resources/server.php',
             url: appUrl,
             env: e2eEnvironment,
             reuseExistingServer: false,

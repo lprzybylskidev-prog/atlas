@@ -4,8 +4,11 @@ declare(strict_types=1);
 
 namespace App\Http\Middleware;
 
+use App\Modules\Core\Authorization\Application\Public\Contracts\EffectivePermissionChecker;
+use App\Modules\Core\Authorization\Application\Public\DTOs\EffectivePermissionRequest;
 use Diglactic\Breadcrumbs\Breadcrumbs;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Inertia\Middleware;
 
 final class HandleInertiaRequests extends Middleware
@@ -31,6 +34,7 @@ final class HandleInertiaRequests extends Middleware
                     'name' => $request->user()->name,
                     'email' => $request->user()->email,
                 ],
+                'availableAdminRoutes' => $this->availableAdminRoutes($request),
             ],
             'locale' => app()->getLocale(),
             'supportedLocales' => ['pl', 'en'],
@@ -43,6 +47,62 @@ final class HandleInertiaRequests extends Middleware
                 'messages' => $request->session()->get('flash.messages', []),
             ],
         ];
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function availableAdminRoutes(Request $request): array
+    {
+        $userPublicId = data_get($request->user(), 'public_id');
+        $teamPublicId = $request->hasSession() ? $request->session()->get('active_team_public_id') : null;
+
+        if (! is_string($teamPublicId) && is_string($userPublicId) && $request->hasSession()) {
+            $teamPublicId = $this->firstAssignedTeamPublicId($userPublicId);
+
+            if (is_string($teamPublicId)) {
+                $request->session()->put('active_team_public_id', $teamPublicId);
+            }
+        }
+
+        if (! is_string($userPublicId) || ! is_string($teamPublicId)) {
+            return [];
+        }
+
+        /** @var EffectivePermissionChecker $checker */
+        $checker = app(EffectivePermissionChecker::class);
+        $routes = [
+            'admin.system-status',
+            'admin.users.index',
+            'admin.teams.index',
+            'admin.authorization.roles.index',
+            'admin.authorization.packages.index',
+            'admin.authorization.permissions.index',
+        ];
+        $available = [];
+
+        foreach ($routes as $route) {
+            $decision = $checker->check(new EffectivePermissionRequest($userPublicId, $route, $teamPublicId));
+
+            if ($decision->allowed) {
+                $available[] = $route;
+            }
+        }
+
+        return $available;
+    }
+
+    private function firstAssignedTeamPublicId(string $userPublicId): ?string
+    {
+        $team = DB::table('team_user_assignments')
+            ->join('users', 'team_user_assignments.user_id', '=', 'users.id')
+            ->join('teams', 'team_user_assignments.team_id', '=', 'teams.id')
+            ->where('users.public_id', $userPublicId)
+            ->where('teams.is_active', true)
+            ->orderBy('teams.name')
+            ->value('teams.public_id');
+
+        return is_string($team) ? $team : null;
     }
 
     /**

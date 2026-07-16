@@ -1,6 +1,23 @@
-## Phase 14 — Administrative mode and impersonation
+## Phase 18 — Administrative mode and impersonation
 
-### Implementation contract
+**Status:** `not started`
+
+## Objective
+
+Implement Admin mode, high-risk reauthentication, account sensitivity, and impersonation after sessions, audit, settings, active-team/module enforcement, shared UI, and manager scope are available.
+
+## Dependencies
+
+- [Phase 9 — Shared UI components](phase-09-shared-ui.md)
+- [Phase 11 — Audit and security audit](phase-11-audit-security.md)
+- [Phase 12 — Settings and localization](phase-12-settings-localization.md)
+- [Phase 13 — Sessions and active team](phase-13-sessions-active-team.md)
+- [Phase 14 — Module availability and activation](phase-14-module-activation.md)
+- [Phase 17 — Manager hierarchy](phase-17-manager-hierarchy.md)
+- [Administrative mode and impersonation](../architecture/admin-mode-and-impersonation.md)
+- [Security baseline](../architecture/security-baseline.md)
+
+## Implementation contract
 
 - Administrators use ordinary user accounts plus an explicit administrative mode.
 - Entering Admin mode requires reauthentication.
@@ -62,6 +79,8 @@
 - TimeTracking simulation during impersonation never writes official TimeTracking tables/events, settlements, manager feeds, or reports.
 - Any simulation state is stored only in an impersonation-session-scoped ephemeral namespace and is deleted when impersonation ends.
 
+## Tasks
+
 - [ ] Implement explicit account sensitivity classification and management/audit rules.
 - [ ] Evaluate target administrator status globally across all effective assignments before impersonation.
 - [ ] Implement dedicated high-risk sensitive-account override.
@@ -107,3 +126,10 @@
 - [ ] Build impersonation audit filters and detail view.
 - [ ] Add user-visible security history entry without real-time notification by default.
 - [ ] Commit administrative mode and impersonation.
+
+## Completion criteria
+
+- [ ] Admin mode and high-risk reauthentication are session-bound, setting-driven, audited, and invalidated by security changes.
+- [ ] Impersonation follows the target user's permissions, teams, modules, manager scope, and restrictions without a hidden bypass.
+- [ ] TimeTracking simulation is isolated before TimeTracking is implemented.
+- [ ] Relevant tests and documentation are current.

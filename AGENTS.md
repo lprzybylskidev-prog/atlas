@@ -54,6 +54,9 @@ Do not ask questions whose answers already follow unambiguously from accepted co
 - Update `WORKROAD.md` only when phase status or phase inventory changes.
 - Do not place detailed implementation contracts back into the index.
 - Chat history must never be required to understand accepted behavior.
+- Before adding, splitting, merging, or reordering roadmap phases, analyze dependencies across existing implementation, completed phase history, future phase contracts, module documentation, architecture documentation, and operational documentation.
+- A capability, contract, shared component, infrastructure mechanism, or operational process must be fully implemented, tested, and documented before the first phase that knowingly depends on it.
+- Do not intentionally defer known requirements of a shared capability until after an earlier phase has started using that capability. If genuinely new requirements appear later and could not reasonably have been known, add a new sequential evolution phase instead of rewriting history.
 
 ## Repository objective
 

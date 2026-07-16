@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Link } from '@inertiajs/vue3';
+import { Link, usePage } from '@inertiajs/vue3';
 import { IconChevronDown, IconGauge, IconKey, IconPackages, IconShieldCheck, IconUserPlus, IconUsersGroup } from '@tabler/icons-vue';
 import type { FunctionalComponent } from 'vue';
 import { computed } from 'vue';
@@ -9,6 +9,7 @@ import SidebarNavNode from './SidebarNavNode.vue';
 import Tooltip from './Tooltip.vue';
 import { useSidebar } from '../Composables/useSidebar';
 import { useTranslator } from '../Localization/translator';
+import type { AtlasPageProps } from '../Types/inertia';
 import type { NavigationNode } from '../Types/navigation';
 
 interface NavigationGroup {
@@ -26,6 +27,11 @@ const props = defineProps<{
 
 const { isNavigationNodeExpanded, isSidebarCollapsed, isSidebarTextVisible, setNavigationNodeExpanded } = useSidebar();
 const { t } = useTranslator(props.uiLocale);
+const page = usePage<AtlasPageProps>();
+
+function canSeeAdminRoute(route: string): boolean {
+    return page.props.auth.availableAdminRoutes.includes(route);
+}
 
 const groups = computed<NavigationGroup[]>(() => {
     const workspace = {
@@ -54,6 +60,7 @@ const groups = computed<NavigationGroup[]>(() => {
                     href: '/admin/users',
                     icon: IconUserPlus,
                     active: props.currentPath.startsWith('/admin/users'),
+                    visible: canSeeAdminRoute('admin.users.index'),
                 },
                 {
                     key: 'identity-access.roles',
@@ -61,6 +68,7 @@ const groups = computed<NavigationGroup[]>(() => {
                     href: '/admin/authorization/roles',
                     icon: IconShieldCheck,
                     active: props.currentPath === '/admin/authorization/roles',
+                    visible: canSeeAdminRoute('admin.authorization.roles.index'),
                 },
                 {
                     key: 'identity-access.packages',
@@ -68,6 +76,7 @@ const groups = computed<NavigationGroup[]>(() => {
                     href: '/admin/authorization/packages',
                     icon: IconPackages,
                     active: props.currentPath === '/admin/authorization/packages',
+                    visible: canSeeAdminRoute('admin.authorization.packages.index'),
                 },
                 {
                     key: 'identity-access.permissions',
@@ -75,8 +84,9 @@ const groups = computed<NavigationGroup[]>(() => {
                     href: '/admin/authorization/permissions',
                     icon: IconKey,
                     active: props.currentPath === '/admin/authorization/permissions',
+                    visible: canSeeAdminRoute('admin.authorization.permissions.index'),
                 },
-            ],
+            ].filter((item) => item.visible !== false),
         },
         {
             key: 'organization',
@@ -89,10 +99,11 @@ const groups = computed<NavigationGroup[]>(() => {
                     href: '/admin/teams',
                     icon: IconUsersGroup,
                     active: props.currentPath === '/admin/teams',
+                    visible: canSeeAdminRoute('admin.teams.index'),
                 },
-            ],
+            ].filter((item) => item.visible !== false),
         },
-    ];
+    ].filter((group) => group.items.length > 0);
 });
 
 function updateExpandedNavigationState(key: string, event: Event): void {

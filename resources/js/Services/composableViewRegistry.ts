@@ -7,6 +7,7 @@ import type {
     ResolvedComposableHostView,
     ResolvedComposableViewElement,
 } from '../Types/composable-view';
+import SystemStatusCard from '../Components/ComposableView/Elements/SystemStatusCard.vue';
 
 export const COMPOSABLE_HOST_VIEWS: readonly ComposableHostViewDefinition[] = [
     {
@@ -23,7 +24,89 @@ export const COMPOSABLE_HOST_VIEWS: readonly ComposableHostViewDefinition[] = [
         layout: 'operational-status',
         titleKey: 'views.admin.system_status.title',
         fallbackTitle: 'Dashboard',
-        acceptedElements: [],
+        acceptedElements: [
+            {
+                elementKey: 'admin.system-status.identity',
+                area: 'main',
+                order: 10,
+                dimensions: {
+                    minHeightClass: 'min-h-44',
+                    spanClass: '',
+                },
+                structural: true,
+            },
+            {
+                elementKey: 'admin.system-status.search',
+                area: 'main',
+                order: 20,
+                dimensions: {
+                    minHeightClass: 'min-h-44',
+                    spanClass: '',
+                },
+                structural: false,
+            },
+        ],
+    },
+];
+
+export const SYSTEM_STATUS_ELEMENTS: readonly ComposableViewElementDefinition[] = [
+    {
+        key: 'admin.system-status.identity',
+        hostTypes: ['operational-status'],
+        hostKeys: ['admin.system-status'],
+        titleKey: 'views.admin.system_status.identity.title',
+        fallbackTitle: 'Identity module',
+        descriptionKey: 'views.admin.system_status.identity.description',
+        fallbackDescription: 'Core authentication and account access.',
+        requirements: {
+            permissions: ['admin.system-status'],
+            modules: ['identity'],
+            activeTeam: 'required',
+        },
+        component: SystemStatusCard,
+        dataProvider: async () => ({
+            data: {
+                label: 'Identity',
+                value: 'Available',
+                description: 'The deployed Identity module is available for the active team context.',
+            },
+            empty: false,
+        }),
+        cacheTtlSeconds: 30,
+        realtime: {
+            supported: false,
+            channel: null,
+        },
+        optional: false,
+    },
+    {
+        key: 'admin.system-status.search',
+        hostTypes: ['operational-status'],
+        hostKeys: ['admin.system-status'],
+        titleKey: 'views.admin.system_status.search.title',
+        fallbackTitle: 'Search module',
+        descriptionKey: 'views.admin.system_status.search.description',
+        fallbackDescription: 'Optional search projection status.',
+        requirements: {
+            permissions: ['admin.system-status'],
+            modules: ['search'],
+            activeTeam: 'required',
+        },
+        component: SystemStatusCard,
+        dataProvider: async () => ({
+            data: {
+                label: 'Search',
+                value: 'Available',
+                description: 'The optional Search module is deployed and available.',
+            },
+            empty: false,
+        }),
+        cacheTtlSeconds: 30,
+        realtime: {
+            supported: false,
+            channel: null,
+        },
+        optional: true,
     },
 ];
 

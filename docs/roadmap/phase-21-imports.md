@@ -1,6 +1,21 @@
-## Phase 18 — Imports
+## Phase 21 — Imports
 
-### Implementation contract
+**Status:** `not started`
+
+## Objective
+
+Implement reusable import pipelines after files, notifications, audit, integrations, module activation, and operational health are complete.
+
+## Dependencies
+
+- [Phase 11 — Audit and security audit](phase-11-audit-security.md)
+- [Phase 15 — Notifications and realtime foundation](phase-15-notifications-realtime.md)
+- [Phase 16 — Admin operations and health](phase-16-admin-health.md)
+- [Phase 19 — Files](phase-19-files.md)
+- [Phase 20 — Integrations](phase-20-integrations.md)
+- [Imports module documentation](../modules/imports.md)
+
+## Implementation contract
 
 - Use one transport-independent import pipeline:
   source adapter -> parsing -> normalization -> input DTO -> validation -> deduplication/idempotency -> domain use cases -> audit/error report.
@@ -11,6 +26,8 @@
 - Preserve original files according to retention.
 - Import jobs are idempotent and safe to retry according to explicit rules.
 - Admin can inspect status, source, statistics, errors, and allowed retries.
+
+## Tasks
 
 - [ ] Create optional `Imports` module.
 - [ ] Define source adapter contracts.
@@ -33,3 +50,10 @@
 - [ ] Add notifications and progress.
 - [ ] Add development-only demo seeders for example import processes and statuses after real import tables exist.
 - [ ] Commit Imports module.
+
+## Completion criteria
+
+- [ ] Every adapter flows through the same validation, use case, idempotency, audit, file, notification, and progress contracts.
+- [ ] Large imports are queued, observable, retry-safe, and administrable.
+- [ ] API adapters cannot bypass domain use cases or security boundaries.
+- [ ] Relevant tests and documentation are current.

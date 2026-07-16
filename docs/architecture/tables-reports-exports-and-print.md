@@ -6,7 +6,9 @@ Canonical shared contract for data tables, query strings, saved views, exports, 
 
 Every table uses the shared TanStack Table wrapper.
 
-The current Phase 7 foundation provides the first shared TanStack `DataTable` wrapper, initially used by operational Admin tables and reusable by later application tables. It includes local search, sorting, pagination, column visibility, row selection, empty state, row actions, and CSV export for the currently loaded dataset. Persisted table instances store search, sorting, pagination, and column visibility under a stable table key; row selection is intentionally not persisted. The full server-side reporting/export lifecycle below remains the target for larger datasets and later business reports.
+The current Phase 7 foundation provides the first shared TanStack `DataTable` wrapper, initially used by operational Admin tables and reusable by later application tables. Phase 8 verifies and closes any remaining current-screen inconsistencies. The current wrapper includes local search, sorting, pagination, column visibility, row selection, empty state, row actions, and local CSV/XLSX/PDF/print actions for the currently loaded visible dataset. Persisted table instances store search, sorting, pagination, and column visibility under a stable table key; row selection is intentionally not persisted.
+
+Phase 10 completes the full shared table and saved-view foundation, including server-side pagination, filtering, sorting, backend allowlists, URL synchronization, and saved views. Phase 24 implements the later report/export/PDF/chart/print artifact lifecycle after files, notifications, audit, active-team context, and operational visibility exist.
 
 Admin table data columns place `public_id` first. Admin tables expose all safe non-secret columns from their backing table through the column visibility menu, while default visibility stays limited to the most operationally important fields. Secret values such as passwords, remember tokens, authentication tokens, MFA secrets, and recovery codes are never exposed as table columns.
 
@@ -64,7 +66,7 @@ Shared-view changes are audited.
 
 ### Exports
 
-Support from the beginning:
+The report/export phase supports:
 
 - CSV;
 - XLSX;
@@ -82,7 +84,7 @@ Exports and print must honor:
 
 Small exports may run synchronously.
 
-Large exports use queues and notify the user when ready.
+Large exports use queues and notify the user when ready. This depends on the notification and operational-health foundations rather than inventing a local progress mechanism.
 
 Use storage with expiry and cleanup.
 

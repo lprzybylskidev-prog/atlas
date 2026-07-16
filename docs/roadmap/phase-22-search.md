@@ -1,6 +1,21 @@
-## Phase 19 — Search
+## Phase 22 — Search
 
-### Implementation contract
+**Status:** `not started`
+
+## Objective
+
+Implement module-owned Meilisearch projections after Outbox, audit, module activation, active-team context, health, privacy participation, and operational visibility are ready.
+
+## Dependencies
+
+- [Phase 11 — Audit and security audit](phase-11-audit-security.md)
+- [Phase 13 — Sessions and active team](phase-13-sessions-active-team.md)
+- [Phase 14 — Module availability and activation](phase-14-module-activation.md)
+- [Phase 16 — Admin operations and health](phase-16-admin-health.md)
+- [Search module documentation](../modules/search.md)
+- [Modular monolith architecture](../architecture/modular-monolith.md)
+
+## Implementation contract
 
 - Meilisearch is used only for real large full-text catalogs such as people, addresses, counterparties, or similarly large business search.
 - Ordinary filtering, tabular reports, and small selectors use PostgreSQL.
@@ -25,6 +40,8 @@
 - Do not index sensitive data without an explicit need.
 - Backend permissions, active-team scope, module activation, and visibility rules are verified independently of Meilisearch filters.
 
+## Tasks
+
 - [ ] Define module-owned index descriptors and immutable search document DTOs.
 - [ ] Feed indexing from committed Outbox events and make consumers idempotent.
 - [ ] Propagate deletion, anonymization, and visibility changes.
@@ -47,3 +64,10 @@
 - [ ] Remove indexed data during deletion/anonymization.
 - [ ] Document when Meilisearch is allowed and when normal PostgreSQL queries must be used.
 - [ ] Commit Search module.
+
+## Completion criteria
+
+- [ ] Search indexes are derived, rebuildable, module-owned, and fed from committed Outbox events.
+- [ ] Backend authorization, active-team, module activation, deletion, anonymization, and visibility rules do not rely on Meilisearch filters alone.
+- [ ] Search health and rebuilds are visible and safe.
+- [ ] Relevant tests and documentation are current.

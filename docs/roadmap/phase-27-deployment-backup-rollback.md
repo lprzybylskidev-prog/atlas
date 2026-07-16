@@ -1,6 +1,22 @@
-## Phase 25 — Production deployment, backup, restore, and rollback
+## Phase 27 — Production deployment, backup, restore, and rollback
 
-### Implementation contract
+**Status:** `not started`
+
+## Objective
+
+Finalize production topology, deployment, backup, restore, readiness, release metadata, and rollback after the technical foundation capabilities they must operate are complete.
+
+## Dependencies
+
+- [Phase 16 — Admin operations and health](phase-16-admin-health.md)
+- [Phase 19 — Files](phase-19-files.md)
+- [Phase 22 — Search](phase-22-search.md)
+- [Phase 24 — Reports, exports, PDF, charts, and print](phase-24-reports-exports-print.md)
+- [Phase 25 — Security, privacy, deletion, and anonymization](phase-25-security-privacy.md)
+- [Production deployment, backup, and recovery](../operations/production-deployment-backup-and-recovery.md)
+- [Health, observability, and maintenance](../operations/health-observability-and-maintenance.md)
+
+## Implementation contract
 
 - Baseline production runs on one application host or VM using Docker Compose.
 - Use separate services for:
@@ -55,6 +71,8 @@
 - Staging is optional and enabled per customer/project need.
 - Kubernetes, Docker Swarm, and distributed clustering are outside the baseline scope.
 
+## Tasks
+
 - [ ] Finalize production nginx configuration.
 - [ ] Force HTTPS.
 - [ ] Add security headers.
@@ -104,3 +122,10 @@
 - [ ] Support local/development and production; keep staging optional.
 - [ ] Document Kubernetes, Swarm, and distributed clusters as out of scope.
 - [ ] Commit deployment system.
+
+## Completion criteria
+
+- [ ] Production Compose, HTTPS, private networks, release metadata, host commands, backup, restore, readiness, and rollback are implemented and documented.
+- [ ] Restore is tested and always creates a pre-restore backup.
+- [ ] Rollback behavior is explicit about migration compatibility.
+- [ ] Relevant operational checks pass.

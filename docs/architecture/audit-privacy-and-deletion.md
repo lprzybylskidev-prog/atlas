@@ -52,6 +52,8 @@ Use an internal audit system.
 
 Do not use `owen-it/laravel-auditing`.
 
+Identity and Authorization currently record security-sensitive events through the existing audit bridge used during the foundation phases. Phase 11 consolidates those records and any Phase 10 shared-view audit events into the full Audit module without changing producer contracts.
+
 Audit meaningful domain and application events, not every Eloquent timestamp update.
 
 Audit records should include where relevant:

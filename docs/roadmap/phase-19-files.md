@@ -1,6 +1,22 @@
-## Phase 17 — Files
+## Phase 19 — Files
 
-### Implementation contract
+**Status:** `not started`
+
+## Objective
+
+Implement private file storage, quarantine, malware scanning, authorized downloads, and storage administration after audit, module activation, notifications, settings, and operational health exist.
+
+## Dependencies
+
+- [Phase 11 — Audit and security audit](phase-11-audit-security.md)
+- [Phase 12 — Settings and localization](phase-12-settings-localization.md)
+- [Phase 14 — Module availability and activation](phase-14-module-activation.md)
+- [Phase 15 — Notifications and realtime foundation](phase-15-notifications-realtime.md)
+- [Phase 16 — Admin operations and health](phase-16-admin-health.md)
+- [Files module documentation](../modules/files.md)
+- [Health, observability, and maintenance](../operations/health-observability-and-maintenance.md)
+
+## Implementation contract
 
 - Use Laravel Filesystem.
 - Development may use local storage; production uses private S3-compatible storage.
@@ -45,6 +61,8 @@
 - Admin may inspect scan queues, failures, and infected files and may trigger a rescan.
 - Admin must never manually override a file to `clean`.
 
+## Tasks
+
 - [ ] Define the `MalwareScanner` contract.
 - [ ] Implement the ClamAV production adapter.
 - [ ] Implement a development-only fake scanner that exercises quarantine/status/checksum flows and configurable clean, infected, failed, and unsupported outcomes; prevent production use.
@@ -75,3 +93,10 @@
 - [ ] Audit upload, download, quarantine, release, and deletion/anonymization actions.
 - [ ] Build secure admin storage browser.
 - [ ] Commit Files module.
+
+## Completion criteria
+
+- [ ] Files are private, authorized, scanned/quarantined, auditable, and blocked unless clean.
+- [ ] Production readiness fails when active Files require malware scanning and the scanner is unavailable.
+- [ ] Later imports, reports, privacy, and business modules can store artifacts through one file contract.
+- [ ] Relevant tests and documentation are current.
