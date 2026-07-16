@@ -8,6 +8,7 @@ use App\Modules\Core\Authorization\Application\Roles\InstallStarterRoles;
 use App\Modules\Core\Authorization\Application\Roles\StarterRoleName;
 use App\Modules\Core\Identity\Infrastructure\Persistence\User;
 use App\Modules\Core\Teams\Infrastructure\Persistence\Team;
+use App\Shared\Infrastructure\Database\DatabaseTable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Inertia\Testing\AssertableInertia;
@@ -44,7 +45,7 @@ final class FrontendShellTest extends TestCase
         $presetPublicId = '01K00000000000000000000000';
 
         $this->assignStarterRoleInTeam($user, $team, StarterRoleName::Administrator->value);
-        DB::table('authorization_onboarding_packages')->insert([
+        DB::table(DatabaseTable::AUTHORIZATION_ONBOARDING_PACKAGES)->insert([
             'public_id' => $presetPublicId,
             'team_id' => $team->id,
             'name' => 'operations.agent',
@@ -196,14 +197,14 @@ final class FrontendShellTest extends TestCase
 
         $role = Role::query()->where('name', $roleName)->firstOrFail();
 
-        DB::table('team_user_assignments')->insert([
+        DB::table(DatabaseTable::TEAM_USER_ASSIGNMENTS)->insert([
             'team_id' => $team->id,
             'user_id' => $user->id,
             'created_at' => now(),
             'updated_at' => now(),
         ]);
 
-        DB::table('model_has_roles')->insert([
+        DB::table(DatabaseTable::MODEL_HAS_ROLES)->insert([
             'role_id' => $role->id,
             'model_type' => config('auth.providers.users.model'),
             'model_id' => $user->id,

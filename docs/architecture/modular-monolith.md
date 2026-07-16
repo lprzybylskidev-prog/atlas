@@ -215,6 +215,45 @@ Module web routes live under module-owned Presentation route files once module r
 
 Module migrations are owned by the module whose tables they create or modify. Cross-module table changes require an explicit architecture decision and must not be hidden inside another module's migration.
 
+### PostgreSQL schema ownership
+
+Atlas uses PostgreSQL schemas as an explicit persistence ownership boundary. Each Atlas-owned table belongs to the schema of the module or shared infrastructure capability that owns it. The default `public` schema is not the home for Atlas-owned module data.
+
+Schemas complement module boundaries; they do not replace them. A schema-qualified table name is not permission for another module to query that table. Cross-module synchronous access still goes through `Application/Public` contracts, and asynchronous communication still goes through Integration Events.
+
+Schema names are stable lowercase `snake_case` identifiers:
+
+- `core_identity` for authentication identity, credentials, sessions, and password lifecycle persistence;
+- `core_users` for user-lifecycle persistence that is not owned by Identity;
+- `core_teams` for teams and team membership persistence;
+- `core_authorization` for roles, permissions, permission assignments, onboarding packages, and authorization package persistence;
+- `core_audit` for audit and security audit persistence;
+- `core_settings` for typed settings persistence;
+- `core_notifications` for notification and realtime delivery persistence once Phase 15 starts;
+- `shared` for shared technical infrastructure such as Outbox, saved table views, module activation state, and framework runtime tables that Atlas intentionally owns centrally;
+- `optional_<module>` for optional foundation modules;
+- `application_<module>` for debt collection business modules.
+
+The `public` schema is allowed only for PostgreSQL extension metadata, the Laravel migration repository table unless a later operations decision moves it, and explicitly documented package-owned compatibility tables. New Atlas-owned tables must not be created in `public`.
+
+Migrations must create schemas before creating tables, and must use schema-qualified names for tables, foreign-key references, indexes, and raw SQL. Eloquent models, query builders, package configuration, seeders, tests, and operational scripts must not rely on PostgreSQL `search_path` for Atlas-owned tables.
+
+Cross-schema foreign keys are allowed only when the canonical architecture permits the dependency. They enforce integrity only; they do not grant an exception to the rule against direct cross-module queries or mutations.
+
+Current table ownership:
+
+| Schema | Tables |
+| --- | --- |
+| `core_identity` | `users`, `password_reset_tokens`, `user_password_histories`, `user_webauthn_credentials`, `sessions` |
+| `core_teams` | `teams`, `team_user_assignments` |
+| `core_authorization` | `permissions`, `roles`, `model_has_permissions`, `model_has_roles`, `role_has_permissions`, `authorization_onboarding_packages`, `user_onboarding_packages` |
+| `core_audit` | `audit_events`, `audit_security_events` |
+| `core_settings` | `settings_global_values`, `settings_team_values`, `settings_user_values`, `settings_security_values` |
+| `shared` | `cache`, `cache_locks`, `jobs`, `job_batches`, `failed_jobs`, `outbox_events`, `outbox_consumed_events`, `table_saved_views`, `table_saved_view_defaults`, `module_global_states`, `module_team_states`, `module_activation_schedules`, `module_activation_history` |
+| `public` allowlist | `migrations`, package-owned local diagnostics tables such as Telescope tables |
+
+Runtime table references use `App\Shared\Infrastructure\Database\DatabaseTable` constants for schema-qualified Atlas-owned table names. Migrations create required schemas through `App\Shared\Infrastructure\Database\DatabaseSchema`. The configured PostgreSQL `search_path` includes Atlas schemas only so Laravel database maintenance commands can see and wipe all schemas deterministically; application code must still use schema-qualified Atlas-owned table names.
+
 Module contribution contracts are framework-independent declarations consumed by shared Presentation/Admin infrastructure:
 
 - `ModuleMenuContribution` returns `ModuleMenuItem` values;

@@ -7,6 +7,7 @@ namespace App\Shared\Infrastructure\Outbox;
 use App\Shared\Application\Outbox\Contracts\OutboxEventRecorder;
 use App\Shared\Application\Outbox\IntegrationEventMessage;
 use App\Shared\Application\Outbox\OutboxEventStatus;
+use App\Shared\Infrastructure\Database\DatabaseTable;
 use DateTimeImmutable;
 use DateTimeInterface;
 use DateTimeZone;
@@ -20,7 +21,7 @@ final readonly class DatabaseOutboxEventRecorder implements OutboxEventRecorder
     {
         $now = $this->formatTimestamp(new DateTimeImmutable('now', new DateTimeZone('UTC')));
 
-        $this->database->table('outbox_events')->insert([
+        $this->database->table(DatabaseTable::OUTBOX_EVENTS)->insert([
             'event_id' => $event->eventId,
             'event_type' => $event->eventType,
             'schema_version' => $event->schemaVersion,

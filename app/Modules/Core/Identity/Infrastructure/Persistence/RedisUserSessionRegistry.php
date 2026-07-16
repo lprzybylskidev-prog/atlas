@@ -6,6 +6,7 @@ namespace App\Modules\Core\Identity\Infrastructure\Persistence;
 
 use App\Modules\Core\Identity\Application\Public\Contracts\UserSessionRegistry;
 use App\Modules\Core\Identity\Application\Sessions\UserSessionMetadata;
+use App\Shared\Infrastructure\Database\DatabaseTable;
 use Illuminate\Contracts\Session\Session;
 use Illuminate\Http\Request;
 use Illuminate\Redis\Connections\Connection;
@@ -224,7 +225,7 @@ final class RedisUserSessionRegistry implements UserSessionRegistry
 
     private function teamName(string $teamPublicId): ?string
     {
-        $name = DB::table('teams')->where('public_id', $teamPublicId)->value('name');
+        $name = DB::table(DatabaseTable::TEAMS)->where('public_id', $teamPublicId)->value('name');
 
         return is_string($name) ? $name : null;
     }

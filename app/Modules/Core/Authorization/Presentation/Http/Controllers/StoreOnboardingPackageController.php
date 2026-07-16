@@ -5,19 +5,22 @@ declare(strict_types=1);
 namespace App\Modules\Core\Authorization\Presentation\Http\Controllers;
 
 use App\Modules\Core\Authorization\Application\Contracts\OnboardingPackageStore;
+use App\Modules\Core\Teams\Application\Public\Contracts\UserTeamMembershipManager;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 
 final readonly class StoreOnboardingPackageController
 {
     public function __construct(
         private OnboardingPackageStore $packages,
+        private UserTeamMembershipManager $memberships,
     ) {}
 
     public function __invoke(Request $request): RedirectResponse
     {
         $validated = $request->validate([
-            'team_public_id' => ['required', 'string', 'exists:teams,public_id'],
+            'team_public_id' => ['required', 'string'],
             'name' => ['required', 'string', 'max:120', 'regex:/^[a-z0-9_.-]+$/'],
             'label' => ['required', 'string', 'max:255'],
             'initial_roles' => ['nullable', 'array'],
@@ -27,9 +30,16 @@ final readonly class StoreOnboardingPackageController
         ]);
         $validated = is_array($validated) ? $validated : [];
         $directPermissions = $this->stringList($validated, 'direct_permissions');
+        $teamPublicId = $this->stringValue($validated, 'team_public_id');
+
+        if (! $this->memberships->teamExists($teamPublicId)) {
+            throw ValidationException::withMessages([
+                'team_public_id' => __('validation.exists', ['attribute' => 'team']),
+            ]);
+        }
 
         $this->packages->upsert(
-            teamPublicId: $this->stringValue($validated, 'team_public_id'),
+            teamPublicId: $teamPublicId,
             name: $this->stringValue($validated, 'name'),
             label: $this->stringValue($validated, 'label'),
             initialRoleNames: $this->stringList($validated, 'initial_roles'),

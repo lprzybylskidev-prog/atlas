@@ -6,6 +6,7 @@ namespace Tests\Feature\Foundation;
 
 use App\Modules\Core\Authorization\Application\Roles\StarterRoleName;
 use App\Modules\Core\Identity\Infrastructure\Persistence\User;
+use App\Shared\Infrastructure\Database\DatabaseTable;
 use Database\Seeders\DatabaseSeeder;
 use Database\Seeders\DevelopmentDemoSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -37,7 +38,7 @@ final class DemoResetTest extends TestCase
     {
         $this->seed(DatabaseSeeder::class);
 
-        $this->assertDatabaseMissing('users', [
+        $this->assertDatabaseMissing(DatabaseTable::USERS, [
             'email' => DevelopmentDemoSeeder::PREVIEW_EMAIL,
         ]);
     }
@@ -53,25 +54,25 @@ final class DemoResetTest extends TestCase
         $this->assertSame('Admin', $user->name);
         $this->assertTrue(Hash::check(DevelopmentDemoSeeder::PREVIEW_PASSWORD, $user->password));
         $this->assertNotNull($user->email_verified_at);
-        $this->assertDatabaseHas('teams', ['name' => 'Collections North']);
-        $this->assertDatabaseHas('teams', ['name' => 'Collections South']);
-        $this->assertDatabaseHas('teams', ['name' => 'Back Office']);
-        $this->assertDatabaseHas('roles', ['name' => StarterRoleName::Administrator->value]);
-        $this->assertDatabaseHas('users', ['email' => 'demo.user.01@example.test']);
-        $this->assertDatabaseHas('users', ['email' => 'demo.copy.north@example.test']);
-        $this->assertDatabaseHas('users', ['email' => 'demo.copy.south@example.test']);
-        $this->assertDatabaseHas('users', ['email' => 'demo.copy.backoffice@example.test']);
-        $this->assertDatabaseHas('users', ['email' => 'demo.multi.team@example.test']);
-        $this->assertDatabaseHas('user_onboarding_packages', ['package_name' => 'north.collections.agent']);
-        $this->assertDatabaseHas('user_onboarding_packages', ['package_name' => 'north.collections.team_leader']);
-        $this->assertDatabaseHas('user_onboarding_packages', ['package_name' => 'south.collections.skip_tracer']);
-        $this->assertDatabaseHas('user_onboarding_packages', ['package_name' => 'back_office.specialist']);
+        $this->assertDatabaseHas(DatabaseTable::TEAMS, ['name' => 'Collections North']);
+        $this->assertDatabaseHas(DatabaseTable::TEAMS, ['name' => 'Collections South']);
+        $this->assertDatabaseHas(DatabaseTable::TEAMS, ['name' => 'Back Office']);
+        $this->assertDatabaseHas(DatabaseTable::ROLES, ['name' => StarterRoleName::Administrator->value]);
+        $this->assertDatabaseHas(DatabaseTable::USERS, ['email' => 'demo.user.01@example.test']);
+        $this->assertDatabaseHas(DatabaseTable::USERS, ['email' => 'demo.copy.north@example.test']);
+        $this->assertDatabaseHas(DatabaseTable::USERS, ['email' => 'demo.copy.south@example.test']);
+        $this->assertDatabaseHas(DatabaseTable::USERS, ['email' => 'demo.copy.backoffice@example.test']);
+        $this->assertDatabaseHas(DatabaseTable::USERS, ['email' => 'demo.multi.team@example.test']);
+        $this->assertDatabaseHas(DatabaseTable::USER_ONBOARDING_PACKAGES, ['package_name' => 'north.collections.agent']);
+        $this->assertDatabaseHas(DatabaseTable::USER_ONBOARDING_PACKAGES, ['package_name' => 'north.collections.team_leader']);
+        $this->assertDatabaseHas(DatabaseTable::USER_ONBOARDING_PACKAGES, ['package_name' => 'south.collections.skip_tracer']);
+        $this->assertDatabaseHas(DatabaseTable::USER_ONBOARDING_PACKAGES, ['package_name' => 'back_office.specialist']);
 
         $multiTeamUser = User::query()
             ->where('email', 'demo.multi.team@example.test')
             ->firstOrFail();
 
-        $this->assertSame(2, DB::table('user_onboarding_packages')
+        $this->assertSame(2, DB::table(DatabaseTable::USER_ONBOARDING_PACKAGES)
             ->where('user_id', $multiTeamUser->id)
             ->count());
     }

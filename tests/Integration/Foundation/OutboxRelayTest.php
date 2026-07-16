@@ -10,6 +10,7 @@ use App\Shared\Application\Outbox\Contracts\OutboxMaintenance;
 use App\Shared\Application\Outbox\IntegrationEventMessage;
 use App\Shared\Application\Outbox\OutboxEventStatus;
 use App\Shared\Application\Outbox\OutboxStoredEvent;
+use App\Shared\Infrastructure\Database\DatabaseTable;
 use App\Shared\Infrastructure\Outbox\DatabaseOutboxRelay;
 use DateTimeImmutable;
 use DateTimeZone;
@@ -48,12 +49,12 @@ final class OutboxRelayTest extends TestCase
         self::assertSame('identity.user_registered', $publisher->publishedEvents[0]->eventType);
         self::assertSame(['user_id' => '01J00000000000000000000000'], $publisher->publishedEvents[0]->payload);
 
-        $this->assertDatabaseHas('outbox_events', [
+        $this->assertDatabaseHas(DatabaseTable::OUTBOX_EVENTS, [
             'event_id' => $eventId,
             'status' => OutboxEventStatus::Published->value,
         ]);
 
-        self::assertNotNull(DB::table('outbox_events')->where('event_id', $eventId)->value('published_at'));
+        self::assertNotNull(DB::table(DatabaseTable::OUTBOX_EVENTS)->where('event_id', $eventId)->value('published_at'));
     }
 
     public function test_it_does_not_publish_events_that_are_not_due(): void
@@ -72,7 +73,7 @@ final class OutboxRelayTest extends TestCase
             correlationId: (string) Str::ulid(),
         ));
 
-        DB::table('outbox_events')
+        DB::table(DatabaseTable::OUTBOX_EVENTS)
             ->where('event_id', $eventId)
             ->update([
                 'next_attempt_at' => '2999-01-01 00:00:00+00',
@@ -84,7 +85,7 @@ final class OutboxRelayTest extends TestCase
         self::assertSame(0, $result->published);
         self::assertSame([], $publisher->publishedEvents);
 
-        $this->assertDatabaseHas('outbox_events', [
+        $this->assertDatabaseHas(DatabaseTable::OUTBOX_EVENTS, [
             'event_id' => $eventId,
             'status' => OutboxEventStatus::Pending->value,
         ]);
@@ -103,7 +104,7 @@ final class OutboxRelayTest extends TestCase
         self::assertSame(1, $result->scheduledForRetry);
         self::assertSame(0, $result->failed);
 
-        $record = DB::table('outbox_events')->where('event_id', $eventId)->first();
+        $record = DB::table(DatabaseTable::OUTBOX_EVENTS)->where('event_id', $eventId)->first();
 
         self::assertNotNull($record);
         self::assertSame(OutboxEventStatus::Pending->value, $record->status);
@@ -128,7 +129,7 @@ final class OutboxRelayTest extends TestCase
         self::assertSame(0, $result->scheduledForRetry);
         self::assertSame(1, $result->failed);
 
-        $record = DB::table('outbox_events')->where('event_id', $eventId)->first();
+        $record = DB::table(DatabaseTable::OUTBOX_EVENTS)->where('event_id', $eventId)->first();
 
         self::assertNotNull($record);
         self::assertSame(OutboxEventStatus::Failed->value, $record->status);
@@ -148,7 +149,7 @@ final class OutboxRelayTest extends TestCase
         $replayed = $this->app->make(OutboxMaintenance::class)->replayFailed($eventId);
 
         self::assertTrue($replayed);
-        $this->assertDatabaseHas('outbox_events', [
+        $this->assertDatabaseHas(DatabaseTable::OUTBOX_EVENTS, [
             'event_id' => $eventId,
             'status' => OutboxEventStatus::Pending->value,
             'attempts' => 0,
@@ -160,14 +161,14 @@ final class OutboxRelayTest extends TestCase
         $publishedEventId = $this->recordEvent();
         $failedEventId = $this->recordEvent();
 
-        DB::table('outbox_events')
+        DB::table(DatabaseTable::OUTBOX_EVENTS)
             ->where('event_id', $publishedEventId)
             ->update([
                 'status' => OutboxEventStatus::Published->value,
                 'published_at' => '2000-01-01 00:00:00+00',
             ]);
 
-        DB::table('outbox_events')
+        DB::table(DatabaseTable::OUTBOX_EVENTS)
             ->where('event_id', $failedEventId)
             ->update([
                 'status' => OutboxEventStatus::Failed->value,
@@ -181,8 +182,8 @@ final class OutboxRelayTest extends TestCase
 
         self::assertSame(1, $result->deletedPublished);
         self::assertSame(1, $result->deletedFailed);
-        $this->assertDatabaseMissing('outbox_events', ['event_id' => $publishedEventId]);
-        $this->assertDatabaseMissing('outbox_events', ['event_id' => $failedEventId]);
+        $this->assertDatabaseMissing(DatabaseTable::OUTBOX_EVENTS, ['event_id' => $publishedEventId]);
+        $this->assertDatabaseMissing(DatabaseTable::OUTBOX_EVENTS, ['event_id' => $failedEventId]);
     }
 
     public function test_maintenance_reports_outbox_lag_metrics(): void

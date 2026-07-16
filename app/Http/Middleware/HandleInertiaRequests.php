@@ -7,6 +7,7 @@ namespace App\Http\Middleware;
 use App\Modules\Core\Authorization\Application\Public\Contracts\EffectivePermissionChecker;
 use App\Modules\Core\Authorization\Application\Public\DTOs\EffectivePermissionRequest;
 use App\Modules\Core\Settings\Application\Settings\EffectiveSettings;
+use App\Shared\Infrastructure\Database\DatabaseTable;
 use Diglactic\Breadcrumbs\Breadcrumbs;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -70,9 +71,9 @@ final class HandleInertiaRequests extends Middleware
 
         $available = [];
 
-        foreach (DB::table('team_user_assignments')
-            ->join('users', 'team_user_assignments.user_id', '=', 'users.id')
-            ->join('teams', 'team_user_assignments.team_id', '=', 'teams.id')
+        foreach (DB::table(DatabaseTable::TEAM_USER_ASSIGNMENTS)
+            ->join(DatabaseTable::USERS, 'team_user_assignments.user_id', '=', 'users.id')
+            ->join(DatabaseTable::TEAMS, 'team_user_assignments.team_id', '=', 'teams.id')
             ->where('users.public_id', $userPublicId)
             ->where('teams.is_active', true)
             ->orderBy('teams.name')
@@ -114,7 +115,7 @@ final class HandleInertiaRequests extends Middleware
         $teamId = null;
 
         if (is_string($teamPublicId)) {
-            $teamId = DB::table('teams')
+            $teamId = DB::table(DatabaseTable::TEAMS)
                 ->where('public_id', $teamPublicId)
                 ->value('id');
         }
@@ -178,9 +179,9 @@ final class HandleInertiaRequests extends Middleware
 
     private function firstAssignedTeamPublicId(string $userPublicId): ?string
     {
-        $team = DB::table('team_user_assignments')
-            ->join('users', 'team_user_assignments.user_id', '=', 'users.id')
-            ->join('teams', 'team_user_assignments.team_id', '=', 'teams.id')
+        $team = DB::table(DatabaseTable::TEAM_USER_ASSIGNMENTS)
+            ->join(DatabaseTable::USERS, 'team_user_assignments.user_id', '=', 'users.id')
+            ->join(DatabaseTable::TEAMS, 'team_user_assignments.team_id', '=', 'teams.id')
             ->where('users.public_id', $userPublicId)
             ->where('teams.is_active', true)
             ->orderBy('teams.name')

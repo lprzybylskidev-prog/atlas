@@ -6,6 +6,7 @@ namespace App\Shared\Application\Tables;
 
 use App\Modules\Core\Identity\Application\Public\Contracts\SecurityAuditRecorder;
 use App\Modules\Core\Identity\Application\Public\DTOs\SecurityAuditEvent;
+use App\Shared\Infrastructure\Database\DatabaseTable;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -22,12 +23,12 @@ final readonly class TableSavedViewService
      */
     public function listFor(string $tableKey, int $userId, ?int $teamId): array
     {
-        $defaultViewId = DB::table('table_saved_view_defaults')
+        $defaultViewId = DB::table(DatabaseTable::TABLE_SAVED_VIEW_DEFAULTS)
             ->where('user_id', $userId)
             ->where('table_key', $tableKey)
             ->value('table_saved_view_id');
 
-        $query = DB::table('table_saved_views')
+        $query = DB::table(DatabaseTable::TABLE_SAVED_VIEWS)
             ->where('table_key', $tableKey)
             ->where(static function (Builder $query) use ($userId, $teamId): void {
                 $query->where(static function (Builder $private) use ($userId): void {
@@ -69,7 +70,7 @@ final readonly class TableSavedViewService
 
         $publicId = (string) Str::ulid();
 
-        DB::table('table_saved_views')->insert([
+        DB::table(DatabaseTable::TABLE_SAVED_VIEWS)->insert([
             'public_id' => $publicId,
             'table_key' => $tableKey,
             'name' => mb_substr(trim($name), 0, 80),
@@ -102,7 +103,7 @@ final readonly class TableSavedViewService
         $type = self::stringValue($values['type'] ?? '');
         $definition = AdminTableDefinitions::get($tableKey);
 
-        DB::table('table_saved_views')
+        DB::table(DatabaseTable::TABLE_SAVED_VIEWS)
             ->where('id', self::intValue($values['id'] ?? null))
             ->update([
                 'name' => mb_substr(trim($name), 0, 80),
@@ -122,7 +123,7 @@ final readonly class TableSavedViewService
             throw new HttpException(403, 'System views cannot be deleted.');
         }
 
-        DB::table('table_saved_views')->where('id', self::intValue($values['id'] ?? null))->delete();
+        DB::table(DatabaseTable::TABLE_SAVED_VIEWS)->where('id', self::intValue($values['id'] ?? null))->delete();
         $this->recordAudit(
             'table_saved_view.deleted',
             self::stringValue($values['type'] ?? ''),
@@ -154,7 +155,7 @@ final readonly class TableSavedViewService
         $view = $this->visibleView($publicId, $userId, $teamId);
         $values = get_object_vars($view);
 
-        DB::table('table_saved_view_defaults')->updateOrInsert(
+        DB::table(DatabaseTable::TABLE_SAVED_VIEW_DEFAULTS)->updateOrInsert(
             [
                 'user_id' => $userId,
                 'table_key' => self::stringValue($values['table_key'] ?? ''),
@@ -260,7 +261,7 @@ final readonly class TableSavedViewService
 
     private function visibleView(string $publicId, int $userId, ?int $teamId): object
     {
-        $view = DB::table('table_saved_views')
+        $view = DB::table(DatabaseTable::TABLE_SAVED_VIEWS)
             ->where('public_id', $publicId)
             ->where(static function (Builder $query) use ($userId, $teamId): void {
                 $query->where(static function (Builder $private) use ($userId): void {

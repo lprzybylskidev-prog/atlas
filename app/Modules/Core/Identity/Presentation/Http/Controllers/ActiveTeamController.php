@@ -7,6 +7,7 @@ namespace App\Modules\Core\Identity\Presentation\Http\Controllers;
 use App\Modules\Core\Audit\Application\Public\Contracts\AuditRecorder;
 use App\Modules\Core\Audit\Application\Public\DTOs\AuditEvent;
 use App\Modules\Core\Identity\Application\Public\Contracts\UserSessionRegistry;
+use App\Shared\Infrastructure\Database\DatabaseTable;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -75,9 +76,9 @@ final readonly class ActiveTeamController
 
         $teams = [];
 
-        foreach (DB::table('team_user_assignments')
-            ->join('users', 'team_user_assignments.user_id', '=', 'users.id')
-            ->join('teams', 'team_user_assignments.team_id', '=', 'teams.id')
+        foreach (DB::table(DatabaseTable::TEAM_USER_ASSIGNMENTS)
+            ->join(DatabaseTable::USERS, 'team_user_assignments.user_id', '=', 'users.id')
+            ->join(DatabaseTable::TEAMS, 'team_user_assignments.team_id', '=', 'teams.id')
             ->where('users.public_id', $userPublicId)
             ->where('teams.is_active', true)
             ->where(static function (Builder $query): void {

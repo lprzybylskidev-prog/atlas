@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use App\Shared\Infrastructure\Database\DatabaseSchema;
+use App\Shared\Infrastructure\Database\DatabaseTable;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -10,7 +12,10 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('teams', static function (Blueprint $table): void {
+        DatabaseSchema::ensure(DatabaseSchema::CORE_TEAMS);
+        DatabaseSchema::ensure(DatabaseSchema::CORE_AUTHORIZATION);
+
+        Schema::create(DatabaseTable::TEAMS, static function (Blueprint $table): void {
             $table->id();
             $table->ulid('public_id')->unique();
             $table->string('name');
@@ -18,10 +23,10 @@ return new class extends Migration
             $table->timestamps();
         });
 
-        Schema::create('team_user_assignments', static function (Blueprint $table): void {
+        Schema::create(DatabaseTable::TEAM_USER_ASSIGNMENTS, static function (Blueprint $table): void {
             $table->id();
-            $table->foreignId('team_id')->constrained('teams')->restrictOnDelete();
-            $table->foreignId('user_id')->constrained('users')->restrictOnDelete();
+            $table->foreignId('team_id')->constrained(DatabaseTable::TEAMS)->restrictOnDelete();
+            $table->foreignId('user_id')->constrained(DatabaseTable::USERS)->restrictOnDelete();
             $table->boolean('is_head_manager')->default(false);
             $table->timestampTz('valid_from')->nullable();
             $table->timestampTz('valid_to')->nullable();
@@ -31,10 +36,10 @@ return new class extends Migration
             $table->index(['user_id', 'team_id']);
         });
 
-        Schema::create('authorization_onboarding_packages', static function (Blueprint $table): void {
+        Schema::create(DatabaseTable::AUTHORIZATION_ONBOARDING_PACKAGES, static function (Blueprint $table): void {
             $table->id();
             $table->ulid('public_id')->unique();
-            $table->foreignId('team_id')->constrained('teams')->restrictOnDelete();
+            $table->foreignId('team_id')->constrained(DatabaseTable::TEAMS)->restrictOnDelete();
             $table->string('name');
             $table->string('label');
             $table->json('initial_role_names');
@@ -47,10 +52,10 @@ return new class extends Migration
             $table->index(['team_id', 'is_active']);
         });
 
-        Schema::create('user_onboarding_packages', static function (Blueprint $table): void {
+        Schema::create(DatabaseTable::USER_ONBOARDING_PACKAGES, static function (Blueprint $table): void {
             $table->id();
-            $table->foreignId('user_id')->constrained('users')->restrictOnDelete();
-            $table->foreignId('team_id')->constrained('teams')->restrictOnDelete();
+            $table->foreignId('user_id')->constrained(DatabaseTable::USERS)->restrictOnDelete();
+            $table->foreignId('team_id')->constrained(DatabaseTable::TEAMS)->restrictOnDelete();
             $table->string('package_name');
             $table->timestamps();
 
@@ -61,9 +66,9 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::dropIfExists('user_onboarding_packages');
-        Schema::dropIfExists('authorization_onboarding_packages');
-        Schema::dropIfExists('team_user_assignments');
-        Schema::dropIfExists('teams');
+        Schema::dropIfExists(DatabaseTable::USER_ONBOARDING_PACKAGES);
+        Schema::dropIfExists(DatabaseTable::AUTHORIZATION_ONBOARDING_PACKAGES);
+        Schema::dropIfExists(DatabaseTable::TEAM_USER_ASSIGNMENTS);
+        Schema::dropIfExists(DatabaseTable::TEAMS);
     }
 };

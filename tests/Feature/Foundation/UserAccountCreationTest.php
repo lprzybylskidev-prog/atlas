@@ -9,6 +9,7 @@ use App\Modules\Core\Users\Application\Commands\CreateUserAccountCommand;
 use App\Modules\Core\Users\Application\CreateUserAccount;
 use App\Modules\Core\Users\Application\Exceptions\InvalidUserAccountData;
 use App\Modules\Core\Users\Infrastructure\Notifications\FirstPasswordSetupNotification;
+use App\Shared\Infrastructure\Database\DatabaseTable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Routing\Middleware\ThrottleRequests;
 use Illuminate\Support\Facades\Hash;
@@ -41,7 +42,7 @@ final class UserAccountCreationTest extends TestCase
         self::assertNull($user->email_verified_at);
         self::assertFalse(Hash::check('', $user->password));
 
-        $this->assertDatabaseHas('password_reset_tokens', [
+        $this->assertDatabaseHas(DatabaseTable::PASSWORD_RESET_TOKENS, [
             'email' => 'operations.user@example.test',
         ]);
 

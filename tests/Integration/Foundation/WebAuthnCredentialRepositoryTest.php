@@ -6,6 +6,7 @@ namespace Tests\Integration\Foundation;
 
 use App\Modules\Core\Identity\Application\WebAuthn\Contracts\WebAuthnCredentialRepository;
 use App\Modules\Core\Identity\Infrastructure\Persistence\User;
+use App\Shared\Infrastructure\Database\DatabaseTable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Symfony\Component\Uid\Uuid;
 use Tests\TestCase;
@@ -48,7 +49,7 @@ final class WebAuthnCredentialRepositoryTest extends TestCase
 
         self::assertCount(1, $repository->allForUser($user->public_id));
 
-        $this->assertDatabaseHas('user_webauthn_credentials', [
+        $this->assertDatabaseHas(DatabaseTable::USER_WEBAUTHN_CREDENTIALS, [
             'user_public_id' => $user->public_id,
             'credential_id' => 'credential-id-1',
             'label' => 'Primary passkey',

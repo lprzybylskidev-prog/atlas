@@ -16,6 +16,7 @@ use App\Modules\Core\Teams\Infrastructure\Persistence\Team;
 use App\Modules\Core\Users\Application\Commands\CreateUserAccountCommand;
 use App\Modules\Core\Users\Application\CreateUserAccount;
 use App\Modules\Core\Users\Infrastructure\Notifications\FirstPasswordSetupNotification;
+use App\Shared\Infrastructure\Database\DatabaseTable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
 use InvalidArgumentException;
@@ -90,12 +91,12 @@ final class OnboardingPermissionPackageTest extends TestCase
         $applier = $this->app->make(ApplyOnboardingPackageToUser::class);
         $applier->apply('collections.team_leader', $user->public_id, $team->public_id, null, duringUserCreation: true);
 
-        self::assertDatabaseHas('user_onboarding_packages', [
+        self::assertDatabaseHas(DatabaseTable::USER_ONBOARDING_PACKAGES, [
             'user_id' => $user->id,
             'team_id' => $team->id,
             'package_name' => 'collections.team_leader',
         ]);
-        self::assertDatabaseHas('audit_events', [
+        self::assertDatabaseHas(DatabaseTable::AUDIT_EVENTS, [
             'action' => 'authorization.user_onboarding_package_applied',
             'target_public_id' => $user->public_id,
         ]);
@@ -129,12 +130,12 @@ final class OnboardingPermissionPackageTest extends TestCase
 
         $user = User::query()->where('public_id', $created->publicId)->firstOrFail();
 
-        self::assertDatabaseHas('user_onboarding_packages', [
+        self::assertDatabaseHas(DatabaseTable::USER_ONBOARDING_PACKAGES, [
             'user_id' => $user->id,
             'team_id' => $team->id,
             'package_name' => 'collections.team_leader',
         ]);
-        self::assertDatabaseHas('audit_events', [
+        self::assertDatabaseHas(DatabaseTable::AUDIT_EVENTS, [
             'action' => 'authorization.user_onboarding_package_applied',
             'target_public_id' => $created->publicId,
         ]);

@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace App\Modules\Core\Users\Presentation\Http\Controllers;
 
 use App\Modules\Core\Identity\Application\Public\Contracts\UserCredentialAccountDirectory;
+use Closure;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
 
 final readonly class UpdateUserAccountController
 {
@@ -19,7 +19,7 @@ final readonly class UpdateUserAccountController
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($user, 'public_id')],
+            'email' => ['required', 'email', 'max:255', $this->availableEmailRule($user)],
         ]);
         $validated = is_array($validated) ? $validated : [];
 
@@ -44,5 +44,16 @@ final readonly class UpdateUserAccountController
         $value = $values[$key] ?? '';
 
         return is_string($value) ? $value : '';
+    }
+
+    private function availableEmailRule(string $currentUserPublicId): Closure
+    {
+        return function (string $attribute, mixed $value, Closure $fail) use ($currentUserPublicId): void {
+            if (! is_string($value) || ! $this->accounts->emailExists($value, $currentUserPublicId)) {
+                return;
+            }
+
+            $fail('The '.$attribute.' has already been taken.');
+        };
     }
 }

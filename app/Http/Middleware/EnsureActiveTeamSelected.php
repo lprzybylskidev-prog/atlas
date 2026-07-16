@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Middleware;
 
+use App\Shared\Infrastructure\Database\DatabaseTable;
 use Closure;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Http\Request;
@@ -57,9 +58,9 @@ final class EnsureActiveTeamSelected
     {
         $teams = [];
 
-        foreach (DB::table('team_user_assignments')
-            ->join('users', 'team_user_assignments.user_id', '=', 'users.id')
-            ->join('teams', 'team_user_assignments.team_id', '=', 'teams.id')
+        foreach (DB::table(DatabaseTable::TEAM_USER_ASSIGNMENTS)
+            ->join(DatabaseTable::USERS, 'team_user_assignments.user_id', '=', 'users.id')
+            ->join(DatabaseTable::TEAMS, 'team_user_assignments.team_id', '=', 'teams.id')
             ->where('users.public_id', $userPublicId)
             ->where('teams.is_active', true)
             ->where(static function (Builder $query): void {
@@ -82,9 +83,9 @@ final class EnsureActiveTeamSelected
 
     private function belongsToActiveTeam(string $userPublicId, string $teamPublicId): bool
     {
-        return DB::table('team_user_assignments')
-            ->join('users', 'team_user_assignments.user_id', '=', 'users.id')
-            ->join('teams', 'team_user_assignments.team_id', '=', 'teams.id')
+        return DB::table(DatabaseTable::TEAM_USER_ASSIGNMENTS)
+            ->join(DatabaseTable::USERS, 'team_user_assignments.user_id', '=', 'users.id')
+            ->join(DatabaseTable::TEAMS, 'team_user_assignments.team_id', '=', 'teams.id')
             ->where('users.public_id', $userPublicId)
             ->where('teams.public_id', $teamPublicId)
             ->where('teams.is_active', true)

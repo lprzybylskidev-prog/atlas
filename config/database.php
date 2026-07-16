@@ -16,7 +16,7 @@ return [
             'charset' => 'utf8',
             'prefix' => '',
             'prefix_indexes' => true,
-            'search_path' => 'public',
+            'search_path' => env('DB_SEARCH_PATH', 'public,core_identity,core_teams,core_authorization,core_audit,core_settings,shared'),
             'sslmode' => env('DB_SSLMODE', 'prefer'),
         ],
     ],

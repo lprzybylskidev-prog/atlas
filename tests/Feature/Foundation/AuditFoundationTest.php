@@ -12,6 +12,7 @@ use App\Modules\Core\Identity\Application\Public\Contracts\SecurityAuditRecorder
 use App\Modules\Core\Identity\Application\Public\DTOs\SecurityAuditEvent;
 use App\Modules\Core\Identity\Infrastructure\Persistence\User;
 use App\Modules\Core\Teams\Infrastructure\Persistence\Team;
+use App\Shared\Infrastructure\Database\DatabaseTable;
 use Illuminate\Auth\Events\Logout;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -44,7 +45,7 @@ final class AuditFoundationTest extends TestCase
             metadata: ['ticket' => 'SUP-100'],
         ));
 
-        self::assertDatabaseHas('audit_events', [
+        self::assertDatabaseHas(DatabaseTable::AUDIT_EVENTS, [
             'module' => 'identity',
             'action' => 'user.mfa_reset',
             'result' => 'succeeded',
@@ -54,7 +55,7 @@ final class AuditFoundationTest extends TestCase
             'reason' => 'Support verified identity.',
             'is_security' => true,
         ]);
-        self::assertDatabaseHas('audit_security_events', [
+        self::assertDatabaseHas(DatabaseTable::AUDIT_SECURITY_EVENTS, [
             'category' => 'mfa',
             'action' => 'user.mfa_reset',
             'result' => 'succeeded',
@@ -72,12 +73,12 @@ final class AuditFoundationTest extends TestCase
             source: 'test',
         ));
 
-        $publicId = DB::table('audit_events')->value('public_id');
+        $publicId = DB::table(DatabaseTable::AUDIT_EVENTS)->value('public_id');
         self::assertIsString($publicId);
 
         $this->expectException(QueryException::class);
 
-        DB::table('audit_events')
+        DB::table(DatabaseTable::AUDIT_EVENTS)
             ->where('public_id', $publicId)
             ->update(['result' => 'tampered']);
     }
@@ -88,7 +89,7 @@ final class AuditFoundationTest extends TestCase
 
         event(new Logout('web', $actor));
 
-        self::assertDatabaseHas('audit_events', [
+        self::assertDatabaseHas(DatabaseTable::AUDIT_EVENTS, [
             'module' => 'identity',
             'action' => 'auth.logout',
             'result' => 'succeeded',
@@ -203,14 +204,14 @@ final class AuditFoundationTest extends TestCase
 
         $role = Role::query()->where('name', StarterRoleName::Administrator->value)->firstOrFail();
 
-        DB::table('team_user_assignments')->insert([
+        DB::table(DatabaseTable::TEAM_USER_ASSIGNMENTS)->insert([
             'team_id' => $team->id,
             'user_id' => $user->id,
             'created_at' => now(),
             'updated_at' => now(),
         ]);
 
-        DB::table('model_has_roles')->insert([
+        DB::table(DatabaseTable::MODEL_HAS_ROLES)->insert([
             'role_id' => $role->id,
             'model_type' => config('auth.providers.users.model'),
             'model_id' => $user->id,

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Core\Identity\Infrastructure\Persistence;
 
 use App\Modules\Core\Identity\Application\Contracts\PasswordHistoryRepository;
+use App\Shared\Infrastructure\Database\DatabaseTable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 
@@ -12,7 +13,7 @@ final class DatabasePasswordHistoryRepository implements PasswordHistoryReposito
 {
     public function containsRecentPassword(int $userId, string $plainPassword, int $limit): bool
     {
-        $hashes = DB::table('user_password_histories')
+        $hashes = DB::table(DatabaseTable::USER_PASSWORD_HISTORIES)
             ->where('user_id', $userId)
             ->orderByDesc('created_at')
             ->orderByDesc('id')
@@ -30,20 +31,20 @@ final class DatabasePasswordHistoryRepository implements PasswordHistoryReposito
 
     public function record(int $userId, string $passwordHash, int $limit): void
     {
-        DB::table('user_password_histories')->insert([
+        DB::table(DatabaseTable::USER_PASSWORD_HISTORIES)->insert([
             'user_id' => $userId,
             'password_hash' => $passwordHash,
             'created_at' => now(),
         ]);
 
-        $retainedIds = DB::table('user_password_histories')
+        $retainedIds = DB::table(DatabaseTable::USER_PASSWORD_HISTORIES)
             ->where('user_id', $userId)
             ->orderByDesc('created_at')
             ->orderByDesc('id')
             ->limit($limit)
             ->pluck('id');
 
-        DB::table('user_password_histories')
+        DB::table(DatabaseTable::USER_PASSWORD_HISTORIES)
             ->where('user_id', $userId)
             ->whereNotIn('id', $retainedIds)
             ->delete();

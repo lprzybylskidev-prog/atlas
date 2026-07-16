@@ -19,6 +19,7 @@ use App\Shared\Application\Tables\ArrayTableProcessor;
 use App\Shared\Application\Tables\TableRequestContext;
 use App\Shared\Application\Tables\TableSavedViewService;
 use App\Shared\Application\Tables\TableState;
+use App\Shared\Infrastructure\Database\DatabaseTable;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -269,7 +270,7 @@ final readonly class ModuleActivationController
     {
         $rows = [];
 
-        foreach (DB::table('teams')->orderBy('name')->get(['id', 'public_id', 'name', 'is_active']) as $team) {
+        foreach (DB::table(DatabaseTable::TEAMS)->orderBy('name')->get(['id', 'public_id', 'name', 'is_active']) as $team) {
             $values = get_object_vars($team);
             $teamId = is_numeric($values['id'] ?? null) ? (int) $values['id'] : null;
 
@@ -297,8 +298,8 @@ final readonly class ModuleActivationController
      */
     private function historyRows(string $module): array
     {
-        $rows = DB::table('module_activation_history')
-            ->leftJoin('teams', 'module_activation_history.team_id', '=', 'teams.id')
+        $rows = DB::table(DatabaseTable::MODULE_ACTIVATION_HISTORY)
+            ->leftJoin(DatabaseTable::TEAMS, 'module_activation_history.team_id', '=', 'teams.id')
             ->where('module_activation_history.module_key', $module)
             ->orderByDesc('module_activation_history.effective_at')
             ->limit(25)
@@ -333,8 +334,8 @@ final readonly class ModuleActivationController
      */
     private function scheduleRows(string $module): array
     {
-        $rows = DB::table('module_activation_schedules')
-            ->leftJoin('teams', 'module_activation_schedules.team_id', '=', 'teams.id')
+        $rows = DB::table(DatabaseTable::MODULE_ACTIVATION_SCHEDULES)
+            ->leftJoin(DatabaseTable::TEAMS, 'module_activation_schedules.team_id', '=', 'teams.id')
             ->where('module_activation_schedules.module_key', $module)
             ->orderByDesc('module_activation_schedules.effective_at')
             ->limit(25)
@@ -373,7 +374,7 @@ final readonly class ModuleActivationController
 
     private function teamId(string $teamPublicId): ?int
     {
-        $teamId = DB::table('teams')->where('public_id', $teamPublicId)->value('id');
+        $teamId = DB::table(DatabaseTable::TEAMS)->where('public_id', $teamPublicId)->value('id');
 
         return is_numeric($teamId) ? (int) $teamId : null;
     }

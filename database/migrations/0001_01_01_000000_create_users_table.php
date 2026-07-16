@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use App\Shared\Infrastructure\Database\DatabaseSchema;
+use App\Shared\Infrastructure\Database\DatabaseTable;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -10,7 +12,9 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('users', function (Blueprint $table) {
+        DatabaseSchema::ensure(DatabaseSchema::CORE_IDENTITY);
+
+        Schema::create(DatabaseTable::USERS, function (Blueprint $table) {
             $table->id();
             $table->ulid('public_id')->unique();
             $table->string('name');
@@ -30,22 +34,22 @@ return new class extends Migration
             $table->index('login_locked_until');
         });
 
-        Schema::create('password_reset_tokens', function (Blueprint $table) {
+        Schema::create(DatabaseTable::PASSWORD_RESET_TOKENS, function (Blueprint $table) {
             $table->string('email')->primary();
             $table->string('token');
             $table->timestamp('created_at')->nullable();
         });
 
-        Schema::create('user_password_histories', function (Blueprint $table) {
+        Schema::create(DatabaseTable::USER_PASSWORD_HISTORIES, function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->constrained('users')->restrictOnDelete();
+            $table->foreignId('user_id')->constrained(DatabaseTable::USERS)->restrictOnDelete();
             $table->string('password_hash');
             $table->timestampTz('created_at');
 
             $table->index(['user_id', 'created_at']);
         });
 
-        Schema::create('user_webauthn_credentials', function (Blueprint $table) {
+        Schema::create(DatabaseTable::USER_WEBAUTHN_CREDENTIALS, function (Blueprint $table) {
             $table->id();
             $table->ulid('public_id')->unique();
             $table->ulid('user_public_id');
@@ -69,7 +73,7 @@ return new class extends Migration
             $table->index('hardware_backed');
         });
 
-        Schema::create('sessions', function (Blueprint $table) {
+        Schema::create(DatabaseTable::SESSIONS, function (Blueprint $table) {
             $table->string('id')->primary();
             $table->foreignId('user_id')->nullable()->index();
             $table->string('ip_address', 45)->nullable();
@@ -81,10 +85,10 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::dropIfExists('sessions');
-        Schema::dropIfExists('user_webauthn_credentials');
-        Schema::dropIfExists('user_password_histories');
-        Schema::dropIfExists('password_reset_tokens');
-        Schema::dropIfExists('users');
+        Schema::dropIfExists(DatabaseTable::SESSIONS);
+        Schema::dropIfExists(DatabaseTable::USER_WEBAUTHN_CREDENTIALS);
+        Schema::dropIfExists(DatabaseTable::USER_PASSWORD_HISTORIES);
+        Schema::dropIfExists(DatabaseTable::PASSWORD_RESET_TOKENS);
+        Schema::dropIfExists(DatabaseTable::USERS);
     }
 };

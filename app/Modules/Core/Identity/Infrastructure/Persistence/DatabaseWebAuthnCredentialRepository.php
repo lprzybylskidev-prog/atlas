@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Core\Identity\Infrastructure\Persistence;
 
 use App\Modules\Core\Identity\Application\WebAuthn\Contracts\WebAuthnCredentialRepository;
+use App\Shared\Infrastructure\Database\DatabaseTable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use RuntimeException;
@@ -16,7 +17,7 @@ final class DatabaseWebAuthnCredentialRepository implements WebAuthnCredentialRe
 {
     public function save(string $userPublicId, CredentialRecord $credential, string $label, bool $hardwareBacked): void
     {
-        DB::table('user_webauthn_credentials')->updateOrInsert([
+        DB::table(DatabaseTable::USER_WEBAUTHN_CREDENTIALS)->updateOrInsert([
             'credential_id' => $credential->publicKeyCredentialId,
         ], [
             'public_id' => (string) Str::ulid(),
@@ -41,7 +42,7 @@ final class DatabaseWebAuthnCredentialRepository implements WebAuthnCredentialRe
 
     public function findByCredentialId(string $credentialId): ?CredentialRecord
     {
-        $record = DB::table('user_webauthn_credentials')
+        $record = DB::table(DatabaseTable::USER_WEBAUTHN_CREDENTIALS)
             ->where('credential_id', $credentialId)
             ->first();
 
@@ -50,7 +51,7 @@ final class DatabaseWebAuthnCredentialRepository implements WebAuthnCredentialRe
 
     public function allForUser(string $userPublicId): array
     {
-        return array_values(DB::table('user_webauthn_credentials')
+        return array_values(DB::table(DatabaseTable::USER_WEBAUTHN_CREDENTIALS)
             ->where('user_public_id', $userPublicId)
             ->orderBy('id')
             ->get()

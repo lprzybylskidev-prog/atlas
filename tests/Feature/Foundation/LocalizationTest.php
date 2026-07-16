@@ -6,6 +6,7 @@ namespace Tests\Feature\Foundation;
 
 use App\Modules\Core\Identity\Infrastructure\Persistence\User;
 use App\Modules\Core\Settings\Application\Enums\UserSettingKey;
+use App\Shared\Infrastructure\Database\DatabaseTable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Inertia\Testing\AssertableInertia;
@@ -96,7 +97,7 @@ class LocalizationTest extends TestCase
             ->assertRedirect()
             ->assertCookie('atlas_locale', 'en');
 
-        self::assertDatabaseHas('settings_user_values', [
+        self::assertDatabaseHas(DatabaseTable::SETTINGS_USER_VALUES, [
             'user_id' => $user->id,
             'key' => UserSettingKey::UiLocale->value,
             'value' => '"en"',
@@ -113,7 +114,7 @@ class LocalizationTest extends TestCase
             ->assertOk()
             ->assertInertia(fn (AssertableInertia $page) => $page->where('locale', 'en'));
 
-        self::assertSame('"en"', DB::table('settings_user_values')->where('user_id', $user->id)->value('value'));
+        self::assertSame('"en"', DB::table(DatabaseTable::SETTINGS_USER_VALUES)->where('user_id', $user->id)->value('value'));
     }
 
     public function test_authenticated_theme_change_is_persisted_as_user_setting(): void
@@ -125,7 +126,7 @@ class LocalizationTest extends TestCase
             ->assertRedirect()
             ->assertCookie('atlas_theme', 'dark');
 
-        self::assertDatabaseHas('settings_user_values', [
+        self::assertDatabaseHas(DatabaseTable::SETTINGS_USER_VALUES, [
             'user_id' => $user->id,
             'key' => UserSettingKey::Theme->value,
             'value' => '"dark"',

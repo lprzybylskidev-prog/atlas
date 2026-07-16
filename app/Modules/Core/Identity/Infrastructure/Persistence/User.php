@@ -7,6 +7,7 @@ namespace App\Modules\Core\Identity\Infrastructure\Persistence;
 use App\Modules\Core\Identity\Domain\ValueObjects\UserPublicId;
 use App\Modules\Core\Identity\Infrastructure\Database\Factories\UserFactory;
 use App\Modules\Core\Identity\Infrastructure\Notifications\UserEmailVerificationNotification;
+use App\Shared\Infrastructure\Database\DatabaseTable;
 use Illuminate\Contracts\Auth\MustVerifyEmail as MustVerifyEmailContract;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -18,6 +19,8 @@ class User extends Authenticatable implements MustVerifyEmailContract
 {
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable, TwoFactorAuthenticatable;
+
+    protected $table = DatabaseTable::USERS;
 
     /** @var list<string> */
     protected $fillable = [

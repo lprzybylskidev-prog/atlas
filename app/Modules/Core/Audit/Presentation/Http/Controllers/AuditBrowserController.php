@@ -9,6 +9,7 @@ use App\Shared\Application\Tables\ArrayTableProcessor;
 use App\Shared\Application\Tables\TableRequestContext;
 use App\Shared\Application\Tables\TableSavedViewService;
 use App\Shared\Application\Tables\TableState;
+use App\Shared\Infrastructure\Database\DatabaseTable;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -30,7 +31,7 @@ final readonly class AuditBrowserController
         [$userId, $teamId] = $this->context->userTeam($request);
         $filters = $this->filters($request);
 
-        $query = DB::table('audit_events')->orderByDesc('occurred_at');
+        $query = DB::table(DatabaseTable::AUDIT_EVENTS)->orderByDesc('occurred_at');
         $this->applyFilters($query, $filters);
 
         $rows = array_values($query->limit(5000)->get()
@@ -189,7 +190,7 @@ final readonly class AuditBrowserController
     {
         $options = [];
 
-        foreach (DB::table('audit_events')
+        foreach (DB::table(DatabaseTable::AUDIT_EVENTS)
             ->whereNotNull($column)
             ->where($column, '<>', '')
             ->distinct()
@@ -217,8 +218,8 @@ final readonly class AuditBrowserController
     {
         $options = [];
 
-        foreach (DB::table('audit_events')
-            ->leftJoin('teams', 'audit_events.team_public_id', '=', 'teams.public_id')
+        foreach (DB::table(DatabaseTable::AUDIT_EVENTS)
+            ->leftJoin(DatabaseTable::TEAMS, 'audit_events.team_public_id', '=', 'teams.public_id')
             ->whereNotNull('audit_events.team_public_id')
             ->where('audit_events.team_public_id', '<>', '')
             ->select('audit_events.team_public_id', 'teams.name')

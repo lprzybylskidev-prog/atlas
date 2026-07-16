@@ -9,6 +9,7 @@ use App\Shared\Application\Outbox\Contracts\OutboxRelay;
 use App\Shared\Application\Outbox\OutboxEventStatus;
 use App\Shared\Application\Outbox\OutboxRelayResult;
 use App\Shared\Application\Outbox\OutboxStoredEvent;
+use App\Shared\Infrastructure\Database\DatabaseTable;
 use DateTimeImmutable;
 use DateTimeZone;
 use Illuminate\Database\ConnectionInterface;
@@ -68,7 +69,7 @@ final readonly class DatabaseOutboxRelay implements OutboxRelay
         return $this->database->transaction(function () use ($limit): array {
             $now = $this->now();
             $records = $this->database
-                ->table('outbox_events')
+                ->table(DatabaseTable::OUTBOX_EVENTS)
                 ->where('status', OutboxEventStatus::Pending->value)
                 ->where(function (Builder $query) use ($now): void {
                     $query
@@ -91,7 +92,7 @@ final readonly class DatabaseOutboxRelay implements OutboxRelay
 
             if ($ids !== []) {
                 $this->database
-                    ->table('outbox_events')
+                    ->table(DatabaseTable::OUTBOX_EVENTS)
                     ->whereIn('id', $ids)
                     ->update([
                         'status' => OutboxEventStatus::Publishing->value,
@@ -108,7 +109,7 @@ final readonly class DatabaseOutboxRelay implements OutboxRelay
         $now = $this->now();
 
         $this->database
-            ->table('outbox_events')
+            ->table(DatabaseTable::OUTBOX_EVENTS)
             ->where('id', $event->id)
             ->where('status', OutboxEventStatus::Publishing->value)
             ->update([
@@ -125,7 +126,7 @@ final readonly class DatabaseOutboxRelay implements OutboxRelay
         $failed = $attempts >= $this->maxAttempts;
 
         $this->database
-            ->table('outbox_events')
+            ->table(DatabaseTable::OUTBOX_EVENTS)
             ->where('id', $event->id)
             ->where('status', OutboxEventStatus::Publishing->value)
             ->update([

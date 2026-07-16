@@ -7,6 +7,7 @@ namespace App\Modules\Core\Users\Presentation\Http\Controllers;
 use App\Modules\Core\Authorization\Application\Public\Contracts\OnboardingPackageDirectory;
 use App\Modules\Core\Authorization\Application\Public\Contracts\UserOnboardingPackageApplier;
 use App\Modules\Core\Authorization\Application\Public\Contracts\UserTeamAuthorizationManager;
+use App\Modules\Core\Identity\Application\Public\Contracts\UserCredentialAccountDirectory;
 use App\Modules\Core\Teams\Application\Public\Contracts\UserTeamMembershipManager;
 use App\Modules\Core\Users\Application\Commands\CreateUserAccountCommand;
 use App\Modules\Core\Users\Application\CreateUserAccount;
@@ -22,6 +23,7 @@ final readonly class StoreUserAccountController
         private UserTeamAuthorizationManager $authorization,
         private UserOnboardingPackageApplier $onboardingPackages,
         private OnboardingPackageDirectory $packageDirectory,
+        private UserCredentialAccountDirectory $accounts,
     ) {}
 
     public function __invoke(Request $request): RedirectResponse
@@ -30,10 +32,10 @@ final readonly class StoreUserAccountController
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255'],
             'team_assignments' => ['required', 'array', 'min:1'],
-            'team_assignments.*.team_public_id' => ['required', 'string', 'exists:teams,public_id'],
+            'team_assignments.*.team_public_id' => ['required', 'string'],
             'team_assignments.*.source' => ['required', 'string', 'in:manual,package,copy'],
             'team_assignments.*.onboarding_package' => ['nullable', 'required_if:team_assignments.*.source,package', 'string'],
-            'team_assignments.*.copy_authorization_from_user' => ['nullable', 'required_if:team_assignments.*.source,copy', 'string', 'exists:users,public_id'],
+            'team_assignments.*.copy_authorization_from_user' => ['nullable', 'required_if:team_assignments.*.source,copy', 'string'],
             'team_assignments.*.role_names' => ['array'],
             'team_assignments.*.role_names.*' => ['string'],
             'team_assignments.*.direct_permission_names' => ['array'],
@@ -154,6 +156,12 @@ final readonly class StoreUserAccountController
     private function validateTeamAssignments(array $assignments): void
     {
         foreach ($assignments as $assignment) {
+            if (! $this->memberships->teamExists($assignment['team_public_id'])) {
+                throw ValidationException::withMessages([
+                    'team_assignments' => __('validation.exists', ['attribute' => 'team']),
+                ]);
+            }
+
             if ($assignment['source'] === 'package' && ! $this->packageExistsForTeam($assignment['onboarding_package'], $assignment['team_public_id'])) {
                 throw ValidationException::withMessages([
                     'team_assignments' => __('validation.custom.team_assignments.preset_team'),
@@ -162,6 +170,12 @@ final readonly class StoreUserAccountController
 
             if ($assignment['source'] !== 'copy') {
                 continue;
+            }
+
+            if (! $this->accounts->publicIdExists($assignment['copy_authorization_from_user'])) {
+                throw ValidationException::withMessages([
+                    'team_assignments' => __('validation.exists', ['attribute' => 'source user']),
+                ]);
             }
 
             if (! $this->memberships->hasActiveMembership(

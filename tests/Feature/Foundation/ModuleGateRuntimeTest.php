@@ -7,6 +7,7 @@ namespace Tests\Feature\Foundation;
 use App\Shared\Application\Modules\Contracts\ModuleGate;
 use App\Shared\Application\Modules\ModuleAccessDenialReason;
 use App\Shared\Application\Modules\ModuleAccessRequest;
+use App\Shared\Infrastructure\Database\DatabaseTable;
 use Database\Seeders\E2eVisibilitySeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -21,9 +22,9 @@ final class ModuleGateRuntimeTest extends TestCase
         $this->seed(E2eVisibilitySeeder::class);
 
         $gate = app(ModuleGate::class);
-        $admin = DB::table('users')->where('email', E2eVisibilitySeeder::ADMIN_EMAIL)->first();
-        $limited = DB::table('users')->where('email', E2eVisibilitySeeder::LIMITED_EMAIL)->first();
-        $team = DB::table('teams')->first();
+        $admin = DB::table(DatabaseTable::USERS)->where('email', E2eVisibilitySeeder::ADMIN_EMAIL)->first();
+        $limited = DB::table(DatabaseTable::USERS)->where('email', E2eVisibilitySeeder::LIMITED_EMAIL)->first();
+        $team = DB::table(DatabaseTable::TEAMS)->first();
 
         self::assertIsObject($admin);
         self::assertIsObject($limited);

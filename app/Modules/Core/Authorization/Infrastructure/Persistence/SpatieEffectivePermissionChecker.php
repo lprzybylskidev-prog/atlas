@@ -9,6 +9,7 @@ use App\Modules\Core\Authorization\Application\Public\DTOs\EffectivePermissionDe
 use App\Modules\Core\Authorization\Application\Public\DTOs\EffectivePermissionRequest;
 use App\Shared\Application\Modules\Activation\Contracts\ModuleActivationService;
 use App\Shared\Application\Modules\ModuleKeyResolver;
+use App\Shared\Infrastructure\Database\DatabaseTable;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Facades\DB;
 
@@ -25,7 +26,7 @@ final class SpatieEffectivePermissionChecker implements EffectivePermissionCheck
             return $this->deny('authorization.active_team_required');
         }
 
-        $permission = DB::table('permissions')
+        $permission = DB::table(DatabaseTable::PERMISSIONS)
             ->where('name', $request->permission)
             ->where('guard_name', 'web')
             ->first(['id']);
@@ -34,7 +35,7 @@ final class SpatieEffectivePermissionChecker implements EffectivePermissionCheck
             return $this->deny('authorization.permission_unknown');
         }
 
-        $user = DB::table('users')
+        $user = DB::table(DatabaseTable::USERS)
             ->where('public_id', $request->userPublicId)
             ->first(['id']);
 
@@ -42,7 +43,7 @@ final class SpatieEffectivePermissionChecker implements EffectivePermissionCheck
             return $this->deny('authorization.user_unknown');
         }
 
-        $team = DB::table('teams')
+        $team = DB::table(DatabaseTable::TEAMS)
             ->where('public_id', $request->teamPublicId)
             ->where('is_active', true)
             ->first(['id']);
@@ -74,7 +75,7 @@ final class SpatieEffectivePermissionChecker implements EffectivePermissionCheck
 
     private function hasDirectPermission(int $userId, int $teamId, int $permissionId): bool
     {
-        return DB::table('model_has_permissions')
+        return DB::table(DatabaseTable::MODEL_HAS_PERMISSIONS)
             ->where('permission_id', $permissionId)
             ->where('team_id', $teamId)
             ->where('model_id', $userId)
@@ -84,8 +85,8 @@ final class SpatieEffectivePermissionChecker implements EffectivePermissionCheck
 
     private function hasRolePermission(int $userId, int $teamId, int $permissionId): bool
     {
-        return DB::table('model_has_roles')
-            ->join('role_has_permissions', 'model_has_roles.role_id', '=', 'role_has_permissions.role_id')
+        return DB::table(DatabaseTable::MODEL_HAS_ROLES)
+            ->join(DatabaseTable::ROLE_HAS_PERMISSIONS, 'model_has_roles.role_id', '=', 'role_has_permissions.role_id')
             ->where('role_has_permissions.permission_id', $permissionId)
             ->where('model_has_roles.team_id', $teamId)
             ->where('model_has_roles.model_id', $userId)
@@ -95,7 +96,7 @@ final class SpatieEffectivePermissionChecker implements EffectivePermissionCheck
 
     private function userBelongsToTeam(int $userId, int $teamId): bool
     {
-        return DB::table('team_user_assignments')
+        return DB::table(DatabaseTable::TEAM_USER_ASSIGNMENTS)
             ->where('team_id', $teamId)
             ->where('user_id', $userId)
             ->where(static function (Builder $query): void {

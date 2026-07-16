@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use App\Shared\Infrastructure\Database\DatabaseSchema;
+use App\Shared\Infrastructure\Database\DatabaseTable;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
@@ -11,14 +13,16 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('table_saved_views', function (Blueprint $table) {
+        DatabaseSchema::ensure(DatabaseSchema::SHARED);
+
+        Schema::create(DatabaseTable::TABLE_SAVED_VIEWS, function (Blueprint $table) {
             $table->id();
             $table->ulid('public_id')->unique();
             $table->string('table_key');
             $table->string('name', 80);
             $table->string('type', 16);
-            $table->foreignId('owner_user_id')->nullable()->constrained('users')->restrictOnDelete();
-            $table->foreignId('team_id')->nullable()->constrained('teams')->restrictOnDelete();
+            $table->foreignId('owner_user_id')->nullable()->constrained(DatabaseTable::USERS)->restrictOnDelete();
+            $table->foreignId('team_id')->nullable()->constrained(DatabaseTable::TEAMS)->restrictOnDelete();
             $table->jsonb('state');
             $table->timestampsTz();
 
@@ -27,24 +31,24 @@ return new class extends Migration
             $table->index(['team_id', 'table_key']);
         });
 
-        Schema::create('table_saved_view_defaults', function (Blueprint $table) {
+        Schema::create(DatabaseTable::TABLE_SAVED_VIEW_DEFAULTS, function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->constrained('users')->restrictOnDelete();
-            $table->foreignId('team_id')->nullable()->constrained('teams')->restrictOnDelete();
+            $table->foreignId('user_id')->constrained(DatabaseTable::USERS)->restrictOnDelete();
+            $table->foreignId('team_id')->nullable()->constrained(DatabaseTable::TEAMS)->restrictOnDelete();
             $table->string('table_key');
-            $table->foreignId('table_saved_view_id')->constrained('table_saved_views')->cascadeOnDelete();
+            $table->foreignId('table_saved_view_id')->constrained(DatabaseTable::TABLE_SAVED_VIEWS)->cascadeOnDelete();
             $table->timestampsTz();
 
             $table->unique(['user_id', 'table_key']);
             $table->index(['team_id', 'table_key']);
         });
 
-        DB::statement("alter table table_saved_views add constraint table_saved_views_type_check check (type in ('private', 'team', 'system'))");
+        DB::statement('alter table '.DatabaseTable::TABLE_SAVED_VIEWS." add constraint table_saved_views_type_check check (type in ('private', 'team', 'system'))");
     }
 
     public function down(): void
     {
-        Schema::dropIfExists('table_saved_view_defaults');
-        Schema::dropIfExists('table_saved_views');
+        Schema::dropIfExists(DatabaseTable::TABLE_SAVED_VIEW_DEFAULTS);
+        Schema::dropIfExists(DatabaseTable::TABLE_SAVED_VIEWS);
     }
 };

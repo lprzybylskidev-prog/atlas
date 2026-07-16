@@ -21,6 +21,10 @@ interface UserCredentialAccountDirectory
 
     public function findAdminRow(string $publicId): ?AdminUserCredentialAccount;
 
+    public function publicIdExists(string $publicId): bool;
+
+    public function emailExists(string $email, ?string $exceptPublicId = null): bool;
+
     public function updateIdentity(string $publicId, string $name, string $email): ?AdminUserCredentialAccount;
 
     public function verifyEmail(string $publicId): ?AdminUserCredentialAccount;

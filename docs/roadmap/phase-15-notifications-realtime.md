@@ -12,6 +12,7 @@ Implement platform notifications and the minimal realtime foundation before repo
 - [Phase 12 — Settings and localization](phase-12-settings-localization.md)
 - [Phase 13 — Sessions and active team](phase-13-sessions-active-team.md)
 - [Phase 14 — Module availability and activation](phase-14-module-activation.md)
+- [Phase 14a — PostgreSQL module schemas](phase-14a-postgresql-module-schemas.md)
 - [Notifications module documentation](../modules/notifications.md)
 - [Realtime, network, and browser operations](../operations/realtime-network-and-browser.md)
 
@@ -38,6 +39,7 @@ Implement platform notifications and the minimal realtime foundation before repo
 ## Tasks
 
 - [ ] Create `Notifications` module.
+- [ ] Create notification and realtime tables only in the `core_notifications` PostgreSQL schema.
 - [ ] Define typed notification events.
 - [ ] Support user and team recipients.
 - [ ] Support in-app notifications.

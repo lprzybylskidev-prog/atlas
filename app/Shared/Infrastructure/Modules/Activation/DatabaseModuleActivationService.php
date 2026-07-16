@@ -17,6 +17,7 @@ use App\Shared\Application\Modules\ModuleCategory;
 use App\Shared\Application\Modules\ModuleDeactivationRequest;
 use App\Shared\Application\Modules\ModuleKey;
 use App\Shared\Application\Modules\ModuleRegistry;
+use App\Shared\Infrastructure\Database\DatabaseTable;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\ConnectionInterface;
 use Illuminate\Support\Facades\Cache;
@@ -53,7 +54,7 @@ final readonly class DatabaseModuleActivationService implements ModuleActivation
         return $this->database->transaction(function () use ($change): EffectiveModuleState {
             $previous = $this->effectiveState($change->moduleKey, $change->teamId);
             $now = $change->effectiveAt ?? CarbonImmutable::now('UTC');
-            $table = $change->scope === ModuleActivationScope::Global ? 'module_global_states' : 'module_team_states';
+            $table = $change->scope === ModuleActivationScope::Global ? DatabaseTable::MODULE_GLOBAL_STATES : DatabaseTable::MODULE_TEAM_STATES;
             $lookup = ['module_key' => $change->moduleKey];
 
             if ($change->scope === ModuleActivationScope::Team) {
@@ -79,7 +80,7 @@ final readonly class DatabaseModuleActivationService implements ModuleActivation
                 ]));
             }
 
-            $this->database->table('module_activation_history')->insert([
+            $this->database->table(DatabaseTable::MODULE_ACTIVATION_HISTORY)->insert([
                 'module_key' => $change->moduleKey,
                 'scope' => $change->scope->value,
                 'team_id' => $change->teamId,
@@ -106,7 +107,7 @@ final readonly class DatabaseModuleActivationService implements ModuleActivation
         $this->validateChange($change);
 
         return $this->database->transaction(function () use ($change, $effectiveAt): string {
-            $conflict = $this->database->table('module_activation_schedules')
+            $conflict = $this->database->table(DatabaseTable::MODULE_ACTIVATION_SCHEDULES)
                 ->where('module_key', $change->moduleKey)
                 ->where('scope', $change->scope->value)
                 ->where('status', ModuleActivationScheduleStatus::Scheduled->value)
@@ -122,7 +123,7 @@ final readonly class DatabaseModuleActivationService implements ModuleActivation
             $publicId = (string) Str::ulid();
             $now = CarbonImmutable::now('UTC');
 
-            $this->database->table('module_activation_schedules')->insert([
+            $this->database->table(DatabaseTable::MODULE_ACTIVATION_SCHEDULES)->insert([
                 'public_id' => $publicId,
                 'module_key' => $change->moduleKey,
                 'scope' => $change->scope->value,
@@ -144,7 +145,7 @@ final readonly class DatabaseModuleActivationService implements ModuleActivation
     {
         $now = CarbonImmutable::now('UTC');
 
-        $this->database->table('module_activation_schedules')
+        $this->database->table(DatabaseTable::MODULE_ACTIVATION_SCHEDULES)
             ->where('public_id', $schedulePublicId)
             ->where('status', ModuleActivationScheduleStatus::Scheduled->value)
             ->update([
@@ -160,14 +161,14 @@ final readonly class DatabaseModuleActivationService implements ModuleActivation
         return $this->database->transaction(function () use ($moduleKey, $teamId, $actorUserId, $reason): EffectiveModuleState {
             $previous = $this->effectiveState($moduleKey, $teamId);
             $now = CarbonImmutable::now('UTC');
-            $deleted = $this->database->table('module_team_states')
+            $deleted = $this->database->table(DatabaseTable::MODULE_TEAM_STATES)
                 ->where('module_key', $moduleKey)
                 ->where('team_id', $teamId)
                 ->delete();
 
             if ($deleted > 0) {
                 $next = $this->resolveEffectiveState($moduleKey, null);
-                $this->database->table('module_activation_history')->insert([
+                $this->database->table(DatabaseTable::MODULE_ACTIVATION_HISTORY)->insert([
                     'module_key' => $moduleKey,
                     'scope' => ModuleActivationScope::Team->value,
                     'team_id' => $teamId,
@@ -193,7 +194,7 @@ final readonly class DatabaseModuleActivationService implements ModuleActivation
     {
         $now ??= CarbonImmutable::now('UTC');
         $applied = 0;
-        $rows = $this->database->table('module_activation_schedules')
+        $rows = $this->database->table(DatabaseTable::MODULE_ACTIVATION_SCHEDULES)
             ->where('status', ModuleActivationScheduleStatus::Scheduled->value)
             ->where('effective_at', '<=', $now)
             ->orderBy('effective_at')
@@ -220,13 +221,13 @@ final readonly class DatabaseModuleActivationService implements ModuleActivation
                     effectiveAt: CarbonImmutable::parse($this->stringValue($values['effective_at'] ?? ''), 'UTC'),
                 ));
 
-                $this->database->table('module_activation_schedules')->where('id', $id)->update([
+                $this->database->table(DatabaseTable::MODULE_ACTIVATION_SCHEDULES)->where('id', $id)->update([
                     'status' => ModuleActivationScheduleStatus::Applied->value,
                     'updated_at' => $now,
                 ]);
                 $applied++;
             } catch (\Throwable $exception) {
-                $this->database->table('module_activation_schedules')->where('id', $id)->update([
+                $this->database->table(DatabaseTable::MODULE_ACTIVATION_SCHEDULES)->where('id', $id)->update([
                     'status' => ModuleActivationScheduleStatus::Failed->value,
                     'failure_reason' => $exception->getMessage(),
                     'updated_at' => $now,
@@ -247,7 +248,7 @@ final readonly class DatabaseModuleActivationService implements ModuleActivation
             return;
         }
 
-        foreach ($this->database->table('teams')->pluck('id') as $id) {
+        foreach ($this->database->table(DatabaseTable::TEAMS)->pluck('id') as $id) {
             if (is_numeric($id)) {
                 Cache::forget($this->cacheKey($moduleKey, (int) $id));
             }
@@ -259,7 +260,7 @@ final readonly class DatabaseModuleActivationService implements ModuleActivation
         $definition = $this->moduleDefinition($moduleKey);
         $deployed = $definition !== null;
         $core = $definition?->category() === ModuleCategory::Core;
-        $globalRow = $this->database->table('module_global_states')->where('module_key', $moduleKey)->first();
+        $globalRow = $this->database->table(DatabaseTable::MODULE_GLOBAL_STATES)->where('module_key', $moduleKey)->first();
         $globalValues = is_object($globalRow) ? get_object_vars($globalRow) : [];
         $globalEnabled = $core || (array_key_exists('enabled', $globalValues) ? (bool) $globalValues['enabled'] : false);
         $teamEnabled = $globalEnabled;
@@ -268,9 +269,9 @@ final readonly class DatabaseModuleActivationService implements ModuleActivation
         $teamVersion = null;
 
         if ($teamId !== null) {
-            $teamPublicIdValue = $this->database->table('teams')->where('id', $teamId)->value('public_id');
+            $teamPublicIdValue = $this->database->table(DatabaseTable::TEAMS)->where('id', $teamId)->value('public_id');
             $teamPublicId = is_string($teamPublicIdValue) ? $teamPublicIdValue : null;
-            $teamRow = $this->database->table('module_team_states')->where('module_key', $moduleKey)->where('team_id', $teamId)->first();
+            $teamRow = $this->database->table(DatabaseTable::MODULE_TEAM_STATES)->where('module_key', $moduleKey)->where('team_id', $teamId)->first();
 
             if (is_object($teamRow)) {
                 $teamValues = get_object_vars($teamRow);

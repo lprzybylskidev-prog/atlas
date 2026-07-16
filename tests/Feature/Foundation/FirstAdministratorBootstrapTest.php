@@ -7,6 +7,7 @@ namespace Tests\Feature\Foundation;
 use App\Modules\Core\Authorization\Application\Roles\StarterRoleName;
 use App\Modules\Core\Identity\Infrastructure\Persistence\User;
 use App\Modules\Core\Users\Infrastructure\Notifications\FirstPasswordSetupNotification;
+use App\Shared\Infrastructure\Database\DatabaseTable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
@@ -32,24 +33,24 @@ final class FirstAdministratorBootstrapTest extends TestCase
         self::assertSame(Command::SUCCESS, $exitCode);
 
         $user = User::query()->where('email', 'first.admin@example.test')->firstOrFail();
-        $teamId = DB::table('teams')->where('name', 'Operations')->value('id');
+        $teamId = DB::table(DatabaseTable::TEAMS)->where('name', 'Operations')->value('id');
         $role = Role::query()->where('name', StarterRoleName::Administrator->value)->firstOrFail();
 
         self::assertFalse($user->hasSetFirstPassword());
         self::assertNotNull($teamId);
-        self::assertDatabaseHas('team_user_assignments', [
+        self::assertDatabaseHas(DatabaseTable::TEAM_USER_ASSIGNMENTS, [
             'team_id' => $teamId,
             'user_id' => $user->id,
         ]);
-        self::assertDatabaseHas('model_has_roles', [
+        self::assertDatabaseHas(DatabaseTable::MODEL_HAS_ROLES, [
             'role_id' => $role->id,
             'model_id' => $user->id,
             'team_id' => $teamId,
         ]);
-        self::assertDatabaseHas('password_reset_tokens', [
+        self::assertDatabaseHas(DatabaseTable::PASSWORD_RESET_TOKENS, [
             'email' => 'first.admin@example.test',
         ]);
-        self::assertDatabaseHas('audit_events', [
+        self::assertDatabaseHas(DatabaseTable::AUDIT_EVENTS, [
             'module' => 'authorization',
             'action' => 'authorization.first_administrator_bootstrap',
             'target_public_id' => $user->public_id,
@@ -73,7 +74,7 @@ final class FirstAdministratorBootstrapTest extends TestCase
         ]);
 
         self::assertSame(Command::FAILURE, $exitCode);
-        self::assertDatabaseMissing('users', [
+        self::assertDatabaseMissing(DatabaseTable::USERS, [
             'email' => 'second.admin@example.test',
         ]);
     }

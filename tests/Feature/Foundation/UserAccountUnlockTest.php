@@ -9,6 +9,7 @@ use App\Modules\Core\Users\Application\Commands\UnlockUserAccountCommand;
 use App\Modules\Core\Users\Application\Exceptions\InvalidUserAccountUnlock;
 use App\Modules\Core\Users\Application\Exceptions\UserAccountNotFound;
 use App\Modules\Core\Users\Application\UnlockUserAccount;
+use App\Shared\Infrastructure\Database\DatabaseTable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -39,7 +40,7 @@ final class UserAccountUnlockTest extends TestCase
         self::assertNull($target->login_locked_until);
         self::assertSame(2, $target->login_lock_count);
 
-        $this->assertDatabaseHas('audit_events', [
+        $this->assertDatabaseHas(DatabaseTable::AUDIT_EVENTS, [
             'module' => 'identity',
             'action' => 'user.login_unlock',
             'result' => 'succeeded',
@@ -78,7 +79,7 @@ final class UserAccountUnlockTest extends TestCase
             // Expected: the failed administrative operation is still audited.
         }
 
-        $this->assertDatabaseHas('audit_events', [
+        $this->assertDatabaseHas(DatabaseTable::AUDIT_EVENTS, [
             'action' => 'user.login_unlock',
             'result' => 'rejected',
             'actor_public_id' => $actor->public_id,

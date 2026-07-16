@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use App\Shared\Infrastructure\Database\DatabaseTable;
+
 return [
     'driver' => env('SESSION_DRIVER', 'redis'),
     'lifetime' => (int) env('SESSION_LIFETIME', 120),
@@ -9,7 +11,7 @@ return [
     'encrypt' => (bool) env('SESSION_ENCRYPT', false),
     'files' => storage_path('framework/sessions'),
     'connection' => null,
-    'table' => 'sessions',
+    'table' => DatabaseTable::SESSIONS,
     'store' => null,
     'lottery' => [2, 100],
     'cookie' => 'atlas_session',

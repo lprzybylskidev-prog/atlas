@@ -17,6 +17,8 @@ interface UserTeamMembershipManager
 
     public function hasActiveMembership(string $userPublicId, string $teamPublicId): bool;
 
+    public function teamExists(string $teamPublicId): bool;
+
     /**
      * @return list<AdminTeamUserMembership>
      */

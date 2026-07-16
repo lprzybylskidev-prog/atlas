@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Modules\Core\Teams\Infrastructure\Persistence\Team;
+use App\Shared\Infrastructure\Database\DatabaseTable;
 use Spatie\Permission\DefaultTeamResolver;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
@@ -16,11 +17,11 @@ return [
     ],
 
     'table_names' => [
-        'roles' => 'roles',
-        'permissions' => 'permissions',
-        'model_has_permissions' => 'model_has_permissions',
-        'model_has_roles' => 'model_has_roles',
-        'role_has_permissions' => 'role_has_permissions',
+        'roles' => DatabaseTable::ROLES,
+        'permissions' => DatabaseTable::PERMISSIONS,
+        'model_has_permissions' => DatabaseTable::MODEL_HAS_PERMISSIONS,
+        'model_has_roles' => DatabaseTable::MODEL_HAS_ROLES,
+        'role_has_permissions' => DatabaseTable::ROLE_HAS_PERMISSIONS,
     ],
 
     'column_names' => [

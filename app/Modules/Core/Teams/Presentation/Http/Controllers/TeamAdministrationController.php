@@ -7,6 +7,7 @@ namespace App\Modules\Core\Teams\Presentation\Http\Controllers;
 use App\Modules\Core\Audit\Application\Public\Contracts\AuditRecorder;
 use App\Modules\Core\Audit\Application\Public\DTOs\AuditEvent;
 use App\Modules\Core\Authorization\Application\Public\Contracts\UserTeamAuthorizationManager;
+use App\Modules\Core\Identity\Application\Public\Contracts\UserCredentialAccountDirectory;
 use App\Modules\Core\Teams\Application\Public\Contracts\UserTeamMembershipManager;
 use App\Modules\Core\Teams\Infrastructure\Persistence\Team;
 use App\Shared\Application\Modules\Activation\Contracts\ModuleActivationService;
@@ -20,9 +21,12 @@ use App\Shared\Application\Tables\ArrayTableProcessor;
 use App\Shared\Application\Tables\TableRequestContext;
 use App\Shared\Application\Tables\TableSavedViewService;
 use App\Shared\Application\Tables\TableState;
+use App\Shared\Infrastructure\Database\DatabaseTable;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -37,6 +41,7 @@ final class TeamAdministrationController
         private readonly UserTeamAuthorizationManager $authorization,
         private readonly ModuleRegistry $modules,
         private readonly ModuleActivationService $activation,
+        private readonly UserCredentialAccountDirectory $accounts,
     ) {}
 
     public function __invoke(Request $request): Response
@@ -111,9 +116,9 @@ final class TeamAdministrationController
     public function store(Request $request): RedirectResponse
     {
         $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255', 'unique:teams,name'],
+            'name' => ['required', 'string', 'max:255', Rule::unique(Team::class, 'name')],
             'user_assignments' => ['array'],
-            'user_assignments.*.user_public_id' => ['nullable', 'string', 'exists:users,public_id'],
+            'user_assignments.*.user_public_id' => ['nullable', 'string'],
             'user_assignments.*.role_names' => ['array'],
             'user_assignments.*.role_names.*' => ['string'],
             'user_assignments.*.direct_permission_names' => ['array'],
@@ -123,6 +128,9 @@ final class TeamAdministrationController
             'module_overrides.*.enabled' => ['required', 'boolean'],
             'module_overrides.*.reason' => ['required', 'string', 'min:3', 'max:2000'],
         ]);
+        $userAssignments = $this->userAssignments(is_array($validated) ? $validated : []);
+
+        $this->validateUserAssignments($userAssignments);
 
         $record = Team::query()->create([
             'name' => is_array($validated) && is_string($validated['name'] ?? null) ? $validated['name'] : '',
@@ -136,7 +144,7 @@ final class TeamAdministrationController
         $actorPublicId = data_get($request->user(), 'public_id');
 
         if (is_string($actorPublicId)) {
-            foreach ($this->userAssignments(is_array($validated) ? $validated : []) as $assignment) {
+            foreach ($userAssignments as $assignment) {
                 $this->memberships->addAccess($actorPublicId, $assignment['user_public_id'], (string) $record->public_id);
                 $this->authorization->replaceAssignmentsForUserTeam(
                     actorPublicId: $actorPublicId,
@@ -169,15 +177,20 @@ final class TeamAdministrationController
 
     public function update(Request $request, string $team): RedirectResponse
     {
-        $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255', 'unique:teams,name,'.$team.',public_id'],
-        ]);
-
         $record = Team::query()->where('public_id', $team)->first();
 
         if (! $record instanceof Team) {
             abort(404);
         }
+
+        $validated = $request->validate([
+            'name' => [
+                'required',
+                'string',
+                'max:255',
+                Rule::unique(Team::class, 'name')->ignore($record->id),
+            ],
+        ]);
 
         $before = [
             'name' => $record->name,
@@ -215,7 +228,7 @@ final class TeamAdministrationController
 
         $deleted = false;
 
-        if ($record instanceof Team && ! DB::table('team_user_assignments')->where('team_id', $record->id)->exists()) {
+        if ($record instanceof Team && ! DB::table(DatabaseTable::TEAM_USER_ASSIGNMENTS)->where('team_id', $record->id)->exists()) {
             $before = [
                 'name' => $record->name,
                 'isActive' => $record->is_active,
@@ -261,13 +274,10 @@ final class TeamAdministrationController
     {
         $users = [];
 
-        foreach (DB::table('users')->where('is_active', true)->orderBy('name')->get(['public_id', 'name', 'email']) as $row) {
-            $values = get_object_vars($row);
-            $name = $this->scalarString($values['name'] ?? '');
-            $email = $this->scalarString($values['email'] ?? '');
+        foreach ($this->accounts->allOptions() as $user) {
             $users[] = [
-                'value' => $this->scalarString($values['public_id'] ?? ''),
-                'label' => trim($name.' · '.$email),
+                'value' => $user->publicId,
+                'label' => trim($user->name.' · '.$user->email),
             ];
         }
 
@@ -307,6 +317,22 @@ final class TeamAdministrationController
         }
 
         return $result;
+    }
+
+    /**
+     * @param  list<array{user_public_id: string, role_names: list<string>, direct_permission_names: list<string>}>  $assignments
+     */
+    private function validateUserAssignments(array $assignments): void
+    {
+        foreach ($assignments as $assignment) {
+            if ($this->accounts->publicIdExists($assignment['user_public_id'])) {
+                continue;
+            }
+
+            throw ValidationException::withMessages([
+                'user_assignments' => __('validation.exists', ['attribute' => 'user']),
+            ]);
+        }
     }
 
     /**
@@ -398,11 +424,6 @@ final class TeamAdministrationController
         }
 
         return array_values(array_filter($values, 'is_string'));
-    }
-
-    private function scalarString(mixed $value): string
-    {
-        return is_scalar($value) ? (string) $value : '';
     }
 
     /**

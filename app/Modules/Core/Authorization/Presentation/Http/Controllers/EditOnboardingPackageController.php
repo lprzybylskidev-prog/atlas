@@ -6,6 +6,7 @@ namespace App\Modules\Core\Authorization\Presentation\Http\Controllers;
 
 use App\Modules\Core\Authorization\Application\Packages\OnboardingPackageCatalog;
 use App\Modules\Core\Authorization\Application\Permissions\PermissionCatalogRegistry;
+use App\Shared\Infrastructure\Database\DatabaseTable;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -35,7 +36,7 @@ final readonly class EditOnboardingPackageController
                 'initialRoles' => $definition->initialRoleNames,
                 'directPermissions' => $definition->directPermissionNames,
             ],
-            'roleOptions' => DB::table('roles')
+            'roleOptions' => DB::table(DatabaseTable::ROLES)
                 ->where('guard_name', 'web')
                 ->whereNull(config()->string('permission.column_names.team_foreign_key'))
                 ->orderBy('name')

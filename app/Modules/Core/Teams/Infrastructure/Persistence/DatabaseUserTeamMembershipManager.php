@@ -12,6 +12,7 @@ use App\Modules\Core\Teams\Application\Public\Contracts\UserTeamMembershipManage
 use App\Modules\Core\Teams\Application\Public\DTOs\AdminTeamUserMembership;
 use App\Modules\Core\Teams\Application\Public\DTOs\AdminUserTeamMembership;
 use App\Modules\Core\Teams\Application\Public\DTOs\TeamOption;
+use App\Shared\Infrastructure\Database\DatabaseTable;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -29,9 +30,9 @@ final class DatabaseUserTeamMembershipManager implements UserTeamMembershipManag
     {
         $memberships = [];
 
-        foreach (DB::table('team_user_assignments')
-            ->join('users', 'team_user_assignments.user_id', '=', 'users.id')
-            ->join('teams', 'team_user_assignments.team_id', '=', 'teams.id')
+        foreach (DB::table(DatabaseTable::TEAM_USER_ASSIGNMENTS)
+            ->join(DatabaseTable::USERS, 'team_user_assignments.user_id', '=', 'users.id')
+            ->join(DatabaseTable::TEAMS, 'team_user_assignments.team_id', '=', 'teams.id')
             ->where('users.public_id', $userPublicId)
             ->where(static function (Builder $query): void {
                 $query->whereNull('team_user_assignments.valid_from')->orWhere('team_user_assignments.valid_from', '<=', now());
@@ -62,9 +63,9 @@ final class DatabaseUserTeamMembershipManager implements UserTeamMembershipManag
 
     public function hasActiveMembership(string $userPublicId, string $teamPublicId): bool
     {
-        return DB::table('team_user_assignments')
-            ->join('users', 'team_user_assignments.user_id', '=', 'users.id')
-            ->join('teams', 'team_user_assignments.team_id', '=', 'teams.id')
+        return DB::table(DatabaseTable::TEAM_USER_ASSIGNMENTS)
+            ->join(DatabaseTable::USERS, 'team_user_assignments.user_id', '=', 'users.id')
+            ->join(DatabaseTable::TEAMS, 'team_user_assignments.team_id', '=', 'teams.id')
             ->where('users.public_id', $userPublicId)
             ->where('teams.public_id', $teamPublicId)
             ->where(static function (Builder $query): void {
@@ -76,13 +77,18 @@ final class DatabaseUserTeamMembershipManager implements UserTeamMembershipManag
             ->exists();
     }
 
+    public function teamExists(string $teamPublicId): bool
+    {
+        return DB::table(DatabaseTable::TEAMS)->where('public_id', $teamPublicId)->exists();
+    }
+
     public function activeMembershipsForTeam(string $teamPublicId): array
     {
         $memberships = [];
 
-        foreach (DB::table('team_user_assignments')
-            ->join('users', 'team_user_assignments.user_id', '=', 'users.id')
-            ->join('teams', 'team_user_assignments.team_id', '=', 'teams.id')
+        foreach (DB::table(DatabaseTable::TEAM_USER_ASSIGNMENTS)
+            ->join(DatabaseTable::USERS, 'team_user_assignments.user_id', '=', 'users.id')
+            ->join(DatabaseTable::TEAMS, 'team_user_assignments.team_id', '=', 'teams.id')
             ->where('teams.public_id', $teamPublicId)
             ->where(static function (Builder $query): void {
                 $query->whereNull('team_user_assignments.valid_from')->orWhere('team_user_assignments.valid_from', '<=', now());
@@ -115,8 +121,8 @@ final class DatabaseUserTeamMembershipManager implements UserTeamMembershipManag
     {
         $activeUserIds = [];
 
-        foreach (DB::table('team_user_assignments')
-            ->join('teams', 'team_user_assignments.team_id', '=', 'teams.id')
+        foreach (DB::table(DatabaseTable::TEAM_USER_ASSIGNMENTS)
+            ->join(DatabaseTable::TEAMS, 'team_user_assignments.team_id', '=', 'teams.id')
             ->where('teams.public_id', $teamPublicId)
             ->where(static function (Builder $query): void {
                 $query->whereNull('team_user_assignments.valid_from')->orWhere('team_user_assignments.valid_from', '<=', now());
@@ -133,7 +139,7 @@ final class DatabaseUserTeamMembershipManager implements UserTeamMembershipManag
 
         $users = [];
 
-        foreach (DB::table('users')
+        foreach (DB::table(DatabaseTable::USERS)
             ->where('is_active', true)
             ->when($activeUserIds !== [], static function (Builder $query) use ($activeUserIds): void {
                 $query->whereNotIn('id', $activeUserIds);
@@ -156,8 +162,8 @@ final class DatabaseUserTeamMembershipManager implements UserTeamMembershipManag
     {
         $activeTeamIds = [];
 
-        foreach (DB::table('team_user_assignments')
-            ->join('users', 'team_user_assignments.user_id', '=', 'users.id')
+        foreach (DB::table(DatabaseTable::TEAM_USER_ASSIGNMENTS)
+            ->join(DatabaseTable::USERS, 'team_user_assignments.user_id', '=', 'users.id')
             ->where('users.public_id', $userPublicId)
             ->where(static function (Builder $query): void {
                 $query->whereNull('team_user_assignments.valid_from')->orWhere('team_user_assignments.valid_from', '<=', now());
@@ -174,7 +180,7 @@ final class DatabaseUserTeamMembershipManager implements UserTeamMembershipManag
 
         $teams = [];
 
-        foreach (DB::table('teams')
+        foreach (DB::table(DatabaseTable::TEAMS)
             ->where('is_active', true)
             ->when($activeTeamIds !== [], static function (Builder $query) use ($activeTeamIds): void {
                 $query->whereNotIn('id', $activeTeamIds);
@@ -195,7 +201,7 @@ final class DatabaseUserTeamMembershipManager implements UserTeamMembershipManag
     {
         $teams = [];
 
-        foreach (DB::table('teams')
+        foreach (DB::table(DatabaseTable::TEAMS)
             ->where('is_active', true)
             ->orderBy('name')
             ->get(['public_id', 'name']) as $row) {
@@ -215,7 +221,7 @@ final class DatabaseUserTeamMembershipManager implements UserTeamMembershipManag
         $before = $this->membershipSnapshot($userId, $teamId);
 
         DB::transaction(function () use ($userId, $teamId): void {
-            DB::table('team_user_assignments')->updateOrInsert([
+            DB::table(DatabaseTable::TEAM_USER_ASSIGNMENTS)->updateOrInsert([
                 'team_id' => $teamId,
                 'user_id' => $userId,
             ], [
@@ -245,7 +251,7 @@ final class DatabaseUserTeamMembershipManager implements UserTeamMembershipManag
         }
 
         DB::transaction(function () use ($userId, $teamId, $userPublicId, $teamPublicId): void {
-            DB::table('team_user_assignments')
+            DB::table(DatabaseTable::TEAM_USER_ASSIGNMENTS)
                 ->where('team_id', $teamId)
                 ->where('user_id', $userId)
                 ->update([
@@ -269,8 +275,8 @@ final class DatabaseUserTeamMembershipManager implements UserTeamMembershipManag
      */
     private function resolveIds(string $userPublicId, string $teamPublicId): array
     {
-        $userId = DB::table('users')->where('public_id', $userPublicId)->value('id');
-        $teamId = DB::table('teams')->where('public_id', $teamPublicId)->value('id');
+        $userId = DB::table(DatabaseTable::USERS)->where('public_id', $userPublicId)->value('id');
+        $teamId = DB::table(DatabaseTable::TEAMS)->where('public_id', $teamPublicId)->value('id');
 
         if (! is_int($userId) || ! is_int($teamId)) {
             abort(Response::HTTP_NOT_FOUND);
@@ -284,7 +290,7 @@ final class DatabaseUserTeamMembershipManager implements UserTeamMembershipManag
      */
     private function membershipSnapshot(int $userId, int $teamId): array
     {
-        $row = DB::table('team_user_assignments')
+        $row = DB::table(DatabaseTable::TEAM_USER_ASSIGNMENTS)
             ->where('team_id', $teamId)
             ->where('user_id', $userId)
             ->first(['valid_from', 'valid_to']);

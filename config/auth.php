@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Modules\Core\Identity\Infrastructure\Persistence\User;
+use App\Shared\Infrastructure\Database\DatabaseTable;
 
 return [
     'defaults' => [
@@ -27,7 +28,7 @@ return [
     'passwords' => [
         'users' => [
             'provider' => 'users',
-            'table' => 'password_reset_tokens',
+            'table' => DatabaseTable::PASSWORD_RESET_TOKENS,
             'expire' => 15,
             'throttle' => 15,
         ],

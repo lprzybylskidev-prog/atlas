@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Feature\Foundation;
 
 use App\Modules\Core\Identity\Infrastructure\Persistence\User;
+use App\Shared\Infrastructure\Database\DatabaseTable;
 use Database\Seeders\E2eVisibilitySeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -19,7 +20,7 @@ final class ModuleActivationAdministrationTest extends TestCase
     {
         $this->seed(E2eVisibilitySeeder::class);
         $admin = User::query()->where('email', E2eVisibilitySeeder::ADMIN_EMAIL)->firstOrFail();
-        $team = DB::table('teams')->first();
+        $team = DB::table(DatabaseTable::TEAMS)->first();
 
         self::assertIsObject($team);
         $teamPublicId = is_string($team->public_id) ? $team->public_id : '';
@@ -65,7 +66,7 @@ final class ModuleActivationAdministrationTest extends TestCase
     {
         $this->seed(E2eVisibilitySeeder::class);
         $limited = User::query()->where('email', E2eVisibilitySeeder::LIMITED_EMAIL)->firstOrFail();
-        $team = DB::table('teams')->first();
+        $team = DB::table(DatabaseTable::TEAMS)->first();
 
         self::assertIsObject($team);
 

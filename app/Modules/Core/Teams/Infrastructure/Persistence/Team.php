@@ -5,11 +5,12 @@ declare(strict_types=1);
 namespace App\Modules\Core\Teams\Infrastructure\Persistence;
 
 use App\Modules\Core\Teams\Domain\ValueObjects\TeamPublicId;
+use App\Shared\Infrastructure\Database\DatabaseTable;
 use Illuminate\Database\Eloquent\Model;
 
 final class Team extends Model
 {
-    protected $table = 'teams';
+    protected $table = DatabaseTable::TEAMS;
 
     /** @var list<string> */
     protected $fillable = [

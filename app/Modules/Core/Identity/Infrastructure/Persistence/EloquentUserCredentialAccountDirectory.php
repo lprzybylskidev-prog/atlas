@@ -57,6 +57,19 @@ final class EloquentUserCredentialAccountDirectory implements UserCredentialAcco
         return $this->adminRow($user, in_array((string) $user->public_id, $this->sessions->onlineUserPublicIds(), true));
     }
 
+    public function publicIdExists(string $publicId): bool
+    {
+        return User::query()->where('public_id', $publicId)->exists();
+    }
+
+    public function emailExists(string $email, ?string $exceptPublicId = null): bool
+    {
+        return User::query()
+            ->where('email', $email)
+            ->when($exceptPublicId !== null, static fn ($query) => $query->where('public_id', '<>', $exceptPublicId))
+            ->exists();
+    }
+
     public function updateIdentity(string $publicId, string $name, string $email): ?AdminUserCredentialAccount
     {
         $user = User::query()->where('public_id', $publicId)->first();

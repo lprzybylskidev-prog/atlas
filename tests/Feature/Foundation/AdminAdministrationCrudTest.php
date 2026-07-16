@@ -11,6 +11,7 @@ use App\Modules\Core\Authorization\Application\Roles\StarterRoleName;
 use App\Modules\Core\Identity\Application\Public\Contracts\UserSessionRegistry;
 use App\Modules\Core\Identity\Infrastructure\Persistence\User;
 use App\Modules\Core\Teams\Infrastructure\Persistence\Team;
+use App\Shared\Infrastructure\Database\DatabaseTable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -66,7 +67,7 @@ final class AdminAdministrationCrudTest extends TestCase
             directPermissionNames: ['dashboard'],
             templatePermissionNames: ['dashboard'],
         );
-        $packagePublicId = DB::table('authorization_onboarding_packages')
+        $packagePublicId = DB::table(DatabaseTable::AUTHORIZATION_ONBOARDING_PACKAGES)
             ->where('team_id', $activeTeam->id)
             ->where('name', 'collections.agent')
             ->value('public_id');
@@ -101,33 +102,33 @@ final class AdminAdministrationCrudTest extends TestCase
             ])
             ->assertRedirect(route('admin.authorization.packages.edit', ['package' => $packagePublicId]));
 
-        self::assertDatabaseHas('teams', [
+        self::assertDatabaseHas(DatabaseTable::TEAMS, [
             'public_id' => $editableTeam->public_id,
             'name' => 'Client Support',
         ]);
-        self::assertDatabaseHas('roles', [
+        self::assertDatabaseHas(DatabaseTable::ROLES, [
             'name' => 'operations.reader',
             'guard_name' => 'web',
         ]);
-        self::assertDatabaseMissing('roles', [
+        self::assertDatabaseMissing(DatabaseTable::ROLES, [
             'name' => 'operations.viewer',
             'guard_name' => 'web',
         ]);
-        self::assertDatabaseHas('authorization_onboarding_packages', [
+        self::assertDatabaseHas(DatabaseTable::AUTHORIZATION_ONBOARDING_PACKAGES, [
             'team_id' => $activeTeam->id,
             'name' => 'collections.agent',
             'label' => 'Collections specialist',
         ]);
 
-        $package = DB::table('authorization_onboarding_packages')->where('public_id', $packagePublicId)->first();
+        $package = DB::table(DatabaseTable::AUTHORIZATION_ONBOARDING_PACKAGES)->where('public_id', $packagePublicId)->first();
         $role = Role::query()->where('name', 'operations.reader')->firstOrFail();
-        $permission = DB::table('permissions')
+        $permission = DB::table(DatabaseTable::PERMISSIONS)
             ->where('name', CoreAuthorizationPermissionCatalog::ADMIN_AUTHORIZATION_PERMISSIONS)
             ->first(['id']);
 
         self::assertIsObject($package);
         self::assertIsObject($permission);
-        self::assertDatabaseHas('role_has_permissions', [
+        self::assertDatabaseHas(DatabaseTable::ROLE_HAS_PERMISSIONS, [
             'role_id' => $role->id,
             'permission_id' => get_object_vars($permission)['id'] ?? null,
         ]);
@@ -185,20 +186,20 @@ final class AdminAdministrationCrudTest extends TestCase
             ])
             ->assertRedirect();
 
-        self::assertDatabaseHas('table_saved_views', [
+        self::assertDatabaseHas(DatabaseTable::TABLE_SAVED_VIEWS, [
             'table_key' => 'admin.users',
             'name' => 'Team active users',
             'type' => 'team',
             'team_id' => $activeTeam->id,
         ]);
-        self::assertDatabaseHas('audit_events', [
+        self::assertDatabaseHas(DatabaseTable::AUDIT_EVENTS, [
             'module' => 'shared',
             'action' => 'table_saved_view.created',
             'result' => 'success',
             'actor_public_id' => $actor->public_id,
         ]);
 
-        $view = DB::table('table_saved_views')->where('name', 'Team active users')->first();
+        $view = DB::table(DatabaseTable::TABLE_SAVED_VIEWS)->where('name', 'Team active users')->first();
         self::assertIsObject($view);
         self::assertSame(['name', 'email'], $this->jsonStringList($view, 'state', 'columns'));
         $viewPublicId = $this->recordString($view, 'public_id');
@@ -218,7 +219,7 @@ final class AdminAdministrationCrudTest extends TestCase
             ])
             ->assertRedirect();
 
-        $emptyColumnsView = DB::table('table_saved_views')->where('name', 'No visible data columns')->first();
+        $emptyColumnsView = DB::table(DatabaseTable::TABLE_SAVED_VIEWS)->where('name', 'No visible data columns')->first();
         self::assertIsObject($emptyColumnsView);
         self::assertSame([], $this->jsonStringList($emptyColumnsView, 'state', 'columns'));
 
@@ -243,7 +244,7 @@ final class AdminAdministrationCrudTest extends TestCase
             ])
             ->assertRedirect();
 
-        $updatedView = DB::table('table_saved_views')->where('name', 'Team active users')->first();
+        $updatedView = DB::table(DatabaseTable::TABLE_SAVED_VIEWS)->where('name', 'Team active users')->first();
         self::assertIsObject($updatedView);
         $updatedFilters = $this->jsonObject($updatedView, 'state', 'filters');
         self::assertSame('authorization', $updatedFilters['module'] ?? null);
@@ -279,7 +280,7 @@ final class AdminAdministrationCrudTest extends TestCase
             ])
             ->assertRedirect(route('admin.users.edit', ['user' => $target->public_id]));
 
-        self::assertDatabaseHas('team_user_assignments', [
+        self::assertDatabaseHas(DatabaseTable::TEAM_USER_ASSIGNMENTS, [
             'team_id' => $managedTeam->id,
             'user_id' => $target->id,
             'valid_to' => null,
@@ -288,13 +289,13 @@ final class AdminAdministrationCrudTest extends TestCase
         $role = Role::query()->where('name', StarterRoleName::WorkspaceAccess->value)->firstOrFail();
         $permission = Permission::query()->where('name', CoreAuthorizationPermissionCatalog::DASHBOARD)->firstOrFail();
 
-        DB::table('model_has_roles')->insert([
+        DB::table(DatabaseTable::MODEL_HAS_ROLES)->insert([
             'role_id' => $role->id,
             'model_type' => config('auth.providers.users.model'),
             'model_id' => $target->id,
             'team_id' => $managedTeam->id,
         ]);
-        DB::table('model_has_permissions')->insert([
+        DB::table(DatabaseTable::MODEL_HAS_PERMISSIONS)->insert([
             'permission_id' => $permission->id,
             'model_type' => config('auth.providers.users.model'),
             'model_id' => $target->id,
@@ -312,27 +313,27 @@ final class AdminAdministrationCrudTest extends TestCase
             ])
             ->assertRedirect(route('admin.users.edit', ['user' => $target->public_id]));
 
-        $assignment = DB::table('team_user_assignments')
+        $assignment = DB::table(DatabaseTable::TEAM_USER_ASSIGNMENTS)
             ->where('team_id', $managedTeam->id)
             ->where('user_id', $target->id)
             ->first(['valid_to']);
 
         self::assertIsObject($assignment);
         self::assertNotNull(get_object_vars($assignment)['valid_to'] ?? null);
-        self::assertDatabaseMissing('model_has_roles', [
+        self::assertDatabaseMissing(DatabaseTable::MODEL_HAS_ROLES, [
             'role_id' => $role->id,
             'model_type' => config('auth.providers.users.model'),
             'model_id' => $target->id,
             'team_id' => $managedTeam->id,
         ]);
-        self::assertDatabaseMissing('model_has_permissions', [
+        self::assertDatabaseMissing(DatabaseTable::MODEL_HAS_PERMISSIONS, [
             'permission_id' => $permission->id,
             'model_type' => config('auth.providers.users.model'),
             'model_id' => $target->id,
             'team_id' => $managedTeam->id,
         ]);
         self::assertCount(0, $this->app->make(UserSessionRegistry::class)->activeForUser((string) $target->public_id));
-        $this->assertDatabaseHas('audit_events', [
+        $this->assertDatabaseHas(DatabaseTable::AUDIT_EVENTS, [
             'module' => 'teams',
             'action' => 'team.user_access_removed',
             'result' => 'succeeded',
@@ -367,17 +368,17 @@ final class AdminAdministrationCrudTest extends TestCase
         $managerRole = Role::query()->where('name', StarterRoleName::TeamManagersRead->value)->firstOrFail();
         $permission = Permission::query()->where('name', CoreAuthorizationPermissionCatalog::DASHBOARD)->firstOrFail();
 
-        self::assertDatabaseHas('team_user_assignments', [
+        self::assertDatabaseHas(DatabaseTable::TEAM_USER_ASSIGNMENTS, [
             'team_id' => $createdTeam->id,
             'user_id' => $member->id,
             'valid_to' => null,
         ]);
-        self::assertDatabaseHas('model_has_roles', [
+        self::assertDatabaseHas(DatabaseTable::MODEL_HAS_ROLES, [
             'role_id' => $managerRole->id,
             'model_id' => $member->id,
             'team_id' => $createdTeam->id,
         ]);
-        self::assertDatabaseHas('model_has_permissions', [
+        self::assertDatabaseHas(DatabaseTable::MODEL_HAS_PERMISSIONS, [
             'permission_id' => $permission->id,
             'model_id' => $member->id,
             'team_id' => $createdTeam->id,
@@ -390,14 +391,14 @@ final class AdminAdministrationCrudTest extends TestCase
 
         $role = Role::query()->where('name', $roleName)->firstOrFail();
 
-        DB::table('team_user_assignments')->insert([
+        DB::table(DatabaseTable::TEAM_USER_ASSIGNMENTS)->insert([
             'team_id' => $team->id,
             'user_id' => $user->id,
             'created_at' => now(),
             'updated_at' => now(),
         ]);
 
-        DB::table('model_has_roles')->insert([
+        DB::table(DatabaseTable::MODEL_HAS_ROLES)->insert([
             'role_id' => $role->id,
             'model_type' => config('auth.providers.users.model'),
             'model_id' => $user->id,

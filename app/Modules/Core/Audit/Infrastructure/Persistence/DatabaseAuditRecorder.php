@@ -6,6 +6,7 @@ namespace App\Modules\Core\Audit\Infrastructure\Persistence;
 
 use App\Modules\Core\Audit\Application\Public\Contracts\AuditRecorder;
 use App\Modules\Core\Audit\Application\Public\DTOs\AuditEvent;
+use App\Shared\Infrastructure\Database\DatabaseTable;
 use Illuminate\Database\ConnectionInterface;
 use Illuminate\Support\Str;
 
@@ -20,7 +21,7 @@ final readonly class DatabaseAuditRecorder implements AuditRecorder
         $publicId = (string) Str::ulid();
         $occurredAt = now();
 
-        $this->db->table('audit_events')->insert([
+        $this->db->table(DatabaseTable::AUDIT_EVENTS)->insert([
             'public_id' => $publicId,
             'occurred_at' => $occurredAt,
             'module' => $event->module,
@@ -48,7 +49,7 @@ final readonly class DatabaseAuditRecorder implements AuditRecorder
             return;
         }
 
-        $this->db->table('audit_security_events')->insert([
+        $this->db->table(DatabaseTable::AUDIT_SECURITY_EVENTS)->insert([
             'audit_event_public_id' => $publicId,
             'occurred_at' => $occurredAt,
             'category' => $event->securityCategory ?? $this->categoryFromAction($event->action),

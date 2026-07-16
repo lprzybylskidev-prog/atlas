@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use App\Shared\Infrastructure\Database\DatabaseSchema;
+use App\Shared\Infrastructure\Database\DatabaseTable;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
@@ -11,7 +13,9 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('audit_events', function (Blueprint $table): void {
+        DatabaseSchema::ensure(DatabaseSchema::CORE_AUDIT);
+
+        Schema::create(DatabaseTable::AUDIT_EVENTS, function (Blueprint $table): void {
             $table->id();
             $table->ulid('public_id')->unique();
             $table->timestampTz('occurred_at');
@@ -46,7 +50,7 @@ return new class extends Migration
             $table->index(['is_security', 'occurred_at']);
         });
 
-        Schema::create('audit_security_events', function (Blueprint $table): void {
+        Schema::create(DatabaseTable::AUDIT_SECURITY_EVENTS, function (Blueprint $table): void {
             $table->id();
             $table->ulid('audit_event_public_id')->unique();
             $table->timestampTz('occurred_at');
@@ -58,7 +62,7 @@ return new class extends Migration
             $table->ulid('team_public_id')->nullable();
             $table->string('correlation_id')->nullable();
 
-            $table->foreign('audit_event_public_id')->references('public_id')->on('audit_events')->restrictOnDelete();
+            $table->foreign('audit_event_public_id')->references('public_id')->on(DatabaseTable::AUDIT_EVENTS)->restrictOnDelete();
             $table->index(['category', 'occurred_at']);
             $table->index(['action', 'occurred_at']);
             $table->index(['target_public_id', 'occurred_at']);
@@ -66,20 +70,20 @@ return new class extends Migration
         });
 
         DB::statement($this->appendOnlyFunctionSql());
-        DB::statement($this->appendOnlyTriggerSql('audit_events'));
-        DB::statement($this->appendOnlyTriggerSql('audit_security_events'));
+        DB::statement($this->appendOnlyTriggerSql('audit_events', DatabaseTable::AUDIT_EVENTS));
+        DB::statement($this->appendOnlyTriggerSql('audit_security_events', DatabaseTable::AUDIT_SECURITY_EVENTS));
 
         $this->backfillSecurityAuditEvents();
     }
 
     public function down(): void
     {
-        DB::statement('drop trigger if exists audit_events_append_only on audit_events');
-        DB::statement('drop trigger if exists audit_security_events_append_only on audit_security_events');
+        DB::statement('drop trigger if exists audit_events_append_only on '.DatabaseTable::AUDIT_EVENTS);
+        DB::statement('drop trigger if exists audit_security_events_append_only on '.DatabaseTable::AUDIT_SECURITY_EVENTS);
         DB::statement('drop function if exists prevent_audit_mutation()');
 
-        Schema::dropIfExists('audit_security_events');
-        Schema::dropIfExists('audit_events');
+        Schema::dropIfExists(DatabaseTable::AUDIT_SECURITY_EVENTS);
+        Schema::dropIfExists(DatabaseTable::AUDIT_EVENTS);
     }
 
     private function appendOnlyFunctionSql(): string
@@ -94,23 +98,27 @@ $$ language plpgsql
 SQL;
     }
 
-    private function appendOnlyTriggerSql(string $table): string
+    private function appendOnlyTriggerSql(string $triggerBaseName, string $table): string
     {
         return sprintf(
             'create trigger %s_append_only before update or delete on %s for each row execute function prevent_audit_mutation()',
-            $table,
+            $triggerBaseName,
             $table,
         );
     }
 
     private function backfillSecurityAuditEvents(): void
     {
-        if (! Schema::hasTable('security_audit_events')) {
+        if (! Schema::hasTable('public.security_audit_events')) {
             return;
         }
 
-        DB::statement(<<<'SQL'
-insert into audit_events (
+        $auditEventsTable = DatabaseTable::AUDIT_EVENTS;
+        $auditSecurityEventsTable = DatabaseTable::AUDIT_SECURITY_EVENTS;
+        $legacySecurityAuditEventsTable = 'public.security_audit_events';
+
+        DB::statement(<<<SQL
+insert into {$auditEventsTable} (
     public_id,
     occurred_at,
     module,
@@ -135,11 +143,11 @@ select
     reason,
     metadata,
     true
-from security_audit_events
+from {$legacySecurityAuditEventsTable}
 SQL);
 
-        DB::statement(<<<'SQL'
-insert into audit_security_events (
+        DB::statement(<<<SQL
+insert into {$auditSecurityEventsTable} (
     audit_event_public_id,
     occurred_at,
     category,
@@ -163,9 +171,9 @@ select
     result,
     actor_public_id,
     target_public_id
-from security_audit_events
+from {$legacySecurityAuditEventsTable}
 SQL);
 
-        Schema::dropIfExists('security_audit_events');
+        Schema::dropIfExists($legacySecurityAuditEventsTable);
     }
 };

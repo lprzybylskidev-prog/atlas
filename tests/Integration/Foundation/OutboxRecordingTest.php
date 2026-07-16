@@ -7,6 +7,7 @@ namespace Tests\Integration\Foundation;
 use App\Shared\Application\Outbox\Contracts\OutboxEventRecorder;
 use App\Shared\Application\Outbox\IntegrationEventMessage;
 use App\Shared\Application\Outbox\OutboxEventStatus;
+use App\Shared\Infrastructure\Database\DatabaseTable;
 use DateTimeImmutable;
 use DateTimeZone;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -22,7 +23,7 @@ final class OutboxRecordingTest extends TestCase
 
     public function test_outbox_events_table_has_the_required_storage_contract(): void
     {
-        self::assertTrue(Schema::hasColumns('outbox_events', [
+        self::assertTrue(Schema::hasColumns(DatabaseTable::OUTBOX_EVENTS, [
             'id',
             'event_id',
             'event_type',
@@ -64,7 +65,7 @@ final class OutboxRecordingTest extends TestCase
             causationId: $causationId,
         ));
 
-        $record = DB::table('outbox_events')->where('event_id', $eventId)->first();
+        $record = DB::table(DatabaseTable::OUTBOX_EVENTS)->where('event_id', $eventId)->first();
 
         self::assertNotNull($record);
         self::assertSame('identity.user_registered', $record->event_type);
@@ -109,7 +110,7 @@ final class OutboxRecordingTest extends TestCase
             self::assertSame('Simulated application failure.', $exception->getMessage());
         }
 
-        $this->assertDatabaseMissing('outbox_events', [
+        $this->assertDatabaseMissing(DatabaseTable::OUTBOX_EVENTS, [
             'event_id' => $eventId,
         ]);
     }
@@ -130,7 +131,7 @@ final class OutboxRecordingTest extends TestCase
             ));
         });
 
-        $this->assertDatabaseHas('outbox_events', [
+        $this->assertDatabaseHas(DatabaseTable::OUTBOX_EVENTS, [
             'event_id' => $eventId,
             'status' => OutboxEventStatus::Pending->value,
         ]);

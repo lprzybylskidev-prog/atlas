@@ -153,7 +153,7 @@ Read [`docs/architecture/modular-monolith.md`](docs/architecture/modular-monolit
 
 ### Module boundaries
 
-- A module owns its Domain, Application, Infrastructure, Presentation, database tables, permissions, settings, and events.
+- A module owns its Domain, Application, Infrastructure, Presentation, PostgreSQL schema, database tables, permissions, settings, and events.
 - Cross-module synchronous access uses only typed contracts exposed from `Application/Public`.
 - Cross-module asynchronous communication uses versioned Integration Events.
 - Never import another module's Domain internals, Eloquent models, repositories, or Infrastructure.
@@ -187,6 +187,10 @@ Read [`docs/architecture/modular-monolith.md`](docs/architecture/modular-monolit
 ### Persistence and migrations
 
 - Design explicitly for PostgreSQL.
+- Atlas-owned tables belong in the owning module's PostgreSQL schema, not in `public`, unless a canonical architecture document explicitly grants a framework, shared-infrastructure, or transition exception.
+- PostgreSQL schemas are a persistence ownership boundary, not a substitute for module boundaries. Cross-module access still uses public contracts or Integration Events; do not query another module's schema directly.
+- Migrations must create required schemas explicitly and use schema-qualified table names, indexes, and foreign-key references.
+- Application code, Eloquent models, query builders, configuration, and tests must not rely on PostgreSQL `search_path` to find Atlas-owned tables.
 - Use real foreign keys and appropriate indexes.
 - Default foreign-key behavior is `RESTRICT`; do not introduce cascading deletion casually.
 - Use `BIGINT` internal identifiers and ULID public identifiers where resources are exposed.

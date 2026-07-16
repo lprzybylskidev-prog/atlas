@@ -37,12 +37,14 @@ Do not replace this index after the initial technical foundation is completed. C
 
 ## Current phase
 
-- Phase: [Phase 15 — Notifications and realtime foundation](docs/roadmap/phase-15-notifications-realtime.md)
-- Status: `not started`
+- Phase: [Phase 14a — PostgreSQL module schemas](docs/roadmap/phase-14a-postgresql-module-schemas.md)
+- Status: `implementation complete, pending commit`
 
 ## Roadmap dependency repair note
 
 After Phase 7 completed, the roadmap was reordered because several shared foundations were already used before their full known contracts were scheduled. The repaired order preserves completed phase history, adds an immediate closure phase for partial foundations, splits table/saved-view work from later report/export/PDF generation, and moves audit, settings, sessions, module activation, notifications, health, and Admin foundations before modules that depend on them.
+
+Before Phase 15 starts, Phase 14a was added as a targeted dependency repair because module-owned PostgreSQL schemas must exist before additional module persistence is introduced.
 
 ## Phase index
 
@@ -165,6 +167,14 @@ Implement Redis-backed sessions, active-team context, session administration, se
 Implement deployment availability, global/team activation, schedules, dependencies, cache invalidation, deactivation guards, and central gate enforcement.
 
 [Open implementation contract and tasks](docs/roadmap/phase-14-module-activation.md)
+
+### Phase 14a — PostgreSQL module schemas
+
+**Status:** `implementation complete, pending commit`
+
+Move Atlas-owned database tables from the default `public` schema into explicit module and shared-infrastructure PostgreSQL schemas before later phases add more persistence.
+
+[Open implementation contract and tasks](docs/roadmap/phase-14a-postgresql-module-schemas.md)
 
 ### Phase 15 — Notifications and realtime foundation
 

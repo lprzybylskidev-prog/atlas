@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use App\Shared\Infrastructure\Database\DatabaseSchema;
+use App\Shared\Infrastructure\Database\DatabaseTable;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -10,7 +12,9 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('outbox_events', function (Blueprint $table): void {
+        DatabaseSchema::ensure(DatabaseSchema::SHARED);
+
+        Schema::create(DatabaseTable::OUTBOX_EVENTS, function (Blueprint $table): void {
             $table->id();
             $table->ulid('event_id')->unique();
             $table->string('event_type');
@@ -37,6 +41,6 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::dropIfExists('outbox_events');
+        Schema::dropIfExists(DatabaseTable::OUTBOX_EVENTS);
     }
 };

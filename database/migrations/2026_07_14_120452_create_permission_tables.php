@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Shared\Infrastructure\Database\DatabaseSchema;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -10,6 +11,8 @@ return new class extends Migration
 {
     public function up(): void
     {
+        DatabaseSchema::ensure(DatabaseSchema::CORE_AUTHORIZATION);
+
         $teams = config()->boolean('permission.teams');
         $permissionsTable = config()->string('permission.table_names.permissions');
         $rolesTable = config()->string('permission.table_names.roles');

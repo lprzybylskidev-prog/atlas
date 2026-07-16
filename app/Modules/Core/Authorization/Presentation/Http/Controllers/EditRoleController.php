@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Core\Authorization\Presentation\Http\Controllers;
 
 use App\Modules\Core\Authorization\Application\Permissions\PermissionCatalogRegistry;
+use App\Shared\Infrastructure\Database\DatabaseTable;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -17,7 +18,7 @@ final readonly class EditRoleController
 
     public function __invoke(string $role): Response
     {
-        $record = DB::table('roles')
+        $record = DB::table(DatabaseTable::ROLES)
             ->where('name', $role)
             ->where('guard_name', 'web')
             ->first(['id', 'name', 'guard_name']);
@@ -47,8 +48,8 @@ final readonly class EditRoleController
             return [];
         }
 
-        return array_values(DB::table('role_has_permissions')
-            ->join('permissions', 'role_has_permissions.permission_id', '=', 'permissions.id')
+        return array_values(DB::table(DatabaseTable::ROLE_HAS_PERMISSIONS)
+            ->join(DatabaseTable::PERMISSIONS, 'role_has_permissions.permission_id', '=', 'permissions.id')
             ->where('role_has_permissions.role_id', (int) $roleId)
             ->orderBy('permissions.name')
             ->pluck('permissions.name')

@@ -99,6 +99,7 @@ General rules:
 - Presentation contains HTTP/UI delivery.
 - Cross-module access uses only typed public APIs and Integration Events.
 - Reliable Integration Events use the transactional Outbox.
+- Atlas-owned database tables use explicit PostgreSQL schemas for module or shared-infrastructure ownership.
 - Direct access to another module's models, tables, Domain internals, or Infrastructure is prohibited.
 
 Detailed rules live in `AGENTS.md` and the relevant architecture and module documentation.
@@ -169,7 +170,9 @@ The Laravel foundation includes Fortify, Horizon, Scout with Meilisearch, Sentry
 
 The baseline frontend shell is available through Inertia/Vue with strict TypeScript, light and dark themes, responsive auth/application/admin layouts, PL/EN frontend localization with Polish default for regular UI, English-only Admin shell copy, the Atlas logo and favicon, and a local demo reset command documented in [`docs/operations/seeding-and-demo-data.md`](docs/operations/seeding-and-demo-data.md).
 
-The implementation status and first unfinished phase are always shown in [`WORKROAD.md`](WORKROAD.md). The current post-Phase-7 focus is foundation completion and roadmap dependency repair before sessions and later shared capabilities continue.
+Atlas-owned persistence is split across explicit PostgreSQL schemas such as `core_identity`, `core_teams`, `core_authorization`, `core_audit`, `core_settings`, and `shared`; the architecture map lives in [`docs/architecture/modular-monolith.md`](docs/architecture/modular-monolith.md).
+
+The implementation status and first unfinished phase are always shown in [`WORKROAD.md`](WORKROAD.md). The current roadmap focus is finishing shared foundations in dependency order before the first debt collection business modules are introduced.
 
 As the project grows, this README must present the current high-level system scope, major modules, supported workflows, setup entry points, and operational expectations.
 

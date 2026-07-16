@@ -10,6 +10,7 @@ use App\Modules\Core\Identity\Application\Public\Contracts\UserSessionRegistry;
 use App\Modules\Core\Identity\Infrastructure\Persistence\User;
 use App\Modules\Core\Teams\Infrastructure\Persistence\Team;
 use App\Shared\Application\Tables\AdminTableDefinitions;
+use App\Shared\Infrastructure\Database\DatabaseTable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Middleware\ThrottleRequests;
@@ -80,7 +81,7 @@ final class SessionsActiveTeamTest extends TestCase
             ->post('/team/select', ['team_public_id' => $second->public_id])
             ->assertRedirect(route('dashboard'));
 
-        $this->assertDatabaseHas('audit_events', [
+        $this->assertDatabaseHas(DatabaseTable::AUDIT_EVENTS, [
             'module' => 'identity',
             'action' => 'session.active_team_switched',
             'actor_public_id' => $user->public_id,
@@ -193,7 +194,7 @@ final class SessionsActiveTeamTest extends TestCase
 
         $this->assertGuest();
         self::assertCount(1, $this->app->make(UserSessionRegistry::class)->activeForUser((string) $user->public_id));
-        $this->assertDatabaseHas('audit_events', [
+        $this->assertDatabaseHas(DatabaseTable::AUDIT_EVENTS, [
             'module' => 'identity',
             'action' => 'auth.session_conflict',
             'result' => 'rejected',
@@ -208,7 +209,7 @@ final class SessionsActiveTeamTest extends TestCase
 
         $this->assertAuthenticatedAs($user);
         self::assertCount(0, $this->app->make(UserSessionRegistry::class)->activeForUser((string) $user->public_id));
-        $this->assertDatabaseHas('audit_events', [
+        $this->assertDatabaseHas(DatabaseTable::AUDIT_EVENTS, [
             'module' => 'identity',
             'action' => 'auth.session_conflict_resolved',
             'result' => 'succeeded',
@@ -240,14 +241,14 @@ final class SessionsActiveTeamTest extends TestCase
 
         $role = Role::query()->where('name', $roleName)->firstOrFail();
 
-        DB::table('team_user_assignments')->insertOrIgnore([
+        DB::table(DatabaseTable::TEAM_USER_ASSIGNMENTS)->insertOrIgnore([
             'team_id' => $team->id,
             'user_id' => $user->id,
             'created_at' => now(),
             'updated_at' => now(),
         ]);
 
-        DB::table('model_has_roles')->insertOrIgnore([
+        DB::table(DatabaseTable::MODEL_HAS_ROLES)->insertOrIgnore([
             'role_id' => $role->id,
             'model_type' => config('auth.providers.users.model'),
             'model_id' => $user->id,

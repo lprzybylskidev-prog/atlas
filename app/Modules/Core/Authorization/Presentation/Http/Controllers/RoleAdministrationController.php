@@ -9,6 +9,7 @@ use App\Shared\Application\Tables\ArrayTableProcessor;
 use App\Shared\Application\Tables\TableRequestContext;
 use App\Shared\Application\Tables\TableSavedViewService;
 use App\Shared\Application\Tables\TableState;
+use App\Shared\Infrastructure\Database\DatabaseTable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
@@ -27,8 +28,8 @@ final readonly class RoleAdministrationController
         $definition = AdminTableDefinitions::get(AdminTableDefinitions::ROLES);
         $state = TableState::fromRequest($request, $definition);
         [$userId, $teamId] = $this->context->userTeam($request);
-        $roles = array_values(DB::table('roles')
-            ->leftJoin('role_has_permissions', 'roles.id', '=', 'role_has_permissions.role_id')
+        $roles = array_values(DB::table(DatabaseTable::ROLES)
+            ->leftJoin(DatabaseTable::ROLE_HAS_PERMISSIONS, 'roles.id', '=', 'role_has_permissions.role_id')
             ->select(
                 'roles.id',
                 'roles.public_id',

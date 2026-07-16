@@ -15,6 +15,7 @@ use App\Modules\Core\Teams\Application\Public\Contracts\BootstrapTeamProvider;
 use App\Modules\Core\Teams\Application\Public\DTOs\BootstrapTeam;
 use App\Modules\Core\Teams\Application\Public\Permissions\TeamPermissionNames;
 use App\Modules\Core\Users\Application\Permissions\UserPermissionCatalog;
+use App\Shared\Infrastructure\Database\DatabaseTable;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -94,13 +95,13 @@ class DevelopmentDemoSeeder extends Seeder
 
     private function applyPackageIfMissing(User $user, string $teamPublicId, string $packageName, string $actorPublicId): void
     {
-        $teamId = DB::table('teams')->where('public_id', $teamPublicId)->value('id');
+        $teamId = DB::table(DatabaseTable::TEAMS)->where('public_id', $teamPublicId)->value('id');
 
         if (! is_int($teamId)) {
             return;
         }
 
-        if (DB::table('user_onboarding_packages')
+        if (DB::table(DatabaseTable::USER_ONBOARDING_PACKAGES)
             ->where('user_id', $user->id)
             ->where('team_id', $teamId)
             ->exists()) {

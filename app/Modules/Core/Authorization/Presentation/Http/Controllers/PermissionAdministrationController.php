@@ -14,6 +14,7 @@ use App\Shared\Application\Tables\ArrayTableProcessor;
 use App\Shared\Application\Tables\TableRequestContext;
 use App\Shared\Application\Tables\TableSavedViewService;
 use App\Shared\Application\Tables\TableState;
+use App\Shared\Infrastructure\Database\DatabaseTable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
@@ -38,7 +39,7 @@ final readonly class PermissionAdministrationController
         [$userId, $teamId] = $this->context->userTeam($request);
         $userPublicId = data_get($request->user(), 'public_id');
         $teamPublicId = $request->hasSession() ? $request->session()->get('active_team_public_id') : null;
-        $databasePermissions = DB::table('permissions')
+        $databasePermissions = DB::table(DatabaseTable::PERMISSIONS)
             ->get(['id', 'public_id', 'name', 'guard_name', 'created_at', 'updated_at'])
             ->keyBy('name');
 
@@ -87,7 +88,7 @@ final readonly class PermissionAdministrationController
 
     private function teamId(string $teamPublicId): ?int
     {
-        $teamId = DB::table('teams')->where('public_id', $teamPublicId)->value('id');
+        $teamId = DB::table(DatabaseTable::TEAMS)->where('public_id', $teamPublicId)->value('id');
 
         return is_numeric($teamId) ? (int) $teamId : null;
     }

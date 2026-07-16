@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Shared\Application\Tables;
 
+use App\Shared\Infrastructure\Database\DatabaseTable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -18,7 +19,7 @@ final class TableRequestContext
         $userId = data_get($user, 'id');
         $actorPublicId = data_get($user, 'public_id');
         $teamPublicId = $request->hasSession() ? $request->session()->get('active_team_public_id') : null;
-        $teamId = is_string($teamPublicId) ? DB::table('teams')->where('public_id', $teamPublicId)->value('id') : null;
+        $teamId = is_string($teamPublicId) ? DB::table(DatabaseTable::TEAMS)->where('public_id', $teamPublicId)->value('id') : null;
 
         abort_unless(is_numeric($userId), 403);
 

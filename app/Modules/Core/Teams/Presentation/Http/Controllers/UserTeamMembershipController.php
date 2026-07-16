@@ -7,6 +7,7 @@ namespace App\Modules\Core\Teams\Presentation\Http\Controllers;
 use App\Modules\Core\Teams\Application\Public\Contracts\UserTeamMembershipManager;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 
 final readonly class UserTeamMembershipController
 {
@@ -17,11 +18,17 @@ final readonly class UserTeamMembershipController
     public function store(Request $request, string $user): RedirectResponse
     {
         $validated = $request->validate([
-            'team_public_id' => ['required', 'string', 'exists:teams,public_id'],
+            'team_public_id' => ['required', 'string'],
         ]);
 
         $actorPublicId = data_get($request->user(), 'public_id');
         $teamPublicId = is_array($validated) && is_string($validated['team_public_id'] ?? null) ? $validated['team_public_id'] : '';
+
+        if (! $this->memberships->teamExists($teamPublicId)) {
+            throw ValidationException::withMessages([
+                'team_public_id' => __('validation.exists', ['attribute' => 'team']),
+            ]);
+        }
 
         if (is_string($actorPublicId)) {
             $this->memberships->addAccess($actorPublicId, $user, $teamPublicId);

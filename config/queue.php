@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use App\Shared\Infrastructure\Database\DatabaseTable;
+
 return [
     'default' => env('QUEUE_CONNECTION', 'redis'),
 
@@ -22,12 +24,12 @@ return [
 
     'batching' => [
         'database' => 'pgsql',
-        'table' => 'job_batches',
+        'table' => DatabaseTable::JOB_BATCHES,
     ],
 
     'failed' => [
         'driver' => 'database-uuids',
         'database' => 'pgsql',
-        'table' => 'failed_jobs',
+        'table' => DatabaseTable::FAILED_JOBS,
     ],
 ];

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Middleware;
 
 use App\Modules\Core\Settings\Application\Settings\EffectiveSettings;
+use App\Shared\Infrastructure\Database\DatabaseTable;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -47,7 +48,7 @@ final class SetLocaleFromSession
             return null;
         }
 
-        $teamId = DB::table('teams')
+        $teamId = DB::table(DatabaseTable::TEAMS)
             ->where('public_id', $teamPublicId)
             ->value('id');
 

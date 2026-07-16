@@ -10,6 +10,7 @@ use App\Shared\Application\Tables\ArrayTableProcessor;
 use App\Shared\Application\Tables\TableRequestContext;
 use App\Shared\Application\Tables\TableSavedViewService;
 use App\Shared\Application\Tables\TableState;
+use App\Shared\Infrastructure\Database\DatabaseTable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
@@ -29,7 +30,7 @@ final readonly class OnboardingPackageAdministrationController
         $definition = AdminTableDefinitions::get(AdminTableDefinitions::PACKAGES);
         $state = TableState::fromRequest($request, $definition);
         [$userId, $teamId] = $this->context->userTeam($request);
-        $databasePackages = DB::table('authorization_onboarding_packages')
+        $databasePackages = DB::table(DatabaseTable::AUTHORIZATION_ONBOARDING_PACKAGES)
             ->get(['id', 'public_id', 'is_active', 'created_at', 'updated_at'])
             ->keyBy('public_id');
         $rows = array_map(static function ($package) use ($databasePackages): array {

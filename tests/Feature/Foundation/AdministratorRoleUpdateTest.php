@@ -7,6 +7,7 @@ namespace Tests\Feature\Foundation;
 use App\Modules\Core\Authorization\Application\Permissions\CoreAuthorizationPermissionCatalog;
 use App\Modules\Core\Authorization\Application\Roles\InstallStarterRoles;
 use App\Modules\Core\Authorization\Application\Roles\StarterRoleName;
+use App\Shared\Infrastructure\Database\DatabaseTable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
 use Spatie\Permission\Models\Permission;
@@ -44,7 +45,7 @@ final class AdministratorRoleUpdateTest extends TestCase
 
         self::assertSame(Command::SUCCESS, $appliedExitCode);
         self::assertTrue($role->fresh()?->hasPermissionTo(CoreAuthorizationPermissionCatalog::ADMIN_SYSTEM_STATUS));
-        self::assertDatabaseHas('audit_events', [
+        self::assertDatabaseHas(DatabaseTable::AUDIT_EVENTS, [
             'module' => 'authorization',
             'action' => 'authorization.administrator_role_update',
             'result' => 'succeeded',

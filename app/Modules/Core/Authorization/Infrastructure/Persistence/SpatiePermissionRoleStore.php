@@ -11,6 +11,7 @@ use App\Modules\Core\Authorization\Application\Permissions\PermissionCatalogRegi
 use App\Modules\Core\Authorization\Application\Public\Contracts\UserTeamAuthorizationCleaner;
 use App\Modules\Core\Authorization\Application\Public\Contracts\UserTeamAuthorizationManager;
 use App\Modules\Core\Authorization\Application\Public\DTOs\UserTeamAuthorizationAssignments;
+use App\Shared\Infrastructure\Database\DatabaseTable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Spatie\Permission\Models\Permission;
@@ -104,7 +105,7 @@ final class SpatiePermissionRoleStore implements PermissionRoleStore, UserTeamAu
             return false;
         }
 
-        return DB::table('model_has_roles')
+        return DB::table(DatabaseTable::MODEL_HAS_ROLES)
             ->where('role_id', $role->id)
             ->exists();
     }
@@ -122,7 +123,7 @@ final class SpatiePermissionRoleStore implements PermissionRoleStore, UserTeamAu
             return;
         }
 
-        DB::table('team_user_assignments')->updateOrInsert([
+        DB::table(DatabaseTable::TEAM_USER_ASSIGNMENTS)->updateOrInsert([
             'team_id' => $teamId,
             'user_id' => $userId,
         ], [
@@ -130,7 +131,7 @@ final class SpatiePermissionRoleStore implements PermissionRoleStore, UserTeamAu
             'updated_at' => now(),
         ]);
 
-        DB::table('model_has_roles')->updateOrInsert([
+        DB::table(DatabaseTable::MODEL_HAS_ROLES)->updateOrInsert([
             'role_id' => $role->id,
             'model_type' => config('auth.providers.users.model'),
             'model_id' => $userId,
@@ -153,7 +154,7 @@ final class SpatiePermissionRoleStore implements PermissionRoleStore, UserTeamAu
             ->get();
 
         foreach ($permissions as $permission) {
-            DB::table('model_has_permissions')->updateOrInsert([
+            DB::table(DatabaseTable::MODEL_HAS_PERMISSIONS)->updateOrInsert([
                 'permission_id' => $permission->id,
                 'model_type' => config('auth.providers.users.model'),
                 'model_id' => $userId,
@@ -167,7 +168,7 @@ final class SpatiePermissionRoleStore implements PermissionRoleStore, UserTeamAu
         $userId = $this->userId($userPublicId);
         $teamId = $this->teamId($teamPublicId);
 
-        return is_int($userId) && is_int($teamId) && DB::table('user_onboarding_packages')
+        return is_int($userId) && is_int($teamId) && DB::table(DatabaseTable::USER_ONBOARDING_PACKAGES)
             ->where('user_id', $userId)
             ->where('team_id', $teamId)
             ->exists();
@@ -182,7 +183,7 @@ final class SpatiePermissionRoleStore implements PermissionRoleStore, UserTeamAu
             return;
         }
 
-        DB::table('user_onboarding_packages')->insert([
+        DB::table(DatabaseTable::USER_ONBOARDING_PACKAGES)->insert([
             'user_id' => $userId,
             'team_id' => $teamId,
             'package_name' => $packageName,
@@ -201,7 +202,7 @@ final class SpatiePermissionRoleStore implements PermissionRoleStore, UserTeamAu
             return;
         }
 
-        DB::table('team_user_assignments')->updateOrInsert([
+        DB::table(DatabaseTable::TEAM_USER_ASSIGNMENTS)->updateOrInsert([
             'team_id' => $teamId,
             'user_id' => $targetUserId,
         ], [
@@ -209,7 +210,7 @@ final class SpatiePermissionRoleStore implements PermissionRoleStore, UserTeamAu
             'updated_at' => now(),
         ]);
 
-        foreach (DB::table('model_has_roles')->where([
+        foreach (DB::table(DatabaseTable::MODEL_HAS_ROLES)->where([
             'model_type' => config('auth.providers.users.model'),
             'model_id' => $sourceUserId,
             'team_id' => $teamId,
@@ -217,7 +218,7 @@ final class SpatiePermissionRoleStore implements PermissionRoleStore, UserTeamAu
             $roleId = get_object_vars($role)['role_id'] ?? null;
 
             if (is_int($roleId)) {
-                DB::table('model_has_roles')->updateOrInsert([
+                DB::table(DatabaseTable::MODEL_HAS_ROLES)->updateOrInsert([
                     'role_id' => $roleId,
                     'model_type' => config('auth.providers.users.model'),
                     'model_id' => $targetUserId,
@@ -226,7 +227,7 @@ final class SpatiePermissionRoleStore implements PermissionRoleStore, UserTeamAu
             }
         }
 
-        foreach (DB::table('model_has_permissions')->where([
+        foreach (DB::table(DatabaseTable::MODEL_HAS_PERMISSIONS)->where([
             'model_type' => config('auth.providers.users.model'),
             'model_id' => $sourceUserId,
             'team_id' => $teamId,
@@ -234,7 +235,7 @@ final class SpatiePermissionRoleStore implements PermissionRoleStore, UserTeamAu
             $permissionId = get_object_vars($permission)['permission_id'] ?? null;
 
             if (is_int($permissionId)) {
-                DB::table('model_has_permissions')->updateOrInsert([
+                DB::table(DatabaseTable::MODEL_HAS_PERMISSIONS)->updateOrInsert([
                     'permission_id' => $permissionId,
                     'model_type' => config('auth.providers.users.model'),
                     'model_id' => $targetUserId,
@@ -253,13 +254,13 @@ final class SpatiePermissionRoleStore implements PermissionRoleStore, UserTeamAu
             return;
         }
 
-        DB::table('model_has_roles')
+        DB::table(DatabaseTable::MODEL_HAS_ROLES)
             ->where('model_type', config('auth.providers.users.model'))
             ->where('model_id', $userId)
             ->where('team_id', $teamId)
             ->delete();
 
-        DB::table('model_has_permissions')
+        DB::table(DatabaseTable::MODEL_HAS_PERMISSIONS)
             ->where('model_type', config('auth.providers.users.model'))
             ->where('model_id', $userId)
             ->where('team_id', $teamId)
@@ -301,8 +302,8 @@ final class SpatiePermissionRoleStore implements PermissionRoleStore, UserTeamAu
             return new UserTeamAuthorizationAssignments($userPublicId, $teamPublicId, [], []);
         }
 
-        $roles = array_values(array_filter(DB::table('model_has_roles')
-            ->join('roles', 'model_has_roles.role_id', '=', 'roles.id')
+        $roles = array_values(array_filter(DB::table(DatabaseTable::MODEL_HAS_ROLES)
+            ->join(DatabaseTable::ROLES, 'model_has_roles.role_id', '=', 'roles.id')
             ->where('model_has_roles.model_type', config('auth.providers.users.model'))
             ->where('model_has_roles.model_id', $userId)
             ->where('model_has_roles.team_id', $teamId)
@@ -310,8 +311,8 @@ final class SpatiePermissionRoleStore implements PermissionRoleStore, UserTeamAu
             ->pluck('roles.name')
             ->all(), 'is_string'));
 
-        $permissions = array_values(array_filter(DB::table('model_has_permissions')
-            ->join('permissions', 'model_has_permissions.permission_id', '=', 'permissions.id')
+        $permissions = array_values(array_filter(DB::table(DatabaseTable::MODEL_HAS_PERMISSIONS)
+            ->join(DatabaseTable::PERMISSIONS, 'model_has_permissions.permission_id', '=', 'permissions.id')
             ->where('model_has_permissions.model_type', config('auth.providers.users.model'))
             ->where('model_has_permissions.model_id', $userId)
             ->where('model_has_permissions.team_id', $teamId)
@@ -342,20 +343,20 @@ final class SpatiePermissionRoleStore implements PermissionRoleStore, UserTeamAu
         $directPermissionNames = $this->validPermissionNames($directPermissionNames);
 
         DB::transaction(function () use ($userId, $teamId, $roleNames, $directPermissionNames): void {
-            DB::table('model_has_roles')
+            DB::table(DatabaseTable::MODEL_HAS_ROLES)
                 ->where('model_type', config('auth.providers.users.model'))
                 ->where('model_id', $userId)
                 ->where('team_id', $teamId)
                 ->delete();
 
-            DB::table('model_has_permissions')
+            DB::table(DatabaseTable::MODEL_HAS_PERMISSIONS)
                 ->where('model_type', config('auth.providers.users.model'))
                 ->where('model_id', $userId)
                 ->where('team_id', $teamId)
                 ->delete();
 
             foreach (Role::query()->whereIn('name', $roleNames)->where('guard_name', 'web')->get(['id']) as $role) {
-                DB::table('model_has_roles')->insert([
+                DB::table(DatabaseTable::MODEL_HAS_ROLES)->insert([
                     'role_id' => $role->id,
                     'model_type' => config('auth.providers.users.model'),
                     'model_id' => $userId,
@@ -364,7 +365,7 @@ final class SpatiePermissionRoleStore implements PermissionRoleStore, UserTeamAu
             }
 
             foreach (Permission::query()->whereIn('name', $directPermissionNames)->where('guard_name', 'web')->get(['id']) as $permission) {
-                DB::table('model_has_permissions')->insert([
+                DB::table(DatabaseTable::MODEL_HAS_PERMISSIONS)->insert([
                     'permission_id' => $permission->id,
                     'model_type' => config('auth.providers.users.model'),
                     'model_id' => $userId,
@@ -420,11 +421,11 @@ final class SpatiePermissionRoleStore implements PermissionRoleStore, UserTeamAu
 
     private function userId(string $userPublicId): mixed
     {
-        return DB::table('users')->where('public_id', $userPublicId)->value('id');
+        return DB::table(DatabaseTable::USERS)->where('public_id', $userPublicId)->value('id');
     }
 
     private function teamId(string $teamPublicId): mixed
     {
-        return DB::table('teams')->where('public_id', $teamPublicId)->value('id');
+        return DB::table(DatabaseTable::TEAMS)->where('public_id', $teamPublicId)->value('id');
     }
 }

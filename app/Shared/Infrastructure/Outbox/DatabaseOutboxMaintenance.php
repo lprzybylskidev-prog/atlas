@@ -8,6 +8,7 @@ use App\Shared\Application\Outbox\Contracts\OutboxMaintenance;
 use App\Shared\Application\Outbox\OutboxCleanupResult;
 use App\Shared\Application\Outbox\OutboxEventStatus;
 use App\Shared\Application\Outbox\OutboxLagMetrics;
+use App\Shared\Infrastructure\Database\DatabaseTable;
 use DateTimeImmutable;
 use DateTimeZone;
 use Illuminate\Database\ConnectionInterface;
@@ -22,14 +23,14 @@ final readonly class DatabaseOutboxMaintenance implements OutboxMaintenance
         $failedCutoff = $this->daysAgo($failedRetentionDays);
 
         $deletedPublished = $this->database
-            ->table('outbox_events')
+            ->table(DatabaseTable::OUTBOX_EVENTS)
             ->where('status', OutboxEventStatus::Published->value)
             ->whereNotNull('published_at')
             ->where('published_at', '<', $publishedCutoff)
             ->delete();
 
         $deletedFailed = $this->database
-            ->table('outbox_events')
+            ->table(DatabaseTable::OUTBOX_EVENTS)
             ->where('status', OutboxEventStatus::Failed->value)
             ->whereNotNull('failed_at')
             ->where('failed_at', '<', $failedCutoff)
@@ -44,7 +45,7 @@ final readonly class DatabaseOutboxMaintenance implements OutboxMaintenance
     public function replayFailed(string $eventId): bool
     {
         $updated = $this->database
-            ->table('outbox_events')
+            ->table(DatabaseTable::OUTBOX_EVENTS)
             ->where('event_id', $eventId)
             ->where('status', OutboxEventStatus::Failed->value)
             ->update([
@@ -62,7 +63,7 @@ final readonly class DatabaseOutboxMaintenance implements OutboxMaintenance
     public function lagMetrics(): OutboxLagMetrics
     {
         $oldestPending = $this->database
-            ->table('outbox_events')
+            ->table(DatabaseTable::OUTBOX_EVENTS)
             ->where('status', OutboxEventStatus::Pending->value)
             ->min('occurred_at');
 
@@ -77,7 +78,7 @@ final readonly class DatabaseOutboxMaintenance implements OutboxMaintenance
     private function countStatus(OutboxEventStatus $status): int
     {
         return $this->database
-            ->table('outbox_events')
+            ->table(DatabaseTable::OUTBOX_EVENTS)
             ->where('status', $status->value)
             ->count();
     }

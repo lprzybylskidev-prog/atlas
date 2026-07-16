@@ -12,6 +12,7 @@ use App\Shared\Application\Modules\ModuleAccessRequest;
 use App\Shared\Application\Modules\ModuleAccessState;
 use App\Shared\Application\Modules\ModuleKey;
 use App\Shared\Application\Modules\ModuleRegistry;
+use App\Shared\Infrastructure\Database\DatabaseTable;
 use Illuminate\Database\ConnectionInterface;
 
 final readonly class RegistryModuleGateStateProvider implements ModuleGateStateProvider
@@ -48,7 +49,7 @@ final readonly class RegistryModuleGateStateProvider implements ModuleGateStateP
             return true;
         }
 
-        $query = $this->database->table('teams')->where('is_active', true);
+        $query = $this->database->table(DatabaseTable::TEAMS)->where('is_active', true);
 
         if ($request->activeTeamId !== null) {
             $query->where('id', $request->activeTeamId);
@@ -90,7 +91,7 @@ final readonly class RegistryModuleGateStateProvider implements ModuleGateStateP
             return null;
         }
 
-        $publicId = $this->database->table('teams')
+        $publicId = $this->database->table(DatabaseTable::TEAMS)
             ->where('id', $teamId)
             ->value('public_id');
 
@@ -103,7 +104,7 @@ final readonly class RegistryModuleGateStateProvider implements ModuleGateStateP
             return null;
         }
 
-        $id = $this->database->table('teams')
+        $id = $this->database->table(DatabaseTable::TEAMS)
             ->where('public_id', $teamPublicId)
             ->value('id');
 
