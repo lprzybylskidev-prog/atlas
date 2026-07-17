@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { Head, Link } from '@inertiajs/vue3';
+import { Head } from '@inertiajs/vue3';
 import { IconArrowLeft, IconUserScan } from '@tabler/icons-vue';
 
+import AdminActionLink from '../../../Components/AdminActionLink.vue';
 import DataTable from '../../../Components/DataTable.vue';
 import AdminLayout from '../../../Layouts/AdminLayout.vue';
 import type { DataTableColumn } from '../../../Types/data-table';
@@ -56,13 +57,7 @@ const columns: DataTableColumn<AuditEventRow>[] = [
     <AdminLayout title="Impersonation audit" :title-icon="IconUserScan">
         <section class="space-y-5">
             <div class="flex justify-start">
-                <Link
-                    href="/admin/audit"
-                    class="inline-flex h-10 items-center gap-2 rounded-lg border border-zinc-300 bg-white px-4 text-sm font-medium text-zinc-700 transition hover:border-zinc-400 hover:bg-zinc-100 hover:text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:border-zinc-600 dark:hover:bg-zinc-800 dark:hover:text-zinc-50"
-                >
-                    <IconArrowLeft aria-hidden="true" class="h-4 w-4" :stroke-width="1.8" />
-                    Back to audit
-                </Link>
+                <AdminActionLink href="/admin/audit" :icon="IconArrowLeft"> Back to audit </AdminActionLink>
             </div>
 
             <section

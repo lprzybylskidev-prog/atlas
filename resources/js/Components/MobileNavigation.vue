@@ -125,6 +125,8 @@ const groups = computed<MobileNavigationGroup[]>(() => {
                             v-for="item in group.items"
                             :key="item.label"
                             :href="item.href"
+                            :target="item.external ? '_blank' : undefined"
+                            :rel="item.external ? 'noopener noreferrer' : undefined"
                             class="flex h-12 items-center gap-3 rounded-lg px-3 text-sm font-medium text-zinc-700 hover:bg-zinc-100 dark:text-zinc-200 dark:hover:bg-zinc-900"
                             @click="emit('close')"
                         >

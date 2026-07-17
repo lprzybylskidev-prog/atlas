@@ -1,7 +1,9 @@
 <script setup lang="ts">
-import { Head, Link, useForm } from '@inertiajs/vue3';
+import { Head, useForm } from '@inertiajs/vue3';
 import { IconArrowLeft, IconUserScan } from '@tabler/icons-vue';
 
+import AdminActionLink from '../../../Components/AdminActionLink.vue';
+import AdminFormActions from '../../../Components/AdminFormActions.vue';
 import AtlasForm from '../../../Components/Form/AtlasForm.vue';
 import FormButton from '../../../Components/Form/FormButton.vue';
 import FormCheckbox from '../../../Components/Form/FormCheckbox.vue';
@@ -68,16 +70,10 @@ function submit(): void {
                     />
                 </div>
 
-                <div class="mt-5 flex flex-wrap items-center gap-2">
+                <AdminFormActions class="mt-5">
                     <FormButton type="submit" :loading="form.processing" :disabled="teams.length === 0"> Start impersonation </FormButton>
-                    <Link
-                        :href="`/admin/users/${target.public_id}/edit`"
-                        class="inline-flex h-10 items-center gap-2 rounded-lg border border-zinc-300 bg-white px-4 text-sm font-medium text-zinc-700 transition hover:border-zinc-400 hover:bg-zinc-100 hover:text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:border-zinc-600 dark:hover:bg-zinc-800 dark:hover:text-zinc-50"
-                    >
-                        <IconArrowLeft aria-hidden="true" class="h-4 w-4" :stroke-width="1.8" />
-                        Back
-                    </Link>
-                </div>
+                    <AdminActionLink :href="`/admin/users/${target.public_id}/edit`" :icon="IconArrowLeft"> Back </AdminActionLink>
+                </AdminFormActions>
             </AtlasForm>
         </section>
     </AdminLayout>

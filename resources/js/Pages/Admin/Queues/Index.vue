@@ -5,16 +5,14 @@ import {
     IconCalendarTime,
     IconChevronDown,
     IconDatabase,
-    IconFilter,
     IconListDetails,
-    IconRefresh,
     IconRotateClockwise,
     IconServer,
 } from '@tabler/icons-vue';
 import type { Component } from 'vue';
 import { computed, ref } from 'vue';
 
-import AtlasForm from '../../../Components/Form/AtlasForm.vue';
+import AdminFilterPanel from '../../../Components/AdminFilterPanel.vue';
 import FormButton from '../../../Components/Form/FormButton.vue';
 import FormCheckbox from '../../../Components/Form/FormCheckbox.vue';
 import FormInput from '../../../Components/Form/FormInput.vue';
@@ -249,40 +247,33 @@ function detailLines(value: string): { key: string; text: string; kind: 'frame' 
                 </section>
             </div>
 
-            <section class="rounded-lg border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
-                <AtlasForm class="space-y-4" @submit="applyFilters">
-                    <div
-                        class="grid gap-4 xl:grid-cols-[minmax(0,2fr)_minmax(10rem,0.7fr)_minmax(10rem,0.7fr)_minmax(9rem,0.6fr)_minmax(9rem,0.6fr)]"
-                    >
-                        <FormInput v-model="draftSearch" label="Search" placeholder="UUID, job, exception, queue" />
-                        <FormSelect v-model="draftConnection" label="Connection" :options="connections" />
-                        <FormSelect v-model="draftQueue" label="Queue" :options="queues" />
-                        <FormInput
-                            v-model="draftDateFrom"
-                            type="date"
-                            label="From date"
-                            placeholder="YYYY-MM-DD"
-                            :leading-icon="IconCalendarTime"
-                        />
-                        <FormInput
-                            v-model="draftDateTo"
-                            type="date"
-                            label="To date"
-                            placeholder="YYYY-MM-DD"
-                            :leading-icon="IconCalendarTime"
-                        />
-                    </div>
-                    <div class="flex flex-wrap items-center justify-between gap-2">
-                        <p class="text-sm text-zinc-500 dark:text-zinc-400">
-                            Showing {{ filteredJobs.length }} of {{ props.summary.visibleCount }} loaded failed jobs.
-                        </p>
-                        <div class="flex flex-wrap justify-end gap-2">
-                            <FormButton type="button" tone="neutral" :icon="IconRefresh" @click="clearFilters">Clear</FormButton>
-                            <FormButton type="submit" :icon="IconFilter">Apply</FormButton>
-                        </div>
-                    </div>
-                </AtlasForm>
-            </section>
+            <AdminFilterPanel
+                :summary="`Showing ${filteredJobs.length} of ${props.summary.visibleCount} loaded failed jobs.`"
+                @apply="applyFilters"
+                @clear="clearFilters"
+            >
+                <div
+                    class="grid gap-4 xl:grid-cols-[minmax(0,2fr)_minmax(10rem,0.7fr)_minmax(10rem,0.7fr)_minmax(9rem,0.6fr)_minmax(9rem,0.6fr)]"
+                >
+                    <FormInput v-model="draftSearch" label="Search" placeholder="UUID, job, exception, queue" />
+                    <FormSelect v-model="draftConnection" label="Connection" :options="connections" />
+                    <FormSelect v-model="draftQueue" label="Queue" :options="queues" />
+                    <FormInput
+                        v-model="draftDateFrom"
+                        type="date"
+                        label="From date"
+                        placeholder="YYYY-MM-DD"
+                        :leading-icon="IconCalendarTime"
+                    />
+                    <FormInput
+                        v-model="draftDateTo"
+                        type="date"
+                        label="To date"
+                        placeholder="YYYY-MM-DD"
+                        :leading-icon="IconCalendarTime"
+                    />
+                </div>
+            </AdminFilterPanel>
 
             <section class="rounded-lg border border-zinc-200 bg-white p-3 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
                 <div class="flex flex-wrap items-center justify-between gap-3">

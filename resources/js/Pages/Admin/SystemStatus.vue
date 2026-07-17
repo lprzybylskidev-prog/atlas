@@ -4,6 +4,7 @@ import { IconClipboardList, IconFileText, IconGauge, IconLayoutDashboard, IconPu
 import { computed } from 'vue';
 import type { Component } from 'vue';
 
+import AdminActionLink from '../../Components/AdminActionLink.vue';
 import ComposableViewHost from '../../Components/ComposableView/ComposableViewHost.vue';
 import AdminLayout from '../../Layouts/AdminLayout.vue';
 import { resolveComposableHostView, SYSTEM_STATUS_ELEMENTS } from '../../Services/composableViewRegistry';
@@ -65,19 +66,13 @@ const quickLinks = computed<{ label: string; description: string; href: string; 
                 <div class="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
                     <div class="max-w-3xl">
                         <p class="text-xs font-semibold uppercase tracking-wide text-teal-700 dark:text-teal-300">Operations</p>
-                        <h1 class="mt-2 text-2xl font-semibold text-zinc-950 dark:text-zinc-50">Admin dashboard</h1>
+                        <h1 class="mt-2 text-2xl font-semibold text-zinc-950 dark:text-zinc-50">Operations overview</h1>
                         <p class="mt-2 text-sm leading-6 text-zinc-600 dark:text-zinc-300">
                             Operational entry point for system readiness, release identity, scheduler health, module activation, queues,
                             logs, and audit review.
                         </p>
                     </div>
-                    <Link
-                        href="/"
-                        class="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-lg border border-zinc-200 px-3 text-sm font-medium text-zinc-700 transition hover:bg-zinc-50 hover:text-zinc-950 dark:border-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-900 dark:hover:text-zinc-50"
-                    >
-                        <IconGauge aria-hidden="true" class="h-4 w-4" :stroke-width="1.8" />
-                        Application dashboard
-                    </Link>
+                    <AdminActionLink href="/" :icon="IconGauge" class="shrink-0"> Application dashboard </AdminActionLink>
                 </div>
 
                 <div class="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">

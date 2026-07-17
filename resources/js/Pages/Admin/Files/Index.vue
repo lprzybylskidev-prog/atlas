@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { Head, router } from '@inertiajs/vue3';
-import { IconChevronDown, IconFileAlert, IconFiles, IconFilter, IconRefresh, IconRotateClockwise } from '@tabler/icons-vue';
+import { IconChevronDown, IconFileAlert, IconFiles, IconRotateClockwise } from '@tabler/icons-vue';
 import type { Component } from 'vue';
 import { computed, ref } from 'vue';
 
-import FormButton from '../../../Components/Form/FormButton.vue';
+import AdminFilterPanel from '../../../Components/AdminFilterPanel.vue';
 import FormInput from '../../../Components/Form/FormInput.vue';
 import FormSelect from '../../../Components/Form/FormSelect.vue';
 import SeverityBadge from '../../../Components/SeverityBadge.vue';
@@ -174,20 +174,16 @@ function shortChecksum(value: string): string {
                 </section>
             </div>
 
-            <section class="rounded-lg border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
-                <div class="grid gap-3 lg:grid-cols-[1fr_220px_auto_auto]">
+            <AdminFilterPanel
+                :summary="`Showing ${filteredFiles.length} of ${props.files.length} loaded files.`"
+                @apply="applyFilters"
+                @clear="clearFilters"
+            >
+                <div class="grid gap-3 lg:grid-cols-[minmax(0,1fr)_220px]">
                     <FormInput v-model="draftSearch" name="search" label="Search" type="text" autocomplete="off" />
                     <FormSelect v-model="draftState" name="state" label="Scan state" :options="states" />
-                    <FormButton type="button" variant="primary" class="self-end" @click="applyFilters">
-                        <IconFilter aria-hidden="true" class="h-4 w-4" :stroke-width="1.8" />
-                        Filter
-                    </FormButton>
-                    <FormButton type="button" variant="secondary" class="self-end" @click="clearFilters">
-                        <IconRefresh aria-hidden="true" class="h-4 w-4" :stroke-width="1.8" />
-                        Reset
-                    </FormButton>
                 </div>
-            </section>
+            </AdminFilterPanel>
 
             <section class="overflow-hidden rounded-lg border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
                 <div class="overflow-x-auto">

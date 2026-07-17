@@ -1,8 +1,10 @@
 <script setup lang="ts">
-import { Head, Link, router, useForm } from '@inertiajs/vue3';
+import { Head, router, useForm } from '@inertiajs/vue3';
 import { IconArrowLeft, IconTrash, IconUserEdit, IconUsersGroup } from '@tabler/icons-vue';
 import { reactive } from 'vue';
 
+import AdminActionLink from '../../../Components/AdminActionLink.vue';
+import AdminFormActions from '../../../Components/AdminFormActions.vue';
 import AdminRecordActions from '../../../Components/AdminRecordActions.vue';
 import AtlasForm from '../../../Components/Form/AtlasForm.vue';
 import FormButton from '../../../Components/Form/FormButton.vue';
@@ -167,18 +169,12 @@ function updateTeamAuthorization(teamPublicId: string): void {
                             />
                         </div>
 
-                        <div class="mt-5 flex flex-wrap items-center gap-2">
+                        <AdminFormActions class="mt-5">
                             <FormButton type="submit" :loading="form.processing">
                                 {{ form.processing ? 'Saving...' : 'Save changes' }}
                             </FormButton>
-                            <Link
-                                href="/admin/users"
-                                class="inline-flex h-10 items-center gap-2 rounded-lg border border-zinc-300 bg-white px-4 text-sm font-medium text-zinc-700 transition hover:border-zinc-400 hover:bg-zinc-100 hover:text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:border-zinc-600 dark:hover:bg-zinc-800 dark:hover:text-zinc-50"
-                            >
-                                <IconArrowLeft aria-hidden="true" class="h-4 w-4" :stroke-width="1.8" />
-                                Back to users
-                            </Link>
-                        </div>
+                            <AdminActionLink href="/admin/users" :icon="IconArrowLeft"> Back to users </AdminActionLink>
+                        </AdminFormActions>
                     </AtlasForm>
 
                     <section class="rounded-lg border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950">
@@ -262,7 +258,7 @@ function updateTeamAuthorization(teamPublicId: string): void {
                                     </section>
                                 </div>
 
-                                <div class="grid gap-3 xl:grid-cols-[minmax(0,1fr)_auto_auto]">
+                                <div class="grid gap-3 xl:grid-cols-[minmax(0,1fr)_auto]">
                                     <FormInput
                                         v-model="authorizationForm(membership.teamPublicId).reason"
                                         label="Authorization change reason"
@@ -275,6 +271,14 @@ function updateTeamAuthorization(teamPublicId: string): void {
                                     >
                                         Save assignments
                                     </FormButton>
+                                </div>
+
+                                <div class="grid gap-3 xl:grid-cols-[minmax(0,1fr)_auto]">
+                                    <FormInput
+                                        v-model="removalReasons[membership.teamPublicId]"
+                                        label="Removal reason"
+                                        placeholder="Required before removal"
+                                    />
                                     <FormButton
                                         type="button"
                                         tone="danger"
@@ -286,12 +290,6 @@ function updateTeamAuthorization(teamPublicId: string): void {
                                         Remove access
                                     </FormButton>
                                 </div>
-
-                                <FormInput
-                                    v-model="removalReasons[membership.teamPublicId]"
-                                    label="Removal reason"
-                                    placeholder="Required before removal"
-                                />
                             </div>
                         </div>
                     </section>

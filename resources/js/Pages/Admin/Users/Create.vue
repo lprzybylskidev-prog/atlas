@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { Head, useForm } from '@inertiajs/vue3';
-import { IconPlus, IconTrash, IconUserPlus } from '@tabler/icons-vue';
+import { IconArrowLeft, IconPlus, IconTrash, IconUserPlus } from '@tabler/icons-vue';
 
+import AdminActionLink from '../../../Components/AdminActionLink.vue';
 import AtlasForm from '../../../Components/Form/AtlasForm.vue';
+import AdminFormActions from '../../../Components/AdminFormActions.vue';
 import FormButton from '../../../Components/Form/FormButton.vue';
 import FormCheckbox from '../../../Components/Form/FormCheckbox.vue';
 import FormInput from '../../../Components/Form/FormInput.vue';
@@ -323,11 +325,12 @@ function submit(): void {
                 </div>
             </section>
 
-            <div class="flex flex-wrap items-center gap-2">
+            <AdminFormActions>
                 <FormButton type="submit" :loading="form.processing">
                     {{ form.processing ? 'Creating...' : 'Create user' }}
                 </FormButton>
-            </div>
+                <AdminActionLink href="/admin/users" :icon="IconArrowLeft"> Back to users </AdminActionLink>
+            </AdminFormActions>
         </AtlasForm>
     </AdminLayout>
 </template>

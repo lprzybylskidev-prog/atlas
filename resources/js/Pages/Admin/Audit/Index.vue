@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { Head, router } from '@inertiajs/vue3';
-import { IconClipboardList, IconFilter, IconX } from '@tabler/icons-vue';
+import { IconClipboardList } from '@tabler/icons-vue';
 import { reactive, watch } from 'vue';
 
+import AdminFilterPanel from '../../../Components/AdminFilterPanel.vue';
 import DataTable from '../../../Components/DataTable.vue';
 import FormInput from '../../../Components/Form/FormInput.vue';
 import FormSelect from '../../../Components/Form/FormSelect.vue';
@@ -207,28 +208,7 @@ watch(
     <Head title="Audit" />
     <AdminLayout :title="t('pages.admin.audit.title')" :title-icon="IconClipboardList">
         <section class="space-y-4">
-            <div class="rounded-lg border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
-                <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
-                    <h2 class="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Filters</h2>
-                    <div class="flex shrink-0 flex-wrap gap-2">
-                        <button
-                            type="button"
-                            class="inline-flex h-10 items-center gap-2 rounded-lg border border-zinc-300 px-4 text-sm font-medium text-zinc-700 transition hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-900"
-                            @click="clearFilters"
-                        >
-                            <IconX aria-hidden="true" class="h-4 w-4" :stroke-width="1.8" />
-                            Clear
-                        </button>
-                        <button
-                            type="button"
-                            class="inline-flex h-10 items-center gap-2 rounded-lg bg-teal-700 px-4 text-sm font-medium text-white transition hover:bg-teal-800 dark:bg-teal-600 dark:hover:bg-teal-500"
-                            @click="applyFilters"
-                        >
-                            <IconFilter aria-hidden="true" class="h-4 w-4" :stroke-width="1.8" />
-                            Apply
-                        </button>
-                    </div>
-                </div>
+            <AdminFilterPanel @apply="applyFilters" @clear="clearFilters">
                 <div class="grid gap-3 md:grid-cols-3 xl:grid-cols-6">
                     <FormSelect v-model="filters.module" class="mt-1" aria-label="Module" :options="moduleOptions" />
                     <FormSelect v-model="filters.action" class="mt-1" aria-label="Action" :options="actionOptions" />
@@ -254,7 +234,7 @@ watch(
                     <FormInput v-model="filters.dateFrom" aria-label="Date from" type="date" />
                     <FormInput v-model="filters.dateTo" aria-label="Date to" type="date" />
                 </div>
-            </div>
+            </AdminFilterPanel>
             <DataTable title="Audit events" :rows="events" :columns="columns" row-key="publicId" :table="table" ui-locale="en" />
         </section>
     </AdminLayout>

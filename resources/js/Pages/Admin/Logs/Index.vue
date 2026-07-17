@@ -1,20 +1,10 @@
 <script setup lang="ts">
 import { Head } from '@inertiajs/vue3';
-import {
-    IconCalendarTime,
-    IconChevronDown,
-    IconEye,
-    IconFileText,
-    IconFilter,
-    IconListDetails,
-    IconRefresh,
-    IconServer,
-} from '@tabler/icons-vue';
+import { IconCalendarTime, IconChevronDown, IconEye, IconFileText, IconListDetails, IconServer } from '@tabler/icons-vue';
 import type { Component } from 'vue';
 import { computed, ref } from 'vue';
 
-import AtlasForm from '../../../Components/Form/AtlasForm.vue';
-import FormButton from '../../../Components/Form/FormButton.vue';
+import AdminFilterPanel from '../../../Components/AdminFilterPanel.vue';
 import FormInput from '../../../Components/Form/FormInput.vue';
 import FormSelect from '../../../Components/Form/FormSelect.vue';
 import Tooltip from '../../../Components/Tooltip.vue';
@@ -219,35 +209,33 @@ function detailLines(value: string): { key: string; text: string; kind: 'frame' 
                 </section>
             </div>
 
-            <section class="rounded-lg border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
-                <AtlasForm class="space-y-4" @submit="applyFilters">
-                    <div
-                        class="grid gap-4 xl:grid-cols-[minmax(0,2fr)_minmax(10rem,0.7fr)_minmax(10rem,0.7fr)_minmax(9rem,0.6fr)_minmax(9rem,0.6fr)]"
-                    >
-                        <FormInput v-model="draftSearch" label="Search" placeholder="Message, correlation ID, module, source" />
-                        <FormSelect v-model="draftLevel" label="Level" :options="levels" />
-                        <FormSelect v-model="draftModule" label="Module" :options="modules" />
-                        <FormInput
-                            v-model="draftDateFrom"
-                            type="date"
-                            label="From date"
-                            placeholder="YYYY-MM-DD"
-                            :leading-icon="IconCalendarTime"
-                        />
-                        <FormInput
-                            v-model="draftDateTo"
-                            type="date"
-                            label="To date"
-                            placeholder="YYYY-MM-DD"
-                            :leading-icon="IconCalendarTime"
-                        />
-                    </div>
-                    <div class="flex flex-wrap justify-end gap-2">
-                        <FormButton type="button" tone="neutral" :icon="IconRefresh" @click="clearFilters">Clear</FormButton>
-                        <FormButton type="submit" :icon="IconFilter">Apply</FormButton>
-                    </div>
-                </AtlasForm>
-            </section>
+            <AdminFilterPanel
+                :summary="`Showing ${filteredLogs.length} of ${props.summary.rows} loaded log entries.`"
+                @apply="applyFilters"
+                @clear="clearFilters"
+            >
+                <div
+                    class="grid gap-4 xl:grid-cols-[minmax(0,2fr)_minmax(10rem,0.7fr)_minmax(10rem,0.7fr)_minmax(9rem,0.6fr)_minmax(9rem,0.6fr)]"
+                >
+                    <FormInput v-model="draftSearch" label="Search" placeholder="Message, correlation ID, module, source" />
+                    <FormSelect v-model="draftLevel" label="Level" :options="levels" />
+                    <FormSelect v-model="draftModule" label="Module" :options="modules" />
+                    <FormInput
+                        v-model="draftDateFrom"
+                        type="date"
+                        label="From date"
+                        placeholder="YYYY-MM-DD"
+                        :leading-icon="IconCalendarTime"
+                    />
+                    <FormInput
+                        v-model="draftDateTo"
+                        type="date"
+                        label="To date"
+                        placeholder="YYYY-MM-DD"
+                        :leading-icon="IconCalendarTime"
+                    />
+                </div>
+            </AdminFilterPanel>
 
             <section class="space-y-3">
                 <article

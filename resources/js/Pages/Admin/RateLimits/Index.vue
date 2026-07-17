@@ -115,25 +115,22 @@ function handleInstructionsKeydown(event: KeyboardEvent): void {
                 </div>
 
                 <AtlasForm
-                    class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]"
+                    class="grid gap-4 xl:grid-cols-[minmax(12rem,0.8fr)_minmax(0,1.2fr)_minmax(0,1.6fr)_auto] xl:items-end"
                     :processing="form.processing"
                     @submit="resetCounter"
                 >
                     <FormSelect v-model="form.policy" label="Policy" :options="policyOptions" :error="form.errors.policy" />
                     <FormInput v-model="form.limiter_key" label="Exact limiter key" :error="form.errors.limiter_key" />
-                    <div class="lg:col-span-2">
-                        <FormInput v-model="form.reason" label="Reset reason" :error="form.errors.reason" />
-                    </div>
-                    <div class="lg:col-span-2">
-                        <FormButton
-                            type="submit"
-                            tone="danger"
-                            :loading="form.processing"
-                            :disabled="!form.policy || !form.limiter_key.trim() || !form.reason.trim()"
-                        >
-                            Reset counter
-                        </FormButton>
-                    </div>
+                    <FormInput v-model="form.reason" label="Reset reason" :error="form.errors.reason" />
+                    <FormButton
+                        type="submit"
+                        tone="danger"
+                        class="w-full xl:w-auto"
+                        :loading="form.processing"
+                        :disabled="!form.policy || !form.limiter_key.trim() || !form.reason.trim()"
+                    >
+                        Reset counter
+                    </FormButton>
                 </AtlasForm>
             </section>
 

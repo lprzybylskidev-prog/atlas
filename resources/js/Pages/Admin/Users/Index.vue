@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { Head, Link } from '@inertiajs/vue3';
+import { Head } from '@inertiajs/vue3';
 import { IconUserPlus } from '@tabler/icons-vue';
 
+import AdminActionLink from '../../../Components/AdminActionLink.vue';
 import DataTable from '../../../Components/DataTable.vue';
 import { runBulkRecordAction } from '../../../Composables/useBulkRecordActions';
 import AdminLayout from '../../../Layouts/AdminLayout.vue';
@@ -127,13 +128,7 @@ async function handleBulkAction(payload: { action: DataTableBulkAction; rowIds: 
     <AdminLayout :title="t('pages.admin.users.index.title')" :title-icon="IconUserPlus">
         <section class="space-y-5">
             <div class="flex justify-end">
-                <Link
-                    href="/admin/users/create"
-                    class="inline-flex h-10 items-center gap-2 rounded-lg bg-teal-700 px-4 text-sm font-medium text-white transition hover:bg-teal-800 focus-visible:outline focus-visible:outline-amber-500 dark:bg-teal-600 dark:hover:bg-teal-500"
-                >
-                    <IconUserPlus aria-hidden="true" class="h-4 w-4" :stroke-width="1.8" />
-                    Create user
-                </Link>
+                <AdminActionLink href="/admin/users/create" :icon="IconUserPlus" tone="primary"> Create user </AdminActionLink>
             </div>
 
             <DataTable

@@ -335,8 +335,10 @@ function formattedDate(value: string | null): string {
                                 </ul>
                             </div>
 
-                            <div class="flex flex-wrap gap-2">
-                                <FormButton type="button" :disabled="!canPreview" @click="previewRelationship">Preview</FormButton>
+                            <div class="flex flex-wrap justify-end gap-2">
+                                <FormButton type="button" tone="neutral" :disabled="!canPreview" @click="previewRelationship">
+                                    Preview
+                                </FormButton>
                                 <FormButton type="submit" :loading="assignForm.processing" :disabled="createBlocked">Create</FormButton>
                             </div>
                         </AtlasForm>
@@ -348,14 +350,20 @@ function formattedDate(value: string | null): string {
                             <h2 class="text-base font-semibold text-zinc-950 dark:text-zinc-50">Head managers</h2>
                         </div>
                         <AtlasForm class="mt-4 space-y-4" :processing="headForm.processing" @submit="addHeadManager">
-                            <div class="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
+                            <div class="grid gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)_auto] xl:items-end">
                                 <FormSelect
                                     v-model="headForm.user_public_id"
                                     label="Member"
                                     :options="[{ value: '', label: 'Select member' }, ...memberOptions]"
                                     :error="headForm.errors.user_public_id"
                                 />
-                                <FormButton type="submit" :loading="headForm.processing" :disabled="headForm.user_public_id === ''">
+                                <FormTextarea v-model="headForm.reason" label="Reason" :error="headForm.errors.reason" :rows="2" />
+                                <FormButton
+                                    type="submit"
+                                    class="w-full xl:w-auto"
+                                    :loading="headForm.processing"
+                                    :disabled="headForm.user_public_id === '' || !headForm.reason.trim()"
+                                >
                                     Add
                                 </FormButton>
                             </div>
@@ -368,7 +376,6 @@ function formattedDate(value: string | null): string {
                                     <StatusBadge :value="selectedHeadMember.headManager" true-label="Head" false-label="Member" />
                                 </div>
                             </div>
-                            <FormTextarea v-model="headForm.reason" label="Reason" :error="headForm.errors.reason" />
                         </AtlasForm>
 
                         <div
@@ -394,7 +401,14 @@ function formattedDate(value: string | null): string {
                                             label="Remove reason"
                                             :rows="2"
                                         />
-                                        <FormButton type="submit" class="mt-0 sm:mt-6">Remove</FormButton>
+                                        <FormButton
+                                            type="submit"
+                                            tone="danger"
+                                            class="mt-0 sm:mt-6"
+                                            :disabled="!removeHeadForm(String(member.value)).reason.trim()"
+                                        >
+                                            Remove
+                                        </FormButton>
                                     </AtlasForm>
                                 </div>
                             </template>
@@ -436,7 +450,7 @@ function formattedDate(value: string | null): string {
                                     <td class="px-3 py-3">
                                         <button
                                             type="button"
-                                            class="inline-flex h-9 items-center gap-2 rounded-lg border border-zinc-300 bg-white px-3 text-sm font-medium text-zinc-700 transition hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800"
+                                            class="inline-flex h-9 items-center gap-2 rounded-lg border border-zinc-300 bg-white px-3 text-sm font-medium text-zinc-700 transition hover:border-zinc-400 hover:bg-zinc-100 hover:text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:border-zinc-600 dark:hover:bg-zinc-800 dark:hover:text-zinc-50"
                                             @click="chooseRelationship(relationship)"
                                         >
                                             <IconChevronDown aria-hidden="true" class="h-4 w-4" :stroke-width="1.8" />
@@ -452,7 +466,14 @@ function formattedDate(value: string | null): string {
                                         >
                                             <FormDateInput v-model="endForm(relationship.publicId).valid_to" label="Valid to" />
                                             <FormTextarea v-model="endForm(relationship.publicId).reason" label="Reason" :rows="2" />
-                                            <FormButton type="submit" class="mt-0 md:mt-6">End relationship</FormButton>
+                                            <FormButton
+                                                type="submit"
+                                                tone="danger"
+                                                class="mt-0 md:mt-6"
+                                                :disabled="!endForm(relationship.publicId).reason.trim()"
+                                            >
+                                                End relationship
+                                            </FormButton>
                                         </AtlasForm>
                                     </td>
                                 </tr>

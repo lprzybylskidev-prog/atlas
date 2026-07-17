@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { Head, router } from '@inertiajs/vue3';
-import { IconFilter, IconShieldSearch, IconX } from '@tabler/icons-vue';
+import { IconShieldSearch } from '@tabler/icons-vue';
 import { computed, reactive, watch } from 'vue';
 
+import AdminFilterPanel from '../../../Components/AdminFilterPanel.vue';
 import FormSelect from '../../../Components/Form/FormSelect.vue';
 import AdminLayout from '../../../Layouts/AdminLayout.vue';
 import { useTranslator } from '../../../Localization/translator';
@@ -66,6 +67,7 @@ function applyFilters(): void {
 
 function clearFilters(): void {
     filters.userPublicId = '';
+    applyFilters();
 }
 
 watch(
@@ -97,32 +99,11 @@ function eventTimestamp(event: SecurityHistoryEvent): string {
     <Head :title="t('pages.security_history.head_title')" />
     <AdminLayout :title="t('pages.security_history.title')" :title-icon="IconShieldSearch">
         <section class="space-y-5">
-            <div class="rounded-lg border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
-                <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
-                    <h2 class="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Filters</h2>
-                    <div class="flex shrink-0 flex-wrap gap-2">
-                        <button
-                            type="button"
-                            class="inline-flex h-10 items-center gap-2 rounded-lg border border-zinc-300 px-4 text-sm font-medium text-zinc-700 transition hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-900"
-                            @click="clearFilters"
-                        >
-                            <IconX aria-hidden="true" class="h-4 w-4" :stroke-width="1.8" />
-                            Clear
-                        </button>
-                        <button
-                            type="button"
-                            class="inline-flex h-10 items-center gap-2 rounded-lg bg-teal-700 px-4 text-sm font-medium text-white transition hover:bg-teal-800 dark:bg-teal-600 dark:hover:bg-teal-500"
-                            @click="applyFilters"
-                        >
-                            <IconFilter aria-hidden="true" class="h-4 w-4" :stroke-width="1.8" />
-                            Apply
-                        </button>
-                    </div>
-                </div>
+            <AdminFilterPanel @apply="applyFilters" @clear="clearFilters">
                 <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                     <FormSelect v-model="filters.userPublicId" class="mt-1" label="User" aria-label="User" :options="userOptions" />
                 </div>
-            </div>
+            </AdminFilterPanel>
             <div class="overflow-hidden rounded-lg border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
                 <div class="border-b border-zinc-200 px-4 py-3 dark:border-zinc-800">
                     <h2 class="text-sm font-semibold text-zinc-900 dark:text-zinc-100">{{ t('pages.security_history.title') }}</h2>

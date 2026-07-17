@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { Head, Link, router, useForm } from '@inertiajs/vue3';
+import { Head, router, useForm } from '@inertiajs/vue3';
 import { IconArrowLeft, IconPuzzle } from '@tabler/icons-vue';
 import { reactive } from 'vue';
 
+import AdminActionLink from '../../../Components/AdminActionLink.vue';
 import AtlasForm from '../../../Components/Form/AtlasForm.vue';
 import FormButton from '../../../Components/Form/FormButton.vue';
 import FormCheckbox from '../../../Components/Form/FormCheckbox.vue';
@@ -177,13 +178,7 @@ function cancelSchedule(publicId: string, reason: string): void {
     <Head :title="`Module ${module.moduleKey}`" />
     <AdminLayout :title="`Module ${module.moduleKey}`" :title-icon="IconPuzzle">
         <section class="space-y-5">
-            <Link
-                href="/admin/modules"
-                class="inline-flex h-10 items-center gap-2 rounded-lg border border-zinc-300 bg-white px-4 text-sm font-medium text-zinc-700 transition hover:border-zinc-400 hover:bg-zinc-100 hover:text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:border-zinc-600 dark:hover:bg-zinc-800 dark:hover:text-zinc-50"
-            >
-                <IconArrowLeft aria-hidden="true" class="h-4 w-4" :stroke-width="1.8" />
-                Back to modules
-            </Link>
+            <AdminActionLink href="/admin/modules" :icon="IconArrowLeft"> Back to modules </AdminActionLink>
 
             <div class="grid gap-5 xl:grid-cols-[minmax(0,1fr)_20rem]">
                 <div class="space-y-5">

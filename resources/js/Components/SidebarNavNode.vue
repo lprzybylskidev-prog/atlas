@@ -102,6 +102,8 @@ function updateExpandedNavigationState(event: Event): void {
         <component
             :is="node.external ? 'a' : Link"
             :href="node.href ?? '#'"
+            :target="node.external ? '_blank' : undefined"
+            :rel="node.external ? 'noopener noreferrer' : undefined"
             class="group relative flex h-11 w-full items-center rounded-lg text-sm font-medium transition-[padding,color,background-color] duration-300 ease-in-out"
             :class="[
                 node.active

@@ -298,6 +298,10 @@ Use shared form components for:
 
 Current shared primitives live under `resources/js/Components/Form` and include `AtlasForm`, `FormInput`, `FormTextarea`, `FormSelect`, `FormAutocomplete`, `EntitySearchInput`, `FormCheckbox`, `FormRadioGroup`, date and datetime inputs, `FormMoneyInput`, `FormFileUpload`, `FormFieldError`, and `FormButton`.
 
+Custom Admin filter forms that are not owned by the shared `DataTable` wrapper use `resources/js/Components/AdminFilterPanel.vue`. The panel keeps the heading, neutral Clear action, primary Apply action, spacing, result summary, and light/dark theme treatment consistent across custom operational screens. Do not hand-build local Admin filter button rows when this panel fits.
+
+Admin page-level action links such as Create and Back use `resources/js/Components/AdminActionLink.vue`, and ordinary Admin form footers use `resources/js/Components/AdminFormActions.vue`. This keeps primary link buttons, neutral navigation links, focus treatment, wrapping, and spacing consistent without duplicating long Tailwind class strings in pages.
+
 Requirements:
 
 - common loading, disabled, success, and error states;
