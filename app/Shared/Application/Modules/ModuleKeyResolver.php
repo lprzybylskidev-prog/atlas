@@ -12,6 +12,10 @@ final class ModuleKeyResolver
             return 'identity';
         }
 
+        if (str_starts_with($permission, 'admin-mode.') || str_starts_with($permission, 'impersonation.')) {
+            return 'identity';
+        }
+
         if ($permission === 'admin.system-status.release' || $permission === 'admin.system-status.readiness') {
             return 'health';
         }

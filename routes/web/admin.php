@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Modules\Core\Audit\Presentation\Http\Controllers\AuditBrowserController;
+use App\Modules\Core\Audit\Presentation\Http\Controllers\SecurityHistoryController;
 use App\Modules\Core\Authorization\Presentation\Http\Controllers\CreateOnboardingPackageController;
 use App\Modules\Core\Authorization\Presentation\Http\Controllers\CreateRoleController;
 use App\Modules\Core\Authorization\Presentation\Http\Controllers\DestroyOnboardingPackageController;
@@ -16,6 +17,9 @@ use App\Modules\Core\Authorization\Presentation\Http\Controllers\StoreOnboarding
 use App\Modules\Core\Authorization\Presentation\Http\Controllers\StoreRoleController;
 use App\Modules\Core\Authorization\Presentation\Http\Controllers\UpdateOnboardingPackageController;
 use App\Modules\Core\Authorization\Presentation\Http\Controllers\UpdateRoleController;
+use App\Modules\Core\Identity\Application\Admin\HighRiskAdministrativeOperation;
+use App\Modules\Core\Identity\Presentation\Http\Controllers\AdminModeController;
+use App\Modules\Core\Identity\Presentation\Http\Controllers\ImpersonationController;
 use App\Modules\Core\Identity\Presentation\Http\Controllers\RateLimitAdministrationController;
 use App\Modules\Core\Identity\Presentation\Http\Controllers\ResetRateLimitCounterController;
 use App\Modules\Core\Teams\Presentation\Http\Controllers\ManagerHierarchyAdministrationController;
@@ -35,7 +39,14 @@ use App\Shared\Presentation\Http\Controllers\Modules\ModuleActivationController;
 use App\Shared\Presentation\Http\Controllers\TableSavedViewController;
 use Illuminate\Support\Facades\Route;
 
-Route::middleware(['auth', 'password.confirm', 'route.permission'])->group(function (): void {
+Route::middleware(['auth', 'route.permission'])->group(function (): void {
+    Route::get('/admin-mode', [AdminModeController::class, 'enter'])->name('admin-mode.enter');
+    Route::get('/admin-mode/high-risk', [AdminModeController::class, 'highRisk'])->name('admin-mode.high-risk');
+    Route::delete('/admin-mode', [AdminModeController::class, 'exit'])->name('admin-mode.exit');
+    Route::delete('/impersonation', [ImpersonationController::class, 'destroy'])->name('impersonation.destroy');
+});
+
+Route::middleware(['auth', 'admin.mode', 'route.permission'])->group(function (): void {
     Route::get('/admin', AdminSystemStatusController::class)->name('admin.system-status');
     Route::get('/admin/system-status/release', [AdminSystemStatusController::class, 'release'])->name('admin.system-status.release');
     Route::get('/admin/system-status/readiness', [AdminSystemStatusController::class, 'readiness'])->name('admin.system-status.readiness');
@@ -52,8 +63,10 @@ Route::middleware(['auth', 'password.confirm', 'route.permission'])->group(funct
     Route::post('/admin/users/{user}/require-email-verification', [UserAccountActionController::class, 'requireEmailVerification'])->name('admin.users.require-email-verification');
     Route::post('/admin/users/{user}/resend-first-password', [UserAccountActionController::class, 'resendFirstPassword'])->name('admin.users.resend-first-password');
     Route::post('/admin/users/{user}/unlock', [UserAccountActionController::class, 'unlock'])->name('admin.users.unlock');
-    Route::post('/admin/users/{user}/reset-mfa', [UserAccountActionController::class, 'resetMfa'])->name('admin.users.reset-mfa');
+    Route::post('/admin/users/{user}/reset-mfa', [UserAccountActionController::class, 'resetMfa'])->middleware('admin.high-risk:'.HighRiskAdministrativeOperation::MfaReset->value)->name('admin.users.reset-mfa');
     Route::post('/admin/users/{user}/invalidate-sessions', [UserAccountActionController::class, 'invalidateSessions'])->name('admin.users.invalidate-sessions');
+    Route::get('/admin/users/{user}/impersonate', [ImpersonationController::class, 'create'])->name('admin.users.impersonate');
+    Route::post('/admin/users/{user}/impersonate', [ImpersonationController::class, 'store'])->name('admin.users.impersonate.store');
     Route::post('/admin/users/{user}/teams', [UserTeamMembershipController::class, 'store'])->name('admin.users.teams.store');
     Route::delete('/admin/users/{user}/teams/{team}', [UserTeamMembershipController::class, 'destroy'])->name('admin.users.teams.destroy');
     Route::patch('/admin/users/{user}/teams/{team}/authorization', [UserTeamAuthorizationController::class, 'update'])->name('admin.users.teams.authorization.update');
@@ -73,8 +86,8 @@ Route::middleware(['auth', 'password.confirm', 'route.permission'])->group(funct
     Route::get('/admin/authorization/roles/create', CreateRoleController::class)->name('admin.authorization.roles.create');
     Route::post('/admin/authorization/roles', StoreRoleController::class)->name('admin.authorization.roles.store');
     Route::get('/admin/authorization/roles/{role}/edit', EditRoleController::class)->name('admin.authorization.roles.edit');
-    Route::patch('/admin/authorization/roles/{role}', UpdateRoleController::class)->name('admin.authorization.roles.update');
-    Route::delete('/admin/authorization/roles/{role}', DestroyRoleController::class)->name('admin.authorization.roles.destroy');
+    Route::patch('/admin/authorization/roles/{role}', UpdateRoleController::class)->middleware('admin.high-risk:'.HighRiskAdministrativeOperation::AdministratorPermissionChange->value)->name('admin.authorization.roles.update');
+    Route::delete('/admin/authorization/roles/{role}', DestroyRoleController::class)->middleware('admin.high-risk:'.HighRiskAdministrativeOperation::AdministratorPermissionChange->value)->name('admin.authorization.roles.destroy');
     Route::get('/admin/authorization/packages', OnboardingPackageAdministrationController::class)->name('admin.authorization.packages.index');
     Route::get('/admin/authorization/packages/create', CreateOnboardingPackageController::class)->name('admin.authorization.packages.create');
     Route::post('/admin/authorization/packages', StoreOnboardingPackageController::class)->name('admin.authorization.packages.store');
@@ -83,6 +96,8 @@ Route::middleware(['auth', 'password.confirm', 'route.permission'])->group(funct
     Route::delete('/admin/authorization/packages/{package}', DestroyOnboardingPackageController::class)->name('admin.authorization.packages.destroy');
     Route::get('/admin/authorization/permissions', PermissionAdministrationController::class)->name('admin.authorization.permissions.index');
     Route::get('/admin/audit', AuditBrowserController::class)->name('admin.audit.index');
+    Route::get('/admin/audit/security-history', SecurityHistoryController::class)->name('admin.audit.security-history.index');
+    Route::get('/admin/audit/impersonation/{session}', [AuditBrowserController::class, 'impersonationSession'])->name('admin.audit.impersonation.show');
     Route::get('/admin/rate-limits', RateLimitAdministrationController::class)->name('admin.rate-limits.index');
     Route::post('/admin/rate-limits/reset', ResetRateLimitCounterController::class)->name('admin.rate-limits.reset');
     Route::get('/admin/logs', AdminApplicationLogController::class)->name('admin.logs.index');

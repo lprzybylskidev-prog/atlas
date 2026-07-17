@@ -38,7 +38,7 @@ Do not replace this index after the initial technical foundation is completed. C
 ## Current phase
 
 - Phase: [Phase 18 — Administrative mode and impersonation](docs/roadmap/phase-18-admin-impersonation.md)
-- Status: `not started`
+- Status: `complete`
 
 ## Roadmap dependency repair note
 
@@ -202,7 +202,7 @@ Implement effective-dated manager hierarchy, DAG validation, direct-report and s
 
 ### Phase 18 — Administrative mode and impersonation
 
-**Status:** `not started`
+**Status:** `complete`
 
 Implement Admin mode, high-risk reauthentication, account sensitivity, secure impersonation, and isolated TimeTracking simulation.
 

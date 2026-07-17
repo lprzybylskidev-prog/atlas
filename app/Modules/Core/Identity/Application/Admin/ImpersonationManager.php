@@ -1,0 +1,324 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Modules\Core\Identity\Application\Admin;
+
+use App\Modules\Core\Audit\Application\Public\Contracts\AuditRecorder;
+use App\Modules\Core\Audit\Application\Public\DTOs\AuditEvent;
+use App\Modules\Core\Authorization\Application\Public\Contracts\EffectivePermissionChecker;
+use App\Modules\Core\Authorization\Application\Public\DTOs\EffectivePermissionRequest;
+use App\Modules\Core\Identity\Application\Public\Contracts\UserSessionRegistry;
+use App\Modules\Core\Identity\Domain\AccountSensitivity;
+use App\Modules\Core\Identity\Infrastructure\Persistence\User;
+use App\Shared\Infrastructure\Database\DatabaseTable;
+use Illuminate\Database\Query\Builder;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
+
+final readonly class ImpersonationManager
+{
+    private const ADMINISTRATOR_ROLE_NAME = 'system.administrator';
+
+    private const ADMIN_MODE_ENTER_PERMISSION = 'admin-mode.enter';
+
+    private const IMPERSONATION_START_PERMISSION = 'impersonation.start';
+
+    private const IMPERSONATION_SENSITIVE_OVERRIDE_PERMISSION = 'impersonation.sensitive.override';
+
+    public const SESSION_ID = 'atlas_impersonation_session_id';
+
+    public const ACTOR_PUBLIC_ID = 'atlas_impersonation_actor_public_id';
+
+    public const ACTOR_TEAM_PUBLIC_ID = 'atlas_impersonation_actor_team_public_id';
+
+    public const USER_PUBLIC_ID = 'atlas_impersonation_user_public_id';
+
+    public const USER_NAME = 'atlas_impersonation_user_name';
+
+    public const TEAM_PUBLIC_ID = 'atlas_impersonation_team_public_id';
+
+    public const TEAM_NAME = 'atlas_impersonation_team_name';
+
+    public const REASON = 'atlas_impersonation_reason';
+
+    public const STARTED_AT = 'atlas_impersonation_started_at';
+
+    public function __construct(
+        private EffectivePermissionChecker $permissions,
+        private AdministrativeSessionManager $adminMode,
+        private ImpersonationSimulationStore $simulation,
+        private AuditRecorder $audit,
+    ) {}
+
+    public function active(Request $request): bool
+    {
+        return $request->hasSession() && is_string($request->session()->get(self::SESSION_ID));
+    }
+
+    public function start(Request $request, User $actor, string $targetPublicId, string $teamPublicId, string $reason, bool $overrideSensitive): bool
+    {
+        $actorTeamPublicId = $request->session()->get('active_team_public_id');
+        $target = User::query()->where('public_id', $targetPublicId)->first();
+
+        if (! $target instanceof User || ! is_string($actorTeamPublicId) || trim($reason) === '') {
+            $this->record($request, 'impersonation.start', 'rejected', (string) $actor->public_id, $targetPublicId, null, $reason);
+
+            return false;
+        }
+
+        if (! $this->adminMode->active($request) || ! $this->can($actor, self::IMPERSONATION_START_PERMISSION, $actorTeamPublicId)) {
+            $this->record($request, 'impersonation.start', 'rejected', (string) $actor->public_id, $targetPublicId, null, $reason);
+
+            return false;
+        }
+
+        $sensitivity = AccountSensitivity::tryFrom((string) ($target->account_sensitivity ?? 'normal')) ?? AccountSensitivity::Normal;
+
+        if ((string) $actor->public_id === (string) $target->public_id
+            || ! $target->isActive()
+            || ! $sensitivity->human()
+            || $this->hasAdministratorLevelAccess((string) $target->public_id)
+            || ! $this->targetBelongsToTeam((string) $target->public_id, $teamPublicId)
+        ) {
+            $this->record($request, 'impersonation.start', 'rejected', (string) $actor->public_id, (string) $target->public_id, $teamPublicId, $reason, [
+                'sensitivity' => $sensitivity->value,
+            ]);
+
+            return false;
+        }
+
+        if ($sensitivity === AccountSensitivity::Sensitive) {
+            if (! $overrideSensitive
+                || ! $this->can($actor, self::IMPERSONATION_SENSITIVE_OVERRIDE_PERMISSION, $actorTeamPublicId)
+                || ! $this->adminMode->highRiskFresh($request)
+            ) {
+                $this->record($request, 'impersonation.sensitive_override', 'rejected', (string) $actor->public_id, (string) $target->public_id, $teamPublicId, $reason);
+
+                return false;
+            }
+
+            $this->record($request, 'impersonation.sensitive_override', 'succeeded', (string) $actor->public_id, (string) $target->public_id, $teamPublicId, $reason, [
+                'high_risk_operation' => HighRiskAdministrativeOperation::ImpersonationSensitiveOverride->value,
+            ]);
+        }
+
+        $teamName = DB::table(DatabaseTable::TEAMS)->where('public_id', $teamPublicId)->value('name');
+        $sessionId = (string) Str::ulid();
+
+        $request->session()->put(self::SESSION_ID, $sessionId);
+        $request->session()->put(self::ACTOR_PUBLIC_ID, (string) $actor->public_id);
+        $request->session()->put(self::ACTOR_TEAM_PUBLIC_ID, $actorTeamPublicId);
+        $request->session()->put(self::USER_PUBLIC_ID, (string) $target->public_id);
+        $request->session()->put(self::USER_NAME, (string) $target->name);
+        $request->session()->put(self::TEAM_PUBLIC_ID, $teamPublicId);
+        $request->session()->put(self::TEAM_NAME, is_string($teamName) ? $teamName : '');
+        $request->session()->put(self::REASON, $reason);
+        $request->session()->put(self::STARTED_AT, now()->toIso8601String());
+        $request->session()->put('active_team_public_id', $teamPublicId);
+
+        $this->record($request, 'impersonation.start', 'succeeded', (string) $actor->public_id, (string) $target->public_id, $teamPublicId, $reason, [
+            'impersonation_session_id' => $sessionId,
+            'target_online' => count(app(UserSessionRegistry::class)->activeForUser((string) $target->public_id)) > 0,
+        ]);
+
+        return true;
+    }
+
+    public function stop(Request $request, string $result = 'succeeded', string $reason = 'manual'): void
+    {
+        if (! $this->active($request)) {
+            return;
+        }
+
+        $session = $request->session();
+        $sessionId = $session->get(self::SESSION_ID);
+        $actorPublicId = $session->get(self::ACTOR_PUBLIC_ID);
+        $targetPublicId = $session->get(self::USER_PUBLIC_ID);
+        $teamPublicId = $session->get(self::TEAM_PUBLIC_ID);
+        $actorTeamPublicId = $session->get(self::ACTOR_TEAM_PUBLIC_ID);
+
+        if (is_string($sessionId)) {
+            $this->simulation->deleteSession($sessionId);
+        }
+
+        $session->forget([
+            self::SESSION_ID,
+            self::ACTOR_PUBLIC_ID,
+            self::ACTOR_TEAM_PUBLIC_ID,
+            self::USER_PUBLIC_ID,
+            self::USER_NAME,
+            self::TEAM_PUBLIC_ID,
+            self::TEAM_NAME,
+            self::REASON,
+            self::STARTED_AT,
+        ]);
+
+        if (is_string($actorTeamPublicId)) {
+            $session->put('active_team_public_id', $actorTeamPublicId);
+        }
+
+        $this->audit->record(new AuditEvent(
+            module: 'identity',
+            action: 'impersonation.end',
+            result: $result,
+            source: 'ui',
+            actorPublicId: is_string($actorPublicId) ? $actorPublicId : null,
+            actualActorPublicId: is_string($actorPublicId) ? $actorPublicId : null,
+            impersonatedUserPublicId: is_string($targetPublicId) ? $targetPublicId : null,
+            impersonationSessionId: is_string($sessionId) ? $sessionId : null,
+            targetType: 'user',
+            targetPublicId: is_string($targetPublicId) ? $targetPublicId : null,
+            teamPublicId: is_string($teamPublicId) ? $teamPublicId : null,
+            reason: $reason,
+            security: true,
+            securityCategory: 'impersonation',
+        ));
+    }
+
+    public function applyEffectiveUser(Request $request): void
+    {
+        if (! $this->active($request)) {
+            return;
+        }
+
+        $targetPublicId = $request->session()->get(self::USER_PUBLIC_ID);
+        $targetTeamPublicId = $request->session()->get(self::TEAM_PUBLIC_ID);
+        $actorPublicId = $request->session()->get(self::ACTOR_PUBLIC_ID);
+        $actorTeamPublicId = $request->session()->get(self::ACTOR_TEAM_PUBLIC_ID);
+
+        if (! is_string($targetPublicId) || ! is_string($targetTeamPublicId) || ! is_string($actorPublicId) || ! is_string($actorTeamPublicId)) {
+            $this->stop($request, reason: 'invalid_context');
+
+            return;
+        }
+
+        $actor = User::query()->where('public_id', $actorPublicId)->first();
+        $target = User::query()->where('public_id', $targetPublicId)->first();
+
+        if (! $actor instanceof User
+            || ! $target instanceof User
+            || ! $actor->isActive()
+            || ! $target->isActive()
+            || ! $this->can($actor, self::IMPERSONATION_START_PERMISSION, $actorTeamPublicId)
+            || ! $this->targetBelongsToTeam($targetPublicId, $targetTeamPublicId)
+            || ! $this->adminMode->active($request)
+        ) {
+            $this->stop($request, reason: 'security_invalidation');
+
+            return;
+        }
+
+        $request->session()->put('active_team_public_id', $targetTeamPublicId);
+        Auth::guard('web')->setUser($target);
+    }
+
+    /**
+     * @return array{active: bool, sessionId: string|null, actorPublicId: string|null, userPublicId: string|null, userName: string|null, teamPublicId: string|null, teamName: string|null, reason: string|null, startedAt: string|null}
+     */
+    public function sharedState(Request $request): array
+    {
+        $session = $request->hasSession() ? $request->session() : null;
+
+        return [
+            'active' => $session !== null && is_string($session->get(self::SESSION_ID)),
+            'sessionId' => $session !== null && is_string($session->get(self::SESSION_ID)) ? $session->get(self::SESSION_ID) : null,
+            'actorPublicId' => $session !== null && is_string($session->get(self::ACTOR_PUBLIC_ID)) ? $session->get(self::ACTOR_PUBLIC_ID) : null,
+            'userPublicId' => $session !== null && is_string($session->get(self::USER_PUBLIC_ID)) ? $session->get(self::USER_PUBLIC_ID) : null,
+            'userName' => $session !== null && is_string($session->get(self::USER_NAME)) ? $session->get(self::USER_NAME) : null,
+            'teamPublicId' => $session !== null && is_string($session->get(self::TEAM_PUBLIC_ID)) ? $session->get(self::TEAM_PUBLIC_ID) : null,
+            'teamName' => $session !== null && is_string($session->get(self::TEAM_NAME)) ? $session->get(self::TEAM_NAME) : null,
+            'reason' => $session !== null && is_string($session->get(self::REASON)) ? $session->get(self::REASON) : null,
+            'startedAt' => $session !== null && is_string($session->get(self::STARTED_AT)) ? $session->get(self::STARTED_AT) : null,
+        ];
+    }
+
+    private function can(User $user, string $permission, string $teamPublicId): bool
+    {
+        return $this->permissions->check(new EffectivePermissionRequest(
+            userPublicId: (string) $user->public_id,
+            permission: $permission,
+            teamPublicId: $teamPublicId,
+        ))->allowed;
+    }
+
+    private function hasAdministratorLevelAccess(string $userPublicId): bool
+    {
+        $user = DB::table(DatabaseTable::USERS)->where('public_id', $userPublicId)->first(['id']);
+
+        if ($user === null || ! property_exists($user, 'id') || ! is_int($user->id)) {
+            return false;
+        }
+
+        $roleName = self::ADMINISTRATOR_ROLE_NAME;
+        $modelType = config('auth.providers.users.model');
+        $modelType = is_string($modelType) && $modelType !== '' ? $modelType : User::class;
+
+        if (DB::table(DatabaseTable::MODEL_HAS_ROLES)
+            ->join(DatabaseTable::ROLES, 'model_has_roles.role_id', '=', 'roles.id')
+            ->where('model_has_roles.model_id', $user->id)
+            ->where('model_has_roles.model_type', $modelType)
+            ->where('roles.name', $roleName)
+            ->exists()) {
+            return true;
+        }
+
+        return DB::table(DatabaseTable::MODEL_HAS_PERMISSIONS)
+            ->join(DatabaseTable::PERMISSIONS, 'model_has_permissions.permission_id', '=', 'permissions.id')
+            ->where('model_has_permissions.model_id', $user->id)
+            ->where('model_has_permissions.model_type', $modelType)
+            ->where('permissions.name', self::ADMIN_MODE_ENTER_PERMISSION)
+            ->exists();
+    }
+
+    private function targetBelongsToTeam(string $userPublicId, string $teamPublicId): bool
+    {
+        return DB::table(DatabaseTable::TEAM_USER_ASSIGNMENTS)
+            ->join(DatabaseTable::USERS, 'team_user_assignments.user_id', '=', 'users.id')
+            ->join(DatabaseTable::TEAMS, 'team_user_assignments.team_id', '=', 'teams.id')
+            ->where('users.public_id', $userPublicId)
+            ->where('teams.public_id', $teamPublicId)
+            ->where('teams.is_active', true)
+            ->where(static function (Builder $query): void {
+                $query->whereNull('team_user_assignments.valid_from')->orWhere('team_user_assignments.valid_from', '<=', now());
+            })
+            ->where(static function (Builder $query): void {
+                $query->whereNull('team_user_assignments.valid_to')->orWhere('team_user_assignments.valid_to', '>', now());
+            })
+            ->exists();
+    }
+
+    /**
+     * @param  array<string, mixed>  $metadata
+     */
+    private function record(Request $request, string $action, string $result, string $actorPublicId, ?string $targetPublicId, ?string $teamPublicId, ?string $reason, array $metadata = []): void
+    {
+        $impersonationSessionId = $request->hasSession() && is_string($request->session()->get(self::SESSION_ID))
+            ? $request->session()->get(self::SESSION_ID)
+            : null;
+
+        if ($impersonationSessionId === null && is_string($metadata['impersonation_session_id'] ?? null)) {
+            $impersonationSessionId = $metadata['impersonation_session_id'];
+        }
+
+        $this->audit->record(new AuditEvent(
+            module: 'identity',
+            action: $action,
+            result: $result,
+            source: 'ui',
+            actorPublicId: $actorPublicId,
+            actualActorPublicId: $actorPublicId,
+            impersonatedUserPublicId: $targetPublicId,
+            impersonationSessionId: $impersonationSessionId,
+            targetType: 'user',
+            targetPublicId: $targetPublicId,
+            teamPublicId: $teamPublicId,
+            reason: $reason,
+            metadata: $metadata,
+            security: true,
+            securityCategory: 'impersonation',
+        ));
+    }
+}

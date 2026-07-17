@@ -6,6 +6,7 @@ namespace App\Http\Middleware;
 
 use App\Modules\Core\Authorization\Application\Public\Contracts\EffectivePermissionChecker;
 use App\Modules\Core\Authorization\Application\Public\DTOs\EffectivePermissionRequest;
+use App\Modules\Core\Identity\Application\Admin\ImpersonationManager;
 use App\Modules\Core\Notifications\Application\Public\Contracts\NotificationInbox;
 use App\Modules\Core\Notifications\Application\Public\DTOs\NotificationSummary;
 use App\Modules\Core\Settings\Application\Settings\EffectiveSettings;
@@ -40,6 +41,7 @@ final class HandleInertiaRequests extends Middleware
                 ],
                 'availableAdminRoutes' => $this->availableAdminRoutes($request),
                 'teams' => $this->teams($request),
+                'impersonation' => app(ImpersonationManager::class)->sharedState($request),
             ],
             'locale' => app()->getLocale(),
             'supportedLocales' => ['pl', 'en'],
@@ -143,6 +145,10 @@ final class HandleInertiaRequests extends Middleware
         $userPublicId = data_get($request->user(), 'public_id');
         $teamPublicId = $request->hasSession() ? $request->session()->get('active_team_public_id') : null;
 
+        if (app(ImpersonationManager::class)->active($request)) {
+            return [];
+        }
+
         if (! is_string($teamPublicId) && is_string($userPublicId) && $request->hasSession()) {
             $teamPublicId = $this->firstAssignedTeamPublicId($userPublicId);
 
@@ -170,6 +176,7 @@ final class HandleInertiaRequests extends Middleware
             'admin.authorization.packages.index',
             'admin.authorization.permissions.index',
             'admin.audit.index',
+            'admin.audit.security-history.index',
             'admin.logs.index',
             'admin.queues.index',
             'admin.pulse.view',

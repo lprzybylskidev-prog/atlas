@@ -40,6 +40,7 @@ final readonly class UserAdministrationController
             'loginLocked' => $user->loginLocked,
             'mfaEnabled' => $user->mfaEnabled,
             'online' => $user->online,
+            'accountSensitivity' => $user->accountSensitivity,
             'emailVerifiedAt' => $user->emailVerifiedAt,
             'twoFactorConfirmedAt' => $user->twoFactorConfirmedAt,
             'firstPasswordSetAt' => $user->firstPasswordSetAt,

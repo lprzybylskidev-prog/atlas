@@ -19,6 +19,7 @@ interface UserRow extends Record<string, unknown> {
     loginLocked: boolean;
     mfaEnabled: boolean;
     online: boolean;
+    accountSensitivity: string;
     emailVerifiedAt: string | null;
     twoFactorConfirmedAt: string | null;
     firstPasswordSetAt: string | null;
@@ -48,6 +49,7 @@ const columns: DataTableColumn<UserRow>[] = [
     { key: 'loginLocked', label: 'Locked', format: 'boolean' },
     { key: 'mfaEnabled', label: 'MFA', format: 'boolean' },
     { key: 'online', label: 'Online', format: 'boolean' },
+    { key: 'accountSensitivity', label: 'Sensitivity' },
     { key: 'emailVerifiedAt', label: 'Email verified at', format: 'datetime', hidden: true },
     { key: 'twoFactorConfirmedAt', label: 'MFA confirmed at', format: 'datetime', hidden: true },
     { key: 'firstPasswordSetAt', label: 'First password set at', format: 'datetime', hidden: true },
@@ -73,6 +75,7 @@ const actions: DataTableAction<UserRow>[] = [
     { key: 'first-password', label: 'Send link', method: 'post', href: (row) => `/admin/users/${row.publicId}/resend-first-password` },
     { key: 'unlock', label: 'Unlock', method: 'post', href: (row) => `/admin/users/${row.publicId}/unlock` },
     { key: 'reset-mfa', label: 'Reset MFA', method: 'post', href: (row) => `/admin/users/${row.publicId}/reset-mfa` },
+    { key: 'impersonate', label: 'Impersonate', href: (row) => `/admin/users/${row.publicId}/impersonate` },
     {
         key: 'invalidate-sessions',
         label: 'Invalidate sessions',

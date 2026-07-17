@@ -37,6 +37,7 @@ final readonly class EditUserAccountController
                 'firstPasswordSet' => $account->firstPasswordSet,
                 'loginLocked' => $account->loginLocked,
                 'mfaEnabled' => $account->mfaEnabled,
+                'accountSensitivity' => $account->accountSensitivity,
             ],
             'teamMemberships' => array_map(function ($membership) use ($account): array {
                 $assignments = $this->authorization->assignmentsForUserTeam($account->publicId, $membership->teamPublicId);

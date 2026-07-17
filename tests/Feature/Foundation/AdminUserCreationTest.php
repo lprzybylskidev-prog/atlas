@@ -336,6 +336,9 @@ final class AdminUserCreationTest extends TestCase
         return [
             'active_team_public_id' => $team->public_id,
             'auth.password_confirmed_at' => now()->unix(),
+            'atlas_admin_mode_entered_at' => now()->toIso8601String(),
+            'atlas_admin_mode_last_activity_at' => now()->toIso8601String(),
+            'atlas_admin_high_risk_confirmed_at' => now()->toIso8601String(),
         ];
     }
 

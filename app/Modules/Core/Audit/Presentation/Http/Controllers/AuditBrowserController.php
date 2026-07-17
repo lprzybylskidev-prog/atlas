@@ -54,6 +54,36 @@ final readonly class AuditBrowserController
         ]);
     }
 
+    public function impersonationSession(string $session): Response
+    {
+        $events = array_values(DB::table(DatabaseTable::AUDIT_EVENTS)
+            ->where('impersonation_session_id', $session)
+            ->orderBy('occurred_at')
+            ->get()
+            ->map(fn (object $record): array => $this->row($record))
+            ->all());
+
+        abort_if($events === [], 404);
+
+        $start = $events[0];
+        $end = $events[array_key_last($events)] ?? $start;
+
+        return Inertia::render('Admin/Audit/ImpersonationSession', [
+            'session' => [
+                'id' => $session,
+                'startedAt' => $start['occurredAt'] ?? '',
+                'endedAt' => ($end['action'] ?? '') === 'impersonation.end' ? ($end['occurredAt'] ?? '') : null,
+                'actualActorPublicId' => $start['actualActorPublicId'] ?: ($start['actorPublicId'] ?? ''),
+                'impersonatedUserPublicId' => $start['impersonatedUserPublicId'] ?: ($start['targetPublicId'] ?? ''),
+                'teamPublicId' => $start['teamPublicId'] ?? '',
+                'reason' => $start['reason'] ?? '',
+                'operationCount' => count($events),
+                'rejectedCount' => count(array_filter($events, static fn (array $event): bool => ($event['result'] ?? '') === 'rejected')),
+            ],
+            'events' => $events,
+        ]);
+    }
+
     /**
      * @return array{actor: string, actualActor: string, impersonatedUser: string, impersonationSession: string, target: string, targetType: string, action: string, team: string, module: string, source: string, correlation: string, result: string, security: string, dateFrom: string, dateTo: string}
      */

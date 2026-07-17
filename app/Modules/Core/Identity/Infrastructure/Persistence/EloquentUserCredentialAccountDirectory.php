@@ -70,7 +70,7 @@ final class EloquentUserCredentialAccountDirectory implements UserCredentialAcco
             ->exists();
     }
 
-    public function updateIdentity(string $publicId, string $name, string $email): ?AdminUserCredentialAccount
+    public function updateIdentity(string $publicId, string $name, string $email, string $accountSensitivity): ?AdminUserCredentialAccount
     {
         $user = User::query()->where('public_id', $publicId)->first();
 
@@ -81,6 +81,7 @@ final class EloquentUserCredentialAccountDirectory implements UserCredentialAcco
         $user->forceFill([
             'name' => $name,
             'email' => $email,
+            'account_sensitivity' => $accountSensitivity,
         ])->save();
 
         return $this->adminRow($user, in_array((string) $user->public_id, $this->sessions->onlineUserPublicIds(), true));
@@ -132,6 +133,7 @@ final class EloquentUserCredentialAccountDirectory implements UserCredentialAcco
             loginLocked: $user->isLoginLocked(),
             mfaEnabled: $user->two_factor_confirmed_at !== null,
             online: $online,
+            accountSensitivity: $user->account_sensitivity,
             emailVerifiedAt: $this->optionalDateTimeString($user->email_verified_at),
             twoFactorConfirmedAt: $this->optionalDateTimeString($user->two_factor_confirmed_at),
             firstPasswordSetAt: $this->optionalDateTimeString($user->first_password_set_at),

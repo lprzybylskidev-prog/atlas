@@ -19,13 +19,15 @@ Rules:
 - no hidden superadmin bypass;
 - not a generic CRUD incubator.
 
-Entering `/admin...` routes requires authenticated users to confirm their password through the shared Identity confirmation screen.
+Entering `/admin...` routes requires authenticated users to enter explicit administrative mode through the shared Laravel/Fortify-style `/user/confirm-password` reauthentication screen. Administrative mode has inactivity and absolute lifetime limits. High-risk Admin operations additionally require a separate fresh confirmation through the same screen. Atlas classifies hard delete, irreversible anonymization, MFA reset, administrator permission changes, sensitive-account impersonation override, and closed-period TimeTracking corrections as high-risk operation types.
 
 The regular application shell shows the Admin entry only when the backend-provided `auth.availableAdminRoutes` includes an available Admin route for the current user/team context. This is UI visibility only; Admin route middleware remains the authorization boundary.
 
 Current Admin tables use the shared `DataTable` wrapper. Their first data column is `public_id`, they keep the most important operational columns visible by default, and they expose remaining safe non-secret table columns through the Columns menu. Search, sorting, pagination, column visibility, and column order are backend-validated and synchronized through deterministic English query-string keys. Admin users can save private or active-team-shared table views, set a default view, copy a system/shared view, and delete only editable non-system views. Team-shared saved-view changes are recorded through the Audit module. When an Admin index exposes safe row actions, the same supported mutating actions are also available as selected-row bulk actions for the currently loaded page.
 
 Admin user and team administration include integrated Team access management. Administrators can assign users to teams during user creation, user editing, team creation, or team editing, and can manage the user's team-scoped roles and direct permissions from either side of the workflow. Team access removal is security-sensitive: it requires a reason, audits the change, removes user-specific authorization assignments in that team, and invalidates sessions operating in that team.
+
+Admin user administration manages account sensitivity (`normal`, `sensitive`, `technical`, `service`, `integration`) independently from roles and team assignments. The user list exposes the classification, the edit form updates it, and the impersonation start action enforces it.
 
 Admin manager hierarchy administration is available at `/admin/managers`. It lets authorized administrators filter by team, preview manager-report changes before saving, create team-scoped manager relationships, end relationships without deleting history, update head-manager status, view the current hierarchy tree, and inspect relationship history. Every mutating manager action requires a reason, validates self-management and DAG cycles on the backend, and records security-sensitive Teams audit events.
 
@@ -81,7 +83,7 @@ System Status includes:
 
 Failed jobs support safe retry and strong mass-action confirmation.
 
-Audit browser supports filtering by actor, actual actor, impersonated user, entity, action, target type, team, module, source, result, correlation ID, and security flag. Audit browser saved views include active audit filters.
+Audit browser supports filtering by actor, actual actor, impersonated user, entity, action, target type, team, module, source, result, correlation ID, impersonation session ID, and security flag. Audit browser saved views include active audit filters. Impersonation session details are available at `/admin/audit/impersonation/{session}` and show start/end, reason, administrator, impersonated user, team, operation count, rejected count, and session events. Admin security history is available at `/admin/audit/security-history` and shows recent security events for all users, with a user selector that matches actor, actual actor, impersonated user, or target context; impersonation does not send real-time user notifications by default.
 
 Logs and storage browsing must be secure and must not allow arbitrary server manipulation.
 

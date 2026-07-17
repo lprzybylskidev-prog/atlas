@@ -24,7 +24,7 @@ final class AdminAdministrationCrudTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_admin_panel_requires_password_confirmation(): void
+    public function test_admin_panel_requires_administrative_mode(): void
     {
         $actor = User::factory()->create();
         $activeTeam = Team::query()->create(['name' => 'Operations']);
@@ -41,6 +41,9 @@ final class AdminAdministrationCrudTest extends TestCase
             ->withSession([
                 ...$session,
                 'auth.password_confirmed_at' => now()->unix(),
+                'atlas_admin_mode_entered_at' => now()->toIso8601String(),
+                'atlas_admin_mode_last_activity_at' => now()->toIso8601String(),
+                'atlas_admin_high_risk_confirmed_at' => now()->toIso8601String(),
             ])
             ->get('/admin')
             ->assertOk();
@@ -414,6 +417,9 @@ final class AdminAdministrationCrudTest extends TestCase
         return [
             'active_team_public_id' => $team->public_id,
             'auth.password_confirmed_at' => now()->unix(),
+            'atlas_admin_mode_entered_at' => now()->toIso8601String(),
+            'atlas_admin_mode_last_activity_at' => now()->toIso8601String(),
+            'atlas_admin_high_risk_confirmed_at' => now()->toIso8601String(),
         ];
     }
 

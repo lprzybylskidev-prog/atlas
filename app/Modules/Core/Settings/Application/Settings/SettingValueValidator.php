@@ -35,7 +35,10 @@ final class SettingValueValidator
             UserSettingKey::AccessibilityPreferences => $this->accessibilityPreferences($value),
 
             SecuritySettingKey::SessionIdleTimeoutMinutes,
+            SecuritySettingKey::AdministrativeModeIdleTimeoutMinutes,
+            SecuritySettingKey::AdministrativeHighRiskTimeoutMinutes,
             SecuritySettingKey::PasswordConfirmationTimeoutMinutes => $this->integerRange($key, $value, 5, 1440),
+            SecuritySettingKey::AdministrativeModeAbsoluteLifetimeMinutes => $this->integerRange($key, $value, 5, 10080),
             SecuritySettingKey::MfaRequired => $this->boolean($key, $value),
         };
     }

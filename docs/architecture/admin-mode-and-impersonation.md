@@ -6,7 +6,11 @@ Canonical security and behavior contract for Admin mode, high-risk reauthenticat
 
 Administrators use ordinary user accounts with an explicit administrative mode.
 
-Entering administrative mode requires reauthentication. Current Admin panel routes require Laravel password confirmation before access to `/admin...` pages and actions.
+Entering administrative mode requires reauthentication through the shared Laravel/Fortify-style password confirmation flow. Current Admin panel routes require explicit Identity-owned administrative mode before access to `/admin...` pages and actions.
+
+Administrative mode stores session-bound timestamps for entry and last administrative activity. It expires after 30 minutes of administrative inactivity or 4 hours of absolute lifetime by default. These values are security settings.
+
+Fresh high-risk authorization is separate from administrative mode, uses the same password confirmation flow with MFA, lasts 5 minutes by default, and is required by high-risk Admin operations. Atlas classifies hard delete, irreversible anonymization, MFA reset, administrator permission changes, sensitive-account impersonation override, and closed-period TimeTracking corrections as high-risk administrative operations. Existing MFA reset and administrator role changes use the high-risk route middleware; future hard-delete, anonymization, and closed-period correction workflows must attach the same classified guard when introduced.
 
 While the administrative session remains valid, multiple impersonations may be started without repeating password and MFA each time. High-risk operations may still require separate reauthentication.
 
@@ -80,7 +84,7 @@ Audit must store:
 - operation;
 - result.
 
-External-effect actions such as email, API calls, external exports, and financial operations must show an additional warning before execution.
+External-effect actions such as email, API calls, external exports, and financial operations must show an additional warning before execution. During impersonation these routes must require an explicit `impersonation_external_effect_acknowledged` acknowledgement or use an equivalent UI confirmation before the backend proceeds.
 
 ### Time tracking during impersonation
 
@@ -95,6 +99,8 @@ Time tracking UI, limits, breaks, and flows may be simulated for testing, but im
 Simulation state must never be written to official TimeTracking tables, official event streams, manager live feeds, settlements, or reports.
 
 When UI-flow simulation is needed, store it only in a dedicated impersonation-scoped ephemeral namespace, such as Redis, keyed by impersonation session ID and automatically deleted when impersonation ends or expires. It is never published as business events and never notifies managers.
+
+Atlas exposes `ImpersonationSimulationStore` for isolated TimeTracking simulation state. The store is cache-backed, keyed by impersonation session ID, and deleted through the impersonation end path.
 
 The impersonated UI otherwise follows the target user's permissions and visibility, while the persistent impersonation banner and simulation markers remain visible to the administrator.
 
@@ -125,7 +131,7 @@ Every page in impersonation mode must show a persistent, unavoidable banner cont
 - impersonation reason;
 - `Exit impersonation`.
 
-The header or favicon may also change.
+The application header also changes visual treatment while impersonation is active.
 
 Destructive actions must remind the administrator that impersonation is active.
 
@@ -145,6 +151,8 @@ Support filtering by:
 
 Every impersonation session has a detail view containing start, end, actor, user, reason, successful operations, and rejected attempts.
 
-The impersonated user is not notified in real time by default, but may see the security-history record.
+The current Admin detail route is `/admin/audit/impersonation/{session}`.
+
+The impersonated user is not notified in real time by default. Administrators may review related security events in the Admin security-history screen at `/admin/audit/security-history`, including by selecting the user whose security history is being investigated.
 
 ---

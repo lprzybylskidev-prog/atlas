@@ -73,8 +73,9 @@ Current producers include:
 - Admin team create, update, activation, deactivation, and delete attempts;
 - shared DataTable team/system saved-view create, update, and delete.
 - module activation global changes, team override changes, schedule creation, schedule cancellation, rejected activation attempts, and rejected schedule attempts.
+- administrative mode enter/exit, high-risk reauthentication, impersonation start/end, sensitive-account override decisions, and impersonated actions enriched with actual administrator and impersonation context.
 
-Future session administration, manager hierarchy, module activation, impersonation, imports, integrations, files, reports, privacy, and TimeTracking workflows use the same Audit module writer instead of creating separate audit tables.
+Future imports, integrations, files, reports, privacy, and TimeTracking workflows use the same Audit module writer instead of creating separate audit tables.
 
 ## Admin Browser
 
@@ -85,3 +86,11 @@ It is read-only and uses the shared `DataTable` wrapper with backend-validated s
 Audit browser saved views include table state and active audit filters.
 
 The route permission is `admin.audit.index`.
+
+Impersonation session detail is available at `/admin/audit/impersonation/{session}` for `admin.audit.impersonation.show`. It reads the append-only audit events for one impersonation session ID and shows session metadata plus successful and rejected operations.
+
+## Admin Security History
+
+Administrators may view security history for all users at `/admin/audit/security-history` with permission `admin.audit.security-history.index`. The screen reads the append-only audit records owned by the Audit module and shows recent security events across actors, actual actors, impersonated users, targets, teams, actions, results, reasons, and impersonation session IDs. Admin can filter the screen by a selected user; the filter matches events where that user is the actor, actual actor, impersonated user, or target.
+
+Impersonation events appear here without sending a real-time user notification by default.

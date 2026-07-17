@@ -23,6 +23,7 @@ interface UserFormData {
     firstPasswordSet: boolean;
     loginLocked: boolean;
     mfaEnabled: boolean;
+    accountSensitivity: string;
 }
 
 interface TeamMembership {
@@ -47,6 +48,7 @@ const { t } = useTranslator('en');
 const form = useForm({
     name: props.user.name,
     email: props.user.email,
+    account_sensitivity: props.user.accountSensitivity,
 });
 const teamForm = useForm({
     team_public_id: '',
@@ -83,6 +85,14 @@ const recordActions = [
     },
     { key: 'unlock', label: 'Unlock', method: 'post' as const, href: `/admin/users/${props.user.publicId}/unlock` },
     { key: 'reset-mfa', label: 'Reset MFA', method: 'post' as const, href: `/admin/users/${props.user.publicId}/reset-mfa` },
+    { key: 'impersonate', label: 'Impersonate', method: 'get' as const, href: `/admin/users/${props.user.publicId}/impersonate` },
+];
+const sensitivityOptions = [
+    { value: 'normal', label: 'Normal human account' },
+    { value: 'sensitive', label: 'Sensitive human account' },
+    { value: 'technical', label: 'Technical account' },
+    { value: 'service', label: 'Service account' },
+    { value: 'integration', label: 'Integration account' },
 ];
 
 function submit(): void {
@@ -149,6 +159,12 @@ function updateTeamAuthorization(teamPublicId: string): void {
                         <div class="grid gap-4 sm:grid-cols-2">
                             <FormInput v-model="form.name" label="Name" :error="form.errors.name" />
                             <FormInput v-model="form.email" label="Email" type="email" :error="form.errors.email" />
+                            <FormSelect
+                                v-model="form.account_sensitivity"
+                                label="Account sensitivity"
+                                :options="sensitivityOptions"
+                                :error="form.errors.account_sensitivity"
+                            />
                         </div>
 
                         <div class="mt-5 flex flex-wrap items-center gap-2">

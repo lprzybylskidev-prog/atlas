@@ -2,11 +2,16 @@
 
 declare(strict_types=1);
 
+use App\Http\Middleware\ApplyImpersonationContext;
 use App\Http\Middleware\AttachRequestId;
+use App\Http\Middleware\BlockProhibitedImpersonationOperations;
 use App\Http\Middleware\EnforceUserSessionSecurity;
 use App\Http\Middleware\EnsureActiveTeamSelected;
 use App\Http\Middleware\ForceAdminLocale;
 use App\Http\Middleware\HandleInertiaRequests;
+use App\Http\Middleware\RequireAdministrativeMode;
+use App\Http\Middleware\RequireHighRiskAdministrativeAuthorization;
+use App\Http\Middleware\RequireImpersonationExternalEffectAcknowledgement;
 use App\Http\Middleware\SetLocaleFromSession;
 use App\Modules\Core\Authorization\Presentation\Http\Middleware\AuthorizeRoutePermission;
 use App\Modules\Core\Notifications\Presentation\Console\PruneNotificationsCommand;
@@ -50,6 +55,9 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
             'route.permission' => AuthorizeRoutePermission::class,
+            'admin.mode' => RequireAdministrativeMode::class,
+            'admin.high-risk' => RequireHighRiskAdministrativeAuthorization::class,
+            'impersonation.external-effect' => RequireImpersonationExternalEffectAcknowledgement::class,
         ]);
 
         $middleware->append(AttachRequestId::class);
@@ -57,7 +65,9 @@ return Application::configure(basePath: dirname(__DIR__))
             SetLocaleFromSession::class,
             ForceAdminLocale::class,
             EnforceUserSessionSecurity::class,
+            ApplyImpersonationContext::class,
             EnsureActiveTeamSelected::class,
+            BlockProhibitedImpersonationOperations::class,
             HandleInertiaRequests::class,
         ]);
     })

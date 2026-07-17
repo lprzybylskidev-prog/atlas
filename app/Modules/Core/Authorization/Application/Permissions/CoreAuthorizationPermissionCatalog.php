@@ -85,6 +85,10 @@ final class CoreAuthorizationPermissionCatalog implements ModulePermissionContri
 
     public const ADMIN_TABLE_VIEWS_DEFAULT = 'admin.table-views.default';
 
+    public const ADMIN_USERS_IMPERSONATE = 'admin.users.impersonate';
+
+    public const ADMIN_USERS_IMPERSONATE_STORE = 'admin.users.impersonate.store';
+
     public const ROLES_VIEW = 'authorization.roles.view';
 
     public const ROLES_CREATE = 'authorization.roles.create';
@@ -121,7 +125,15 @@ final class CoreAuthorizationPermissionCatalog implements ModulePermissionContri
 
     public const ADMIN_MODE_ENTER = 'admin-mode.enter';
 
+    public const ADMIN_MODE_HIGH_RISK = 'admin-mode.high-risk';
+
+    public const ADMIN_MODE_EXIT = 'admin-mode.exit';
+
     public const IMPERSONATION_START = 'impersonation.start';
+
+    public const IMPERSONATION_SENSITIVE_OVERRIDE = 'impersonation.sensitive.override';
+
+    public const IMPERSONATION_DESTROY = 'impersonation.destroy';
 
     public function permissions(): array
     {
@@ -164,6 +176,8 @@ final class CoreAuthorizationPermissionCatalog implements ModulePermissionContri
             new ModulePermissionDefinition(self::ADMIN_TABLE_VIEWS_DELETE, 'Delete saved table views.'),
             new ModulePermissionDefinition(self::ADMIN_TABLE_VIEWS_COPY, 'Copy saved table views.'),
             new ModulePermissionDefinition(self::ADMIN_TABLE_VIEWS_DEFAULT, 'Set a default saved table view.'),
+            new ModulePermissionDefinition(self::ADMIN_USERS_IMPERSONATE, 'Open user impersonation start screen.'),
+            new ModulePermissionDefinition(self::ADMIN_USERS_IMPERSONATE_STORE, 'Start user impersonation from Admin UI.'),
             new ModulePermissionDefinition(self::ROLES_VIEW, 'View roles.'),
             new ModulePermissionDefinition(self::ROLES_CREATE, 'Create roles.'),
             new ModulePermissionDefinition(self::ROLES_UPDATE, 'Update roles.'),
@@ -182,7 +196,11 @@ final class CoreAuthorizationPermissionCatalog implements ModulePermissionContri
             new ModulePermissionDefinition(self::FILES_VIEW, 'View files.'),
             new ModulePermissionDefinition(self::FILES_MANAGE, 'Manage files.'),
             new ModulePermissionDefinition(self::ADMIN_MODE_ENTER, 'Enter administrative mode.'),
+            new ModulePermissionDefinition(self::ADMIN_MODE_HIGH_RISK, 'Open high-risk administrative reauthentication.'),
+            new ModulePermissionDefinition(self::ADMIN_MODE_EXIT, 'Exit administrative mode.'),
             new ModulePermissionDefinition(self::IMPERSONATION_START, 'Start user impersonation.'),
+            new ModulePermissionDefinition(self::IMPERSONATION_SENSITIVE_OVERRIDE, 'Override the sensitive-account impersonation block after high-risk reauthentication.'),
+            new ModulePermissionDefinition(self::IMPERSONATION_DESTROY, 'Exit user impersonation.'),
         ];
     }
 }

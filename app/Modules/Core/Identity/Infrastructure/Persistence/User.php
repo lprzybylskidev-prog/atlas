@@ -36,6 +36,7 @@ class User extends Authenticatable implements MustVerifyEmailContract
         'login_locked_until',
         'inactivity_timeout_minutes',
         'session_max_lifetime_minutes',
+        'account_sensitivity',
     ];
 
     /** @var list<string> */
@@ -124,6 +125,7 @@ class User extends Authenticatable implements MustVerifyEmailContract
             'login_locked_until' => 'datetime',
             'inactivity_timeout_minutes' => 'integer',
             'session_max_lifetime_minutes' => 'integer',
+            'account_sensitivity' => 'string',
             'password' => 'hashed',
         ];
     }

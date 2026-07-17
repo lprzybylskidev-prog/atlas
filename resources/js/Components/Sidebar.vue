@@ -140,6 +140,14 @@ const groups = computed<NavigationGroup[]>(() => {
                     visible: canSeeAdminRoute('admin.audit.index'),
                 },
                 {
+                    key: 'oversight.security-history',
+                    label: t('navigation.security_history'),
+                    href: '/admin/audit/security-history',
+                    icon: IconShieldCheck,
+                    active: props.currentPath === '/admin/audit/security-history',
+                    visible: canSeeAdminRoute('admin.audit.security-history.index'),
+                },
+                {
                     key: 'oversight.logs',
                     label: t('navigation.logs'),
                     href: '/admin/logs',

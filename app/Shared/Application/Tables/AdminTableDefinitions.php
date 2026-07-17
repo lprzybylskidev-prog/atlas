@@ -38,6 +38,7 @@ final class AdminTableDefinitions
                 new TableColumn('loginLocked', searchable: false),
                 new TableColumn('mfaEnabled', searchable: false),
                 new TableColumn('online', searchable: false),
+                new TableColumn('accountSensitivity'),
                 new TableColumn('emailVerifiedAt', defaultVisible: false),
                 new TableColumn('twoFactorConfirmedAt', defaultVisible: false),
                 new TableColumn('firstPasswordSetAt', defaultVisible: false),

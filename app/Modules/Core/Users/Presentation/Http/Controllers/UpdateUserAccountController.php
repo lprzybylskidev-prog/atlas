@@ -20,6 +20,7 @@ final readonly class UpdateUserAccountController
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', $this->availableEmailRule($user)],
+            'account_sensitivity' => ['required', 'string', 'in:normal,sensitive,technical,service,integration'],
         ]);
         $validated = is_array($validated) ? $validated : [];
 
@@ -27,6 +28,7 @@ final readonly class UpdateUserAccountController
             publicId: $user,
             name: $this->stringValue($validated, 'name'),
             email: $this->stringValue($validated, 'email'),
+            accountSensitivity: $this->stringValue($validated, 'account_sensitivity'),
         );
 
         if ($updated === null) {

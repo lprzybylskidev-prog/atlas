@@ -124,6 +124,9 @@ final class AuditFoundationTest extends TestCase
             ->withSession([
                 'active_team_public_id' => $activeTeam->public_id,
                 'auth.password_confirmed_at' => now()->unix(),
+                'atlas_admin_mode_entered_at' => now()->toIso8601String(),
+                'atlas_admin_mode_last_activity_at' => now()->toIso8601String(),
+                'atlas_admin_high_risk_confirmed_at' => now()->toIso8601String(),
             ])
             ->get('/admin/audit?search=role_updated')
             ->assertOk()
@@ -172,6 +175,9 @@ final class AuditFoundationTest extends TestCase
             ->withSession([
                 'active_team_public_id' => $activeTeam->public_id,
                 'auth.password_confirmed_at' => now()->unix(),
+                'atlas_admin_mode_entered_at' => now()->toIso8601String(),
+                'atlas_admin_mode_last_activity_at' => now()->toIso8601String(),
+                'atlas_admin_high_risk_confirmed_at' => now()->toIso8601String(),
             ])
             ->get(sprintf(
                 '/admin/audit?module=authorization&action=authorization.role_updated&source=admin&target_type=role&team=%s&result=succeeded&security=yes',

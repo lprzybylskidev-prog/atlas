@@ -17,6 +17,7 @@ final readonly class AdminUserCredentialAccount
         public bool $loginLocked,
         public bool $mfaEnabled,
         public bool $online,
+        public string $accountSensitivity,
         public ?string $emailVerifiedAt,
         public ?string $twoFactorConfirmedAt,
         public ?string $firstPasswordSetAt,

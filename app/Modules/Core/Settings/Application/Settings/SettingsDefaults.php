@@ -51,6 +51,9 @@ final class SettingsDefaults
         return match ($key) {
             SecuritySettingKey::SessionIdleTimeoutMinutes => 30,
             SecuritySettingKey::PasswordConfirmationTimeoutMinutes => 15,
+            SecuritySettingKey::AdministrativeModeIdleTimeoutMinutes => 30,
+            SecuritySettingKey::AdministrativeModeAbsoluteLifetimeMinutes => 240,
+            SecuritySettingKey::AdministrativeHighRiskTimeoutMinutes => 5,
             SecuritySettingKey::MfaRequired => false,
         };
     }

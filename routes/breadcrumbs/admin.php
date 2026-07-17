@@ -93,6 +93,18 @@ Breadcrumbs::for('admin.audit.index', function (Generator $breadcrumbs): void {
     $breadcrumbs->push('Audit');
 });
 
+Breadcrumbs::for('admin.audit.impersonation.show', function (Generator $breadcrumbs): void {
+    $breadcrumbs->push(__('breadcrumbs.admin'));
+    $breadcrumbs->push('Audit', route('admin.audit.index'));
+    $breadcrumbs->push('Impersonation session');
+});
+
+Breadcrumbs::for('admin.audit.security-history.index', function (Generator $breadcrumbs): void {
+    $breadcrumbs->push(__('breadcrumbs.admin'));
+    $breadcrumbs->push('Audit', route('admin.audit.index'));
+    $breadcrumbs->push('Security history');
+});
+
 Breadcrumbs::for('admin.rate-limits.index', function (Generator $breadcrumbs): void {
     $breadcrumbs->push(__('breadcrumbs.admin'));
     $breadcrumbs->push('Rate limits');

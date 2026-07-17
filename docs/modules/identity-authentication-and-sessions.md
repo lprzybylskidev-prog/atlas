@@ -38,6 +38,7 @@ Current persistence baseline:
 - `users.is_active` and `users.deactivated_at` control whether an account may authenticate;
 - `users.failed_login_attempts`, `users.login_lock_count`, and `users.login_locked_until` track persistent login locks;
 - `users.inactivity_timeout_minutes` and `users.session_max_lifetime_minutes` optionally override the global session security defaults for an individual user;
+- `users.account_sensitivity` stores the impersonation/account-sensitivity classification independently from role and team assignments. Supported values are `normal`, `sensitive`, `technical`, `service`, and `integration`;
 - `user_password_histories` keeps the last 10 recorded password hashes per user;
 - accounts without `first_password_set_at` cannot authenticate, even when active;
 - inactive, locked, and invalid users receive the same generic failed-login behavior as invalid credentials.
@@ -185,5 +186,28 @@ Team switching:
 - is audited.
 
 The Admin users table includes a default-visible online/offline column. A user is considered online when the Redis session metadata index has recent activity within the current online window.
+
+### Administrative mode and impersonation
+
+Admin panel routes require explicit administrative mode rather than only ordinary route permission. Entering administrative mode uses the shared Laravel/Fortify-style `/user/confirm-password` flow, requires the current password, requires MFA when the account has confirmed MFA or MFA is globally required, and records security audit events. `/admin-mode` remains a compatibility entry route that marks administrative reauthentication as pending and redirects to `/user/confirm-password`; it no longer owns a separate form.
+
+Administrative mode is stored in the current Laravel session with:
+
+- a 30-minute inactivity timeout refreshed only by administrative routes;
+- a 4-hour absolute lifetime;
+- setting-driven timeout values under the security settings store;
+- immediate termination when the Laravel session is invalidated.
+
+High-risk administrative authorization is separate from administrative mode. It is confirmed through the same `/user/confirm-password` password+MFA flow, lasts 5 minutes by default, and is required for high-risk operations. Atlas classifies hard delete, irreversible anonymization, MFA reset, administrator permission changes, sensitive-account impersonation override, and closed-period TimeTracking corrections as high risk. Existing MFA reset, administrator role changes, and sensitive-account impersonation override enforce this guard now; future workflows attach to the same classified guard when implemented. Expiry of the high-risk window does not end administrative mode.
+
+Impersonation is started from Admin user administration with a mandatory reason and selected target team. It requires active administrative mode, the `impersonation.start` permission, and target eligibility checks. Atlas blocks impersonation of self, administrators evaluated globally, inactive users, and accounts classified as `technical`, `service`, or `integration`. Accounts classified as `sensitive` require `impersonation.sensitive.override` plus fresh high-risk authorization.
+
+During impersonation, ordinary application routes run as the impersonated user for active team, permissions, module visibility, menu, and restrictions. Admin routes are blocked until impersonation exits. The actual administrator, impersonated user, reason, team, and impersonation session ID are written to audit. A persistent application banner shows the impersonated user, active team, reason, and `Exit impersonation`; the application header also changes visual treatment.
+
+Routes that perform external effects while impersonation is active must require an explicit real-effect acknowledgement before proceeding. The shared route middleware expects `impersonation_external_effect_acknowledged` for email, external API, external export, financial-processing, or equivalent future operations.
+
+Administrators can view recent security events for all users, including impersonation events, at `/admin/audit/security-history` and filter the history by selected user. Atlas does not send real-time user notifications for impersonation by default.
+
+TimeTracking UI simulation state for impersonation is stored only through `ImpersonationSimulationStore` under an impersonation-session-scoped ephemeral cache namespace. It is deleted when impersonation ends and is not written to official TimeTracking records, events, manager feeds, settlements, or reports.
 
 ---

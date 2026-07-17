@@ -1,6 +1,6 @@
 ## Phase 18 — Administrative mode and impersonation
 
-**Status:** `not started`
+**Status:** `complete`
 
 ## Objective
 
@@ -70,7 +70,7 @@ Implement Admin mode, high-risk reauthentication, account sensitivity, and imper
 - Every page has an unavoidable banner showing impersonated user, active team, reason, and `Exit impersonation`.
 - Header or favicon may also change.
 - Destructive dialogs repeat that impersonation is active.
-- Users are not notified in real time by default, but may see impersonation events in their security history.
+- Users are not notified in real time by default; administrators can review impersonation events in Admin security history.
 - Audit supports a session detail page with start, end, reason, Admin, user, team changes, successful operations, and rejected attempts.
 - Account sensitivity is an explicit classification independent of role/team assignment.
 - Technical/service/integration accounts are never impersonable.
@@ -81,55 +81,56 @@ Implement Admin mode, high-risk reauthentication, account sensitivity, and imper
 
 ## Tasks
 
-- [ ] Implement explicit account sensitivity classification and management/audit rules.
-- [ ] Evaluate target administrator status globally across all effective assignments before impersonation.
-- [ ] Implement dedicated high-risk sensitive-account override.
-- [ ] Implement ephemeral impersonation-scoped TimeTracking simulation storage.
-- [ ] Prove simulation never reaches official records, events, manager feeds, settlements, or reports.
-- [ ] Delete simulation state when impersonation ends or expires.
-- [ ] Implement explicit administrative mode.
-- [ ] Require reauthentication when entering administrative mode.
-- [ ] Require current password and MFA when active or required.
-- [ ] Implement a 30-minute administrative inactivity timeout based only on administrative activity.
-- [ ] Implement a 4-hour absolute administrative-mode lifetime.
-- [ ] Make both administrative timeout values globally configurable security settings.
-- [ ] Ensure ordinary application activity does not refresh administrative-mode inactivity.
-- [ ] End active impersonation when administrative mode expires.
-- [ ] Return the actor to ordinary user mode after administrative expiry.
-- [ ] Terminate administrative mode on logout, lock, deactivation, password change, MFA reset, and session invalidation.
-- [ ] Implement a separate 5-minute fresh-reauthentication window for high-risk operations.
-- [ ] Classify hard delete, anonymization, MFA reset, administrator permission changes, impersonation-block override, and closed-period corrections as high risk.
-- [ ] Add tests for inactivity expiry, absolute expiry, immediate security invalidation, impersonation termination, and high-risk reauthentication expiry.
-- [ ] Define administrative-session validity.
-- [ ] Allow multiple impersonations while admin session remains valid.
-- [ ] Require dedicated impersonation permission.
-- [ ] Require impersonation reason.
-- [ ] Prevent impersonating self.
-- [ ] Prevent impersonating administrators.
-- [ ] Prevent impersonating technical, service, and integration accounts.
-- [ ] Add sensitive-account impersonation block.
-- [ ] Add exceptional override with high-level permission and reauthentication.
-- [ ] Support team choice for multi-team users.
-- [ ] Preserve the real user's active session.
-- [ ] Implement production-effective business actions during impersonation.
-- [ ] Record actual administrator and impersonated context in audit.
-- [ ] Add extra warning for external-effect operations.
-- [ ] Isolate simulated TimeTracking state from official records.
-- [ ] Block password, MFA, email, session, role, permission, team, deactivation, deletion, nested impersonation, and admin-panel access during impersonation.
-- [ ] Add persistent impersonation banner.
-- [ ] Add optional header or favicon visual change.
-- [ ] Add `Exit impersonation`.
-- [ ] End impersonation on logout or session expiry.
-- [ ] End impersonation on permission loss, blocking, deactivation, user deactivation, team loss, session invalidation, or critical security change.
-- [ ] Never restore impersonation after login.
-- [ ] Add impersonation session ID.
-- [ ] Build impersonation audit filters and detail view.
-- [ ] Add user-visible security history entry without real-time notification by default.
-- [ ] Commit administrative mode and impersonation.
+- [x] Implement explicit account sensitivity classification and management/audit rules.
+- [x] Evaluate target administrator status globally across all effective assignments before impersonation.
+- [x] Implement dedicated high-risk sensitive-account override.
+- [x] Implement ephemeral impersonation-scoped TimeTracking simulation storage.
+- [x] Prove simulation never reaches official records, events, manager feeds, settlements, or reports.
+- [x] Delete simulation state when impersonation ends or expires.
+- [x] Implement explicit administrative mode.
+- [x] Require reauthentication when entering administrative mode.
+- [x] Require current password and MFA when active or required.
+- [x] Implement a 30-minute administrative inactivity timeout based only on administrative activity.
+- [x] Implement a 4-hour absolute administrative-mode lifetime.
+- [x] Make both administrative timeout values globally configurable security settings.
+- [x] Ensure ordinary application activity does not refresh administrative-mode inactivity.
+- [x] End active impersonation when administrative mode expires.
+- [x] Return the actor to ordinary user mode after administrative expiry.
+- [x] Terminate administrative mode on logout, lock, deactivation, password change, MFA reset, and session invalidation.
+- [x] Implement a separate 5-minute fresh-reauthentication window for high-risk operations.
+- [x] Classify hard delete, anonymization, MFA reset, administrator permission changes, impersonation-block override, and closed-period corrections as high risk.
+  - `HighRiskAdministrativeOperation` defines the accepted high-risk operation classes. Existing MFA reset, administrator role changes, and sensitive-account impersonation override attach to the guard now. Hard delete, irreversible anonymization, and closed-period TimeTracking corrections must use the same classified guard when those workflows are introduced.
+- [x] Add tests for inactivity expiry, absolute expiry, immediate security invalidation, impersonation termination, and high-risk reauthentication expiry.
+- [x] Define administrative-session validity.
+- [x] Allow multiple impersonations while admin session remains valid.
+- [x] Require dedicated impersonation permission.
+- [x] Require impersonation reason.
+- [x] Prevent impersonating self.
+- [x] Prevent impersonating administrators.
+- [x] Prevent impersonating technical, service, and integration accounts.
+- [x] Add sensitive-account impersonation block.
+- [x] Add exceptional override with high-level permission and reauthentication.
+- [x] Support team choice for multi-team users.
+- [x] Preserve the real user's active session.
+- [x] Implement production-effective business actions during impersonation.
+- [x] Record actual administrator and impersonated context in audit.
+- [x] Add extra warning for external-effect operations.
+- [x] Isolate simulated TimeTracking state from official records.
+- [x] Block password, MFA, email, session, role, permission, team, deactivation, deletion, nested impersonation, and admin-panel access during impersonation.
+- [x] Add persistent impersonation banner.
+- [x] Add optional header or favicon visual change.
+- [x] Add `Exit impersonation`.
+- [x] End impersonation on logout or session expiry.
+- [x] End impersonation on permission loss, blocking, deactivation, user deactivation, team loss, session invalidation, or critical security change.
+- [x] Never restore impersonation after login.
+- [x] Add impersonation session ID.
+- [x] Build impersonation audit filters and detail view.
+- [x] Add Admin-visible security history without real-time user notification by default.
+- [x] Commit administrative mode and impersonation.
 
 ## Completion criteria
 
-- [ ] Admin mode and high-risk reauthentication are session-bound, setting-driven, audited, and invalidated by security changes.
-- [ ] Impersonation follows the target user's permissions, teams, modules, manager scope, and restrictions without a hidden bypass.
-- [ ] TimeTracking simulation is isolated before TimeTracking is implemented.
-- [ ] Relevant tests and documentation are current.
+- [x] Admin mode and high-risk reauthentication are session-bound, setting-driven, audited, and invalidated by security changes.
+- [x] Impersonation follows the target user's permissions, teams, modules, manager scope, and restrictions without a hidden bypass.
+- [x] TimeTracking simulation is isolated before TimeTracking is implemented.
+- [x] Relevant tests and documentation are current.

@@ -68,6 +68,9 @@ final class HealthEndpointTest extends TestCase
             ->withSession([
                 'active_team_public_id' => $team->public_id,
                 'auth.password_confirmed_at' => now()->unix(),
+                'atlas_admin_mode_entered_at' => now()->toIso8601String(),
+                'atlas_admin_mode_last_activity_at' => now()->toIso8601String(),
+                'atlas_admin_high_risk_confirmed_at' => now()->toIso8601String(),
             ])
             ->get('/admin')
             ->assertOk()
@@ -81,6 +84,9 @@ final class HealthEndpointTest extends TestCase
             ->withSession([
                 'active_team_public_id' => $team->public_id,
                 'auth.password_confirmed_at' => now()->unix(),
+                'atlas_admin_mode_entered_at' => now()->toIso8601String(),
+                'atlas_admin_mode_last_activity_at' => now()->toIso8601String(),
+                'atlas_admin_high_risk_confirmed_at' => now()->toIso8601String(),
             ])
             ->get('/admin/system-status/readiness')
             ->assertOk()
@@ -135,6 +141,9 @@ final class HealthEndpointTest extends TestCase
             ->withSession([
                 'active_team_public_id' => $team->public_id,
                 'auth.password_confirmed_at' => now()->unix(),
+                'atlas_admin_mode_entered_at' => now()->toIso8601String(),
+                'atlas_admin_mode_last_activity_at' => now()->toIso8601String(),
+                'atlas_admin_high_risk_confirmed_at' => now()->toIso8601String(),
             ])
             ->get('/admin')
             ->assertOk()
@@ -148,6 +157,9 @@ final class HealthEndpointTest extends TestCase
             ->withSession([
                 'active_team_public_id' => $team->public_id,
                 'auth.password_confirmed_at' => now()->unix(),
+                'atlas_admin_mode_entered_at' => now()->toIso8601String(),
+                'atlas_admin_mode_last_activity_at' => now()->toIso8601String(),
+                'atlas_admin_high_risk_confirmed_at' => now()->toIso8601String(),
             ])
             ->get('/admin/system-status/release')
             ->assertOk()

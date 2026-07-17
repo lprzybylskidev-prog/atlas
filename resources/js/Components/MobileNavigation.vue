@@ -18,6 +18,19 @@ import { computed } from 'vue';
 import AtlasLogo from './AtlasLogo.vue';
 import { useTranslator } from '../Localization/translator';
 
+interface MobileNavigationItem {
+    label: string;
+    href: string;
+    icon: typeof IconGauge;
+    external?: boolean;
+    visible?: boolean;
+}
+
+interface MobileNavigationGroup {
+    label: string;
+    items: MobileNavigationItem[];
+}
+
 const props = defineProps<{
     open: boolean;
     mode?: 'app' | 'admin';
@@ -30,7 +43,7 @@ const emit = defineEmits<{
 
 const { t } = useTranslator(props.uiLocale);
 
-const groups = computed(() => {
+const groups = computed<MobileNavigationGroup[]>(() => {
     const workspace = {
         label: t('navigation.group.workspace'),
         items: [{ label: t('navigation.dashboard'), href: '/', icon: IconGauge }],
@@ -62,6 +75,7 @@ const groups = computed(() => {
             label: t('navigation.group.oversight'),
             items: [
                 { label: t('navigation.audit'), href: '/admin/audit', icon: IconClipboardList },
+                { label: t('navigation.security_history'), href: '/admin/audit/security-history', icon: IconShieldCheck },
                 { label: t('navigation.pulse'), href: '/admin/pulse', icon: IconActivityHeartbeat, external: true },
                 { label: t('navigation.modules'), href: '/admin/modules', icon: IconPuzzle },
             ],

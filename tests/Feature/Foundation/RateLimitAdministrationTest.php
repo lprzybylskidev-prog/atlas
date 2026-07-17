@@ -34,6 +34,9 @@ final class RateLimitAdministrationTest extends TestCase
             ->withSession([
                 'active_team_public_id' => $team->public_id,
                 'auth.password_confirmed_at' => now()->unix(),
+                'atlas_admin_mode_entered_at' => now()->toIso8601String(),
+                'atlas_admin_mode_last_activity_at' => now()->toIso8601String(),
+                'atlas_admin_high_risk_confirmed_at' => now()->toIso8601String(),
             ])
             ->get('/admin/rate-limits?search=auth.login')
             ->assertOk()
@@ -65,6 +68,9 @@ final class RateLimitAdministrationTest extends TestCase
             ->withSession([
                 'active_team_public_id' => $team->public_id,
                 'auth.password_confirmed_at' => now()->unix(),
+                'atlas_admin_mode_entered_at' => now()->toIso8601String(),
+                'atlas_admin_mode_last_activity_at' => now()->toIso8601String(),
+                'atlas_admin_high_risk_confirmed_at' => now()->toIso8601String(),
             ])
             ->post('/admin/rate-limits/reset', [
                 'policy' => 'auth.login',

@@ -21,6 +21,18 @@ export interface AtlasNotificationSummary {
     readAt: string | null;
 }
 
+export interface AtlasImpersonationState {
+    active: boolean;
+    sessionId: string | null;
+    actorPublicId: string | null;
+    userPublicId: string | null;
+    userName: string | null;
+    teamPublicId: string | null;
+    teamName: string | null;
+    reason: string | null;
+    startedAt: string | null;
+}
+
 export interface AtlasPageProps {
     [key: string]: unknown;
     app: {
@@ -37,6 +49,7 @@ export interface AtlasPageProps {
             active: AtlasTeam | null;
             available: AtlasTeam[];
         };
+        impersonation: AtlasImpersonationState;
     };
     locale: string;
     supportedLocales: string[];
