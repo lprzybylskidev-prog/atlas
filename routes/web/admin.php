@@ -18,6 +18,7 @@ use App\Modules\Core\Authorization\Presentation\Http\Controllers\UpdateOnboardin
 use App\Modules\Core\Authorization\Presentation\Http\Controllers\UpdateRoleController;
 use App\Modules\Core\Identity\Presentation\Http\Controllers\RateLimitAdministrationController;
 use App\Modules\Core\Identity\Presentation\Http\Controllers\ResetRateLimitCounterController;
+use App\Modules\Core\Teams\Presentation\Http\Controllers\ManagerHierarchyAdministrationController;
 use App\Modules\Core\Teams\Presentation\Http\Controllers\TeamAdministrationController;
 use App\Modules\Core\Teams\Presentation\Http\Controllers\UserTeamAuthorizationController;
 use App\Modules\Core\Teams\Presentation\Http\Controllers\UserTeamMembershipController;
@@ -64,6 +65,10 @@ Route::middleware(['auth', 'password.confirm', 'route.permission'])->group(funct
     Route::post('/admin/teams/{team}/activate', [TeamAdministrationController::class, 'activate'])->name('admin.teams.activate');
     Route::post('/admin/teams/{team}/deactivate', [TeamAdministrationController::class, 'deactivate'])->name('admin.teams.deactivate');
     Route::delete('/admin/teams/{team}', [TeamAdministrationController::class, 'destroy'])->name('admin.teams.destroy');
+    Route::get('/admin/managers', [ManagerHierarchyAdministrationController::class, 'index'])->name('admin.managers.index');
+    Route::post('/admin/managers', [ManagerHierarchyAdministrationController::class, 'store'])->name('admin.managers.store');
+    Route::patch('/admin/managers/{relationship}/end', [ManagerHierarchyAdministrationController::class, 'end'])->name('admin.managers.end');
+    Route::patch('/admin/managers/head', [ManagerHierarchyAdministrationController::class, 'head'])->name('admin.managers.head.update');
     Route::get('/admin/authorization/roles', RoleAdministrationController::class)->name('admin.authorization.roles.index');
     Route::get('/admin/authorization/roles/create', CreateRoleController::class)->name('admin.authorization.roles.create');
     Route::post('/admin/authorization/roles', StoreRoleController::class)->name('admin.authorization.roles.store');

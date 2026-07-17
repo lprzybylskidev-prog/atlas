@@ -165,6 +165,7 @@ final class HandleInertiaRequests extends Middleware
             'admin.system-status.module-activation',
             'admin.users.index',
             'admin.teams.index',
+            'admin.managers.index',
             'admin.authorization.roles.index',
             'admin.authorization.packages.index',
             'admin.authorization.permissions.index',

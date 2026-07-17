@@ -21,6 +21,7 @@ use App\Shared\Infrastructure\Database\DatabaseTable;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 
 class DevelopmentDemoSeeder extends Seeder
 {
@@ -78,6 +79,7 @@ class DevelopmentDemoSeeder extends Seeder
         $this->applyPackageIfMissing($multiTeamUser, $teams[0]->publicId, 'north.collections.agent', (string) $admin->public_id);
         $this->applyPackageIfMissing($multiTeamUser, $teams[2]->publicId, 'back_office.specialist', (string) $admin->public_id);
 
+        $this->seedManagerRelationships((string) $admin->public_id, $teams);
         $this->seedNotifications((string) $admin->public_id, $teams[0]->publicId);
     }
 
@@ -156,6 +158,77 @@ class DevelopmentDemoSeeder extends Seeder
                 'read_at' => now(),
                 'notification_recipients.updated_at' => now(),
             ]);
+    }
+
+    /**
+     * @param  list<BootstrapTeam>  $teams
+     */
+    private function seedManagerRelationships(string $actorPublicId, array $teams): void
+    {
+        $this->setHeadManager($teams[0]->publicId, 'demo.copy.north@example.test');
+        $this->setHeadManager($teams[1]->publicId, 'demo.copy.south@example.test');
+
+        $this->seedRelationship($actorPublicId, $teams[0]->publicId, 'demo.copy.north@example.test', 'demo.user.04@example.test');
+        $this->seedRelationship($actorPublicId, $teams[0]->publicId, 'demo.user.04@example.test', 'demo.user.01@example.test');
+        $this->seedRelationship($actorPublicId, $teams[0]->publicId, 'demo.user.04@example.test', 'demo.user.07@example.test');
+        $this->seedRelationship($actorPublicId, $teams[1]->publicId, 'demo.copy.south@example.test', 'demo.user.02@example.test');
+        $this->seedRelationship($actorPublicId, $teams[1]->publicId, 'demo.copy.south@example.test', 'demo.user.05@example.test');
+        $this->seedRelationship($actorPublicId, $teams[2]->publicId, 'demo.copy.backoffice@example.test', 'demo.multi.team@example.test');
+    }
+
+    private function setHeadManager(string $teamPublicId, string $email): void
+    {
+        $teamId = DB::table(DatabaseTable::TEAMS)->where('public_id', $teamPublicId)->value('id');
+        $userId = DB::table(DatabaseTable::USERS)->where('email', $email)->value('id');
+
+        if (! is_int($teamId) || ! is_int($userId)) {
+            return;
+        }
+
+        DB::table(DatabaseTable::TEAM_USER_ASSIGNMENTS)
+            ->where('team_id', $teamId)
+            ->where('user_id', $userId)
+            ->whereNull('valid_to')
+            ->update([
+                'is_head_manager' => true,
+                'updated_at' => now(),
+            ]);
+    }
+
+    private function seedRelationship(string $actorPublicId, string $teamPublicId, string $managerEmail, string $reportEmail): void
+    {
+        $teamId = DB::table(DatabaseTable::TEAMS)->where('public_id', $teamPublicId)->value('id');
+        $managerId = DB::table(DatabaseTable::USERS)->where('email', $managerEmail)->value('id');
+        $reportId = DB::table(DatabaseTable::USERS)->where('email', $reportEmail)->value('id');
+        $actorId = DB::table(DatabaseTable::USERS)->where('public_id', $actorPublicId)->value('id');
+
+        if (! is_int($teamId) || ! is_int($managerId) || ! is_int($reportId)) {
+            return;
+        }
+
+        if (DB::table(DatabaseTable::TEAM_MANAGER_RELATIONSHIPS)
+            ->where('team_id', $teamId)
+            ->where('manager_user_id', $managerId)
+            ->where('report_user_id', $reportId)
+            ->whereNull('valid_to')
+            ->exists()) {
+            return;
+        }
+
+        DB::table(DatabaseTable::TEAM_MANAGER_RELATIONSHIPS)->insert([
+            'public_id' => (string) Str::ulid(),
+            'team_id' => $teamId,
+            'manager_user_id' => $managerId,
+            'report_user_id' => $reportId,
+            'valid_from' => now(),
+            'valid_to' => null,
+            'created_by_user_id' => is_int($actorId) ? $actorId : null,
+            'ended_by_user_id' => null,
+            'reason' => 'Development demo hierarchy.',
+            'end_reason' => null,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
     }
 
     private function demoNotificationBody(int $index, bool $polish): string

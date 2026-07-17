@@ -12,6 +12,7 @@ import {
     IconPuzzle,
     IconRotateClockwise,
     IconShieldCheck,
+    IconSitemap,
     IconUserPlus,
     IconUsersGroup,
 } from '@tabler/icons-vue';
@@ -114,6 +115,14 @@ const groups = computed<NavigationGroup[]>(() => {
                     icon: IconUsersGroup,
                     active: props.currentPath === '/admin/teams',
                     visible: canSeeAdminRoute('admin.teams.index'),
+                },
+                {
+                    key: 'organization.managers',
+                    label: t('navigation.managers'),
+                    href: '/admin/managers',
+                    icon: IconSitemap,
+                    active: props.currentPath.startsWith('/admin/managers'),
+                    visible: canSeeAdminRoute('admin.managers.index'),
                 },
             ].filter((item) => item.visible !== false),
         },

@@ -15,6 +15,7 @@ Current implementation foundation:
 - `team_user_assignments` stores the current team membership foundation used by active-team authorization checks.
 - `App\Modules\Core\Teams\Application\Public\Contracts\BootstrapTeamProvider` exposes the narrow public bootstrap contract used by first-administrator and demo setup flows.
 - `App\Modules\Core\Teams\Application\Public\Contracts\UserTeamMembershipManager` exposes Admin user-team membership operations for adding and removing user-team access from User and Team administration workflows.
+- `App\Modules\Core\Teams\Application\Public\Contracts\ManagerHierarchy` exposes stable manager hierarchy reads, impact previews, relationship changes, head-manager changes, and direct-report/subtree scopes for TimeTracking and later modules.
 
 Admin user-team access management:
 
@@ -26,7 +27,7 @@ Admin user-team access management:
 - Admin can remove access from a team only with a reason;
 - removing access ends the effective `team_user_assignments` row through `valid_to`, removes user-specific role and direct-permission assignments in that team, audits the operation, and invalidates user sessions operating in that team.
 
-Manager relationships are team-scoped.
+Manager relationships are team-scoped and stored in `core_teams.team_manager_relationships`.
 
 Support:
 
@@ -37,14 +38,16 @@ Support:
 - `valid_from`;
 - `valid_to`;
 - full history;
-- no self-management;
-- no cycles.
+- no self-management enforced by database check and application validation;
+- no cycles enforced by application DAG validation before a new active relationship is saved.
+
+An active relationship is one whose `valid_from` is null or not in the future and whose `valid_to` is null or in the future. Ending a relationship sets `valid_to`, `ended_by_user_id`, and `end_reason`; historical relationship rows are not destructively deleted.
 
 A normal manager sees direct reports only.
 
 A head manager sees the entire subtree under them, still constrained by permissions.
 
-The Admin panel must support:
+Admin manager administration is available at `/admin/managers` and supports:
 
 - assigning managers;
 - ending manager relationships;
@@ -57,5 +60,11 @@ The Admin panel must support:
 - impact preview;
 - mandatory reason;
 - audit.
+
+Audited manager hierarchy actions include `team.manager_relationship.created`, `team.manager_relationship.ended`, and `team.head_manager.updated`.
+
+Granular permissions include `admin.managers.index`, `admin.managers.store`, `admin.managers.end`, `admin.managers.head.update`, `teams.managers.view`, `teams.managers.create`, `teams.managers.update`, `teams.managers.terminate`, `teams.managers.tree`, `teams.managers.history`, and `teams.managers.head.update`.
+
+Development demo data includes representative manager-to-manager relationships, multiple direct reports, and head-manager flags after the real hierarchy tables exist.
 
 ---

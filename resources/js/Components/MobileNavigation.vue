@@ -8,6 +8,7 @@ import {
     IconPackages,
     IconPuzzle,
     IconShieldCheck,
+    IconSitemap,
     IconUserPlus,
     IconUsersGroup,
     IconX,
@@ -52,7 +53,10 @@ const groups = computed(() => {
         },
         {
             label: t('navigation.group.organization'),
-            items: [{ label: t('navigation.teams'), href: '/admin/teams', icon: IconUsersGroup }],
+            items: [
+                { label: t('navigation.teams'), href: '/admin/teams', icon: IconUsersGroup },
+                { label: t('navigation.managers'), href: '/admin/managers', icon: IconSitemap },
+            ],
         },
         {
             label: t('navigation.group.oversight'),

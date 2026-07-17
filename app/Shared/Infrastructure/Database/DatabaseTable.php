@@ -22,6 +22,8 @@ final class DatabaseTable
 
     public const TEAM_USER_ASSIGNMENTS = DatabaseSchema::CORE_TEAMS.'.team_user_assignments';
 
+    public const TEAM_MANAGER_RELATIONSHIPS = DatabaseSchema::CORE_TEAMS.'.team_manager_relationships';
+
     public const PERMISSIONS = DatabaseSchema::CORE_AUTHORIZATION.'.permissions';
 
     public const ROLES = DatabaseSchema::CORE_AUTHORIZATION.'.roles';

@@ -57,6 +57,7 @@ Starter roles:
 - Atlas starter roles are small functional permission bundles such as `workspace.access`, `admin.users.read`, `admin.users.manage`, `admin.teams.read`, `admin.teams.manage`, `authorization.roles.read`, `authorization.roles.manage`, `authorization.presets.manage`, `authorization.permissions.read`, `teams.managers.read`, `teams.managers.manage`, `system.status.read`, and `system.operations.manage`;
 - cumulative starter roles include the lower-level permissions required for that functional area, for example manage-level roles include their read/index permissions;
 - `teams.managers.*` roles grant only manager-administration permissions; manager hierarchy scope still comes from the team-scoped manager hierarchy, not from the role name;
+- `teams.managers.read` grants manager hierarchy Admin read/tree/history permissions, and `teams.managers.manage` additionally grants relationship creation, termination, and head-manager update permissions;
 - `system.administrator` is the special bootstrap/full-access role created from all currently registered permission catalogs;
 - `system.administrator` is not a model for ordinary company roles or presets;
 - starter role installation creates missing roles only and does not silently update existing roles when permissions are added later.

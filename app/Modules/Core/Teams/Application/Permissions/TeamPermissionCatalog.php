@@ -36,7 +36,25 @@ final class TeamPermissionCatalog implements ModulePermissionContribution
 
     public const MANAGERS_VIEW = TeamPermissionNames::MANAGERS_VIEW;
 
+    public const ADMIN_MANAGERS_INDEX = 'admin.managers.index';
+
+    public const ADMIN_MANAGERS_STORE = 'admin.managers.store';
+
+    public const ADMIN_MANAGERS_END = 'admin.managers.end';
+
+    public const ADMIN_MANAGERS_HEAD_UPDATE = 'admin.managers.head.update';
+
+    public const MANAGERS_CREATE = TeamPermissionNames::MANAGERS_CREATE;
+
     public const MANAGERS_UPDATE = TeamPermissionNames::MANAGERS_UPDATE;
+
+    public const MANAGERS_TERMINATE = TeamPermissionNames::MANAGERS_TERMINATE;
+
+    public const MANAGERS_TREE = TeamPermissionNames::MANAGERS_TREE;
+
+    public const MANAGERS_HISTORY = TeamPermissionNames::MANAGERS_HISTORY;
+
+    public const MANAGERS_HEAD_UPDATE = TeamPermissionNames::MANAGERS_HEAD_UPDATE;
 
     public function permissions(): array
     {
@@ -54,7 +72,16 @@ final class TeamPermissionCatalog implements ModulePermissionContribution
             new ModulePermissionDefinition(self::TEAMS_UPDATE, 'Update teams.'),
             new ModulePermissionDefinition(self::TEAMS_DELETE, 'Delete teams.'),
             new ModulePermissionDefinition(self::MANAGERS_VIEW, 'View manager hierarchy.'),
+            new ModulePermissionDefinition(self::ADMIN_MANAGERS_INDEX, 'View manager administration.'),
+            new ModulePermissionDefinition(self::ADMIN_MANAGERS_STORE, 'Create manager relationships through Admin UI.'),
+            new ModulePermissionDefinition(self::ADMIN_MANAGERS_END, 'End manager relationships through Admin UI.'),
+            new ModulePermissionDefinition(self::ADMIN_MANAGERS_HEAD_UPDATE, 'Update head manager status through Admin UI.'),
+            new ModulePermissionDefinition(self::MANAGERS_CREATE, 'Create manager relationships.'),
             new ModulePermissionDefinition(self::MANAGERS_UPDATE, 'Update manager hierarchy.'),
+            new ModulePermissionDefinition(self::MANAGERS_TERMINATE, 'End manager relationships.'),
+            new ModulePermissionDefinition(self::MANAGERS_TREE, 'View manager hierarchy tree.'),
+            new ModulePermissionDefinition(self::MANAGERS_HISTORY, 'View manager relationship history.'),
+            new ModulePermissionDefinition(self::MANAGERS_HEAD_UPDATE, 'Update head manager status.'),
         ];
     }
 }

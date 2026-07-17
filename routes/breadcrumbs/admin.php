@@ -27,6 +27,11 @@ Breadcrumbs::for('admin.teams.edit', function (Generator $breadcrumbs): void {
     $breadcrumbs->push('Edit');
 });
 
+Breadcrumbs::for('admin.managers.index', function (Generator $breadcrumbs): void {
+    $breadcrumbs->push(__('breadcrumbs.admin'));
+    $breadcrumbs->push('Managers');
+});
+
 Breadcrumbs::for('admin.users.index', function (Generator $breadcrumbs): void {
     $breadcrumbs->push(__('breadcrumbs.admin'));
     $breadcrumbs->push('Users');

@@ -88,11 +88,23 @@ final class StarterRoleCatalog
                 CoreAuthorizationPermissionCatalog::PERMISSIONS_VIEW,
             ]),
             new StarterRoleDefinition(StarterRoleName::TeamManagersRead, [
+                'admin.managers.index',
                 TeamPermissionNames::MANAGERS_VIEW,
+                TeamPermissionNames::MANAGERS_TREE,
+                TeamPermissionNames::MANAGERS_HISTORY,
             ]),
             new StarterRoleDefinition(StarterRoleName::TeamManagersManage, [
+                'admin.managers.index',
+                'admin.managers.store',
+                'admin.managers.end',
+                'admin.managers.head.update',
                 TeamPermissionNames::MANAGERS_VIEW,
+                TeamPermissionNames::MANAGERS_CREATE,
                 TeamPermissionNames::MANAGERS_UPDATE,
+                TeamPermissionNames::MANAGERS_TERMINATE,
+                TeamPermissionNames::MANAGERS_TREE,
+                TeamPermissionNames::MANAGERS_HISTORY,
+                TeamPermissionNames::MANAGERS_HEAD_UPDATE,
             ]),
             new StarterRoleDefinition(StarterRoleName::SystemStatusRead, [
                 CoreAuthorizationPermissionCatalog::ADMIN_SYSTEM_STATUS,

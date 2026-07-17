@@ -18,5 +18,15 @@ final class TeamPermissionNames
 
     public const MANAGERS_VIEW = 'teams.managers.view';
 
+    public const MANAGERS_CREATE = 'teams.managers.create';
+
     public const MANAGERS_UPDATE = 'teams.managers.update';
+
+    public const MANAGERS_TERMINATE = 'teams.managers.terminate';
+
+    public const MANAGERS_TREE = 'teams.managers.tree';
+
+    public const MANAGERS_HISTORY = 'teams.managers.history';
+
+    public const MANAGERS_HEAD_UPDATE = 'teams.managers.head.update';
 }

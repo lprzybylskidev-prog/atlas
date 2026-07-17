@@ -1,6 +1,6 @@
 ## Phase 17 — Manager hierarchy
 
-**Status:** `not started`
+**Status:** `complete`
 
 ## Objective
 
@@ -41,30 +41,30 @@ Implement team-scoped manager hierarchy after active-team context, audit, settin
 
 ## Tasks
 
-- [ ] Implement team-scoped manager relationships.
-- [ ] Support multiple direct managers.
-- [ ] Support manager-to-manager supervision.
-- [ ] Support head manager per team assignment.
-- [ ] Add `valid_from` and `valid_to`.
-- [ ] Preserve full relationship history.
-- [ ] Prevent self-management.
-- [ ] Prevent cycles.
-- [ ] Implement direct-report scope.
-- [ ] Implement head-manager subtree scope.
-- [ ] Build manager hierarchy query/read models.
-- [ ] Build admin manager-management screens.
-- [ ] Add hierarchy tree view.
-- [ ] Add team filter.
-- [ ] Add impact preview before changes.
-- [ ] Require reason for changes.
-- [ ] Audit all changes.
-- [ ] Add permissions for read, create, update, and end relationship.
-- [ ] Add development-only demo seeders for example manager relationships after real hierarchy tables exist.
-- [ ] Commit manager hierarchy.
+- [x] Implement team-scoped manager relationships.
+- [x] Support multiple direct managers.
+- [x] Support manager-to-manager supervision.
+- [x] Support head manager per team assignment.
+- [x] Add `valid_from` and `valid_to`.
+- [x] Preserve full relationship history.
+- [x] Prevent self-management.
+- [x] Prevent cycles.
+- [x] Implement direct-report scope.
+- [x] Implement head-manager subtree scope.
+- [x] Build manager hierarchy query/read models.
+- [x] Build admin manager-management screens.
+- [x] Add hierarchy tree view.
+- [x] Add team filter.
+- [x] Add impact preview before changes.
+- [x] Require reason for changes.
+- [x] Audit all changes.
+- [x] Add permissions for read, create, update, and end relationship.
+- [x] Add development-only demo seeders for example manager relationships after real hierarchy tables exist.
+- [x] Commit manager hierarchy.
 
 ## Completion criteria
 
-- [ ] Manager hierarchy has complete historical, audited, team-scoped DAG behavior.
-- [ ] Direct-report and subtree scopes are exposed through stable contracts for TimeTracking and later modules.
-- [ ] Admin screens use shared UI/table primitives.
-- [ ] Relevant tests and documentation are current.
+- [x] Manager hierarchy has complete historical, audited, team-scoped DAG behavior.
+- [x] Direct-report and subtree scopes are exposed through stable contracts for TimeTracking and later modules.
+- [x] Admin screens use shared UI/table primitives.
+- [x] Relevant tests and documentation are current.

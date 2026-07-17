@@ -37,7 +37,7 @@ Do not replace this index after the initial technical foundation is completed. C
 
 ## Current phase
 
-- Phase: [Phase 17 — Manager hierarchy](docs/roadmap/phase-17-manager-hierarchy.md)
+- Phase: [Phase 18 — Administrative mode and impersonation](docs/roadmap/phase-18-admin-impersonation.md)
 - Status: `not started`
 
 ## Roadmap dependency repair note
@@ -186,7 +186,7 @@ Implement typed notifications, delivery channels, preferences, queueing, and the
 
 ### Phase 16 — Admin operations and health
 
-**Status:** `in progress`
+**Status:** `complete`
 
 Implement Admin operational screens, structured logging, health/readiness, alerts, queues, scheduler, rate-limit administration, and diagnostics.
 
@@ -194,7 +194,7 @@ Implement Admin operational screens, structured logging, health/readiness, alert
 
 ### Phase 17 — Manager hierarchy
 
-**Status:** `not started`
+**Status:** `complete`
 
 Implement effective-dated manager hierarchy, DAG validation, direct-report and subtree scope, and manager administration.
 

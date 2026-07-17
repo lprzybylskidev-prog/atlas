@@ -24,7 +24,7 @@ final class ModuleKeyResolver
             return 'users';
         }
 
-        if (str_starts_with($permission, 'admin.teams.') || str_starts_with($permission, 'teams.')) {
+        if (str_starts_with($permission, 'admin.teams.') || str_starts_with($permission, 'admin.managers.') || str_starts_with($permission, 'teams.')) {
             return 'teams';
         }
 

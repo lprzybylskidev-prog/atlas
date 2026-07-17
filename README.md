@@ -114,7 +114,7 @@ The planned shared system capabilities include:
 - Authorization
 - Shared UI components
 - Shared tables and saved views
-- Manager hierarchy
+- Manager hierarchy with team-scoped DAG relationships, direct-report scope, and head-manager subtree scope
 - Sessions and active-team context
 - Audit and security audit
 - Settings and localization
