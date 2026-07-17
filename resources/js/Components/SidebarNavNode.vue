@@ -99,7 +99,8 @@ function updateExpandedNavigationState(event: Event): void {
     </details>
 
     <Tooltip v-else :text="node.label" placement="right" class="w-full">
-        <Link
+        <component
+            :is="node.external ? 'a' : Link"
             :href="node.href ?? '#'"
             class="group relative flex h-11 w-full items-center rounded-lg text-sm font-medium transition-[padding,color,background-color] duration-300 ease-in-out"
             :class="[
@@ -123,6 +124,6 @@ function updateExpandedNavigationState(event: Event): void {
             >
                 {{ node.label }}
             </span>
-        </Link>
+        </component>
     </Tooltip>
 </template>

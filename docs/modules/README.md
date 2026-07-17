@@ -13,4 +13,5 @@ Each file is the canonical current-state description of one Atlas module or tigh
 - [Integrations](integrations.md) — external adapters, retries, idempotency, and visibility.
 - [Notifications](notifications.md) — notification types, channels, preferences, and delivery.
 - [Settings](settings.md) — typed settings, scope, precedence, validation, and caching.
+- [Health](health.md) — liveness, readiness, dependency classification, and Admin diagnostics.
 - [Search](search.md) — Meilisearch projections, indexing, rebuild, and health.

@@ -251,7 +251,7 @@ Current table ownership:
 | `core_settings` | `settings_global_values`, `settings_team_values`, `settings_user_values`, `settings_security_values` |
 | `core_notifications` | `notifications`, `notification_recipients`, `notification_preferences`, `realtime_events` |
 | `shared` | `cache`, `cache_locks`, `jobs`, `job_batches`, `failed_jobs`, `outbox_events`, `outbox_consumed_events`, `table_saved_views`, `table_saved_view_defaults`, `module_global_states`, `module_team_states`, `module_activation_schedules`, `module_activation_history` |
-| `public` allowlist | `migrations`, package-owned local diagnostics tables such as Telescope tables |
+| `public` allowlist | `migrations`, package-owned diagnostics tables such as Telescope and Pulse tables |
 
 Runtime table references use `App\Shared\Infrastructure\Database\DatabaseTable` constants for schema-qualified Atlas-owned table names. Migrations create required schemas through `App\Shared\Infrastructure\Database\DatabaseSchema`. The configured PostgreSQL `search_path` includes Atlas schemas only so Laravel database maintenance commands can see and wipe all schemas deterministically; application code must still use schema-qualified Atlas-owned table names.
 

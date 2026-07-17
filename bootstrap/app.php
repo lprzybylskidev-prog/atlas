@@ -14,6 +14,9 @@ use App\Modules\Core\Notifications\Presentation\Console\PublishRealtimeEventComm
 use App\Modules\Core\Notifications\Presentation\Console\SendNotificationCommand;
 use App\Shared\Infrastructure\Console\ResetDemoEnvironment;
 use App\Shared\Presentation\Console\ApplyDueModuleActivationSchedules;
+use App\Shared\Presentation\Console\DispatchOperationalAlertsCommand;
+use App\Shared\Presentation\Console\RecordSchedulerHeartbeatCommand;
+use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -25,6 +28,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
         web: [
             __DIR__.'/../routes/web/auth.php',
+            __DIR__.'/../routes/web/health.php',
             __DIR__.'/../routes/web/locale.php',
             __DIR__.'/../routes/web/application.php',
             __DIR__.'/../routes/web/admin.php',
@@ -32,11 +36,17 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withCommands([
         ApplyDueModuleActivationSchedules::class,
+        DispatchOperationalAlertsCommand::class,
         PruneNotificationsCommand::class,
         PublishRealtimeEventCommand::class,
+        RecordSchedulerHeartbeatCommand::class,
         ResetDemoEnvironment::class,
         SendNotificationCommand::class,
     ])
+    ->withSchedule(function (Schedule $schedule): void {
+        $schedule->command('system:scheduler-heartbeat')->everyMinute()->withoutOverlapping();
+        $schedule->command('system:operational-alerts')->everyFiveMinutes()->withoutOverlapping();
+    })
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
             'route.permission' => AuthorizeRoutePermission::class,

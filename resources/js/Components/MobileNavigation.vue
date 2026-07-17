@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
 import {
+    IconActivityHeartbeat,
     IconClipboardList,
     IconGauge,
     IconKey,
@@ -57,6 +58,7 @@ const groups = computed(() => {
             label: t('navigation.group.oversight'),
             items: [
                 { label: t('navigation.audit'), href: '/admin/audit', icon: IconClipboardList },
+                { label: t('navigation.pulse'), href: '/admin/pulse', icon: IconActivityHeartbeat, external: true },
                 { label: t('navigation.modules'), href: '/admin/modules', icon: IconPuzzle },
             ],
         },
@@ -96,7 +98,8 @@ const groups = computed(() => {
                 <details v-for="group in groups" :key="group.label" open>
                     <summary class="list-none px-3 text-xs font-semibold uppercase text-zinc-400">{{ group.label }}</summary>
                     <div class="mt-2 space-y-1">
-                        <Link
+                        <component
+                            :is="item.external ? 'a' : Link"
                             v-for="item in group.items"
                             :key="item.label"
                             :href="item.href"
@@ -105,7 +108,7 @@ const groups = computed(() => {
                         >
                             <component :is="item.icon" aria-hidden="true" class="h-5 w-5" :stroke-width="1.8" />
                             {{ item.label }}
-                        </Link>
+                        </component>
                     </div>
                 </details>
             </nav>

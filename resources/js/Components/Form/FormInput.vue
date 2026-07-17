@@ -51,9 +51,9 @@ const effectiveInputmode = computed(
 </script>
 
 <template>
-    <label class="block" :for="inputId">
-        <span v-if="label" class="text-sm font-medium text-zinc-700 dark:text-zinc-200">{{ label }}</span>
-        <span class="relative mt-1 block">
+    <label class="flex flex-col gap-1" :for="inputId">
+        <span v-if="label" class="block text-sm font-medium text-zinc-700 dark:text-zinc-200">{{ label }}</span>
+        <span class="relative block">
             <component
                 :is="leadingIcon"
                 v-if="leadingIcon"

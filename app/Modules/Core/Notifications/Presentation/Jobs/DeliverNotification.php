@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Core\Notifications\Presentation\Jobs;
 
 use App\Modules\Core\Notifications\Infrastructure\Persistence\DatabaseNotificationStore;
+use App\Shared\Infrastructure\Operations\OperationalModuleGuard;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -24,8 +25,10 @@ final class DeliverNotification implements ShouldQueue
         private readonly int $recipientId,
     ) {}
 
-    public function handle(DatabaseNotificationStore $notifications): void
+    public function handle(DatabaseNotificationStore $notifications, OperationalModuleGuard $modules): void
     {
+        $modules->ensureAllowed('notifications');
+
         $notifications->markDeliveredInApp($this->recipientId);
 
         if (! $notifications->emailRequested($this->recipientId)) {

@@ -8,7 +8,15 @@ final class ModuleKeyResolver
 {
     public function forPermission(string $permission): string
     {
-        if ($permission === 'dashboard' || $permission === 'admin.system-status') {
+        if ($permission === 'login' || str_starts_with($permission, 'password.')) {
+            return 'identity';
+        }
+
+        if ($permission === 'admin.system-status.release' || $permission === 'admin.system-status.readiness') {
+            return 'health';
+        }
+
+        if ($permission === 'dashboard' || $permission === 'admin.system-status' || str_starts_with($permission, 'admin.system-status.')) {
             return 'authorization';
         }
 
@@ -22,6 +30,22 @@ final class ModuleKeyResolver
 
         if (str_starts_with($permission, 'admin.audit.')) {
             return 'audit';
+        }
+
+        if (str_starts_with($permission, 'admin.rate-limits.')) {
+            return 'identity';
+        }
+
+        if (str_starts_with($permission, 'admin.logs.')) {
+            return 'authorization';
+        }
+
+        if (str_starts_with($permission, 'admin.queues.')) {
+            return 'authorization';
+        }
+
+        if (str_starts_with($permission, 'admin.pulse.')) {
+            return 'authorization';
         }
 
         if (str_starts_with($permission, 'admin.modules.') || str_starts_with($permission, 'modules.')) {

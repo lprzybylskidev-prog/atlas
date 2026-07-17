@@ -6,6 +6,7 @@ namespace Tests\Unit\Foundation;
 
 use App\Modules\Core\Audit\AuditModule;
 use App\Modules\Core\Authorization\AuthorizationModule;
+use App\Modules\Core\Health\HealthModule;
 use App\Modules\Core\Identity\IdentityModule;
 use App\Modules\Core\Notifications\NotificationsModule;
 use App\Modules\Core\Settings\SettingsModule;
@@ -96,6 +97,7 @@ final class ModuleRegistryTest extends TestCase
             AuditModule::class,
             SettingsModule::class,
             NotificationsModule::class,
+            HealthModule::class,
         ], $configured['deployed']);
 
         foreach ($configured['deployed'] as $moduleClass) {

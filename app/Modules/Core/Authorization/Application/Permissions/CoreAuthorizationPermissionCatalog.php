@@ -13,6 +13,14 @@ final class CoreAuthorizationPermissionCatalog implements ModulePermissionContri
 
     public const ADMIN_SYSTEM_STATUS = 'admin.system-status';
 
+    public const ADMIN_SYSTEM_STATUS_RELEASE = 'admin.system-status.release';
+
+    public const ADMIN_SYSTEM_STATUS_READINESS = 'admin.system-status.readiness';
+
+    public const ADMIN_SYSTEM_STATUS_SCHEDULER = 'admin.system-status.scheduler';
+
+    public const ADMIN_SYSTEM_STATUS_MODULE_ACTIVATION = 'admin.system-status.module-activation';
+
     public const ADMIN_AUTHORIZATION_ROLES = 'admin.authorization.roles.index';
 
     public const ADMIN_AUTHORIZATION_ROLES_CREATE = 'admin.authorization.roles.create';
@@ -40,6 +48,18 @@ final class CoreAuthorizationPermissionCatalog implements ModulePermissionContri
     public const ADMIN_AUTHORIZATION_PERMISSIONS = 'admin.authorization.permissions.index';
 
     public const ADMIN_MODULES_INDEX = 'admin.modules.index';
+
+    public const ADMIN_RATE_LIMITS_INDEX = 'admin.rate-limits.index';
+
+    public const ADMIN_RATE_LIMITS_RESET = 'admin.rate-limits.reset';
+
+    public const ADMIN_LOGS_INDEX = 'admin.logs.index';
+
+    public const ADMIN_QUEUES_INDEX = 'admin.queues.index';
+
+    public const ADMIN_QUEUES_RETRY = 'admin.queues.retry';
+
+    public const ADMIN_PULSE_VIEW = 'admin.pulse.view';
 
     public const ADMIN_MODULES_SHOW = 'admin.modules.show';
 
@@ -108,6 +128,10 @@ final class CoreAuthorizationPermissionCatalog implements ModulePermissionContri
         return [
             new ModulePermissionDefinition(self::DASHBOARD, 'View the authenticated dashboard.'),
             new ModulePermissionDefinition(self::ADMIN_SYSTEM_STATUS, 'View the Admin system status screen.'),
+            new ModulePermissionDefinition(self::ADMIN_SYSTEM_STATUS_RELEASE, 'View Admin release and deployment status.'),
+            new ModulePermissionDefinition(self::ADMIN_SYSTEM_STATUS_READINESS, 'View Admin readiness diagnostics.'),
+            new ModulePermissionDefinition(self::ADMIN_SYSTEM_STATUS_SCHEDULER, 'View Admin scheduler heartbeat status.'),
+            new ModulePermissionDefinition(self::ADMIN_SYSTEM_STATUS_MODULE_ACTIVATION, 'View Admin module activation scheduler diagnostics.'),
             new ModulePermissionDefinition(self::ADMIN_AUTHORIZATION_ROLES, 'View role administration.'),
             new ModulePermissionDefinition(self::ADMIN_AUTHORIZATION_ROLES_CREATE, 'Open role creation.'),
             new ModulePermissionDefinition(self::ADMIN_AUTHORIZATION_ROLES_STORE, 'Create roles through Admin UI.'),
@@ -122,6 +146,12 @@ final class CoreAuthorizationPermissionCatalog implements ModulePermissionContri
             new ModulePermissionDefinition(self::ADMIN_AUTHORIZATION_PACKAGES_DELETE, 'Delete presets.'),
             new ModulePermissionDefinition(self::ADMIN_AUTHORIZATION_PERMISSIONS, 'View permission administration.'),
             new ModulePermissionDefinition(self::ADMIN_MODULES_INDEX, 'View module activation administration.'),
+            new ModulePermissionDefinition(self::ADMIN_RATE_LIMITS_INDEX, 'View Admin rate-limit policies and rejection statistics.'),
+            new ModulePermissionDefinition(self::ADMIN_RATE_LIMITS_RESET, 'Reset one concrete Admin rate-limit counter.'),
+            new ModulePermissionDefinition(self::ADMIN_LOGS_INDEX, 'View curated Admin application logs.'),
+            new ModulePermissionDefinition(self::ADMIN_QUEUES_INDEX, 'View Admin queues and failed jobs.'),
+            new ModulePermissionDefinition(self::ADMIN_QUEUES_RETRY, 'Retry failed jobs through Admin UI.'),
+            new ModulePermissionDefinition(self::ADMIN_PULSE_VIEW, 'View Laravel Pulse internal performance dashboard.'),
             new ModulePermissionDefinition(self::ADMIN_MODULES_SHOW, 'View module activation details.'),
             new ModulePermissionDefinition(self::ADMIN_MODULES_GLOBAL_UPDATE, 'Update global module activation.'),
             new ModulePermissionDefinition(self::ADMIN_MODULES_TEAM_UPDATE, 'Update team module activation overrides.'),

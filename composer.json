@@ -12,6 +12,7 @@
         "laravel/fortify": "^1.36",
         "laravel/framework": "^13.8",
         "laravel/horizon": "^5.47",
+        "laravel/pulse": "^1.7",
         "laravel/scout": "^11.3",
         "laravel/tinker": "^3.0",
         "meilisearch/meilisearch-php": "^1.16",

@@ -16,6 +16,7 @@ use App\Modules\Core\Identity\Application\Public\DTOs\SecurityAuditEvent;
 use App\Modules\Core\Identity\Application\RateLimiting\RateLimitKeyBuilder;
 use App\Modules\Core\Identity\Application\RateLimiting\RateLimitPolicyCatalog;
 use App\Modules\Core\Identity\Application\RateLimiting\RateLimitPolicyRegistrar;
+use App\Modules\Core\Identity\Application\RateLimiting\RateLimitRejectionRecorder;
 use App\Modules\Core\Identity\Application\Sessions\SingleSessionLoginGuard;
 use App\Modules\Core\Identity\Application\WebAuthn\Contracts\WebAuthnCredentialRepository;
 use App\Modules\Core\Identity\Infrastructure\Notifications\UserSuspiciousLoginNotifier;
@@ -126,6 +127,7 @@ class FortifyServiceProvider extends ServiceProvider
         new RateLimitPolicyRegistrar(
             RateLimitPolicyCatalog::fromConfiguredValue(config('atlas.security.rate_limits.policies')),
             new RateLimitKeyBuilder,
+            $this->app->make(RateLimitRejectionRecorder::class),
         )->register();
     }
 }

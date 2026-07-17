@@ -6,6 +6,7 @@ export interface NavigationNode {
     icon: FunctionalComponent;
     active?: boolean;
     href?: string;
+    external?: boolean;
     children?: NavigationNode[];
     visible?: boolean;
 }

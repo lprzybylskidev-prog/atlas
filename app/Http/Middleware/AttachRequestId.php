@@ -4,16 +4,21 @@ declare(strict_types=1);
 
 namespace App\Http\Middleware;
 
+use App\Shared\Application\Modules\ModuleKeyResolver;
+use App\Shared\Infrastructure\Observability\ObservabilityContext;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Context;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\Response;
 
 final class AttachRequestId
 {
     public const HEADER = 'X-Request-Id';
+
+    public function __construct(
+        private readonly ObservabilityContext $observabilityContext,
+    ) {}
 
     /**
      * @param  Closure(Request): Response  $next
@@ -24,10 +29,20 @@ final class AttachRequestId
 
         Context::add('request_id', $requestId);
         Context::add('correlation_id', $requestId);
-        Log::withContext([
-            'request_id' => $requestId,
-            'correlation_id' => $requestId,
-        ]);
+        $context = $this->baseContext($request, $requestId);
+
+        foreach ($context as $key => $value) {
+            Context::add($key, $value);
+        }
+
+        $this->observabilityContext->apply(
+            source: 'http',
+            eventName: 'http.request',
+            module: $context['module'] ?? null,
+            correlationId: $requestId,
+            extra: $context,
+        );
+
         $request->attributes->set('request_id', $requestId);
         $request->attributes->set('correlation_id', $requestId);
 
@@ -35,6 +50,39 @@ final class AttachRequestId
         $response->headers->set(self::HEADER, $requestId);
 
         return $response;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function baseContext(Request $request, string $requestId): array
+    {
+        $context = [
+            'request_id' => $requestId,
+            'correlation_id' => $requestId,
+            'environment' => config()->string('app.env'),
+            'release_version' => config()->string('atlas.release.version'),
+            'release_id' => config()->string('atlas.release.id'),
+            'source' => 'http',
+        ];
+        $routeName = $request->route()?->getName();
+
+        $actorPublicId = data_get($request->user(), 'public_id');
+        $teamPublicId = $request->hasSession() ? $request->session()->get('active_team_public_id') : null;
+
+        if (is_string($routeName) && $routeName !== '') {
+            $context['module'] = app(ModuleKeyResolver::class)->forPermission($routeName);
+        }
+
+        if (is_string($actorPublicId)) {
+            $context['actor_public_id'] = $actorPublicId;
+        }
+
+        if (is_string($teamPublicId)) {
+            $context['team_public_id'] = $teamPublicId;
+        }
+
+        return $context;
     }
 
     private function resolveRequestId(Request $request): string

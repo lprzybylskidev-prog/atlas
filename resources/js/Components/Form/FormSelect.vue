@@ -102,8 +102,8 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-    <div ref="root" class="relative">
-        <span v-if="label" class="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-200">{{ label }}</span>
+    <div ref="root" class="relative flex flex-col gap-1">
+        <span v-if="label" class="block text-sm font-medium text-zinc-700 dark:text-zinc-200">{{ label }}</span>
         <button
             ref="button"
             type="button"

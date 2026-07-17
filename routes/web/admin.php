@@ -16,6 +16,8 @@ use App\Modules\Core\Authorization\Presentation\Http\Controllers\StoreOnboarding
 use App\Modules\Core\Authorization\Presentation\Http\Controllers\StoreRoleController;
 use App\Modules\Core\Authorization\Presentation\Http\Controllers\UpdateOnboardingPackageController;
 use App\Modules\Core\Authorization\Presentation\Http\Controllers\UpdateRoleController;
+use App\Modules\Core\Identity\Presentation\Http\Controllers\RateLimitAdministrationController;
+use App\Modules\Core\Identity\Presentation\Http\Controllers\ResetRateLimitCounterController;
 use App\Modules\Core\Teams\Presentation\Http\Controllers\TeamAdministrationController;
 use App\Modules\Core\Teams\Presentation\Http\Controllers\UserTeamAuthorizationController;
 use App\Modules\Core\Teams\Presentation\Http\Controllers\UserTeamMembershipController;
@@ -25,6 +27,8 @@ use App\Modules\Core\Users\Presentation\Http\Controllers\StoreUserAccountControl
 use App\Modules\Core\Users\Presentation\Http\Controllers\UpdateUserAccountController;
 use App\Modules\Core\Users\Presentation\Http\Controllers\UserAccountActionController;
 use App\Modules\Core\Users\Presentation\Http\Controllers\UserAdministrationController;
+use App\Shared\Presentation\Http\Controllers\AdminApplicationLogController;
+use App\Shared\Presentation\Http\Controllers\AdminFailedJobController;
 use App\Shared\Presentation\Http\Controllers\AdminSystemStatusController;
 use App\Shared\Presentation\Http\Controllers\Modules\ModuleActivationController;
 use App\Shared\Presentation\Http\Controllers\TableSavedViewController;
@@ -32,6 +36,10 @@ use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth', 'password.confirm', 'route.permission'])->group(function (): void {
     Route::get('/admin', AdminSystemStatusController::class)->name('admin.system-status');
+    Route::get('/admin/system-status/release', [AdminSystemStatusController::class, 'release'])->name('admin.system-status.release');
+    Route::get('/admin/system-status/readiness', [AdminSystemStatusController::class, 'readiness'])->name('admin.system-status.readiness');
+    Route::get('/admin/system-status/scheduler', [AdminSystemStatusController::class, 'scheduler'])->name('admin.system-status.scheduler');
+    Route::get('/admin/system-status/module-activation', [AdminSystemStatusController::class, 'moduleActivation'])->name('admin.system-status.module-activation');
     Route::get('/admin/users', UserAdministrationController::class)->name('admin.users.index');
     Route::get('/admin/users/create', CreateUserAccountController::class)->name('admin.users.create');
     Route::post('/admin/users', StoreUserAccountController::class)->name('admin.users.store');
@@ -70,6 +78,11 @@ Route::middleware(['auth', 'password.confirm', 'route.permission'])->group(funct
     Route::delete('/admin/authorization/packages/{package}', DestroyOnboardingPackageController::class)->name('admin.authorization.packages.destroy');
     Route::get('/admin/authorization/permissions', PermissionAdministrationController::class)->name('admin.authorization.permissions.index');
     Route::get('/admin/audit', AuditBrowserController::class)->name('admin.audit.index');
+    Route::get('/admin/rate-limits', RateLimitAdministrationController::class)->name('admin.rate-limits.index');
+    Route::post('/admin/rate-limits/reset', ResetRateLimitCounterController::class)->name('admin.rate-limits.reset');
+    Route::get('/admin/logs', AdminApplicationLogController::class)->name('admin.logs.index');
+    Route::get('/admin/queues', [AdminFailedJobController::class, 'index'])->name('admin.queues.index');
+    Route::post('/admin/queues/failed-jobs/retry', [AdminFailedJobController::class, 'retry'])->name('admin.queues.retry');
     Route::get('/admin/modules', [ModuleActivationController::class, 'index'])->name('admin.modules.index');
     Route::get('/admin/modules/{module}', [ModuleActivationController::class, 'show'])->name('admin.modules.show');
     Route::patch('/admin/modules/{module}/global', [ModuleActivationController::class, 'updateGlobal'])->name('admin.modules.global.update');

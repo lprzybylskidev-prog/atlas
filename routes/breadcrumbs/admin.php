@@ -88,6 +88,21 @@ Breadcrumbs::for('admin.audit.index', function (Generator $breadcrumbs): void {
     $breadcrumbs->push('Audit');
 });
 
+Breadcrumbs::for('admin.rate-limits.index', function (Generator $breadcrumbs): void {
+    $breadcrumbs->push(__('breadcrumbs.admin'));
+    $breadcrumbs->push('Rate limits');
+});
+
+Breadcrumbs::for('admin.logs.index', function (Generator $breadcrumbs): void {
+    $breadcrumbs->push(__('breadcrumbs.admin'));
+    $breadcrumbs->push('Application logs');
+});
+
+Breadcrumbs::for('admin.queues.index', function (Generator $breadcrumbs): void {
+    $breadcrumbs->push(__('breadcrumbs.admin'));
+    $breadcrumbs->push('Queues');
+});
+
 Breadcrumbs::for('admin.modules.index', function (Generator $breadcrumbs): void {
     $breadcrumbs->push(__('breadcrumbs.admin'));
     $breadcrumbs->push('Modules');

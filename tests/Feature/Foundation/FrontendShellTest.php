@@ -83,7 +83,9 @@ final class FrontendShellTest extends TestCase
                 ->where('navigation.breadcrumbs.0.label', 'Admin')
                 ->where('navigation.breadcrumbs.0.url', null)
                 ->where('navigation.breadcrumbs.1.label', 'Dashboard')
-                ->where('navigation.breadcrumbs.1.url', null));
+                ->where('navigation.breadcrumbs.1.url', null)
+                ->where('availability.2.elementKey', 'admin.system-status.readiness')
+                ->where('availability.3.elementKey', 'admin.system-status.scheduler'));
 
         $this->actingAs($user)
             ->withSession($adminSession)

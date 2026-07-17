@@ -10,6 +10,9 @@ return [
     'release' => [
         'version' => env('ATLAS_RELEASE_VERSION', '0.1.0-dev'),
         'id' => env('ATLAS_RELEASE_ID', 'local'),
+        'deployed_at' => env('ATLAS_RELEASE_DEPLOYED_AT') ?: null,
+        'deployed_by' => env('ATLAS_RELEASE_DEPLOYED_BY') ?: null,
+        'source' => env('ATLAS_RELEASE_SOURCE') ?: null,
     ],
 
     'ui' => [
@@ -24,6 +27,33 @@ return [
     'time' => [
         'business_timezone' => env('APP_TIMEZONE', 'Europe/Warsaw'),
         'technical_storage_timezone' => 'UTC',
+    ],
+
+    'operations' => [
+        'scheduler_heartbeat_stale_seconds' => (int) env('ATLAS_SCHEDULER_HEARTBEAT_STALE_SECONDS', 180),
+        'health' => [
+            'meilisearch_critical' => (bool) env('ATLAS_HEALTH_MEILISEARCH_CRITICAL', false),
+            'clamav' => [
+                'critical' => (bool) env('ATLAS_HEALTH_CLAMAV_CRITICAL', false),
+                'host' => env('ATLAS_HEALTH_CLAMAV_HOST') ?: null,
+                'port' => (int) env('ATLAS_HEALTH_CLAMAV_PORT', 3310),
+            ],
+            'chromium' => [
+                'critical' => (bool) env('ATLAS_HEALTH_CHROMIUM_CRITICAL', false),
+                'binary' => env('ATLAS_HEALTH_CHROMIUM_BINARY') ?: null,
+            ],
+        ],
+        'alerts' => [
+            'enabled' => (bool) env('ATLAS_ALERTS_ENABLED', false),
+            'dedupe_seconds' => (int) env('ATLAS_ALERTS_DEDUPE_SECONDS', 900),
+            'throttle_seconds' => (int) env('ATLAS_ALERTS_THROTTLE_SECONDS', 300),
+            'failed_jobs_threshold' => (int) env('ATLAS_ALERTS_FAILED_JOBS_THRESHOLD', 3),
+            'email_to' => array_values(array_filter(array_map('trim', explode(',', (string) env('ATLAS_ALERTS_EMAIL_TO', ''))))),
+            'webhook_url' => env('ATLAS_ALERTS_WEBHOOK_URL') ?: null,
+            'backup_failed' => (bool) env('ATLAS_ALERTS_BACKUP_FAILED', false),
+            'integration_failed' => (bool) env('ATLAS_ALERTS_INTEGRATION_FAILED', false),
+            'sentry_critical' => (bool) env('ATLAS_ALERTS_SENTRY_CRITICAL', false),
+        ],
     ],
 
     'security' => [

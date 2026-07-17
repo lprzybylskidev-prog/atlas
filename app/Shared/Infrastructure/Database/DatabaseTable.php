@@ -14,6 +14,8 @@ final class DatabaseTable
 
     public const USER_WEBAUTHN_CREDENTIALS = DatabaseSchema::CORE_IDENTITY.'.user_webauthn_credentials';
 
+    public const RATE_LIMIT_REJECTIONS = DatabaseSchema::CORE_IDENTITY.'.rate_limit_rejections';
+
     public const SESSIONS = DatabaseSchema::CORE_IDENTITY.'.sessions';
 
     public const TEAMS = DatabaseSchema::CORE_TEAMS.'.teams';
@@ -79,6 +81,8 @@ final class DatabaseTable
     public const MODULE_ACTIVATION_SCHEDULES = DatabaseSchema::SHARED.'.module_activation_schedules';
 
     public const MODULE_ACTIVATION_HISTORY = DatabaseSchema::SHARED.'.module_activation_history';
+
+    public const SCHEDULER_HEARTBEATS = DatabaseSchema::SHARED.'.scheduler_heartbeats';
 
     public static function unqualified(string $table): string
     {

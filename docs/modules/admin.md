@@ -29,6 +29,16 @@ Admin user and team administration include integrated Team access management. Ad
 
 The Admin audit browser is available at `/admin/audit`. It is read-only, uses the shared `DataTable` wrapper, and exposes audit records for operational and security review.
 
+The Admin rate-limit browser is available at `/admin/rate-limits`. It is read-only for configured thresholds and shows named policy definitions together with aggregated rejection statistics. Administrators may reset one concrete limiter counter by selecting a policy, entering the exact limiter key, and providing a reason. The reset clears only that key, removes its aggregated rejection-statistics row when present, and records a security audit event with action `rate_limit.counter_reset`, policy, limiter key, actor, reason, and correlation ID. Admin cannot edit thresholds, add policies, delete policies, or disable rate limiting.
+
+The Admin application-log browser is available at `/admin/logs`. It exposes curated application log entries from Atlas' canonical application log source only, parses structured JSON production records and readable development records, groups multiline stack traces under their originating log entry, redacts sensitive context and obvious sensitive inline text, and presents safe operational fields such as level, message, module, source, event name, correlation ID, request ID, environment, and channel through a dedicated expandable log viewer. The UI does not accept filesystem paths, browse directories, download server files, or execute shell commands.
+
+The Admin queues browser is available at `/admin/queues`. It exposes failed jobs from Atlas' configured failed-job table only, shows queue/connection/job/exception summaries, and provides expandable payload and exception details for authorized operators. Administrators may retry one failed job after confirmation. Mass retry is limited to selected known failed-job UUIDs and requires typed confirmation `RETRY`. Retry actions are audited as security-sensitive queue operations. Admin does not expose arbitrary `queue:retry all`, range retry, queue clearing, failed-job flushing, shell access, or arbitrary command execution.
+
+Failed-job retry actions are ModuleGate-checked against the module inferred from the queued job class before retrying.
+
+Laravel Pulse is available from the Admin navigation at `/admin/pulse`. It is a package-owned internal performance dashboard for authorized operational administrators and is protected by `auth`, password confirmation, Pulse's `viewPulse` gate, and the `admin.pulse.view` permission. Pulse is not an Inertia screen and uses its own Livewire/Blade dashboard.
+
 Phase 8 verifies the current Admin UI/table foundation after Phase 7. Phase 9 completes shared UI primitives and Phase 10 completes the shared table/saved-view contract before additional Admin areas rely on broader table behavior.
 
 Initial areas:
@@ -39,6 +49,7 @@ Initial areas:
 - Teams
 - Managers
 - Logs
+- Pulse
 - Storage
 - System Status
 - Queues
@@ -47,17 +58,21 @@ Initial areas:
 - Integrations
 - Feature Flags
 - Audit
+- Rate limits
 - Module activation
 
 Module activation administration is available at `/admin/modules`. It lists deployed modules, technical availability, global state, active-team effective state, dependencies, and activation support. A module detail screen lets administrators manage global activation where supported, attach or override teams for the module, schedule future changes, cancel pending schedules, and review recent activation history. Team creation and editing also expose module override management so administrators can work from either the module context or the team context.
 
 System Status includes:
 
+- release version, release ID, environment, and optional last-deploy metadata;
+- readiness with blocking versus degraded dependency counts and per-check diagnostics;
 - PostgreSQL;
 - Redis;
 - Meilisearch;
 - queues;
-- scheduler;
+- scheduler heartbeat freshness;
+- failed module activation schedule diagnostics;
 - storage;
 - last deploy;
 - application version.

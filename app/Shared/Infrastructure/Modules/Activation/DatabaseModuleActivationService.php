@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Shared\Infrastructure\Modules\Activation;
 
+use App\Modules\Core\Audit\Application\Public\Contracts\AuditRecorder;
+use App\Modules\Core\Audit\Application\Public\DTOs\AuditEvent;
 use App\Shared\Application\Modules\Activation\Contracts\ModuleActivationService;
 use App\Shared\Application\Modules\Activation\EffectiveModuleState;
 use App\Shared\Application\Modules\Activation\ModuleActivationChange;
@@ -31,6 +33,7 @@ final readonly class DatabaseModuleActivationService implements ModuleActivation
         private ModuleRegistry $registry,
         private ConnectionInterface $database,
         private ModuleDeactivationGuardRegistry $deactivationGuards,
+        private AuditRecorder $audit,
     ) {}
 
     public function effectiveState(string $moduleKey, ?int $teamId = null): EffectiveModuleState
@@ -232,6 +235,23 @@ final readonly class DatabaseModuleActivationService implements ModuleActivation
                     'failure_reason' => $exception->getMessage(),
                     'updated_at' => $now,
                 ]);
+
+                $this->audit->record(new AuditEvent(
+                    module: 'authorization',
+                    action: 'module.schedule_failed',
+                    result: 'failed',
+                    source: 'scheduler',
+                    targetType: 'module_activation_schedule',
+                    targetPublicId: $this->stringValue($values['public_id'] ?? ''),
+                    aggregateType: 'module',
+                    aggregatePublicId: $this->stringValue($values['module_key'] ?? ''),
+                    reason: $exception->getMessage(),
+                    metadata: [
+                        'module_key' => $this->stringValue($values['module_key'] ?? ''),
+                        'scope' => $this->stringValue($values['scope'] ?? ''),
+                        'schedule_id' => $id,
+                    ],
+                ));
             }
         }
 

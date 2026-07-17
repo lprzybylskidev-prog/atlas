@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Modules\Core\Authorization\Application\Permissions\CoreAuthorizationPermissionCatalog;
+use App\Modules\Core\Authorization\Application\Public\Contracts\EffectivePermissionChecker;
+use App\Modules\Core\Authorization\Application\Public\DTOs\EffectivePermissionRequest;
 use App\Shared\Application\Modules\Activation\Contracts\ModuleActivationService;
 use App\Shared\Application\Modules\Contracts\ModuleDeactivationGuard;
 use App\Shared\Application\Modules\Contracts\ModuleDeactivationGuardRegistry;
@@ -18,17 +21,31 @@ use App\Shared\Application\Outbox\Contracts\OutboxEventRecorder;
 use App\Shared\Application\Outbox\Contracts\OutboxMaintenance;
 use App\Shared\Infrastructure\Modules\Activation\DatabaseModuleActivationService;
 use App\Shared\Infrastructure\Modules\RegistryModuleGateStateProvider;
+use App\Shared\Infrastructure\Observability\ObservabilityContext;
 use App\Shared\Infrastructure\Outbox\DatabaseOutboxConsumerDeduplicator;
 use App\Shared\Infrastructure\Outbox\DatabaseOutboxEventRecorder;
 use App\Shared\Infrastructure\Outbox\DatabaseOutboxMaintenance;
+use Illuminate\Console\Events\CommandStarting;
+use Illuminate\Console\Events\ScheduledTaskStarting;
+use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Database\ConnectionInterface;
+use Illuminate\Queue\Events\JobProcessing;
 use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\Context;
+use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 use Laravel\Telescope\TelescopeApplicationServiceProvider;
 use RuntimeException;
 
 class AppServiceProvider extends ServiceProvider
 {
+    public function boot(): void
+    {
+        $this->registerPulseAuthorization();
+        $this->registerObservabilityEventListeners();
+    }
+
     public function register(): void
     {
         $this->validateCriticalConfiguration();
@@ -36,6 +53,99 @@ class AppServiceProvider extends ServiceProvider
         $this->registerModuleServiceProviders();
         $this->registerSharedInfrastructure();
         $this->registerLocalDevelopmentProviders();
+    }
+
+    private function registerObservabilityEventListeners(): void
+    {
+        Event::listen(CommandStarting::class, function (CommandStarting $event): void {
+            $context = $this->app->make(ObservabilityContext::class);
+
+            $context->apply(
+                source: 'cli',
+                eventName: 'cli.command',
+                module: $context->moduleFromCommandName($event->command),
+                extra: ['command' => $event->command],
+            );
+        });
+
+        Event::listen(ScheduledTaskStarting::class, function (ScheduledTaskStarting $event): void {
+            $context = $this->app->make(ObservabilityContext::class);
+            $command = trim((string) $event->task->command);
+
+            $context->apply(
+                source: 'scheduler',
+                eventName: 'scheduler.task',
+                module: $command !== '' ? $context->moduleFromCommandName($command) : 'shared',
+                extra: ['task' => $event->task->description ?: $command],
+            );
+        });
+
+        Event::listen(JobProcessing::class, function (JobProcessing $event): void {
+            $context = $this->app->make(ObservabilityContext::class);
+            $jobName = $event->job->resolveName();
+            $propagated = $context->propagatedQueueContext($this->stringKeyedArray($event->job->payload()));
+
+            if ($propagated !== []) {
+                Context::add($propagated);
+            }
+
+            $context->apply(
+                source: 'queue',
+                eventName: 'queue.job',
+                module: $context->moduleFromClassName($jobName),
+                correlationId: $propagated['correlation_id'] ?? null,
+                causationId: $propagated['causation_id'] ?? null,
+                extra: [
+                    'job' => $jobName,
+                    'queue' => $event->job->getQueue(),
+                    'queue_connection' => $event->connectionName,
+                ],
+            );
+        });
+    }
+
+    private function registerPulseAuthorization(): void
+    {
+        $this->app->booted(function (): void {
+            Gate::define('viewPulse', function (?Authenticatable $user = null): bool {
+                if ($user === null) {
+                    return false;
+                }
+
+                $userPublicId = data_get($user, 'public_id');
+                $teamPublicId = request()->hasSession() ? request()->session()->get('active_team_public_id') : null;
+
+                if (! is_string($userPublicId) || ! is_string($teamPublicId)) {
+                    return false;
+                }
+
+                /** @var EffectivePermissionChecker $checker */
+                $checker = app(EffectivePermissionChecker::class);
+
+                return $checker->check(new EffectivePermissionRequest(
+                    userPublicId: $userPublicId,
+                    permission: CoreAuthorizationPermissionCatalog::ADMIN_PULSE_VIEW,
+                    teamPublicId: $teamPublicId,
+                ))->allowed;
+            });
+        });
+    }
+
+    /**
+     * @param  array<mixed>  $values
+     * @return array<string, mixed>
+     */
+    private function stringKeyedArray(array $values): array
+    {
+        $result = [];
+
+        foreach ($values as $key => $value) {
+            if (is_string($key)) {
+                $result[$key] = $value;
+            }
+        }
+
+        return $result;
     }
 
     private function registerModuleRegistry(): void

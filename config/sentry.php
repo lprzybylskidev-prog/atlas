@@ -1,11 +1,13 @@
 <?php
 
 declare(strict_types=1);
+use App\Shared\Infrastructure\Observability\SanitizedSentryEventProcessor;
 
 return [
     'dsn' => env('SENTRY_LARAVEL_DSN'),
-    'release' => env('SENTRY_RELEASE'),
-    'environment' => env('SENTRY_ENVIRONMENT'),
+    'release' => env('SENTRY_RELEASE', env('ATLAS_RELEASE_ID', 'local')),
+    'environment' => env('SENTRY_ENVIRONMENT', env('APP_ENV', 'production')),
+    'before_send' => [SanitizedSentryEventProcessor::class, 'handle'],
     'org_id' => null,
     'sample_rate' => 1.0,
     'traces_sample_rate' => env('SENTRY_TRACES_SAMPLE_RATE') === null ? null : (float) env('SENTRY_TRACES_SAMPLE_RATE'),

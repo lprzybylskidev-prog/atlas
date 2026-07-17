@@ -159,12 +159,20 @@ final class HandleInertiaRequests extends Middleware
         $checker = app(EffectivePermissionChecker::class);
         $routes = [
             'admin.system-status',
+            'admin.system-status.release',
+            'admin.system-status.readiness',
+            'admin.system-status.scheduler',
+            'admin.system-status.module-activation',
             'admin.users.index',
             'admin.teams.index',
             'admin.authorization.roles.index',
             'admin.authorization.packages.index',
             'admin.authorization.permissions.index',
             'admin.audit.index',
+            'admin.logs.index',
+            'admin.queues.index',
+            'admin.pulse.view',
+            'admin.rate-limits.index',
             'admin.modules.index',
         ];
         $available = [];

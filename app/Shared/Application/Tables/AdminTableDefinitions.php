@@ -18,6 +18,8 @@ final class AdminTableDefinitions
 
     public const AUDIT = 'admin.audit';
 
+    public const RATE_LIMITS = 'admin.rate-limits';
+
     public const MODULES = 'admin.modules';
 
     public const NOTIFICATIONS = 'notifications';
@@ -115,6 +117,18 @@ final class AdminTableDefinitions
                 new TableColumn('security', searchable: false),
                 new TableColumn('metadata', defaultVisible: false),
             ], 'occurredAt', 'desc'),
+            self::RATE_LIMITS => new TableDefinition($key, [
+                new TableColumn('publicId'),
+                new TableColumn('policy'),
+                new TableColumn('maxAttempts', searchable: false),
+                new TableColumn('decaySeconds', searchable: false),
+                new TableColumn('keyParts'),
+                new TableColumn('progressiveDelays', defaultVisible: false),
+                new TableColumn('temporaryLockSeconds', searchable: false, defaultVisible: false),
+                new TableColumn('rejections', searchable: false),
+                new TableColumn('distinctKeys', searchable: false),
+                new TableColumn('lastRejectedAt', defaultVisible: false),
+            ], 'policy'),
             self::MODULES => new TableDefinition($key, [
                 new TableColumn('moduleKey'),
                 new TableColumn('category'),
@@ -149,6 +163,16 @@ final class AdminTableDefinitions
      */
     public static function keys(): array
     {
-        return [self::USERS, self::TEAMS, self::ROLES, self::PACKAGES, self::PERMISSIONS, self::AUDIT, self::MODULES, self::NOTIFICATIONS];
+        return [
+            self::USERS,
+            self::TEAMS,
+            self::ROLES,
+            self::PACKAGES,
+            self::PERMISSIONS,
+            self::AUDIT,
+            self::RATE_LIMITS,
+            self::MODULES,
+            self::NOTIFICATIONS,
+        ];
     }
 }

@@ -96,6 +96,8 @@ Policy thresholds live in `config/atlas.php` and environment variables. They are
 
 Policy keys may combine IP, user, active team, API client, or an explicit combination. The policy model supports progressive delays and temporary locks; concrete lock counters for failed login escalation are implemented later in this phase.
 
+Admin rate-limit visibility is exposed at `/admin/rate-limits`. The screen shows named policy definitions and aggregated rejection statistics, but it cannot modify thresholds or disable policies. Administrators with the reset permission may clear exactly one limiter key for one selected policy after providing a reason. Resets are security-audited as `rate_limit.counter_reset` with the policy, limiter key, actor, reason, and correlation ID.
+
 Persistent login protection locks an account after 10 failed password attempts. Lock durations escalate according to `atlas.security.login_lock.durations_seconds`; defaults are 15 minutes, 30 minutes, and 60 minutes, with later locks using the last configured duration. A successful login resets `failed_login_attempts` and clears `login_locked_until`. When a persistent login lock is created, Atlas sends the user a suspicious-login notification.
 
 Administrative login unlock is exposed through `App\Modules\Core\Users\Application\UnlockUserAccount`. It requires an actor, target account, and reason, clears `failed_login_attempts` and `login_locked_until`, and records an `audit_events` entry with action `user.login_unlock`. Rejected unlock attempts for missing target accounts are audited as `rejected`.

@@ -37,8 +37,8 @@ Do not replace this index after the initial technical foundation is completed. C
 
 ## Current phase
 
-- Phase: [Phase 15 — Notifications and realtime foundation](docs/roadmap/phase-15-notifications-realtime.md)
-- Status: `complete`
+- Phase: [Phase 17 — Manager hierarchy](docs/roadmap/phase-17-manager-hierarchy.md)
+- Status: `not started`
 
 ## Roadmap dependency repair note
 
@@ -186,7 +186,7 @@ Implement typed notifications, delivery channels, preferences, queueing, and the
 
 ### Phase 16 — Admin operations and health
 
-**Status:** `not started`
+**Status:** `in progress`
 
 Implement Admin operational screens, structured logging, health/readiness, alerts, queues, scheduler, rate-limit administration, and diagnostics.
 

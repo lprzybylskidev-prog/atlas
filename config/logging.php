@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Shared\Infrastructure\Observability\ConfigureAtlasLogging;
 use Monolog\Handler\NullHandler;
 use Monolog\Handler\StreamHandler;
 use Monolog\Processor\PsrLogMessageProcessor;
@@ -13,7 +14,7 @@ if (! is_string($logStack)) {
 }
 
 return [
-    'default' => env('LOG_CHANNEL', 'stack'),
+    'default' => env('LOG_CHANNEL', env('APP_ENV') === 'production' ? 'json' : 'stack'),
 
     'deprecations' => [
         'channel' => env('LOG_DEPRECATIONS_CHANNEL', 'null'),
@@ -32,6 +33,7 @@ return [
             'path' => storage_path('logs/atlas.log'),
             'level' => env('LOG_LEVEL', 'debug'),
             'replace_placeholders' => true,
+            'tap' => [ConfigureAtlasLogging::class],
         ],
 
         'stderr' => [
@@ -42,6 +44,18 @@ return [
                 'stream' => 'php://stderr',
             ],
             'processors' => [PsrLogMessageProcessor::class],
+            'tap' => [ConfigureAtlasLogging::class],
+        ],
+
+        'json' => [
+            'driver' => 'monolog',
+            'level' => env('LOG_LEVEL', 'info'),
+            'handler' => StreamHandler::class,
+            'handler_with' => [
+                'stream' => 'php://stderr',
+            ],
+            'processors' => [PsrLogMessageProcessor::class],
+            'tap' => [ConfigureAtlasLogging::class],
         ],
 
         'null' => [
