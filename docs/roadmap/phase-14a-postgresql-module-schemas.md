@@ -1,6 +1,6 @@
 # Phase 14a — PostgreSQL module schemas
 
-**Status:** `implementation complete, pending commit`
+**Status:** `complete`
 
 ## Objective
 
@@ -45,7 +45,7 @@ Move Atlas-owned database tables out of the default `public` schema and into exp
 - [x] Keep `public` limited to the documented allowlist.
 - [x] Add an automated architecture guard against unqualified Atlas-owned table creation.
 - [x] Run the required backend, frontend, and migration quality gates.
-- [ ] Commit PostgreSQL module schema ownership foundation.
+- [x] Commit PostgreSQL module schema ownership foundation.
 
 ## Completion criteria
 

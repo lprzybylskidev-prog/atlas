@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { formatEmpty, formatMoney, formatStatus, majorToMinor, minorToMajor } from './formatters';
+import { formatEmpty, formatMoney, formatStatus, formatTimestamp, majorToMinor, minorToMajor } from './formatters';
 
 describe('shared formatters', () => {
     it('uses a stable empty value fallback', () => {
@@ -19,5 +19,12 @@ describe('shared formatters', () => {
     it('formats technical statuses for display', () => {
         expect(formatStatus('email_verification_required')).toBe('Email Verification Required');
         expect(formatStatus('')).toBe('-');
+    });
+
+    it('formats timestamps for application locales', () => {
+        const timestamp = '2026-07-17T09:03:00+02:00';
+
+        expect(formatTimestamp(timestamp, 'en')).toBe('Jul 17, 2026, 9:03 AM');
+        expect(formatTimestamp(timestamp, 'pl')).toBe('17.07.2026, 09:03');
     });
 });

@@ -11,6 +11,8 @@ use App\Modules\Core\Authorization\Application\Public\Contracts\AdministratorAcc
 use App\Modules\Core\Authorization\Application\Roles\InstallStarterRoles;
 use App\Modules\Core\Authorization\Application\Roles\StarterRoleName;
 use App\Modules\Core\Identity\Infrastructure\Persistence\User;
+use App\Modules\Core\Notifications\Application\Public\Contracts\NotificationPublisher;
+use App\Modules\Core\Notifications\Application\Public\DTOs\CreateNotification;
 use App\Modules\Core\Teams\Application\Public\Contracts\BootstrapTeamProvider;
 use App\Modules\Core\Teams\Application\Public\DTOs\BootstrapTeam;
 use App\Modules\Core\Teams\Application\Public\Permissions\TeamPermissionNames;
@@ -75,6 +77,8 @@ class DevelopmentDemoSeeder extends Seeder
         $this->applyPackageIfMissing($backOfficeCopySource, $teams[2]->publicId, 'back_office.specialist', (string) $admin->public_id);
         $this->applyPackageIfMissing($multiTeamUser, $teams[0]->publicId, 'north.collections.agent', (string) $admin->public_id);
         $this->applyPackageIfMissing($multiTeamUser, $teams[2]->publicId, 'back_office.specialist', (string) $admin->public_id);
+
+        $this->seedNotifications((string) $admin->public_id, $teams[0]->publicId);
     }
 
     private function demoUser(string $email, string $name): User
@@ -115,6 +119,56 @@ class DevelopmentDemoSeeder extends Seeder
             actorPublicId: $actorPublicId,
             duringUserCreation: true,
         );
+    }
+
+    private function seedNotifications(string $userPublicId, string $teamPublicId): void
+    {
+        if (DB::table(DatabaseTable::NOTIFICATION_RECIPIENTS)
+            ->join(DatabaseTable::USERS, 'notification_recipients.user_id', '=', 'users.id')
+            ->where('users.public_id', $userPublicId)
+            ->exists()) {
+            return;
+        }
+
+        $publisher = app(NotificationPublisher::class);
+        $polish = config()->string('app.locale') === 'pl';
+
+        foreach (range(1, 12) as $index) {
+            $publisher->publish(new CreateNotification(
+                type: 'demo.notification',
+                title: $polish ? sprintf('Powiadomienie demo %02d', $index) : sprintf('Demo notification %02d', $index),
+                body: $this->demoNotificationBody($index, $polish),
+                recipientUserPublicId: $userPublicId,
+                teamPublicId: $teamPublicId,
+                severity: $index % 4 === 0 ? 'warning' : 'info',
+                deepLinkUrl: '/notifications',
+                data: ['demo_index' => $index],
+            ));
+        }
+
+        DB::table(DatabaseTable::NOTIFICATION_RECIPIENTS)
+            ->join(DatabaseTable::NOTIFICATIONS, 'notification_recipients.notification_id', '=', 'notifications.id')
+            ->where('notifications.type', 'demo.notification')
+            ->whereIn('notifications.title', $polish
+                ? ['Powiadomienie demo 03', 'Powiadomienie demo 06', 'Powiadomienie demo 09']
+                : ['Demo notification 03', 'Demo notification 06', 'Demo notification 09'])
+            ->update([
+                'read_at' => now(),
+                'notification_recipients.updated_at' => now(),
+            ]);
+    }
+
+    private function demoNotificationBody(int $index, bool $polish): string
+    {
+        if ($index % 3 === 0) {
+            return $polish
+                ? 'To powiadomienie jest już oznaczone jako przeczytane w skrzynce demo.'
+                : 'This notification is already marked as read in the demo inbox.';
+        }
+
+        return $polish
+            ? 'Przykładowe powiadomienie aplikacyjne dla dropdownu avatara i centrum powiadomień.'
+            : 'This is an example in-app notification for the avatar dropdown and notification center.';
     }
 
     /**

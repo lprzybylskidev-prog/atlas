@@ -46,6 +46,14 @@ final class DatabaseTable
 
     public const SETTINGS_SECURITY_VALUES = DatabaseSchema::CORE_SETTINGS.'.settings_security_values';
 
+    public const NOTIFICATIONS = DatabaseSchema::CORE_NOTIFICATIONS.'.notifications';
+
+    public const NOTIFICATION_RECIPIENTS = DatabaseSchema::CORE_NOTIFICATIONS.'.notification_recipients';
+
+    public const NOTIFICATION_PREFERENCES = DatabaseSchema::CORE_NOTIFICATIONS.'.notification_preferences';
+
+    public const REALTIME_EVENTS = DatabaseSchema::CORE_NOTIFICATIONS.'.realtime_events';
+
     public const CACHE = DatabaseSchema::SHARED.'.cache';
 
     public const CACHE_LOCKS = DatabaseSchema::SHARED.'.cache_locks';

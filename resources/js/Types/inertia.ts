@@ -8,6 +8,19 @@ export interface AtlasTeam {
     name: string;
 }
 
+export interface AtlasNotificationSummary {
+    publicId: string;
+    type: string;
+    severity: string;
+    title: string;
+    body: string | null;
+    deepLinkUrl: string | null;
+    teamPublicId: string | null;
+    read: boolean;
+    createdAt: string;
+    readAt: string | null;
+}
+
 export interface AtlasPageProps {
     [key: string]: unknown;
     app: {
@@ -35,6 +48,10 @@ export interface AtlasPageProps {
             label: string;
             url: string | null;
         }[];
+    };
+    notifications: {
+        unreadCount: number;
+        latest: AtlasNotificationSummary[];
     };
     flash: {
         success: string | null;

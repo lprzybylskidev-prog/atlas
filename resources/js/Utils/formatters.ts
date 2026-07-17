@@ -72,6 +72,30 @@ export function formatDateTime(value: string | Date | EmptyValue, locale = 'pl-P
     return new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value));
 }
 
+export function formatTimestamp(value: string | Date | EmptyValue, locale = 'pl'): string {
+    if (isEmptyValue(value)) {
+        return formatEmpty(value);
+    }
+
+    if (locale.startsWith('pl')) {
+        return new Intl.DateTimeFormat('pl-PL', {
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+        }).format(new Date(value));
+    }
+
+    return new Intl.DateTimeFormat('en-US', {
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+        month: 'short',
+        year: 'numeric',
+    }).format(new Date(value));
+}
+
 export function formatStatus(value: string | EmptyValue): string {
     if (isEmptyValue(value)) {
         return formatEmpty(value);

@@ -9,6 +9,9 @@ use App\Http\Middleware\ForceAdminLocale;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\SetLocaleFromSession;
 use App\Modules\Core\Authorization\Presentation\Http\Middleware\AuthorizeRoutePermission;
+use App\Modules\Core\Notifications\Presentation\Console\PruneNotificationsCommand;
+use App\Modules\Core\Notifications\Presentation\Console\PublishRealtimeEventCommand;
+use App\Modules\Core\Notifications\Presentation\Console\SendNotificationCommand;
 use App\Shared\Infrastructure\Console\ResetDemoEnvironment;
 use App\Shared\Presentation\Console\ApplyDueModuleActivationSchedules;
 use Illuminate\Foundation\Application;
@@ -29,7 +32,10 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withCommands([
         ApplyDueModuleActivationSchedules::class,
+        PruneNotificationsCommand::class,
+        PublishRealtimeEventCommand::class,
         ResetDemoEnvironment::class,
+        SendNotificationCommand::class,
     ])
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([

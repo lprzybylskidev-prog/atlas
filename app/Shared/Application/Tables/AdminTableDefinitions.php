@@ -20,6 +20,8 @@ final class AdminTableDefinitions
 
     public const MODULES = 'admin.modules';
 
+    public const NOTIFICATIONS = 'notifications';
+
     public static function get(string $key): TableDefinition
     {
         return match ($key) {
@@ -126,6 +128,18 @@ final class AdminTableDefinitions
                 new TableColumn('requiredDependencies', defaultVisible: false),
                 new TableColumn('optionalDependencies', defaultVisible: false),
             ], 'moduleKey'),
+            self::NOTIFICATIONS => new TableDefinition($key, [
+                new TableColumn('publicId', defaultVisible: false),
+                new TableColumn('type'),
+                new TableColumn('severity'),
+                new TableColumn('title'),
+                new TableColumn('body'),
+                new TableColumn('teamPublicId', defaultVisible: false),
+                new TableColumn('read', searchable: false),
+                new TableColumn('createdAt'),
+                new TableColumn('readAt', defaultVisible: false),
+                new TableColumn('deepLinkUrl', defaultVisible: false),
+            ], 'createdAt', 'desc'),
             default => abort(404),
         };
     }
@@ -135,6 +149,6 @@ final class AdminTableDefinitions
      */
     public static function keys(): array
     {
-        return [self::USERS, self::TEAMS, self::ROLES, self::PACKAGES, self::PERMISSIONS, self::AUDIT, self::MODULES];
+        return [self::USERS, self::TEAMS, self::ROLES, self::PACKAGES, self::PERMISSIONS, self::AUDIT, self::MODULES, self::NOTIFICATIONS];
     }
 }

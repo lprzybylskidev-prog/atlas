@@ -6,6 +6,8 @@ namespace App\Http\Middleware;
 
 use App\Modules\Core\Authorization\Application\Public\Contracts\EffectivePermissionChecker;
 use App\Modules\Core\Authorization\Application\Public\DTOs\EffectivePermissionRequest;
+use App\Modules\Core\Notifications\Application\Public\Contracts\NotificationInbox;
+use App\Modules\Core\Notifications\Application\Public\DTOs\NotificationSummary;
 use App\Modules\Core\Settings\Application\Settings\EffectiveSettings;
 use App\Shared\Infrastructure\Database\DatabaseTable;
 use Diglactic\Breadcrumbs\Breadcrumbs;
@@ -47,6 +49,7 @@ final class HandleInertiaRequests extends Middleware
             'navigation' => [
                 'breadcrumbs' => $this->breadcrumbs($request),
             ],
+            'notifications' => $this->notifications($request),
             'flash' => [
                 'success' => $request->session()->get('success'),
                 'error' => $request->session()->get('error'),
@@ -188,6 +191,45 @@ final class HandleInertiaRequests extends Middleware
             ->value('teams.public_id');
 
         return is_string($team) ? $team : null;
+    }
+
+    /**
+     * @return array{unreadCount: int, latest: list<array{publicId: string, type: string, severity: string, title: string, body: string|null, deepLinkUrl: string|null, teamPublicId: string|null, read: bool, createdAt: string, readAt: string|null}>}
+     */
+    private function notifications(Request $request): array
+    {
+        $userPublicId = data_get($request->user(), 'public_id');
+        $teamPublicId = $request->hasSession() ? $request->session()->get('active_team_public_id') : null;
+
+        if (! is_string($userPublicId)) {
+            return [
+                'unreadCount' => 0,
+                'latest' => [],
+            ];
+        }
+
+        /** @var NotificationInbox $notifications */
+        $notifications = app(NotificationInbox::class);
+        $team = is_string($teamPublicId) ? $teamPublicId : null;
+
+        return [
+            'unreadCount' => $notifications->unreadCount($userPublicId, $team),
+            'latest' => array_map(
+                static fn (NotificationSummary $notification): array => [
+                    'publicId' => $notification->publicId,
+                    'type' => $notification->type,
+                    'severity' => $notification->severity,
+                    'title' => $notification->title,
+                    'body' => $notification->body,
+                    'deepLinkUrl' => $notification->deepLinkUrl,
+                    'teamPublicId' => $notification->teamPublicId,
+                    'read' => $notification->read,
+                    'createdAt' => $notification->createdAt,
+                    'readAt' => $notification->readAt,
+                ],
+                $notifications->latestForUser($userPublicId, $team, 10),
+            ),
+        ];
     }
 
     /**

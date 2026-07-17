@@ -37,8 +37,8 @@ Do not replace this index after the initial technical foundation is completed. C
 
 ## Current phase
 
-- Phase: [Phase 14a — PostgreSQL module schemas](docs/roadmap/phase-14a-postgresql-module-schemas.md)
-- Status: `implementation complete, pending commit`
+- Phase: [Phase 15 — Notifications and realtime foundation](docs/roadmap/phase-15-notifications-realtime.md)
+- Status: `complete`
 
 ## Roadmap dependency repair note
 
@@ -170,7 +170,7 @@ Implement deployment availability, global/team activation, schedules, dependenci
 
 ### Phase 14a — PostgreSQL module schemas
 
-**Status:** `implementation complete, pending commit`
+**Status:** `complete`
 
 Move Atlas-owned database tables from the default `public` schema into explicit module and shared-infrastructure PostgreSQL schemas before later phases add more persistence.
 
@@ -178,7 +178,7 @@ Move Atlas-owned database tables from the default `public` schema into explicit 
 
 ### Phase 15 — Notifications and realtime foundation
 
-**Status:** `not started`
+**Status:** `complete`
 
 Implement typed notifications, delivery channels, preferences, queueing, and the minimal realtime foundation.
 

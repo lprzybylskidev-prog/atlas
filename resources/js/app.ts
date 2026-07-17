@@ -5,6 +5,7 @@ import type { DefineComponent } from 'vue';
 import { createApp, h } from 'vue';
 
 import { registerNetworkHandling } from './Services/networkHandling';
+import { registerRealtimeEvents } from './Services/realtimeEvents';
 
 createInertiaApp({
     title: (title) => (title ? `${title} - Atlas` : 'Atlas'),
@@ -20,6 +21,7 @@ createInertiaApp({
     },
     setup({ el, App, props, plugin }) {
         registerNetworkHandling();
+        registerRealtimeEvents();
 
         createApp({ render: () => h(App, props) })
             .use(plugin)

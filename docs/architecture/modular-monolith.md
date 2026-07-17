@@ -249,6 +249,7 @@ Current table ownership:
 | `core_authorization` | `permissions`, `roles`, `model_has_permissions`, `model_has_roles`, `role_has_permissions`, `authorization_onboarding_packages`, `user_onboarding_packages` |
 | `core_audit` | `audit_events`, `audit_security_events` |
 | `core_settings` | `settings_global_values`, `settings_team_values`, `settings_user_values`, `settings_security_values` |
+| `core_notifications` | `notifications`, `notification_recipients`, `notification_preferences`, `realtime_events` |
 | `shared` | `cache`, `cache_locks`, `jobs`, `job_batches`, `failed_jobs`, `outbox_events`, `outbox_consumed_events`, `table_saved_views`, `table_saved_view_defaults`, `module_global_states`, `module_team_states`, `module_activation_schedules`, `module_activation_history` |
 | `public` allowlist | `migrations`, package-owned local diagnostics tables such as Telescope tables |
 

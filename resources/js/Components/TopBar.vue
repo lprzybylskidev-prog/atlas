@@ -1,6 +1,11 @@
 <script setup lang="ts">
 import { Link, router, usePage } from '@inertiajs/vue3';
 import {
+    IconAlertTriangle,
+    IconBell,
+    IconCircleCheck,
+    IconCircleX,
+    IconInfoCircle,
     IconLanguage,
     IconLayoutSidebarLeftCollapse,
     IconLayoutSidebarLeftExpand,
@@ -10,7 +15,7 @@ import {
     IconShieldLock,
     IconSun,
 } from '@tabler/icons-vue';
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import type { Component } from 'vue';
 
 import IconButton from './IconButton.vue';
@@ -21,6 +26,7 @@ import { useTheme } from '../Composables/useTheme';
 import { useTranslator } from '../Localization/translator';
 import { clearTeamScopedState } from '../Services/teamScopedState';
 import type { AtlasPageProps } from '../Types/inertia';
+import { formatTimestamp } from '../Utils/formatters';
 
 const props = withDefaults(
     defineProps<{
@@ -50,6 +56,8 @@ const { t } = useTranslator(props.uiLocale);
 const userMenuOpen = ref(false);
 const userMenuButton = ref<HTMLElement | null>(null);
 const userMenuPanel = ref<HTMLElement | null>(null);
+const notificationSoundArmed = ref(false);
+const previousUnreadCount = ref(page.props.notifications.unreadCount);
 
 const userInitials = computed(() => {
     const name = page.props.auth.user?.name ?? t('user.default_name');
@@ -79,6 +87,9 @@ const isAdminMode = computed(() => props.mode === 'admin');
 const canEnterAdmin = computed(() => page.props.auth.availableAdminRoutes.includes('admin.system-status'));
 const activeTeamPublicId = computed(() => page.props.auth.teams.active?.publicId ?? '');
 const availableTeamOptions = computed(() => page.props.auth.teams.available.map((team) => ({ value: team.publicId, label: team.name })));
+const latestNotifications = computed(() => page.props.notifications.latest);
+const unreadCountLabel = computed(() => t('notifications.unread_count').replace('{count}', String(page.props.notifications.unreadCount)));
+const avatarBadgeLabel = computed(() => String(Math.min(page.props.notifications.unreadCount, 99)));
 
 const handleOutsidePointerDown = (event: PointerEvent): void => {
     const target = event.target;
@@ -117,15 +128,93 @@ const switchTeam = (teamPublicId: string | number): void => {
     );
 };
 
+const markNotificationRead = (notificationPublicId: string): void => {
+    router.post(
+        `/notifications/${notificationPublicId}/read`,
+        {},
+        {
+            preserveScroll: true,
+            preserveState: false,
+        },
+    );
+};
+
+const armNotificationSound = (): void => {
+    notificationSoundArmed.value = true;
+};
+
+const playNotificationSound = (): void => {
+    if (!notificationSoundArmed.value || typeof window === 'undefined') {
+        return;
+    }
+
+    const audio = new Audio('/sounds/notification.wav');
+
+    audio.play().catch(() => {
+        notificationSoundArmed.value = false;
+    });
+};
+
+const notificationSeverityIcon = (severity: string): Component => {
+    const normalized = severity.toLowerCase();
+
+    if (['warning', 'warn'].includes(normalized)) {
+        return IconAlertTriangle;
+    }
+
+    if (['error', 'danger', 'failed', 'failure'].includes(normalized)) {
+        return IconCircleX;
+    }
+
+    if (['success', 'ok', 'resolved'].includes(normalized)) {
+        return IconCircleCheck;
+    }
+
+    return IconInfoCircle;
+};
+
+const notificationSeverityClass = (severity: string): string => {
+    const normalized = severity.toLowerCase();
+
+    if (['warning', 'warn'].includes(normalized)) {
+        return 'bg-amber-50 text-amber-700 ring-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:ring-amber-900';
+    }
+
+    if (['error', 'danger', 'failed', 'failure'].includes(normalized)) {
+        return 'bg-rose-50 text-rose-700 ring-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:ring-rose-900';
+    }
+
+    if (['success', 'ok', 'resolved'].includes(normalized)) {
+        return 'bg-emerald-50 text-emerald-700 ring-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:ring-emerald-900';
+    }
+
+    return 'bg-sky-50 text-sky-700 ring-sky-200 dark:bg-sky-950/40 dark:text-sky-300 dark:ring-sky-900';
+};
+
+const notificationTimestamp = (value: string): string => formatTimestamp(value, props.uiLocale ?? page.props.locale);
+
 onMounted(() => {
     document.addEventListener('pointerdown', handleOutsidePointerDown);
     document.addEventListener('keydown', handleEscape);
+    document.addEventListener('pointerdown', armNotificationSound, { once: true });
 });
 
 onBeforeUnmount(() => {
     document.removeEventListener('pointerdown', handleOutsidePointerDown);
     document.removeEventListener('keydown', handleEscape);
+    document.removeEventListener('pointerdown', armNotificationSound);
 });
+
+watch(
+    () => page.props.notifications.unreadCount,
+    (nextCount) => {
+        if (nextCount > previousUnreadCount.value) {
+            playNotificationSound();
+        }
+
+        previousUnreadCount.value = nextCount;
+    },
+);
 </script>
 
 <template>
@@ -219,13 +308,19 @@ onBeforeUnmount(() => {
                     <button
                         ref="userMenuButton"
                         type="button"
-                        class="flex h-10 w-10 items-center justify-center rounded-full bg-zinc-950 text-sm font-semibold text-white shadow-sm ring-2 ring-white transition hover:bg-teal-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-500 dark:bg-zinc-100 dark:text-zinc-950 dark:ring-zinc-950 dark:hover:bg-teal-200"
+                        class="relative flex h-10 w-10 items-center justify-center rounded-full bg-zinc-950 text-sm font-semibold text-white shadow-sm ring-2 ring-white transition hover:bg-teal-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-500 dark:bg-zinc-100 dark:text-zinc-950 dark:ring-zinc-950 dark:hover:bg-teal-200"
                         aria-haspopup="menu"
                         :aria-expanded="userMenuOpen"
                         :aria-label="t('user.menu')"
                         @click="toggleUserMenu"
                     >
                         {{ userInitials }}
+                        <span
+                            v-if="page.props.notifications.unreadCount > 0"
+                            class="absolute -right-1 -top-1 inline-flex min-w-5 items-center justify-center rounded-full bg-rose-600 px-1.5 text-[0.65rem] font-bold leading-5 text-white ring-2 ring-white dark:ring-zinc-950"
+                        >
+                            {{ avatarBadgeLabel }}
+                        </span>
                     </button>
 
                     <div
@@ -243,10 +338,83 @@ onBeforeUnmount(() => {
                         </div>
 
                         <div class="p-2">
+                            <div class="border-b border-zinc-200 pb-2 dark:border-zinc-800">
+                                <div class="mb-2 flex items-center justify-between gap-2 px-2">
+                                    <div class="flex min-w-0 items-center gap-2">
+                                        <IconBell
+                                            aria-hidden="true"
+                                            class="h-4 w-4 shrink-0 text-zinc-500 dark:text-zinc-400"
+                                            :stroke-width="1.8"
+                                        />
+                                        <p class="truncate text-xs font-semibold uppercase text-zinc-500 dark:text-zinc-400">
+                                            {{ t('notifications.dropdown.latest') }}
+                                        </p>
+                                    </div>
+                                    <span class="shrink-0 text-xs font-medium text-teal-700 dark:text-teal-300">
+                                        {{ unreadCountLabel }}
+                                    </span>
+                                </div>
+                                <div v-if="latestNotifications.length > 0" class="max-h-80 space-y-2 overflow-y-auto py-1">
+                                    <div
+                                        v-for="notification in latestNotifications"
+                                        :key="notification.publicId"
+                                        class="rounded-lg px-2 py-2 ring-1"
+                                        :class="notificationSeverityClass(notification.severity)"
+                                    >
+                                        <div class="flex items-start justify-between gap-2">
+                                            <component
+                                                :is="notificationSeverityIcon(notification.severity)"
+                                                aria-hidden="true"
+                                                class="mt-0.5 h-4 w-4 shrink-0"
+                                                :stroke-width="1.8"
+                                            />
+                                            <Link
+                                                :href="notification.deepLinkUrl ?? '/notifications'"
+                                                class="min-w-0 flex-1 focus-visible:outline focus-visible:outline-amber-500"
+                                                role="menuitem"
+                                                @click="closeUserMenu"
+                                            >
+                                                <p class="truncate text-sm font-medium text-zinc-900 dark:text-zinc-100">
+                                                    {{ notification.title }}
+                                                </p>
+                                                <p
+                                                    v-if="notification.body"
+                                                    class="mt-0.5 line-clamp-2 text-xs text-zinc-500 dark:text-zinc-400"
+                                                >
+                                                    {{ notification.body }}
+                                                </p>
+                                                <p class="mt-1 text-xs text-zinc-400 dark:text-zinc-500">
+                                                    {{ notificationTimestamp(notification.createdAt) }}
+                                                </p>
+                                            </Link>
+                                            <button
+                                                v-if="!notification.read"
+                                                type="button"
+                                                class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-zinc-500 transition hover:bg-white hover:text-teal-700 focus-visible:outline focus-visible:outline-amber-500 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-teal-300"
+                                                :aria-label="t('notifications.mark_read')"
+                                                @click="markNotificationRead(notification.publicId)"
+                                            >
+                                                <IconCircleCheck aria-hidden="true" class="h-4 w-4" :stroke-width="1.8" />
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <p v-else class="px-2 py-3 text-sm text-zinc-500 dark:text-zinc-400">
+                                    {{ t('notifications.dropdown.empty') }}
+                                </p>
+                                <Link
+                                    href="/notifications"
+                                    class="mt-2 flex h-9 items-center justify-center rounded-lg text-sm font-medium text-teal-700 transition hover:bg-teal-50 focus-visible:outline focus-visible:outline-amber-500 dark:text-teal-300 dark:hover:bg-teal-950/40"
+                                    role="menuitem"
+                                    @click="closeUserMenu"
+                                >
+                                    {{ t('notifications.dropdown.open_all') }}
+                                </Link>
+                            </div>
                             <Link
                                 v-if="canEnterAdmin"
                                 href="/admin"
-                                class="flex h-10 items-center gap-3 rounded-lg px-2 text-sm font-medium text-zinc-700 transition hover:bg-zinc-100 hover:text-zinc-950 dark:text-zinc-200 dark:hover:bg-zinc-800 dark:hover:text-zinc-50"
+                                class="mt-2 flex h-10 items-center gap-3 rounded-lg px-2 text-sm font-medium text-zinc-700 transition hover:bg-zinc-100 hover:text-zinc-950 dark:text-zinc-200 dark:hover:bg-zinc-800 dark:hover:text-zinc-50"
                                 role="menuitem"
                                 @click="closeUserMenu"
                             >

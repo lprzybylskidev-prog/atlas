@@ -18,6 +18,8 @@ final class DatabaseSchema
 
     public const CORE_SETTINGS = 'core_settings';
 
+    public const CORE_NOTIFICATIONS = 'core_notifications';
+
     public const SHARED = 'shared';
 
     /**
@@ -31,6 +33,7 @@ final class DatabaseSchema
             self::CORE_AUTHORIZATION,
             self::CORE_AUDIT,
             self::CORE_SETTINGS,
+            self::CORE_NOTIFICATIONS,
             self::SHARED,
         ];
     }

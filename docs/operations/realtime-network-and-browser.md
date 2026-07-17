@@ -36,6 +36,9 @@ Current implementation foundation:
 - automatic retry is allowed only for safe idempotent HTTP methods (`GET`, `HEAD`, `OPTIONS`);
 - unsafe mutations are never retried automatically and CSRF failures surface as a refresh/sign-in problem instead of entering retry loops;
 - `resources/js/Services/teamScopedState.ts` clears Atlas-owned team-scoped browser storage prefixes when the active team changes.
+- `core_notifications.realtime_events` stores the minimal realtime event buffer for notifications, queued progress, session invalidation, and system-alert delivery;
+- `/realtime/events` is the authorized active-team-aware browser feed used by the initial notification foundation;
+- browser WebSocket channel wiring is implemented only when a genuine server-push workflow needs it beyond the current minimal feed.
 
 Preserve non-sensitive form data where appropriate.
 

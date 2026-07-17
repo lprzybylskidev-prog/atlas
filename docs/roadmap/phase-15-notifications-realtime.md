@@ -1,6 +1,6 @@
 ## Phase 15 — Notifications and realtime foundation
 
-**Status:** `not started`
+**Status:** `complete`
 
 ## Objective
 
@@ -38,32 +38,36 @@ Implement platform notifications and the minimal realtime foundation before repo
 
 ## Tasks
 
-- [ ] Create `Notifications` module.
-- [ ] Create notification and realtime tables only in the `core_notifications` PostgreSQL schema.
-- [ ] Define typed notification events.
-- [ ] Support user and team recipients.
-- [ ] Support in-app notifications.
-- [ ] Support email notifications.
-- [ ] Add per-user, per-type, and per-channel preferences.
-- [ ] Queue delivery.
-- [ ] Add read/unread state.
-- [ ] Add deep links.
-- [ ] Add retention cleanup.
-- [ ] Avoid sensitive email content.
-- [ ] Add unread-count UI.
-- [ ] Add notification center.
-- [ ] Add WebSocket/realtime infrastructure only for real server-push needs.
-- [ ] Add live notification delivery.
-- [ ] Enforce ModuleGate and active-team context on realtime channels and notification delivery routes.
-- [ ] Add session invalidation events.
-- [ ] Add system alerts.
-- [ ] Add progress events for queued operations.
-- [ ] Add development-only demo seeders for example notifications after real notification tables exist.
-- [ ] Commit notifications and realtime foundation.
+- [x] Create `Notifications` module.
+- [x] Create notification and realtime tables only in the `core_notifications` PostgreSQL schema.
+- [x] Define typed notification events.
+- [x] Support user and team recipients.
+- [x] Support in-app notifications.
+- [x] Support email notifications.
+- [x] Add per-user, per-type, and per-channel preferences.
+- [x] Queue delivery.
+- [x] Add read/unread state.
+- [x] Add deep links.
+- [x] Add retention cleanup.
+- [x] Avoid sensitive email content.
+- [x] Add unread-count UI.
+- [x] Show the 10 latest notifications in the top navigation avatar dropdown near the logout action.
+- [x] Add a dropdown link to the full notification center.
+- [x] Add notification center.
+- [x] Render the full notification center through the shared datatable foundation.
+- [x] Add WebSocket/realtime infrastructure only for real server-push needs.
+- [x] Add live notification delivery.
+- [x] Enforce ModuleGate and active-team context on notification delivery routes.
+- [x] Enforce ModuleGate and active-team context on realtime channels.
+- [x] Add session invalidation events.
+- [x] Add system alerts.
+- [x] Add progress events for queued operations.
+- [x] Add development-only demo seeders for example notifications after real notification tables exist.
+- [x] Commit notifications and realtime foundation.
 
 ## Completion criteria
 
-- [ ] Typed notifications support in-app/email delivery, preferences, read state, retention, and deep links.
-- [ ] Realtime infrastructure exists only for documented server-push needs.
-- [ ] Later queued operations can publish progress/failure/success through one notification contract.
-- [ ] Relevant tests and documentation are current.
+- [x] Typed notifications support in-app/email delivery, preferences, read state, retention, and deep links.
+- [x] Realtime infrastructure exists only for documented server-push needs.
+- [x] Later queued operations can publish progress/failure/success through one notification contract.
+- [x] Relevant tests and documentation are current.

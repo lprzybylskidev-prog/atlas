@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Core\Authorization\Application\Roles;
 
 use App\Modules\Core\Authorization\Application\Permissions\CoreAuthorizationPermissionCatalog;
+use App\Modules\Core\Notifications\Application\Public\Permissions\NotificationPermissionNames;
 use App\Modules\Core\Teams\Application\Public\Permissions\TeamPermissionNames;
 
 final class StarterRoleCatalog
@@ -19,6 +20,10 @@ final class StarterRoleCatalog
             new StarterRoleDefinition(StarterRoleName::WorkspaceAccess, [
                 CoreAuthorizationPermissionCatalog::DASHBOARD,
                 'team.switch',
+                NotificationPermissionNames::NOTIFICATIONS_INDEX,
+                NotificationPermissionNames::NOTIFICATIONS_READ,
+                NotificationPermissionNames::NOTIFICATIONS_READ_BULK,
+                NotificationPermissionNames::REALTIME_EVENTS,
             ]),
             new StarterRoleDefinition(StarterRoleName::AdminUsersRead, [
                 'admin.users.index',

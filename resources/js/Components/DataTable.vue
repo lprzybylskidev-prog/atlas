@@ -17,10 +17,12 @@ import {
     IconChevronLeft,
     IconChevronRight,
     IconChevronUp,
+    IconCircleCheck,
     IconCopy,
     IconDeviceFloppy,
     IconDownload,
     IconEraser,
+    IconExternalLink,
     IconFileSpreadsheet,
     IconFileText,
     IconKey,
@@ -49,17 +51,18 @@ import { useTranslator } from '../Localization/translator';
 import type { DataTableAction, DataTableBulkAction, DataTableColumn, DataTableMeta, DataTableSavedView } from '../Types/data-table';
 import {
     formatDate,
-    formatDateTime,
     formatEmpty,
     formatMoney,
     formatNumber,
     formatPercent,
     formatStatus,
+    formatTimestamp,
     formatTime,
 } from '../Utils/formatters';
 import FormCheckbox from './Form/FormCheckbox.vue';
 import FormInput from './Form/FormInput.vue';
 import FormSelect from './Form/FormSelect.vue';
+import SeverityBadge from './SeverityBadge.vue';
 import StatusBadge from './StatusBadge.vue';
 import Tooltip from './Tooltip.vue';
 
@@ -661,7 +664,7 @@ function formatCell(value: unknown, format: DataTableColumn<TRow>['format']): VN
     }
 
     if (format === 'datetime' && (typeof value === 'string' || value instanceof Date)) {
-        return formatDateTime(value, props.uiLocale ?? 'en');
+        return formatTimestamp(value, props.uiLocale ?? 'pl');
     }
 
     if (format === 'money' && value !== null && typeof value === 'object' && 'amountMinor' in value && 'currency' in value) {
@@ -678,6 +681,10 @@ function formatCell(value: unknown, format: DataTableColumn<TRow>['format']): VN
 
     if (format === 'status' && typeof value === 'string') {
         return formatStatus(value);
+    }
+
+    if (format === 'severity' && typeof value === 'string') {
+        return h(SeverityBadge, { value });
     }
 
     return formatEmpty(value);
@@ -698,6 +705,10 @@ function formatExportCell(value: unknown, format: DataTableColumn<TRow>['format'
 
     if ((format === 'date' || format === 'time' || format === 'datetime') && typeof value === 'string' && value !== '') {
         return value;
+    }
+
+    if ((format === 'severity' || format === 'status') && typeof value === 'string') {
+        return formatStatus(value);
     }
 
     if (format === 'money' && value !== null && typeof value === 'object' && 'amountMinor' in value && 'currency' in value) {
@@ -1287,6 +1298,9 @@ function actionIcon(action: DataTableAction<TRow>): Component {
         deactivate: IconUserOff,
         delete: IconTrash,
         edit: IconPencil,
+        open: IconExternalLink,
+        read: IconCircleCheck,
+        'mark-read': IconCircleCheck,
         verify: IconMailCheck,
         'first-password': IconKey,
         unlock: IconLockOpen,
@@ -1310,7 +1324,11 @@ function actionTone(action: DataTableAction<TRow>): DataTableAction<TRow>['tone'
         return 'warning';
     }
 
-    if (action.key.includes('activate') || action.key.includes('verify') || action.key.includes('unlock')) {
+    if (action.key === 'open') {
+        return 'info';
+    }
+
+    if (action.key.includes('read') || action.key.includes('activate') || action.key.includes('verify') || action.key.includes('unlock')) {
         return 'success';
     }
 
@@ -1325,6 +1343,7 @@ function actionClass(action: DataTableAction<TRow>): string {
     const classes = {
         neutral:
             'border-zinc-300 text-zinc-600 hover:border-zinc-400 hover:bg-zinc-100 hover:text-zinc-950 dark:border-zinc-700 dark:text-zinc-300 dark:hover:border-zinc-600 dark:hover:bg-zinc-900 dark:hover:text-zinc-50',
+        info: 'border-sky-200 text-sky-700 hover:border-sky-300 hover:bg-sky-50 hover:text-sky-800 dark:border-sky-900 dark:text-sky-300 dark:hover:bg-sky-950',
         success:
             'border-emerald-200 text-emerald-700 hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-800 dark:border-emerald-900 dark:text-emerald-300 dark:hover:bg-emerald-950',
         warning:
@@ -1346,6 +1365,10 @@ function bulkActionIcon(action: DataTableBulkAction): Component {
 
     if (action.key.includes('verify') || action.key.includes('verification')) {
         return IconMailCheck;
+    }
+
+    if (action.key.includes('read')) {
+        return IconCircleCheck;
     }
 
     if (action.key.includes('password') || action.key.includes('link')) {
@@ -1372,6 +1395,7 @@ function bulkActionClass(action: DataTableBulkAction): string {
     const classes = {
         neutral:
             'border-zinc-300 text-zinc-600 hover:border-zinc-400 hover:bg-zinc-100 hover:text-zinc-950 dark:border-zinc-700 dark:text-zinc-300 dark:hover:border-zinc-600 dark:hover:bg-zinc-900 dark:hover:text-zinc-50',
+        info: 'border-sky-200 text-sky-700 hover:border-sky-300 hover:bg-sky-50 hover:text-sky-800 dark:border-sky-900 dark:text-sky-300 dark:hover:bg-sky-950',
         success:
             'border-emerald-200 text-emerald-700 hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-800 dark:border-emerald-900 dark:text-emerald-300 dark:hover:bg-emerald-950',
         warning:

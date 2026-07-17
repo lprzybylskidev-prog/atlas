@@ -3,7 +3,7 @@ export interface DataTableColumn<TRow extends Record<string, unknown>> {
     label: string;
     sortable?: boolean;
     hidden?: boolean;
-    format?: 'boolean' | 'count' | 'date' | 'datetime' | 'list' | 'money' | 'number' | 'percent' | 'status' | 'time';
+    format?: 'boolean' | 'count' | 'date' | 'datetime' | 'list' | 'money' | 'number' | 'percent' | 'severity' | 'status' | 'time';
 }
 
 export interface DataTableAction<TRow extends Record<string, unknown>> {
@@ -12,13 +12,13 @@ export interface DataTableAction<TRow extends Record<string, unknown>> {
     method?: 'get' | 'post' | 'patch' | 'delete';
     href: (row: TRow) => string;
     confirm?: string;
-    tone?: 'neutral' | 'success' | 'warning' | 'danger';
+    tone?: 'neutral' | 'info' | 'success' | 'warning' | 'danger';
 }
 
 export interface DataTableBulkAction {
     key: string;
     label: string;
-    tone?: 'neutral' | 'success' | 'warning' | 'danger';
+    tone?: 'neutral' | 'info' | 'success' | 'warning' | 'danger';
     execution?: 'sync' | 'queued';
 }
 
