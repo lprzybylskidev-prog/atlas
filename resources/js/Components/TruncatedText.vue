@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 
-import Tooltip from './Tooltip.vue';
+import OverflowTooltip from './OverflowTooltip.vue';
 
 const props = withDefaults(
     defineProps<{
@@ -22,7 +22,14 @@ const contentClass = computed(() => (props.lines === 1 ? 'block min-w-0 max-w-fu
 </script>
 
 <template>
-    <Tooltip :text="displayText" :disabled="disabled || displayText === ''" full-width align="start" placement="top">
-        <span :class="[contentClass, textClass]">{{ displayText }}</span>
-    </Tooltip>
+    <OverflowTooltip
+        :text="displayText"
+        :disabled="disabled || displayText === ''"
+        :content-class="[contentClass, textClass].join(' ')"
+        full-width
+        align="start"
+        placement="top"
+    >
+        {{ displayText }}
+    </OverflowTooltip>
 </template>

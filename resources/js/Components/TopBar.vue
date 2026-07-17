@@ -252,7 +252,7 @@ watch(
                 </button>
                 <div class="min-w-0">
                     <nav
-                        class="flex min-w-0 items-center gap-2 text-xs"
+                        class="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs"
                         :class="isAdminMode ? 'text-zinc-500 dark:text-zinc-400' : 'text-zinc-500 dark:text-zinc-400'"
                         :aria-label="t('navigation.aria.breadcrumb')"
                     >
@@ -261,16 +261,13 @@ watch(
                             <Link
                                 v-if="breadcrumb.url !== null && index < breadcrumbs.length - 1"
                                 :href="breadcrumb.url"
-                                class="min-w-0 hover:text-teal-700 focus-visible:outline focus-visible:outline-amber-500 dark:hover:text-teal-300"
+                                class="hover:text-teal-700 focus-visible:outline focus-visible:outline-amber-500 dark:hover:text-teal-300"
                             >
-                                <TruncatedText :text="breadcrumb.label" />
+                                {{ breadcrumb.label }}
                             </Link>
-                            <TruncatedText
-                                v-else
-                                :text="breadcrumb.label"
-                                text-class="text-inherit"
-                                :aria-current="index === breadcrumbs.length - 1 ? 'page' : undefined"
-                            />
+                            <span v-else :aria-current="index === breadcrumbs.length - 1 ? 'page' : undefined">
+                                {{ breadcrumb.label }}
+                            </span>
                         </template>
                     </nav>
                     <h1

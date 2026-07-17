@@ -62,6 +62,7 @@ import {
 import FormCheckbox from './Form/FormCheckbox.vue';
 import FormInput from './Form/FormInput.vue';
 import FormSelect from './Form/FormSelect.vue';
+import OverflowTooltip from './OverflowTooltip.vue';
 import SeverityBadge from './SeverityBadge.vue';
 import StatusBadge from './StatusBadge.vue';
 import Tooltip from './Tooltip.vue';
@@ -702,7 +703,7 @@ function cellTooltipText(value: unknown, columnId: string): string | null {
 
     const text = formattedCellText(value, format);
 
-    if (text === '-' || text.trim().length <= 12) {
+    if (text === '-') {
         return null;
     }
 
@@ -1488,6 +1489,12 @@ function bodyCellContentClass(columnId: string): string {
         return 'flex justify-center';
     }
 
+    const column = props.columns.find((candidate) => candidate.key === columnId);
+
+    if (column?.format === 'boolean' || column?.format === 'severity') {
+        return 'inline-flex max-w-full overflow-visible py-0.5 align-middle';
+    }
+
     return 'block min-w-0 truncate';
 }
 
@@ -1871,17 +1878,16 @@ onBeforeUnmount(() => {
                         <template v-else>
                             <tr v-for="row in table.getRowModel().rows" :key="rowId(row.original)">
                                 <td v-for="cell in row.getVisibleCells()" :key="cell.id" :class="bodyCellClass(cell.column.id)">
-                                    <Tooltip
+                                    <OverflowTooltip
                                         v-if="cellTooltipText(cell.getValue(), cell.column.id) !== null"
                                         :text="cellTooltipText(cell.getValue(), cell.column.id) ?? ''"
                                         full-width
                                         align="start"
                                         placement="top"
+                                        :content-class="bodyCellContentClass(cell.column.id)"
                                     >
-                                        <span :class="bodyCellContentClass(cell.column.id)">
-                                            <FlexRender :render="cell.column.columnDef.cell" :props="cell.getContext()" />
-                                        </span>
-                                    </Tooltip>
+                                        <FlexRender :render="cell.column.columnDef.cell" :props="cell.getContext()" />
+                                    </OverflowTooltip>
                                     <span v-else :class="bodyCellContentClass(cell.column.id)">
                                         <FlexRender :render="cell.column.columnDef.cell" :props="cell.getContext()" />
                                     </span>

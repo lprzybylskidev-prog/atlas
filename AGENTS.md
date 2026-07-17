@@ -128,6 +128,7 @@ Infrastructure and quality:
 - User/team/role/permission behavior is system-wide, not Admin UI-specific. Frontend filtering may improve ergonomics, but backend contracts and use cases must enforce the same team scope and authorization invariants.
 - Validation errors shown to users must use translated human field names and translated accepted values. Never expose raw request keys such as `team_assignments.0.team_public_id`, database column names, enum internals, or other implementation identifiers in user-facing validation messages.
 - Admin UI validation errors, flash messages, breadcrumbs, and backend-rendered interface text must be English regardless of the regular user's selected application locale.
+- Regular application UI tables must not expose technical implementation values such as internal IDs, raw event types, enum keys, database names, or public identifiers unless the value is genuinely user-facing. Remove those columns or render translated human labels; Admin and diagnostic UI may expose technical values when they are necessary for operations.
 - Development demo data must evolve with the application and cover representative current workflows, edge cases, and permission/team/module combinations. Demo seeders must not mask authorization or team-scope problems by granting every user every role, permission, team, or module unless that exact scenario is intentional and named.
 
 ### Explicit over magic

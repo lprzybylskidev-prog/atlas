@@ -28,7 +28,6 @@ defineProps<{
 const { t } = useTranslator();
 const columns: DataTableColumn<NotificationRow>[] = [
     { key: 'publicId', label: t('notifications.table.public_id'), hidden: true },
-    { key: 'type', label: t('notifications.table.type') },
     { key: 'severity', label: t('notifications.table.severity'), format: 'severity' },
     { key: 'title', label: t('notifications.table.title') },
     { key: 'body', label: t('notifications.table.body') },
