@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Modules\Core\Audit\AuditModule;
 use App\Modules\Core\Authorization\AuthorizationModule;
+use App\Modules\Core\Files\FilesModule;
 use App\Modules\Core\Health\HealthModule;
 use App\Modules\Core\Identity\IdentityModule;
 use App\Modules\Core\Notifications\NotificationsModule;
@@ -21,5 +22,6 @@ return [
         SettingsModule::class,
         NotificationsModule::class,
         HealthModule::class,
+        FilesModule::class,
     ],
 ];

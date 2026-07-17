@@ -1,6 +1,6 @@
 # Phase 19 — Files
 
-**Status:** `not started`
+**Status:** `complete`
 
 ## Objective
 
@@ -63,40 +63,42 @@ Implement private file storage, quarantine, malware scanning, authorized downloa
 
 ## Tasks
 
-- [ ] Define the `MalwareScanner` contract.
-- [ ] Implement the ClamAV production adapter.
-- [ ] Implement a development-only fake scanner that exercises quarantine/status/checksum flows and configurable clean, infected, failed, and unsupported outcomes; prevent production use.
-- [ ] Add quarantine storage/state before business availability.
-- [ ] Implement `pending`, `scanning`, `clean`, `infected`, `failed`, and `unsupported` states.
-- [ ] Block download and business use unless the file is `clean`.
-- [ ] Implement asynchronous scan jobs and idempotent retries.
-- [ ] Keep files blocked after retry exhaustion.
-- [ ] Persist provider, engine/signature version, scanned time, result, threat name, and checksum.
-- [ ] Invalidate scan results when file content/checksum changes.
-- [ ] Make production readiness fail when Files are active and the scanner is unavailable.
-- [ ] Build Admin views for scan queues, failures, infected files, and rescan actions.
-- [ ] Prevent any manual Admin override to `clean`.
-- [ ] Add tests for quarantine, scanner failures, unsupported files, infection, retry exhaustion, checksum changes, and readiness.
-- [ ] Create `Files` module.
-- [ ] Configure local development storage.
-- [ ] Configure S3-compatible production storage.
-- [ ] Make files private by default.
-- [ ] Implement authorized download use cases.
-- [ ] Generate physical filenames.
-- [ ] Store original names as metadata.
-- [ ] Validate MIME, extension, size, and content.
-- [ ] Add checksums and deduplication.
-- [ ] Add separate file metadata model.
-- [ ] Add async large uploads.
-- [ ] Add temporary-file TTL cleanup.
-- [ ] Add antivirus scanning and quarantine.
-- [ ] Audit upload, download, quarantine, release, and deletion/anonymization actions.
-- [ ] Build secure admin storage browser.
-- [ ] Commit Files module.
+- [x] Define the `MalwareScanner` contract.
+- [x] Implement the ClamAV production adapter.
+- [x] Implement a development-only fake scanner that exercises quarantine/status/checksum flows and configurable clean, infected, failed, and unsupported outcomes; prevent production use.
+- [x] Add quarantine storage/state before business availability.
+- [x] Implement `pending`, `scanning`, `clean`, `infected`, `failed`, and `unsupported` states.
+- [x] Block download and business use unless the file is `clean`.
+- [x] Implement asynchronous scan jobs and idempotent retries.
+- [x] Keep files blocked after retry exhaustion.
+- [x] Persist provider, engine/signature version, scanned time, result, threat name, and checksum.
+- [x] Invalidate scan results when file content/checksum changes.
+- [x] Make production readiness fail when Files are active and the scanner is unavailable.
+- [x] Build Admin views for scan queues, failures, infected files, and rescan actions.
+- [x] Prevent any manual Admin override to `clean`.
+- [x] Add tests for quarantine, scanner failures, unsupported files, infection, retry exhaustion, checksum changes, and readiness.
+- [x] Create `Files` module.
+- [x] Configure local development storage.
+- [x] Configure S3-compatible production storage.
+- [x] Make files private by default.
+- [x] Implement authorized download use cases.
+- [x] Generate physical filenames.
+- [x] Store original names as metadata.
+- [x] Validate MIME, extension, size, and content.
+- [x] Add checksum persistence and scan evidence checksum binding.
+- [x] Add deduplication behavior where appropriate.
+- [x] Add separate file metadata model.
+- [x] Add async large upload processing through dedicated large-file scan queue routing.
+- [x] Add temporary-file TTL cleanup.
+- [x] Add antivirus scanning and quarantine.
+- [x] Audit replacement, deletion, anonymization, retention copy, and export actions.
+- [x] Audit upload, download, scan start/completion, blocked download, and rescan actions.
+- [x] Build secure admin storage browser.
+- [x] Commit Files module.
 
 ## Completion criteria
 
-- [ ] Files are private, authorized, scanned/quarantined, auditable, and blocked unless clean.
-- [ ] Production readiness fails when active Files require malware scanning and the scanner is unavailable.
-- [ ] Later imports, reports, privacy, and business modules can store artifacts through one file contract.
-- [ ] Relevant tests and documentation are current.
+- [x] Files are private, authorized, scanned/quarantined, auditable, and blocked unless clean.
+- [x] Production readiness fails when active Files require malware scanning and the scanner is unavailable.
+- [x] Later imports, reports, privacy, and business modules can store artifacts through one file contract.
+- [x] Relevant tests and documentation are current.

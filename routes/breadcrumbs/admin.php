@@ -120,6 +120,11 @@ Breadcrumbs::for('admin.queues.index', function (Generator $breadcrumbs): void {
     $breadcrumbs->push('Queues');
 });
 
+Breadcrumbs::for('admin.files.index', function (Generator $breadcrumbs): void {
+    $breadcrumbs->push(__('breadcrumbs.admin'));
+    $breadcrumbs->push('Files');
+});
+
 Breadcrumbs::for('admin.modules.index', function (Generator $breadcrumbs): void {
     $breadcrumbs->push(__('breadcrumbs.admin'));
     $breadcrumbs->push('Modules');

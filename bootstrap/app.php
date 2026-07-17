@@ -14,6 +14,7 @@ use App\Http\Middleware\RequireHighRiskAdministrativeAuthorization;
 use App\Http\Middleware\RequireImpersonationExternalEffectAcknowledgement;
 use App\Http\Middleware\SetLocaleFromSession;
 use App\Modules\Core\Authorization\Presentation\Http\Middleware\AuthorizeRoutePermission;
+use App\Modules\Core\Files\Presentation\Console\PruneTemporaryFilesCommand;
 use App\Modules\Core\Notifications\Presentation\Console\PruneNotificationsCommand;
 use App\Modules\Core\Notifications\Presentation\Console\PublishRealtimeEventCommand;
 use App\Modules\Core\Notifications\Presentation\Console\SendNotificationCommand;
@@ -42,6 +43,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withCommands([
         ApplyDueModuleActivationSchedules::class,
         DispatchOperationalAlertsCommand::class,
+        PruneTemporaryFilesCommand::class,
         PruneNotificationsCommand::class,
         PublishRealtimeEventCommand::class,
         RecordSchedulerHeartbeatCommand::class,
@@ -51,6 +53,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withSchedule(function (Schedule $schedule): void {
         $schedule->command('system:scheduler-heartbeat')->everyMinute()->withoutOverlapping();
         $schedule->command('system:operational-alerts')->everyFiveMinutes()->withoutOverlapping();
+        $schedule->command('files:prune-temporary')->hourly()->withoutOverlapping();
     })
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([

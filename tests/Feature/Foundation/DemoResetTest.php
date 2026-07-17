@@ -67,6 +67,31 @@ final class DemoResetTest extends TestCase
         $this->assertDatabaseHas(DatabaseTable::USER_ONBOARDING_PACKAGES, ['package_name' => 'north.collections.team_leader']);
         $this->assertDatabaseHas(DatabaseTable::USER_ONBOARDING_PACKAGES, ['package_name' => 'south.collections.skip_tracer']);
         $this->assertDatabaseHas(DatabaseTable::USER_ONBOARDING_PACKAGES, ['package_name' => 'back_office.specialist']);
+        $this->assertDatabaseHas(DatabaseTable::FILE_OBJECTS, [
+            'original_name' => 'demo-clean-payment-confirmation.txt',
+            'scan_state' => 'clean',
+        ]);
+        $this->assertDatabaseHas(DatabaseTable::FILE_OBJECTS, [
+            'original_name' => 'demo-duplicate-payment-confirmation.txt',
+            'scan_state' => 'clean',
+            'physical_owner' => false,
+        ]);
+        $this->assertDatabaseHas(DatabaseTable::FILE_OBJECTS, [
+            'original_name' => 'demo-pending-large-import-attachment.txt',
+            'scan_state' => 'pending',
+        ]);
+        $this->assertDatabaseHas(DatabaseTable::FILE_OBJECTS, [
+            'original_name' => 'demo-infected-suspicious-attachment.txt',
+            'scan_state' => 'infected',
+        ]);
+        $this->assertDatabaseHas(DatabaseTable::FILE_OBJECTS, [
+            'original_name' => 'demo-failed-scanner-timeout.txt',
+            'scan_state' => 'failed',
+        ]);
+        $this->assertDatabaseHas(DatabaseTable::FILE_OBJECTS, [
+            'original_name' => 'demo-unsupported-archive.txt',
+            'scan_state' => 'unsupported',
+        ]);
 
         $multiTeamUser = User::query()
             ->where('email', 'demo.multi.team@example.test')

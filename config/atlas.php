@@ -56,6 +56,26 @@ return [
         ],
     ],
 
+    'files' => [
+        'disk' => env('ATLAS_FILES_DISK', env('APP_ENV') === 'production' ? 'atlas_files_s3' : 'atlas_files'),
+        'scanner' => env('ATLAS_FILES_SCANNER', env('APP_ENV') === 'production' ? 'clamav' : 'fake'),
+        'max_upload_bytes' => (int) env('ATLAS_FILES_MAX_UPLOAD_BYTES', 25 * 1024 * 1024),
+        'large_upload_scan_threshold_bytes' => (int) env('ATLAS_FILES_LARGE_UPLOAD_SCAN_THRESHOLD_BYTES', 10 * 1024 * 1024),
+        'scan_queue' => env('ATLAS_FILES_SCAN_QUEUE', 'files'),
+        'large_scan_queue' => env('ATLAS_FILES_LARGE_SCAN_QUEUE', 'files-large'),
+        'allowed_extensions' => array_values(array_filter(array_map('trim', explode(',', (string) env('ATLAS_FILES_ALLOWED_EXTENSIONS', 'pdf,png,jpg,jpeg,txt,csv,xlsx,docx'))))),
+        'allowed_mime_types' => array_values(array_filter(array_map('trim', explode(',', (string) env('ATLAS_FILES_ALLOWED_MIME_TYPES', 'application/pdf,image/png,image/jpeg,text/plain,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.openxmlformats-officedocument.wordprocessingml.document'))))),
+        'scan_max_attempts' => (int) env('ATLAS_FILES_SCAN_MAX_ATTEMPTS', 3),
+        'temporary_ttl_minutes' => (int) env('ATLAS_FILES_TEMPORARY_TTL_MINUTES', 60),
+        'temporary_scan_prefix' => env('ATLAS_FILES_TEMPORARY_SCAN_PREFIX', 'atlas-file-scan-'),
+        'fake_scanner_result' => env('ATLAS_FILES_FAKE_SCANNER_RESULT', 'clean'),
+        'clamav' => [
+            'host' => env('ATLAS_FILES_CLAMAV_HOST', env('ATLAS_HEALTH_CLAMAV_HOST') ?: 'clamav'),
+            'port' => (int) env('ATLAS_FILES_CLAMAV_PORT', env('ATLAS_HEALTH_CLAMAV_PORT', 3310)),
+            'timeout_seconds' => (int) env('ATLAS_FILES_CLAMAV_TIMEOUT_SECONDS', 30),
+        ],
+    ],
+
     'security' => [
         'login_lock' => [
             'max_failed_attempts' => (int) env('ATLAS_LOGIN_LOCK_MAX_FAILED_ATTEMPTS', 10),

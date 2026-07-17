@@ -58,6 +58,10 @@ final class DatabaseTable
 
     public const REALTIME_EVENTS = DatabaseSchema::CORE_NOTIFICATIONS.'.realtime_events';
 
+    public const FILE_OBJECTS = DatabaseSchema::CORE_FILES.'.file_objects';
+
+    public const FILE_SCAN_EVIDENCE = DatabaseSchema::CORE_FILES.'.file_scan_evidence';
+
     public const CACHE = DatabaseSchema::SHARED.'.cache';
 
     public const CACHE_LOCKS = DatabaseSchema::SHARED.'.cache_locks';

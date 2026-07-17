@@ -52,6 +52,10 @@ final class ModuleKeyResolver
             return 'authorization';
         }
 
+        if (str_starts_with($permission, 'admin.files.') || str_starts_with($permission, 'files.')) {
+            return 'files';
+        }
+
         if (str_starts_with($permission, 'admin.modules.') || str_starts_with($permission, 'modules.')) {
             return 'authorization';
         }

@@ -17,6 +17,7 @@ use App\Modules\Core\Authorization\Presentation\Http\Controllers\StoreOnboarding
 use App\Modules\Core\Authorization\Presentation\Http\Controllers\StoreRoleController;
 use App\Modules\Core\Authorization\Presentation\Http\Controllers\UpdateOnboardingPackageController;
 use App\Modules\Core\Authorization\Presentation\Http\Controllers\UpdateRoleController;
+use App\Modules\Core\Files\Presentation\Http\Controllers\AdminFilesController;
 use App\Modules\Core\Identity\Application\Admin\HighRiskAdministrativeOperation;
 use App\Modules\Core\Identity\Presentation\Http\Controllers\AdminModeController;
 use App\Modules\Core\Identity\Presentation\Http\Controllers\ImpersonationController;
@@ -104,6 +105,8 @@ Route::middleware(['auth', 'admin.mode', 'route.permission'])->group(function ()
     Route::get('/admin/logs', AdminApplicationLogController::class)->name('admin.logs.index');
     Route::get('/admin/queues', [AdminFailedJobController::class, 'index'])->name('admin.queues.index');
     Route::post('/admin/queues/failed-jobs/retry', [AdminFailedJobController::class, 'retry'])->name('admin.queues.retry');
+    Route::get('/admin/files', [AdminFilesController::class, 'index'])->name('admin.files.index');
+    Route::post('/admin/files/{file}/rescan', [AdminFilesController::class, 'rescan'])->name('admin.files.rescan');
     Route::get('/admin/modules', [ModuleActivationController::class, 'index'])->name('admin.modules.index');
     Route::get('/admin/modules/{module}', [ModuleActivationController::class, 'show'])->name('admin.modules.show');
     Route::patch('/admin/modules/{module}/global', [ModuleActivationController::class, 'updateGlobal'])->name('admin.modules.global.update');

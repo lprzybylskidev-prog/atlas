@@ -10,6 +10,10 @@ use App\Modules\Core\Authorization\Application\Permissions\CoreAuthorizationPerm
 use App\Modules\Core\Authorization\Application\Public\Contracts\AdministratorAccessManager;
 use App\Modules\Core\Authorization\Application\Roles\InstallStarterRoles;
 use App\Modules\Core\Authorization\Application\Roles\StarterRoleName;
+use App\Modules\Core\Files\Application\DTOs\MalwareScanResult;
+use App\Modules\Core\Files\Application\Enums\FileScanState;
+use App\Modules\Core\Files\Application\Public\Contracts\FileStorage;
+use App\Modules\Core\Files\Infrastructure\Persistence\DatabaseFileStorage;
 use App\Modules\Core\Identity\Infrastructure\Persistence\User;
 use App\Modules\Core\Notifications\Application\Public\Contracts\NotificationPublisher;
 use App\Modules\Core\Notifications\Application\Public\DTOs\CreateNotification;
@@ -18,7 +22,9 @@ use App\Modules\Core\Teams\Application\Public\DTOs\BootstrapTeam;
 use App\Modules\Core\Teams\Application\Public\Permissions\TeamPermissionNames;
 use App\Modules\Core\Users\Application\Permissions\UserPermissionCatalog;
 use App\Shared\Infrastructure\Database\DatabaseTable;
+use Carbon\CarbonImmutable;
 use Illuminate\Database\Seeder;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -81,6 +87,7 @@ class DevelopmentDemoSeeder extends Seeder
 
         $this->seedManagerRelationships((string) $admin->public_id, $teams);
         $this->seedNotifications((string) $admin->public_id, $teams[0]->publicId);
+        $this->seedFiles((int) $admin->id, $teams[0]->publicId);
     }
 
     private function demoUser(string $email, string $name): User
@@ -158,6 +165,111 @@ class DevelopmentDemoSeeder extends Seeder
                 'read_at' => now(),
                 'notification_recipients.updated_at' => now(),
             ]);
+    }
+
+    private function seedFiles(int $adminUserId, string $teamPublicId): void
+    {
+        if (DB::table(DatabaseTable::FILE_OBJECTS)->where('original_name', 'demo-clean-payment-confirmation.txt')->exists()) {
+            return;
+        }
+
+        $teamId = DB::table(DatabaseTable::TEAMS)->where('public_id', $teamPublicId)->value('id');
+
+        if (! is_int($teamId)) {
+            return;
+        }
+
+        $storage = app(FileStorage::class);
+        $files = app(DatabaseFileStorage::class);
+
+        $clean = $storage->storeUpload(
+            $this->demoUpload('demo-clean-payment-confirmation.txt', "Payment confirmation\nStatus: accepted\n"),
+            $adminUserId,
+            $teamId,
+            ['demo_key' => 'files.clean'],
+        );
+        $files->recordScanResult($this->fileObjectId($clean->publicId), new MalwareScanResult(
+            provider: 'demo',
+            result: FileScanState::Clean,
+            checksumSha256: $clean->checksumSha256,
+            scannedAt: CarbonImmutable::now('UTC'),
+            engineVersion: 'demo-engine',
+            signatureVersion: 'demo-signatures-2026-07',
+        ));
+
+        $storage->storeUpload(
+            $this->demoUpload('demo-duplicate-payment-confirmation.txt', "Payment confirmation\nStatus: accepted\n"),
+            $adminUserId,
+            $teamId,
+            ['demo_key' => 'files.duplicate'],
+        );
+
+        $storage->storeUpload(
+            $this->demoUpload('demo-pending-large-import-attachment.txt', "Large import attachment waiting for scan\n"),
+            $adminUserId,
+            $teamId,
+            ['demo_key' => 'files.pending'],
+        );
+
+        $infected = $storage->storeUpload(
+            $this->demoUpload('demo-infected-suspicious-attachment.txt', "Suspicious attachment demo\n"),
+            $adminUserId,
+            $teamId,
+            ['demo_key' => 'files.infected'],
+        );
+        $files->recordScanResult($this->fileObjectId($infected->publicId), new MalwareScanResult(
+            provider: 'demo',
+            result: FileScanState::Infected,
+            checksumSha256: $infected->checksumSha256,
+            scannedAt: CarbonImmutable::now('UTC'),
+            engineVersion: 'demo-engine',
+            signatureVersion: 'demo-signatures-2026-07',
+            threatName: 'Demo.Eicar.Signature',
+        ));
+
+        $failed = $storage->storeUpload(
+            $this->demoUpload('demo-failed-scanner-timeout.txt', "Scanner timeout demo\n"),
+            $adminUserId,
+            $teamId,
+            ['demo_key' => 'files.failed'],
+        );
+        $files->recordScanResult($this->fileObjectId($failed->publicId), new MalwareScanResult(
+            provider: 'demo',
+            result: FileScanState::Failed,
+            checksumSha256: $failed->checksumSha256,
+            scannedAt: CarbonImmutable::now('UTC'),
+            engineVersion: 'demo-engine',
+            signatureVersion: 'demo-signatures-2026-07',
+            metadata: ['reason' => 'scanner_timeout'],
+        ));
+
+        $unsupported = $storage->storeUpload(
+            $this->demoUpload('demo-unsupported-archive.txt', "Unsupported archive demo\n"),
+            $adminUserId,
+            $teamId,
+            ['demo_key' => 'files.unsupported'],
+        );
+        $files->recordScanResult($this->fileObjectId($unsupported->publicId), new MalwareScanResult(
+            provider: 'demo',
+            result: FileScanState::Unsupported,
+            checksumSha256: $unsupported->checksumSha256,
+            scannedAt: CarbonImmutable::now('UTC'),
+            engineVersion: 'demo-engine',
+            signatureVersion: 'demo-signatures-2026-07',
+            metadata: ['reason' => 'unsupported_container'],
+        ));
+    }
+
+    private function demoUpload(string $name, string $content): UploadedFile
+    {
+        return UploadedFile::fake()->createWithContent($name, $content);
+    }
+
+    private function fileObjectId(string $publicId): int
+    {
+        $id = DB::table(DatabaseTable::FILE_OBJECTS)->where('public_id', $publicId)->value('id');
+
+        return is_numeric($id) ? (int) $id : 0;
     }
 
     /**

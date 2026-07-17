@@ -115,6 +115,20 @@ final class HealthEndpointTest extends TestCase
             ->assertJsonPath('blocking.failed', 1);
     }
 
+    public function test_readiness_blocks_when_files_are_deployed_in_production_without_clamav(): void
+    {
+        $this->useNonRedisRuntimeForDeterministicReadiness();
+        $this->app->detectEnvironment(fn (): string => 'production');
+        Config::set('atlas.operations.health.clamav.critical', false);
+        Config::set('atlas.operations.health.clamav.host', null);
+        $this->app->make(SchedulerHeartbeatMonitor::class)->markHealthy(14);
+
+        $this->get('/health/ready')
+            ->assertStatus(503)
+            ->assertJsonPath('status', 'unhealthy')
+            ->assertJsonPath('blocking.failed', 1);
+    }
+
     public function test_readiness_blocks_when_chromium_pdf_renderer_is_configured_as_critical_without_binary(): void
     {
         $this->useNonRedisRuntimeForDeterministicReadiness();

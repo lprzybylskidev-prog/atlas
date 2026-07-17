@@ -20,6 +20,28 @@ return [
             'report' => false,
         ],
 
+        'atlas_files' => [
+            'driver' => 'local',
+            'root' => storage_path('app/private/files'),
+            'visibility' => 'private',
+            'throw' => true,
+            'report' => false,
+        ],
+
+        'atlas_files_s3' => [
+            'driver' => 's3',
+            'key' => env('ATLAS_FILES_S3_ACCESS_KEY_ID'),
+            'secret' => env('ATLAS_FILES_S3_SECRET_ACCESS_KEY'),
+            'region' => env('ATLAS_FILES_S3_DEFAULT_REGION', 'us-east-1'),
+            'bucket' => env('ATLAS_FILES_S3_BUCKET'),
+            'url' => env('ATLAS_FILES_S3_URL'),
+            'endpoint' => env('ATLAS_FILES_S3_ENDPOINT'),
+            'use_path_style_endpoint' => env('ATLAS_FILES_S3_USE_PATH_STYLE_ENDPOINT', true),
+            'visibility' => 'private',
+            'throw' => true,
+            'report' => false,
+        ],
+
         'public' => [
             'driver' => 'local',
             'root' => storage_path('app/public'),

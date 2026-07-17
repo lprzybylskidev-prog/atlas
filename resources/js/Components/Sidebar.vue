@@ -4,6 +4,7 @@ import {
     IconActivityHeartbeat,
     IconChevronDown,
     IconClipboardList,
+    IconFiles,
     IconFileText,
     IconGauge,
     IconKey,
@@ -182,6 +183,14 @@ const groups = computed<NavigationGroup[]>(() => {
                     icon: IconRotateClockwise,
                     active: props.currentPath === '/admin/queues',
                     visible: canSeeAdminRoute('admin.queues.index'),
+                },
+                {
+                    key: 'oversight.files',
+                    label: t('navigation.files'),
+                    href: '/admin/files',
+                    icon: IconFiles,
+                    active: props.currentPath === '/admin/files',
+                    visible: canSeeAdminRoute('admin.files.index'),
                 },
                 {
                     key: 'oversight.pulse',

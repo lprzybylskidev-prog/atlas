@@ -20,6 +20,8 @@ final class DatabaseSchema
 
     public const CORE_NOTIFICATIONS = 'core_notifications';
 
+    public const CORE_FILES = 'core_files';
+
     public const SHARED = 'shared';
 
     /**
@@ -34,6 +36,7 @@ final class DatabaseSchema
             self::CORE_AUDIT,
             self::CORE_SETTINGS,
             self::CORE_NOTIFICATIONS,
+            self::CORE_FILES,
             self::SHARED,
         ];
     }

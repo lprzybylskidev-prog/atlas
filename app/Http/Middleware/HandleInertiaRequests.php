@@ -179,6 +179,7 @@ final class HandleInertiaRequests extends Middleware
             'admin.audit.security-history.index',
             'admin.logs.index',
             'admin.queues.index',
+            'admin.files.index',
             'admin.pulse.view',
             'admin.rate-limits.index',
             'admin.modules.index',

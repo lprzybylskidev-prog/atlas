@@ -37,8 +37,8 @@ Do not replace this index after the initial technical foundation is completed. C
 
 ## Current phase
 
-- Phase: [Phase 18 — Administrative mode and impersonation](docs/roadmap/phase-18-admin-impersonation.md)
-- Status: `complete`
+- Phase: [Phase 20 — Integrations](docs/roadmap/phase-20-integrations.md)
+- Status: `not started`
 
 ## Roadmap dependency repair note
 
@@ -210,7 +210,7 @@ Implement Admin mode, high-risk reauthentication, account sensitivity, secure im
 
 ### Phase 19 — Files
 
-**Status:** `not started`
+**Status:** `complete`
 
 Implement private file storage, validation, quarantine, ClamAV scanning, retention participation, authorization, and administrative operations.
 
