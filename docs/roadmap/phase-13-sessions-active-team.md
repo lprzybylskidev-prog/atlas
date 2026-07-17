@@ -1,4 +1,4 @@
-## Phase 13 — Sessions and active team
+# Phase 13 — Sessions and active team
 
 **Status:** `complete`
 

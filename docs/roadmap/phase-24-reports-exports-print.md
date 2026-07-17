@@ -1,4 +1,4 @@
-## Phase 24 — Reports, exports, PDF, charts, and print
+# Phase 24 — Reports, exports, PDF, charts, and print
 
 **Status:** `not started`
 

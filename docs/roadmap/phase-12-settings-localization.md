@@ -1,4 +1,4 @@
-## Phase 12 — Settings and localization
+# Phase 12 — Settings and localization
 
 **Status:** `complete`
 

@@ -1,4 +1,4 @@
-## Phase 20 — Integrations
+# Phase 20 — Integrations
 
 **Status:** `not started`
 

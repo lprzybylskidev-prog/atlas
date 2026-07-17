@@ -1,6 +1,6 @@
-## Phase 1 — Dev Container and Docker skeleton
+# Phase 1 — Dev Container and Docker skeleton
 
-### Implementation contract
+## Implementation contract
 
 - The user does not keep PHP, Composer, or Node installed on the host; the development environment must be usable entirely through Docker and VS Code Dev Containers.
 - Development services must include the application, PostgreSQL, Redis, Meilisearch, Mailpit, pgAdmin, RedisInsight, and Playwright browsers.

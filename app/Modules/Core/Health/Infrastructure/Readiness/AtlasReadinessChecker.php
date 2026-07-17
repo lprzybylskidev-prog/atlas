@@ -301,7 +301,8 @@ final readonly class AtlasReadinessChecker implements ReadinessChecker
     private function chromiumPdf(): ReadinessCheckResult
     {
         $critical = Config::boolean('atlas.operations.health.chromium.critical', false);
-        $binary = $this->nullableConfigString('atlas.operations.health.chromium.binary');
+        $configuredBinary = $this->nullableConfigString('atlas.operations.health.chromium.binary');
+        $binary = $configuredBinary ?? $this->autoDiscoveredChromiumBinary();
 
         if ($binary === null) {
             return $critical
@@ -317,12 +318,46 @@ final readonly class AtlasReadinessChecker implements ReadinessChecker
                 description: $critical
                     ? 'Critical Chromium/PDF renderer binary is executable.'
                     : 'Optional Chromium/PDF renderer binary is executable.',
+                metadata: [
+                    'source' => $configuredBinary === null ? 'auto-discovered' : 'configured',
+                ],
             );
         }
 
         return $critical
             ? ReadinessCheckResult::unhealthy('chromium-pdf', 'Chromium/PDF', true, 'Critical Chromium/PDF renderer binary is missing or not executable.')
             : ReadinessCheckResult::degraded('chromium-pdf', 'Chromium/PDF', false, 'Optional Chromium/PDF renderer binary is missing or not executable.');
+    }
+
+    private function autoDiscoveredChromiumBinary(): ?string
+    {
+        if (app()->environment('testing')) {
+            return null;
+        }
+
+        foreach ($this->chromiumBinaryCandidates() as $candidate) {
+            if ($this->files->isFile($candidate) && is_executable($candidate)) {
+                return $candidate;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function chromiumBinaryCandidates(): array
+    {
+        $playwrightCandidates = glob('/ms-playwright/*/chrome-linux*/chrome') ?: [];
+
+        return array_values(array_unique([
+            ...$playwrightCandidates,
+            '/usr/bin/chromium',
+            '/usr/bin/chromium-browser',
+            '/usr/bin/google-chrome',
+            '/usr/bin/google-chrome-stable',
+        ]));
     }
 
     private function canOpenTcpConnection(string $host, int $port): bool

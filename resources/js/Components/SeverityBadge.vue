@@ -4,15 +4,18 @@ import { computed } from 'vue';
 
 const props = defineProps<{
     value: string;
+    label?: string;
 }>();
 
 const normalized = computed(() => props.value.toLowerCase().trim());
-const label = computed(() =>
-    normalized.value
-        .split(/[-_\s]+/u)
-        .filter(Boolean)
-        .map((part) => `${part.charAt(0).toUpperCase()}${part.slice(1)}`)
-        .join(' '),
+const label = computed(
+    () =>
+        props.label ??
+        normalized.value
+            .split(/[-_\s]+/u)
+            .filter(Boolean)
+            .map((part) => `${part.charAt(0).toUpperCase()}${part.slice(1)}`)
+            .join(' '),
 );
 const icon = computed(() => {
     if (['success', 'ok', 'resolved'].includes(normalized.value)) {

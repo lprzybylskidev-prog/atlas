@@ -1,4 +1,4 @@
-## Phase 25 — Security, privacy, deletion, and anonymization
+# Phase 25 — Security, privacy, deletion, and anonymization
 
 **Status:** `not started`
 

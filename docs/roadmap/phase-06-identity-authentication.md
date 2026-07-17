@@ -1,6 +1,6 @@
-## Phase 6 — Core identity and authentication
+# Phase 6 — Core identity and authentication
 
-### Implementation contract
+## Implementation contract
 
 - Public registration is disabled.
 - Administrators create users and assign teams.

@@ -5,6 +5,7 @@ import {
     IconClipboardList,
     IconGauge,
     IconKey,
+    IconLayoutDashboard,
     IconPackages,
     IconPuzzle,
     IconShieldCheck,
@@ -46,7 +47,7 @@ const { t } = useTranslator(props.uiLocale);
 const groups = computed<MobileNavigationGroup[]>(() => {
     const workspace = {
         label: t('navigation.group.workspace'),
-        items: [{ label: t('navigation.dashboard'), href: '/', icon: IconGauge }],
+        items: [{ label: t('navigation.app_dashboard'), href: '/', icon: IconGauge }],
     };
 
     if (props.mode !== 'admin') {
@@ -54,7 +55,10 @@ const groups = computed<MobileNavigationGroup[]>(() => {
     }
 
     return [
-        workspace,
+        {
+            ...workspace,
+            items: [...workspace.items, { label: t('navigation.admin_dashboard'), href: '/admin', icon: IconLayoutDashboard }],
+        },
         {
             label: t('navigation.group.identity_access'),
             items: [

@@ -2,7 +2,7 @@
 
 Canonical current behavior for private files, authorization, validation, checksums, quarantine, malware scanning, retention, and administrative recovery.
 
-### Files
+## Files
 
 Use Laravel Filesystem.
 

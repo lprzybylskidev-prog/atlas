@@ -1,12 +1,12 @@
-## Phase 7 — Authorization and teams
+# Phase 7 — Authorization and teams
 
-### Post-completion repair note
+## Post-completion repair note
 
 During Phase 13 session work, Atlas identified that completed Phase 7 team administration lacked an explicit Admin use case for managing user-team access after account creation. The gap was repaired in Phase 13 by adding integrated Admin user-team membership management across User and Team create/edit screens, audited team access removal, authorization assignment cleanup, and team-specific session invalidation.
 
 During the same Phase 13 integration, Atlas replaced the original `user`/`manager` starter-role names with small functional permission bundles. The completed Phase 7 checklist remains historical; current behavior is documented in the Authorization module documentation.
 
-### Implementation contract
+## Implementation contract
 
 - `spatie/laravel-permission` teams mode is mandatory.
 - Permission is the smallest authorization unit.

@@ -2,7 +2,7 @@
 
 Canonical current behavior for external adapters, credentials, retries, idempotency, circuit breaking, audit, and operational visibility.
 
-### Integrations
+## Integrations
 
 Integrations use explicit contracts and adapters.
 

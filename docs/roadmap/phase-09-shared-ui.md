@@ -1,4 +1,4 @@
-## Phase 9 — Shared UI components
+# Phase 9 — Shared UI components
 
 **Status:** `complete`
 

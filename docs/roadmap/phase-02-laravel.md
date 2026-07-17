@@ -1,6 +1,6 @@
-## Phase 2 — Laravel foundation
+# Phase 2 — Laravel foundation
 
-### Implementation contract
+## Implementation contract
 
 - Use the latest stable Laravel and the latest stable PHP version supported by it at implementation time.
 - Beta, RC, preview, nightly, and experimental versions are forbidden unless explicitly approved.

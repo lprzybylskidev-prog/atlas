@@ -683,11 +683,11 @@ function formatCell(value: unknown, format: DataTableColumn<TRow>['format']): VN
     }
 
     if (format === 'status' && typeof value === 'string') {
-        return formatStatus(value);
+        return localizedStatus(value);
     }
 
     if (format === 'severity' && typeof value === 'string') {
-        return h(SeverityBadge, { value });
+        return h(SeverityBadge, { value, label: localizedStatus(value) });
     }
 
     return formatEmpty(value);
@@ -743,12 +743,16 @@ function formattedCellText(value: unknown, format: DataTableColumn<TRow>['format
         return formatPercent(value, props.uiLocale ?? 'en');
     }
 
+    if ((format === 'severity' || format === 'status') && typeof value === 'string') {
+        return localizedStatus(value);
+    }
+
     return formatEmpty(value);
 }
 
 function formatExportCell(value: unknown, format: DataTableColumn<TRow>['format']): string {
     if (format === 'boolean') {
-        return value === true ? 'Yes' : 'No';
+        return value === true ? t('datatable.boolean.yes') : t('datatable.boolean.no');
     }
 
     if (format === 'list' && Array.isArray(value)) {
@@ -764,7 +768,7 @@ function formatExportCell(value: unknown, format: DataTableColumn<TRow>['format'
     }
 
     if ((format === 'severity' || format === 'status') && typeof value === 'string') {
-        return formatStatus(value);
+        return localizedStatus(value);
     }
 
     if (format === 'money' && value !== null && typeof value === 'object' && 'amountMinor' in value && 'currency' in value) {
@@ -772,6 +776,32 @@ function formatExportCell(value: unknown, format: DataTableColumn<TRow>['format'
     }
 
     return formatEmpty(value);
+}
+
+function localizedStatus(value: string): string {
+    const normalized = value.toLowerCase().trim().replaceAll(/\s+/gu, '_').replaceAll('-', '_');
+    const statusKeys: Record<string, TranslationKey> = {
+        active: 'datatable.status.active',
+        blocked: 'datatable.status.blocked',
+        danger: 'datatable.status.danger',
+        disabled: 'datatable.status.disabled',
+        enabled: 'datatable.status.enabled',
+        error: 'datatable.status.error',
+        failed: 'datatable.status.failed',
+        failure: 'datatable.status.failed',
+        info: 'datatable.status.info',
+        inactive: 'datatable.status.inactive',
+        ok: 'datatable.status.ok',
+        pending: 'datatable.status.pending',
+        resolved: 'datatable.status.resolved',
+        running: 'datatable.status.running',
+        success: 'datatable.status.success',
+        warn: 'datatable.status.warning',
+        warning: 'datatable.status.warning',
+    };
+    const key = statusKeys[normalized];
+
+    return key === undefined ? formatStatus(value) : t(key);
 }
 
 function exportPayload(): { headers: string[]; rows: string[][] } {

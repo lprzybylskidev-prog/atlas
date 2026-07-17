@@ -1,6 +1,6 @@
-## Phase 4 — Quality workflow
+# Phase 4 — Quality workflow
 
-### Implementation contract
+## Implementation contract
 
 - Required Composer commands:
     - `composer format`

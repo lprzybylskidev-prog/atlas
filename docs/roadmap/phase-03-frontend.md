@@ -1,6 +1,6 @@
-## Phase 3 — Frontend foundation
+# Phase 3 — Frontend foundation
 
-### Implementation contract
+## Implementation contract
 
 - Use Inertia, Vue 3, strict TypeScript, Vite, Tailwind CSS, TailAdmin, Tabler Icons, and TanStack Table.
 - pnpm is the only JavaScript package manager. Other lockfiles are forbidden.

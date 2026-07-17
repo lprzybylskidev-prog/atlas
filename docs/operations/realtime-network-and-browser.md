@@ -28,7 +28,7 @@ Use centralized handling for:
 - 419;
 - 422;
 - 429;
-- 500.
+- 500\.
 
 Current implementation foundation:
 

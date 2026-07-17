@@ -1,4 +1,4 @@
-## Phase 28 — Final foundation verification
+# Phase 28 — Final foundation verification
 
 **Status:** `not started`
 

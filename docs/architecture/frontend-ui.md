@@ -389,5 +389,3 @@ Use English for:
 - code;
 - documentation;
 - admin panel.
-
-#

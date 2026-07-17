@@ -19,6 +19,7 @@ Development services:
 - application workspace container;
 - nginx;
 - php-fpm;
+- scheduler;
 - PostgreSQL;
 - Redis;
 - Meilisearch;
@@ -30,6 +31,7 @@ Development services:
 The application Dev Container also includes Docker CLI and the Docker Compose plugin.
 It uses Docker-outside-of-Docker by mounting the host Docker socket at `/var/run/docker.sock`.
 This is development-only tooling for inspecting and controlling the local Atlas Compose stack from inside VS Code.
+When running Compose commands from inside the Dev Container, `ATLAS_WORKSPACE_SOURCE` may be set to the repository path as seen by the Docker host so newly created runtime services mount the real working tree rather than the container-local `/workspace` path.
 The application Dev Container also includes Python 3, `pip`, and `venv` as development tooling for local automation, scripts, and future AI-adjacent experiments. Python is not part of the Atlas application runtime unless a later accepted phase explicitly adds it.
 
 ## Initial Dev Container start
@@ -100,12 +102,12 @@ http://localhost:8000
 ```
 
 The `app` service is the VS Code/Codex workspace container and intentionally runs `sleep infinity`.
-HTTP traffic goes through the development `nginx` service and the separate `php-fpm` service.
+HTTP traffic goes through the development `nginx` service and the separate `php-fpm` service. The `scheduler` service runs `php artisan schedule:work` against the same code mount so local readiness has a fresh scheduler heartbeat instead of becoming unhealthy after `ATLAS_SCHEDULER_HEARTBEAT_STALE_SECONDS`.
 
 To apply nginx/php-fpm service changes without rebuilding the Dev Container:
 
 ```text
-docker compose -f .devcontainer/docker-compose.yml up -d --no-build nginx php-fpm
+docker compose -f .devcontainer/docker-compose.yml up -d --no-build nginx php-fpm scheduler
 ```
 
 This may start existing runtime images and recreate only the affected runtime services. It must not rebuild the Dev Container.

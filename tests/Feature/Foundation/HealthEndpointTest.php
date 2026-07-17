@@ -6,6 +6,7 @@ namespace Tests\Feature\Foundation;
 
 use App\Modules\Core\Authorization\Application\Roles\InstallStarterRoles;
 use App\Modules\Core\Authorization\Application\Roles\StarterRoleName;
+use App\Modules\Core\Health\Application\Readiness\Contracts\ReadinessChecker;
 use App\Modules\Core\Identity\Infrastructure\Persistence\User;
 use App\Modules\Core\Teams\Infrastructure\Persistence\Team;
 use App\Shared\Infrastructure\Database\DatabaseTable;
@@ -76,8 +77,8 @@ final class HealthEndpointTest extends TestCase
             ->assertOk()
             ->assertInertia(fn (AssertableInertia $page) => $page
                 ->component('Admin/SystemStatus')
-                ->where('availability.2.elementKey', 'admin.system-status.readiness')
-                ->where('availability.2.reason', 'available')
+                ->where('availability.3.elementKey', 'admin.system-status.readiness')
+                ->where('availability.3.reason', 'available')
             );
 
         $this->actingAs($admin)
@@ -127,6 +128,34 @@ final class HealthEndpointTest extends TestCase
             ->assertJsonPath('blocking.failed', 1);
     }
 
+    public function test_readiness_accepts_configured_chromium_pdf_renderer_binary(): void
+    {
+        $this->useNonRedisRuntimeForDeterministicReadiness();
+        $binary = storage_path('framework/testing-chromium');
+
+        try {
+            file_put_contents($binary, '#!/bin/sh'.PHP_EOL.'exit 0'.PHP_EOL);
+            chmod($binary, 0755);
+
+            Config::set('atlas.operations.health.chromium.binary', $binary);
+            $this->app->make(SchedulerHeartbeatMonitor::class)->markHealthy(14);
+
+            $report = $this->app->make(ReadinessChecker::class)->check()->toAdminArray();
+            $chromium = collect($report['checks'])->firstWhere('key', 'chromium-pdf');
+
+            if (! is_array($chromium)) {
+                self::fail('Chromium/PDF readiness check was not reported.');
+            }
+
+            self::assertSame('healthy', $chromium['status']);
+            self::assertSame('configured', $chromium['metadata']['source']);
+        } finally {
+            if (is_file($binary)) {
+                unlink($binary);
+            }
+        }
+    }
+
     public function test_admin_system_status_exposes_release_and_last_deploy_metadata(): void
     {
         Config::set('atlas.release.version', '16.2.0');
@@ -149,8 +178,8 @@ final class HealthEndpointTest extends TestCase
             ->assertOk()
             ->assertInertia(fn (AssertableInertia $page) => $page
                 ->component('Admin/SystemStatus')
-                ->where('availability.5.elementKey', 'admin.system-status.release')
-                ->where('availability.5.reason', 'available')
+                ->where('availability.0.elementKey', 'admin.system-status.release')
+                ->where('availability.0.reason', 'available')
             );
 
         $this->actingAs($admin)

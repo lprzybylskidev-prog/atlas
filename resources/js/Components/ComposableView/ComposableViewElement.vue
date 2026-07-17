@@ -34,10 +34,10 @@ onMounted(async () => {
 
 <template>
     <article
-        class="rounded-lg border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900"
+        class="overflow-hidden rounded-lg border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-950"
         :class="[element.placement.dimensions.minHeightClass, element.placement.dimensions.spanClass]"
     >
-        <div class="border-b border-zinc-200 px-4 py-3 dark:border-zinc-800">
+        <div class="border-b border-zinc-200 bg-zinc-50 px-4 py-3 dark:border-zinc-800 dark:bg-zinc-900/60">
             <h2 class="text-sm font-semibold text-zinc-950 dark:text-zinc-50">{{ element.definition.fallbackTitle }}</h2>
             <p v-if="element.definition.fallbackDescription" class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
                 {{ element.definition.fallbackDescription }}

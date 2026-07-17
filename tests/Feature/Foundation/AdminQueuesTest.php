@@ -45,6 +45,27 @@ final class AdminQueuesTest extends TestCase
             );
     }
 
+    public function test_admin_dashboard_exposes_failed_job_summary(): void
+    {
+        [$admin, $team] = $this->adminWithTeam();
+        $this->insertFailedJob('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', 'emails');
+        $this->insertFailedJob('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', 'imports');
+
+        $this->actingAs($admin)
+            ->withSession([
+                'active_team_public_id' => $team->public_id,
+                'auth.password_confirmed_at' => now()->unix(),
+                'atlas_admin_mode_entered_at' => now()->toIso8601String(),
+                'atlas_admin_mode_last_activity_at' => now()->toIso8601String(),
+                'atlas_admin_high_risk_confirmed_at' => now()->toIso8601String(),
+            ])
+            ->get('/admin/system-status/failed-jobs')
+            ->assertOk()
+            ->assertJsonPath('data.status', 'degraded')
+            ->assertJsonPath('data.failedCount', 2)
+            ->assertJsonPath('data.queueCount', 2);
+    }
+
     public function test_admin_can_retry_one_failed_job_and_audit_the_action(): void
     {
         [$admin, $team] = $this->adminWithTeam();

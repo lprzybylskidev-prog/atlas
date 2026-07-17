@@ -1,4 +1,4 @@
-## Phase 26 — Optional TimeTracking module
+# Phase 26 — Optional TimeTracking module
 
 **Status:** `not started`
 
@@ -39,7 +39,7 @@ Implement optional TimeTracking only after every known foundation it depends on 
 - Report default presentation is hours and minutes; details may show seconds; exports may include readable values and raw seconds/`HH:MM:SS`.
 - No rounding to 5, 10, or 15 minutes.
 
-#### Breaks
+### Breaks
 
 - Users may take any number of breaks per calendar day.
 - Daily break limit resolves in order: user-team override -> team override -> global default.
@@ -55,7 +55,7 @@ Implement optional TimeTracking only after every known foundation it depends on 
 - Before maximum duration, show configurable reminders and a countdown, including an example warning 15 minutes before.
 - At maximum duration, technically close break, end the session, notify user and manager, and mark the record for review/correction.
 
-#### Other work
+### Other work
 
 - `Other work` represents work outside the computer.
 - Starting it requires description and, where configured, a category. End note is optional.
@@ -77,7 +77,7 @@ Implement optional TimeTracking only after every known foundation it depends on 
 - Any emergency, technical, maintenance, or maximum-time close always requires manual review.
 - Authorized manager may challenge auto-approved work, moving it to `under_review` with reason and notification. It stops counting as accepted until final decision.
 
-#### Maintenance
+### Maintenance
 
 - Maintenance is global for the whole application, never module-specific.
 - It may be scheduled with advance warning or started immediately as emergency.
@@ -90,7 +90,7 @@ Implement optional TimeTracking only after every known foundation it depends on 
   - otherwise, count no post-maintenance gap and end work at maintenance end.
 - Apply the grace only to users who received maintenance time.
 
-#### Inactivity and offline
+### Inactivity and offline
 
 - Shared frontend Activity Tracker monitors real mouse, click, keyboard, scroll, touch, and similar events with throttling.
 - Backend is authoritative.
@@ -106,7 +106,7 @@ Implement optional TimeTracking only after every known foundation it depends on 
 - On reconnect, tell the user whether the session is active or ended.
 - Incorrect accounting is corrected through the normal correction request flow.
 
-#### Managers and corrections
+### Managers and corrections
 
 - Manager panel has one primary report view, not separate pages for each range.
 - Time range filter options: today, week, settlement period, month, year, all, custom.
@@ -139,7 +139,7 @@ Implement optional TimeTracking only after every known foundation it depends on 
 - Manager may terminate a subordinate active session with permission, reason, notification, and audit.
 - User correction request remains the normal response to offline/technical inaccuracies.
 
-#### Periods, ranges, comparison, exports
+### Periods, ranges, comparison, exports
 
 - Default settlement period begins on day 10 and ends on day 9 of next month; start day is centrally configurable.
 - Standard corrections apply to current period only.

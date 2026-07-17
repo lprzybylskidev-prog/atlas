@@ -10,8 +10,8 @@ services:
         condition: service_started
     network_mode: service:app
     volumes:
-      - ..:/var/www/html:ro
-      - ../docker/dev/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - ${ATLAS_WORKSPACE_SOURCE:-..}:/var/www/html:ro
+      - ${ATLAS_WORKSPACE_SOURCE:-..}/docker/dev/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
 
   php-fpm:
     image: atlas-php-fpm:latest
@@ -27,7 +27,7 @@ services:
       REDIS_HOST: redis
       MEILISEARCH_HOST: http://meilisearch:7700
     volumes:
-      - ..:/var/www/html:cached
+      - ${ATLAS_WORKSPACE_SOURCE:-..}:/var/www/html:cached
     depends_on:
       postgres:
         condition: service_healthy
@@ -35,6 +35,31 @@ services:
         condition: service_healthy
       meilisearch:
         condition: service_healthy
+    networks:
+      - atlas-dev
+
+  scheduler:
+    image: atlas-php-fpm:latest
+    env_file:
+      - ../.env
+    environment:
+      APP_TIMEZONE: ${APP_TIMEZONE:-Europe/Warsaw}
+      TZ: ${APP_TIMEZONE:-Europe/Warsaw}
+      DB_HOST: postgres
+      REDIS_HOST: redis
+      MEILISEARCH_HOST: http://meilisearch:7700
+    volumes:
+      - ${ATLAS_WORKSPACE_SOURCE:-..}:/var/www/html:cached
+    depends_on:
+      php-fpm:
+        condition: service_started
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      meilisearch:
+        condition: service_healthy
+    command: ["php", "artisan", "schedule:work"]
     networks:
       - atlas-dev
 
@@ -50,7 +75,7 @@ services:
       APP_TIMEZONE: ${APP_TIMEZONE:-Europe/Warsaw}
       TZ: ${APP_TIMEZONE:-Europe/Warsaw}
     volumes:
-      - ..:/workspace:cached
+      - ${ATLAS_WORKSPACE_SOURCE:-..}:/workspace:cached
       - /var/run/docker.sock:/var/run/docker.sock
       - composer-cache:/home/vscode/.composer/cache
       - pnpm-store:/home/vscode/.local/share/pnpm/store

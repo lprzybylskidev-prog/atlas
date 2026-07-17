@@ -1,4 +1,4 @@
-## Phase 15 — Notifications and realtime foundation
+# Phase 15 — Notifications and realtime foundation
 
 **Status:** `complete`
 

@@ -21,6 +21,8 @@ final class CoreAuthorizationPermissionCatalog implements ModulePermissionContri
 
     public const ADMIN_SYSTEM_STATUS_MODULE_ACTIVATION = 'admin.system-status.module-activation';
 
+    public const ADMIN_SYSTEM_STATUS_FAILED_JOBS = 'admin.system-status.failed-jobs';
+
     public const ADMIN_AUTHORIZATION_ROLES = 'admin.authorization.roles.index';
 
     public const ADMIN_AUTHORIZATION_ROLES_CREATE = 'admin.authorization.roles.create';
@@ -144,6 +146,7 @@ final class CoreAuthorizationPermissionCatalog implements ModulePermissionContri
             new ModulePermissionDefinition(self::ADMIN_SYSTEM_STATUS_READINESS, 'View Admin readiness diagnostics.'),
             new ModulePermissionDefinition(self::ADMIN_SYSTEM_STATUS_SCHEDULER, 'View Admin scheduler heartbeat status.'),
             new ModulePermissionDefinition(self::ADMIN_SYSTEM_STATUS_MODULE_ACTIVATION, 'View Admin module activation scheduler diagnostics.'),
+            new ModulePermissionDefinition(self::ADMIN_SYSTEM_STATUS_FAILED_JOBS, 'View Admin failed jobs dashboard diagnostics.'),
             new ModulePermissionDefinition(self::ADMIN_AUTHORIZATION_ROLES, 'View role administration.'),
             new ModulePermissionDefinition(self::ADMIN_AUTHORIZATION_ROLES_CREATE, 'Open role creation.'),
             new ModulePermissionDefinition(self::ADMIN_AUTHORIZATION_ROLES_STORE, 'Create roles through Admin UI.'),

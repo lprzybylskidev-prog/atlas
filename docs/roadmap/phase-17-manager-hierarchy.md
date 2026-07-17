@@ -1,4 +1,4 @@
-## Phase 17 — Manager hierarchy
+# Phase 17 — Manager hierarchy
 
 **Status:** `complete`
 

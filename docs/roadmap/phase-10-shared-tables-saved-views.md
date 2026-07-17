@@ -1,4 +1,4 @@
-## Phase 10 — Shared tables and saved views
+# Phase 10 — Shared tables and saved views
 
 **Status:** `complete`
 

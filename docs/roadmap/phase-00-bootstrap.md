@@ -1,6 +1,6 @@
-## Phase 0 — Repository bootstrap
+# Phase 0 — Repository bootstrap
 
-### Implementation contract
+## Implementation contract
 
 - The repository contains Atlas, a large debt collection system developed for the company.
 - The initial technical and operational foundation is completed and stabilized before the main debt collection `Application` modules are added.

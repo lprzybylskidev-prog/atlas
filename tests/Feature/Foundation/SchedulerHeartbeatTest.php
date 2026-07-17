@@ -57,26 +57,10 @@ final class SchedulerHeartbeatTest extends TestCase
         self::assertSame('Scheduler heartbeat is older than the configured freshness threshold.', $status['description']);
     }
 
-    public function test_admin_system_status_exposes_scheduler_heartbeat_visibility(): void
+    public function test_admin_scheduler_heartbeat_endpoint_exposes_diagnostics(): void
     {
         [$admin, $team] = $this->adminWithTeam();
         $this->app->make(SchedulerHeartbeatMonitor::class)->markHealthy(8);
-
-        $this->actingAs($admin)
-            ->withSession([
-                'active_team_public_id' => $team->public_id,
-                'auth.password_confirmed_at' => now()->unix(),
-                'atlas_admin_mode_entered_at' => now()->toIso8601String(),
-                'atlas_admin_mode_last_activity_at' => now()->toIso8601String(),
-                'atlas_admin_high_risk_confirmed_at' => now()->toIso8601String(),
-            ])
-            ->get('/admin')
-            ->assertOk()
-            ->assertInertia(fn (AssertableInertia $page) => $page
-                ->component('Admin/SystemStatus')
-                ->where('availability.3.elementKey', 'admin.system-status.scheduler')
-                ->where('availability.3.reason', 'available')
-            );
 
         $this->actingAs($admin)
             ->withSession([
@@ -166,8 +150,8 @@ final class SchedulerHeartbeatTest extends TestCase
             ->assertOk()
             ->assertInertia(fn (AssertableInertia $page) => $page
                 ->component('Admin/SystemStatus')
-                ->where('availability.4.elementKey', 'admin.system-status.module-activation')
-                ->where('availability.4.reason', 'available')
+                ->where('availability.2.elementKey', 'admin.system-status.module-activation')
+                ->where('availability.2.reason', 'available')
             );
 
         $this->actingAs($admin)
@@ -182,8 +166,11 @@ final class SchedulerHeartbeatTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.status', 'failed')
             ->assertJsonPath('data.failedCount', 1)
+            ->assertJsonPath('data.scheduledCount', 0)
             ->assertJsonPath('data.latestFailedModule', 'missing-module')
-            ->assertJsonPath('data.latestFailureReason', 'Module [missing-module] is not deployed.');
+            ->assertJsonPath('data.latestFailureReason', 'Module [missing-module] is not deployed.')
+            ->assertJsonPath('data.items.0.module', 'missing-module')
+            ->assertJsonPath('data.items.0.status', 'failed');
     }
 
     /**

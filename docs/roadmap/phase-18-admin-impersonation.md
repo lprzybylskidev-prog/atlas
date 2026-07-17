@@ -1,4 +1,4 @@
-## Phase 18 — Administrative mode and impersonation
+# Phase 18 — Administrative mode and impersonation
 
 **Status:** `complete`
 

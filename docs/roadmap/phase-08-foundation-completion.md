@@ -1,4 +1,4 @@
-## Phase 8 — Foundation completion and roadmap dependency repair
+# Phase 8 — Foundation completion and roadmap dependency repair
 
 **Status:** `complete`
 

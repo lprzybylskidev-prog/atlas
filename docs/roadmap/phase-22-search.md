@@ -1,4 +1,4 @@
-## Phase 22 — Search
+# Phase 22 — Search
 
 **Status:** `not started`
 

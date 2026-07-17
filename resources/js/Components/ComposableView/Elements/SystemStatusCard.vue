@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { IconAlertTriangle, IconCircleCheck, IconCircleX } from '@tabler/icons-vue';
+import { computed } from 'vue';
 
 type SystemStatusCheck = {
     key: string;
@@ -9,7 +10,17 @@ type SystemStatusCheck = {
     description: string;
 };
 
-defineProps<{
+type SystemStatusItem = {
+    publicId?: string | null;
+    module?: string | null;
+    scope?: string | null;
+    targetEnabled?: boolean | null;
+    effectiveAt?: string | null;
+    status?: string | null;
+    failureReason?: string | null;
+};
+
+const props = defineProps<{
     data?: {
         label: string;
         value: string;
@@ -31,11 +42,75 @@ defineProps<{
         lastRuntimeMs?: number | null;
         staleAfterSeconds?: number | null;
         failedCount?: number | null;
-        latestFailedModule?: string | null;
+        scheduledCount?: number | null;
+        queueCount?: number | null;
         latestFailedAt?: string | null;
+        latestFailedModule?: string | null;
         latestFailureReason?: string | null;
+        items?: SystemStatusItem[];
     } | null;
 }>();
+
+const normalizedStatus = computed(() => props.data?.status ?? 'healthy');
+const detailItems = computed(() =>
+    [
+        { label: 'Version', value: props.data?.releaseVersion, mono: false },
+        { label: 'Release ID', value: props.data?.releaseId, mono: true },
+        { label: 'Environment', value: props.data?.environment, mono: false },
+        { label: 'Last deploy', value: props.data?.deployedAt, mono: false },
+        { label: 'Deploy operator', value: props.data?.deployedBy, mono: false },
+        { label: 'Deploy source', value: props.data?.deploySource, mono: true },
+        { label: 'Checked at', value: props.data?.checkedAt, mono: false },
+        {
+            label: 'Blocking checks',
+            value:
+                props.data?.blockingTotal === undefined || props.data.blockingTotal === null
+                    ? null
+                    : `${props.data.blockingFailed ?? 0} failed / ${props.data.blockingTotal} total`,
+            mono: false,
+        },
+        {
+            label: 'Degraded checks',
+            value:
+                props.data?.degradedTotal === undefined || props.data.degradedTotal === null
+                    ? null
+                    : `${props.data.degradedFailed ?? 0} failing / ${props.data.degradedTotal} total`,
+            mono: false,
+        },
+        { label: 'Last success', value: props.data?.lastSuccessAt, mono: false },
+        {
+            label: 'Runtime',
+            value: props.data?.lastRuntimeMs === undefined || props.data.lastRuntimeMs === null ? null : `${props.data.lastRuntimeMs} ms`,
+            mono: false,
+        },
+        {
+            label: 'Freshness threshold',
+            value: props.data?.staleAfterSeconds ? `${props.data.staleAfterSeconds} seconds` : null,
+            mono: false,
+        },
+        {
+            label: 'Failed schedules',
+            value: props.data?.failedCount === undefined || props.data.failedCount === null ? null : String(props.data.failedCount),
+            mono: false,
+        },
+        {
+            label: 'Scheduled changes',
+            value:
+                props.data?.scheduledCount === undefined || props.data.scheduledCount === null ? null : String(props.data.scheduledCount),
+            mono: false,
+        },
+        {
+            label: 'Queues',
+            value: props.data?.queueCount === undefined || props.data.queueCount === null ? null : String(props.data.queueCount),
+            mono: false,
+        },
+        { label: 'Latest failed module', value: props.data?.latestFailedModule, mono: false },
+        { label: 'Latest failed at', value: props.data?.latestFailedAt, mono: false },
+        { label: 'Latest failure', value: props.data?.latestFailureReason, mono: true },
+    ].filter((item): item is { label: string; value: string; mono: boolean } => typeof item.value === 'string' && item.value !== ''),
+);
+
+const moduleActivationItems = computed(() => props.data?.items ?? []);
 
 const statusClass = (status: string): string => {
     if (status === 'healthy') {
@@ -64,80 +139,51 @@ const statusIcon = (status: string) => {
 
 <template>
     <div class="p-4">
-        <p class="text-sm font-semibold text-zinc-950 dark:text-zinc-50">{{ data?.label ?? 'Status' }}</p>
-        <p class="mt-2 text-2xl font-semibold text-teal-700 dark:text-teal-300">{{ data?.value ?? 'Available' }}</p>
-        <p class="mt-2 text-sm text-zinc-500 dark:text-zinc-400">{{ data?.description ?? 'Module gate passed.' }}</p>
+        <div class="flex items-start gap-3">
+            <span
+                class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border"
+                :class="statusClass(normalizedStatus)"
+                aria-hidden="true"
+            >
+                <component :is="statusIcon(normalizedStatus)" class="h-5 w-5" :stroke-width="1.8" />
+            </span>
+            <span class="min-w-0">
+                <span class="block text-sm font-semibold text-zinc-950 dark:text-zinc-50">{{ data?.label ?? 'Status' }}</span>
+                <span class="mt-1 block text-lg font-semibold text-teal-700 dark:text-teal-300">{{ data?.value ?? 'Available' }}</span>
+            </span>
+        </div>
+        <p class="mt-3 text-sm leading-6 text-zinc-500 dark:text-zinc-400">{{ data?.description ?? 'Module gate passed.' }}</p>
 
-        <dl v-if="data?.status" class="mt-4 grid gap-2 text-xs">
-            <div v-if="data.releaseVersion">
-                <dt class="font-semibold uppercase text-zinc-500 dark:text-zinc-400">Version</dt>
-                <dd class="mt-1 break-words text-zinc-800 dark:text-zinc-200">{{ data.releaseVersion }}</dd>
-            </div>
-            <div v-if="data.releaseId">
-                <dt class="font-semibold uppercase text-zinc-500 dark:text-zinc-400">Release ID</dt>
-                <dd class="mt-1 break-words font-mono text-zinc-800 dark:text-zinc-200">{{ data.releaseId }}</dd>
-            </div>
-            <div v-if="data.environment">
-                <dt class="font-semibold uppercase text-zinc-500 dark:text-zinc-400">Environment</dt>
-                <dd class="mt-1 break-words text-zinc-800 dark:text-zinc-200">{{ data.environment }}</dd>
-            </div>
-            <div v-if="data.deployedAt">
-                <dt class="font-semibold uppercase text-zinc-500 dark:text-zinc-400">Last deploy</dt>
-                <dd class="mt-1 break-words text-zinc-800 dark:text-zinc-200">{{ data.deployedAt }}</dd>
-            </div>
-            <div v-if="data.deployedBy">
-                <dt class="font-semibold uppercase text-zinc-500 dark:text-zinc-400">Deploy operator</dt>
-                <dd class="mt-1 break-words text-zinc-800 dark:text-zinc-200">{{ data.deployedBy }}</dd>
-            </div>
-            <div v-if="data.deploySource">
-                <dt class="font-semibold uppercase text-zinc-500 dark:text-zinc-400">Deploy source</dt>
-                <dd class="mt-1 break-words font-mono text-zinc-800 dark:text-zinc-200">{{ data.deploySource }}</dd>
-            </div>
-            <div v-if="data.checkedAt">
-                <dt class="font-semibold uppercase text-zinc-500 dark:text-zinc-400">Checked at</dt>
-                <dd class="mt-1 break-words text-zinc-800 dark:text-zinc-200">{{ data.checkedAt }}</dd>
-            </div>
-            <div v-if="data.blockingTotal !== undefined && data.blockingTotal !== null">
-                <dt class="font-semibold uppercase text-zinc-500 dark:text-zinc-400">Blocking checks</dt>
-                <dd class="mt-1 text-zinc-800 dark:text-zinc-200">
-                    {{ data.blockingFailed ?? 0 }} failed / {{ data.blockingTotal }} total
+        <dl v-if="detailItems.length > 0" class="mt-4 grid gap-2 text-xs sm:grid-cols-2">
+            <div v-for="item in detailItems" :key="item.label" class="min-w-0 rounded-md bg-zinc-50 p-2 dark:bg-zinc-900/70">
+                <dt class="font-semibold uppercase text-zinc-500 dark:text-zinc-400">{{ item.label }}</dt>
+                <dd class="mt-1 break-words text-zinc-800 dark:text-zinc-200" :class="{ 'font-mono': item.mono }">
+                    {{ item.value }}
                 </dd>
-            </div>
-            <div v-if="data.degradedTotal !== undefined && data.degradedTotal !== null">
-                <dt class="font-semibold uppercase text-zinc-500 dark:text-zinc-400">Degraded checks</dt>
-                <dd class="mt-1 text-zinc-800 dark:text-zinc-200">
-                    {{ data.degradedFailed ?? 0 }} failing / {{ data.degradedTotal }} total
-                </dd>
-            </div>
-            <div v-if="data.lastSuccessAt">
-                <dt class="font-semibold uppercase text-zinc-500 dark:text-zinc-400">Last success</dt>
-                <dd class="mt-1 break-words text-zinc-800 dark:text-zinc-200">{{ data.lastSuccessAt }}</dd>
-            </div>
-            <div v-if="data.lastRuntimeMs !== undefined && data.lastRuntimeMs !== null">
-                <dt class="font-semibold uppercase text-zinc-500 dark:text-zinc-400">Runtime</dt>
-                <dd class="mt-1 text-zinc-800 dark:text-zinc-200">{{ data.lastRuntimeMs }} ms</dd>
-            </div>
-            <div v-if="data.staleAfterSeconds">
-                <dt class="font-semibold uppercase text-zinc-500 dark:text-zinc-400">Freshness threshold</dt>
-                <dd class="mt-1 text-zinc-800 dark:text-zinc-200">{{ data.staleAfterSeconds }} seconds</dd>
-            </div>
-            <div v-if="data.failedCount !== undefined && data.failedCount !== null">
-                <dt class="font-semibold uppercase text-zinc-500 dark:text-zinc-400">Failed schedules</dt>
-                <dd class="mt-1 text-zinc-800 dark:text-zinc-200">{{ data.failedCount }}</dd>
-            </div>
-            <div v-if="data.latestFailedModule">
-                <dt class="font-semibold uppercase text-zinc-500 dark:text-zinc-400">Latest failed module</dt>
-                <dd class="mt-1 text-zinc-800 dark:text-zinc-200">{{ data.latestFailedModule }}</dd>
-            </div>
-            <div v-if="data.latestFailedAt">
-                <dt class="font-semibold uppercase text-zinc-500 dark:text-zinc-400">Latest failed at</dt>
-                <dd class="mt-1 break-words text-zinc-800 dark:text-zinc-200">{{ data.latestFailedAt }}</dd>
-            </div>
-            <div v-if="data.latestFailureReason">
-                <dt class="font-semibold uppercase text-zinc-500 dark:text-zinc-400">Latest failure</dt>
-                <dd class="mt-1 break-words font-mono text-zinc-800 dark:text-zinc-200">{{ data.latestFailureReason }}</dd>
             </div>
         </dl>
+
+        <ul v-if="moduleActivationItems.length > 0" class="mt-4 grid gap-2">
+            <li
+                v-for="item in moduleActivationItems"
+                :key="item.publicId ?? `${item.module}-${item.effectiveAt}`"
+                class="rounded-md border border-zinc-200 p-3 text-xs dark:border-zinc-800"
+            >
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                    <span class="font-semibold text-zinc-900 dark:text-zinc-100">{{ item.module ?? 'Module' }}</span>
+                    <span class="rounded bg-zinc-100 px-2 py-0.5 font-semibold uppercase text-zinc-500 dark:bg-zinc-900 dark:text-zinc-400">
+                        {{ item.status ?? 'scheduled' }}
+                    </span>
+                </div>
+                <p class="mt-1 text-zinc-500 dark:text-zinc-400">
+                    {{ item.targetEnabled ? 'Enable' : 'Disable' }} {{ item.scope ?? 'scope' }} at
+                    {{ item.effectiveAt ?? 'scheduled time' }}
+                </p>
+                <p v-if="item.failureReason" class="mt-2 break-words font-mono text-rose-700 dark:text-rose-300">
+                    {{ item.failureReason }}
+                </p>
+            </li>
+        </ul>
 
         <ul v-if="data?.checks?.length" class="mt-4 grid gap-2">
             <li

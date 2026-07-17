@@ -1,4 +1,4 @@
-## Phase 11 — Audit and security audit
+# Phase 11 — Audit and security audit
 
 **Status:** `complete`
 

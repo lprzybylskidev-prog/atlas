@@ -26,16 +26,6 @@ export const COMPOSABLE_HOST_VIEWS: readonly ComposableHostViewDefinition[] = [
         fallbackTitle: 'Dashboard',
         acceptedElements: [
             {
-                elementKey: 'admin.system-status.identity',
-                area: 'main',
-                order: 20,
-                dimensions: {
-                    minHeightClass: 'min-h-44',
-                    spanClass: '',
-                },
-                structural: true,
-            },
-            {
                 elementKey: 'admin.system-status.release',
                 area: 'main',
                 order: 10,
@@ -46,19 +36,9 @@ export const COMPOSABLE_HOST_VIEWS: readonly ComposableHostViewDefinition[] = [
                 structural: true,
             },
             {
-                elementKey: 'admin.system-status.search',
+                elementKey: 'admin.system-status.failed-jobs',
                 area: 'main',
                 order: 20,
-                dimensions: {
-                    minHeightClass: 'min-h-44',
-                    spanClass: '',
-                },
-                structural: false,
-            },
-            {
-                elementKey: 'admin.system-status.scheduler',
-                area: 'main',
-                order: 40,
                 dimensions: {
                     minHeightClass: 'min-h-44',
                     spanClass: '',
@@ -68,7 +48,7 @@ export const COMPOSABLE_HOST_VIEWS: readonly ComposableHostViewDefinition[] = [
             {
                 elementKey: 'admin.system-status.module-activation',
                 area: 'main',
-                order: 50,
+                order: 30,
                 dimensions: {
                     minHeightClass: 'min-h-44',
                     spanClass: '',
@@ -77,11 +57,11 @@ export const COMPOSABLE_HOST_VIEWS: readonly ComposableHostViewDefinition[] = [
             },
             {
                 elementKey: 'admin.system-status.readiness',
-                area: 'main',
-                order: 30,
+                area: 'full',
+                order: 100,
                 dimensions: {
                     minHeightClass: 'min-h-44',
-                    spanClass: 'lg:col-span-2',
+                    spanClass: '',
                 },
                 structural: true,
             },
@@ -126,35 +106,6 @@ export const SYSTEM_STATUS_ELEMENTS: readonly ComposableViewElementDefinition[] 
         optional: false,
     },
     {
-        key: 'admin.system-status.identity',
-        hostTypes: ['operational-status'],
-        hostKeys: ['admin.system-status'],
-        titleKey: 'views.admin.system_status.identity.title',
-        fallbackTitle: 'Identity module',
-        descriptionKey: 'views.admin.system_status.identity.description',
-        fallbackDescription: 'Core authentication and account access.',
-        requirements: {
-            permissions: ['admin.system-status'],
-            modules: ['identity'],
-            activeTeam: 'required',
-        },
-        component: SystemStatusCard,
-        dataProvider: async () => ({
-            data: {
-                label: 'Identity',
-                value: 'Available',
-                description: 'The deployed Identity module is available for the active team context.',
-            },
-            empty: false,
-        }),
-        cacheTtlSeconds: 30,
-        realtime: {
-            supported: false,
-            channel: null,
-        },
-        optional: false,
-    },
-    {
         key: 'admin.system-status.readiness',
         hostTypes: ['operational-status'],
         hostKeys: ['admin.system-status'],
@@ -190,21 +141,21 @@ export const SYSTEM_STATUS_ELEMENTS: readonly ComposableViewElementDefinition[] 
         optional: false,
     },
     {
-        key: 'admin.system-status.scheduler',
+        key: 'admin.system-status.failed-jobs',
         hostTypes: ['operational-status'],
         hostKeys: ['admin.system-status'],
-        titleKey: 'views.admin.system_status.scheduler.title',
-        fallbackTitle: 'Scheduler heartbeat',
-        descriptionKey: 'views.admin.system_status.scheduler.description',
-        fallbackDescription: 'Freshness of the application scheduler process.',
+        titleKey: 'views.admin.system_status.failed_jobs.title',
+        fallbackTitle: 'Failed jobs',
+        descriptionKey: 'views.admin.system_status.failed_jobs.description',
+        fallbackDescription: 'Queue failures waiting for operator review.',
         requirements: {
-            permissions: ['admin.system-status.scheduler'],
-            modules: ['authorization'],
+            permissions: ['admin.system-status.failed-jobs'],
+            modules: ['health'],
             activeTeam: 'required',
         },
         component: SystemStatusCard,
         dataProvider: async () => {
-            const response = await fetch('/admin/system-status/scheduler', {
+            const response = await fetch('/admin/system-status/failed-jobs', {
                 credentials: 'same-origin',
                 headers: {
                     Accept: 'application/json',
@@ -212,7 +163,7 @@ export const SYSTEM_STATUS_ELEMENTS: readonly ComposableViewElementDefinition[] 
             });
 
             if (!response.ok) {
-                throw new Error('Scheduler heartbeat status could not be loaded.');
+                throw new Error('Failed job diagnostics could not be loaded.');
             }
 
             return (await response.json()) as { data: unknown; empty: boolean };
@@ -258,35 +209,6 @@ export const SYSTEM_STATUS_ELEMENTS: readonly ComposableViewElementDefinition[] 
             channel: null,
         },
         optional: false,
-    },
-    {
-        key: 'admin.system-status.search',
-        hostTypes: ['operational-status'],
-        hostKeys: ['admin.system-status'],
-        titleKey: 'views.admin.system_status.search.title',
-        fallbackTitle: 'Search module',
-        descriptionKey: 'views.admin.system_status.search.description',
-        fallbackDescription: 'Optional search projection status.',
-        requirements: {
-            permissions: ['admin.system-status'],
-            modules: ['search'],
-            activeTeam: 'required',
-        },
-        component: SystemStatusCard,
-        dataProvider: async () => ({
-            data: {
-                label: 'Search',
-                value: 'Available',
-                description: 'The optional Search module is deployed and available.',
-            },
-            empty: false,
-        }),
-        cacheTtlSeconds: 30,
-        realtime: {
-            supported: false,
-            channel: null,
-        },
-        optional: true,
     },
 ];
 

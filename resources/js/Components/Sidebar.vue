@@ -7,6 +7,7 @@ import {
     IconFileText,
     IconGauge,
     IconKey,
+    IconLayoutDashboard,
     IconLockAccess,
     IconPackages,
     IconPuzzle,
@@ -49,12 +50,18 @@ function canSeeAdminRoute(route: string): boolean {
 }
 
 const groups = computed<NavigationGroup[]>(() => {
-    const workspace = {
+    const workspace: NavigationGroup = {
         key: 'workspace',
         label: t('navigation.group.workspace'),
         icon: IconGauge,
         items: [
-            { key: 'workspace.dashboard', label: t('navigation.dashboard'), href: '/', icon: IconGauge, active: props.currentPath === '/' },
+            {
+                key: 'workspace.dashboard',
+                label: t('navigation.app_dashboard'),
+                href: '/',
+                icon: IconGauge,
+                active: props.currentPath === '/',
+            },
         ],
     };
 
@@ -63,7 +70,20 @@ const groups = computed<NavigationGroup[]>(() => {
     }
 
     return [
-        workspace,
+        {
+            ...workspace,
+            items: [
+                ...workspace.items,
+                {
+                    key: 'workspace.admin-dashboard',
+                    label: t('navigation.admin_dashboard'),
+                    href: '/admin',
+                    icon: IconLayoutDashboard,
+                    active: props.currentPath === '/admin',
+                    visible: canSeeAdminRoute('admin.system-status'),
+                },
+            ].filter((item) => item.visible !== false),
+        },
         {
             key: 'identity-access',
             label: t('navigation.group.identity_access'),

@@ -1,4 +1,4 @@
-## Phase 14 — Module availability and activation
+# Phase 14 — Module availability and activation
 
 **Status:** `complete`
 

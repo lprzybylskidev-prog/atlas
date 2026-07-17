@@ -2,7 +2,7 @@
 
 Canonical current behavior for notification types, channels, preferences, delivery, queueing, realtime updates, and audit.
 
-### Notifications
+## Notifications
 
 Use one notification module.
 

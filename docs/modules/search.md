@@ -2,7 +2,7 @@
 
 Canonical current behavior for Meilisearch projections, authorization scope, indexing, rebuild, consistency, health, and failure behavior.
 
-### Search
+## Search
 
 Use Meilisearch only for justified large full-text search.
 

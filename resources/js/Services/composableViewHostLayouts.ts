@@ -86,14 +86,14 @@ export const COMPOSABLE_VIEW_HOST_LAYOUTS: readonly ComposableViewHostLayoutDefi
         containerClass: 'grid gap-4',
         areas: [
             {
+                area: 'main',
+                wrapperClass: 'grid gap-4',
+                listClass: 'grid items-start gap-4 sm:grid-cols-2 xl:grid-cols-4',
+            },
+            {
                 area: 'full',
                 wrapperClass: 'grid gap-4',
                 listClass: 'grid gap-4',
-            },
-            {
-                area: 'main',
-                wrapperClass: 'grid gap-4',
-                listClass: 'grid gap-4 sm:grid-cols-2 xl:grid-cols-4',
             },
             {
                 area: 'aside',

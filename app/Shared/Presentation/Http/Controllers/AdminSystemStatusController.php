@@ -8,10 +8,12 @@ use App\Modules\Core\Health\Application\Readiness\Contracts\ReadinessChecker;
 use App\Shared\Application\Modules\Contracts\ModuleGate;
 use App\Shared\Application\Modules\ModuleAccessDenialReason;
 use App\Shared\Application\Modules\ModuleAccessRequest;
+use App\Shared\Infrastructure\Database\DatabaseTable;
 use App\Shared\Infrastructure\Observability\ModuleActivationScheduleDiagnostics;
 use App\Shared\Infrastructure\Observability\SchedulerHeartbeatMonitor;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -34,39 +36,21 @@ final readonly class AdminSystemStatusController
         return Inertia::render('Admin/SystemStatus', [
             'availability' => [
                 $this->availabilityEntry(
-                    elementKey: 'admin.system-status.identity',
-                    request: new ModuleAccessRequest(
-                        moduleKey: 'identity',
-                        activeTeamPublicId: $teamPublicId,
-                        userPublicId: $userPublicId,
-                        requiredPermission: 'admin.system-status',
-                    ),
-                ),
-                $this->availabilityEntry(
-                    elementKey: 'admin.system-status.search',
-                    request: new ModuleAccessRequest(
-                        moduleKey: 'search',
-                        activeTeamPublicId: $teamPublicId,
-                        userPublicId: $userPublicId,
-                        requiredPermission: 'admin.system-status',
-                    ),
-                ),
-                $this->availabilityEntry(
-                    elementKey: 'admin.system-status.readiness',
+                    elementKey: 'admin.system-status.release',
                     request: new ModuleAccessRequest(
                         moduleKey: 'health',
                         activeTeamPublicId: $teamPublicId,
                         userPublicId: $userPublicId,
-                        requiredPermission: 'admin.system-status.readiness',
+                        requiredPermission: 'admin.system-status.release',
                     ),
                 ),
                 $this->availabilityEntry(
-                    elementKey: 'admin.system-status.scheduler',
+                    elementKey: 'admin.system-status.failed-jobs',
                     request: new ModuleAccessRequest(
-                        moduleKey: 'authorization',
+                        moduleKey: 'health',
                         activeTeamPublicId: $teamPublicId,
                         userPublicId: $userPublicId,
-                        requiredPermission: 'admin.system-status.scheduler',
+                        requiredPermission: 'admin.system-status.failed-jobs',
                     ),
                 ),
                 $this->availabilityEntry(
@@ -79,12 +63,12 @@ final readonly class AdminSystemStatusController
                     ),
                 ),
                 $this->availabilityEntry(
-                    elementKey: 'admin.system-status.release',
+                    elementKey: 'admin.system-status.readiness',
                     request: new ModuleAccessRequest(
                         moduleKey: 'health',
                         activeTeamPublicId: $teamPublicId,
                         userPublicId: $userPublicId,
-                        requiredPermission: 'admin.system-status.release',
+                        requiredPermission: 'admin.system-status.readiness',
                     ),
                 ),
             ],
@@ -161,6 +145,33 @@ final readonly class AdminSystemStatusController
         ]);
     }
 
+    public function failedJobs(): JsonResponse
+    {
+        $aggregate = DB::table(DatabaseTable::FAILED_JOBS)
+            ->selectRaw('count(*) as failed_count')
+            ->selectRaw('count(distinct queue) as queues')
+            ->selectRaw('max(failed_at) as latest_failed_at')
+            ->first();
+        $failedCount = is_object($aggregate) && is_numeric($aggregate->failed_count ?? null) ? (int) $aggregate->failed_count : 0;
+
+        return response()->json([
+            'data' => [
+                'label' => 'Failed jobs',
+                'value' => (string) $failedCount,
+                'description' => $failedCount > 0
+                    ? 'Failed jobs are waiting for operator review.'
+                    : 'No failed jobs are recorded.',
+                'status' => $failedCount > 0 ? 'degraded' : 'healthy',
+                'failedCount' => $failedCount,
+                'queueCount' => is_object($aggregate) && is_numeric($aggregate->queues ?? null) ? (int) $aggregate->queues : 0,
+                'latestFailedAt' => is_object($aggregate) && is_scalar($aggregate->latest_failed_at ?? null)
+                    ? (string) $aggregate->latest_failed_at
+                    : null,
+            ],
+            'empty' => false,
+        ]);
+    }
+
     public function moduleActivation(): JsonResponse
     {
         $status = $this->moduleActivationDiagnostics->status();
@@ -172,10 +183,12 @@ final readonly class AdminSystemStatusController
                 'description' => $status['description'],
                 'status' => $status['status'],
                 'failedCount' => $status['failedCount'],
+                'scheduledCount' => $status['scheduledCount'],
                 'latestFailedPublicId' => $status['latestFailedPublicId'],
                 'latestFailedModule' => $status['latestFailedModule'],
                 'latestFailedAt' => $status['latestFailedAt'],
                 'latestFailureReason' => $status['latestFailureReason'],
+                'items' => $status['items'],
             ],
             'empty' => false,
         ]);

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Head, router, useForm } from '@inertiajs/vue3';
 import { IconArrowRight, IconChevronDown, IconGitBranch, IconSitemap, IconUserStar, IconUsers } from '@tabler/icons-vue';
+import type { Component } from 'vue';
 import { computed, reactive, ref, watch } from 'vue';
 
 import AtlasForm from '../../../Components/Form/AtlasForm.vue';
@@ -109,6 +110,11 @@ watch(
 
 const memberOptions = computed<FormSelectOption[]>(() => props.teamMembers.map(({ value, label }) => ({ value, label })));
 const headManagers = computed(() => props.teamMembers.filter((member) => member.headManager));
+const summaryItems = computed<{ label: string; value: string; icon: Component }[]>(() => [
+    { label: 'Members', value: String(props.teamMembers.length), icon: IconUsers },
+    { label: 'Relationships', value: String(props.relationships.length), icon: IconGitBranch },
+    { label: 'Heads', value: String(headManagers.value.length), icon: IconUserStar },
+]);
 const selectedHeadMember = computed(() => props.teamMembers.find((member) => String(member.value) === headForm.user_public_id) ?? null);
 const canPreview = computed(
     () => assignForm.team_public_id !== '' && assignForm.manager_user_public_id !== '' && assignForm.report_user_public_id !== '',
@@ -221,35 +227,32 @@ function formattedDate(value: string | null): string {
         <section class="space-y-5">
             <section class="grid gap-3 lg:grid-cols-[minmax(20rem,1.35fr)_repeat(3,minmax(10rem,0.55fr))]">
                 <div class="rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950">
-                    <FormSelect
-                        v-model="filterForm.team"
-                        label="Team"
-                        :options="[{ value: '', label: 'Select team' }, ...teamOptions]"
-                        placeholder="Select team"
-                    />
-                    <FormButton type="button" class="mt-3" @click="applyTeamFilter">Load team</FormButton>
-                </div>
-                <div class="rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950">
-                    <div class="flex items-center justify-between gap-3">
-                        <p class="text-xs font-semibold uppercase text-zinc-500 dark:text-zinc-400">Members</p>
-                        <IconUsers aria-hidden="true" class="h-5 w-5 text-teal-700 dark:text-teal-300" :stroke-width="1.8" />
+                    <div class="flex flex-col gap-3 sm:flex-row sm:items-end">
+                        <FormSelect
+                            v-model="filterForm.team"
+                            class="min-w-0 flex-1"
+                            label="Team"
+                            :options="[{ value: '', label: 'Select team' }, ...teamOptions]"
+                            placeholder="Select team"
+                        />
+                        <FormButton type="button" class="sm:shrink-0" @click="applyTeamFilter">Load team</FormButton>
                     </div>
-                    <p class="mt-3 text-2xl font-semibold text-zinc-950 dark:text-zinc-50">{{ teamMembers.length }}</p>
                 </div>
-                <div class="rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950">
-                    <div class="flex items-center justify-between gap-3">
-                        <p class="text-xs font-semibold uppercase text-zinc-500 dark:text-zinc-400">Relationships</p>
-                        <IconGitBranch aria-hidden="true" class="h-5 w-5 text-teal-700 dark:text-teal-300" :stroke-width="1.8" />
-                    </div>
-                    <p class="mt-3 text-2xl font-semibold text-zinc-950 dark:text-zinc-50">{{ relationships.length }}</p>
-                </div>
-                <div class="rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950">
-                    <div class="flex items-center justify-between gap-3">
-                        <p class="text-xs font-semibold uppercase text-zinc-500 dark:text-zinc-400">Heads</p>
-                        <IconUserStar aria-hidden="true" class="h-5 w-5 text-teal-700 dark:text-teal-300" :stroke-width="1.8" />
-                    </div>
-                    <p class="mt-3 text-2xl font-semibold text-zinc-950 dark:text-zinc-50">{{ headManagers.length }}</p>
-                </div>
+                <section
+                    v-for="item in summaryItems"
+                    :key="item.label"
+                    class="flex items-start gap-3 rounded-lg border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-950"
+                >
+                    <span
+                        class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-teal-200 bg-teal-50 text-teal-700 dark:border-teal-900 dark:bg-teal-950 dark:text-teal-200"
+                    >
+                        <component :is="item.icon" aria-hidden="true" class="h-4 w-4" :stroke-width="1.8" />
+                    </span>
+                    <span class="min-w-0">
+                        <p class="text-xs font-semibold uppercase text-zinc-500 dark:text-zinc-400">{{ item.label }}</p>
+                        <p class="mt-1 truncate text-sm font-medium text-zinc-950 dark:text-zinc-50">{{ item.value }}</p>
+                    </span>
+                </section>
             </section>
 
             <div class="grid gap-5 xl:grid-cols-[minmax(0,1.35fr)_minmax(22rem,0.65fr)]">

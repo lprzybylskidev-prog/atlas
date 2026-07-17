@@ -1,4 +1,4 @@
-## Phase 23 — Feature flags
+# Phase 23 — Feature flags
 
 **Status:** `not started`
 

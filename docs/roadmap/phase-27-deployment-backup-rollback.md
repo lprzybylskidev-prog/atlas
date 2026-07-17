@@ -1,4 +1,4 @@
-## Phase 27 — Production deployment, backup, restore, and rollback
+# Phase 27 — Production deployment, backup, restore, and rollback
 
 **Status:** `not started`
 
