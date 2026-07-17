@@ -280,10 +280,10 @@ const pageSelectOptions = computed(() => pageOptions.value.map((index) => ({ val
 const pageSizeOptions = [10, 25, 50, 100, 250];
 const pageSizeSelectOptions = pageSizeOptions.map((size) => ({ value: size, label: String(size) }));
 const savedViewOptions = computed(() => [
-    { value: '', label: 'Current table' },
+    { value: '', label: t('datatable.views.current') },
     ...(props.table?.savedViews ?? []).map((view) => ({
         value: view.publicId,
-        label: `${view.name}${view.isDefault ? ' (default)' : ''}`,
+        label: `${view.name}${view.isDefault ? ` (${t('datatable.views.default_suffix')})` : ''}`,
     })),
 ]);
 const renderedColumnCount = computed(
@@ -311,6 +311,8 @@ const selectionNeutralButtonClass =
     'text-zinc-600 hover:bg-zinc-100 hover:text-zinc-950 dark:text-zinc-300 dark:hover:bg-zinc-900 dark:hover:text-zinc-50';
 const paginationButtonClass =
     'inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-zinc-300 bg-white px-3 text-sm font-medium text-zinc-700 transition hover:border-zinc-400 hover:bg-zinc-100 hover:text-zinc-950 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:border-zinc-300 disabled:hover:bg-white disabled:hover:text-zinc-700 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:border-zinc-600 dark:hover:bg-zinc-800 dark:hover:text-zinc-50 dark:disabled:hover:border-zinc-700 dark:disabled:hover:bg-zinc-900 dark:disabled:hover:text-zinc-200';
+const actionColumnWidth = computed(() => `${Math.max(8, props.actions.length * 2.5 + 2)}rem`);
+const actionColumnStyle = computed(() => ({ minWidth: actionColumnWidth.value, width: actionColumnWidth.value }));
 
 function stateStorageKey(): string | null {
     return props.stateKey ? `atlas.datatable.${props.stateKey}` : null;
@@ -621,7 +623,7 @@ function copyView(): void {
     router.post(
         `/admin/table-views/${view.publicId}/copy`,
         {
-            name: savedViewName.value.trim() || `Copy of ${view.name}`,
+            name: savedViewName.value.trim() || t('datatable.views.copy_name', { name: view.name }),
             type: savedViewType.value,
         },
         { preserveScroll: true, preserveState: false },
@@ -685,6 +687,59 @@ function formatCell(value: unknown, format: DataTableColumn<TRow>['format']): VN
 
     if (format === 'severity' && typeof value === 'string') {
         return h(SeverityBadge, { value });
+    }
+
+    return formatEmpty(value);
+}
+
+function cellTooltipText(value: unknown, columnId: string): string | null {
+    const column = props.columns.find((candidate) => candidate.key === columnId);
+    const format = column?.format;
+
+    if (format === 'boolean' || format === 'severity' || format === 'status') {
+        return null;
+    }
+
+    const text = formattedCellText(value, format);
+
+    if (text === '-' || text.trim().length <= 12) {
+        return null;
+    }
+
+    return text;
+}
+
+function formattedCellText(value: unknown, format: DataTableColumn<TRow>['format']): string {
+    if (format === 'list' && Array.isArray(value)) {
+        return value.join(', ');
+    }
+
+    if (format === 'count' && Array.isArray(value)) {
+        return String(value.length);
+    }
+
+    if (format === 'date' && (typeof value === 'string' || value instanceof Date)) {
+        return formatDate(value, props.uiLocale ?? 'en');
+    }
+
+    if (format === 'time' && (typeof value === 'string' || value instanceof Date)) {
+        return formatTime(value, props.uiLocale ?? 'en');
+    }
+
+    if (format === 'datetime' && (typeof value === 'string' || value instanceof Date)) {
+        return formatTimestamp(value, props.uiLocale ?? 'pl');
+    }
+
+    if (format === 'money' && value !== null && typeof value === 'object' && 'amountMinor' in value && 'currency' in value) {
+        return formatMoney(value as { amountMinor: number; currency: string }, props.uiLocale ?? 'en');
+    }
+
+    if (format === 'number' && typeof value === 'number') {
+        return formatNumber(value, props.uiLocale ?? 'en');
+    }
+
+    if (format === 'percent' && typeof value === 'number') {
+        return formatPercent(value, props.uiLocale ?? 'en');
     }
 
     return formatEmpty(value);
@@ -1411,7 +1466,7 @@ function headerCellClass(headerId: string): string {
         return 'w-12 px-3 py-3 text-center';
     }
 
-    return 'px-4 py-3';
+    return `px-4 py-3 ${dataColumnWidthClass(headerId)}`;
 }
 
 function bodyCellClass(columnId: string): string {
@@ -1419,7 +1474,55 @@ function bodyCellClass(columnId: string): string {
         return 'w-12 px-3 py-3 text-center';
     }
 
-    return 'min-w-0 truncate px-4 py-3 text-zinc-700 dark:text-zinc-200';
+    return `px-4 py-3 text-zinc-700 dark:text-zinc-200 ${dataColumnWidthClass(columnId)}`;
+}
+
+function headerTooltipText(headerId: string): string | null {
+    const column = props.columns.find((candidate) => candidate.key === headerId);
+
+    return column?.label ?? null;
+}
+
+function bodyCellContentClass(columnId: string): string {
+    if (columnId === 'select') {
+        return 'flex justify-center';
+    }
+
+    return 'block min-w-0 truncate';
+}
+
+function dataColumnWidthClass(columnId: string): string {
+    const column = props.columns.find((candidate) => candidate.key === columnId);
+
+    if (column === undefined) {
+        return 'min-w-44';
+    }
+
+    if (column.key.toLowerCase().includes('email')) {
+        return 'min-w-56';
+    }
+
+    if (column.key.toLowerCase().includes('publicid') || column.key.toLowerCase().includes('public_id')) {
+        return 'min-w-36';
+    }
+
+    if (column.format === 'boolean' || column.format === 'count' || column.format === 'number' || column.format === 'percent') {
+        return 'min-w-28';
+    }
+
+    if (column.format === 'date' || column.format === 'time' || column.format === 'datetime') {
+        return 'min-w-40';
+    }
+
+    if (column.format === 'money') {
+        return 'min-w-36';
+    }
+
+    if (column.format === 'list') {
+        return 'min-w-56';
+    }
+
+    return 'min-w-44';
 }
 
 function selectAllFiltered(): void {
@@ -1524,7 +1627,7 @@ onBeforeUnmount(() => {
                 <details v-if="serverDriven" ref="viewsMenu" class="relative">
                     <summary :class="menuButtonClass">
                         <IconSettings aria-hidden="true" class="h-4 w-4" :stroke-width="1.8" />
-                        Views
+                        {{ t('datatable.views') }}
                     </summary>
                     <div
                         class="absolute right-0 z-20 mt-2 w-80 space-y-3 rounded-lg border border-zinc-200 bg-white p-3 shadow-lg dark:border-zinc-800 dark:bg-zinc-950"
@@ -1536,13 +1639,17 @@ onBeforeUnmount(() => {
                             button-class="h-9 w-full"
                             @update:model-value="applySavedView"
                         />
-                        <FormInput v-model="savedViewName" aria-label="Saved view name" placeholder="View name" />
+                        <FormInput
+                            v-model="savedViewName"
+                            :aria-label="t('datatable.views.name')"
+                            :placeholder="t('datatable.views.name_placeholder')"
+                        />
                         <FormSelect
                             v-model="savedViewType"
-                            aria-label="Saved view type"
+                            :aria-label="t('datatable.views.type')"
                             :options="[
-                                { value: 'private', label: 'Private' },
-                                { value: 'team', label: 'Team shared' },
+                                { value: 'private', label: t('datatable.views.private') },
+                                { value: 'team', label: t('datatable.views.team') },
                             ]"
                             button-class="h-9 w-full"
                         />
@@ -1554,7 +1661,7 @@ onBeforeUnmount(() => {
                                 @click="saveView"
                             >
                                 <IconDeviceFloppy aria-hidden="true" class="h-4 w-4" :stroke-width="1.8" />
-                                Save
+                                {{ t('datatable.views.save') }}
                             </button>
                             <button
                                 type="button"
@@ -1563,7 +1670,7 @@ onBeforeUnmount(() => {
                                 @click="updateView"
                             >
                                 <IconPencil aria-hidden="true" class="h-4 w-4" :stroke-width="1.8" />
-                                Update
+                                {{ t('datatable.views.update') }}
                             </button>
                             <button
                                 type="button"
@@ -1572,7 +1679,7 @@ onBeforeUnmount(() => {
                                 @click="copyView"
                             >
                                 <IconCopy aria-hidden="true" class="h-4 w-4" :stroke-width="1.8" />
-                                Copy
+                                {{ t('datatable.views.copy') }}
                             </button>
                             <button
                                 type="button"
@@ -1581,7 +1688,7 @@ onBeforeUnmount(() => {
                                 @click="makeDefaultView"
                             >
                                 <IconStar aria-hidden="true" class="h-4 w-4" :stroke-width="1.8" />
-                                Default
+                                {{ t('datatable.views.default') }}
                             </button>
                             <button
                                 type="button"
@@ -1590,7 +1697,7 @@ onBeforeUnmount(() => {
                                 @click="deleteView"
                             >
                                 <IconTrash aria-hidden="true" class="h-4 w-4" :stroke-width="1.8" />
-                                Delete
+                                {{ t('datatable.views.delete') }}
                             </button>
                         </div>
                     </div>
@@ -1707,11 +1814,11 @@ onBeforeUnmount(() => {
 
         <div class="relative overflow-visible rounded-lg border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
             <div class="overflow-x-auto overflow-y-visible rounded-t-lg">
-                <table :key="tableRenderKey" class="w-full min-w-[72rem] table-fixed divide-y divide-zinc-200 text-sm dark:divide-zinc-800">
+                <table :key="tableRenderKey" class="w-max min-w-full table-auto divide-y divide-zinc-200 text-sm dark:divide-zinc-800">
                     <colgroup>
                         <col v-if="selectable" class="w-12" />
                         <col v-for="column in visibleDataColumns" :key="column.key" />
-                        <col v-if="actions?.length" class="w-72" />
+                        <col v-if="actions?.length" :style="actionColumnStyle" />
                     </colgroup>
                     <thead class="bg-zinc-50 text-left text-xs font-semibold uppercase text-zinc-500 dark:bg-zinc-900 dark:text-zinc-400">
                         <tr v-for="headerGroup in table.getHeaderGroups()" :key="headerGroup.id">
@@ -1723,7 +1830,17 @@ onBeforeUnmount(() => {
                                     :class="{ 'cursor-pointer': header.column.getCanSort() }"
                                     @click="header.column.getToggleSortingHandler()?.($event)"
                                 >
-                                    <span class="truncate">
+                                    <Tooltip
+                                        v-if="headerTooltipText(header.id) !== null"
+                                        :text="headerTooltipText(header.id) ?? ''"
+                                        align="start"
+                                        placement="top"
+                                    >
+                                        <span class="block truncate">
+                                            <FlexRender :render="header.column.columnDef.header" :props="header.getContext()" />
+                                        </span>
+                                    </Tooltip>
+                                    <span v-else class="block truncate">
                                         <FlexRender :render="header.column.columnDef.header" :props="header.getContext()" />
                                     </span>
                                     <IconChevronUp v-if="header.column.getIsSorted() === 'asc'" aria-hidden="true" class="h-4 w-4" />
@@ -1735,13 +1852,15 @@ onBeforeUnmount(() => {
                                     <IconSelector v-else-if="header.column.getCanSort()" aria-hidden="true" class="h-4 w-4 opacity-50" />
                                 </button>
                             </th>
-                            <th v-if="actions?.length" class="w-72 px-4 py-3 text-right">{{ t('datatable.actions') }}</th>
+                            <th v-if="actions?.length" class="px-4 py-3 text-right" :style="actionColumnStyle">
+                                {{ t('datatable.actions') }}
+                            </th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-zinc-200 dark:divide-zinc-800">
                         <tr v-if="loading">
                             <td :colspan="renderedColumnCount" class="px-4 py-10 text-center text-sm text-zinc-500 dark:text-zinc-400">
-                                Loading...
+                                {{ t('datatable.loading') }}
                             </td>
                         </tr>
                         <tr v-else-if="errorLabel">
@@ -1752,9 +1871,22 @@ onBeforeUnmount(() => {
                         <template v-else>
                             <tr v-for="row in table.getRowModel().rows" :key="rowId(row.original)">
                                 <td v-for="cell in row.getVisibleCells()" :key="cell.id" :class="bodyCellClass(cell.column.id)">
-                                    <FlexRender :render="cell.column.columnDef.cell" :props="cell.getContext()" />
+                                    <Tooltip
+                                        v-if="cellTooltipText(cell.getValue(), cell.column.id) !== null"
+                                        :text="cellTooltipText(cell.getValue(), cell.column.id) ?? ''"
+                                        full-width
+                                        align="start"
+                                        placement="top"
+                                    >
+                                        <span :class="bodyCellContentClass(cell.column.id)">
+                                            <FlexRender :render="cell.column.columnDef.cell" :props="cell.getContext()" />
+                                        </span>
+                                    </Tooltip>
+                                    <span v-else :class="bodyCellContentClass(cell.column.id)">
+                                        <FlexRender :render="cell.column.columnDef.cell" :props="cell.getContext()" />
+                                    </span>
                                 </td>
-                                <td v-if="actions?.length" class="w-72 px-4 py-3 text-right">
+                                <td v-if="actions?.length" class="px-4 py-3 text-right" :style="actionColumnStyle">
                                     <div class="flex justify-end gap-2 whitespace-nowrap">
                                         <Tooltip
                                             v-for="action in actions"

@@ -8,6 +8,8 @@ Every table uses the shared TanStack Table wrapper.
 
 The Phase 10 shared `DataTable` wrapper is the only application table framework. Current Admin tables use backend-validated table state, server-side pagination, sorting, and filtering, deterministic English query-string keys, column visibility/order state, row selection for the currently loaded page, loading/empty/error/no-results states, row actions, and local CSV/XLSX/PDF/print actions for the currently loaded visible dataset.
 
+Tables keep readable minimum widths for data cells and row actions. When the visible column set is wider than the available viewport, the shared wrapper uses horizontal scrolling instead of compressing columns until values or actions overlap. Truncated data cells expose the full formatted value through the shared tooltip pattern while keeping the formatted value selectable for normal browser copy operations.
+
 Saved views persist safe table configuration only: search/filter state, sorting, visible columns, column order, grouping keys, and fixed or dynamic time-range metadata. They never persist row data. Private views are owner-scoped, team-shared views are active-team scoped, and system views are read-only from the normal table UI. System views may be copied into private or team-shared views. Shared/system view changes are recorded through the current security audit bridge until the full Phase 11 Audit module exists.
 
 Phase 24 implements the later report/export/PDF/chart/print artifact lifecycle after files, notifications, audit, active-team context, and operational visibility exist.

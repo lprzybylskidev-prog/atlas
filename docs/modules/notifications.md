@@ -29,6 +29,7 @@ Persistence is owned by the `core_notifications` PostgreSQL schema:
 Application UI:
 
 - the top navigation avatar dropdown shows the latest 10 notifications near the logout action;
+- truncated notification titles and bodies expose their full text through the shared tooltip pattern and remain selectable for normal browser copy operations;
 - the avatar shows an unread-count badge;
 - a notification sound is available at `/sounds/notification.wav` and is played when the browser receives a higher unread count after user interaction allows audio playback;
 - the dropdown links to the full notification center;

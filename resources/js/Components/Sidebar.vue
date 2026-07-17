@@ -164,14 +164,7 @@ function updateExpandedNavigationState(key: string, event: Event): void {
         </div>
 
         <nav v-if="mode !== 'admin'" class="space-y-1 px-3 py-4" :aria-label="t('navigation.aria.main')">
-            <Tooltip
-                v-for="item in groups[0]?.items ?? []"
-                :key="item.key"
-                :text="item.label"
-                :disabled="isSidebarTextVisible"
-                placement="right"
-                class="w-full"
-            >
+            <Tooltip v-for="item in groups[0]?.items ?? []" :key="item.key" :text="item.label" placement="right" class="w-full">
                 <Link
                     :href="item.href ?? '#'"
                     class="group relative flex h-11 w-full items-center rounded-lg text-sm font-medium transition"
@@ -214,40 +207,35 @@ function updateExpandedNavigationState(key: string, event: Event): void {
                     class="group/main-nav relative flex h-9 w-full cursor-pointer list-none items-center rounded-lg border border-zinc-200/70 bg-zinc-50/70 text-xs font-semibold text-zinc-500 transition-[padding,color,background-color,border-color] duration-300 ease-in-out hover:border-zinc-300 hover:bg-zinc-100 hover:text-zinc-800 dark:border-zinc-800/80 dark:bg-zinc-900/45 dark:text-zinc-300 dark:hover:border-zinc-700 dark:hover:bg-zinc-900 dark:hover:text-zinc-100 [&::-webkit-details-marker]:hidden"
                     :class="isSidebarTextVisible ? 'justify-between px-3 uppercase' : 'justify-center gap-0.5 px-1'"
                 >
-                    <span
-                        class="flex min-w-0 items-center transition-[gap,transform] duration-300 ease-in-out"
-                        :class="isSidebarTextVisible ? 'gap-2' : 'gap-0'"
-                    >
-                        <component
-                            :is="group.icon"
-                            aria-hidden="true"
-                            class="h-5 w-5 shrink-0 transition-transform duration-300 ease-in-out"
-                            :stroke-width="1.8"
-                        />
+                    <Tooltip :text="group.label" placement="right" :full-width="isSidebarTextVisible">
                         <span
-                            class="overflow-hidden truncate whitespace-nowrap transition-[max-width,opacity,transform] duration-300 ease-in-out"
-                            :class="
-                                isSidebarTextVisible
-                                    ? 'max-w-44 translate-x-0 opacity-100'
-                                    : 'pointer-events-none max-w-0 -translate-x-1 opacity-0'
-                            "
+                            class="flex min-w-0 items-center transition-[gap,transform] duration-300 ease-in-out"
+                            :class="isSidebarTextVisible ? 'gap-2' : 'gap-0'"
                         >
-                            {{ group.label }}
+                            <component
+                                :is="group.icon"
+                                aria-hidden="true"
+                                class="h-5 w-5 shrink-0 transition-transform duration-300 ease-in-out"
+                                :stroke-width="1.8"
+                            />
+                            <span
+                                class="overflow-hidden truncate whitespace-nowrap transition-[max-width,opacity,transform] duration-300 ease-in-out"
+                                :class="
+                                    isSidebarTextVisible
+                                        ? 'max-w-44 translate-x-0 opacity-100'
+                                        : 'pointer-events-none max-w-0 -translate-x-1 opacity-0'
+                                "
+                            >
+                                {{ group.label }}
+                            </span>
                         </span>
-                    </span>
+                    </Tooltip>
                     <IconChevronDown
                         aria-hidden="true"
                         class="h-4 w-4 shrink-0 text-zinc-400 transition-transform duration-300 ease-in-out dark:text-zinc-500"
                         :class="[isNavigationNodeExpanded(group.key) ? 'rotate-180' : 'rotate-0', { 'h-3.5 w-3.5': isSidebarCollapsed }]"
                         :stroke-width="1.8"
                     />
-                    <span
-                        v-if="!isSidebarTextVisible"
-                        role="tooltip"
-                        class="pointer-events-none absolute top-1/2 left-full z-50 ml-2 -translate-y-1/2 translate-x-1 rounded-md bg-zinc-950 px-2 py-1 text-xs font-medium whitespace-nowrap text-white opacity-0 shadow-lg transition-[opacity,transform] duration-300 ease-in-out group-hover/main-nav:translate-x-0 group-hover/main-nav:opacity-100 group-focus-within/main-nav:translate-x-0 group-focus-within/main-nav:opacity-100 dark:bg-zinc-100 dark:text-zinc-950"
-                    >
-                        {{ group.label }}
-                    </span>
                 </summary>
                 <div class="space-y-1 pt-2" :class="isSidebarTextVisible ? 'pl-2' : ''">
                     <SidebarNavNode

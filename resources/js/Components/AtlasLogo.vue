@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useTranslator } from '../Localization/translator';
+import TruncatedText from './TruncatedText.vue';
 
 const props = withDefaults(
     defineProps<{
@@ -41,8 +42,16 @@ const { t } = useTranslator(props.uiLocale);
             "
             :aria-hidden="!showText"
         >
-            <p class="truncate whitespace-nowrap text-sm font-semibold leading-5 text-zinc-950 dark:text-zinc-50">Atlas</p>
-            <p class="truncate whitespace-nowrap text-xs leading-4 text-zinc-500 dark:text-zinc-400">{{ t('brand.subtitle') }}</p>
+            <TruncatedText
+                text="Atlas"
+                :disabled="!showText"
+                text-class="whitespace-nowrap text-sm font-semibold leading-5 text-zinc-950 dark:text-zinc-50"
+            />
+            <TruncatedText
+                :text="t('brand.subtitle')"
+                :disabled="!showText"
+                text-class="whitespace-nowrap text-xs leading-4 text-zinc-500 dark:text-zinc-400"
+            />
         </div>
     </div>
 </template>

@@ -20,6 +20,7 @@ import type { Component } from 'vue';
 
 import IconButton from './IconButton.vue';
 import FormSelect from './Form/FormSelect.vue';
+import TruncatedText from './TruncatedText.vue';
 import { useLocaleSwitcher } from '../Composables/useLocaleSwitcher';
 import { useSidebar } from '../Composables/useSidebar';
 import { useTheme } from '../Composables/useTheme';
@@ -260,13 +261,16 @@ watch(
                             <Link
                                 v-if="breadcrumb.url !== null && index < breadcrumbs.length - 1"
                                 :href="breadcrumb.url"
-                                class="truncate hover:text-teal-700 focus-visible:outline focus-visible:outline-amber-500 dark:hover:text-teal-300"
+                                class="min-w-0 hover:text-teal-700 focus-visible:outline focus-visible:outline-amber-500 dark:hover:text-teal-300"
                             >
-                                {{ breadcrumb.label }}
+                                <TruncatedText :text="breadcrumb.label" />
                             </Link>
-                            <span v-else class="truncate" :aria-current="index === breadcrumbs.length - 1 ? 'page' : undefined">
-                                {{ breadcrumb.label }}
-                            </span>
+                            <TruncatedText
+                                v-else
+                                :text="breadcrumb.label"
+                                text-class="text-inherit"
+                                :aria-current="index === breadcrumbs.length - 1 ? 'page' : undefined"
+                            />
                         </template>
                     </nav>
                     <h1
@@ -280,7 +284,7 @@ watch(
                             class="h-5 w-5 shrink-0 text-zinc-400"
                             :stroke-width="1.8"
                         />
-                        <span class="truncate">{{ title }}</span>
+                        <TruncatedText :text="title" text-class="text-inherit" />
                     </h1>
                 </div>
             </div>
@@ -331,10 +335,15 @@ watch(
                         :aria-label="t('user.menu')"
                     >
                         <div class="border-b border-zinc-200 px-4 py-3 dark:border-zinc-800">
-                            <p class="truncate text-sm font-semibold text-zinc-950 dark:text-zinc-50">
-                                {{ page.props.auth.user?.name ?? t('user.default_name') }}
-                            </p>
-                            <p class="truncate text-xs text-zinc-500 dark:text-zinc-400">{{ page.props.auth.user?.email }}</p>
+                            <TruncatedText
+                                :text="page.props.auth.user?.name ?? t('user.default_name')"
+                                text-class="text-sm font-semibold text-zinc-950 dark:text-zinc-50"
+                            />
+                            <TruncatedText
+                                v-if="page.props.auth.user?.email"
+                                :text="page.props.auth.user.email"
+                                text-class="text-xs text-zinc-500 dark:text-zinc-400"
+                            />
                         </div>
 
                         <div class="p-2">
@@ -346,9 +355,10 @@ watch(
                                             class="h-4 w-4 shrink-0 text-zinc-500 dark:text-zinc-400"
                                             :stroke-width="1.8"
                                         />
-                                        <p class="truncate text-xs font-semibold uppercase text-zinc-500 dark:text-zinc-400">
-                                            {{ t('notifications.dropdown.latest') }}
-                                        </p>
+                                        <TruncatedText
+                                            :text="t('notifications.dropdown.latest')"
+                                            text-class="text-xs font-semibold uppercase text-zinc-500 dark:text-zinc-400"
+                                        />
                                     </div>
                                     <span class="shrink-0 text-xs font-medium text-teal-700 dark:text-teal-300">
                                         {{ unreadCountLabel }}
@@ -374,15 +384,16 @@ watch(
                                                 role="menuitem"
                                                 @click="closeUserMenu"
                                             >
-                                                <p class="truncate text-sm font-medium text-zinc-900 dark:text-zinc-100">
-                                                    {{ notification.title }}
-                                                </p>
-                                                <p
+                                                <TruncatedText
+                                                    :text="notification.title"
+                                                    text-class="text-sm font-medium text-zinc-900 dark:text-zinc-100"
+                                                />
+                                                <TruncatedText
                                                     v-if="notification.body"
-                                                    class="mt-0.5 line-clamp-2 text-xs text-zinc-500 dark:text-zinc-400"
-                                                >
-                                                    {{ notification.body }}
-                                                </p>
+                                                    :text="notification.body"
+                                                    :lines="2"
+                                                    text-class="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400"
+                                                />
                                                 <p class="mt-1 text-xs text-zinc-400 dark:text-zinc-500">
                                                     {{ notificationTimestamp(notification.createdAt) }}
                                                 </p>
@@ -404,7 +415,7 @@ watch(
                                 </p>
                                 <Link
                                     href="/notifications"
-                                    class="mt-2 flex h-9 items-center justify-center rounded-lg text-sm font-medium text-teal-700 transition hover:bg-teal-50 focus-visible:outline focus-visible:outline-amber-500 dark:text-teal-300 dark:hover:bg-teal-950/40"
+                                    class="mt-2 flex h-8 items-center justify-center rounded-md text-sm font-medium text-teal-700 transition hover:bg-teal-50 focus-visible:outline focus-visible:outline-amber-500 dark:text-teal-300 dark:hover:bg-teal-950/40"
                                     role="menuitem"
                                     @click="closeUserMenu"
                                 >

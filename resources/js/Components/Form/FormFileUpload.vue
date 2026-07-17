@@ -2,6 +2,7 @@
 import { IconUpload } from '@tabler/icons-vue';
 
 import { useTranslator } from '../../Localization/translator';
+import TruncatedText from '../TruncatedText.vue';
 import FormFieldError from './FormFieldError.vue';
 
 const model = defineModel<File | null>({ required: true });
@@ -44,9 +45,7 @@ function updateFile(event: Event): void {
             </span>
             <span class="min-w-0">
                 <span class="block font-medium">{{ label }}</span>
-                <span class="block truncate text-xs text-zinc-500 dark:text-zinc-400">
-                    {{ model?.name ?? t('form.file.none') }}
-                </span>
+                <TruncatedText :text="model?.name ?? t('form.file.none')" text-class="text-xs text-zinc-500 dark:text-zinc-400" />
             </span>
         </span>
         <input

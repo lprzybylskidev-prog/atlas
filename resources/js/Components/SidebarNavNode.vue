@@ -53,13 +53,7 @@ function updateExpandedNavigationState(event: Event): void {
             :class="textVisible ? 'justify-between' : 'justify-center gap-1 px-0'"
             :style="navigationItemStyle(depth, textVisible)"
         >
-            <Tooltip
-                :text="node.label"
-                :disabled="textVisible"
-                :full-width="textVisible"
-                placement="right"
-                :class="textVisible ? 'w-full' : ''"
-            >
+            <Tooltip :text="node.label" :full-width="textVisible" placement="right" :class="textVisible ? 'w-full' : ''">
                 <span
                     class="flex items-center transition-[gap] duration-300 ease-in-out"
                     :class="textVisible ? 'w-full justify-between' : 'justify-center gap-1'"
@@ -104,7 +98,7 @@ function updateExpandedNavigationState(event: Event): void {
         </div>
     </details>
 
-    <Tooltip v-else :text="node.label" :disabled="textVisible" placement="right" class="w-full">
+    <Tooltip v-else :text="node.label" placement="right" class="w-full">
         <Link
             :href="node.href ?? '#'"
             class="group relative flex h-11 w-full items-center rounded-lg text-sm font-medium transition-[padding,color,background-color] duration-300 ease-in-out"

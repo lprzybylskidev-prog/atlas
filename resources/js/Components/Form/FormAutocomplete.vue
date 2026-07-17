@@ -4,6 +4,7 @@ import { computed, ref } from 'vue';
 
 import { useTranslator } from '../../Localization/translator';
 import Popover from '../Popover.vue';
+import TruncatedText from '../TruncatedText.vue';
 import FormFieldError from './FormFieldError.vue';
 import type { FormSelectOption } from './FormSelect.vue';
 
@@ -89,10 +90,10 @@ function selectOption(option: FormSelectOption): void {
                     type="button"
                     role="option"
                     :aria-selected="model === option.value"
-                    class="block h-9 w-full truncate rounded-md px-2 text-left text-sm text-zinc-700 outline-none transition hover:bg-teal-50 hover:text-teal-900 focus:bg-teal-50 focus:text-teal-900 dark:text-zinc-200 dark:hover:bg-teal-950 dark:hover:text-teal-100 dark:focus:bg-teal-950 dark:focus:text-teal-100"
+                    class="block h-9 w-full rounded-md px-2 text-left text-sm text-zinc-700 outline-none transition hover:bg-teal-50 hover:text-teal-900 focus:bg-teal-50 focus:text-teal-900 dark:text-zinc-200 dark:hover:bg-teal-950 dark:hover:text-teal-100 dark:focus:bg-teal-950 dark:focus:text-teal-100"
                     @click="selectOption(option)"
                 >
-                    {{ option.label }}
+                    <TruncatedText :text="option.label" text-class="text-inherit" />
                 </button>
                 <p v-if="filteredOptions.length === 0" class="px-2 py-3 text-sm text-zinc-500 dark:text-zinc-400">
                     {{ t('form.autocomplete.no_results') }}

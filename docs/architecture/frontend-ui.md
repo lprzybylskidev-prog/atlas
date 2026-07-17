@@ -57,6 +57,8 @@ Do not create duplicate:
 
 Avoid giant god-components. Extract stable common cores with focused variants or adapters.
 
+When UI values are visually truncated or line-clamped, expose the full value through the shared tooltip pattern. The underlying rendered text must remain selectable so normal browser copy flows such as selecting a table region and using copy preserve the full value without adding dedicated copy buttons.
+
 ### Light and dark themes
 
 Light and dark themes are developed in parallel from the beginning.

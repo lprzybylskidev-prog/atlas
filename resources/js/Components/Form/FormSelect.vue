@@ -2,6 +2,8 @@
 import { IconCheck, IconChevronDown } from '@tabler/icons-vue';
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 
+import TruncatedText from '../TruncatedText.vue';
+
 export interface FormSelectOption {
     value: string | number;
     label: string;
@@ -116,9 +118,11 @@ onBeforeUnmount(() => {
             @click="open = !open"
             @keydown="handleButtonKeydown"
         >
-            <span class="flex min-h-5 items-center truncate" :class="{ 'text-zinc-500 dark:text-zinc-400': selectedOption === null }">
-                {{ selectedOption?.label ?? placeholder }}
-            </span>
+            <TruncatedText
+                :text="selectedOption?.label ?? placeholder"
+                text-class="min-h-5 text-inherit"
+                :class="{ 'text-zinc-500 dark:text-zinc-400': selectedOption === null }"
+            />
             <IconChevronDown
                 aria-hidden="true"
                 class="h-4 w-4 shrink-0 text-zinc-400 transition"
@@ -148,7 +152,7 @@ onBeforeUnmount(() => {
                 @click="selectOption(option)"
                 @keydown="handleOptionKeydown($event, index)"
             >
-                <span class="truncate">{{ option.label }}</span>
+                <TruncatedText :text="option.label" text-class="text-inherit" />
                 <IconCheck v-if="option.value === model" aria-hidden="true" class="h-4 w-4 shrink-0" :stroke-width="1.8" />
             </button>
         </div>
