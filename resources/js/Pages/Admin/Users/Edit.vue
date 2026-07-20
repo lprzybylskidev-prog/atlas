@@ -26,6 +26,8 @@ interface UserFormData {
     loginLocked: boolean;
     mfaEnabled: boolean;
     accountSensitivity: string;
+    canImpersonate: boolean;
+    impersonationRequiresSensitiveOverride: boolean;
 }
 
 interface TeamMembership {
@@ -88,7 +90,7 @@ const recordActions = [
     { key: 'unlock', label: 'Unlock', method: 'post' as const, href: `/admin/users/${props.user.publicId}/unlock` },
     { key: 'reset-mfa', label: 'Reset MFA', method: 'post' as const, href: `/admin/users/${props.user.publicId}/reset-mfa` },
     { key: 'impersonate', label: 'Impersonate', method: 'get' as const, href: `/admin/users/${props.user.publicId}/impersonate` },
-];
+].filter((action) => action.key !== 'impersonate' || props.user.canImpersonate);
 const sensitivityOptions = [
     { value: 'normal', label: 'Normal human account' },
     { value: 'sensitive', label: 'Sensitive human account' },

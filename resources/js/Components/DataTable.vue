@@ -40,6 +40,7 @@ import {
     IconTrash,
     IconUserCheck,
     IconUserOff,
+    IconUserScan,
 } from '@tabler/icons-vue';
 import { computed, h, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import type { Component, VNodeChild } from 'vue';
@@ -1392,6 +1393,7 @@ function actionIcon(action: DataTableAction<TRow>): Component {
         unlock: IconLockOpen,
         'reset-mfa': IconRefresh,
         'invalidate-sessions': IconLogout,
+        impersonate: IconUserScan,
     };
 
     return icons[action.key] ?? IconSettings;
@@ -1438,6 +1440,10 @@ function actionClass(action: DataTableAction<TRow>): string {
     };
 
     return classes[actionTone(action) ?? 'neutral'];
+}
+
+function visibleActions(row: TRow): DataTableAction<TRow>[] {
+    return props.actions.filter((action) => action.visible?.(row) ?? true);
 }
 
 function bulkActionIcon(action: DataTableBulkAction): Component {
@@ -1925,7 +1931,7 @@ onBeforeUnmount(() => {
                                 <td v-if="actions?.length" class="px-4 py-3 text-right" :style="actionColumnStyle">
                                     <div class="flex justify-end gap-2 whitespace-nowrap">
                                         <Tooltip
-                                            v-for="action in actions"
+                                            v-for="action in visibleActions(row.original)"
                                             :key="action.key"
                                             :text="action.label"
                                             align="end"

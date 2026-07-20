@@ -34,13 +34,11 @@ const props = withDefaults(
         title: string;
         titleIcon?: Component;
         mode?: 'app' | 'admin';
-        impersonationActive?: boolean;
         showLocaleSwitcher?: boolean;
         uiLocale?: string;
     }>(),
     {
         mode: 'app',
-        impersonationActive: false,
         titleIcon: undefined,
         showLocaleSwitcher: true,
         uiLocale: undefined,
@@ -224,11 +222,9 @@ watch(
     <header
         class="sticky top-0 z-30 border-b backdrop-blur"
         :class="
-            impersonationActive
-                ? 'border-amber-300 bg-amber-50/95 text-zinc-950 dark:border-amber-800 dark:bg-amber-950/95 dark:text-amber-50'
-                : isAdminMode
-                  ? 'border-zinc-200 bg-white/95 text-zinc-950 dark:border-zinc-800 dark:bg-black/95 dark:text-zinc-50'
-                  : 'border-zinc-200 bg-white/95 dark:border-zinc-800 dark:bg-zinc-950/90'
+            isAdminMode
+                ? 'border-zinc-200 bg-white/95 text-zinc-950 dark:border-zinc-800 dark:bg-black/95 dark:text-zinc-50'
+                : 'border-zinc-200 bg-white/95 dark:border-zinc-800 dark:bg-zinc-950/90'
         "
     >
         <div class="flex min-h-16 items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">

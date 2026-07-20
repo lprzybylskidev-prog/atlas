@@ -2,6 +2,7 @@
 import { computed, ref } from 'vue';
 import type { Component } from 'vue';
 import { Link, usePage } from '@inertiajs/vue3';
+import { IconLogout } from '@tabler/icons-vue';
 
 import MobileNavigation from '../Components/MobileNavigation.vue';
 import FullscreenTransitionLoader from '../Components/FullscreenTransitionLoader.vue';
@@ -54,8 +55,9 @@ const impersonation = computed(() => page.props.auth?.impersonation);
                             href="/impersonation"
                             method="delete"
                             as="button"
-                            class="inline-flex h-8 items-center rounded-md bg-amber-900 px-3 text-sm font-medium text-white transition hover:bg-amber-950 dark:bg-amber-200 dark:text-amber-950 dark:hover:bg-amber-100"
+                            class="inline-flex h-8 items-center gap-2 rounded-md bg-amber-900 px-3 text-sm font-medium text-white transition hover:bg-amber-950 dark:bg-amber-200 dark:text-amber-950 dark:hover:bg-amber-100"
                         >
+                            <IconLogout aria-hidden="true" class="h-4 w-4" :stroke-width="1.8" />
                             Exit impersonation
                         </Link>
                     </div>
@@ -64,7 +66,6 @@ const impersonation = computed(() => page.props.auth?.impersonation);
                     :title="title"
                     :title-icon="titleIcon"
                     :mode="mode"
-                    :impersonation-active="Boolean(impersonation?.active)"
                     :show-locale-switcher="showLocaleSwitcher"
                     :ui-locale="uiLocale"
                     @open-mobile-menu="mobileMenuOpen = true"

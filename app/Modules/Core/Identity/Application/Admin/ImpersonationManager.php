@@ -9,7 +9,9 @@ use App\Modules\Core\Audit\Application\Public\DTOs\AuditEvent;
 use App\Modules\Core\Audit\Application\Public\Enums\SecurityAuditCategory;
 use App\Modules\Core\Authorization\Application\Public\Contracts\EffectivePermissionChecker;
 use App\Modules\Core\Authorization\Application\Public\DTOs\EffectivePermissionRequest;
+use App\Modules\Core\Identity\Application\Public\Contracts\ImpersonationEligibilityChecker;
 use App\Modules\Core\Identity\Application\Public\Contracts\UserSessionRegistry;
+use App\Modules\Core\Identity\Application\Public\DTOs\ImpersonationEligibility;
 use App\Modules\Core\Identity\Domain\AccountSensitivity;
 use App\Modules\Core\Identity\Infrastructure\Persistence\User;
 use App\Shared\Infrastructure\Database\DatabaseTable;
@@ -19,7 +21,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
-final readonly class ImpersonationManager
+final readonly class ImpersonationManager implements ImpersonationEligibilityChecker
 {
     private const ADMINISTRATOR_ROLE_NAME = 'system.administrator';
 
@@ -59,6 +61,67 @@ final readonly class ImpersonationManager
         return $request->hasSession() && is_string($request->session()->get(self::SESSION_ID));
     }
 
+    public function eligibility(Request $request, string $actorPublicId, string $targetPublicId, ?string $teamPublicId = null): ImpersonationEligibility
+    {
+        $actorTeamPublicId = $request->session()->get('active_team_public_id');
+        $actor = User::query()->where('public_id', $actorPublicId)->first();
+        $target = User::query()->where('public_id', $targetPublicId)->first();
+
+        if (! $actor instanceof User) {
+            return new ImpersonationEligibility(false, blockedReason: 'actor_missing');
+        }
+
+        if (! $target instanceof User) {
+            return new ImpersonationEligibility(false, blockedReason: 'target_missing');
+        }
+
+        if (! is_string($actorTeamPublicId)) {
+            return new ImpersonationEligibility(false, blockedReason: 'actor_team_missing');
+        }
+
+        if (! $this->adminMode->active($request) || ! $this->can($actor, self::IMPERSONATION_START_PERMISSION, $actorTeamPublicId)) {
+            return new ImpersonationEligibility(false, blockedReason: 'permission_missing');
+        }
+
+        $sensitivity = AccountSensitivity::tryFrom((string) ($target->account_sensitivity ?? 'normal')) ?? AccountSensitivity::Normal;
+
+        if ((string) $actor->public_id === (string) $target->public_id) {
+            return new ImpersonationEligibility(false, blockedReason: 'self');
+        }
+
+        if (! $target->isActive()) {
+            return new ImpersonationEligibility(false, blockedReason: 'inactive');
+        }
+
+        if (! $sensitivity->human()) {
+            return new ImpersonationEligibility(false, blockedReason: 'non_human_account');
+        }
+
+        if ($this->hasAdministratorLevelAccess((string) $target->public_id)) {
+            return new ImpersonationEligibility(false, blockedReason: 'administrator');
+        }
+
+        if ($teamPublicId !== null && ! $this->targetBelongsToTeam((string) $target->public_id, $teamPublicId)) {
+            return new ImpersonationEligibility(false, blockedReason: 'team_unavailable');
+        }
+
+        if ($teamPublicId === null && ! $this->targetHasAvailableTeam((string) $target->public_id)) {
+            return new ImpersonationEligibility(false, blockedReason: 'team_unavailable');
+        }
+
+        if ($sensitivity === AccountSensitivity::Sensitive) {
+            if (! $this->can($actor, self::IMPERSONATION_SENSITIVE_OVERRIDE_PERMISSION, $actorTeamPublicId)
+                || ! $this->adminMode->highRiskFresh($request)
+            ) {
+                return new ImpersonationEligibility(false, true, 'sensitive_override_missing');
+            }
+
+            return new ImpersonationEligibility(true, true);
+        }
+
+        return new ImpersonationEligibility(true);
+    }
+
     public function start(Request $request, User $actor, string $targetPublicId, string $teamPublicId, string $reason, bool $overrideSensitive): bool
     {
         $actorTeamPublicId = $request->session()->get('active_team_public_id');
@@ -70,7 +133,9 @@ final readonly class ImpersonationManager
             return false;
         }
 
-        if (! $this->adminMode->active($request) || ! $this->can($actor, self::IMPERSONATION_START_PERMISSION, $actorTeamPublicId)) {
+        $eligibility = $this->eligibility($request, (string) $actor->public_id, $targetPublicId, $teamPublicId);
+
+        if (! $eligibility->canStart) {
             $this->record($request, 'impersonation.start', 'rejected', (string) $actor->public_id, $targetPublicId, null, $reason);
 
             return false;
@@ -78,24 +143,8 @@ final readonly class ImpersonationManager
 
         $sensitivity = AccountSensitivity::tryFrom((string) ($target->account_sensitivity ?? 'normal')) ?? AccountSensitivity::Normal;
 
-        if ((string) $actor->public_id === (string) $target->public_id
-            || ! $target->isActive()
-            || ! $sensitivity->human()
-            || $this->hasAdministratorLevelAccess((string) $target->public_id)
-            || ! $this->targetBelongsToTeam((string) $target->public_id, $teamPublicId)
-        ) {
-            $this->record($request, 'impersonation.start', 'rejected', (string) $actor->public_id, (string) $target->public_id, $teamPublicId, $reason, [
-                'sensitivity' => $sensitivity->value,
-            ]);
-
-            return false;
-        }
-
         if ($sensitivity === AccountSensitivity::Sensitive) {
-            if (! $overrideSensitive
-                || ! $this->can($actor, self::IMPERSONATION_SENSITIVE_OVERRIDE_PERMISSION, $actorTeamPublicId)
-                || ! $this->adminMode->highRiskFresh($request)
-            ) {
+            if (! $overrideSensitive) {
                 $this->record($request, 'impersonation.sensitive_override', 'rejected', (string) $actor->public_id, (string) $target->public_id, $teamPublicId, $reason);
 
                 return false;
@@ -281,6 +330,22 @@ final readonly class ImpersonationManager
             ->join(DatabaseTable::TEAMS, 'team_user_assignments.team_id', '=', 'teams.id')
             ->where('users.public_id', $userPublicId)
             ->where('teams.public_id', $teamPublicId)
+            ->where('teams.is_active', true)
+            ->where(static function (Builder $query): void {
+                $query->whereNull('team_user_assignments.valid_from')->orWhere('team_user_assignments.valid_from', '<=', now());
+            })
+            ->where(static function (Builder $query): void {
+                $query->whereNull('team_user_assignments.valid_to')->orWhere('team_user_assignments.valid_to', '>', now());
+            })
+            ->exists();
+    }
+
+    private function targetHasAvailableTeam(string $userPublicId): bool
+    {
+        return DB::table(DatabaseTable::TEAM_USER_ASSIGNMENTS)
+            ->join(DatabaseTable::USERS, 'team_user_assignments.user_id', '=', 'users.id')
+            ->join(DatabaseTable::TEAMS, 'team_user_assignments.team_id', '=', 'teams.id')
+            ->where('users.public_id', $userPublicId)
             ->where('teams.is_active', true)
             ->where(static function (Builder $query): void {
                 $query->whereNull('team_user_assignments.valid_from')->orWhere('team_user_assignments.valid_from', '<=', now());

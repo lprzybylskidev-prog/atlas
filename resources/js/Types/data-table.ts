@@ -13,6 +13,7 @@ export interface DataTableAction<TRow extends Record<string, unknown>> {
     href: (row: TRow) => string;
     confirm?: string;
     tone?: 'neutral' | 'info' | 'success' | 'warning' | 'danger';
+    visible?: (row: TRow) => boolean;
 }
 
 export interface DataTableBulkAction {

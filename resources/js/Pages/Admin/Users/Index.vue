@@ -21,6 +21,8 @@ interface UserRow extends Record<string, unknown> {
     mfaEnabled: boolean;
     online: boolean;
     accountSensitivity: string;
+    canImpersonate: boolean;
+    impersonationRequiresSensitiveOverride: boolean;
     emailVerifiedAt: string | null;
     twoFactorConfirmedAt: string | null;
     firstPasswordSetAt: string | null;
@@ -76,7 +78,12 @@ const actions: DataTableAction<UserRow>[] = [
     { key: 'first-password', label: 'Send link', method: 'post', href: (row) => `/admin/users/${row.publicId}/resend-first-password` },
     { key: 'unlock', label: 'Unlock', method: 'post', href: (row) => `/admin/users/${row.publicId}/unlock` },
     { key: 'reset-mfa', label: 'Reset MFA', method: 'post', href: (row) => `/admin/users/${row.publicId}/reset-mfa` },
-    { key: 'impersonate', label: 'Impersonate', href: (row) => `/admin/users/${row.publicId}/impersonate` },
+    {
+        key: 'impersonate',
+        label: 'Impersonate',
+        href: (row) => `/admin/users/${row.publicId}/impersonate`,
+        visible: (row) => row.canImpersonate,
+    },
     {
         key: 'invalidate-sessions',
         label: 'Invalidate sessions',

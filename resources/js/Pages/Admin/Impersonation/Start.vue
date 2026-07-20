@@ -20,12 +20,13 @@ const props = defineProps<{
         account_sensitivity: string;
     };
     teams: FormSelectOption[];
+    requiresSensitiveOverride: boolean;
 }>();
 
 const form = useForm({
     team_public_id: props.teams.length === 1 ? props.teams[0].value : '',
     reason: '',
-    override_sensitive: false,
+    override_sensitive: props.requiresSensitiveOverride,
 });
 
 function submit(): void {
@@ -64,6 +65,7 @@ function submit(): void {
                     />
                     <FormTextarea v-model="form.reason" label="Reason" :rows="4" :error="form.errors.reason" />
                     <FormCheckbox
+                        v-if="requiresSensitiveOverride"
                         v-model="form.override_sensitive"
                         label="Override sensitive-account block"
                         :error="form.errors.override_sensitive"

@@ -1,6 +1,16 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
-import { IconKey, IconLockOpen, IconMailCheck, IconPencil, IconRefresh, IconTrash, IconUserCheck, IconUserOff } from '@tabler/icons-vue';
+import {
+    IconKey,
+    IconLockOpen,
+    IconMailCheck,
+    IconPencil,
+    IconRefresh,
+    IconTrash,
+    IconUserCheck,
+    IconUserOff,
+    IconUserScan,
+} from '@tabler/icons-vue';
 import type { Component } from 'vue';
 
 interface RecordAction {
@@ -38,6 +48,10 @@ function actionIcon(action: RecordAction): Component {
 
     if (action.key.includes('reset')) {
         return IconRefresh;
+    }
+
+    if (action.key.includes('impersonate')) {
+        return IconUserScan;
     }
 
     if (action.key.includes('delete') || action.key.includes('destroy') || action.key.includes('deactivate-preset')) {

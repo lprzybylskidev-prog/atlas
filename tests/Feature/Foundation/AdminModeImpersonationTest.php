@@ -148,6 +148,50 @@ final class AdminModeImpersonationTest extends TestCase
             ->assertSessionHasErrors('user');
     }
 
+    public function test_impersonation_start_screen_is_available_only_for_currently_impersonable_accounts(): void
+    {
+        [$admin, $team] = $this->adminActor();
+        $target = User::factory()->create(['account_sensitivity' => 'normal']);
+        $sensitive = User::factory()->create(['account_sensitivity' => 'sensitive']);
+        $otherAdmin = User::factory()->create();
+        $technical = User::factory()->create(['account_sensitivity' => 'technical']);
+        $this->assignStarterRoleInTeam($target, $team, StarterRoleName::WorkspaceAccess->value);
+        $this->assignStarterRoleInTeam($sensitive, $team, StarterRoleName::WorkspaceAccess->value);
+        $this->assignStarterRoleInTeam($otherAdmin, $team, StarterRoleName::Administrator->value);
+        $this->assignStarterRoleInTeam($technical, $team, StarterRoleName::WorkspaceAccess->value);
+
+        $this->actingAs($admin)
+            ->withSession($this->adminSession($team))
+            ->get('/admin/users/'.$admin->public_id.'/impersonate')
+            ->assertForbidden();
+
+        $this->actingAs($admin)
+            ->withSession($this->adminSession($team))
+            ->get('/admin/users/'.$otherAdmin->public_id.'/impersonate')
+            ->assertForbidden();
+
+        $this->actingAs($admin)
+            ->withSession($this->adminSession($team))
+            ->get('/admin/users/'.$technical->public_id.'/impersonate')
+            ->assertForbidden();
+
+        $this->actingAs($admin)
+            ->withSession($this->adminSession($team))
+            ->get('/admin/users/'.$target->public_id.'/impersonate')
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->component('Admin/Impersonation/Start')
+                ->where('requiresSensitiveOverride', false));
+
+        $this->actingAs($admin)
+            ->withSession($this->adminSession($team))
+            ->get('/admin/users/'.$sensitive->public_id.'/impersonate')
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->component('Admin/Impersonation/Start')
+                ->where('requiresSensitiveOverride', true));
+    }
+
     public function test_sensitive_impersonation_requires_override_permission_and_fresh_high_risk(): void
     {
         [$admin, $team] = $this->adminActor();

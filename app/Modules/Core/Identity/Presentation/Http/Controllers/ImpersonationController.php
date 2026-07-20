@@ -7,6 +7,7 @@ namespace App\Modules\Core\Identity\Presentation\Http\Controllers;
 use App\Modules\Core\Identity\Application\Admin\ImpersonationManager;
 use App\Modules\Core\Identity\Infrastructure\Persistence\User;
 use App\Shared\Infrastructure\Database\DatabaseTable;
+use Illuminate\Database\Query\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -20,13 +21,21 @@ final readonly class ImpersonationController
         private ImpersonationManager $impersonation,
     ) {}
 
-    public function create(string $user): Response
+    public function create(Request $request, string $user): Response
     {
+        $actor = $request->user();
+        $eligibility = $actor instanceof User ? $this->impersonation->eligibility($request, (string) $actor->public_id, $user) : null;
+
+        if ($eligibility === null || ! $eligibility->canStart) {
+            abort(403);
+        }
+
         return Inertia::render('Admin/Impersonation/Start', [
             'target' => User::query()
                 ->where('public_id', $user)
                 ->firstOrFail(['public_id', 'name', 'email', 'account_sensitivity']),
             'teams' => $this->teams($user),
+            'requiresSensitiveOverride' => $eligibility->requiresSensitiveOverride,
         ]);
     }
 
@@ -75,6 +84,12 @@ final readonly class ImpersonationController
             ->join(DatabaseTable::TEAMS, 'team_user_assignments.team_id', '=', 'teams.id')
             ->where('users.public_id', $userPublicId)
             ->where('teams.is_active', true)
+            ->where(static function (Builder $query): void {
+                $query->whereNull('team_user_assignments.valid_from')->orWhere('team_user_assignments.valid_from', '<=', now());
+            })
+            ->where(static function (Builder $query): void {
+                $query->whereNull('team_user_assignments.valid_to')->orWhere('team_user_assignments.valid_to', '>', now());
+            })
             ->orderBy('teams.name')
             ->get(['teams.public_id', 'teams.name'])
             ->all() as $team) {
