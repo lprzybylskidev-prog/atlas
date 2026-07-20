@@ -7,6 +7,7 @@ import type {
     ResolvedComposableHostView,
     ResolvedComposableViewElement,
 } from '../Types/composable-view';
+import ModulesStatusCard from '../Components/ComposableView/Elements/ModulesStatusCard.vue';
 import SystemStatusCard from '../Components/ComposableView/Elements/SystemStatusCard.vue';
 
 export const COMPOSABLE_HOST_VIEWS: readonly ComposableHostViewDefinition[] = [
@@ -27,28 +28,8 @@ export const COMPOSABLE_HOST_VIEWS: readonly ComposableHostViewDefinition[] = [
         acceptedElements: [
             {
                 elementKey: 'admin.system-status.release',
-                area: 'main',
+                area: 'full',
                 order: 10,
-                dimensions: {
-                    minHeightClass: 'min-h-44',
-                    spanClass: '',
-                },
-                structural: true,
-            },
-            {
-                elementKey: 'admin.system-status.failed-jobs',
-                area: 'main',
-                order: 20,
-                dimensions: {
-                    minHeightClass: 'min-h-44',
-                    spanClass: '',
-                },
-                structural: true,
-            },
-            {
-                elementKey: 'admin.system-status.module-activation',
-                area: 'main',
-                order: 30,
                 dimensions: {
                     minHeightClass: 'min-h-44',
                     spanClass: '',
@@ -58,9 +39,19 @@ export const COMPOSABLE_HOST_VIEWS: readonly ComposableHostViewDefinition[] = [
             {
                 elementKey: 'admin.system-status.readiness',
                 area: 'full',
-                order: 100,
+                order: 20,
                 dimensions: {
                     minHeightClass: 'min-h-44',
+                    spanClass: '',
+                },
+                structural: true,
+            },
+            {
+                elementKey: 'admin.system-status.modules',
+                area: 'full',
+                order: 30,
+                dimensions: {
+                    minHeightClass: 'min-h-80',
                     spanClass: '',
                 },
                 structural: true,
@@ -141,56 +132,21 @@ export const SYSTEM_STATUS_ELEMENTS: readonly ComposableViewElementDefinition[] 
         optional: false,
     },
     {
-        key: 'admin.system-status.failed-jobs',
+        key: 'admin.system-status.modules',
         hostTypes: ['operational-status'],
         hostKeys: ['admin.system-status'],
-        titleKey: 'views.admin.system_status.failed_jobs.title',
-        fallbackTitle: 'Failed jobs',
-        descriptionKey: 'views.admin.system_status.failed_jobs.description',
-        fallbackDescription: 'Queue failures waiting for operator review.',
+        titleKey: 'views.admin.system_status.modules.title',
+        fallbackTitle: 'Modules',
+        descriptionKey: 'views.admin.system_status.modules.description',
+        fallbackDescription: 'Deployed modules, activation state, dependencies, and module-owned issues.',
         requirements: {
-            permissions: ['admin.system-status.failed-jobs'],
-            modules: ['health'],
-            activeTeam: 'required',
-        },
-        component: SystemStatusCard,
-        dataProvider: async () => {
-            const response = await fetch('/admin/system-status/failed-jobs', {
-                credentials: 'same-origin',
-                headers: {
-                    Accept: 'application/json',
-                },
-            });
-
-            if (!response.ok) {
-                throw new Error('Failed job diagnostics could not be loaded.');
-            }
-
-            return (await response.json()) as { data: unknown; empty: boolean };
-        },
-        cacheTtlSeconds: 30,
-        realtime: {
-            supported: false,
-            channel: null,
-        },
-        optional: false,
-    },
-    {
-        key: 'admin.system-status.module-activation',
-        hostTypes: ['operational-status'],
-        hostKeys: ['admin.system-status'],
-        titleKey: 'views.admin.system_status.module_activation.title',
-        fallbackTitle: 'Module activation schedules',
-        descriptionKey: 'views.admin.system_status.module_activation.description',
-        fallbackDescription: 'Failed scheduled activation changes requiring operator review.',
-        requirements: {
-            permissions: ['admin.system-status.module-activation'],
+            permissions: ['admin.system-status.modules'],
             modules: ['authorization'],
             activeTeam: 'required',
         },
-        component: SystemStatusCard,
+        component: ModulesStatusCard,
         dataProvider: async () => {
-            const response = await fetch('/admin/system-status/module-activation', {
+            const response = await fetch('/admin/system-status/modules', {
                 credentials: 'same-origin',
                 headers: {
                     Accept: 'application/json',
@@ -198,7 +154,7 @@ export const SYSTEM_STATUS_ELEMENTS: readonly ComposableViewElementDefinition[] 
             });
 
             if (!response.ok) {
-                throw new Error('Module activation schedule diagnostics could not be loaded.');
+                throw new Error('Module diagnostics could not be loaded.');
             }
 
             return (await response.json()) as { data: unknown; empty: boolean };

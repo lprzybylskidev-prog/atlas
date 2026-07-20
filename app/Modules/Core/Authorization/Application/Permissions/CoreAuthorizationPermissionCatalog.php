@@ -17,6 +17,8 @@ final class CoreAuthorizationPermissionCatalog implements ModulePermissionContri
 
     public const ADMIN_SYSTEM_STATUS_READINESS = 'admin.system-status.readiness';
 
+    public const ADMIN_SYSTEM_STATUS_MODULES = 'admin.system-status.modules';
+
     public const ADMIN_SYSTEM_STATUS_SCHEDULER = 'admin.system-status.scheduler';
 
     public const ADMIN_SYSTEM_STATUS_MODULE_ACTIVATION = 'admin.system-status.module-activation';
@@ -144,6 +146,7 @@ final class CoreAuthorizationPermissionCatalog implements ModulePermissionContri
             new ModulePermissionDefinition(self::ADMIN_SYSTEM_STATUS, 'View the Admin system status screen.'),
             new ModulePermissionDefinition(self::ADMIN_SYSTEM_STATUS_RELEASE, 'View Admin release and deployment status.'),
             new ModulePermissionDefinition(self::ADMIN_SYSTEM_STATUS_READINESS, 'View Admin readiness diagnostics.'),
+            new ModulePermissionDefinition(self::ADMIN_SYSTEM_STATUS_MODULES, 'View Admin module health and activation diagnostics.'),
             new ModulePermissionDefinition(self::ADMIN_SYSTEM_STATUS_SCHEDULER, 'View Admin scheduler heartbeat status.'),
             new ModulePermissionDefinition(self::ADMIN_SYSTEM_STATUS_MODULE_ACTIVATION, 'View Admin module activation scheduler diagnostics.'),
             new ModulePermissionDefinition(self::ADMIN_SYSTEM_STATUS_FAILED_JOBS, 'View Admin failed jobs dashboard diagnostics.'),

@@ -23,7 +23,9 @@ Entering `/admin...` routes requires authenticated users to enter explicit admin
 
 The regular application shell shows the Admin entry only when the backend-provided `auth.availableAdminRoutes` includes an available Admin route for the current user/team context. This is UI visibility only; Admin route middleware remains the authorization boundary.
 
-The Admin shell workspace navigation exposes separate links to the regular application dashboard at `/` and the Admin dashboard at `/admin`. The Admin dashboard is the operational entry point for release identity, failed jobs, module activation schedules, detailed readiness checks, queues, logs, modules, and audit review.
+The Admin shell workspace navigation exposes separate links to the regular application dashboard at `/` and the Admin dashboard at `/admin`. The Admin dashboard is the operational entry point for release identity, detailed readiness checks, and deployed module health.
+
+The Admin dashboard is an operational status surface, not a duplicate navigation directory. It is intentionally organized around three primary cards: Release, Readiness, and Modules. New Admin operational areas must contribute a meaningful signal to the Modules card when they expose health, queues, failures, approvals, security events, module state, integrations, files, imports, reports, or operator action.
 
 Current Admin tables use the shared `DataTable` wrapper. Their first data column is `public_id`, they keep the most important operational columns visible by default, and they expose remaining safe non-secret table columns through the Columns menu. Search, sorting, pagination, column visibility, and column order are backend-validated and synchronized through deterministic English query-string keys. Admin users can save private or active-team-shared table views, set a default view, copy a system/shared view, and delete only editable non-system views. Team-shared saved-view changes are recorded through the Audit module. When an Admin index exposes safe row actions, the same supported mutating actions are also available as selected-row bulk actions for the currently loaded page.
 
@@ -75,14 +77,13 @@ Module activation administration is available at `/admin/modules`. It lists depl
 
 System Status includes:
 
-- release version, release ID, environment, and optional last-deploy metadata;
+- release version, release ID, environment, Laravel version, PHP version, runtime, timezone, and optional last-deploy metadata;
 - readiness with blocking versus degraded dependency counts and per-check diagnostics;
 - PostgreSQL;
 - Redis;
 - Meilisearch;
-- queues;
 - scheduler heartbeat freshness;
-- failed module activation schedule diagnostics;
+- deployed modules with technical availability, global/team/effective activation, dependencies, and module-owned issues such as queue failures, rate-limit rejections, file scan blockers, integration circuit breakers, failed synchronization runs, and failed module activation schedules;
 - storage;
 - last deploy;
 - application version.

@@ -77,8 +77,8 @@ final class HealthEndpointTest extends TestCase
             ->assertOk()
             ->assertInertia(fn (AssertableInertia $page) => $page
                 ->component('Admin/SystemStatus')
-                ->where('availability.3.elementKey', 'admin.system-status.readiness')
-                ->where('availability.3.reason', 'available')
+                ->where('availability.1.elementKey', 'admin.system-status.readiness')
+                ->where('availability.1.reason', 'available')
             );
 
         $this->actingAs($admin)
@@ -208,6 +208,9 @@ final class HealthEndpointTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.releaseVersion', '16.2.0')
             ->assertJsonPath('data.releaseId', 'release-20260717')
+            ->assertJsonPath('data.laravelVersion', app()->version())
+            ->assertJsonPath('data.phpVersion', PHP_VERSION)
+            ->assertJsonPath('data.timezone', config('app.timezone'))
             ->assertJsonPath('data.deployedAt', '2026-07-17T12:30:00Z')
             ->assertJsonPath('data.deployedBy', 'ops@example.test')
             ->assertJsonPath('data.deploySource', 'git:abc123');

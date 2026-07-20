@@ -52,6 +52,7 @@ Route::middleware(['auth', 'admin.mode', 'route.permission'])->group(function ()
     Route::get('/admin', AdminSystemStatusController::class)->name('admin.system-status');
     Route::get('/admin/system-status/release', [AdminSystemStatusController::class, 'release'])->name('admin.system-status.release');
     Route::get('/admin/system-status/readiness', [AdminSystemStatusController::class, 'readiness'])->name('admin.system-status.readiness');
+    Route::get('/admin/system-status/modules', [AdminSystemStatusController::class, 'modules'])->name('admin.system-status.modules');
     Route::get('/admin/system-status/scheduler', [AdminSystemStatusController::class, 'scheduler'])->name('admin.system-status.scheduler');
     Route::get('/admin/system-status/module-activation', [AdminSystemStatusController::class, 'moduleActivation'])->name('admin.system-status.module-activation');
     Route::get('/admin/system-status/failed-jobs', [AdminSystemStatusController::class, 'failedJobs'])->name('admin.system-status.failed-jobs');

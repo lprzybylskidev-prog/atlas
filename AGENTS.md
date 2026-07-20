@@ -241,6 +241,7 @@ Read [`docs/architecture/security-baseline.md`](docs/architecture/security-basel
 - Do not duplicate backend permission logic in the client.
 - Query-string state must be deterministic and shareable where applicable.
 - Loading, empty, error, offline, and permission-denied states are first-class UI states.
+- When adding or materially changing an Admin operational area, add or update a meaningful Admin dashboard status signal when the area exposes health, queues, failures, approvals, security events, module state, integrations, files, imports, reports, or operator action. The Admin dashboard must not duplicate sidebar navigation; the sidebar owns navigation, and the dashboard owns operational visibility.
 
 Read [`docs/architecture/frontend-ui.md`](docs/architecture/frontend-ui.md) for shared UI changes and [`docs/architecture/tables-reports-exports-and-print.md`](docs/architecture/tables-reports-exports-and-print.md) for tables or reporting work.
 

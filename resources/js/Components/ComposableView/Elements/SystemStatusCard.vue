@@ -29,6 +29,10 @@ const props = defineProps<{
         releaseVersion?: string | null;
         releaseId?: string | null;
         environment?: string | null;
+        laravelVersion?: string | null;
+        phpVersion?: string | null;
+        timezone?: string | null;
+        runtime?: string | null;
         deployedAt?: string | null;
         deployedBy?: string | null;
         deploySource?: string | null;
@@ -57,6 +61,10 @@ const detailItems = computed(() =>
         { label: 'Version', value: props.data?.releaseVersion, mono: false },
         { label: 'Release ID', value: props.data?.releaseId, mono: true },
         { label: 'Environment', value: props.data?.environment, mono: false },
+        { label: 'Laravel', value: props.data?.laravelVersion, mono: false },
+        { label: 'PHP', value: props.data?.phpVersion, mono: false },
+        { label: 'Timezone', value: props.data?.timezone, mono: false },
+        { label: 'Runtime', value: props.data?.runtime, mono: false },
         { label: 'Last deploy', value: props.data?.deployedAt, mono: false },
         { label: 'Deploy operator', value: props.data?.deployedBy, mono: false },
         { label: 'Deploy source', value: props.data?.deploySource, mono: true },

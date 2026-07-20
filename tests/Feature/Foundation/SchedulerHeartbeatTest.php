@@ -150,7 +150,7 @@ final class SchedulerHeartbeatTest extends TestCase
             ->assertOk()
             ->assertInertia(fn (AssertableInertia $page) => $page
                 ->component('Admin/SystemStatus')
-                ->where('availability.2.elementKey', 'admin.system-status.module-activation')
+                ->where('availability.2.elementKey', 'admin.system-status.modules')
                 ->where('availability.2.reason', 'available')
             );
 
@@ -171,6 +171,22 @@ final class SchedulerHeartbeatTest extends TestCase
             ->assertJsonPath('data.latestFailureReason', 'Module [missing-module] is not deployed.')
             ->assertJsonPath('data.items.0.module', 'missing-module')
             ->assertJsonPath('data.items.0.status', 'failed');
+
+        $this->actingAs($admin)
+            ->withSession([
+                'active_team_public_id' => $team->public_id,
+                'auth.password_confirmed_at' => now()->unix(),
+                'atlas_admin_mode_entered_at' => now()->toIso8601String(),
+                'atlas_admin_mode_last_activity_at' => now()->toIso8601String(),
+                'atlas_admin_high_risk_confirmed_at' => now()->toIso8601String(),
+            ])
+            ->get('/admin/system-status/modules')
+            ->assertOk()
+            ->assertJsonPath('data.label', 'Modules')
+            ->assertJsonPath('data.modules.1.key', 'authorization')
+            ->assertJsonPath('data.modules.1.status', 'unhealthy')
+            ->assertJsonPath('data.modules.1.issues.0.label', 'Failed activation schedules')
+            ->assertJsonPath('data.modules.1.issues.0.value', 1);
     }
 
     /**
