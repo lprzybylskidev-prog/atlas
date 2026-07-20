@@ -121,6 +121,7 @@ final class StarterRoleCatalog
                 CoreAuthorizationPermissionCatalog::QUEUES_VIEW,
                 CoreAuthorizationPermissionCatalog::ADMIN_QUEUES_INDEX,
                 CoreAuthorizationPermissionCatalog::ADMIN_PULSE_VIEW,
+                CoreAuthorizationPermissionCatalog::ADMIN_TELESCOPE_VIEW,
             ]),
             new StarterRoleDefinition(StarterRoleName::SystemOperationsManage, [
                 CoreAuthorizationPermissionCatalog::ADMIN_SYSTEM_STATUS,
@@ -136,6 +137,7 @@ final class StarterRoleCatalog
                 CoreAuthorizationPermissionCatalog::ADMIN_QUEUES_INDEX,
                 CoreAuthorizationPermissionCatalog::ADMIN_QUEUES_RETRY,
                 CoreAuthorizationPermissionCatalog::ADMIN_PULSE_VIEW,
+                CoreAuthorizationPermissionCatalog::ADMIN_TELESCOPE_VIEW,
                 CoreAuthorizationPermissionCatalog::ADMIN_RATE_LIMITS_INDEX,
                 CoreAuthorizationPermissionCatalog::ADMIN_RATE_LIMITS_RESET,
                 CoreAuthorizationPermissionCatalog::ADMIN_LOGS_INDEX,

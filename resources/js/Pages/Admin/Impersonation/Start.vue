@@ -2,8 +2,8 @@
 import { Head, useForm } from '@inertiajs/vue3';
 import { IconArrowLeft, IconUserScan } from '@tabler/icons-vue';
 
-import AdminActionLink from '../../../Components/AdminActionLink.vue';
-import AdminFormActions from '../../../Components/AdminFormActions.vue';
+import ActionLink from '../../../Components/ActionLink.vue';
+import FormActions from '../../../Components/FormActions.vue';
 import AtlasForm from '../../../Components/Form/AtlasForm.vue';
 import FormButton from '../../../Components/Form/FormButton.vue';
 import FormCheckbox from '../../../Components/Form/FormCheckbox.vue';
@@ -72,10 +72,10 @@ function submit(): void {
                     />
                 </div>
 
-                <AdminFormActions class="mt-5">
+                <FormActions class="mt-5">
                     <FormButton type="submit" :loading="form.processing" :disabled="teams.length === 0"> Start impersonation </FormButton>
-                    <AdminActionLink :href="`/admin/users/${target.public_id}/edit`" :icon="IconArrowLeft"> Back </AdminActionLink>
-                </AdminFormActions>
+                    <ActionLink :href="`/admin/users/${target.public_id}/edit`" :icon="IconArrowLeft"> Back </ActionLink>
+                </FormActions>
             </AtlasForm>
         </section>
     </AdminLayout>

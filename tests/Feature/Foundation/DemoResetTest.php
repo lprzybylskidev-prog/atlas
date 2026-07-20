@@ -39,13 +39,18 @@ final class DemoResetTest extends TestCase
     {
         $this->seed(DatabaseSeeder::class);
 
+        $this->assertDatabaseHas(DatabaseTable::ROLES, [
+            'name' => StarterRoleName::Administrator->value,
+        ]);
+        $this->assertGreaterThan(0, DB::table(DatabaseTable::PERMISSIONS)->count());
         $this->assertDatabaseMissing(DatabaseTable::USERS, [
             'email' => DevelopmentDemoSeeder::PREVIEW_EMAIL,
         ]);
     }
 
-    public function test_development_demo_seeder_creates_the_preview_account(): void
+    public function test_development_demo_seeder_creates_only_clean_admin_foundation(): void
     {
+        $this->seed(DatabaseSeeder::class);
         $this->seed(DevelopmentDemoSeeder::class);
 
         $user = User::query()
@@ -55,58 +60,18 @@ final class DemoResetTest extends TestCase
         $this->assertSame('Admin', $user->name);
         $this->assertTrue(Hash::check(DevelopmentDemoSeeder::PREVIEW_PASSWORD, $user->password));
         $this->assertNotNull($user->email_verified_at);
-        $this->assertDatabaseHas(DatabaseTable::TEAMS, ['name' => 'Collections North']);
-        $this->assertDatabaseHas(DatabaseTable::TEAMS, ['name' => 'Collections South']);
-        $this->assertDatabaseHas(DatabaseTable::TEAMS, ['name' => 'Back Office']);
+        $this->assertDatabaseCount(DatabaseTable::USERS, 1);
+        $this->assertDatabaseHas(DatabaseTable::TEAMS, ['name' => DevelopmentDemoSeeder::ADMIN_TEAM_NAME]);
+        $this->assertDatabaseCount(DatabaseTable::TEAMS, 1);
         $this->assertDatabaseHas(DatabaseTable::ROLES, ['name' => StarterRoleName::Administrator->value]);
-        $this->assertDatabaseHas(DatabaseTable::MODULE_GLOBAL_STATES, [
-            'module_key' => 'integrations',
-            'enabled' => true,
-        ]);
-        $this->assertDatabaseHas(DatabaseTable::USERS, ['email' => 'demo.user.01@example.test']);
-        $this->assertDatabaseHas(DatabaseTable::USERS, ['email' => 'demo.copy.north@example.test']);
-        $this->assertDatabaseHas(DatabaseTable::USERS, ['email' => 'demo.copy.south@example.test']);
-        $this->assertDatabaseHas(DatabaseTable::USERS, ['email' => 'demo.copy.backoffice@example.test']);
-        $this->assertDatabaseHas(DatabaseTable::USERS, ['email' => 'demo.multi.team@example.test']);
-        $this->assertDatabaseHas(DatabaseTable::USER_ONBOARDING_PACKAGES, ['package_name' => 'north.collections.agent']);
-        $this->assertDatabaseHas(DatabaseTable::USER_ONBOARDING_PACKAGES, ['package_name' => 'north.collections.team_leader']);
-        $this->assertDatabaseHas(DatabaseTable::USER_ONBOARDING_PACKAGES, ['package_name' => 'south.collections.skip_tracer']);
-        $this->assertDatabaseHas(DatabaseTable::USER_ONBOARDING_PACKAGES, ['package_name' => 'back_office.specialist']);
-        $this->assertDatabaseHas(DatabaseTable::FILE_OBJECTS, [
-            'original_name' => 'demo-clean-payment-confirmation.txt',
-            'scan_state' => 'clean',
-        ]);
-        $this->assertDatabaseHas(DatabaseTable::FILE_OBJECTS, [
-            'original_name' => 'demo-duplicate-payment-confirmation.txt',
-            'scan_state' => 'clean',
-            'physical_owner' => false,
-        ]);
-        $this->assertDatabaseHas(DatabaseTable::FILE_OBJECTS, [
-            'original_name' => 'demo-pending-large-import-attachment.txt',
-            'scan_state' => 'pending',
-        ]);
-        $this->assertDatabaseHas(DatabaseTable::FILE_OBJECTS, [
-            'original_name' => 'demo-infected-suspicious-attachment.txt',
-            'scan_state' => 'infected',
-        ]);
-        $this->assertDatabaseHas(DatabaseTable::FILE_OBJECTS, [
-            'original_name' => 'demo-failed-scanner-timeout.txt',
-            'scan_state' => 'failed',
-        ]);
-        $this->assertDatabaseHas(DatabaseTable::FILE_OBJECTS, [
-            'original_name' => 'demo-unsupported-archive.txt',
-            'scan_state' => 'unsupported',
-        ]);
+        $this->assertDatabaseCount(DatabaseTable::USER_ONBOARDING_PACKAGES, 0);
+        $this->assertDatabaseCount(DatabaseTable::FILE_OBJECTS, 0);
+        $this->assertDatabaseCount(DatabaseTable::NOTIFICATIONS, 0);
+        $this->assertDatabaseCount(DatabaseTable::MANAGED_PROCESS_RUNS, 0);
+        $this->assertDatabaseCount(DatabaseTable::MANAGED_PROCESS_SCHEDULES, 0);
+        $this->assertDatabaseCount(DatabaseTable::TEAM_MANAGER_RELATIONSHIPS, 0);
 
-        $multiTeamUser = User::query()
-            ->where('email', 'demo.multi.team@example.test')
-            ->firstOrFail();
-
-        $this->assertSame(2, DB::table(DatabaseTable::USER_ONBOARDING_PACKAGES)
-            ->where('user_id', $multiTeamUser->id)
-            ->count());
-
-        $teamPublicId = DB::table(DatabaseTable::TEAMS)->where('name', 'Collections North')->value('public_id');
+        $teamPublicId = DB::table(DatabaseTable::TEAMS)->where('name', DevelopmentDemoSeeder::ADMIN_TEAM_NAME)->value('public_id');
 
         self::assertIsString($teamPublicId);
 
@@ -118,11 +83,8 @@ final class DemoResetTest extends TestCase
                 'atlas_admin_mode_last_activity_at' => now()->toIso8601String(),
                 'atlas_admin_high_risk_confirmed_at' => now()->toIso8601String(),
             ])
-            ->get('/admin/integrations')
+            ->get('/admin')
             ->assertOk()
-            ->assertInertia(fn (AssertableInertia $page) => $page
-                ->component('Admin/Integrations/Index')
-                ->where('integrations', [])
-                ->where('recentRuns', []));
+            ->assertInertia(fn (AssertableInertia $page) => $page->component('Admin/SystemStatus'));
     }
 }

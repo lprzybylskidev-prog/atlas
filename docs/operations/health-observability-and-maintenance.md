@@ -5,7 +5,7 @@ Canonical runtime rules for health, readiness, maintenance, logging, correlation
 ## Logging and Observability
 
 - Laravel Telescope and Laravel Debugbar are development-only diagnostics tools.
-- Telescope is the default local request, query, exception, log, job, cache, mail, notification, event, and dump inspector at `/telescope`.
+- Telescope is the default local request, query, exception, log, job, cache, mail, notification, event, and dump inspector at `/telescope`. In local/development environments, authorized administrators can open it from Admin navigation when their active-team permissions include `admin.telescope.view`.
 - Debugbar is enabled only for trusted local/development browser work and must stay disabled in tests, E2E, production, and every untrusted environment.
 - Telescope and Debugbar must not replace production-safe logs, Sentry, health checks, readiness checks, alerts, audit trails, or Admin operational screens.
 - Laravel Pulse is the internal application performance dashboard for runtime usage and bottleneck trends. It is mounted at `/admin/pulse`, uses the `admin.pulse.view` permission through Pulse's `viewPulse` gate, requires authentication and password confirmation, and is intended for authorized operational administrators only.

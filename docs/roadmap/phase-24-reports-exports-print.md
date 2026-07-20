@@ -14,6 +14,7 @@ Build the shared report/export generation lifecycle after tables, saved views, f
 - [Phase 15 — Notifications and realtime foundation](phase-15-notifications-realtime.md)
 - [Phase 16 — Admin operations and health](phase-16-admin-health.md)
 - [Phase 19 — Files](phase-19-files.md)
+- [Phase 20b — Managed processes, process logs, and scheduler](phase-20b-managed-processes.md)
 - [Tables, reports, exports, charts, and print](../architecture/tables-reports-exports-and-print.md)
 
 ## Implementation contract
@@ -47,14 +48,14 @@ Build the shared report/export generation lifecycle after tables, saved views, f
 - Large PDFs always run through queues.
 - Small PDFs may be synchronous only when explicit size and execution-time thresholds make it safe; queued generation is preferred for consistency.
 - PDF generation failures are visible, retryable only when safe, audited where relevant, and reported through the shared notification/progress system.
-- Generated reports/exports use one lifecycle: authorize, snapshot request, select sync/queued path, generate idempotently with concurrency limits, store privately, notify, reauthorize download, expire.
+- Generated reports/exports use managed-process runs for queued lifecycle visibility: authorize, snapshot request, select sync/queued path, generate idempotently with concurrency limits, store privately, notify, reauthorize download, expire.
 - Retries never expose duplicate or partial artifacts.
-- Concurrency limits are configurable per user, team, and report type.
+- Concurrency limits are configured through managed-process policy per user, team, and report type.
 
 ## Tasks
 
 - [ ] Implement immutable report/export request snapshots and authorization fingerprints.
-- [ ] Implement idempotent generation jobs and concurrency controls.
+- [ ] Implement idempotent generation jobs and managed-process concurrency controls.
 - [ ] Prevent partial or duplicate artifacts from becoming downloadable.
 - [ ] Store checksum, content type, size, creator, status, release/rule version, and expiry metadata.
 - [ ] Reauthorize every artifact download and implement retention cleanup.
@@ -70,14 +71,14 @@ Build the shared report/export generation lifecycle after tables, saved views, f
 - [ ] Implement a render-ready contract for charts and other asynchronous visuals.
 - [ ] Fail PDF generation when required visuals do not finish rendering.
 - [ ] Queue all large PDFs and define safe thresholds for any synchronous PDF path.
-- [ ] Integrate PDF progress, failure, retry, storage, expiry, and notifications with shared reporting infrastructure.
+- [ ] Integrate PDF progress, failure, retry, storage, expiry, and notifications with shared reporting and managed-process infrastructure.
 - [ ] Add Chromium-based tests for multipage tables, repeated headers, charts, fonts, page numbers, and failure handling.
 - [ ] Add browser print layouts.
 - [ ] Make exports honor filters, sorting, visible columns, permissions, and active team.
 - [ ] Enforce ModuleGate for report views, export requests, queued export/PDF jobs, download authorization, and render-token access.
 - [ ] Register report/export deactivation guards for unsafe in-flight generation where a module owns report jobs.
 - [ ] Add synchronous small exports.
-- [ ] Add queued large exports.
+- [ ] Add queued large exports as managed-process runs.
 - [ ] Add export-ready notifications.
 - [ ] Add storage expiry and cleanup.
 - [ ] Add centralized report header configuration.
@@ -93,7 +94,7 @@ Build the shared report/export generation lifecycle after tables, saved views, f
 
 ## Completion criteria
 
-- [ ] Reports and exports use the shared lifecycle end to end.
+- [ ] Reports and exports use the shared lifecycle and managed-process visibility end to end.
 - [ ] Generated artifacts are private, authorized, expiring, and safe to retry.
 - [ ] PDF and browser print share the same report contract.
 - [ ] Progress and failures are visible through notifications and Admin operations.

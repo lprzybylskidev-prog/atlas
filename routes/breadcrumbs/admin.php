@@ -135,3 +135,37 @@ Breadcrumbs::for('admin.modules.show', function (Generator $breadcrumbs): void {
     $breadcrumbs->push('Modules');
     $breadcrumbs->push('Details');
 });
+
+Breadcrumbs::for('admin.managed-processes.index', function (Generator $breadcrumbs): void {
+    $breadcrumbs->push(__('breadcrumbs.admin'));
+    $breadcrumbs->push('Managed processes');
+});
+
+Breadcrumbs::for('admin.managed-processes.show', function (Generator $breadcrumbs): void {
+    $breadcrumbs->push(__('breadcrumbs.admin'));
+    $breadcrumbs->push('Managed processes', route('admin.managed-processes.index'));
+    $breadcrumbs->push('Run details');
+});
+
+Breadcrumbs::for('admin.managed-processes.imports.index', function (Generator $breadcrumbs): void {
+    $breadcrumbs->push(__('breadcrumbs.admin'));
+    $breadcrumbs->push('Managed processes', route('admin.managed-processes.index'));
+    $breadcrumbs->push('Imports');
+});
+
+Breadcrumbs::for('admin.managed-processes.definitions.index', function (Generator $breadcrumbs): void {
+    $breadcrumbs->push(__('breadcrumbs.admin'));
+    $breadcrumbs->push('Managed processes', route('admin.managed-processes.index'));
+    $breadcrumbs->push('Definitions');
+});
+
+Breadcrumbs::for('admin.managed-processes.schedules.index', function (Generator $breadcrumbs): void {
+    $breadcrumbs->push(__('breadcrumbs.admin'));
+    $breadcrumbs->push('Managed processes', route('admin.managed-processes.index'));
+    $breadcrumbs->push('Schedules');
+});
+
+Breadcrumbs::for('admin.imports.index', function (Generator $breadcrumbs): void {
+    $breadcrumbs->push(__('breadcrumbs.admin'));
+    $breadcrumbs->push('Imports');
+});

@@ -3,12 +3,13 @@ import { Head, router, useForm } from '@inertiajs/vue3';
 import { IconArrowLeft, IconTrash, IconUserEdit, IconUsersGroup } from '@tabler/icons-vue';
 import { reactive } from 'vue';
 
-import AdminActionLink from '../../../Components/AdminActionLink.vue';
-import AdminFormActions from '../../../Components/AdminFormActions.vue';
-import AdminRecordActions from '../../../Components/AdminRecordActions.vue';
+import ActionLink from '../../../Components/ActionLink.vue';
+import CardHeader from '../../../Components/CardHeader.vue';
+import CheckboxList from '../../../Components/CheckboxList.vue';
+import FormActions from '../../../Components/FormActions.vue';
+import RecordActions from '../../../Components/RecordActions.vue';
 import AtlasForm from '../../../Components/Form/AtlasForm.vue';
 import FormButton from '../../../Components/Form/FormButton.vue';
-import FormCheckbox from '../../../Components/Form/FormCheckbox.vue';
 import FormInput from '../../../Components/Form/FormInput.vue';
 import FormSelect from '../../../Components/Form/FormSelect.vue';
 import StatusBadge from '../../../Components/StatusBadge.vue';
@@ -149,8 +150,8 @@ function updateTeamAuthorization(teamPublicId: string): void {
     <AdminLayout :title="t('pages.admin.users.edit.title')" :title-icon="IconUserEdit">
         <section class="space-y-5">
             <section class="rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950">
-                <h2 class="text-sm font-semibold uppercase text-zinc-500 dark:text-zinc-400">Actions</h2>
-                <AdminRecordActions class="mt-3" :actions="recordActions" />
+                <CardHeader title="Actions" :icon="IconUserEdit" />
+                <RecordActions class="mt-3" :actions="recordActions" />
             </section>
 
             <div class="grid gap-5 xl:grid-cols-[minmax(0,1fr)_24rem]">
@@ -171,19 +172,16 @@ function updateTeamAuthorization(teamPublicId: string): void {
                             />
                         </div>
 
-                        <AdminFormActions class="mt-5">
+                        <FormActions class="mt-5">
                             <FormButton type="submit" :loading="form.processing">
                                 {{ form.processing ? 'Saving...' : 'Save changes' }}
                             </FormButton>
-                            <AdminActionLink href="/admin/users" :icon="IconArrowLeft"> Back to users </AdminActionLink>
-                        </AdminFormActions>
+                            <ActionLink href="/admin/users" :icon="IconArrowLeft"> Back to users </ActionLink>
+                        </FormActions>
                     </AtlasForm>
 
                     <section class="rounded-lg border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950">
-                        <div class="flex items-center gap-2">
-                            <IconUsersGroup aria-hidden="true" class="h-5 w-5 text-teal-700 dark:text-teal-300" :stroke-width="1.8" />
-                            <h2 class="text-sm font-semibold uppercase text-zinc-500 dark:text-zinc-400">Team access</h2>
-                        </div>
+                        <CardHeader title="Team access" :icon="IconUsersGroup" />
 
                         <AtlasForm
                             class="mt-4 grid gap-3 md:grid-cols-[minmax(0,1fr)_auto]"
@@ -225,39 +223,16 @@ function updateTeamAuthorization(teamPublicId: string): void {
                                 </div>
 
                                 <div class="grid gap-4 xl:grid-cols-2">
-                                    <section>
-                                        <p class="text-xs font-semibold uppercase text-zinc-500 dark:text-zinc-400">Roles</p>
-                                        <div
-                                            class="mt-2 grid max-h-56 gap-2 overflow-auto rounded-lg border border-zinc-200 p-3 dark:border-zinc-800"
-                                        >
-                                            <FormCheckbox
-                                                v-for="role in roleOptions"
-                                                :key="role"
-                                                v-model="authorizationForm(membership.teamPublicId).role_names"
-                                                :value="role"
-                                                align="start"
-                                            >
-                                                <span class="break-all font-mono text-xs">{{ role }}</span>
-                                            </FormCheckbox>
-                                        </div>
-                                    </section>
-
-                                    <section>
-                                        <p class="text-xs font-semibold uppercase text-zinc-500 dark:text-zinc-400">Direct permissions</p>
-                                        <div
-                                            class="mt-2 grid max-h-56 gap-2 overflow-auto rounded-lg border border-zinc-200 p-3 dark:border-zinc-800"
-                                        >
-                                            <FormCheckbox
-                                                v-for="permission in permissionOptions"
-                                                :key="permission"
-                                                v-model="authorizationForm(membership.teamPublicId).direct_permission_names"
-                                                :value="permission"
-                                                align="start"
-                                            >
-                                                <span class="break-all font-mono text-xs">{{ permission }}</span>
-                                            </FormCheckbox>
-                                        </div>
-                                    </section>
+                                    <CheckboxList
+                                        v-model="authorizationForm(membership.teamPublicId).role_names"
+                                        label="Roles"
+                                        :options="roleOptions"
+                                    />
+                                    <CheckboxList
+                                        v-model="authorizationForm(membership.teamPublicId).direct_permission_names"
+                                        label="Direct permissions"
+                                        :options="permissionOptions"
+                                    />
                                 </div>
 
                                 <div class="grid gap-3 xl:grid-cols-[minmax(0,1fr)_auto]">
@@ -298,7 +273,7 @@ function updateTeamAuthorization(teamPublicId: string): void {
                 </div>
 
                 <aside class="rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950">
-                    <h2 class="text-sm font-semibold uppercase text-zinc-500 dark:text-zinc-400">Account status</h2>
+                    <CardHeader title="Account status" :icon="IconUserEdit" />
                     <dl class="mt-4 space-y-3 text-sm">
                         <div class="flex items-center justify-between gap-3">
                             <dt class="text-zinc-500 dark:text-zinc-400">Active</dt>

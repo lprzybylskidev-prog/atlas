@@ -11,7 +11,9 @@ use App\Modules\Core\Notifications\NotificationsModule;
 use App\Modules\Core\Settings\SettingsModule;
 use App\Modules\Core\Teams\TeamsModule;
 use App\Modules\Core\Users\UsersModule;
+use App\Modules\Optional\Imports\ImportsModule;
 use App\Modules\Optional\Integrations\IntegrationsModule;
+use App\Modules\Optional\ManagedProcesses\ManagedProcessesModule;
 
 return [
     'deployed' => [
@@ -25,5 +27,7 @@ return [
         HealthModule::class,
         FilesModule::class,
         IntegrationsModule::class,
+        ManagedProcessesModule::class,
+        ImportsModule::class,
     ],
 ];

@@ -3,11 +3,12 @@ import { Head, useForm } from '@inertiajs/vue3';
 import { IconArrowLeft, IconPlus, IconPuzzle, IconTrash, IconUsersGroup } from '@tabler/icons-vue';
 import { computed } from 'vue';
 
-import AdminActionLink from '../../../Components/AdminActionLink.vue';
-import AdminFormActions from '../../../Components/AdminFormActions.vue';
+import ActionLink from '../../../Components/ActionLink.vue';
+import CardHeader from '../../../Components/CardHeader.vue';
+import CheckboxList from '../../../Components/CheckboxList.vue';
+import FormActions from '../../../Components/FormActions.vue';
 import AtlasForm from '../../../Components/Form/AtlasForm.vue';
 import FormButton from '../../../Components/Form/FormButton.vue';
-import FormCheckbox from '../../../Components/Form/FormCheckbox.vue';
 import FormInput from '../../../Components/Form/FormInput.vue';
 import FormSelect from '../../../Components/Form/FormSelect.vue';
 import AdminLayout from '../../../Layouts/AdminLayout.vue';
@@ -130,12 +131,11 @@ function submit(): void {
 
             <section class="rounded-lg border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950">
                 <div class="flex flex-wrap items-center justify-between gap-3">
-                    <div>
-                        <h2 class="text-sm font-semibold uppercase text-zinc-500 dark:text-zinc-400">Initial members</h2>
-                        <p class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-                            Assign users, roles, and direct permissions while creating the team.
-                        </p>
-                    </div>
+                    <CardHeader
+                        title="Initial members"
+                        :icon="IconUsersGroup"
+                        subtitle="Assign users, roles, and direct permissions while creating the team."
+                    />
                     <FormButton type="button" tone="neutral" :icon="IconPlus" :disabled="!canAdd" @click="add">Add user</FormButton>
                 </div>
 
@@ -172,39 +172,12 @@ function submit(): void {
                         </div>
 
                         <div class="grid gap-4 xl:grid-cols-2">
-                            <section>
-                                <p class="text-xs font-semibold uppercase text-zinc-500 dark:text-zinc-400">Roles</p>
-                                <div
-                                    class="mt-2 grid max-h-56 gap-2 overflow-auto rounded-lg border border-zinc-200 p-3 dark:border-zinc-800"
-                                >
-                                    <FormCheckbox
-                                        v-for="role in roleOptions"
-                                        :key="role"
-                                        v-model="assignment.role_names"
-                                        :value="role"
-                                        align="start"
-                                    >
-                                        <span class="break-all font-mono text-xs">{{ role }}</span>
-                                    </FormCheckbox>
-                                </div>
-                            </section>
-
-                            <section>
-                                <p class="text-xs font-semibold uppercase text-zinc-500 dark:text-zinc-400">Direct permissions</p>
-                                <div
-                                    class="mt-2 grid max-h-56 gap-2 overflow-auto rounded-lg border border-zinc-200 p-3 dark:border-zinc-800"
-                                >
-                                    <FormCheckbox
-                                        v-for="permission in permissionOptions"
-                                        :key="permission"
-                                        v-model="assignment.direct_permission_names"
-                                        :value="permission"
-                                        align="start"
-                                    >
-                                        <span class="break-all font-mono text-xs">{{ permission }}</span>
-                                    </FormCheckbox>
-                                </div>
-                            </section>
+                            <CheckboxList v-model="assignment.role_names" label="Roles" :options="roleOptions" />
+                            <CheckboxList
+                                v-model="assignment.direct_permission_names"
+                                label="Direct permissions"
+                                :options="permissionOptions"
+                            />
                         </div>
                     </div>
                 </div>
@@ -212,10 +185,11 @@ function submit(): void {
 
             <section class="rounded-lg border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950">
                 <div class="flex flex-wrap items-center justify-between gap-3">
-                    <div>
-                        <h2 class="text-sm font-semibold uppercase text-zinc-500 dark:text-zinc-400">Module overrides</h2>
-                        <p class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">Set team-specific module state while creating the team.</p>
-                    </div>
+                    <CardHeader
+                        title="Module overrides"
+                        :icon="IconPuzzle"
+                        subtitle="Set team-specific module state while creating the team."
+                    />
                     <FormButton
                         type="button"
                         tone="neutral"
@@ -255,12 +229,12 @@ function submit(): void {
                 </div>
             </section>
 
-            <AdminFormActions class="mt-5">
+            <FormActions class="mt-5">
                 <FormButton type="submit" :loading="form.processing">
                     {{ form.processing ? 'Saving...' : 'Save team' }}
                 </FormButton>
-                <AdminActionLink href="/admin/teams" :icon="IconArrowLeft"> Back to teams </AdminActionLink>
-            </AdminFormActions>
+                <ActionLink href="/admin/teams" :icon="IconArrowLeft"> Back to teams </ActionLink>
+            </FormActions>
         </AtlasForm>
     </AdminLayout>
 </template>

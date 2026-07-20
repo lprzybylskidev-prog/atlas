@@ -1,9 +1,12 @@
 <script setup lang="ts">
 import { Head } from '@inertiajs/vue3';
 import { IconShieldCheck } from '@tabler/icons-vue';
+import { computed, reactive } from 'vue';
 
-import AdminActionLink from '../../../Components/AdminActionLink.vue';
+import ActionLink from '../../../Components/ActionLink.vue';
 import DataTable from '../../../Components/DataTable.vue';
+import FilterPanel from '../../../Components/FilterPanel.vue';
+import FormSelect from '../../../Components/Form/FormSelect.vue';
 import { runBulkRecordAction } from '../../../Composables/useBulkRecordActions';
 import AdminLayout from '../../../Layouts/AdminLayout.vue';
 import { useTranslator } from '../../../Localization/translator';
@@ -26,6 +29,47 @@ const props = defineProps<{
 }>();
 
 const { t } = useTranslator('en');
+
+const filters = reactive({
+    guard: 'all',
+    scope: 'all',
+});
+
+const guardOptions = computed(() => [
+    { value: 'all', label: 'All guards' },
+    ...Array.from(new Set(props.roles.map((role) => role.guard)))
+        .sort((left, right) => left.localeCompare(right))
+        .map((guard) => ({ value: guard, label: guard })),
+]);
+
+const scopeOptions = [
+    { value: 'all', label: 'All scopes' },
+    { value: 'global', label: 'Global' },
+    { value: 'team', label: 'Team scoped' },
+];
+
+const filteredRoles = computed(() =>
+    props.roles.filter((role) => {
+        if (filters.guard !== 'all' && role.guard !== filters.guard) {
+            return false;
+        }
+
+        if (filters.scope === 'global') {
+            return role.teamId === null;
+        }
+
+        if (filters.scope === 'team') {
+            return role.teamId !== null;
+        }
+
+        return true;
+    }),
+);
+
+function resetFilters(): void {
+    filters.guard = 'all';
+    filters.scope = 'all';
+}
 
 const columns: DataTableColumn<RoleRow>[] = [
     { key: 'publicId', label: 'Public ID' },
@@ -65,14 +109,24 @@ async function handleBulkAction(payload: { action: DataTableBulkAction; rowIds: 
     <AdminLayout :title="t('pages.admin.roles.title')" :title-icon="IconShieldCheck">
         <section class="space-y-5">
             <div class="flex justify-end">
-                <AdminActionLink href="/admin/authorization/roles/create" :icon="IconShieldCheck" tone="primary">
-                    Create role
-                </AdminActionLink>
+                <ActionLink href="/admin/authorization/roles/create" :icon="IconShieldCheck" tone="primary"> Create role </ActionLink>
             </div>
+
+            <FilterPanel
+                title="Role filters"
+                :summary="`Showing ${filteredRoles.length} of ${roles.length} loaded roles.`"
+                @apply="() => {}"
+                @clear="resetFilters"
+            >
+                <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                    <FormSelect v-model="filters.guard" label="Guard" :options="guardOptions" />
+                    <FormSelect v-model="filters.scope" label="Scope" :options="scopeOptions" />
+                </div>
+            </FilterPanel>
 
             <DataTable
                 title="Roles"
-                :rows="roles"
+                :rows="filteredRoles"
                 :columns="columns"
                 row-key="publicId"
                 :actions="actions"

@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Modules\Core\Authorization\Application\Permissions\CoreAuthorizationPermissionCatalog;
+use App\Modules\Core\Authorization\Application\Public\Contracts\EffectivePermissionChecker;
+use App\Modules\Core\Authorization\Application\Public\DTOs\EffectivePermissionRequest;
+use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Support\Facades\Gate;
 use Laravel\Telescope\IncomingEntry;
 use Laravel\Telescope\Telescope;
@@ -40,6 +44,26 @@ class TelescopeServiceProvider extends TelescopeApplicationServiceProvider
 
     protected function gate(): void
     {
-        Gate::define('viewTelescope', static fn (): bool => false);
+        Gate::define('viewTelescope', function (?Authenticatable $user = null): bool {
+            if (! $this->app->environment(['local', 'development']) || $user === null) {
+                return false;
+            }
+
+            $userPublicId = data_get($user, 'public_id');
+            $teamPublicId = request()->hasSession() ? request()->session()->get('active_team_public_id') : null;
+
+            if (! is_string($userPublicId) || ! is_string($teamPublicId)) {
+                return false;
+            }
+
+            /** @var EffectivePermissionChecker $checker */
+            $checker = app(EffectivePermissionChecker::class);
+
+            return $checker->check(new EffectivePermissionRequest(
+                userPublicId: $userPublicId,
+                permission: CoreAuthorizationPermissionCatalog::ADMIN_TELESCOPE_VIEW,
+                teamPublicId: $teamPublicId,
+            ))->allowed;
+        });
     }
 }

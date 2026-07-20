@@ -1,9 +1,12 @@
 <script setup lang="ts">
 import { Head } from '@inertiajs/vue3';
 import { IconUserPlus } from '@tabler/icons-vue';
+import { computed, reactive } from 'vue';
 
-import AdminActionLink from '../../../Components/AdminActionLink.vue';
+import ActionLink from '../../../Components/ActionLink.vue';
 import DataTable from '../../../Components/DataTable.vue';
+import FilterPanel from '../../../Components/FilterPanel.vue';
+import FormSelect from '../../../Components/Form/FormSelect.vue';
 import { runBulkRecordAction } from '../../../Composables/useBulkRecordActions';
 import AdminLayout from '../../../Layouts/AdminLayout.vue';
 import { useTranslator } from '../../../Localization/translator';
@@ -34,12 +37,114 @@ interface UserRow extends Record<string, unknown> {
     updatedAt: string;
 }
 
-defineProps<{
+const props = defineProps<{
     users: UserRow[];
     table: DataTableMeta;
 }>();
 
 const { t } = useTranslator('en');
+
+const filters = reactive({
+    status: 'all',
+    email: 'all',
+    password: 'all',
+    mfa: 'all',
+    lock: 'all',
+    sensitivity: 'all',
+});
+
+const statusOptions = [
+    { value: 'all', label: 'All statuses' },
+    { value: 'active', label: 'Active' },
+    { value: 'inactive', label: 'Deactivated' },
+];
+
+const emailOptions = [
+    { value: 'all', label: 'Any email state' },
+    { value: 'verified', label: 'Verified' },
+    { value: 'unverified', label: 'Unverified' },
+];
+
+const passwordOptions = [
+    { value: 'all', label: 'Any password state' },
+    { value: 'set', label: 'First password set' },
+    { value: 'pending', label: 'First password pending' },
+];
+
+const mfaOptions = [
+    { value: 'all', label: 'Any MFA state' },
+    { value: 'enabled', label: 'MFA confirmed' },
+    { value: 'disabled', label: 'MFA not confirmed' },
+];
+
+const lockOptions = [
+    { value: 'all', label: 'Any lock state' },
+    { value: 'locked', label: 'Locked' },
+    { value: 'unlocked', label: 'Unlocked' },
+];
+
+const sensitivityOptions = computed(() => [
+    { value: 'all', label: 'All sensitivities' },
+    ...Array.from(new Set(props.users.map((user) => user.accountSensitivity)))
+        .filter((value) => value !== '')
+        .sort((left, right) => left.localeCompare(right))
+        .map((value) => ({ value, label: value })),
+]);
+
+const filteredUsers = computed(() =>
+    props.users.filter((user) => {
+        if (filters.status === 'active' && !user.isActive) {
+            return false;
+        }
+
+        if (filters.status === 'inactive' && user.isActive) {
+            return false;
+        }
+
+        if (filters.email === 'verified' && !user.emailVerified) {
+            return false;
+        }
+
+        if (filters.email === 'unverified' && user.emailVerified) {
+            return false;
+        }
+
+        if (filters.password === 'set' && !user.firstPasswordSet) {
+            return false;
+        }
+
+        if (filters.password === 'pending' && user.firstPasswordSet) {
+            return false;
+        }
+
+        if (filters.mfa === 'enabled' && !user.mfaEnabled) {
+            return false;
+        }
+
+        if (filters.mfa === 'disabled' && user.mfaEnabled) {
+            return false;
+        }
+
+        if (filters.lock === 'locked' && !user.loginLocked) {
+            return false;
+        }
+
+        if (filters.lock === 'unlocked' && user.loginLocked) {
+            return false;
+        }
+
+        return filters.sensitivity === 'all' || user.accountSensitivity === filters.sensitivity;
+    }),
+);
+
+function resetFilters(): void {
+    filters.status = 'all';
+    filters.email = 'all';
+    filters.password = 'all';
+    filters.mfa = 'all';
+    filters.lock = 'all';
+    filters.sensitivity = 'all';
+}
 
 const columns: DataTableColumn<UserRow>[] = [
     { key: 'publicId', label: 'Public ID' },
@@ -135,12 +240,28 @@ async function handleBulkAction(payload: { action: DataTableBulkAction; rowIds: 
     <AdminLayout :title="t('pages.admin.users.index.title')" :title-icon="IconUserPlus">
         <section class="space-y-5">
             <div class="flex justify-end">
-                <AdminActionLink href="/admin/users/create" :icon="IconUserPlus" tone="primary"> Create user </AdminActionLink>
+                <ActionLink href="/admin/users/create" :icon="IconUserPlus" tone="primary"> Create user </ActionLink>
             </div>
+
+            <FilterPanel
+                title="User filters"
+                :summary="`Showing ${filteredUsers.length} of ${users.length} loaded users.`"
+                @apply="() => {}"
+                @clear="resetFilters"
+            >
+                <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-6">
+                    <FormSelect v-model="filters.status" label="Status" :options="statusOptions" />
+                    <FormSelect v-model="filters.email" label="Email" :options="emailOptions" />
+                    <FormSelect v-model="filters.password" label="Password" :options="passwordOptions" />
+                    <FormSelect v-model="filters.mfa" label="MFA" :options="mfaOptions" />
+                    <FormSelect v-model="filters.lock" label="Lock" :options="lockOptions" />
+                    <FormSelect v-model="filters.sensitivity" label="Sensitivity" :options="sensitivityOptions" />
+                </div>
+            </FilterPanel>
 
             <DataTable
                 title="Users"
-                :rows="users"
+                :rows="filteredUsers"
                 :columns="columns"
                 row-key="publicId"
                 :actions="actions"

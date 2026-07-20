@@ -88,7 +88,7 @@ Exports and print must honor:
 
 Small exports may run synchronously.
 
-Large exports use queues and notify the user when ready. This depends on the notification and operational-health foundations rather than inventing a local progress mechanism.
+Large exports use managed-process queues and notify the user when ready. This depends on the managed-process, notification, and operational-health foundations rather than inventing a local progress mechanism.
 
 Use storage with expiry and cleanup.
 
@@ -124,7 +124,7 @@ Charts:
 
 ### Report generation pipeline
 
-Every generated report/export follows one explicit lifecycle:
+Every generated report/export follows one explicit lifecycle, using managed-process runs for queued execution, progress, structured logs, retry/cancel visibility, and Admin operations where execution is not safely synchronous:
 
 1. authorize user, active team, module, dataset, filters, and columns;
 2. persist an immutable request snapshot and release/rule version;

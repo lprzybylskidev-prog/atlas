@@ -3,8 +3,9 @@ import { Head, router } from '@inertiajs/vue3';
 import { IconClipboardList } from '@tabler/icons-vue';
 import { reactive, watch } from 'vue';
 
-import AdminFilterPanel from '../../../Components/AdminFilterPanel.vue';
+import FilterPanel from '../../../Components/FilterPanel.vue';
 import DataTable from '../../../Components/DataTable.vue';
+import FormDateInput from '../../../Components/Form/FormDateInput.vue';
 import FormInput from '../../../Components/Form/FormInput.vue';
 import FormSelect from '../../../Components/Form/FormSelect.vue';
 import AdminLayout from '../../../Layouts/AdminLayout.vue';
@@ -208,7 +209,7 @@ watch(
     <Head title="Audit" />
     <AdminLayout :title="t('pages.admin.audit.title')" :title-icon="IconClipboardList">
         <section class="space-y-4">
-            <AdminFilterPanel @apply="applyFilters" @clear="clearFilters">
+            <FilterPanel @apply="applyFilters" @clear="clearFilters">
                 <div class="grid gap-3 md:grid-cols-3 xl:grid-cols-6">
                     <FormSelect v-model="filters.module" class="mt-1" aria-label="Module" :options="moduleOptions" />
                     <FormSelect v-model="filters.action" class="mt-1" aria-label="Action" :options="actionOptions" />
@@ -231,10 +232,10 @@ watch(
                     />
                     <FormInput v-model="filters.target" aria-label="Target public ID" placeholder="Target" />
                     <FormInput v-model="filters.correlation" aria-label="Correlation ID" placeholder="Correlation ID" />
-                    <FormInput v-model="filters.dateFrom" aria-label="Date from" type="date" />
-                    <FormInput v-model="filters.dateTo" aria-label="Date to" type="date" />
+                    <FormDateInput v-model="filters.dateFrom" aria-label="Date from" />
+                    <FormDateInput v-model="filters.dateTo" aria-label="Date to" />
                 </div>
-            </AdminFilterPanel>
+            </FilterPanel>
             <DataTable title="Audit events" :rows="events" :columns="columns" row-key="publicId" :table="table" ui-locale="en" />
         </section>
     </AdminLayout>

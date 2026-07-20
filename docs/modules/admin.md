@@ -25,11 +25,11 @@ The regular application shell shows the Admin entry only when the backend-provid
 
 The Admin shell workspace navigation exposes separate links to the regular application dashboard at `/` and the Admin dashboard at `/admin`. The Admin dashboard is the operational entry point for release identity, detailed readiness checks, and deployed module health.
 
-The Admin dashboard is an operational status surface, not a duplicate navigation directory. It is intentionally organized around three primary cards: Release, Readiness, and Modules. New Admin operational areas must contribute a meaningful signal to the Modules card when they expose health, queues, failures, approvals, security events, module state, integrations, files, imports, reports, or operator action.
+The Admin dashboard is an operational status surface, not a duplicate navigation directory. It is intentionally organized around three primary cards: Release, Readiness, and Modules. New Admin operational areas must contribute a meaningful signal to the Modules card when they expose health, queues, failures, approvals, security events, module state, integrations, files, managed processes, imports, reports, or operator action.
 
 Current Admin tables use the shared `DataTable` wrapper. Their first data column is `public_id`, they keep the most important operational columns visible by default, and they expose remaining safe non-secret table columns through the Columns menu. Search, sorting, pagination, column visibility, and column order are backend-validated and synchronized through deterministic English query-string keys. Admin users can save private or active-team-shared table views, set a default view, copy a system/shared view, and delete only editable non-system views. Team-shared saved-view changes are recorded through the Audit module. When an Admin index exposes safe row actions, the same supported mutating actions are also available as selected-row bulk actions for the currently loaded page.
 
-Custom Admin operational views that do not use the shared `DataTable` filter surface keep their filters in the shared `AdminFilterPanel` pattern: the panel title is `Filters`, Clear is a neutral action, Apply is the primary action, and optional loaded-result summaries sit below the fields. Page-level Create and Back links use the shared `AdminActionLink`, and form footers use `AdminFormActions`. Inline operational forms keep one- or two-step actions aligned with their fields at desktop widths and wrap predictably on small screens.
+Custom Admin operational views that do not use the shared `DataTable` filter surface keep their filters in the shared `FilterPanel` pattern: the panel title is `Filters`, Clear is a neutral action, Apply is the primary action, and optional loaded-result summaries sit below the fields. Page-level Create and Back links use the shared `ActionLink`, and form footers use `FormActions`. Inline operational forms keep one- or two-step actions aligned with their fields at desktop widths and wrap predictably on small screens.
 
 Admin user and team administration include integrated Team access management. Administrators can assign users to teams during user creation, user editing, team creation, or team editing, and can manage the user's team-scoped roles and direct permissions from either side of the workflow. Team access removal is security-sensitive: it requires a reason, audits the change, removes user-specific authorization assignments in that team, and invalidates sessions operating in that team.
 
@@ -47,9 +47,20 @@ The Admin queues browser is available at `/admin/queues`. It exposes failed jobs
 
 Failed-job retry actions are ModuleGate-checked against the module inferred from the queued job class before retrying.
 
+The Admin managed-process area is split into four operational tabs:
+
+- `/admin/managed-processes` for process run history, start/finish timing, status/source/module filters, and links into the structured process log manager;
+- `/admin/managed-processes/imports` for import executions, idempotency state, source type, statistics, and links into the same run log manager;
+- `/admin/managed-processes/definitions` for registered definitions and manual registered-process starts;
+- `/admin/managed-processes/schedules` for validated five-field cron schedule creation, schedule filters, and schedule disable actions.
+
+The managed-process Admin area does not expose arbitrary shell cron, raw Artisan command execution, filesystem browsing, or unregistered process execution. The run detail screen supports filtering by severity, stage, event type, and safe text context.
+
 The Admin integrations browser is available at `/admin/integrations`. It shows registered adapter status, source-of-truth notes, last success, last error, circuit state, recent synchronization runs, and external API boundary status. Test-connection actions are permission-protected and never display secrets.
 
 Laravel Pulse is available from the Admin navigation at `/admin/pulse`. It is a package-owned internal performance dashboard for authorized operational administrators and is protected by `auth`, password confirmation, Pulse's `viewPulse` gate, and the `admin.pulse.view` permission. Pulse is not an Inertia screen and uses its own Livewire/Blade dashboard.
+
+Laravel Telescope is available from Admin navigation only in local/development environments at `/telescope`. It is a package-owned diagnostics dashboard protected by `auth`, password confirmation, Telescope's `viewTelescope` gate, the active team context, and the `admin.telescope.view` permission. Telescope is not an Inertia screen and remains unavailable in tests, production, and untrusted environments.
 
 Phase 8 verifies the current Admin UI/table foundation after Phase 7. Phase 9 completes shared UI primitives and Phase 10 completes the shared table/saved-view contract before additional Admin areas rely on broader table behavior.
 
@@ -62,10 +73,12 @@ Initial areas:
 - Managers
 - Logs
 - Pulse
+- Telescope
 - Storage
 - System Status
 - Queues
 - Failed Jobs
+- Managed processes
 - Imports
 - Integrations
 - Feature Flags
@@ -84,6 +97,7 @@ System Status includes:
 - Meilisearch;
 - scheduler heartbeat freshness;
 - deployed modules with technical availability, global/team/effective activation, dependencies, and module-owned issues such as queue failures, rate-limit rejections, file scan blockers, integration circuit breakers, failed synchronization runs, and failed module activation schedules;
+- managed-process and import signals for active runs, failures, warning completions, schedules, and import row warnings/errors;
 - storage;
 - last deploy;
 - application version.

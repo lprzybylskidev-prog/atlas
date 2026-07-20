@@ -3,6 +3,7 @@ import { Head, useForm } from '@inertiajs/vue3';
 import { IconInfoCircle, IconLockAccess, IconX } from '@tabler/icons-vue';
 import { nextTick, ref } from 'vue';
 
+import CardHeader from '../../../Components/CardHeader.vue';
 import DataTable from '../../../Components/DataTable.vue';
 import AtlasForm from '../../../Components/Form/AtlasForm.vue';
 import FormButton from '../../../Components/Form/FormButton.vue';
@@ -97,13 +98,11 @@ function handleInstructionsKeydown(event: KeyboardEvent): void {
         <section class="space-y-5">
             <section class="rounded-lg border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
                 <div class="mb-4 flex items-start justify-between gap-3">
-                    <div class="min-w-0">
-                        <h2 class="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Reset one counter</h2>
-                        <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-300">
-                            Enter the exact limiter key produced by the policy key parts. Thresholds remain read-only and cannot be edited
-                            here.
-                        </p>
-                    </div>
+                    <CardHeader
+                        title="Reset one counter"
+                        :icon="IconLockAccess"
+                        subtitle="Enter the exact limiter key produced by the policy key parts. Thresholds remain read-only and cannot be edited here."
+                    />
                     <Tooltip text="How to reset a counter" placement="top">
                         <IconButton
                             label="How to reset a counter"

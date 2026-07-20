@@ -1,15 +1,22 @@
 <script setup lang="ts">
-import { Link } from '@inertiajs/vue3';
+import { Link, usePage } from '@inertiajs/vue3';
 import {
     IconActivityHeartbeat,
     IconClipboardList,
+    IconFiles,
+    IconFileText,
     IconGauge,
     IconKey,
     IconLayoutDashboard,
+    IconLockAccess,
     IconPackages,
+    IconPlugConnected,
     IconPuzzle,
+    IconRotateClockwise,
     IconShieldCheck,
     IconSitemap,
+    IconSettingsAutomation,
+    IconTelescope,
     IconUserPlus,
     IconUsersGroup,
     IconX,
@@ -18,6 +25,7 @@ import { computed } from 'vue';
 
 import AtlasLogo from './AtlasLogo.vue';
 import { useTranslator } from '../Localization/translator';
+import type { AtlasPageProps } from '../Types/inertia';
 
 interface MobileNavigationItem {
     label: string;
@@ -43,9 +51,14 @@ const emit = defineEmits<{
 }>();
 
 const { t } = useTranslator(props.uiLocale);
+const page = usePage<AtlasPageProps>();
+
+function canSeeAdminRoute(route: string): boolean {
+    return page.props.auth.availableAdminRoutes.includes(route);
+}
 
 const groups = computed<MobileNavigationGroup[]>(() => {
-    const workspace = {
+    const workspace: MobileNavigationGroup = {
         label: t('navigation.group.workspace'),
         items: [{ label: t('navigation.app_dashboard'), href: '/', icon: IconGauge }],
     };
@@ -57,34 +70,123 @@ const groups = computed<MobileNavigationGroup[]>(() => {
     return [
         {
             ...workspace,
-            items: [...workspace.items, { label: t('navigation.admin_dashboard'), href: '/admin', icon: IconLayoutDashboard }],
+            items: [
+                ...workspace.items,
+                {
+                    label: t('navigation.admin_dashboard'),
+                    href: '/admin',
+                    icon: IconLayoutDashboard,
+                    visible: canSeeAdminRoute('admin.system-status'),
+                },
+            ],
         },
         {
             label: t('navigation.group.identity_access'),
             items: [
-                { label: t('navigation.users'), href: '/admin/users', icon: IconUserPlus },
-                { label: t('navigation.roles'), href: '/admin/authorization/roles', icon: IconShieldCheck },
-                { label: t('navigation.packages'), href: '/admin/authorization/packages', icon: IconPackages },
-                { label: t('navigation.permissions'), href: '/admin/authorization/permissions', icon: IconKey },
+                { label: t('navigation.users'), href: '/admin/users', icon: IconUserPlus, visible: canSeeAdminRoute('admin.users.index') },
+                {
+                    label: t('navigation.roles'),
+                    href: '/admin/authorization/roles',
+                    icon: IconShieldCheck,
+                    visible: canSeeAdminRoute('admin.authorization.roles.index'),
+                },
+                {
+                    label: t('navigation.packages'),
+                    href: '/admin/authorization/packages',
+                    icon: IconPackages,
+                    visible: canSeeAdminRoute('admin.authorization.packages.index'),
+                },
+                {
+                    label: t('navigation.permissions'),
+                    href: '/admin/authorization/permissions',
+                    icon: IconKey,
+                    visible: canSeeAdminRoute('admin.authorization.permissions.index'),
+                },
             ],
         },
         {
             label: t('navigation.group.organization'),
             items: [
-                { label: t('navigation.teams'), href: '/admin/teams', icon: IconUsersGroup },
-                { label: t('navigation.managers'), href: '/admin/managers', icon: IconSitemap },
+                {
+                    label: t('navigation.teams'),
+                    href: '/admin/teams',
+                    icon: IconUsersGroup,
+                    visible: canSeeAdminRoute('admin.teams.index'),
+                },
+                {
+                    label: t('navigation.managers'),
+                    href: '/admin/managers',
+                    icon: IconSitemap,
+                    visible: canSeeAdminRoute('admin.managers.index'),
+                },
             ],
         },
         {
             label: t('navigation.group.oversight'),
             items: [
-                { label: t('navigation.audit'), href: '/admin/audit', icon: IconClipboardList },
-                { label: t('navigation.security_history'), href: '/admin/audit/security-history', icon: IconShieldCheck },
-                { label: t('navigation.pulse'), href: '/admin/pulse', icon: IconActivityHeartbeat, external: true },
-                { label: t('navigation.modules'), href: '/admin/modules', icon: IconPuzzle },
+                {
+                    label: t('navigation.audit'),
+                    href: '/admin/audit',
+                    icon: IconClipboardList,
+                    visible: canSeeAdminRoute('admin.audit.index'),
+                },
+                {
+                    label: t('navigation.security_history'),
+                    href: '/admin/audit/security-history',
+                    icon: IconShieldCheck,
+                    visible: canSeeAdminRoute('admin.audit.security-history.index'),
+                },
+                { label: t('navigation.logs'), href: '/admin/logs', icon: IconFileText, visible: canSeeAdminRoute('admin.logs.index') },
+                {
+                    label: t('navigation.queues'),
+                    href: '/admin/queues',
+                    icon: IconRotateClockwise,
+                    visible: canSeeAdminRoute('admin.queues.index'),
+                },
+                { label: t('navigation.files'), href: '/admin/files', icon: IconFiles, visible: canSeeAdminRoute('admin.files.index') },
+                {
+                    label: t('navigation.integrations'),
+                    href: '/admin/integrations',
+                    icon: IconPlugConnected,
+                    visible: canSeeAdminRoute('admin.integrations.index'),
+                },
+                {
+                    label: t('navigation.managed_processes'),
+                    href: '/admin/managed-processes',
+                    icon: IconSettingsAutomation,
+                    visible: canSeeAdminRoute('admin.managed-processes.index'),
+                },
+                {
+                    label: t('navigation.pulse'),
+                    href: '/admin/pulse',
+                    icon: IconActivityHeartbeat,
+                    external: true,
+                    visible: canSeeAdminRoute('admin.pulse.view'),
+                },
+                {
+                    label: t('navigation.telescope'),
+                    href: '/telescope',
+                    icon: IconTelescope,
+                    external: true,
+                    visible: canSeeAdminRoute('admin.telescope.view'),
+                },
+                {
+                    label: t('navigation.rate_limits'),
+                    href: '/admin/rate-limits',
+                    icon: IconLockAccess,
+                    visible: canSeeAdminRoute('admin.rate-limits.index'),
+                },
+                {
+                    label: t('navigation.modules'),
+                    href: '/admin/modules',
+                    icon: IconPuzzle,
+                    visible: canSeeAdminRoute('admin.modules.index'),
+                },
             ],
         },
-    ];
+    ]
+        .map((group) => ({ ...group, items: group.items.filter((item) => item.visible !== false) }))
+        .filter((group) => group.items.length > 0);
 });
 </script>
 

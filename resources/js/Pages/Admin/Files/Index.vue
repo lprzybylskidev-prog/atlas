@@ -4,9 +4,10 @@ import { IconChevronDown, IconFileAlert, IconFiles, IconRotateClockwise } from '
 import type { Component } from 'vue';
 import { computed, ref } from 'vue';
 
-import AdminFilterPanel from '../../../Components/AdminFilterPanel.vue';
+import FilterPanel from '../../../Components/FilterPanel.vue';
 import FormInput from '../../../Components/Form/FormInput.vue';
 import FormSelect from '../../../Components/Form/FormSelect.vue';
+import MetricGrid from '../../../Components/MetricGrid.vue';
 import SeverityBadge from '../../../Components/SeverityBadge.vue';
 import Tooltip from '../../../Components/Tooltip.vue';
 import { useModal } from '../../../Composables/useModal';
@@ -156,25 +157,9 @@ function shortChecksum(value: string): string {
     <Head :title="t('pages.admin.files.head_title')" />
     <AdminLayout :title="t('pages.admin.files.title')" :title-icon="IconFiles">
         <section class="space-y-5">
-            <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                <section
-                    v-for="item in summaryItems"
-                    :key="item.label"
-                    class="flex items-start gap-3 rounded-lg border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-950"
-                >
-                    <span
-                        class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-teal-200 bg-teal-50 text-teal-700 dark:border-teal-900 dark:bg-teal-950 dark:text-teal-200"
-                    >
-                        <component :is="item.icon" aria-hidden="true" class="h-4 w-4" :stroke-width="1.8" />
-                    </span>
-                    <span class="min-w-0">
-                        <p class="text-xs font-semibold uppercase text-zinc-500 dark:text-zinc-400">{{ item.label }}</p>
-                        <p class="mt-1 truncate text-sm font-medium text-zinc-950 dark:text-zinc-50">{{ item.value }}</p>
-                    </span>
-                </section>
-            </div>
+            <MetricGrid :items="summaryItems" />
 
-            <AdminFilterPanel
+            <FilterPanel
                 :summary="`Showing ${filteredFiles.length} of ${props.files.length} loaded files.`"
                 @apply="applyFilters"
                 @clear="clearFilters"
@@ -183,7 +168,7 @@ function shortChecksum(value: string): string {
                     <FormInput v-model="draftSearch" name="search" label="Search" type="text" autocomplete="off" />
                     <FormSelect v-model="draftState" name="state" label="Scan state" :options="states" />
                 </div>
-            </AdminFilterPanel>
+            </FilterPanel>
 
             <section class="overflow-hidden rounded-lg border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
                 <div class="overflow-x-auto">

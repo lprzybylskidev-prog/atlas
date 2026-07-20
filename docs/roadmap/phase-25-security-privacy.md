@@ -11,6 +11,7 @@ Implement the full security, privacy, hard-delete, and anonymization orchestrati
 - [Phase 11 — Audit and security audit](phase-11-audit-security.md)
 - [Phase 18 — Administrative mode and impersonation](phase-18-admin-impersonation.md)
 - [Phase 19 — Files](phase-19-files.md)
+- [Phase 20b — Managed processes, process logs, and scheduler](phase-20b-managed-processes.md)
 - [Phase 22 — Search](phase-22-search.md)
 - [Phase 24 — Reports, exports, PDF, charts, and print](phase-24-reports-exports-print.md)
 - [Audit, privacy, deletion, and anonymization](../architecture/audit-privacy-and-deletion.md)
@@ -25,7 +26,7 @@ Implement the full security, privacy, hard-delete, and anonymization orchestrati
 - Every foreign key uses `RESTRICT`; cascade delete is forbidden.
 - Hard delete requires separate permission, strong reauthentication, multi-step confirmation, mandatory reason, exact impact preview, full audit, and dry-run for mass operations.
 - Financial, audit, legal, and retention-controlled records generally cannot be hard deleted.
-- Anonymization is an explicit use case and must de-identify every controlled copy: core/related tables, permitted audit/log fields, files, attachments, search indexes, cache, queues, read models, exports, and copies controlled by the project.
+- Anonymization is an explicit use case and must de-identify every controlled copy: core/related tables, permitted audit/log fields, managed-process runs and logs where controlled, files, attachments, search indexes, cache, queues, read models, exports, and copies controlled by the project.
 - Preserve only neutral technical records required by law or integrity.
 - Respect retention obligations.
 - Security includes least privilege, CSRF, secure headers, no production stack traces, explicit mass assignment, no unsafe deserialization/eval, encryption where justified, dependency vulnerability checks, secret-free logs/audit, and reauthentication for destructive actions.
@@ -44,6 +45,7 @@ Implement the full security, privacy, hard-delete, and anonymization orchestrati
 - [ ] Add irreversible anonymization framework.
 - [ ] Cover related tables.
 - [ ] Cover files.
+- [ ] Cover managed-process runs, structured process logs, queued work references, and schedule metadata.
 - [ ] Cover search indexes.
 - [ ] Cover cache.
 - [ ] Cover queued and derived data under project control.

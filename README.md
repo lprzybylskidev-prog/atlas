@@ -123,6 +123,7 @@ The planned shared system capabilities include:
 - Admin operations
 - Health and readiness
 - Module availability and activation
+- Managed process execution, structured process logs, schedules, and queue-backed operational runs
 - Imports
 - Search
 - Integrations
@@ -177,6 +178,8 @@ The Notifications foundation provides typed user/team notifications, in-app read
 The Files foundation provides private file metadata, generated storage paths, checksum-based deduplication, quarantine scan states, asynchronous malware scanning through a module-owned scanner contract, a ClamAV production adapter, a development-only fake scanner, clean-only download enforcement, scan evidence, lifecycle and retention-copy audit records, temporary scan cleanup, and an Admin metadata browser with rescan actions.
 
 The Integrations foundation provides typed external adapter registration, external API access disabled by default, credential/scope policy contracts, external-ID mapping, synchronization history, idempotency records, retry/backoff execution, circuit-breaker state, correlation IDs, secret-safe audit records, deactivation guards, and an Admin integration status screen with permission-protected test-connection actions.
+
+The Managed Processes and Imports foundations provide registered process definitions, process runs, structured process logs, progress and counters, retry/cancel actions, managed schedules, Admin process visibility, import execution records, idempotency state, row/field errors, and development demo runs/logs. Admin uses four managed-process tabs: Runs, Imports, Definitions, and Schedules.
 
 The implementation status and first unfinished phase are always shown in [`WORKROAD.md`](WORKROAD.md). The current roadmap focus is finishing shared foundations in dependency order before the first debt collection business modules are introduced.
 

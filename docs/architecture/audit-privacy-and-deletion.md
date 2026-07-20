@@ -32,6 +32,7 @@ A dedicated explicit process that de-identifies all controlled copies, including
 - related tables;
 - audit records where legally permitted;
 - logs where controlled;
+- managed-process runs and structured process logs where controlled;
 - files and attachments;
 - search indexes;
 - cache;

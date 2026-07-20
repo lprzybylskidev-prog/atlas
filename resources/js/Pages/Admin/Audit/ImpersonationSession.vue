@@ -2,7 +2,7 @@
 import { Head } from '@inertiajs/vue3';
 import { IconArrowLeft, IconUserScan } from '@tabler/icons-vue';
 
-import AdminActionLink from '../../../Components/AdminActionLink.vue';
+import ActionLink from '../../../Components/ActionLink.vue';
 import DataTable from '../../../Components/DataTable.vue';
 import AdminLayout from '../../../Layouts/AdminLayout.vue';
 import type { DataTableColumn } from '../../../Types/data-table';
@@ -57,7 +57,7 @@ const columns: DataTableColumn<AuditEventRow>[] = [
     <AdminLayout title="Impersonation audit" :title-icon="IconUserScan">
         <section class="space-y-5">
             <div class="flex justify-start">
-                <AdminActionLink href="/admin/audit" :icon="IconArrowLeft"> Back to audit </AdminActionLink>
+                <ActionLink href="/admin/audit" :icon="IconArrowLeft"> Back to audit </ActionLink>
             </div>
 
             <section

@@ -1,9 +1,12 @@
 <script setup lang="ts">
 import { Head } from '@inertiajs/vue3';
 import { IconUsersGroup } from '@tabler/icons-vue';
+import { computed, reactive } from 'vue';
 
-import AdminActionLink from '../../../Components/AdminActionLink.vue';
+import ActionLink from '../../../Components/ActionLink.vue';
 import DataTable from '../../../Components/DataTable.vue';
+import FilterPanel from '../../../Components/FilterPanel.vue';
+import FormSelect from '../../../Components/Form/FormSelect.vue';
 import { runBulkRecordAction } from '../../../Composables/useBulkRecordActions';
 import AdminLayout from '../../../Layouts/AdminLayout.vue';
 import { useTranslator } from '../../../Localization/translator';
@@ -18,12 +21,40 @@ interface TeamRow extends Record<string, unknown> {
     updatedAt: string;
 }
 
-defineProps<{
+const props = defineProps<{
     teams: TeamRow[];
     table: DataTableMeta;
 }>();
 
 const { t } = useTranslator('en');
+
+const filters = reactive({
+    status: 'all',
+});
+
+const statusOptions = [
+    { value: 'all', label: 'All statuses' },
+    { value: 'active', label: 'Active' },
+    { value: 'inactive', label: 'Inactive' },
+];
+
+const filteredTeams = computed(() =>
+    props.teams.filter((team) => {
+        if (filters.status === 'active') {
+            return team.isActive;
+        }
+
+        if (filters.status === 'inactive') {
+            return !team.isActive;
+        }
+
+        return true;
+    }),
+);
+
+function resetFilters(): void {
+    filters.status = 'all';
+}
 
 const columns: DataTableColumn<TeamRow>[] = [
     { key: 'publicId', label: 'Public ID' },
@@ -75,12 +106,23 @@ async function handleBulkAction(payload: { action: DataTableBulkAction; rowIds: 
     <AdminLayout :title="t('pages.admin.teams.title')" :title-icon="IconUsersGroup">
         <section class="space-y-5">
             <div class="flex justify-end">
-                <AdminActionLink href="/admin/teams/create" :icon="IconUsersGroup" tone="primary"> Create team </AdminActionLink>
+                <ActionLink href="/admin/teams/create" :icon="IconUsersGroup" tone="primary"> Create team </ActionLink>
             </div>
+
+            <FilterPanel
+                title="Team filters"
+                :summary="`Showing ${filteredTeams.length} of ${teams.length} loaded teams.`"
+                @apply="() => {}"
+                @clear="resetFilters"
+            >
+                <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                    <FormSelect v-model="filters.status" label="Status" :options="statusOptions" />
+                </div>
+            </FilterPanel>
 
             <DataTable
                 title="Teams"
-                :rows="teams"
+                :rows="filteredTeams"
                 :columns="columns"
                 row-key="publicId"
                 :actions="actions"

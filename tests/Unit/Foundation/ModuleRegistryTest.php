@@ -13,7 +13,9 @@ use App\Modules\Core\Notifications\NotificationsModule;
 use App\Modules\Core\Settings\SettingsModule;
 use App\Modules\Core\Teams\TeamsModule;
 use App\Modules\Core\Users\UsersModule;
+use App\Modules\Optional\Imports\ImportsModule;
 use App\Modules\Optional\Integrations\IntegrationsModule;
+use App\Modules\Optional\ManagedProcesses\ManagedProcessesModule;
 use App\Shared\Application\Modules\Contracts\ModuleDefinition;
 use App\Shared\Application\Modules\Exceptions\DuplicateModuleKey;
 use App\Shared\Application\Modules\Exceptions\MissingRequiredModuleDependency;
@@ -102,6 +104,8 @@ final class ModuleRegistryTest extends TestCase
             HealthModule::class,
             FilesModule::class,
             IntegrationsModule::class,
+            ManagedProcessesModule::class,
+            ImportsModule::class,
         ], $configured['deployed']);
 
         foreach ($configured['deployed'] as $moduleClass) {

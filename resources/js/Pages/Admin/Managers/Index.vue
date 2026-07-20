@@ -4,11 +4,13 @@ import { IconArrowRight, IconChevronDown, IconGitBranch, IconSitemap, IconUserSt
 import type { Component } from 'vue';
 import { computed, reactive, ref, watch } from 'vue';
 
+import CardHeader from '../../../Components/CardHeader.vue';
 import AtlasForm from '../../../Components/Form/AtlasForm.vue';
 import FormButton from '../../../Components/Form/FormButton.vue';
 import FormDateInput from '../../../Components/Form/FormDateInput.vue';
 import FormSelect from '../../../Components/Form/FormSelect.vue';
 import FormTextarea from '../../../Components/Form/FormTextarea.vue';
+import MetricGrid from '../../../Components/MetricGrid.vue';
 import StatusBadge from '../../../Components/StatusBadge.vue';
 import AdminLayout from '../../../Layouts/AdminLayout.vue';
 import { useTranslator } from '../../../Localization/translator';
@@ -238,30 +240,13 @@ function formattedDate(value: string | null): string {
                         <FormButton type="button" class="sm:shrink-0" @click="applyTeamFilter">Load team</FormButton>
                     </div>
                 </div>
-                <section
-                    v-for="item in summaryItems"
-                    :key="item.label"
-                    class="flex items-start gap-3 rounded-lg border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-950"
-                >
-                    <span
-                        class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-teal-200 bg-teal-50 text-teal-700 dark:border-teal-900 dark:bg-teal-950 dark:text-teal-200"
-                    >
-                        <component :is="item.icon" aria-hidden="true" class="h-4 w-4" :stroke-width="1.8" />
-                    </span>
-                    <span class="min-w-0">
-                        <p class="text-xs font-semibold uppercase text-zinc-500 dark:text-zinc-400">{{ item.label }}</p>
-                        <p class="mt-1 truncate text-sm font-medium text-zinc-950 dark:text-zinc-50">{{ item.value }}</p>
-                    </span>
-                </section>
+                <MetricGrid class="lg:col-span-3" :items="summaryItems" columns="grid gap-3 sm:grid-cols-3" />
             </section>
 
             <div class="grid gap-5 xl:grid-cols-[minmax(0,1.35fr)_minmax(22rem,0.65fr)]">
                 <section class="rounded-lg border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950">
                     <div class="flex flex-wrap items-center justify-between gap-3">
-                        <div class="flex items-center gap-2">
-                            <IconGitBranch aria-hidden="true" class="h-5 w-5 text-teal-700 dark:text-teal-300" :stroke-width="1.8" />
-                            <h2 class="text-base font-semibold text-zinc-950 dark:text-zinc-50">Current hierarchy</h2>
-                        </div>
+                        <CardHeader title="Current hierarchy" :icon="IconGitBranch" />
                         <StatusBadge :value="flatTree.length > 0" true-label="Active" false-label="Empty" />
                     </div>
 
@@ -299,10 +284,7 @@ function formattedDate(value: string | null): string {
 
                 <aside class="space-y-5">
                     <section class="rounded-lg border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950">
-                        <div class="flex items-center gap-2">
-                            <IconArrowRight aria-hidden="true" class="h-5 w-5 text-teal-700 dark:text-teal-300" :stroke-width="1.8" />
-                            <h2 class="text-base font-semibold text-zinc-950 dark:text-zinc-50">New relationship</h2>
-                        </div>
+                        <CardHeader title="New relationship" :icon="IconArrowRight" />
                         <AtlasForm class="mt-4 space-y-4" :processing="assignForm.processing" @submit="submitRelationship">
                             <FormSelect
                                 v-model="assignForm.manager_user_public_id"
@@ -345,10 +327,7 @@ function formattedDate(value: string | null): string {
                     </section>
 
                     <section class="rounded-lg border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950">
-                        <div class="flex items-center gap-2">
-                            <IconUserStar aria-hidden="true" class="h-5 w-5 text-teal-700 dark:text-teal-300" :stroke-width="1.8" />
-                            <h2 class="text-base font-semibold text-zinc-950 dark:text-zinc-50">Head managers</h2>
-                        </div>
+                        <CardHeader title="Head managers" :icon="IconUserStar" />
                         <AtlasForm class="mt-4 space-y-4" :processing="headForm.processing" @submit="addHeadManager">
                             <div class="grid gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)_auto] xl:items-end">
                                 <FormSelect
@@ -419,7 +398,7 @@ function formattedDate(value: string | null): string {
 
             <section class="rounded-lg border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950">
                 <div class="flex flex-wrap items-center justify-between gap-3">
-                    <h2 class="text-base font-semibold text-zinc-950 dark:text-zinc-50">Active relationships</h2>
+                    <CardHeader title="Active relationships" :icon="IconGitBranch" />
                     <p class="text-sm text-zinc-500 dark:text-zinc-400">{{ relationships.length }} active</p>
                 </div>
                 <div v-if="relationships.length === 0" class="mt-4 text-sm text-zinc-500 dark:text-zinc-400">No active relationships.</div>

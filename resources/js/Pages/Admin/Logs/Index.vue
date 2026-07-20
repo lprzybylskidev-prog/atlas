@@ -1,12 +1,15 @@
 <script setup lang="ts">
 import { Head } from '@inertiajs/vue3';
-import { IconCalendarTime, IconChevronDown, IconEye, IconFileText, IconListDetails, IconServer } from '@tabler/icons-vue';
+import { IconChevronDown, IconEye, IconFileText, IconListDetails, IconServer } from '@tabler/icons-vue';
 import type { Component } from 'vue';
 import { computed, ref } from 'vue';
 
-import AdminFilterPanel from '../../../Components/AdminFilterPanel.vue';
+import CodeViewer from '../../../Components/CodeViewer.vue';
+import FilterPanel from '../../../Components/FilterPanel.vue';
+import FormDateInput from '../../../Components/Form/FormDateInput.vue';
 import FormInput from '../../../Components/Form/FormInput.vue';
 import FormSelect from '../../../Components/Form/FormSelect.vue';
+import MetricGrid from '../../../Components/MetricGrid.vue';
 import Tooltip from '../../../Components/Tooltip.vue';
 import AdminLayout from '../../../Layouts/AdminLayout.vue';
 import { useTranslator } from '../../../Localization/translator';
@@ -177,39 +180,15 @@ function startOfDay(value: string): number {
 function endOfDay(value: string): number {
     return Date.parse(`${value}T23:59:59.999`);
 }
-
-function detailLines(value: string): { key: string; text: string; kind: 'frame' | 'heading' | 'plain' }[] {
-    return value.split(/\r?\n/).map((line, index) => ({
-        key: `${index}-${line}`,
-        text: line,
-        kind: line.startsWith('#') ? 'frame' : line.startsWith('[') && line.endsWith(']') ? 'heading' : 'plain',
-    }));
-}
 </script>
 
 <template>
     <Head :title="t('pages.admin.logs.head_title')" />
     <AdminLayout :title="t('pages.admin.logs.title')" :title-icon="IconFileText">
         <section class="space-y-5">
-            <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                <section
-                    v-for="item in summaryItems"
-                    :key="item.label"
-                    class="flex items-start gap-3 rounded-lg border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-950"
-                >
-                    <span
-                        class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-teal-200 bg-teal-50 text-teal-700 dark:border-teal-900 dark:bg-teal-950 dark:text-teal-200"
-                    >
-                        <component :is="item.icon" aria-hidden="true" class="h-4 w-4" :stroke-width="1.8" />
-                    </span>
-                    <span class="min-w-0">
-                        <p class="text-xs font-semibold uppercase text-zinc-500 dark:text-zinc-400">{{ item.label }}</p>
-                        <p class="mt-1 truncate text-sm font-medium text-zinc-950 dark:text-zinc-50">{{ item.value }}</p>
-                    </span>
-                </section>
-            </div>
+            <MetricGrid :items="summaryItems" />
 
-            <AdminFilterPanel
+            <FilterPanel
                 :summary="`Showing ${filteredLogs.length} of ${props.summary.rows} loaded log entries.`"
                 @apply="applyFilters"
                 @clear="clearFilters"
@@ -220,22 +199,10 @@ function detailLines(value: string): { key: string; text: string; kind: 'frame' 
                     <FormInput v-model="draftSearch" label="Search" placeholder="Message, correlation ID, module, source" />
                     <FormSelect v-model="draftLevel" label="Level" :options="levels" />
                     <FormSelect v-model="draftModule" label="Module" :options="modules" />
-                    <FormInput
-                        v-model="draftDateFrom"
-                        type="date"
-                        label="From date"
-                        placeholder="YYYY-MM-DD"
-                        :leading-icon="IconCalendarTime"
-                    />
-                    <FormInput
-                        v-model="draftDateTo"
-                        type="date"
-                        label="To date"
-                        placeholder="YYYY-MM-DD"
-                        :leading-icon="IconCalendarTime"
-                    />
+                    <FormDateInput v-model="draftDateFrom" label="From date" />
+                    <FormDateInput v-model="draftDateTo" label="To date" />
                 </div>
-            </AdminFilterPanel>
+            </FilterPanel>
 
             <section class="space-y-3">
                 <article
@@ -319,22 +286,7 @@ function detailLines(value: string): { key: string; text: string; kind: 'frame' 
                             <p class="mt-2 break-words text-sm text-zinc-900 dark:text-zinc-100">{{ entry.message || 'No message' }}</p>
                         </section>
 
-                        <div
-                            v-if="entry.details"
-                            class="mt-4 max-h-[28rem] overflow-auto rounded-lg border border-zinc-200 bg-zinc-50 p-3 font-mono text-xs leading-5 text-zinc-800 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-100"
-                        >
-                            <div
-                                v-for="line in detailLines(entry.details)"
-                                :key="line.key"
-                                class="whitespace-pre-wrap break-words"
-                                :class="{
-                                    'mt-2 font-semibold text-teal-700 dark:text-teal-300': line.kind === 'heading',
-                                    'pl-3 text-zinc-600 dark:text-zinc-300': line.kind === 'frame',
-                                }"
-                            >
-                                {{ line.text }}
-                            </div>
-                        </div>
+                        <CodeViewer v-if="entry.details" class="mt-4" :content="entry.details" language="log" max-height="max-h-[28rem]" />
                     </div>
                 </article>
 

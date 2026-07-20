@@ -1,7 +1,10 @@
 <script setup lang="ts">
 import { Head } from '@inertiajs/vue3';
+import { computed, reactive } from 'vue';
 
 import DataTable from '../../../Components/DataTable.vue';
+import FilterPanel from '../../../Components/FilterPanel.vue';
+import FormSelect from '../../../Components/Form/FormSelect.vue';
 import AdminLayout from '../../../Layouts/AdminLayout.vue';
 import type { DataTableColumn, DataTableMeta } from '../../../Types/data-table';
 import { useTranslator } from '../../../Localization/translator';
@@ -22,12 +25,71 @@ interface PermissionRow extends Record<string, unknown> {
     updatedAt: string;
 }
 
-defineProps<{
+const props = defineProps<{
     permissions: PermissionRow[];
     table: DataTableMeta;
 }>();
 
 const { t } = useTranslator('en');
+
+const filters = reactive({
+    module: 'all',
+    teamScoped: 'all',
+    assigned: 'all',
+    effective: 'all',
+    activation: 'all',
+});
+
+const moduleOptions = computed(() => [
+    { value: 'all', label: 'All modules' },
+    ...Array.from(new Set(props.permissions.map((permission) => permission.module)))
+        .sort((left, right) => left.localeCompare(right))
+        .map((module) => ({ value: module, label: module })),
+]);
+
+const booleanOptions = (allLabel: string, yesLabel: string, noLabel: string) => [
+    { value: 'all', label: allLabel },
+    { value: 'yes', label: yesLabel },
+    { value: 'no', label: noLabel },
+];
+
+const activationOptions = computed(() => [
+    { value: 'all', label: 'All module states' },
+    ...Array.from(new Set(props.permissions.map((permission) => permission.moduleActivation)))
+        .sort((left, right) => left.localeCompare(right))
+        .map((activation) => ({ value: activation, label: activation })),
+]);
+
+const filteredPermissions = computed(() =>
+    props.permissions.filter((permission) => {
+        if (filters.module !== 'all' && permission.module !== filters.module) {
+            return false;
+        }
+
+        if (filters.activation !== 'all' && permission.moduleActivation !== filters.activation) {
+            return false;
+        }
+
+        if (filters.teamScoped !== 'all' && permission.teamScoped !== (filters.teamScoped === 'yes')) {
+            return false;
+        }
+
+        if (filters.assigned !== 'all' && permission.assigned !== (filters.assigned === 'yes')) {
+            return false;
+        }
+
+        return filters.effective === 'all' || permission.effective === (filters.effective === 'yes');
+    }),
+);
+
+function resetFilters(): void {
+    filters.module = 'all';
+    filters.teamScoped = 'all';
+    filters.assigned = 'all';
+    filters.effective = 'all';
+    filters.activation = 'all';
+}
+
 const columns: DataTableColumn<PermissionRow>[] = [
     { key: 'publicId', label: 'Public ID' },
     { key: 'id', label: 'ID', hidden: true },
@@ -49,7 +111,41 @@ const columns: DataTableColumn<PermissionRow>[] = [
     <Head :title="t('pages.admin.permissions.head_title')" />
     <AdminLayout :title="t('pages.admin.permissions.title')">
         <section class="space-y-5">
-            <DataTable title="Permissions" :rows="permissions" :columns="columns" row-key="publicId" :table="table" ui-locale="en" />
+            <FilterPanel
+                title="Permission filters"
+                :summary="`Showing ${filteredPermissions.length} of ${permissions.length} loaded permissions.`"
+                @apply="() => {}"
+                @clear="resetFilters"
+            >
+                <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+                    <FormSelect v-model="filters.module" label="Module" :options="moduleOptions" />
+                    <FormSelect v-model="filters.activation" label="Module state" :options="activationOptions" />
+                    <FormSelect
+                        v-model="filters.teamScoped"
+                        label="Team scoped"
+                        :options="booleanOptions('Any scope', 'Team scoped', 'Not team scoped')"
+                    />
+                    <FormSelect
+                        v-model="filters.assigned"
+                        label="Assigned"
+                        :options="booleanOptions('Any assignment', 'Assigned', 'Not assigned')"
+                    />
+                    <FormSelect
+                        v-model="filters.effective"
+                        label="Effective"
+                        :options="booleanOptions('Any effective state', 'Effective', 'Ineffective')"
+                    />
+                </div>
+            </FilterPanel>
+
+            <DataTable
+                title="Permissions"
+                :rows="filteredPermissions"
+                :columns="columns"
+                row-key="publicId"
+                :table="table"
+                ui-locale="en"
+            />
         </section>
     </AdminLayout>
 </template>

@@ -1,9 +1,12 @@
 <script setup lang="ts">
 import { Head } from '@inertiajs/vue3';
 import { IconPackages } from '@tabler/icons-vue';
+import { computed, reactive } from 'vue';
 
-import AdminActionLink from '../../../Components/AdminActionLink.vue';
+import ActionLink from '../../../Components/ActionLink.vue';
 import DataTable from '../../../Components/DataTable.vue';
+import FilterPanel from '../../../Components/FilterPanel.vue';
+import FormSelect from '../../../Components/Form/FormSelect.vue';
 import { runBulkRecordAction } from '../../../Composables/useBulkRecordActions';
 import AdminLayout from '../../../Layouts/AdminLayout.vue';
 import { useTranslator } from '../../../Localization/translator';
@@ -24,12 +27,49 @@ interface PackageRow extends Record<string, unknown> {
     updatedAt: string;
 }
 
-defineProps<{
+const props = defineProps<{
     packages: PackageRow[];
     table: DataTableMeta;
 }>();
 
 const { t } = useTranslator('en');
+
+const filters = reactive({
+    status: 'all',
+    team: 'all',
+});
+
+const statusOptions = [
+    { value: 'all', label: 'All statuses' },
+    { value: 'active', label: 'Active' },
+    { value: 'inactive', label: 'Inactive' },
+];
+
+const teamOptions = computed(() => [
+    { value: 'all', label: 'All teams' },
+    ...Array.from(new Map(props.packages.map((preset) => [preset.teamPublicId, preset.teamName])).entries())
+        .sort((left, right) => left[1].localeCompare(right[1]))
+        .map(([value, label]) => ({ value, label })),
+]);
+
+const filteredPackages = computed(() =>
+    props.packages.filter((preset) => {
+        if (filters.status === 'active' && !preset.isActive) {
+            return false;
+        }
+
+        if (filters.status === 'inactive' && preset.isActive) {
+            return false;
+        }
+
+        return filters.team === 'all' || preset.teamPublicId === filters.team;
+    }),
+);
+
+function resetFilters(): void {
+    filters.status = 'all';
+    filters.team = 'all';
+}
 
 const columns: DataTableColumn<PackageRow>[] = [
     { key: 'publicId', label: 'Public ID' },
@@ -72,14 +112,24 @@ async function handleBulkAction(payload: { action: DataTableBulkAction; rowIds: 
     <AdminLayout :title="t('pages.admin.packages.title')" :title-icon="IconPackages">
         <section class="space-y-5">
             <div class="flex justify-end">
-                <AdminActionLink href="/admin/authorization/packages/create" :icon="IconPackages" tone="primary">
-                    Create preset
-                </AdminActionLink>
+                <ActionLink href="/admin/authorization/packages/create" :icon="IconPackages" tone="primary"> Create preset </ActionLink>
             </div>
+
+            <FilterPanel
+                title="Preset filters"
+                :summary="`Showing ${filteredPackages.length} of ${packages.length} loaded presets.`"
+                @apply="() => {}"
+                @clear="resetFilters"
+            >
+                <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                    <FormSelect v-model="filters.status" label="Status" :options="statusOptions" />
+                    <FormSelect v-model="filters.team" label="Team" :options="teamOptions" />
+                </div>
+            </FilterPanel>
 
             <DataTable
                 title="Presets"
-                :rows="packages"
+                :rows="filteredPackages"
                 :columns="columns"
                 row-key="publicId"
                 :actions="actions"

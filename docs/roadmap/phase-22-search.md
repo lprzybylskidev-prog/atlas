@@ -12,6 +12,7 @@ Implement module-owned Meilisearch projections after Outbox, audit, module activ
 - [Phase 13 — Sessions and active team](phase-13-sessions-active-team.md)
 - [Phase 14 — Module availability and activation](phase-14-module-activation.md)
 - [Phase 16 — Admin operations and health](phase-16-admin-health.md)
+- [Phase 20b — Managed processes, process logs, and scheduler](phase-20b-managed-processes.md)
 - [Search module documentation](../modules/search.md)
 - [Modular monolith architecture](../architecture/modular-monolith.md)
 
@@ -33,10 +34,10 @@ Implement module-owned Meilisearch projections after Outbox, audit, module activ
 - Search is degraded-readiness by default; a Atlas may explicitly mark it critical.
 - UI shows a clear unavailable state.
 - Do not automatically fall back to expensive unrestricted `ILIKE '%...%'` queries on large tables.
-- Provide full and per-module rebuild commands, count comparison, discrepancy detection, and indexing-lag reporting.
+- Provide full and per-module rebuild commands, count comparison, discrepancy detection, and indexing-lag reporting through managed-process runs.
 - Rebuild into a new physical index and switch a stable alias only after successful validation.
 - Failed rebuilds leave the current alias unchanged.
-- Admin shows health, queue lag, last sync, discrepancies, and rebuild status, and may start a confirmed audited rebuild.
+- Admin shows health, queue lag, last sync, discrepancies, and rebuild status, and may start a confirmed audited rebuild as a managed process.
 - Do not index sensitive data without an explicit need.
 - Backend permissions, active-team scope, module activation, and visibility rules are verified independently of Meilisearch filters.
 
@@ -47,9 +48,9 @@ Implement module-owned Meilisearch projections after Outbox, audit, module activ
 - [ ] Propagate deletion, anonymization, and visibility changes.
 - [ ] Implement degraded versus critical readiness configuration.
 - [ ] Add unavailable UI state without broad database fallback.
-- [ ] Add full and per-module rebuild, count comparison, discrepancy, and lag commands.
+- [ ] Add full and per-module rebuild, count comparison, discrepancy, and lag commands backed by managed-process runs.
 - [ ] Implement new-index build plus stable-alias switch.
-- [ ] Build Admin search health, lag, sync, discrepancy, and rebuild views.
+- [ ] Build Admin search health, lag, sync, discrepancy, and rebuild views integrated with managed-process run details.
 - [ ] Add confirmed and audited Admin rebuild action.
 - [ ] Test that permissions and team scope do not rely on Meilisearch filters.
 - [ ] Create `Search` module.

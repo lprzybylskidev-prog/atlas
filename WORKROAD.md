@@ -37,7 +37,7 @@ Do not replace this index after the initial technical foundation is completed. C
 
 ## Current phase
 
-- Phase: [Phase 21 — Imports](docs/roadmap/phase-21-imports.md)
+- Phase: [Phase 22 — Search](docs/roadmap/phase-22-search.md)
 - Status: `not started`
 
 ## Roadmap dependency repair note
@@ -232,11 +232,19 @@ Harden Audit context discovery and security category classification before non-H
 
 [Open implementation contract and tasks](docs/roadmap/phase-20a-audit-hardening.md)
 
+### Phase 20b — Managed processes, process logs, and scheduler
+
+**Status:** `complete pending final commit`
+
+Implement the shared run, queue, structured process-log, progress, retry/cancel, schedule, notification, audit, and Admin visibility foundation before Imports and later long-running workflows depend on it.
+
+[Open implementation contract and tasks](docs/roadmap/phase-20b-managed-processes.md)
+
 ### Phase 21 — Imports
 
-**Status:** `not started`
+**Status:** `complete pending final commit`
 
-Implement reusable import pipelines, mapping, validation, previews, idempotency, progress, errors, and audit after files and integration contracts exist.
+Implement reusable import pipelines on top of the managed-process foundation after files, notifications, audit, integrations, module activation, and operational health are complete.
 
 [Open implementation contract and tasks](docs/roadmap/phase-21-imports.md)
 

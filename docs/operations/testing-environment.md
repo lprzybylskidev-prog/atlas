@@ -66,11 +66,11 @@ Test seeders must:
 - belong to the module or shared testing support that owns the tested behavior;
 - stay separate from production-safe technical seeders and development-only demo seeders.
 
-`Database\Seeders\DatabaseSeeder` remains production-safe and does not create demo or e2e-only accounts.
+`Database\Seeders\DatabaseSeeder` remains production-safe, installs starter roles and registered permissions, and does not create demo or e2e-only accounts.
 
 `Database\Seeders\DevelopmentDemoSeeder` may be used by local preview only. Permission-gated and module-gated Playwright scenarios use explicit e2e fixtures rather than the generic demo account.
 
-`Database\Seeders\E2eVisibilitySeeder` is the deterministic fixture set for current Admin visibility coverage. It creates stable administrator and limited-user accounts, an active team, starter authorization state, and the exact permissions needed by the browser scenarios.
+`Database\Seeders\E2eVisibilitySeeder` is the deterministic fixture set for current Admin visibility coverage. It runs the production-safe technical seeders, then creates stable administrator and limited-user accounts, an active team, module states, and the exact records needed by the browser scenarios.
 
 ## Browser Coverage
 

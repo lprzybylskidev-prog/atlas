@@ -183,7 +183,13 @@ final class HandleInertiaRequests extends Middleware
             'admin.queues.index',
             'admin.files.index',
             'admin.integrations.index',
+            'admin.managed-processes.index',
+            'admin.managed-processes.imports.index',
+            'admin.managed-processes.definitions.index',
+            'admin.managed-processes.schedules.index',
+            'admin.imports.index',
             'admin.pulse.view',
+            ...($this->localTelescopeAvailable() ? ['admin.telescope.view'] : []),
             'admin.rate-limits.index',
             'admin.modules.index',
         ];
@@ -198,6 +204,11 @@ final class HandleInertiaRequests extends Middleware
         }
 
         return $available;
+    }
+
+    private function localTelescopeAvailable(): bool
+    {
+        return app()->environment(['local', 'development']);
     }
 
     private function firstAssignedTeamPublicId(string $userPublicId): ?string

@@ -368,6 +368,7 @@ The full administrative orchestration is implemented later, but modules must sha
 ### Optional Foundation
 
 - TimeTracking
+- ManagedProcesses
 - Imports
 - Search
 - Integrations

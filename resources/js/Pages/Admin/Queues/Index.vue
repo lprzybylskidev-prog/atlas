@@ -1,22 +1,17 @@
 <script setup lang="ts">
 import { Head, router } from '@inertiajs/vue3';
-import {
-    IconAlertTriangle,
-    IconCalendarTime,
-    IconChevronDown,
-    IconDatabase,
-    IconListDetails,
-    IconRotateClockwise,
-    IconServer,
-} from '@tabler/icons-vue';
+import { IconAlertTriangle, IconChevronDown, IconDatabase, IconListDetails, IconRotateClockwise, IconServer } from '@tabler/icons-vue';
 import type { Component } from 'vue';
 import { computed, ref } from 'vue';
 
-import AdminFilterPanel from '../../../Components/AdminFilterPanel.vue';
+import CodeViewer from '../../../Components/CodeViewer.vue';
+import FilterPanel from '../../../Components/FilterPanel.vue';
 import FormButton from '../../../Components/Form/FormButton.vue';
 import FormCheckbox from '../../../Components/Form/FormCheckbox.vue';
+import FormDateInput from '../../../Components/Form/FormDateInput.vue';
 import FormInput from '../../../Components/Form/FormInput.vue';
 import FormSelect from '../../../Components/Form/FormSelect.vue';
+import MetricGrid from '../../../Components/MetricGrid.vue';
 import Tooltip from '../../../Components/Tooltip.vue';
 import { useModal } from '../../../Composables/useModal';
 import AdminLayout from '../../../Layouts/AdminLayout.vue';
@@ -215,39 +210,15 @@ function isWithinDateRange(job: FailedJob): boolean {
 
     return true;
 }
-
-function detailLines(value: string): { key: string; text: string; kind: 'frame' | 'plain' }[] {
-    return value.split(/\r?\n/).map((line, index) => ({
-        key: `${index}-${line}`,
-        text: line,
-        kind: line.startsWith('#') ? 'frame' : 'plain',
-    }));
-}
 </script>
 
 <template>
     <Head :title="t('pages.admin.queues.head_title')" />
     <AdminLayout :title="t('pages.admin.queues.title')" :title-icon="IconRotateClockwise">
         <section class="space-y-5">
-            <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                <section
-                    v-for="item in summaryItems"
-                    :key="item.label"
-                    class="flex items-start gap-3 rounded-lg border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-950"
-                >
-                    <span
-                        class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-teal-200 bg-teal-50 text-teal-700 dark:border-teal-900 dark:bg-teal-950 dark:text-teal-200"
-                    >
-                        <component :is="item.icon" aria-hidden="true" class="h-4 w-4" :stroke-width="1.8" />
-                    </span>
-                    <span class="min-w-0">
-                        <p class="text-xs font-semibold uppercase text-zinc-500 dark:text-zinc-400">{{ item.label }}</p>
-                        <p class="mt-1 truncate text-sm font-medium text-zinc-950 dark:text-zinc-50">{{ item.value }}</p>
-                    </span>
-                </section>
-            </div>
+            <MetricGrid :items="summaryItems" />
 
-            <AdminFilterPanel
+            <FilterPanel
                 :summary="`Showing ${filteredJobs.length} of ${props.summary.visibleCount} loaded failed jobs.`"
                 @apply="applyFilters"
                 @clear="clearFilters"
@@ -258,22 +229,10 @@ function detailLines(value: string): { key: string; text: string; kind: 'frame' 
                     <FormInput v-model="draftSearch" label="Search" placeholder="UUID, job, exception, queue" />
                     <FormSelect v-model="draftConnection" label="Connection" :options="connections" />
                     <FormSelect v-model="draftQueue" label="Queue" :options="queues" />
-                    <FormInput
-                        v-model="draftDateFrom"
-                        type="date"
-                        label="From date"
-                        placeholder="YYYY-MM-DD"
-                        :leading-icon="IconCalendarTime"
-                    />
-                    <FormInput
-                        v-model="draftDateTo"
-                        type="date"
-                        label="To date"
-                        placeholder="YYYY-MM-DD"
-                        :leading-icon="IconCalendarTime"
-                    />
+                    <FormDateInput v-model="draftDateFrom" label="From date" />
+                    <FormDateInput v-model="draftDateTo" label="To date" />
                 </div>
-            </AdminFilterPanel>
+            </FilterPanel>
 
             <section class="rounded-lg border border-zinc-200 bg-white p-3 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
                 <div class="flex flex-wrap items-center justify-between gap-3">
@@ -366,25 +325,8 @@ function detailLines(value: string): { key: string; text: string; kind: 'frame' 
                         </dl>
 
                         <div class="mt-4 grid gap-4 xl:grid-cols-2">
-                            <section class="rounded-lg border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-800 dark:bg-zinc-900">
-                                <p class="text-xs font-semibold uppercase text-zinc-500 dark:text-zinc-400">Payload</p>
-                                <pre
-                                    class="mt-2 max-h-96 overflow-auto whitespace-pre-wrap break-words font-mono text-xs leading-5 text-zinc-800 dark:text-zinc-100"
-                                    >{{ job.payload }}</pre>
-                            </section>
-                            <section class="rounded-lg border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-800 dark:bg-zinc-900">
-                                <p class="text-xs font-semibold uppercase text-zinc-500 dark:text-zinc-400">Exception</p>
-                                <div class="mt-2 max-h-96 overflow-auto font-mono text-xs leading-5 text-zinc-800 dark:text-zinc-100">
-                                    <div
-                                        v-for="line in detailLines(job.exception)"
-                                        :key="line.key"
-                                        class="whitespace-pre-wrap break-words"
-                                        :class="{ 'pl-3 text-zinc-600 dark:text-zinc-300': line.kind === 'frame' }"
-                                    >
-                                        {{ line.text }}
-                                    </div>
-                                </div>
-                            </section>
+                            <CodeViewer title="Payload" :content="job.payload" language="json" />
+                            <CodeViewer title="Exception" :content="job.exception" language="stack" />
                         </div>
                     </div>
                 </article>

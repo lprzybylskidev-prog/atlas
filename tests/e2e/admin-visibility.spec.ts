@@ -18,6 +18,17 @@ async function signIn(page: Page, user: { email: string; password: string }): Pr
     await page.getByLabel('Email').fill(user.email);
     await page.getByLabel(/Hasło|Password/).fill(user.password);
     await page.getByRole('button', { name: /Zaloguj|Log in/ }).click();
+
+    if (
+        await page
+            .waitForURL('/', { timeout: 2000 })
+            .then(() => true)
+            .catch(() => false)
+    ) {
+        return;
+    }
+
+    await page.getByRole('button', { name: /Kontynuuj tutaj|Continue here/ }).click();
     await expect(page).toHaveURL('/');
 }
 
@@ -50,9 +61,14 @@ test.describe('Admin visibility', () => {
             await confirmAdministratorAccess(page);
         }
 
-        await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible();
-        await expect(page.getByRole('heading', { name: 'Identity module' })).toBeVisible();
-        await expect(page.getByText('The deployed Identity module is available for the active team context.')).toBeVisible();
-        await expect(page.getByRole('heading', { name: 'Search module' })).toHaveCount(0);
+        const main = page.getByRole('main');
+
+        await expect(main.getByRole('heading', { name: 'Admin dashboard', exact: true })).toBeVisible();
+        await expect(main.getByRole('heading', { name: 'Release', exact: true })).toBeVisible();
+        await expect(main.getByRole('heading', { name: 'Readiness', exact: true })).toBeVisible();
+        await expect(main.getByRole('heading', { name: 'Modules', exact: true })).toBeVisible();
+        await expect(main.getByText('Active runs, failures, warnings, schedules, and process backlog.', { exact: true })).toHaveCount(0);
+        await expect(main.getByText('Identity', { exact: true })).toBeVisible();
+        await expect(main.getByText('Search', { exact: true })).toHaveCount(0);
     });
 });

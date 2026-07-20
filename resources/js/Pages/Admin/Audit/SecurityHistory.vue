@@ -3,7 +3,8 @@ import { Head, router } from '@inertiajs/vue3';
 import { IconShieldSearch } from '@tabler/icons-vue';
 import { computed, reactive, watch } from 'vue';
 
-import AdminFilterPanel from '../../../Components/AdminFilterPanel.vue';
+import CardHeader from '../../../Components/CardHeader.vue';
+import FilterPanel from '../../../Components/FilterPanel.vue';
 import FormSelect from '../../../Components/Form/FormSelect.vue';
 import AdminLayout from '../../../Layouts/AdminLayout.vue';
 import { useTranslator } from '../../../Localization/translator';
@@ -99,14 +100,14 @@ function eventTimestamp(event: SecurityHistoryEvent): string {
     <Head :title="t('pages.security_history.head_title')" />
     <AdminLayout :title="t('pages.security_history.title')" :title-icon="IconShieldSearch">
         <section class="space-y-5">
-            <AdminFilterPanel @apply="applyFilters" @clear="clearFilters">
+            <FilterPanel @apply="applyFilters" @clear="clearFilters">
                 <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                     <FormSelect v-model="filters.userPublicId" class="mt-1" label="User" aria-label="User" :options="userOptions" />
                 </div>
-            </AdminFilterPanel>
+            </FilterPanel>
             <div class="overflow-hidden rounded-lg border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
                 <div class="border-b border-zinc-200 px-4 py-3 dark:border-zinc-800">
-                    <h2 class="text-sm font-semibold text-zinc-900 dark:text-zinc-100">{{ t('pages.security_history.title') }}</h2>
+                    <CardHeader :title="t('pages.security_history.title')" :icon="IconShieldSearch" />
                 </div>
                 <div class="overflow-x-auto">
                     <table class="min-w-full divide-y divide-zinc-200 text-left text-sm dark:divide-zinc-800">

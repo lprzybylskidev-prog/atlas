@@ -74,6 +74,20 @@ final class DatabaseTable
 
     public const INTEGRATION_CIRCUIT_BREAKERS = DatabaseSchema::OPTIONAL_INTEGRATIONS.'.circuit_breakers';
 
+    public const MANAGED_PROCESS_DEFINITIONS = DatabaseSchema::OPTIONAL_MANAGED_PROCESSES.'.process_definitions';
+
+    public const MANAGED_PROCESS_RUNS = DatabaseSchema::OPTIONAL_MANAGED_PROCESSES.'.process_runs';
+
+    public const MANAGED_PROCESS_LOG_EVENTS = DatabaseSchema::OPTIONAL_MANAGED_PROCESSES.'.process_log_events';
+
+    public const MANAGED_PROCESS_SCHEDULES = DatabaseSchema::OPTIONAL_MANAGED_PROCESSES.'.process_schedules';
+
+    public const IMPORT_EXECUTIONS = DatabaseSchema::OPTIONAL_IMPORTS.'.import_executions';
+
+    public const IMPORT_ROW_ERRORS = DatabaseSchema::OPTIONAL_IMPORTS.'.import_row_errors';
+
+    public const IMPORT_IDEMPOTENCY_KEYS = DatabaseSchema::OPTIONAL_IMPORTS.'.import_idempotency_keys';
+
     public const CACHE = DatabaseSchema::SHARED.'.cache';
 
     public const CACHE_LOCKS = DatabaseSchema::SHARED.'.cache_locks';

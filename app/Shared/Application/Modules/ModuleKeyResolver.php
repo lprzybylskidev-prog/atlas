@@ -48,7 +48,7 @@ final class ModuleKeyResolver
             return 'authorization';
         }
 
-        if (str_starts_with($permission, 'admin.pulse.')) {
+        if (str_starts_with($permission, 'admin.pulse.') || str_starts_with($permission, 'admin.telescope.')) {
             return 'authorization';
         }
 
@@ -58,6 +58,14 @@ final class ModuleKeyResolver
 
         if (str_starts_with($permission, 'admin.integrations.') || str_starts_with($permission, 'integrations.')) {
             return 'integrations';
+        }
+
+        if (str_starts_with($permission, 'admin.managed-processes.') || str_starts_with($permission, 'managed-processes.')) {
+            return 'managed_processes';
+        }
+
+        if (str_starts_with($permission, 'admin.imports.') || str_starts_with($permission, 'imports.')) {
+            return 'imports';
         }
 
         if (str_starts_with($permission, 'admin.modules.') || str_starts_with($permission, 'modules.')) {

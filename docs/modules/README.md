@@ -9,6 +9,7 @@ Each file is the canonical current-state description of one Atlas module or tigh
 - [Admin](admin.md) — administrative module scope and screens.
 - [TimeTracking](time-tracking.md) — work time, breaks, inactivity, corrections, settlement, and reporting.
 - [Files](files.md) — private storage, quarantine, malware scanning, and retention.
+- [Managed processes](managed-processes.md) — process definitions, runs, structured logs, queues, schedules, retry/cancel, progress, and Admin visibility.
 - [Imports](imports.md) — mapping, validation, preview, execution, progress, and errors.
 - [Integrations](integrations.md) — external adapters, retries, idempotency, and visibility.
 - [Notifications](notifications.md) — notification types, channels, preferences, and delivery.

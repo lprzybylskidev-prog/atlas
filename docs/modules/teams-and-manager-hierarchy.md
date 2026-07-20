@@ -65,6 +65,6 @@ Audited manager hierarchy actions include `team.manager_relationship.created`, `
 
 Granular permissions include `admin.managers.index`, `admin.managers.store`, `admin.managers.end`, `admin.managers.head.update`, `teams.managers.view`, `teams.managers.create`, `teams.managers.update`, `teams.managers.terminate`, `teams.managers.tree`, `teams.managers.history`, and `teams.managers.head.update`.
 
-Development demo data includes representative manager-to-manager relationships, multiple direct reports, and head-manager flags after the real hierarchy tables exist.
+Development reset does not seed representative manager relationships, extra users, direct reports, or head-manager flags. Those records are created only by real administrator actions or explicit automated-test fixtures.
 
 ---

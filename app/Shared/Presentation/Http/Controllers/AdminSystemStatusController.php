@@ -287,6 +287,8 @@ final readonly class AdminSystemStatusController
             'health' => $this->healthIssues(),
             'identity' => $this->identityIssues(),
             'integrations' => $this->integrationIssues(),
+            'managed_processes' => $this->managedProcessIssues(),
+            'imports' => $this->importIssues(),
             default => [],
         };
     }
@@ -425,6 +427,50 @@ final readonly class AdminSystemStatusController
         }
 
         return $issues;
+    }
+
+    /**
+     * @return list<array{severity: string, label: string, description: string, value?: int|string|null}>
+     */
+    private function managedProcessIssues(): array
+    {
+        $active = (int) DB::table(DatabaseTable::MANAGED_PROCESS_RUNS)->whereIn('status', ['draft', 'queued', 'running', 'waiting'])->count();
+        $failed = (int) DB::table(DatabaseTable::MANAGED_PROCESS_RUNS)->where('status', 'failed')->where('created_at', '>=', now()->subDay())->count();
+        $warnings = (int) DB::table(DatabaseTable::MANAGED_PROCESS_RUNS)->where('status', 'succeeded_with_warnings')->where('created_at', '>=', now()->subDay())->count();
+        $issues = [];
+
+        if ($failed > 0) {
+            $issues[] = ['severity' => 'unhealthy', 'label' => 'Failed process runs', 'description' => 'Managed process runs failed during the last 24 hours.', 'value' => $failed];
+        }
+
+        if ($warnings > 0) {
+            $issues[] = ['severity' => 'degraded', 'label' => 'Process warnings', 'description' => 'Managed process runs completed with warnings during the last 24 hours.', 'value' => $warnings];
+        }
+
+        if ($active > 0) {
+            $issues[] = ['severity' => 'info', 'label' => 'Active process runs', 'description' => 'Managed process runs are currently active or queued.', 'value' => $active];
+        }
+
+        return $issues;
+    }
+
+    /**
+     * @return list<array{severity: string, label: string, description: string, value?: int|string|null}>
+     */
+    private function importIssues(): array
+    {
+        $rowWarnings = (int) DB::table(DatabaseTable::IMPORT_ROW_ERRORS)->where('severity', 'warning')->count();
+        $rowErrors = (int) DB::table(DatabaseTable::IMPORT_ROW_ERRORS)->where('severity', 'error')->count();
+
+        if ($rowErrors > 0) {
+            return [['severity' => 'degraded', 'label' => 'Import row errors', 'description' => 'Import row errors are available for operator review.', 'value' => $rowErrors]];
+        }
+
+        if ($rowWarnings > 0) {
+            return [['severity' => 'info', 'label' => 'Import row warnings', 'description' => 'Import row warnings are available for operator review.', 'value' => $rowWarnings]];
+        }
+
+        return [];
     }
 
     private function activeTeamId(Request $request): ?int

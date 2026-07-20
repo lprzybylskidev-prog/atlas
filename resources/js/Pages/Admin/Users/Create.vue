@@ -3,11 +3,12 @@ import { computed } from 'vue';
 import { Head, useForm } from '@inertiajs/vue3';
 import { IconArrowLeft, IconPlus, IconTrash, IconUserPlus } from '@tabler/icons-vue';
 
-import AdminActionLink from '../../../Components/AdminActionLink.vue';
+import ActionLink from '../../../Components/ActionLink.vue';
+import CardHeader from '../../../Components/CardHeader.vue';
+import CheckboxList from '../../../Components/CheckboxList.vue';
 import AtlasForm from '../../../Components/Form/AtlasForm.vue';
-import AdminFormActions from '../../../Components/AdminFormActions.vue';
+import FormActions from '../../../Components/FormActions.vue';
 import FormButton from '../../../Components/Form/FormButton.vue';
-import FormCheckbox from '../../../Components/Form/FormCheckbox.vue';
 import FormInput from '../../../Components/Form/FormInput.vue';
 import FormSelect from '../../../Components/Form/FormSelect.vue';
 import AdminLayout from '../../../Layouts/AdminLayout.vue';
@@ -191,12 +192,11 @@ function submit(): void {
 
             <section class="rounded-lg border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950">
                 <div class="flex flex-wrap items-center justify-between gap-3">
-                    <div>
-                        <h2 class="text-sm font-semibold uppercase text-zinc-500 dark:text-zinc-400">Team assignments</h2>
-                        <p class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-                            A user must belong to at least one team. Roles and permissions are assigned in that team context.
-                        </p>
-                    </div>
+                    <CardHeader
+                        title="Team assignments"
+                        :icon="IconUserPlus"
+                        subtitle="A user must belong to at least one team. Roles and permissions are assigned in that team context."
+                    />
                     <FormButton type="button" tone="neutral" :icon="IconPlus" :disabled="!canAdd" @click="add">Add team</FormButton>
                 </div>
 
@@ -260,39 +260,12 @@ function submit(): void {
                         />
 
                         <div v-if="assignment.team_public_id !== '' && assignment.source === 'manual'" class="grid gap-4 xl:grid-cols-2">
-                            <section>
-                                <p class="text-xs font-semibold uppercase text-zinc-500 dark:text-zinc-400">Roles</p>
-                                <div
-                                    class="mt-2 grid max-h-56 gap-2 overflow-auto rounded-lg border border-zinc-200 p-3 dark:border-zinc-800"
-                                >
-                                    <FormCheckbox
-                                        v-for="role in roleOptions"
-                                        :key="role"
-                                        v-model="assignment.role_names"
-                                        :value="role"
-                                        align="start"
-                                    >
-                                        <span class="break-all font-mono text-xs">{{ role }}</span>
-                                    </FormCheckbox>
-                                </div>
-                            </section>
-
-                            <section>
-                                <p class="text-xs font-semibold uppercase text-zinc-500 dark:text-zinc-400">Direct permissions</p>
-                                <div
-                                    class="mt-2 grid max-h-56 gap-2 overflow-auto rounded-lg border border-zinc-200 p-3 dark:border-zinc-800"
-                                >
-                                    <FormCheckbox
-                                        v-for="permission in permissionOptions"
-                                        :key="permission"
-                                        v-model="assignment.direct_permission_names"
-                                        :value="permission"
-                                        align="start"
-                                    >
-                                        <span class="break-all font-mono text-xs">{{ permission }}</span>
-                                    </FormCheckbox>
-                                </div>
-                            </section>
+                            <CheckboxList v-model="assignment.role_names" label="Roles" :options="roleOptions" />
+                            <CheckboxList
+                                v-model="assignment.direct_permission_names"
+                                label="Direct permissions"
+                                :options="permissionOptions"
+                            />
                         </div>
 
                         <section
@@ -325,12 +298,12 @@ function submit(): void {
                 </div>
             </section>
 
-            <AdminFormActions>
+            <FormActions>
                 <FormButton type="submit" :loading="form.processing">
                     {{ form.processing ? 'Creating...' : 'Create user' }}
                 </FormButton>
-                <AdminActionLink href="/admin/users" :icon="IconArrowLeft"> Back to users </AdminActionLink>
-            </AdminFormActions>
+                <ActionLink href="/admin/users" :icon="IconArrowLeft"> Back to users </ActionLink>
+            </FormActions>
         </AtlasForm>
     </AdminLayout>
 </template>

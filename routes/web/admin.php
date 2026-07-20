@@ -33,7 +33,9 @@ use App\Modules\Core\Users\Presentation\Http\Controllers\StoreUserAccountControl
 use App\Modules\Core\Users\Presentation\Http\Controllers\UpdateUserAccountController;
 use App\Modules\Core\Users\Presentation\Http\Controllers\UserAccountActionController;
 use App\Modules\Core\Users\Presentation\Http\Controllers\UserAdministrationController;
+use App\Modules\Optional\Imports\Presentation\Http\Controllers\AdminImportsController;
 use App\Modules\Optional\Integrations\Presentation\Http\Controllers\AdminIntegrationsController;
+use App\Modules\Optional\ManagedProcesses\Presentation\Http\Controllers\AdminManagedProcessesController;
 use App\Shared\Presentation\Http\Controllers\AdminApplicationLogController;
 use App\Shared\Presentation\Http\Controllers\AdminFailedJobController;
 use App\Shared\Presentation\Http\Controllers\AdminSystemStatusController;
@@ -111,6 +113,18 @@ Route::middleware(['auth', 'admin.mode', 'route.permission'])->group(function ()
     Route::post('/admin/files/{file}/rescan', [AdminFilesController::class, 'rescan'])->name('admin.files.rescan');
     Route::get('/admin/integrations', [AdminIntegrationsController::class, 'index'])->name('admin.integrations.index');
     Route::post('/admin/integrations/{integration}/test', [AdminIntegrationsController::class, 'test'])->name('admin.integrations.test');
+    Route::get('/admin/managed-processes', [AdminManagedProcessesController::class, 'index'])->name('admin.managed-processes.index');
+    Route::get('/admin/managed-processes/imports', [AdminManagedProcessesController::class, 'imports'])->name('admin.managed-processes.imports.index');
+    Route::get('/admin/managed-processes/definitions', [AdminManagedProcessesController::class, 'definitions'])->name('admin.managed-processes.definitions.index');
+    Route::post('/admin/managed-processes/run', [AdminManagedProcessesController::class, 'run'])->name('admin.managed-processes.run');
+    Route::post('/admin/managed-processes/definitions/{process}/run', [AdminManagedProcessesController::class, 'runDefinition'])->name('admin.managed-processes.definitions.run');
+    Route::get('/admin/managed-processes/schedules', [AdminManagedProcessesController::class, 'schedules'])->name('admin.managed-processes.schedules.index');
+    Route::post('/admin/managed-processes/schedules', [AdminManagedProcessesController::class, 'storeSchedule'])->name('admin.managed-processes.schedules.store');
+    Route::patch('/admin/managed-processes/schedules/{schedule}/disable', [AdminManagedProcessesController::class, 'disableSchedule'])->name('admin.managed-processes.schedules.disable');
+    Route::get('/admin/managed-processes/{run}', [AdminManagedProcessesController::class, 'show'])->name('admin.managed-processes.show');
+    Route::post('/admin/managed-processes/{run}/retry', [AdminManagedProcessesController::class, 'retry'])->name('admin.managed-processes.retry');
+    Route::post('/admin/managed-processes/{run}/cancel', [AdminManagedProcessesController::class, 'cancel'])->name('admin.managed-processes.cancel');
+    Route::get('/admin/imports', [AdminImportsController::class, 'index'])->name('admin.imports.index');
     Route::get('/admin/modules', [ModuleActivationController::class, 'index'])->name('admin.modules.index');
     Route::get('/admin/modules/{module}', [ModuleActivationController::class, 'show'])->name('admin.modules.show');
     Route::patch('/admin/modules/{module}/global', [ModuleActivationController::class, 'updateGlobal'])->name('admin.modules.global.update');

@@ -19,17 +19,9 @@ Technical seeders must be safe for production and idempotent.
 
 Demo seeders are development-only tooling.
 
-Development demo data must grow with implemented product capabilities. Each completed workflow that needs realistic manual review should add representative demo records, including negative or boundary cases where helpful. Demo seeders must not flatten the authorization model by giving every demo user every team, role, permission, module, or workflow state unless the scenario is intentional and clearly named.
+Development demo seeders are intentionally minimal by default. They may create only the local preview administrator and required authorization/team bootstrap records unless a later phase explicitly accepts representative demo data for a workflow.
 
-Demo seeders may create example:
-
-- teams;
-- users;
-- manager relationships;
-- notifications;
-- TimeTracking scenarios;
-- imports and process statuses;
-- later neutral or debt-collection demonstration scenarios.
+Demo seeders must not create artificial Admin panel volume such as extra users, manager relationships, notifications, uploaded files, import executions, process runs, process logs, schedules, or module activation states unless that exact scenario is explicitly requested and documented.
 
 Demo users use reserved non-production addresses such as `example.test`.
 
@@ -39,7 +31,7 @@ Module-specific demo seeders are created in the owning module phase, after that 
 
 The current foundation-level development demo seeder is `Database\Seeders\DevelopmentDemoSeeder`.
 
-`Database\Seeders\DatabaseSeeder` is production-safe and must not create demo accounts or module demo records.
+`Database\Seeders\DatabaseSeeder` is production-safe, installs starter roles and registered permissions, and must not create demo accounts or module demo records.
 
 ## Demo reset
 
@@ -55,13 +47,11 @@ The demo reset command must refuse to run outside approved local or development 
 
 Production deployment commands must never invoke demo seeders.
 
-Automated tests use factories and explicit fixtures. The current Playwright shell smoke tests may use `DevelopmentDemoSeeder` only until dedicated identity, authorization, team, and module visibility fixtures exist. Permission-gated and module-gated e2e scenarios must use explicit deterministic test fixtures rather than generic demo data.
+Automated tests use factories and explicit fixtures. Permission-gated and module-gated e2e scenarios must use explicit deterministic test fixtures rather than generic demo data.
 
 ## Current development demo account
 
-The development demo reset creates one local administrator account plus three teams, distinct team-scoped admin-managed presets, deterministic copy-source users, a multi-team user, faker-generated users with preset assignments, and representative file scan records so the frontend shell and authorization screens can be reviewed through the real Fortify login flow:
-
-The team-scoped demo presets must use distinct small functional role bundles and direct permissions per team. They must not recreate generic `user`/`manager` personae or make every team look authorized the same way.
+The development demo reset runs production-safe technical seeders first, then creates one local administrator account and one required administrator team so the application can be reviewed through the real Fortify login flow without artificial Admin panel records:
 
 - email: `admin@example.test`;
 - password: `password`.

@@ -4,6 +4,8 @@ import { IconActivityHeartbeat, IconAlertTriangle, IconPlugConnected, IconRotate
 import type { Component } from 'vue';
 import { computed, ref } from 'vue';
 
+import CardHeader from '../../../Components/CardHeader.vue';
+import MetricGrid from '../../../Components/MetricGrid.vue';
 import SeverityBadge from '../../../Components/SeverityBadge.vue';
 import Tooltip from '../../../Components/Tooltip.vue';
 import AdminLayout from '../../../Layouts/AdminLayout.vue';
@@ -54,20 +56,20 @@ const props = defineProps<{
 const { t } = useTranslator('en');
 const testing = ref<string | null>(null);
 
-const summaryItems = computed<{ label: string; value: string; icon: Component; severity: string }[]>(() => [
-    { label: 'Registered', value: String(props.summary.registered), icon: IconPlugConnected, severity: 'info' },
-    { label: 'Running', value: String(props.summary.running), icon: IconRotateClockwise, severity: 'warning' },
+const summaryItems = computed<{ label: string; value: string; icon: Component; tone: 'amber' | 'emerald' | 'rose' | 'teal' }[]>(() => [
+    { label: 'Registered', value: String(props.summary.registered), icon: IconPlugConnected, tone: 'teal' },
+    { label: 'Running', value: String(props.summary.running), icon: IconRotateClockwise, tone: 'amber' },
     {
         label: 'Open circuits',
         value: String(props.summary.openCircuits),
         icon: IconAlertTriangle,
-        severity: props.summary.openCircuits > 0 ? 'failed' : 'success',
+        tone: props.summary.openCircuits > 0 ? 'rose' : 'emerald',
     },
     {
         label: 'Failed 24h',
         value: String(props.summary.failedLastRuns),
         icon: IconActivityHeartbeat,
-        severity: props.summary.failedLastRuns > 0 ? 'failed' : 'success',
+        tone: props.summary.failedLastRuns > 0 ? 'rose' : 'emerald',
     },
 ]);
 
@@ -93,32 +95,16 @@ function statusSeverity(value: string | null): string {
     <Head :title="t('pages.admin.integrations.head_title')" />
     <AdminLayout :title="t('pages.admin.integrations.title')" :title-icon="IconPlugConnected">
         <section class="space-y-5">
-            <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                <section
-                    v-for="item in summaryItems"
-                    :key="item.label"
-                    class="flex items-start gap-3 rounded-lg border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-950"
-                >
-                    <span
-                        class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-teal-200 bg-teal-50 text-teal-700 dark:border-teal-900 dark:bg-teal-950 dark:text-teal-200"
-                    >
-                        <component :is="item.icon" aria-hidden="true" class="h-4 w-4" :stroke-width="1.8" />
-                    </span>
-                    <span class="min-w-0">
-                        <p class="text-xs font-semibold uppercase text-zinc-500 dark:text-zinc-400">{{ item.label }}</p>
-                        <p class="mt-1 truncate text-sm font-medium text-zinc-950 dark:text-zinc-50">{{ item.value }}</p>
-                    </span>
-                </section>
-            </div>
+            <MetricGrid :items="summaryItems" />
 
             <section class="rounded-lg border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
                 <div class="flex flex-wrap items-center justify-between gap-3">
-                    <div>
-                        <p class="text-sm font-medium text-zinc-950 dark:text-zinc-50">External API boundary</p>
-                        <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-300">
-                            Global access: {{ externalApiEnabled ? 'enabled' : 'disabled' }}
-                        </p>
-                    </div>
+                    <CardHeader
+                        title="External API boundary"
+                        :icon="IconPlugConnected"
+                        :subtitle="`Global access: ${externalApiEnabled ? 'enabled' : 'disabled'}`"
+                        :tone="externalApiEnabled ? 'amber' : 'emerald'"
+                    />
                     <SeverityBadge
                         :value="externalApiEnabled ? 'warning' : 'success'"
                         :label="externalApiEnabled ? 'enabled' : 'disabled'"
@@ -189,7 +175,7 @@ function statusSeverity(value: string | null): string {
 
             <section class="overflow-hidden rounded-lg border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
                 <div class="border-b border-zinc-200 px-4 py-3 dark:border-zinc-800">
-                    <h2 class="text-sm font-medium text-zinc-950 dark:text-zinc-50">Recent synchronization runs</h2>
+                    <CardHeader title="Recent synchronization runs" :icon="IconRotateClockwise" />
                 </div>
                 <div class="overflow-x-auto">
                     <table class="min-w-full divide-y divide-zinc-200 text-left text-sm dark:divide-zinc-800">

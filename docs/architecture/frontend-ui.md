@@ -298,9 +298,19 @@ Use shared form components for:
 
 Current shared primitives live under `resources/js/Components/Form` and include `AtlasForm`, `FormInput`, `FormTextarea`, `FormSelect`, `FormAutocomplete`, `EntitySearchInput`, `FormCheckbox`, `FormRadioGroup`, date and datetime inputs, `FormMoneyInput`, `FormFileUpload`, `FormFieldError`, and `FormButton`.
 
-Custom Admin filter forms that are not owned by the shared `DataTable` wrapper use `resources/js/Components/AdminFilterPanel.vue`. The panel keeps the heading, neutral Clear action, primary Apply action, spacing, result summary, and light/dark theme treatment consistent across custom operational screens. Do not hand-build local Admin filter button rows when this panel fits.
+Custom Admin filter forms that are not owned by the shared `DataTable` wrapper use `resources/js/Components/FilterPanel.vue`. The panel keeps the heading, neutral Clear action, primary Apply action, spacing, result summary, and light/dark theme treatment consistent across custom operational screens. Do not hand-build local Admin filter button rows when this panel fits.
 
-Admin page-level action links such as Create and Back use `resources/js/Components/AdminActionLink.vue`, and ordinary Admin form footers use `resources/js/Components/AdminFormActions.vue`. This keeps primary link buttons, neutral navigation links, focus treatment, wrapping, and spacing consistent without duplicating long Tailwind class strings in pages.
+Admin page-level action links such as Create and Back use `resources/js/Components/ActionLink.vue`, and ordinary Admin form footers use `resources/js/Components/FormActions.vue`. This keeps primary link buttons, neutral navigation links, focus treatment, wrapping, and spacing consistent without duplicating long Tailwind class strings in pages.
+
+Repeated operational count/status cards use `resources/js/Components/MetricGrid.vue`. Use it for compact page-level metrics before hand-building local metric card grids.
+
+Admin and operational card titles use `resources/js/Components/CardHeader.vue` so card headers keep the same text-only dashboard-style heading, title weight, subtitle spacing, and dark-theme treatment across the system. Do not introduce a second card-header language with colored icon tiles unless the whole dashboard/admin card system is deliberately redesigned.
+
+Repeated role, permission, and option checklists use `resources/js/Components/CheckboxList.vue` instead of rebuilding local checkbox grids in pages. Keep one-off binary settings on `FormCheckbox`.
+
+Technical payloads, JSON/TOML snippets, log details, and stack traces use `resources/js/Components/CodeViewer.vue`. Do not hand-build local `<pre>` blocks or one-off stack-trace renderers in Admin pages when this viewer fits.
+
+The Admin dashboard keeps its three primary operational cards: Release, Readiness, and Modules. Module-owned operational areas contribute status signals into the Modules card instead of adding standalone dashboard cards unless a new dashboard structure is deliberately designed and documented first.
 
 Requirements:
 

@@ -56,13 +56,13 @@ describe('shared UI guardrails', () => {
     });
 
     it('keeps admin filter actions on the shared filter panel pattern', () => {
-        const adminFilterPanel = Object.entries(vueFiles).find(([file]) => file.endsWith('/AdminFilterPanel.vue'))?.[1];
+        const filterPanel = Object.entries(vueFiles).find(([file]) => file.endsWith('/FilterPanel.vue'))?.[1];
 
-        expect(adminFilterPanel).toBeDefined();
-        expect(adminFilterPanel).toContain("title: 'Filters'");
-        expect(adminFilterPanel).toContain('tone="neutral"');
-        expect(adminFilterPanel).toContain(':icon="IconRefresh"');
-        expect(adminFilterPanel).toContain(':icon="IconFilter"');
+        expect(filterPanel).toBeDefined();
+        expect(filterPanel).toContain("title: 'Filters'");
+        expect(filterPanel).toContain('tone="neutral"');
+        expect(filterPanel).toContain(':icon="IconRefresh"');
+        expect(filterPanel).toContain(':icon="IconFilter"');
 
         for (const [file, contents] of Object.entries(vueFiles)) {
             expect(contents, file).not.toMatch(/<FormButton\b[^>]*\svariant=/);
@@ -70,14 +70,14 @@ describe('shared UI guardrails', () => {
     });
 
     it('keeps admin page action links and form footers on shared primitives', () => {
-        const adminActionLink = Object.entries(vueFiles).find(([file]) => file.endsWith('/AdminActionLink.vue'))?.[1];
-        const adminFormActions = Object.entries(vueFiles).find(([file]) => file.endsWith('/AdminFormActions.vue'))?.[1];
+        const actionLink = Object.entries(vueFiles).find(([file]) => file.endsWith('/ActionLink.vue'))?.[1];
+        const formActions = Object.entries(vueFiles).find(([file]) => file.endsWith('/FormActions.vue'))?.[1];
 
-        expect(adminActionLink).toBeDefined();
-        expect(adminActionLink).toContain("tone?: 'primary' | 'neutral'");
-        expect(adminActionLink).toContain('focus-visible:outline-amber-500');
-        expect(adminFormActions).toBeDefined();
-        expect(adminFormActions).toContain('flex flex-wrap items-center gap-2');
+        expect(actionLink).toBeDefined();
+        expect(actionLink).toContain("tone?: 'primary' | 'neutral'");
+        expect(actionLink).toContain('focus-visible:outline-amber-500');
+        expect(formActions).toBeDefined();
+        expect(formActions).toContain('flex flex-wrap items-center gap-2');
 
         for (const [file, contents] of Object.entries(vueFiles)) {
             if (!file.includes('/Pages/Admin/')) {
@@ -85,6 +85,39 @@ describe('shared UI guardrails', () => {
             }
 
             expect(contents, file).not.toMatch(/<Link[\s\S]{0,240}class="inline-flex h-10/);
+        }
+    });
+
+    it('keeps admin cards and technical viewers on shared primitives', () => {
+        const cardHeader = Object.entries(vueFiles).find(([file]) => file.endsWith('/CardHeader.vue'))?.[1];
+        const checkboxList = Object.entries(vueFiles).find(([file]) => file.endsWith('/CheckboxList.vue'))?.[1];
+        const codeViewer = Object.entries(vueFiles).find(([file]) => file.endsWith('/CodeViewer.vue'))?.[1];
+
+        expect(cardHeader).toBeDefined();
+        expect(cardHeader).toContain('text-sm font-semibold text-zinc-950');
+        expect(cardHeader).not.toContain('h-9 w-9');
+        expect(checkboxList).toBeDefined();
+        expect(checkboxList).toContain('max-h-56');
+        expect(checkboxList).toContain('itemMonospace');
+        expect(codeViewer).toBeDefined();
+        expect(codeViewer).toContain("language?: 'json' | 'log' | 'stack' | 'text' | 'toml'");
+        expect(codeViewer).toContain('font-mono text-xs leading-5');
+
+        for (const [file, contents] of Object.entries(vueFiles)) {
+            if (!file.includes('/Pages/Admin/')) {
+                continue;
+            }
+
+            const localHeadings = contents
+                .split('\n')
+                .filter((line) => line.includes('<h2'))
+                .filter((line) => !line.includes('rate-limit-reset-instructions-title'));
+
+            expect(localHeadings, file).toEqual([]);
+            expect(contents, file).not.toContain('<pre');
+            expect(contents, file).not.toMatch(
+                /<FormCheckbox[\s\S]{0,300}(role_names|direct_permission_names|form\.permissions|form\.direct_permissions|form\.initial_roles)/,
+            );
         }
     });
 
@@ -102,5 +135,17 @@ describe('shared UI guardrails', () => {
         expect(mobileNavigation).toContain('external: true');
         expect(mobileNavigation).toContain(':target="item.external ? \'_blank\' : undefined"');
         expect(mobileNavigation).toContain(':rel="item.external ? \'noopener noreferrer\' : undefined"');
+    });
+
+    it('opens local Telescope navigation outside the Inertia shell', () => {
+        const sidebar = Object.entries(vueFiles).find(([file]) => file.endsWith('/Sidebar.vue'))?.[1];
+        const mobileNavigation = Object.entries(vueFiles).find(([file]) => file.endsWith('/MobileNavigation.vue'))?.[1];
+
+        expect(sidebar).toBeDefined();
+        expect(sidebar).toContain("key: 'oversight.telescope'");
+        expect(sidebar).toContain("visible: canSeeAdminRoute('admin.telescope.view')");
+        expect(sidebar).toContain('external: true');
+        expect(mobileNavigation).toContain("t('navigation.telescope')");
+        expect(mobileNavigation).toContain('external: true');
     });
 });

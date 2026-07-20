@@ -3,6 +3,7 @@ import { computed, onMounted, ref } from 'vue';
 
 import { useTranslator } from '../../Localization/translator';
 import type { ComposableViewDataProviderResult, ResolvedComposableViewElement } from '../../Types/composable-view';
+import CardHeader from '../CardHeader.vue';
 
 const props = defineProps<{
     element: ResolvedComposableViewElement;
@@ -38,10 +39,7 @@ onMounted(async () => {
         :class="[element.placement.dimensions.minHeightClass, element.placement.dimensions.spanClass]"
     >
         <div class="border-b border-zinc-200 bg-zinc-50 px-4 py-3 dark:border-zinc-800 dark:bg-zinc-900/60">
-            <h2 class="text-sm font-semibold text-zinc-950 dark:text-zinc-50">{{ element.definition.fallbackTitle }}</h2>
-            <p v-if="element.definition.fallbackDescription" class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-                {{ element.definition.fallbackDescription }}
-            </p>
+            <CardHeader :title="element.definition.fallbackTitle" :subtitle="element.definition.fallbackDescription ?? undefined" />
         </div>
 
         <div v-if="loading" class="p-4 text-sm text-zinc-500 dark:text-zinc-400">{{ t('composable_view.loading') }}</div>
