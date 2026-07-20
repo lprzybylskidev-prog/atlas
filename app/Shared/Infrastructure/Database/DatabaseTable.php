@@ -62,6 +62,18 @@ final class DatabaseTable
 
     public const FILE_SCAN_EVIDENCE = DatabaseSchema::CORE_FILES.'.file_scan_evidence';
 
+    public const INTEGRATION_CONNECTIONS = DatabaseSchema::OPTIONAL_INTEGRATIONS.'.integration_connections';
+
+    public const INTEGRATION_CREDENTIALS = DatabaseSchema::OPTIONAL_INTEGRATIONS.'.integration_credentials';
+
+    public const INTEGRATION_EXTERNAL_ID_MAPPINGS = DatabaseSchema::OPTIONAL_INTEGRATIONS.'.external_id_mappings';
+
+    public const INTEGRATION_SYNC_RUNS = DatabaseSchema::OPTIONAL_INTEGRATIONS.'.synchronization_runs';
+
+    public const INTEGRATION_IDEMPOTENCY_KEYS = DatabaseSchema::OPTIONAL_INTEGRATIONS.'.idempotency_keys';
+
+    public const INTEGRATION_CIRCUIT_BREAKERS = DatabaseSchema::OPTIONAL_INTEGRATIONS.'.circuit_breakers';
+
     public const CACHE = DatabaseSchema::SHARED.'.cache';
 
     public const CACHE_LOCKS = DatabaseSchema::SHARED.'.cache_locks';

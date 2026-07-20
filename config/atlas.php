@@ -76,6 +76,18 @@ return [
         ],
     ],
 
+    'integrations' => [
+        'external_api_enabled' => (bool) env('ATLAS_INTEGRATIONS_EXTERNAL_API_ENABLED', false),
+        'adapters' => [],
+        'retry' => [
+            'max_attempts' => (int) env('ATLAS_INTEGRATIONS_RETRY_MAX_ATTEMPTS', 3),
+            'base_delay_milliseconds' => (int) env('ATLAS_INTEGRATIONS_RETRY_BASE_DELAY_MS', 100),
+            'timeout_milliseconds' => (int) env('ATLAS_INTEGRATIONS_TIMEOUT_MS', 5000),
+            'circuit_failure_threshold' => (int) env('ATLAS_INTEGRATIONS_CIRCUIT_FAILURE_THRESHOLD', 3),
+            'circuit_open_seconds' => (int) env('ATLAS_INTEGRATIONS_CIRCUIT_OPEN_SECONDS', 60),
+        ],
+    ],
+
     'security' => [
         'login_lock' => [
             'max_failed_attempts' => (int) env('ATLAS_LOGIN_LOCK_MAX_FAILED_ATTEMPTS', 10),

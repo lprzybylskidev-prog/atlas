@@ -45,6 +45,8 @@ The Admin queues browser is available at `/admin/queues`. It exposes failed jobs
 
 Failed-job retry actions are ModuleGate-checked against the module inferred from the queued job class before retrying.
 
+The Admin integrations browser is available at `/admin/integrations`. It shows registered adapter status, source-of-truth notes, last success, last error, circuit state, recent synchronization runs, and external API boundary status. Test-connection actions are permission-protected and never display secrets.
+
 Laravel Pulse is available from the Admin navigation at `/admin/pulse`. It is a package-owned internal performance dashboard for authorized operational administrators and is protected by `auth`, password confirmation, Pulse's `viewPulse` gate, and the `admin.pulse.view` permission. Pulse is not an Inertia screen and uses its own Livewire/Blade dashboard.
 
 Phase 8 verifies the current Admin UI/table foundation after Phase 7. Phase 9 completes shared UI primitives and Phase 10 completes the shared table/saved-view contract before additional Admin areas rely on broader table behavior.

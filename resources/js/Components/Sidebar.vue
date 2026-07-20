@@ -4,6 +4,7 @@ import {
     IconActivityHeartbeat,
     IconChevronDown,
     IconClipboardList,
+    IconPlugConnected,
     IconFiles,
     IconFileText,
     IconGauge,
@@ -191,6 +192,14 @@ const groups = computed<NavigationGroup[]>(() => {
                     icon: IconFiles,
                     active: props.currentPath === '/admin/files',
                     visible: canSeeAdminRoute('admin.files.index'),
+                },
+                {
+                    key: 'oversight.integrations',
+                    label: t('navigation.integrations'),
+                    href: '/admin/integrations',
+                    icon: IconPlugConnected,
+                    active: props.currentPath === '/admin/integrations',
+                    visible: canSeeAdminRoute('admin.integrations.index'),
                 },
                 {
                     key: 'oversight.pulse',

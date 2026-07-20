@@ -11,6 +11,7 @@ use App\Modules\Core\Notifications\NotificationsModule;
 use App\Modules\Core\Settings\SettingsModule;
 use App\Modules\Core\Teams\TeamsModule;
 use App\Modules\Core\Users\UsersModule;
+use App\Modules\Optional\Integrations\IntegrationsModule;
 
 return [
     'deployed' => [
@@ -23,5 +24,6 @@ return [
         NotificationsModule::class,
         HealthModule::class,
         FilesModule::class,
+        IntegrationsModule::class,
     ],
 ];

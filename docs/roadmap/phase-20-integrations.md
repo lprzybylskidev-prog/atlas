@@ -1,6 +1,6 @@
 # Phase 20 — Integrations
 
-**Status:** `not started`
+**Status:** `complete`
 
 ## Objective
 
@@ -32,32 +32,32 @@ Implement typed external integration foundations before imports or business modu
 
 ## Tasks
 
-- [ ] Document first-party versus external API authentication boundaries.
-- [ ] Keep external API access disabled by default.
-- [ ] Define a reusable external-client identity/scope/credential contract without selecting unused token technology.
-- [ ] Require explicit auth, revocation, expiry, rate limits, team/module scope, and audit for every external API surface.
-- [ ] Create optional `Integrations` module.
-- [ ] Define adapter contracts.
-- [ ] Add external-ID mapping.
-- [ ] Add synchronization history.
-- [ ] Add idempotency.
-- [ ] Add timeout.
-- [ ] Add retry and backoff.
-- [ ] Add circuit breaker.
-- [ ] Add correlation IDs.
-- [ ] Add secret-safe logging.
-- [ ] Add integration status admin screen.
-- [ ] Enforce ModuleGate, active-team context, and module activation in every integration adapter, test-connection action, webhook/public endpoint, and queued integration job.
-- [ ] Register integration deactivation guards for unsafe in-flight transitions and circuit states.
-- [ ] Document optional-dependency reduced mode for integrations that depend on inactive optional modules.
-- [ ] Add last success and last error.
-- [ ] Add test-connection action.
-- [ ] Add source-of-truth documentation pattern.
-- [ ] Commit Integrations module.
+- [x] Document first-party versus external API authentication boundaries.
+- [x] Keep external API access disabled by default.
+- [x] Define a reusable external-client identity/scope/credential contract without selecting unused token technology.
+- [x] Require explicit auth, revocation, expiry, rate limits, team/module scope, and audit for every external API surface.
+- [x] Create optional `Integrations` module.
+- [x] Define adapter contracts.
+- [x] Add external-ID mapping.
+- [x] Add synchronization history.
+- [x] Add idempotency.
+- [x] Add timeout.
+- [x] Add retry and backoff.
+- [x] Add circuit breaker.
+- [x] Add correlation IDs.
+- [x] Add secret-safe logging.
+- [x] Add integration status admin screen.
+- [x] Enforce ModuleGate, active-team context, and module activation in every integration adapter, test-connection action, webhook/public endpoint, and queued integration job.
+- [x] Register integration deactivation guards for unsafe in-flight transitions and circuit states.
+- [x] Document optional-dependency reduced mode for integrations that depend on inactive optional modules.
+- [x] Add last success and last error.
+- [x] Add test-connection action.
+- [x] Add source-of-truth documentation pattern.
+- [x] Commit Integrations module.
 
 ## Completion criteria
 
-- [ ] External systems are behind typed adapters and explicit credential/scope contracts.
-- [ ] First-party browser traffic remains session/CSRF/team/permission/module-gate based.
-- [ ] External API access remains disabled until a concrete integration fully defines security, audit, and lifecycle.
-- [ ] Relevant tests and documentation are current.
+- [x] External systems are behind typed adapters and explicit credential/scope contracts.
+- [x] First-party browser traffic remains session/CSRF/team/permission/module-gate based.
+- [x] External API access remains disabled until a concrete integration fully defines security, audit, and lifecycle.
+- [x] Relevant tests and documentation are current.

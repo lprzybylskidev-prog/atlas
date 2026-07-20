@@ -37,7 +37,7 @@ Do not replace this index after the initial technical foundation is completed. C
 
 ## Current phase
 
-- Phase: [Phase 20 — Integrations](docs/roadmap/phase-20-integrations.md)
+- Phase: [Phase 21 — Imports](docs/roadmap/phase-21-imports.md)
 - Status: `not started`
 
 ## Roadmap dependency repair note
@@ -218,7 +218,7 @@ Implement private file storage, validation, quarantine, ClamAV scanning, retenti
 
 ### Phase 20 — Integrations
 
-**Status:** `not started`
+**Status:** `complete`
 
 Implement typed external integration adapters, idempotency, retries, circuit breaking, API boundaries, credentials, and operational visibility.
 

@@ -22,6 +22,8 @@ final class DatabaseSchema
 
     public const CORE_FILES = 'core_files';
 
+    public const OPTIONAL_INTEGRATIONS = 'optional_integrations';
+
     public const SHARED = 'shared';
 
     /**
@@ -37,6 +39,7 @@ final class DatabaseSchema
             self::CORE_SETTINGS,
             self::CORE_NOTIFICATIONS,
             self::CORE_FILES,
+            self::OPTIONAL_INTEGRATIONS,
             self::SHARED,
         ];
     }

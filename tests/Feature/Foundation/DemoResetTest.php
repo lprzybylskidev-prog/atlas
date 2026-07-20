@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Inertia\Testing\AssertableInertia;
 use Symfony\Component\Console\Command\Command;
 use Tests\TestCase;
 
@@ -58,6 +59,10 @@ final class DemoResetTest extends TestCase
         $this->assertDatabaseHas(DatabaseTable::TEAMS, ['name' => 'Collections South']);
         $this->assertDatabaseHas(DatabaseTable::TEAMS, ['name' => 'Back Office']);
         $this->assertDatabaseHas(DatabaseTable::ROLES, ['name' => StarterRoleName::Administrator->value]);
+        $this->assertDatabaseHas(DatabaseTable::MODULE_GLOBAL_STATES, [
+            'module_key' => 'integrations',
+            'enabled' => true,
+        ]);
         $this->assertDatabaseHas(DatabaseTable::USERS, ['email' => 'demo.user.01@example.test']);
         $this->assertDatabaseHas(DatabaseTable::USERS, ['email' => 'demo.copy.north@example.test']);
         $this->assertDatabaseHas(DatabaseTable::USERS, ['email' => 'demo.copy.south@example.test']);
@@ -100,5 +105,24 @@ final class DemoResetTest extends TestCase
         $this->assertSame(2, DB::table(DatabaseTable::USER_ONBOARDING_PACKAGES)
             ->where('user_id', $multiTeamUser->id)
             ->count());
+
+        $teamPublicId = DB::table(DatabaseTable::TEAMS)->where('name', 'Collections North')->value('public_id');
+
+        self::assertIsString($teamPublicId);
+
+        $this->actingAs($user)
+            ->withSession([
+                'active_team_public_id' => $teamPublicId,
+                'auth.password_confirmed_at' => now()->unix(),
+                'atlas_admin_mode_entered_at' => now()->toIso8601String(),
+                'atlas_admin_mode_last_activity_at' => now()->toIso8601String(),
+                'atlas_admin_high_risk_confirmed_at' => now()->toIso8601String(),
+            ])
+            ->get('/admin/integrations')
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->component('Admin/Integrations/Index')
+                ->where('integrations', [])
+                ->where('recentRuns', []));
     }
 }

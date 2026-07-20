@@ -180,6 +180,7 @@ final class HandleInertiaRequests extends Middleware
             'admin.logs.index',
             'admin.queues.index',
             'admin.files.index',
+            'admin.integrations.index',
             'admin.pulse.view',
             'admin.rate-limits.index',
             'admin.modules.index',

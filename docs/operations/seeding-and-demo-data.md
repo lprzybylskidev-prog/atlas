@@ -59,7 +59,7 @@ Automated tests use factories and explicit fixtures. The current Playwright shel
 
 ## Current development demo account
 
-The development demo reset creates one local administrator account plus three teams, distinct team-scoped admin-managed presets, deterministic copy-source users, a multi-team user, and faker-generated users with preset assignments so the frontend shell and authorization screens can be reviewed through the real Fortify login flow:
+The development demo reset creates one local administrator account plus three teams, distinct team-scoped admin-managed presets, deterministic copy-source users, a multi-team user, faker-generated users with preset assignments, and representative file scan records so the frontend shell and authorization screens can be reviewed through the real Fortify login flow:
 
 The team-scoped demo presets must use distinct small functional role bundles and direct permissions per team. They must not recreate generic `user`/`manager` personae or make every team look authorized the same way.
 

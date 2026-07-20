@@ -21,6 +21,10 @@ use App\Modules\Core\Teams\Application\Public\Contracts\BootstrapTeamProvider;
 use App\Modules\Core\Teams\Application\Public\DTOs\BootstrapTeam;
 use App\Modules\Core\Teams\Application\Public\Permissions\TeamPermissionNames;
 use App\Modules\Core\Users\Application\Permissions\UserPermissionCatalog;
+use App\Shared\Application\Modules\Activation\Contracts\ModuleActivationService;
+use App\Shared\Application\Modules\Activation\ModuleActivationChange;
+use App\Shared\Application\Modules\Activation\ModuleActivationScope;
+use App\Shared\Application\Modules\Activation\ModuleActivationSource;
 use App\Shared\Infrastructure\Database\DatabaseTable;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Seeder;
@@ -44,6 +48,7 @@ class DevelopmentDemoSeeder extends Seeder
             app(BootstrapTeamProvider::class)->provide('Collections South'),
             app(BootstrapTeamProvider::class)->provide('Back Office'),
         ];
+        $this->activateDemoModules($teams);
         $this->upsertOnboardingPackages($teams);
 
         $admin = User::query()->firstOrNew([
@@ -88,6 +93,39 @@ class DevelopmentDemoSeeder extends Seeder
         $this->seedManagerRelationships((string) $admin->public_id, $teams);
         $this->seedNotifications((string) $admin->public_id, $teams[0]->publicId);
         $this->seedFiles((int) $admin->id, $teams[0]->publicId);
+    }
+
+    /**
+     * @param  list<BootstrapTeam>  $teams
+     */
+    private function activateDemoModules(array $teams): void
+    {
+        $activation = app(ModuleActivationService::class);
+
+        $activation->change(new ModuleActivationChange(
+            moduleKey: 'integrations',
+            scope: ModuleActivationScope::Global,
+            enabled: true,
+            reason: 'Development demo enables the Integrations Admin foundation.',
+            source: ModuleActivationSource::Manual,
+        ));
+
+        foreach ($teams as $team) {
+            $teamId = DB::table(DatabaseTable::TEAMS)->where('public_id', $team->publicId)->value('id');
+
+            if (! is_int($teamId)) {
+                continue;
+            }
+
+            $activation->change(new ModuleActivationChange(
+                moduleKey: 'integrations',
+                scope: ModuleActivationScope::Team,
+                enabled: true,
+                reason: 'Development demo enables the Integrations Admin foundation.',
+                teamId: $teamId,
+                source: ModuleActivationSource::Manual,
+            ));
+        }
     }
 
     private function demoUser(string $email, string $name): User
