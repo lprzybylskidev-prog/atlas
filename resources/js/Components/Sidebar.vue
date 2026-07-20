@@ -13,6 +13,7 @@ import {
     IconLockAccess,
     IconPackages,
     IconPuzzle,
+    IconSearch,
     IconSettingsAutomation,
     IconRotateClockwise,
     IconShieldCheck,
@@ -202,6 +203,14 @@ const groups = computed<NavigationGroup[]>(() => {
                     icon: IconPlugConnected,
                     active: props.currentPath === '/admin/integrations',
                     visible: canSeeAdminRoute('admin.integrations.index'),
+                },
+                {
+                    key: 'oversight.search',
+                    label: t('navigation.search'),
+                    href: '/admin/search',
+                    icon: IconSearch,
+                    active: props.currentPath === '/admin/search',
+                    visible: canSeeAdminRoute('admin.search.index'),
                 },
                 {
                     key: 'oversight.managed-processes',

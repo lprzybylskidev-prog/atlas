@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Optional\ManagedProcesses\Application\Contracts;
 
-use App\Modules\Optional\ManagedProcesses\Application\DTOs\ProcessDefinition;
+use App\Modules\Optional\ManagedProcesses\Application\Public\DTOs\ProcessDefinition;
 
 interface ProcessDefinitionRegistry
 {

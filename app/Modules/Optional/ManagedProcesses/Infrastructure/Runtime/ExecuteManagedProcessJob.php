@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace App\Modules\Optional\ManagedProcesses\Infrastructure\Runtime;
 
-use App\Modules\Optional\ManagedProcesses\Application\Contracts\ManagedProcessHandler;
 use App\Modules\Optional\ManagedProcesses\Application\Contracts\ProcessDefinitionRegistry;
 use App\Modules\Optional\ManagedProcesses\Application\DTOs\ProcessLogEntry;
 use App\Modules\Optional\ManagedProcesses\Application\Enums\ProcessLogSeverity;
 use App\Modules\Optional\ManagedProcesses\Application\Enums\ProcessRunStatus;
+use App\Modules\Optional\ManagedProcesses\Application\Public\Contracts\ManagedProcessHandler;
 use App\Modules\Optional\ManagedProcesses\Application\Public\Contracts\ManagedProcessRunner;
 use App\Shared\Infrastructure\Database\DatabaseTable;
 use Illuminate\Bus\Queueable;

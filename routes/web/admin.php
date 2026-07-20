@@ -36,6 +36,7 @@ use App\Modules\Core\Users\Presentation\Http\Controllers\UserAdministrationContr
 use App\Modules\Optional\Imports\Presentation\Http\Controllers\AdminImportsController;
 use App\Modules\Optional\Integrations\Presentation\Http\Controllers\AdminIntegrationsController;
 use App\Modules\Optional\ManagedProcesses\Presentation\Http\Controllers\AdminManagedProcessesController;
+use App\Modules\Optional\Search\Presentation\Http\Controllers\AdminSearchController;
 use App\Shared\Presentation\Http\Controllers\AdminApplicationLogController;
 use App\Shared\Presentation\Http\Controllers\AdminFailedJobController;
 use App\Shared\Presentation\Http\Controllers\AdminSystemStatusController;
@@ -113,6 +114,8 @@ Route::middleware(['auth', 'admin.mode', 'route.permission'])->group(function ()
     Route::post('/admin/files/{file}/rescan', [AdminFilesController::class, 'rescan'])->name('admin.files.rescan');
     Route::get('/admin/integrations', [AdminIntegrationsController::class, 'index'])->name('admin.integrations.index');
     Route::post('/admin/integrations/{integration}/test', [AdminIntegrationsController::class, 'test'])->name('admin.integrations.test');
+    Route::get('/admin/search', [AdminSearchController::class, 'index'])->name('admin.search.index');
+    Route::post('/admin/search/rebuild', [AdminSearchController::class, 'rebuild'])->name('admin.search.rebuild');
     Route::get('/admin/managed-processes', [AdminManagedProcessesController::class, 'index'])->name('admin.managed-processes.index');
     Route::get('/admin/managed-processes/imports', [AdminManagedProcessesController::class, 'imports'])->name('admin.managed-processes.imports.index');
     Route::get('/admin/managed-processes/definitions', [AdminManagedProcessesController::class, 'definitions'])->name('admin.managed-processes.definitions.index');

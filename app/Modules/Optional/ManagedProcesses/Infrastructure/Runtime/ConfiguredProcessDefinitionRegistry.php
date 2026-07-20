@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Optional\ManagedProcesses\Infrastructure\Runtime;
 
 use App\Modules\Optional\ManagedProcesses\Application\Contracts\ProcessDefinitionRegistry;
-use App\Modules\Optional\ManagedProcesses\Application\DTOs\ProcessDefinition;
+use App\Modules\Optional\ManagedProcesses\Application\Public\DTOs\ProcessDefinition;
 
 final class ConfiguredProcessDefinitionRegistry implements ProcessDefinitionRegistry
 {

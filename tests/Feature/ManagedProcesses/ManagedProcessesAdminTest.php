@@ -195,7 +195,8 @@ final class ManagedProcessesAdminTest extends TestCase
             ->assertOk()
             ->assertInertia(fn (AssertableInertia $page) => $page
                 ->component('Admin/ManagedProcesses/Definitions')
-                ->where('definitions.0.key', 'test.maintenance.rebuild-risk-cache'));
+                ->where('definitions', fn (mixed $definitions): bool => collect($definitions)
+                    ->contains(fn (array $definition): bool => ($definition['key'] ?? null) === 'test.maintenance.rebuild-risk-cache')));
     }
 
     /**

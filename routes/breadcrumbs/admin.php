@@ -169,3 +169,8 @@ Breadcrumbs::for('admin.imports.index', function (Generator $breadcrumbs): void 
     $breadcrumbs->push(__('breadcrumbs.admin'));
     $breadcrumbs->push('Imports');
 });
+
+Breadcrumbs::for('admin.search.index', function (Generator $breadcrumbs): void {
+    $breadcrumbs->push(__('breadcrumbs.admin'));
+    $breadcrumbs->push('Search');
+});

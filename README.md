@@ -181,6 +181,8 @@ The Integrations foundation provides typed external adapter registration, extern
 
 The Managed Processes and Imports foundations provide registered process definitions, process runs, structured process logs, progress and counters, retry/cancel actions, managed schedules, Admin process visibility, import execution records, idempotency state, row/field errors, and development demo runs/logs. Admin uses four managed-process tabs: Runs, Imports, Definitions, and Schedules.
 
+The Search foundation is available as an optional module for module-owned Meilisearch projections. Current contracts cover explicit index descriptors, immutable search document payloads, Outbox-fed queued indexing, active-team and permission-scoped search queries, registered Search permissions, a `search:rebuild` CLI entry point, Admin Search status and confirmed rebuild starts, and a managed-process rebuild definition on the `search` queue; concrete business indexes remain module-owned and rebuildable projections rather than sources of truth.
+
 The implementation status and first unfinished phase are always shown in [`WORKROAD.md`](WORKROAD.md). The current roadmap focus is finishing shared foundations in dependency order before the first debt collection business modules are introduced.
 
 As the project grows, this README must present the current high-level system scope, major modules, supported workflows, setup entry points, and operational expectations.

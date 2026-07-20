@@ -183,6 +183,7 @@ final class HandleInertiaRequests extends Middleware
             'admin.queues.index',
             'admin.files.index',
             'admin.integrations.index',
+            'admin.search.index',
             'admin.managed-processes.index',
             'admin.managed-processes.imports.index',
             'admin.managed-processes.definitions.index',

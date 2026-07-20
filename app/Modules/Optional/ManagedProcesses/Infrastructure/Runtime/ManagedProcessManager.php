@@ -10,11 +10,11 @@ use App\Modules\Core\Notifications\Application\Public\Contracts\NotificationPubl
 use App\Modules\Core\Notifications\Application\Public\Contracts\RealtimePublisher;
 use App\Modules\Core\Notifications\Application\Public\DTOs\CreateNotification;
 use App\Modules\Optional\ManagedProcesses\Application\Contracts\ProcessDefinitionRegistry;
-use App\Modules\Optional\ManagedProcesses\Application\DTOs\ProcessDefinition;
 use App\Modules\Optional\ManagedProcesses\Application\DTOs\ProcessLogEntry;
 use App\Modules\Optional\ManagedProcesses\Application\Enums\ProcessLogSeverity;
 use App\Modules\Optional\ManagedProcesses\Application\Enums\ProcessRunStatus;
 use App\Modules\Optional\ManagedProcesses\Application\Public\Contracts\ManagedProcessRunner;
+use App\Modules\Optional\ManagedProcesses\Application\Public\DTOs\ProcessDefinition;
 use App\Shared\Application\Modules\Contracts\ModuleGate;
 use App\Shared\Application\Modules\ModuleAccessRequest;
 use App\Shared\Infrastructure\Database\DatabaseTable;

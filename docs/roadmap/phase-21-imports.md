@@ -1,6 +1,6 @@
 # Phase 21 — Imports
 
-**Status:** `implemented pending acceptance and commit`
+**Status:** `complete`
 
 ## Objective
 
@@ -55,7 +55,7 @@ Implement reusable import pipelines on top of the managed-process foundation aft
 - [x] Add import notifications and progress through the managed-process foundation.
 - [x] Add development-only demo seeders for example import processes and statuses after real import tables exist.
 - [x] Remove development-only demo import adapters, process handlers, seeded import executions, and artificial import row errors before clean-app handoff.
-- [ ] Commit Imports module after final owner confirmation.
+- [x] Commit Imports module after final owner confirmation.
 
 ## Completion criteria
 

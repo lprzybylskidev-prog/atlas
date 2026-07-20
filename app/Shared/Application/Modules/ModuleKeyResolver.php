@@ -68,6 +68,10 @@ final class ModuleKeyResolver
             return 'imports';
         }
 
+        if (str_starts_with($permission, 'admin.search.') || str_starts_with($permission, 'search.')) {
+            return 'search';
+        }
+
         if (str_starts_with($permission, 'admin.modules.') || str_starts_with($permission, 'modules.')) {
             return 'authorization';
         }

@@ -52,7 +52,8 @@ The Admin managed-process area is split into four operational tabs:
 - `/admin/managed-processes` for process run history, start/finish timing, status/source/module filters, and links into the structured process log manager;
 - `/admin/managed-processes/imports` for import executions, idempotency state, source type, statistics, and links into the same run log manager;
 - `/admin/managed-processes/definitions` for registered definitions and manual registered-process starts;
-- `/admin/managed-processes/schedules` for validated five-field cron schedule creation, schedule filters, and schedule disable actions.
+- `/admin/managed-processes/schedules` for validated five-field cron schedule creation, schedule filters, and schedule disable actions;
+- `/admin/search` for Search readiness, registered index descriptors, recent rebuild runs, and confirmed rebuild starts linked to managed-process run details.
 
 The managed-process Admin area does not expose arbitrary shell cron, raw Artisan command execution, filesystem browsing, or unregistered process execution. The run detail screen supports filtering by severity, stage, event type, and safe text context.
 

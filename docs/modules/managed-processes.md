@@ -17,7 +17,7 @@ Owning modules retain business logic. The shared foundation does not decide how 
 
 ## Process Definitions
 
-Every managed process is explicitly declared by its owning module through a typed `ProcessDefinition`.
+Every managed process is explicitly declared by its owning module through the public typed `ProcessDefinition`.
 
 A definition includes:
 
@@ -38,6 +38,8 @@ A definition includes:
 Unregistered processes cannot be started from Admin. Admin schedule management never exposes arbitrary shell cron, raw Artisan command text, server filesystem access, or unregistered command execution.
 
 The foundation does not ship demo process definitions. Process definitions are registered only by owning modules or explicit test fixtures.
+
+Cross-module process definitions and handlers use only public ManagedProcesses contracts. Public `ProcessDefinition`, `ProcessPermissions`, and `RetryPolicy` DTOs describe the process. `ManagedProcessHandler` identifies and executes the registered process, while `ManagedProcessReporter` lets owning modules write safe info checkpoints and progress or success updates without importing ManagedProcesses internal DTOs or enums.
 
 ## Process Runs
 

@@ -1,6 +1,6 @@
 # Phase 20b — Managed processes, process logs, and scheduler
 
-**Status:** `implemented pending acceptance and commit`
+**Status:** `complete`
 
 ## Objective
 
@@ -141,7 +141,7 @@ Implement a shared managed-process foundation before Imports and later long-runn
 - [x] Update Imports, Search, Reports/Exports, privacy, and TimeTracking roadmap contracts to consume managed processes where applicable.
 - [x] Update module, architecture, operations, and README documentation where current behavior or setup changes.
 - [x] Add unit, integration, feature, and Playwright coverage for lifecycle, logs, queue execution, concurrency, schedules, Admin UI, authorization, ModuleGate, audit, notifications, and deactivation guards.
-- [ ] Commit managed processes, process logs, scheduler foundation, Admin frontend SPA polish, and clean-app handoff after final owner confirmation.
+- [x] Commit managed processes, process logs, scheduler foundation, Admin frontend SPA polish, and clean-app handoff after final owner confirmation.
 
 ## Completion criteria
 

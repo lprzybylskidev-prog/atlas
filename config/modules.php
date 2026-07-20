@@ -14,6 +14,7 @@ use App\Modules\Core\Users\UsersModule;
 use App\Modules\Optional\Imports\ImportsModule;
 use App\Modules\Optional\Integrations\IntegrationsModule;
 use App\Modules\Optional\ManagedProcesses\ManagedProcessesModule;
+use App\Modules\Optional\Search\SearchModule;
 
 return [
     'deployed' => [
@@ -29,5 +30,6 @@ return [
         IntegrationsModule::class,
         ManagedProcessesModule::class,
         ImportsModule::class,
+        SearchModule::class,
     ],
 ];

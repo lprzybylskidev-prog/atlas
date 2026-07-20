@@ -18,6 +18,7 @@ use App\Modules\Core\Files\Presentation\Console\PruneTemporaryFilesCommand;
 use App\Modules\Core\Notifications\Presentation\Console\PruneNotificationsCommand;
 use App\Modules\Core\Notifications\Presentation\Console\PublishRealtimeEventCommand;
 use App\Modules\Core\Notifications\Presentation\Console\SendNotificationCommand;
+use App\Modules\Optional\Search\Presentation\Console\RebuildSearchIndexesCommand;
 use App\Shared\Infrastructure\Console\ResetDemoEnvironment;
 use App\Shared\Presentation\Console\ApplyDueModuleActivationSchedules;
 use App\Shared\Presentation\Console\DispatchOperationalAlertsCommand;
@@ -47,6 +48,7 @@ return Application::configure(basePath: dirname(__DIR__))
         PruneNotificationsCommand::class,
         PublishRealtimeEventCommand::class,
         RecordSchedulerHeartbeatCommand::class,
+        RebuildSearchIndexesCommand::class,
         ResetDemoEnvironment::class,
         SendNotificationCommand::class,
     ])

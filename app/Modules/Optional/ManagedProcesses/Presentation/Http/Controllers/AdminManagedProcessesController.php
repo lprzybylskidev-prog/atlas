@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace App\Modules\Optional\ManagedProcesses\Presentation\Http\Controllers;
 
 use App\Modules\Optional\ManagedProcesses\Application\Contracts\ProcessDefinitionRegistry;
-use App\Modules\Optional\ManagedProcesses\Application\DTOs\ProcessDefinition;
 use App\Modules\Optional\ManagedProcesses\Application\Enums\ProcessRunStatus;
 use App\Modules\Optional\ManagedProcesses\Application\Public\Contracts\ManagedProcessRunner;
+use App\Modules\Optional\ManagedProcesses\Application\Public\DTOs\ProcessDefinition;
 use App\Shared\Infrastructure\Database\DatabaseTable;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;

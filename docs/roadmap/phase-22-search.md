@@ -1,6 +1,6 @@
 # Phase 22 — Search
 
-**Status:** `not started`
+**Status:** `complete`
 
 ## Objective
 
@@ -43,34 +43,34 @@ Implement module-owned Meilisearch projections after Outbox, audit, module activ
 
 ## Tasks
 
-- [ ] Define module-owned index descriptors and immutable search document DTOs.
-- [ ] Feed indexing from committed Outbox events and make consumers idempotent.
-- [ ] Propagate deletion, anonymization, and visibility changes.
-- [ ] Implement degraded versus critical readiness configuration.
-- [ ] Add unavailable UI state without broad database fallback.
-- [ ] Add full and per-module rebuild, count comparison, discrepancy, and lag commands backed by managed-process runs.
-- [ ] Implement new-index build plus stable-alias switch.
-- [ ] Build Admin search health, lag, sync, discrepancy, and rebuild views integrated with managed-process run details.
-- [ ] Add confirmed and audited Admin rebuild action.
-- [ ] Test that permissions and team scope do not rely on Meilisearch filters.
-- [ ] Create `Search` module.
-- [ ] Define search contracts.
-- [ ] Configure Laravel Scout and Meilisearch for the Search module.
-- [ ] Define derived and rebuildable indexes.
-- [ ] Define searchable, filterable, and sortable fields.
-- [ ] Enforce team filtering.
-- [ ] Enforce permission filtering.
-- [ ] Enforce ModuleGate for search queries, indexing jobs, rebuild commands, and Admin search operations.
-- [ ] Document degraded or unavailable behavior when Search or a searched module is inactive.
-- [ ] Queue index updates.
-- [ ] Add rebuild commands.
-- [ ] Remove indexed data during deletion/anonymization.
-- [ ] Document when Meilisearch is allowed and when normal PostgreSQL queries must be used.
-- [ ] Commit Search module.
+- [x] Define module-owned index descriptors and immutable search document DTOs.
+- [x] Feed indexing from committed Outbox events and make consumers idempotent.
+- [x] Propagate deletion, anonymization, and visibility changes.
+- [x] Implement degraded versus critical readiness configuration.
+- [x] Add unavailable UI state without broad database fallback.
+- [x] Add full and per-module rebuild, count comparison, discrepancy, and lag commands backed by managed-process runs.
+- [x] Implement new-index build plus stable-alias switch.
+- [x] Build Admin search health, lag, sync, discrepancy, and rebuild views integrated with managed-process run details.
+- [x] Add confirmed and audited Admin rebuild action.
+- [x] Test that permissions and team scope do not rely on Meilisearch filters.
+- [x] Create `Search` module.
+- [x] Define search contracts.
+- [x] Configure Laravel Scout and Meilisearch for the Search module.
+- [x] Define derived and rebuildable indexes.
+- [x] Define searchable, filterable, and sortable fields.
+- [x] Enforce team filtering.
+- [x] Enforce permission filtering.
+- [x] Enforce ModuleGate for search queries, indexing jobs, rebuild commands, and Admin search operations.
+- [x] Document degraded or unavailable behavior when Search or a searched module is inactive.
+- [x] Queue index updates.
+- [x] Add rebuild commands.
+- [x] Remove indexed data during deletion/anonymization.
+- [x] Document when Meilisearch is allowed and when normal PostgreSQL queries must be used.
+- [x] Commit Search module.
 
 ## Completion criteria
 
-- [ ] Search indexes are derived, rebuildable, module-owned, and fed from committed Outbox events.
-- [ ] Backend authorization, active-team, module activation, deletion, anonymization, and visibility rules do not rely on Meilisearch filters alone.
-- [ ] Search health and rebuilds are visible and safe.
-- [ ] Relevant tests and documentation are current.
+- [x] Search indexes are derived, rebuildable, module-owned, and fed from committed Outbox events.
+- [x] Backend authorization, active-team, module activation, deletion, anonymization, and visibility rules do not rely on Meilisearch filters alone.
+- [x] Search health and rebuilds are visible and safe.
+- [x] Relevant tests and documentation are current.
