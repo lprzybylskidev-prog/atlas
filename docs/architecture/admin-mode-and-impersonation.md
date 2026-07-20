@@ -84,6 +84,8 @@ Audit must store:
 - operation;
 - result.
 
+Impersonation session state is exposed to the Audit module through Audit's explicit current context provider. Audit persistence stores the resulting context but does not read HTTP session keys directly.
+
 External-effect actions such as email, API calls, external exports, and financial operations must show an additional warning before execution. During impersonation these routes must require an explicit `impersonation_external_effect_acknowledged` acknowledgement or use an equivalent UI confirmation before the backend proceeds.
 
 ### Time tracking during impersonation

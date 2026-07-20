@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Shared\Application\Tables;
 
+use App\Modules\Core\Audit\Application\Public\Enums\SecurityAuditCategory;
 use App\Modules\Core\Identity\Application\Public\Contracts\SecurityAuditRecorder;
 use App\Modules\Core\Identity\Application\Public\DTOs\SecurityAuditEvent;
 use App\Shared\Infrastructure\Database\DatabaseTable;
@@ -295,6 +296,7 @@ final readonly class TableSavedViewService
             actorPublicId: $actorPublicId,
             targetPublicId: null,
             reason: null,
+            category: SecurityAuditCategory::Authorization,
             metadata: [
                 'table_key' => $tableKey,
                 'view_public_id' => $viewPublicId,

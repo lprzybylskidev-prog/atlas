@@ -13,6 +13,11 @@ Current public writer:
 - `App\Modules\Core\Audit\Application\Public\Contracts\AuditRecorder`;
 - `App\Modules\Core\Audit\Application\Public\DTOs\AuditEvent`.
 
+Current context provider:
+
+- `App\Modules\Core\Audit\Application\Public\Contracts\AuditActorContextProvider`;
+- `App\Modules\Core\Audit\Application\Public\DTOs\AuditActorContext`.
+
 The earlier Identity `SecurityAuditRecorder` producer contract remains available as a compatibility producer contract for existing Identity, Authorization, and shared table view producers. Its implementation now writes into the full Audit module. It no longer owns a separate `security_audit_events` table.
 
 ## Persistence
@@ -25,6 +30,8 @@ Audit persistence uses:
 Fresh installations do not create the former `security_audit_events` table. The Phase 11 migration can import that legacy table when it exists in a pre-Phase-11 local database, then removes it.
 
 Audit records are append-only. PostgreSQL triggers reject ordinary updates and deletes on audit tables.
+
+Audit persistence records rows only. It does not read Laravel's global `request()` helper, HTTP session, or impersonation session keys directly. Request/session-specific context is provided through `AuditActorContextProvider`, with safe empty behavior for CLI, scheduler, queue, and request-less execution.
 
 ## Event Contents
 
@@ -48,6 +55,8 @@ Audit events store where relevant:
 - secret-safe metadata.
 
 Audit records must not contain passwords, password hashes, MFA secrets, recovery codes, tokens, raw credentials, full sensitive payloads, or unnecessary personal data.
+
+Security audit events must provide an explicit `SecurityAuditCategory` enum value. The stored database value remains the enum's stable string value, such as `authentication`, `password`, `mfa`, `session`, `authorization`, `impersonation`, `administrative_mode`, `rate_limit`, `settings`, `queue_operations`, `files`, or `integrations`. Runtime code must not infer security category from fragments of the action name.
 
 ## Retention And Privacy
 

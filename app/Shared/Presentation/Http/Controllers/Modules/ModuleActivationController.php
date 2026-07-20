@@ -6,6 +6,7 @@ namespace App\Shared\Presentation\Http\Controllers\Modules;
 
 use App\Modules\Core\Audit\Application\Public\Contracts\AuditRecorder;
 use App\Modules\Core\Audit\Application\Public\DTOs\AuditEvent;
+use App\Modules\Core\Audit\Application\Public\Enums\SecurityAuditCategory;
 use App\Shared\Application\Modules\Activation\Contracts\ModuleActivationService;
 use App\Shared\Application\Modules\Activation\ModuleActivationChange;
 use App\Shared\Application\Modules\Activation\ModuleActivationException;
@@ -477,7 +478,7 @@ final readonly class ModuleActivationController
             reason: $reason,
             metadata: ['module_key' => $module, ...$metadata],
             security: true,
-            securityCategory: 'authorization',
+            securityCategory: SecurityAuditCategory::Authorization,
         ));
     }
 }

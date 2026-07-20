@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Core\Users\Presentation\Console;
 
+use App\Modules\Core\Audit\Application\Public\Enums\SecurityAuditCategory;
 use App\Modules\Core\Authorization\Application\Public\Contracts\AdministratorAccessManager;
 use App\Modules\Core\Identity\Application\Public\Contracts\SecurityAuditRecorder;
 use App\Modules\Core\Identity\Application\Public\DTOs\SecurityAuditEvent;
@@ -61,6 +62,7 @@ final class BootstrapFirstAdministrator extends Command
             actorPublicId: null,
             targetPublicId: $created->publicId,
             reason: 'First administrator bootstrap',
+            category: SecurityAuditCategory::Authorization,
             metadata: [
                 'team_public_id' => $team->publicId,
                 'first_password_link_issued' => $created->firstPasswordLinkIssued,

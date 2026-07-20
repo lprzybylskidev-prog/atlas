@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Core\Identity\Application\LoginProtection;
 
+use App\Modules\Core\Audit\Application\Public\Enums\SecurityAuditCategory;
 use App\Modules\Core\Identity\Application\Contracts\SuspiciousLoginNotifier;
 use App\Modules\Core\Identity\Application\Public\Contracts\SecurityAuditRecorder;
 use App\Modules\Core\Identity\Application\Public\Contracts\UserSessionRegistry;
@@ -55,6 +56,7 @@ final class LoginAttemptProtection
                 actorPublicId: null,
                 targetPublicId: (string) $user->public_id,
                 reason: null,
+                category: SecurityAuditCategory::Identity,
                 metadata: [
                     'locked_until' => $lockedUntil->toISOString(),
                     'lock_count' => $lockCount,
@@ -70,6 +72,7 @@ final class LoginAttemptProtection
             actorPublicId: null,
             targetPublicId: (string) $user->public_id,
             reason: null,
+            category: SecurityAuditCategory::Authentication,
             metadata: [
                 'failed_attempts' => $failedAttempts,
                 'locked' => $lockedUntil !== null,
@@ -98,6 +101,7 @@ final class LoginAttemptProtection
             actorPublicId: (string) $user->public_id,
             targetPublicId: (string) $user->public_id,
             reason: null,
+            category: SecurityAuditCategory::Authentication,
         ));
     }
 

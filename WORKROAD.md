@@ -224,6 +224,14 @@ Implement typed external integration adapters, idempotency, retries, circuit bre
 
 [Open implementation contract and tasks](docs/roadmap/phase-20-integrations.md)
 
+### Phase 20a — Audit context and security category hardening
+
+**Status:** `complete`
+
+Harden Audit context discovery and security category classification before non-HTTP import workflows depend on audit.
+
+[Open implementation contract and tasks](docs/roadmap/phase-20a-audit-hardening.md)
+
 ### Phase 21 — Imports
 
 **Status:** `not started`

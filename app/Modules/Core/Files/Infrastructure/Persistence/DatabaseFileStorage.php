@@ -6,6 +6,7 @@ namespace App\Modules\Core\Files\Infrastructure\Persistence;
 
 use App\Modules\Core\Audit\Application\Public\Contracts\AuditRecorder;
 use App\Modules\Core\Audit\Application\Public\DTOs\AuditEvent;
+use App\Modules\Core\Audit\Application\Public\Enums\SecurityAuditCategory;
 use App\Modules\Core\Files\Application\DTOs\MalwareScanResult;
 use App\Modules\Core\Files\Application\Enums\FileScanState;
 use App\Modules\Core\Files\Application\Exceptions\FileNotAvailableForDownload;
@@ -418,7 +419,7 @@ final readonly class DatabaseFileStorage implements FileLifecycle, FileMaintenan
                 'ttl_minutes' => max(1, $ttlMinutes),
             ],
             security: true,
-            securityCategory: 'files',
+            securityCategory: SecurityAuditCategory::Files,
         ));
 
         return new FileMaintenanceResult($deleted, $failed);
@@ -524,27 +525,15 @@ final readonly class DatabaseFileStorage implements FileLifecycle, FileMaintenan
             aggregateType: 'file',
             aggregatePublicId: $filePublicId,
             teamPublicId: $teamPublicId,
-            correlationId: $this->requestCorrelationId(),
             metadata: $metadata,
             security: true,
-            securityCategory: 'files',
+            securityCategory: SecurityAuditCategory::Files,
         ));
     }
 
     private function publicId(string $table, int $id): ?string
     {
         $value = $this->db->table($table)->where('id', $id)->value('public_id');
-
-        return is_string($value) ? $value : null;
-    }
-
-    private function requestCorrelationId(): ?string
-    {
-        if (app()->runningInConsole()) {
-            return null;
-        }
-
-        $value = request()->attributes->get('correlation_id');
 
         return is_string($value) ? $value : null;
     }

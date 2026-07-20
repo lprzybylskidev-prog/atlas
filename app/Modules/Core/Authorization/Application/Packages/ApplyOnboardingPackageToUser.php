@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Core\Authorization\Application\Packages;
 
+use App\Modules\Core\Audit\Application\Public\Enums\SecurityAuditCategory;
 use App\Modules\Core\Authorization\Application\Contracts\PermissionRoleStore;
 use App\Modules\Core\Identity\Application\Public\Contracts\SecurityAuditRecorder;
 use App\Modules\Core\Identity\Application\Public\DTOs\SecurityAuditEvent;
@@ -56,6 +57,7 @@ final readonly class ApplyOnboardingPackageToUser
             actorPublicId: $actorPublicId,
             targetPublicId: $userPublicId,
             reason: 'User creation preset',
+            category: SecurityAuditCategory::Authorization,
             metadata: [
                 'package' => $package->name,
                 'team_public_id' => $teamPublicId,

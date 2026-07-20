@@ -6,6 +6,7 @@ namespace App\Shared\Presentation\Http\Controllers;
 
 use App\Modules\Core\Audit\Application\Public\Contracts\AuditRecorder;
 use App\Modules\Core\Audit\Application\Public\DTOs\AuditEvent;
+use App\Modules\Core\Audit\Application\Public\Enums\SecurityAuditCategory;
 use App\Shared\Infrastructure\Database\DatabaseTable;
 use App\Shared\Infrastructure\Operations\OperationalModuleGuard;
 use Illuminate\Http\RedirectResponse;
@@ -188,7 +189,7 @@ final readonly class AdminFailedJobController
                 'queues' => array_values(array_unique($queues)),
             ],
             security: true,
-            securityCategory: 'queue_operations',
+            securityCategory: SecurityAuditCategory::QueueOperations,
         ));
     }
 

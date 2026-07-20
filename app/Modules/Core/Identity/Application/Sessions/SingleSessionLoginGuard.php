@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Core\Identity\Application\Sessions;
 
+use App\Modules\Core\Audit\Application\Public\Enums\SecurityAuditCategory;
 use App\Modules\Core\Identity\Application\Public\Contracts\SecurityAuditRecorder;
 use App\Modules\Core\Identity\Application\Public\Contracts\UserSessionRegistry;
 use App\Modules\Core\Identity\Application\Public\DTOs\SecurityAuditEvent;
@@ -37,6 +38,7 @@ final class SingleSessionLoginGuard
                 actorPublicId: (string) $user->public_id,
                 targetPublicId: (string) $user->public_id,
                 reason: null,
+                category: SecurityAuditCategory::Session,
                 metadata: [
                     'active_session_count' => count($activeSessions),
                 ],
@@ -57,6 +59,7 @@ final class SingleSessionLoginGuard
             actorPublicId: (string) $user->public_id,
             targetPublicId: (string) $user->public_id,
             reason: null,
+            category: SecurityAuditCategory::Session,
             metadata: [
                 'terminated_session_count' => count($activeSessions),
             ],

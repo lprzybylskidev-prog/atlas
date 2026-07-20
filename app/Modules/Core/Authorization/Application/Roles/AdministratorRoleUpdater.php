@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Core\Authorization\Application\Roles;
 
+use App\Modules\Core\Audit\Application\Public\Enums\SecurityAuditCategory;
 use App\Modules\Core\Authorization\Application\Contracts\PermissionRoleStore;
 use App\Modules\Core\Authorization\Application\Permissions\PermissionCatalogRegistry;
 use App\Modules\Core\Identity\Application\Public\Contracts\SecurityAuditRecorder;
@@ -49,6 +50,7 @@ final readonly class AdministratorRoleUpdater
             actorPublicId: $actorPublicId,
             targetPublicId: null,
             reason: $reason,
+            category: SecurityAuditCategory::Authorization,
             metadata: [
                 'missing_count' => count($diff->missingPermissionNames),
             ],

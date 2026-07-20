@@ -6,6 +6,7 @@ namespace App\Modules\Core\Identity\Application\Admin;
 
 use App\Modules\Core\Audit\Application\Public\Contracts\AuditRecorder;
 use App\Modules\Core\Audit\Application\Public\DTOs\AuditEvent;
+use App\Modules\Core\Audit\Application\Public\Enums\SecurityAuditCategory;
 use App\Modules\Core\Authorization\Application\Public\Contracts\EffectivePermissionChecker;
 use App\Modules\Core\Authorization\Application\Public\DTOs\EffectivePermissionRequest;
 use App\Modules\Core\Identity\Application\Public\Contracts\UserSessionRegistry;
@@ -174,7 +175,7 @@ final readonly class ImpersonationManager
             teamPublicId: is_string($teamPublicId) ? $teamPublicId : null,
             reason: $reason,
             security: true,
-            securityCategory: 'impersonation',
+            securityCategory: SecurityAuditCategory::Impersonation,
         ));
     }
 
@@ -318,7 +319,7 @@ final readonly class ImpersonationManager
             reason: $reason,
             metadata: $metadata,
             security: true,
-            securityCategory: 'impersonation',
+            securityCategory: SecurityAuditCategory::Impersonation,
         ));
     }
 }

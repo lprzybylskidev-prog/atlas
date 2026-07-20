@@ -6,6 +6,7 @@ namespace App\Modules\Core\Authorization\Presentation\Http\Controllers;
 
 use App\Modules\Core\Audit\Application\Public\Contracts\AuditRecorder;
 use App\Modules\Core\Audit\Application\Public\DTOs\AuditEvent;
+use App\Modules\Core\Audit\Application\Public\Enums\SecurityAuditCategory;
 use App\Modules\Core\Authorization\Application\Permissions\PermissionCatalogRegistry;
 use App\Shared\Infrastructure\Database\DatabaseTable;
 use Closure;
@@ -173,7 +174,7 @@ final readonly class UpdateRoleController
             before: $before,
             after: $after,
             security: true,
-            securityCategory: 'authorization',
+            securityCategory: SecurityAuditCategory::Authorization,
         ));
     }
 }

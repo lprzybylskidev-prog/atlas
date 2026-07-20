@@ -6,6 +6,7 @@ namespace App\Modules\Core\Identity\Application\Admin;
 
 use App\Modules\Core\Audit\Application\Public\Contracts\AuditRecorder;
 use App\Modules\Core\Audit\Application\Public\DTOs\AuditEvent;
+use App\Modules\Core\Audit\Application\Public\Enums\SecurityAuditCategory;
 use App\Modules\Core\Authorization\Application\Public\Contracts\EffectivePermissionChecker;
 use App\Modules\Core\Authorization\Application\Public\DTOs\EffectivePermissionRequest;
 use App\Modules\Core\Identity\Infrastructure\Persistence\User;
@@ -251,7 +252,7 @@ final readonly class AdministrativeSessionManager
             teamPublicId: is_string($teamPublicId) ? $teamPublicId : null,
             reason: $reason,
             security: true,
-            securityCategory: 'administrative_mode',
+            securityCategory: SecurityAuditCategory::AdministrativeMode,
         ));
     }
 }

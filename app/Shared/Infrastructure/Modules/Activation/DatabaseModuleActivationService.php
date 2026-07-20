@@ -23,6 +23,7 @@ use App\Shared\Infrastructure\Database\DatabaseTable;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\ConnectionInterface;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Context;
 use Illuminate\Support\Str;
 
 final readonly class DatabaseModuleActivationService implements ModuleActivationService
@@ -94,7 +95,7 @@ final readonly class DatabaseModuleActivationService implements ModuleActivation
                 'actor_user_id' => $change->actorUserId,
                 'reason' => $change->reason,
                 'effective_at' => $now,
-                'correlation_id' => request()->headers->get('X-Request-Id'),
+                'correlation_id' => $this->correlationId(),
                 'created_at' => $now,
                 'updated_at' => $now,
             ]);
@@ -181,7 +182,7 @@ final readonly class DatabaseModuleActivationService implements ModuleActivation
                     'actor_user_id' => $actorUserId,
                     'reason' => $reason,
                     'effective_at' => $now,
-                    'correlation_id' => request()->headers->get('X-Request-Id'),
+                    'correlation_id' => $this->correlationId(),
                     'created_at' => $now,
                     'updated_at' => $now,
                 ]);
@@ -381,6 +382,13 @@ final readonly class DatabaseModuleActivationService implements ModuleActivation
     private function cacheKey(string $moduleKey, ?int $teamId = null): string
     {
         return self::CACHE_PREFIX.$moduleKey.':'.($teamId === null ? 'global' : 'team:'.$teamId);
+    }
+
+    private function correlationId(): ?string
+    {
+        $value = Context::get('correlation_id');
+
+        return is_string($value) && $value !== '' ? $value : null;
     }
 
     /**

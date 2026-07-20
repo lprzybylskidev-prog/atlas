@@ -6,6 +6,7 @@ namespace App\Modules\Optional\Integrations\Infrastructure\Runtime;
 
 use App\Modules\Core\Audit\Application\Public\Contracts\AuditRecorder;
 use App\Modules\Core\Audit\Application\Public\DTOs\AuditEvent;
+use App\Modules\Core\Audit\Application\Public\Enums\SecurityAuditCategory;
 use App\Modules\Optional\Integrations\Application\DTOs\IntegrationExecutionResult;
 use App\Modules\Optional\Integrations\Application\DTOs\IntegrationRetryPolicy;
 use App\Modules\Optional\Integrations\Application\Enums\IntegrationCircuitState;
@@ -229,7 +230,7 @@ final readonly class IntegrationOperationRunner
             teamPublicId: $teamPublicId,
             metadata: $context,
             security: true,
-            securityCategory: 'integrations',
+            securityCategory: SecurityAuditCategory::Integrations,
         ));
     }
 

@@ -6,6 +6,7 @@ namespace App\Modules\Core\Identity\Presentation\Http\Controllers;
 
 use App\Modules\Core\Audit\Application\Public\Contracts\AuditRecorder;
 use App\Modules\Core\Audit\Application\Public\DTOs\AuditEvent;
+use App\Modules\Core\Audit\Application\Public\Enums\SecurityAuditCategory;
 use App\Modules\Core\Identity\Application\Public\Contracts\UserSessionRegistry;
 use App\Shared\Infrastructure\Database\DatabaseTable;
 use Illuminate\Database\Query\Builder;
@@ -140,7 +141,7 @@ final readonly class ActiveTeamController
             after: ['active_team_public_id' => $after],
             teamPublicId: $after,
             security: true,
-            securityCategory: 'session',
+            securityCategory: SecurityAuditCategory::Session,
         ));
     }
 }

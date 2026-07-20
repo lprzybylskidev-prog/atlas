@@ -204,6 +204,8 @@ Impersonation is started from Admin user administration with a mandatory reason 
 
 During impersonation, ordinary application routes run as the impersonated user for active team, permissions, module visibility, menu, and restrictions. Admin routes are blocked until impersonation exits. The actual administrator, impersonated user, reason, team, and impersonation session ID are written to audit. A persistent application banner shows the impersonated user, active team, reason, and `Exit impersonation`; the application header also changes visual treatment.
 
+Identity provides the web/session implementation of Audit's current actor context provider. It reads impersonation session state and exposes only the audit context needed by Audit persistence: actual administrator, impersonated user, impersonation session ID, and correlation ID. The Audit database recorder itself does not read HTTP requests or session keys.
+
 Routes that perform external effects while impersonation is active must require an explicit real-effect acknowledgement before proceeding. The shared route middleware expects `impersonation_external_effect_acknowledged` for email, external API, external export, financial-processing, or equivalent future operations.
 
 Administrators can view recent security events for all users, including impersonation events, at `/admin/audit/security-history` and filter the history by selected user. Atlas does not send real-time user notifications for impersonation by default.

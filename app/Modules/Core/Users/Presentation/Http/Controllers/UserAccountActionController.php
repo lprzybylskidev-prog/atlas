@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Core\Users\Presentation\Http\Controllers;
 
+use App\Modules\Core\Audit\Application\Public\Enums\SecurityAuditCategory;
 use App\Modules\Core\Identity\Application\Public\Contracts\SecurityAuditRecorder;
 use App\Modules\Core\Identity\Application\Public\Contracts\UserCredentialAccountDirectory;
 use App\Modules\Core\Identity\Application\Public\Contracts\UserSessionRegistry;
@@ -112,6 +113,7 @@ final readonly class UserAccountActionController
             actorPublicId: is_string($actorPublicId) ? $actorPublicId : null,
             targetPublicId: $user,
             reason: 'Admin user action',
+            category: SecurityAuditCategory::Session,
         ));
 
         return redirect()->route('admin.users.index')->with('success', 'User sessions were invalidated.');

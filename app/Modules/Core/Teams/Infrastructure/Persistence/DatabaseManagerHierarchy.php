@@ -6,6 +6,7 @@ namespace App\Modules\Core\Teams\Infrastructure\Persistence;
 
 use App\Modules\Core\Audit\Application\Public\Contracts\AuditRecorder;
 use App\Modules\Core\Audit\Application\Public\DTOs\AuditEvent;
+use App\Modules\Core\Audit\Application\Public\Enums\SecurityAuditCategory;
 use App\Modules\Core\Teams\Application\Exceptions\ManagerHierarchyViolation;
 use App\Modules\Core\Teams\Application\Public\Contracts\ManagerHierarchy;
 use App\Modules\Core\Teams\Application\Public\DTOs\ManagerHierarchyNode;
@@ -574,7 +575,7 @@ final class DatabaseManagerHierarchy implements ManagerHierarchy
             before: $before,
             after: $after,
             security: true,
-            securityCategory: 'authorization',
+            securityCategory: SecurityAuditCategory::Authorization,
         ));
     }
 

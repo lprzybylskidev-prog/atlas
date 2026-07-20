@@ -6,6 +6,7 @@ namespace App\Modules\Core\Teams\Presentation\Http\Controllers;
 
 use App\Modules\Core\Audit\Application\Public\Contracts\AuditRecorder;
 use App\Modules\Core\Audit\Application\Public\DTOs\AuditEvent;
+use App\Modules\Core\Audit\Application\Public\Enums\SecurityAuditCategory;
 use App\Modules\Core\Authorization\Application\Public\Contracts\UserTeamAuthorizationManager;
 use App\Modules\Core\Identity\Application\Public\Contracts\UserCredentialAccountDirectory;
 use App\Modules\Core\Teams\Application\Public\Contracts\UserTeamMembershipManager;
@@ -454,7 +455,7 @@ final class TeamAdministrationController
             before: $before,
             after: $after,
             security: true,
-            securityCategory: 'authorization',
+            securityCategory: SecurityAuditCategory::Authorization,
         ));
     }
 }

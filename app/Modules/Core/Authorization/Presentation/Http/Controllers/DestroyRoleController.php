@@ -6,6 +6,7 @@ namespace App\Modules\Core\Authorization\Presentation\Http\Controllers;
 
 use App\Modules\Core\Audit\Application\Public\Contracts\AuditRecorder;
 use App\Modules\Core\Audit\Application\Public\DTOs\AuditEvent;
+use App\Modules\Core\Audit\Application\Public\Enums\SecurityAuditCategory;
 use App\Shared\Infrastructure\Database\DatabaseTable;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -78,7 +79,7 @@ final readonly class DestroyRoleController
             before: $before,
             after: $after,
             security: true,
-            securityCategory: 'authorization',
+            securityCategory: SecurityAuditCategory::Authorization,
         ));
     }
 }

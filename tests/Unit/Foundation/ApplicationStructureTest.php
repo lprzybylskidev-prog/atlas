@@ -153,4 +153,31 @@ final class ApplicationStructureTest extends TestCase
 
         self::assertGreaterThan(0, $checkedTraits);
     }
+
+    public function test_audit_persistence_does_not_read_global_http_context(): void
+    {
+        $basePath = dirname(__DIR__, 3);
+        $auditPersistencePath = $basePath.'/app/Modules/Core/Audit/Infrastructure/Persistence';
+
+        self::assertDirectoryExists($auditPersistencePath);
+
+        $iterator = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($auditPersistencePath));
+        $checkedFiles = 0;
+
+        foreach ($iterator as $candidate) {
+            if (! $candidate instanceof SplFileInfo || ! $candidate->isFile() || $candidate->getExtension() !== 'php') {
+                continue;
+            }
+
+            $checkedFiles++;
+            $contents = file_get_contents($candidate->getPathname());
+
+            self::assertIsString($contents);
+            self::assertStringNotContainsString('request()', $contents, sprintf('Audit persistence file [%s] must use an explicit audit context provider instead of request().', $candidate->getPathname()));
+            self::assertStringNotContainsString('Illuminate\\Http', $contents, sprintf('Audit persistence file [%s] must not depend on Laravel HTTP classes.', $candidate->getPathname()));
+            self::assertStringNotContainsString('->session()', $contents, sprintf('Audit persistence file [%s] must not read the HTTP session directly.', $candidate->getPathname()));
+        }
+
+        self::assertGreaterThan(0, $checkedFiles);
+    }
 }

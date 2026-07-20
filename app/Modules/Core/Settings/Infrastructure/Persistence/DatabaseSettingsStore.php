@@ -6,6 +6,7 @@ namespace App\Modules\Core\Settings\Infrastructure\Persistence;
 
 use App\Modules\Core\Audit\Application\Public\Contracts\AuditRecorder;
 use App\Modules\Core\Audit\Application\Public\DTOs\AuditEvent;
+use App\Modules\Core\Audit\Application\Public\Enums\SecurityAuditCategory;
 use App\Modules\Core\Settings\Application\Contracts\SettingsStore;
 use App\Modules\Core\Settings\Application\Enums\GlobalSettingKey;
 use App\Modules\Core\Settings\Application\Enums\SecuritySettingKey;
@@ -100,7 +101,7 @@ final readonly class DatabaseSettingsStore implements SettingsStore
             before: [$key->value => $before],
             after: [$key->value => $validated],
             security: true,
-            securityCategory: 'settings',
+            securityCategory: SecurityAuditCategory::Settings,
         ));
     }
 

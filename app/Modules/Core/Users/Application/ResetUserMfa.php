@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Core\Users\Application;
 
+use App\Modules\Core\Audit\Application\Public\Enums\SecurityAuditCategory;
 use App\Modules\Core\Identity\Application\Public\Contracts\SecurityAuditRecorder;
 use App\Modules\Core\Identity\Application\Public\Contracts\UserCredentialAccountStatusManager;
 use App\Modules\Core\Identity\Application\Public\Contracts\UserSessionRegistry;
@@ -62,6 +63,7 @@ final readonly class ResetUserMfa
             actorPublicId: $actorPublicId,
             targetPublicId: $command->targetPublicId,
             reason: $reason,
+            category: SecurityAuditCategory::Mfa,
         ));
     }
 }

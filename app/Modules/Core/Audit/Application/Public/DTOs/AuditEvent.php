@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace App\Modules\Core\Audit\Application\Public\DTOs;
 
+use App\Modules\Core\Audit\Application\Public\Enums\SecurityAuditCategory;
+use InvalidArgumentException;
+
 final readonly class AuditEvent
 {
     /**
@@ -31,6 +34,14 @@ final readonly class AuditEvent
         public array $after = [],
         public array $metadata = [],
         public bool $security = false,
-        public ?string $securityCategory = null,
-    ) {}
+        public ?SecurityAuditCategory $securityCategory = null,
+    ) {
+        if ($this->security && $this->securityCategory === null) {
+            throw new InvalidArgumentException('Security audit events require an explicit security category.');
+        }
+
+        if (! $this->security && $this->securityCategory !== null) {
+            throw new InvalidArgumentException('Only security audit events may define a security category.');
+        }
+    }
 }

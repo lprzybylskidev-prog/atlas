@@ -6,6 +6,7 @@ namespace Tests\Feature\Foundation;
 
 use App\Modules\Core\Audit\Application\Public\Contracts\AuditRecorder;
 use App\Modules\Core\Audit\Application\Public\DTOs\AuditEvent;
+use App\Modules\Core\Audit\Application\Public\Enums\SecurityAuditCategory;
 use App\Modules\Core\Authorization\Application\Roles\InstallStarterRoles;
 use App\Modules\Core\Authorization\Application\Roles\StarterRoleName;
 use App\Modules\Core\Identity\Application\Admin\AdministrativeSessionManager;
@@ -327,7 +328,7 @@ final class AdminModeImpersonationTest extends TestCase
             teamPublicId: (string) $team->public_id,
             reason: 'Other security check '.Str::ulid(),
             security: true,
-            securityCategory: 'identity',
+            securityCategory: SecurityAuditCategory::Identity,
         ));
 
         $this->actingAs($admin)

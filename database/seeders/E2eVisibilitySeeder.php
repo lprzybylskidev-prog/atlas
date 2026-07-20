@@ -6,6 +6,7 @@ namespace Database\Seeders;
 
 use App\Modules\Core\Audit\Application\Public\Contracts\AuditRecorder;
 use App\Modules\Core\Audit\Application\Public\DTOs\AuditEvent;
+use App\Modules\Core\Audit\Application\Public\Enums\SecurityAuditCategory;
 use App\Modules\Core\Authorization\Application\Contracts\PermissionRoleStore;
 use App\Modules\Core\Authorization\Application\Public\Contracts\AdministratorAccessManager;
 use App\Modules\Core\Authorization\Application\Roles\InstallStarterRoles;
@@ -77,7 +78,7 @@ final class E2eVisibilitySeeder extends Seeder
             teamPublicId: $teamPublicId,
             correlationId: 'e2e-alpha',
             security: true,
-            securityCategory: 'authentication',
+            securityCategory: SecurityAuditCategory::Authentication,
         ));
         $recorder->record(new AuditEvent(
             module: 'shared',

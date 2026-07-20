@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Modules\Core\Identity\Presentation\Providers;
 
+use App\Modules\Core\Audit\Application\Public\Contracts\AuditActorContextProvider;
+use App\Modules\Core\Audit\Application\Public\Enums\SecurityAuditCategory;
 use App\Modules\Core\Identity\Application\Contracts\PasswordHistoryRepository;
 use App\Modules\Core\Identity\Application\Contracts\SuspiciousLoginNotifier;
 use App\Modules\Core\Identity\Application\LoginProtection\LoginAttemptProtection;
@@ -27,6 +29,7 @@ use App\Modules\Core\Identity\Infrastructure\Persistence\EloquentUserCredentialA
 use App\Modules\Core\Identity\Infrastructure\Persistence\EloquentUserCredentialAccountStore;
 use App\Modules\Core\Identity\Infrastructure\Persistence\RedisUserSessionRegistry;
 use App\Modules\Core\Identity\Infrastructure\Persistence\User;
+use App\Modules\Core\Identity\Infrastructure\Runtime\SessionAuditActorContextProvider;
 use App\Modules\Core\Identity\Presentation\Fortify\Actions\CreateNewUser;
 use App\Modules\Core\Identity\Presentation\Fortify\Actions\ResetUserPassword;
 use App\Modules\Core\Identity\Presentation\Fortify\Actions\UpdateUserPassword;
@@ -50,6 +53,7 @@ class FortifyServiceProvider extends ServiceProvider
         $this->app->bind(UserCredentialAccountStore::class, EloquentUserCredentialAccountStore::class);
         $this->app->bind(UserCredentialAccountStatusManager::class, EloquentUserCredentialAccountStatusManager::class);
         $this->app->bind(UserSessionRegistry::class, RedisUserSessionRegistry::class);
+        $this->app->bind(AuditActorContextProvider::class, SessionAuditActorContextProvider::class);
     }
 
     public function boot(): void
@@ -80,6 +84,7 @@ class FortifyServiceProvider extends ServiceProvider
                     actorPublicId: null,
                     targetPublicId: $user instanceof User ? (string) $user->public_id : null,
                     reason: null,
+                    category: SecurityAuditCategory::Authentication,
                     metadata: [
                         'reason' => $user instanceof User ? 'not_authenticatable' : 'invalid_credentials',
                     ],
@@ -118,6 +123,7 @@ class FortifyServiceProvider extends ServiceProvider
                 actorPublicId: is_string($userPublicId) ? $userPublicId : null,
                 targetPublicId: is_string($userPublicId) ? $userPublicId : null,
                 reason: null,
+                category: SecurityAuditCategory::Session,
             ));
         });
     }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Core\Identity\Presentation\Fortify\Actions;
 
+use App\Modules\Core\Audit\Application\Public\Enums\SecurityAuditCategory;
 use App\Modules\Core\Identity\Application\PasswordHistory;
 use App\Modules\Core\Identity\Application\Public\Contracts\SecurityAuditRecorder;
 use App\Modules\Core\Identity\Application\Public\Contracts\UserSessionRegistry;
@@ -66,6 +67,7 @@ class UpdateUserPassword implements UpdatesUserPasswords
             actorPublicId: (string) $user->public_id,
             targetPublicId: (string) $user->public_id,
             reason: null,
+            category: SecurityAuditCategory::Password,
         ));
     }
 }

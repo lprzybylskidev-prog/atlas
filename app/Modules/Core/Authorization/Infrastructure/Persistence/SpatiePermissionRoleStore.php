@@ -6,6 +6,7 @@ namespace App\Modules\Core\Authorization\Infrastructure\Persistence;
 
 use App\Modules\Core\Audit\Application\Public\Contracts\AuditRecorder;
 use App\Modules\Core\Audit\Application\Public\DTOs\AuditEvent;
+use App\Modules\Core\Audit\Application\Public\Enums\SecurityAuditCategory;
 use App\Modules\Core\Authorization\Application\Contracts\PermissionRoleStore;
 use App\Modules\Core\Authorization\Application\Permissions\PermissionCatalogRegistry;
 use App\Modules\Core\Authorization\Application\Public\Contracts\UserTeamAuthorizationCleaner;
@@ -393,7 +394,7 @@ final class SpatiePermissionRoleStore implements PermissionRoleStore, UserTeamAu
                 'reason' => $reason,
             ],
             security: true,
-            securityCategory: 'authorization',
+            securityCategory: SecurityAuditCategory::Authorization,
         ));
     }
 

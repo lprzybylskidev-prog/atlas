@@ -6,6 +6,7 @@ namespace App\Modules\Core\Identity\Presentation\Http\Controllers;
 
 use App\Modules\Core\Audit\Application\Public\Contracts\AuditRecorder;
 use App\Modules\Core\Audit\Application\Public\DTOs\AuditEvent;
+use App\Modules\Core\Audit\Application\Public\Enums\SecurityAuditCategory;
 use App\Modules\Core\Identity\Application\RateLimiting\RateLimitPolicyCatalog;
 use App\Modules\Core\Identity\Application\RateLimiting\RateLimitRejectionRecorder;
 use App\Shared\Infrastructure\Database\DatabaseTable;
@@ -54,7 +55,7 @@ final readonly class ResetRateLimitCounterController
                 'limiter_key_hash' => $this->rejections->hash($limiterKey),
             ],
             security: true,
-            securityCategory: 'rate_limit',
+            securityCategory: SecurityAuditCategory::RateLimit,
         ));
 
         return redirect()->route('admin.rate-limits.index')->with('success', 'Rate-limit counter was reset.');

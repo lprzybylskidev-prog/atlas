@@ -6,6 +6,7 @@ namespace App\Modules\Optional\Integrations\Infrastructure\Persistence;
 
 use App\Modules\Core\Audit\Application\Public\Contracts\AuditRecorder;
 use App\Modules\Core\Audit\Application\Public\DTOs\AuditEvent;
+use App\Modules\Core\Audit\Application\Public\Enums\SecurityAuditCategory;
 use App\Modules\Optional\Integrations\Application\Exceptions\ExternalApiAccessDisabled;
 use App\Modules\Optional\Integrations\Application\Public\Contracts\ExternalApiAccessPolicy;
 use App\Modules\Optional\Integrations\Application\Public\Contracts\ExternalIdMappingStore;
@@ -157,7 +158,7 @@ final readonly class DatabaseIntegrationStore implements ExternalApiAccessPolicy
             teamPublicId: $teamPublicId,
             metadata: $context,
             security: true,
-            securityCategory: 'integrations',
+            securityCategory: SecurityAuditCategory::Integrations,
         ));
     }
 

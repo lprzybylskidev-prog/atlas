@@ -6,8 +6,10 @@ namespace Tests\Feature\Foundation;
 
 use App\Modules\Core\Audit\Application\Public\Contracts\AuditRecorder;
 use App\Modules\Core\Audit\Application\Public\DTOs\AuditEvent;
+use App\Modules\Core\Audit\Application\Public\Enums\SecurityAuditCategory;
 use App\Modules\Core\Authorization\Application\Roles\InstallStarterRoles;
 use App\Modules\Core\Authorization\Application\Roles\StarterRoleName;
+use App\Modules\Core\Identity\Application\Admin\ImpersonationManager;
 use App\Modules\Core\Identity\Application\Public\Contracts\SecurityAuditRecorder;
 use App\Modules\Core\Identity\Application\Public\DTOs\SecurityAuditEvent;
 use App\Modules\Core\Identity\Infrastructure\Persistence\User;
@@ -16,10 +18,13 @@ use App\Shared\Infrastructure\Database\DatabaseTable;
 use Illuminate\Auth\Events\Logout;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Inertia\Testing\AssertableInertia;
+use InvalidArgumentException;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
@@ -42,6 +47,7 @@ final class AuditFoundationTest extends TestCase
             actorPublicId: $actor->public_id,
             targetPublicId: $target->public_id,
             reason: 'Support verified identity.',
+            category: SecurityAuditCategory::Mfa,
             metadata: ['ticket' => 'SUP-100'],
         ));
 
@@ -83,6 +89,92 @@ final class AuditFoundationTest extends TestCase
             ->update(['result' => 'tampered']);
     }
 
+    public function test_audit_can_be_recorded_without_http_session_context(): void
+    {
+        $this->app->make(AuditRecorder::class)->record(new AuditEvent(
+            module: 'tests',
+            action: 'audit.no_request_context_probe',
+            result: 'succeeded',
+            source: 'cli',
+        ));
+
+        self::assertDatabaseHas(DatabaseTable::AUDIT_EVENTS, [
+            'module' => 'tests',
+            'action' => 'audit.no_request_context_probe',
+            'result' => 'succeeded',
+            'source' => 'cli',
+            'actual_actor_public_id' => null,
+            'impersonated_user_public_id' => null,
+            'impersonation_session_id' => null,
+        ]);
+    }
+
+    public function test_audit_recorder_enriches_impersonation_context_without_event_duplication(): void
+    {
+        Route::post('/admin/testing/audit-impersonation-context', function (): Response {
+            app(AuditRecorder::class)->record(new AuditEvent(
+                module: 'tests',
+                action: 'audit.impersonated_action_probe',
+                result: 'succeeded',
+                source: 'ui',
+            ));
+
+            return response()->noContent();
+        })->middleware('web');
+
+        $actor = User::factory()->create();
+        $target = User::factory()->create();
+        $sessionId = '01K0DXCKWJ3N8B6N7VHQ0A9999';
+        $requestId = 'audit-context-request';
+
+        $this->actingAs($actor)
+            ->withHeader('X-Request-Id', $requestId)
+            ->withSession([
+                ImpersonationManager::SESSION_ID => $sessionId,
+                ImpersonationManager::ACTOR_PUBLIC_ID => (string) $actor->public_id,
+                ImpersonationManager::USER_PUBLIC_ID => (string) $target->public_id,
+            ])
+            ->post('/admin/testing/audit-impersonation-context')
+            ->assertNoContent();
+
+        self::assertDatabaseHas(DatabaseTable::AUDIT_EVENTS, [
+            'module' => 'tests',
+            'action' => 'audit.impersonated_action_probe',
+            'actual_actor_public_id' => $actor->public_id,
+            'impersonated_user_public_id' => $target->public_id,
+            'impersonation_session_id' => $sessionId,
+            'correlation_id' => $requestId,
+        ]);
+    }
+
+    public function test_security_audit_events_require_explicit_category(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Security audit events require an explicit security category.');
+
+        new AuditEvent(
+            module: 'tests',
+            action: 'audit.security_without_category',
+            result: 'succeeded',
+            source: 'test',
+            security: true,
+        );
+    }
+
+    public function test_non_security_audit_events_reject_security_category(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Only security audit events may define a security category.');
+
+        new AuditEvent(
+            module: 'tests',
+            action: 'audit.non_security_with_category',
+            result: 'succeeded',
+            source: 'test',
+            securityCategory: SecurityAuditCategory::Security,
+        );
+    }
+
     public function test_logout_session_change_is_audited(): void
     {
         $actor = User::factory()->create();
@@ -117,7 +209,7 @@ final class AuditFoundationTest extends TestCase
             before: ['permissions' => ['dashboard']],
             after: ['permissions' => ['dashboard', 'admin.audit.index']],
             security: true,
-            securityCategory: 'authorization',
+            securityCategory: SecurityAuditCategory::Authorization,
         ));
 
         $this->actingAs($actor)
@@ -156,7 +248,7 @@ final class AuditFoundationTest extends TestCase
             targetPublicId: (string) Str::ulid(),
             teamPublicId: $activeTeam->public_id,
             security: true,
-            securityCategory: 'authorization',
+            securityCategory: SecurityAuditCategory::Authorization,
         ));
         $this->app->make(AuditRecorder::class)->record(new AuditEvent(
             module: 'identity',
@@ -168,7 +260,7 @@ final class AuditFoundationTest extends TestCase
             targetPublicId: (string) Str::ulid(),
             teamPublicId: $otherTeam->public_id,
             security: true,
-            securityCategory: 'authentication',
+            securityCategory: SecurityAuditCategory::Authentication,
         ));
 
         $this->actingAs($actor)

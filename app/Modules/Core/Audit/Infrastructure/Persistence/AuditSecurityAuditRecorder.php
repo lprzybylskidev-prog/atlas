@@ -30,7 +30,7 @@ final readonly class AuditSecurityAuditRecorder implements SecurityAuditRecorder
             reason: $event->reason,
             metadata: $event->metadata,
             security: true,
-            securityCategory: $this->securityCategory($event->action),
+            securityCategory: $event->category,
         ));
 
     }
@@ -40,17 +40,5 @@ final readonly class AuditSecurityAuditRecorder implements SecurityAuditRecorder
         $value = $event->metadata[$key] ?? null;
 
         return is_string($value) && $value !== '' ? $value : null;
-    }
-
-    private function securityCategory(string $action): string
-    {
-        return match (true) {
-            str_contains($action, 'login') => 'authentication',
-            str_contains($action, 'password') => 'password',
-            str_contains($action, 'mfa') => 'mfa',
-            str_contains($action, 'session') => 'session',
-            str_contains($action, 'role'), str_contains($action, 'permission'), str_contains($action, 'team') => 'authorization',
-            default => 'security',
-        };
     }
 }

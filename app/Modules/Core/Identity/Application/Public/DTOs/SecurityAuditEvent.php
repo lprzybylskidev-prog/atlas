@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Modules\Core\Identity\Application\Public\DTOs;
 
+use App\Modules\Core\Audit\Application\Public\Enums\SecurityAuditCategory;
+
 final readonly class SecurityAuditEvent
 {
     /**
@@ -17,6 +19,7 @@ final readonly class SecurityAuditEvent
         public ?string $actorPublicId,
         public ?string $targetPublicId,
         public ?string $reason,
+        public SecurityAuditCategory $category,
         public array $metadata = [],
     ) {}
 }
