@@ -4,6 +4,7 @@ import { IconArrowLeft, IconPuzzle } from '@tabler/icons-vue';
 import { reactive } from 'vue';
 
 import ActionLink from '../../../Components/ActionLink.vue';
+import DataTableExportMenu from '../../../Components/DataTableExportMenu.vue';
 import AtlasForm from '../../../Components/Form/AtlasForm.vue';
 import FormButton from '../../../Components/Form/FormButton.vue';
 import FormCheckbox from '../../../Components/Form/FormCheckbox.vue';
@@ -14,6 +15,7 @@ import StatusBadge from '../../../Components/StatusBadge.vue';
 import SurfaceCard from '../../../Components/SurfaceCard.vue';
 import TextBadge from '../../../Components/TextBadge.vue';
 import AdminLayout from '../../../Layouts/AdminLayout.vue';
+import type { DataTableExportMeta } from '../../../Types/data-table';
 
 interface ModuleDetails {
     moduleKey: string;
@@ -66,7 +68,21 @@ const props = defineProps<{
     teams: TeamRow[];
     history: HistoryRow[];
     schedules: ScheduleRow[];
+    exports: DataTableExportMeta;
 }>();
+
+const moduleTeamExportColumns = ['moduleKey', 'name', 'isActive', 'teamEnabled', 'effectiveEnabled', 'source', 'version'] as const;
+const moduleHistoryExportColumns = [
+    'moduleKey',
+    'scope',
+    'teamName',
+    'previousEnabled',
+    'newEnabled',
+    'source',
+    'reason',
+    'effectiveAt',
+] as const;
+const moduleScheduleExportColumns = ['moduleKey', 'scope', 'teamName', 'targetEnabled', 'status', 'reason', 'effectiveAt'] as const;
 
 const globalForm = useForm({
     enabled: props.module.globallyEnabled,
@@ -239,6 +255,16 @@ function cancelSchedule(publicId: string, reason: string): void {
                     </SurfaceCard>
 
                     <SurfaceCard title="Teams" :icon="IconPuzzle">
+                        <template #actions>
+                            <DataTableExportMenu
+                                table-key="admin.modules.detail.teams"
+                                :exports="exports"
+                                :columns="[...moduleTeamExportColumns]"
+                                :column-order="[...moduleTeamExportColumns]"
+                                :filters="{ module: module.moduleKey }"
+                                sort="name"
+                            />
+                        </template>
                         <div class="divide-y divide-zinc-200 rounded-lg border border-zinc-200 dark:divide-zinc-800 dark:border-zinc-800">
                             <div v-for="team in teams" :key="team.publicId" class="space-y-4 p-4">
                                 <div class="flex flex-wrap items-center justify-between gap-3">
@@ -332,6 +358,17 @@ function cancelSchedule(publicId: string, reason: string): void {
                     </SurfaceCard>
 
                     <SurfaceCard title="Recent history" :icon="IconPuzzle">
+                        <template #actions>
+                            <DataTableExportMenu
+                                table-key="admin.modules.detail.history"
+                                :exports="exports"
+                                :columns="[...moduleHistoryExportColumns]"
+                                :column-order="[...moduleHistoryExportColumns]"
+                                :filters="{ module: module.moduleKey }"
+                                sort="effectiveAt"
+                                direction="desc"
+                            />
+                        </template>
                         <div class="space-y-3 text-sm">
                             <p v-if="history.length === 0" class="text-zinc-500 dark:text-zinc-400">No activation history.</p>
                             <div v-for="row in history" :key="`${row.scope}-${row.effectiveAt}-${row.reason}`">
@@ -343,6 +380,17 @@ function cancelSchedule(publicId: string, reason: string): void {
                     </SurfaceCard>
 
                     <SurfaceCard title="Schedules" :icon="IconPuzzle">
+                        <template #actions>
+                            <DataTableExportMenu
+                                table-key="admin.modules.detail.schedules"
+                                :exports="exports"
+                                :columns="[...moduleScheduleExportColumns]"
+                                :column-order="[...moduleScheduleExportColumns]"
+                                :filters="{ module: module.moduleKey }"
+                                sort="effectiveAt"
+                                direction="desc"
+                            />
+                        </template>
                         <div class="space-y-3 text-sm">
                             <p v-if="schedules.length === 0" class="text-zinc-500 dark:text-zinc-400">No scheduled changes.</p>
                             <div v-for="row in schedules" :key="row.publicId" class="space-y-2">

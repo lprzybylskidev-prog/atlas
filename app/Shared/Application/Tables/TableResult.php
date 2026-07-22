@@ -18,14 +18,15 @@ final readonly class TableResult
     ) {}
 
     /**
+     * @param  array{endpoint: string, formats: list<string>}|null  $exports
      * @return array<string, mixed>
      */
-    public function tableMeta(string $key): array
+    public function tableMeta(string $key, ?array $exports = null): array
     {
         $from = $this->total === 0 ? 0 : (($this->state->page - 1) * $this->state->perPage) + 1;
         $to = min($this->total, $this->state->page * $this->state->perPage);
 
-        return [
+        $meta = [
             'key' => $key,
             'state' => $this->state->toArray(),
             'pagination' => [
@@ -37,6 +38,12 @@ final readonly class TableResult
             ],
             'savedViews' => $this->savedViews,
         ];
+
+        if ($exports !== null) {
+            $meta['exports'] = $exports;
+        }
+
+        return $meta;
     }
 
     /**

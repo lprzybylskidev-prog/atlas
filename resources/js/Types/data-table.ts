@@ -13,6 +13,7 @@ export interface DataTableAction<TRow extends Record<string, unknown>> {
     method?: 'get' | 'post' | 'patch' | 'delete';
     href: (row: TRow) => string;
     confirm?: string | ((row: TRow) => string);
+    nativeNavigation?: boolean;
     tone?: 'neutral' | 'info' | 'success' | 'warning' | 'danger';
     visible?: (row: TRow) => boolean;
 }
@@ -52,6 +53,13 @@ export interface DataTableSavedView {
     isDefault: boolean;
 }
 
+export type DataTableExportFormat = 'csv' | 'xlsx' | 'pdf' | 'browser_print';
+
+export interface DataTableExportMeta {
+    endpoint: string;
+    formats: DataTableExportFormat[];
+}
+
 export interface DataTableMeta {
     key: string;
     state: DataTableState;
@@ -63,4 +71,5 @@ export interface DataTableMeta {
         to: number;
     };
     savedViews: DataTableSavedView[];
+    exports?: DataTableExportMeta;
 }

@@ -14,7 +14,7 @@ import MetricGrid from '../../../Components/MetricGrid.vue';
 import PageStack from '../../../Components/PageStack.vue';
 import SeverityBadge from '../../../Components/SeverityBadge.vue';
 import AdminLayout from '../../../Layouts/AdminLayout.vue';
-import type { DataTableAction, DataTableColumn } from '../../../Types/data-table';
+import type { DataTableAction, DataTableColumn, DataTableExportMeta } from '../../../Types/data-table';
 
 interface SearchIndex extends Record<string, unknown> {
     key: string;
@@ -52,6 +52,7 @@ const props = defineProps<{
     readiness: SearchReadiness;
     recentRebuilds: RebuildRun[];
     rebuildConfirmation: string;
+    exports: DataTableExportMeta;
 }>();
 
 const form = useForm({
@@ -187,6 +188,8 @@ function startRebuild(): void {
                 :columns="indexColumns"
                 row-key="key"
                 state-key="admin.search.indexes"
+                export-key="admin.search.indexes"
+                :exports="exports"
                 empty-label="No search index descriptors are registered."
             />
 
@@ -197,6 +200,8 @@ function startRebuild(): void {
                 row-key="publicId"
                 :actions="rebuildActions"
                 state-key="admin.search.rebuilds"
+                export-key="admin.search.rebuilds"
+                :exports="exports"
                 empty-label="No search rebuild runs recorded."
             />
         </PageStack>

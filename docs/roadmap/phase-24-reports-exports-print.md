@@ -1,6 +1,6 @@
 # Phase 24 — Reports, exports, PDF, charts, and print
 
-**Status:** `complete`
+**Status:** `complete; ownership evolved by Phase 24a`
 
 ## Objective
 

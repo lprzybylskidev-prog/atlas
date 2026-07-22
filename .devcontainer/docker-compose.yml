@@ -63,6 +63,31 @@ services:
     networks:
       - atlas-dev
 
+  worker:
+    image: atlas-php-fpm:latest
+    env_file:
+      - ../.env
+    environment:
+      APP_TIMEZONE: ${APP_TIMEZONE:-Europe/Warsaw}
+      TZ: ${APP_TIMEZONE:-Europe/Warsaw}
+      DB_HOST: postgres
+      REDIS_HOST: redis
+      MEILISEARCH_HOST: http://meilisearch:7700
+    volumes:
+      - ${ATLAS_WORKSPACE_SOURCE:-..}:/var/www/html:cached
+    depends_on:
+      php-fpm:
+        condition: service_started
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      meilisearch:
+        condition: service_healthy
+    command: ["php", "artisan", "queue:listen", "redis", "--queue=exports,search,files,files-large,default", "--sleep=1", "--tries=1", "--timeout=60"]
+    networks:
+      - atlas-dev
+
   app:
     build:
       context: ..

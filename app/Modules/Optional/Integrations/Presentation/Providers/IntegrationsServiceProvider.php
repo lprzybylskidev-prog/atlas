@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Modules\Optional\Integrations\Presentation\Providers;
 
 use App\Modules\Optional\Integrations\Application\Contracts\IntegrationRegistry;
+use App\Modules\Optional\Integrations\Application\Exports\AdminIntegrationAdaptersDataTableExportProvider;
+use App\Modules\Optional\Integrations\Application\Exports\AdminIntegrationRunsDataTableExportProvider;
 use App\Modules\Optional\Integrations\Application\IntegrationsDeactivationGuard;
 use App\Modules\Optional\Integrations\Application\Permissions\IntegrationsPermissionCatalog;
 use App\Modules\Optional\Integrations\Application\Public\Contracts\ExternalApiAccessPolicy;
@@ -26,5 +28,9 @@ final class IntegrationsServiceProvider extends ServiceProvider
         $this->app->bind(SynchronizationHistory::class, DatabaseIntegrationStore::class);
         $this->app->tag([IntegrationsPermissionCatalog::class], 'atlas.permission_catalogs');
         $this->app->tag([IntegrationsDeactivationGuard::class], 'atlas.module_deactivation_guards');
+        $this->app->tag([
+            AdminIntegrationAdaptersDataTableExportProvider::class,
+            AdminIntegrationRunsDataTableExportProvider::class,
+        ], 'atlas.admin_data_table_export_providers');
     }
 }

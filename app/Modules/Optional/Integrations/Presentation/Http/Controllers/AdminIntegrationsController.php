@@ -7,6 +7,7 @@ namespace App\Modules\Optional\Integrations\Presentation\Http\Controllers;
 use App\Modules\Optional\Integrations\Application\Contracts\IntegrationRegistry;
 use App\Modules\Optional\Integrations\Application\DTOs\IntegrationDefinition;
 use App\Shared\Infrastructure\Database\DatabaseTable;
+use App\Shared\Presentation\Support\AdminDataTableExportMeta;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Config;
@@ -26,6 +27,7 @@ final readonly class AdminIntegrationsController
             'summary' => $this->summary(),
             'externalApiEnabled' => Config::boolean('atlas.integrations.external_api_enabled', false),
             'recentRuns' => $this->recentRuns(),
+            'exports' => AdminDataTableExportMeta::defaults(),
         ]);
     }
 

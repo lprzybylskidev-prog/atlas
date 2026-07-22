@@ -12,6 +12,7 @@ use App\Shared\Application\Tables\ArrayTableProcessor;
 use App\Shared\Application\Tables\TableRequestContext;
 use App\Shared\Application\Tables\TableSavedViewService;
 use App\Shared\Application\Tables\TableState;
+use App\Shared\Presentation\Support\AdminDataTableExportMeta;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -39,7 +40,7 @@ final readonly class UserAdministrationController
 
         return Inertia::render('Admin/Users/Index', [
             'users' => $result->rows,
-            'table' => $result->tableMeta($definition->key),
+            'table' => $result->tableMeta($definition->key, AdminDataTableExportMeta::defaults()),
         ]);
     }
 

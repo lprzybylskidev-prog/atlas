@@ -16,7 +16,7 @@ import MetricGrid from '../../../Components/MetricGrid.vue';
 import PageStack from '../../../Components/PageStack.vue';
 import SectionHeader from '../../../Components/SectionHeader.vue';
 import AdminLayout from '../../../Layouts/AdminLayout.vue';
-import type { DataTableAction, DataTableColumn } from '../../../Types/data-table';
+import type { DataTableAction, DataTableColumn, DataTableExportMeta } from '../../../Types/data-table';
 import { managedProcessSubnavigation } from './navigation';
 
 interface Definition extends Record<string, unknown> {
@@ -43,6 +43,7 @@ const props = defineProps<{
     definitions: Definition[];
     schedules: Schedule[];
     summary: { schedules: number; disabled: number };
+    exports: DataTableExportMeta;
 }>();
 
 const scheduleForm = useForm({
@@ -231,6 +232,15 @@ function createSchedule(): void {
                     row-key="publicId"
                     :actions="scheduleActions"
                     state-key="admin.managed-processes.schedules"
+                    export-key="admin.managed-processes.schedules"
+                    :exports="exports"
+                    :filters="{
+                        process: scheduleProcessFilter,
+                        module: scheduleModuleFilter,
+                        state: scheduleStateFilter,
+                        from: scheduleFromFilter,
+                        to: scheduleToFilter,
+                    }"
                     empty-label="No managed process schedules match the current filters."
                 />
             </section>

@@ -21,6 +21,7 @@ use App\Shared\Application\Tables\TableRequestContext;
 use App\Shared\Application\Tables\TableSavedViewService;
 use App\Shared\Application\Tables\TableState;
 use App\Shared\Infrastructure\Database\DatabaseTable;
+use App\Shared\Presentation\Support\AdminDataTableExportMeta;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -52,7 +53,7 @@ final readonly class ModuleActivationController
 
         return Inertia::render('Admin/Modules/Index', [
             'modules' => $result->rows,
-            'table' => $result->tableMeta($definition->key),
+            'table' => $result->tableMeta($definition->key, AdminDataTableExportMeta::defaults()),
         ]);
     }
 
@@ -69,6 +70,7 @@ final readonly class ModuleActivationController
             'teams' => $this->teamRows($module),
             'history' => $this->historyRows($module),
             'schedules' => $this->scheduleRows($module),
+            'exports' => AdminDataTableExportMeta::defaults(),
         ]);
     }
 

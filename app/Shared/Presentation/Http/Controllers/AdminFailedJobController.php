@@ -9,6 +9,8 @@ use App\Modules\Core\Audit\Application\Public\DTOs\AuditEvent;
 use App\Modules\Core\Audit\Application\Public\Enums\SecurityAuditCategory;
 use App\Shared\Infrastructure\Database\DatabaseTable;
 use App\Shared\Infrastructure\Operations\OperationalModuleGuard;
+use App\Shared\Infrastructure\Queues\FailedJobAdminRows;
+use App\Shared\Presentation\Support\AdminDataTableExportMeta;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
@@ -21,21 +23,15 @@ final readonly class AdminFailedJobController
     public function __construct(
         private AuditRecorder $audit,
         private OperationalModuleGuard $modules,
+        private FailedJobAdminRows $rows,
     ) {}
 
     public function index(): Response
     {
-        $jobs = DB::table(DatabaseTable::FAILED_JOBS)
-            ->orderByDesc('failed_at')
-            ->limit(200)
-            ->get(['id', 'uuid', 'connection', 'queue', 'payload', 'exception', 'failed_at'])
-            ->map(fn (object $row): array => $this->jobRow($row))
-            ->values()
-            ->all();
-
         return Inertia::render('Admin/Queues/Index', [
-            'jobs' => $jobs,
+            'jobs' => $this->rows->rows(),
             'summary' => $this->summary(),
+            'exports' => AdminDataTableExportMeta::defaults(),
         ]);
     }
 
@@ -51,7 +47,7 @@ final readonly class AdminFailedJobController
         $jobs = DB::table(DatabaseTable::FAILED_JOBS)
             ->whereIn('uuid', $uuids)
             ->orderBy('failed_at')
-            ->get(['uuid', 'connection', 'queue', 'failed_at'])
+            ->get(['uuid', 'connection', 'queue', 'payload', 'failed_at'])
             ->all();
 
         if (count($jobs) !== count($uuids)) {
@@ -60,7 +56,7 @@ final readonly class AdminFailedJobController
 
         foreach ($jobs as $job) {
             $this->modules->ensureAllowed(
-                moduleKey: $this->modules->moduleFromClassName($this->jobClass($this->jsonPayload($this->scalarString($job->payload ?? '')))),
+                moduleKey: $this->modules->moduleFromClassName($this->rows->jobClass($this->rows->jsonPayload($this->scalarString($job->payload ?? '')))),
                 activeTeamPublicId: $request->hasSession() ? $this->nullableString($request->session()->get('active_team_public_id')) : null,
                 userPublicId: $this->nullableString(data_get($request->user(), 'public_id')),
                 permission: 'admin.queues.retry',
@@ -102,29 +98,6 @@ final readonly class AdminFailedJobController
             'connections' => is_object($aggregate) && is_numeric($aggregate->connections ?? null) ? (int) $aggregate->connections : 0,
             'latestFailedAt' => is_object($aggregate) && is_scalar($aggregate->latest_failed_at ?? null) ? (string) $aggregate->latest_failed_at : null,
             'oldestFailedAt' => is_object($aggregate) && is_scalar($aggregate->oldest_failed_at ?? null) ? (string) $aggregate->oldest_failed_at : null,
-        ];
-    }
-
-    /**
-     * @return array{uuid: string, connection: string, queue: string, failedAt: string, displayName: string, jobClass: string, exceptionType: string, exceptionMessage: string, payload: string, exception: string}
-     */
-    private function jobRow(object $row): array
-    {
-        $payload = $this->scalarString($row->payload ?? '');
-        $exception = $this->scalarString($row->exception ?? '');
-        $payloadData = $this->jsonPayload($payload);
-
-        return [
-            'uuid' => $this->scalarString($row->uuid ?? ''),
-            'connection' => $this->scalarString($row->connection ?? ''),
-            'queue' => $this->scalarString($row->queue ?? ''),
-            'failedAt' => $this->scalarString($row->failed_at ?? ''),
-            'displayName' => $this->displayName($payloadData),
-            'jobClass' => $this->jobClass($payloadData),
-            'exceptionType' => $this->exceptionType($exception),
-            'exceptionMessage' => $this->exceptionMessage($exception),
-            'payload' => $this->prettyJson($payload),
-            'exception' => $exception,
         ];
     }
 
@@ -193,76 +166,6 @@ final readonly class AdminFailedJobController
         ));
     }
 
-    /**
-     * @return array<string, mixed>
-     */
-    private function jsonPayload(string $payload): array
-    {
-        try {
-            $decoded = json_decode($payload, true, 512, JSON_THROW_ON_ERROR);
-        } catch (\JsonException) {
-            return [];
-        }
-
-        return is_array($decoded) ? $this->stringKeyedArray($decoded) : [];
-    }
-
-    /**
-     * @param  array<string, mixed>  $payload
-     */
-    private function displayName(array $payload): string
-    {
-        $value = $payload['displayName'] ?? $payload['job'] ?? null;
-
-        return is_scalar($value) ? (string) $value : 'Unknown job';
-    }
-
-    /**
-     * @param  array<string, mixed>  $payload
-     */
-    private function jobClass(array $payload): string
-    {
-        $commandName = data_get($payload, 'data.commandName');
-
-        if (is_string($commandName) && $commandName !== '') {
-            return $commandName;
-        }
-
-        return $this->displayName($payload);
-    }
-
-    private function exceptionType(string $exception): string
-    {
-        if (preg_match('/^([A-Za-z0-9_\\\\]+):/', $exception, $matches) === 1) {
-            return $matches[1];
-        }
-
-        return 'Exception';
-    }
-
-    private function exceptionMessage(string $exception): string
-    {
-        $firstLine = strtok($exception, "\n");
-
-        if (! is_string($firstLine) || trim($firstLine) === '') {
-            return 'No exception message recorded.';
-        }
-
-        return mb_substr($firstLine, 0, 700);
-    }
-
-    private function prettyJson(string $payload): string
-    {
-        try {
-            $decoded = json_decode($payload, true, 512, JSON_THROW_ON_ERROR);
-            $encoded = json_encode($decoded, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
-        } catch (\JsonException) {
-            return $payload;
-        }
-
-        return is_string($encoded) ? $encoded : $payload;
-    }
-
     private function scalarString(mixed $value): string
     {
         return is_scalar($value) ? (string) $value : '';
@@ -271,22 +174,5 @@ final readonly class AdminFailedJobController
     private function nullableString(mixed $value): ?string
     {
         return is_string($value) && $value !== '' ? $value : null;
-    }
-
-    /**
-     * @param  array<mixed>  $values
-     * @return array<string, mixed>
-     */
-    private function stringKeyedArray(array $values): array
-    {
-        $result = [];
-
-        foreach ($values as $key => $value) {
-            if (is_string($key)) {
-                $result[$key] = $value;
-            }
-        }
-
-        return $result;
     }
 }

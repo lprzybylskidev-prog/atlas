@@ -6,6 +6,9 @@ namespace App\Modules\Core\Authorization\Presentation\Providers;
 
 use App\Modules\Core\Authorization\Application\Contracts\OnboardingPackageStore;
 use App\Modules\Core\Authorization\Application\Contracts\PermissionRoleStore;
+use App\Modules\Core\Authorization\Application\Exports\AdminOnboardingPackagesDataTableExportProvider;
+use App\Modules\Core\Authorization\Application\Exports\AdminPermissionsDataTableExportProvider;
+use App\Modules\Core\Authorization\Application\Exports\AdminRolesDataTableExportProvider;
 use App\Modules\Core\Authorization\Application\Packages\PublicOnboardingPackageDirectory;
 use App\Modules\Core\Authorization\Application\Packages\PublicUserAuthorizationAssignmentCopier;
 use App\Modules\Core\Authorization\Application\Packages\PublicUserOnboardingPackageApplier;
@@ -27,6 +30,12 @@ use App\Modules\Core\Authorization\Infrastructure\Persistence\SpatiePublicIdHook
 use App\Modules\Core\Authorization\Infrastructure\Persistence\SpatieUserAuthorizationAssignmentPreviewer;
 use App\Modules\Core\Authorization\Presentation\Console\UpdateAdministratorRolePermissions;
 use App\Shared\Application\Modules\Contributions\Contracts\ModulePermissionContribution;
+use App\Shared\Application\Modules\Exports\AdminModuleDetailHistoryDataTableExportProvider;
+use App\Shared\Application\Modules\Exports\AdminModuleDetailSchedulesDataTableExportProvider;
+use App\Shared\Application\Modules\Exports\AdminModuleDetailTeamsDataTableExportProvider;
+use App\Shared\Application\Modules\Exports\AdminModulesDataTableExportProvider;
+use App\Shared\Infrastructure\Observability\Exports\AdminApplicationLogsDataTableExportProvider;
+use App\Shared\Infrastructure\Queues\Exports\AdminFailedJobsDataTableExportProvider;
 use Illuminate\Support\ServiceProvider;
 
 final class AuthorizationServiceProvider extends ServiceProvider
@@ -44,6 +53,17 @@ final class AuthorizationServiceProvider extends ServiceProvider
         $this->app->bind(UserTeamAuthorizationManager::class, SpatiePermissionRoleStore::class);
         $this->app->bind(OnboardingPackageStore::class, DatabaseOnboardingPackageStore::class);
         $this->app->bind(PermissionRoleStore::class, SpatiePermissionRoleStore::class);
+        $this->app->tag([
+            AdminApplicationLogsDataTableExportProvider::class,
+            AdminFailedJobsDataTableExportProvider::class,
+            AdminModuleDetailHistoryDataTableExportProvider::class,
+            AdminModuleDetailSchedulesDataTableExportProvider::class,
+            AdminModuleDetailTeamsDataTableExportProvider::class,
+            AdminModulesDataTableExportProvider::class,
+            AdminOnboardingPackagesDataTableExportProvider::class,
+            AdminPermissionsDataTableExportProvider::class,
+            AdminRolesDataTableExportProvider::class,
+        ], 'atlas.admin_data_table_export_providers');
 
         $this->app->singleton(PermissionCatalogRegistry::class, fn (): PermissionCatalogRegistry => new PermissionCatalogRegistry(
             $this->permissionCatalogs(),

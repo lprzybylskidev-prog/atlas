@@ -37,8 +37,8 @@ Do not replace this index after the initial technical foundation is completed. C
 
 ## Current phase
 
-- Phase: [Phase 24a — Core export foundation and Admin data integration](docs/roadmap/phase-24a-core-export-foundation.md)
-- Status: `active`
+- Phase: [Phase 24b — Admin localization, messaging, operational visibility, and bootstrap repair](docs/roadmap/phase-24b-admin-localization-messaging-and-bootstrap-repair.md)
+- Status: `not started`
 
 ## Roadmap dependency repair note
 
@@ -282,11 +282,19 @@ Build report/export pipelines, browser print, Chromium-based PDF generation, cha
 
 ### Phase 24a — Core export foundation and Admin data integration
 
-**Status:** `active`
+**Status:** `complete`
 
 Extract reusable export, PDF, print, artifact, and render lifecycle ownership into Core and add export/print support to every exportable Admin DataTable and custom Admin data surface while keeping Reports optional.
 
 [Open implementation contract and tasks](docs/roadmap/phase-24a-core-export-foundation.md)
+
+### Phase 24b — Admin localization, messaging, operational visibility, and bootstrap repair
+
+**Status:** `not started`
+
+Repair cross-cutting issues discovered after Phase 24a by localizing Admin UI, normalizing flash and notification behavior, broadening Admin operational data visibility, and separating mandatory bootstrap seeders from the currently empty demo seeder.
+
+[Open implementation contract and tasks](docs/roadmap/phase-24b-admin-localization-messaging-and-bootstrap-repair.md)
 
 ### Phase 25 — Security, privacy, deletion, and anonymization
 

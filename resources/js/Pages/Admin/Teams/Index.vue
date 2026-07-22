@@ -130,6 +130,7 @@ async function handleBulkAction(payload: { action: DataTableBulkAction; rowIds: 
                 :bulk-actions="bulkActions"
                 :bulk-action-handler="handleBulkAction"
                 :table="table"
+                :filters="filters"
                 ui-locale="en"
             />
         </PageStack>

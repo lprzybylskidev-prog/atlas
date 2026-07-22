@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
+use App\Modules\Core\Exports\Presentation\Http\Controllers\DownloadReportArtifactController;
+use App\Modules\Core\Exports\Presentation\Http\Controllers\PrintReportExportController;
 use App\Modules\Core\Identity\Presentation\Http\Controllers\ActiveTeamController;
 use App\Modules\Core\Notifications\Presentation\Http\Controllers\BulkMarkNotificationReadController;
 use App\Modules\Core\Notifications\Presentation\Http\Controllers\MarkNotificationReadController;
 use App\Modules\Core\Notifications\Presentation\Http\Controllers\NotificationCenterController;
 use App\Modules\Core\Notifications\Presentation\Http\Controllers\RealtimeEventsController;
-use App\Modules\Optional\Reports\Presentation\Http\Controllers\DownloadReportArtifactController;
-use App\Modules\Optional\Reports\Presentation\Http\Controllers\PrintReportExportController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -19,11 +19,11 @@ Route::middleware('auth')->group(function (): void {
 
 Route::middleware(['auth', 'route.permission'])->group(function (): void {
     Route::get('/', fn () => Inertia::render('Dashboard'))->name('dashboard');
+    Route::get('/exports/{artifact}/download', DownloadReportArtifactController::class)->name('exports.download');
+    Route::get('/exports/{export}/print', PrintReportExportController::class)->name('exports.print');
     Route::get('/notifications', NotificationCenterController::class)->name('notifications.index');
     Route::post('/notifications/read', BulkMarkNotificationReadController::class)->name('notifications.read.bulk');
     Route::post('/notifications/{notification}/read', MarkNotificationReadController::class)->name('notifications.read');
     Route::get('/realtime/events', RealtimeEventsController::class)->name('notifications.realtime.events');
-    Route::get('/reports/exports/{artifact}/download', DownloadReportArtifactController::class)->name('reports.download');
-    Route::get('/reports/exports/{export}/print', PrintReportExportController::class)->name('reports.exports.print');
     Route::post('/team/switch', [ActiveTeamController::class, 'switch'])->name('team.switch');
 });

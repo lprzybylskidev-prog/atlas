@@ -5,6 +5,7 @@ import type { Component } from 'vue';
 import { computed, ref } from 'vue';
 
 import CodeViewer from '../../../Components/CodeViewer.vue';
+import DataTableExportMenu from '../../../Components/DataTableExportMenu.vue';
 import FilterPanel from '../../../Components/FilterPanel.vue';
 import FormDateInput from '../../../Components/Form/FormDateInput.vue';
 import FormInput from '../../../Components/Form/FormInput.vue';
@@ -17,6 +18,7 @@ import Tooltip from '../../../Components/Tooltip.vue';
 import UiState from '../../../Components/UiState.vue';
 import AdminLayout from '../../../Layouts/AdminLayout.vue';
 import { useTranslator } from '../../../Localization/translator';
+import type { DataTableExportMeta } from '../../../Types/data-table';
 
 interface LogEntry extends Record<string, unknown> {
     publicId: string;
@@ -44,6 +46,7 @@ interface LogSummary {
 const props = defineProps<{
     logs: LogEntry[];
     summary: LogSummary;
+    exports: DataTableExportMeta;
 }>();
 
 const { t } = useTranslator('en');
@@ -58,6 +61,18 @@ const module = ref('all');
 const dateFrom = ref('');
 const dateTo = ref('');
 const expanded = ref<string | null>(props.logs[0]?.publicId ?? null);
+const logExportColumns = [
+    'occurredAt',
+    'level',
+    'channel',
+    'environment',
+    'module',
+    'source',
+    'eventName',
+    'message',
+    'correlationId',
+    'requestId',
+] as const;
 
 const levels = computed(() => optionsFrom(props.logs.map((entry) => entry.level).filter(Boolean)));
 const modules = computed(() => optionsFrom(props.logs.map((entry) => entry.module).filter(Boolean)));
@@ -209,6 +224,19 @@ function endOfDay(value: string): number {
             </FilterPanel>
 
             <section class="space-y-3">
+                <div class="flex justify-end">
+                    <DataTableExportMenu
+                        table-key="admin.logs"
+                        :exports="exports"
+                        :columns="[...logExportColumns]"
+                        :column-order="[...logExportColumns]"
+                        :filters="{ level, module, from: dateFrom, to: dateTo }"
+                        :search="search"
+                        sort="occurredAt"
+                        direction="desc"
+                    />
+                </div>
+
                 <SurfaceCard
                     v-for="entry in filteredLogs"
                     :key="entry.publicId"

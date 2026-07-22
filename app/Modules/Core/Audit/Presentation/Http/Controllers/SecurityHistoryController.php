@@ -4,7 +4,13 @@ declare(strict_types=1);
 
 namespace App\Modules\Core\Audit\Presentation\Http\Controllers;
 
+use App\Shared\Application\Tables\AdminTableDefinitions;
+use App\Shared\Application\Tables\ArrayTableProcessor;
+use App\Shared\Application\Tables\TableRequestContext;
+use App\Shared\Application\Tables\TableSavedViewService;
+use App\Shared\Application\Tables\TableState;
 use App\Shared\Infrastructure\Database\DatabaseTable;
+use App\Shared\Presentation\Support\AdminDataTableExportMeta;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -13,8 +19,17 @@ use Inertia\Response;
 
 final readonly class SecurityHistoryController
 {
+    public function __construct(
+        private ArrayTableProcessor $tables,
+        private TableRequestContext $context,
+        private TableSavedViewService $views,
+    ) {}
+
     public function __invoke(Request $request): Response
     {
+        $definition = AdminTableDefinitions::get(AdminTableDefinitions::SECURITY_HISTORY);
+        $state = TableState::fromRequest($request, $definition);
+        [$userId, $teamId] = $this->context->userTeam($request);
         $userPublicId = $this->filterString($request, 'user');
         $query = DB::table(DatabaseTable::AUDIT_EVENTS)
             ->where('is_security', true);
@@ -53,9 +68,30 @@ final readonly class SecurityHistoryController
             'teamPublicId' => self::stringValue($record, 'team_public_id'),
             'reason' => self::stringValue($record, 'reason'),
         ], $records);
+        $rows = array_map(static fn (array $event): array => [
+            'publicId' => $event['publicId'],
+            'userName' => $event['user']['name'] !== '' ? $event['user']['name'] : $event['user']['publicId'],
+            'userEmail' => $event['user']['email'] !== '' ? $event['user']['email'] : $event['user']['publicId'],
+            'userContext' => $event['user']['context'],
+            'occurredAt' => $event['occurredAt'],
+            'action' => $event['action'],
+            'result' => $event['result'],
+            'source' => $event['source'],
+            'teamPublicId' => $event['teamPublicId'],
+            'impersonationSessionId' => $event['impersonationSessionId'],
+            'reason' => $event['reason'],
+        ], $events);
+        $result = $this->tables->process($rows, $definition, $state)
+            ->withSavedViews($this->views->listFor($definition->key, $userId, $teamId));
+        $table = $result->tableMeta($definition->key, AdminDataTableExportMeta::defaults());
+        $tableState = $table['state'] ?? [];
+        $table['state'] = is_array($tableState)
+            ? [...$tableState, 'filters' => ['user' => $userPublicId]]
+            : ['filters' => ['user' => $userPublicId]];
 
         return Inertia::render('Admin/Audit/SecurityHistory', [
-            'events' => $events,
+            'events' => $result->rows,
+            'table' => $table,
             'filters' => [
                 'userPublicId' => $userPublicId,
             ],

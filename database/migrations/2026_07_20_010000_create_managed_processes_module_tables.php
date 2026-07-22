@@ -6,6 +6,7 @@ use App\Shared\Infrastructure\Database\DatabaseSchema;
 use App\Shared\Infrastructure\Database\DatabaseTable;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
@@ -13,6 +14,8 @@ return new class extends Migration
     public function up(): void
     {
         DatabaseSchema::ensure(DatabaseSchema::OPTIONAL_MANAGED_PROCESSES);
+
+        $this->releaseLegacyReportProcessDependency();
 
         Schema::dropIfExists(DatabaseTable::REPORT_RENDER_CREDENTIALS);
         Schema::dropIfExists(DatabaseTable::REPORT_EXPORT_ARTIFACTS);
@@ -155,5 +158,15 @@ return new class extends Migration
         Schema::dropIfExists(DatabaseTable::MANAGED_PROCESS_LOG_EVENTS);
         Schema::dropIfExists(DatabaseTable::MANAGED_PROCESS_RUNS);
         Schema::dropIfExists(DatabaseTable::MANAGED_PROCESS_DEFINITIONS);
+    }
+
+    private function releaseLegacyReportProcessDependency(): void
+    {
+        if (! Schema::hasTable('optional_reports.export_requests')) {
+            return;
+        }
+
+        DB::statement('alter table optional_reports.export_requests drop constraint if exists optional_reports_export_requests_process_run_id_foreign');
+        DB::statement('update optional_reports.export_requests set process_run_id = null');
     }
 };

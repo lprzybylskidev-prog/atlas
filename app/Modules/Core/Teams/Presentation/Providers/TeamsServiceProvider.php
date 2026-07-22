@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Modules\Core\Teams\Presentation\Providers;
 
+use App\Modules\Core\Teams\Application\Exports\AdminManagerRelationshipHistoryDataTableExportProvider;
+use App\Modules\Core\Teams\Application\Exports\AdminTeamsDataTableExportProvider;
 use App\Modules\Core\Teams\Application\Permissions\TeamPermissionCatalog;
 use App\Modules\Core\Teams\Application\Public\Contracts\BootstrapTeamProvider;
 use App\Modules\Core\Teams\Application\Public\Contracts\ManagerHierarchy;
@@ -21,5 +23,9 @@ final class TeamsServiceProvider extends ServiceProvider
         $this->app->bind(UserTeamMembershipManager::class, DatabaseUserTeamMembershipManager::class);
         $this->app->bind(ManagerHierarchy::class, DatabaseManagerHierarchy::class);
         $this->app->tag([TeamPermissionCatalog::class], 'atlas.permission_catalogs');
+        $this->app->tag([
+            AdminManagerRelationshipHistoryDataTableExportProvider::class,
+            AdminTeamsDataTableExportProvider::class,
+        ], 'atlas.admin_data_table_export_providers');
     }
 }

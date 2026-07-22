@@ -12,7 +12,7 @@ import MetricGrid from '../../../Components/MetricGrid.vue';
 import PageStack from '../../../Components/PageStack.vue';
 import AdminLayout from '../../../Layouts/AdminLayout.vue';
 import { useTranslator } from '../../../Localization/translator';
-import type { DataTableAction, DataTableColumn } from '../../../Types/data-table';
+import type { DataTableAction, DataTableColumn, DataTableExportMeta } from '../../../Types/data-table';
 import { managedProcessSubnavigation } from './navigation';
 
 interface Run extends Record<string, unknown> {
@@ -34,6 +34,7 @@ interface Run extends Record<string, unknown> {
 const props = defineProps<{
     runs: Run[];
     summary: { active: number; failed24h: number; warnings24h: number; imports: number };
+    exports: DataTableExportMeta;
 }>();
 
 const { t } = useTranslator('en');
@@ -160,6 +161,16 @@ function resetFilters(): void {
                 row-key="publicId"
                 :actions="actions"
                 state-key="admin.managed-processes.runs"
+                export-key="admin.managed-processes.runs"
+                :exports="exports"
+                :filters="{
+                    process: processFilter,
+                    status: statusFilter,
+                    source: sourceFilter,
+                    module: moduleFilter,
+                    from: fromFilter,
+                    to: toFilter,
+                }"
                 empty-label="No process runs match the current filters."
             />
         </PageStack>

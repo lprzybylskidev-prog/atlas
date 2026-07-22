@@ -7,7 +7,7 @@ import DataTable from '../../../Components/DataTable.vue';
 import PageStack from '../../../Components/PageStack.vue';
 import SurfaceCard from '../../../Components/SurfaceCard.vue';
 import AdminLayout from '../../../Layouts/AdminLayout.vue';
-import type { DataTableColumn } from '../../../Types/data-table';
+import type { DataTableColumn, DataTableExportMeta } from '../../../Types/data-table';
 
 interface AuditEventRow extends Record<string, unknown> {
     publicId: string;
@@ -39,6 +39,7 @@ const props = defineProps<{
         rejectedCount: number;
     };
     events: AuditEventRow[];
+    exports: DataTableExportMeta;
 }>();
 
 const columns: DataTableColumn<AuditEventRow>[] = [
@@ -91,7 +92,16 @@ const columns: DataTableColumn<AuditEventRow>[] = [
                 </div>
             </SurfaceCard>
 
-            <DataTable title="Session events" :rows="props.events" :columns="columns" row-key="publicId" />
+            <DataTable
+                title="Session events"
+                :rows="props.events"
+                :columns="columns"
+                row-key="publicId"
+                state-key="admin.audit.impersonation-session-events"
+                export-key="admin.audit.impersonation-session-events"
+                :exports="exports"
+                :filters="{ session: session.id }"
+            />
         </PageStack>
     </AdminLayout>
 </template>

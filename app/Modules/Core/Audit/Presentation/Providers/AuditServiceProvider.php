@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace App\Modules\Core\Audit\Presentation\Providers;
 
+use App\Modules\Core\Audit\Application\Exports\AdminAuditEventsDataTableExportProvider;
+use App\Modules\Core\Audit\Application\Exports\AdminImpersonationSessionEventsDataTableExportProvider;
+use App\Modules\Core\Audit\Application\Exports\AdminSecurityHistoryDataTableExportProvider;
 use App\Modules\Core\Audit\Application\Permissions\AuditPermissionCatalog;
 use App\Modules\Core\Audit\Application\Public\Contracts\AuditActorContextProvider;
 use App\Modules\Core\Audit\Application\Public\Contracts\AuditRecorder;
@@ -19,6 +22,11 @@ final class AuditServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->tag([AuditPermissionCatalog::class], 'atlas.permission_catalogs');
+        $this->app->tag([
+            AdminAuditEventsDataTableExportProvider::class,
+            AdminImpersonationSessionEventsDataTableExportProvider::class,
+            AdminSecurityHistoryDataTableExportProvider::class,
+        ], 'atlas.admin_data_table_export_providers');
 
         $this->app->bindIf(AuditActorContextProvider::class, NullAuditActorContextProvider::class);
 

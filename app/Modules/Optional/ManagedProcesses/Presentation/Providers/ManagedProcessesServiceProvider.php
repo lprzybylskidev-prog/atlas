@@ -5,6 +5,11 @@ declare(strict_types=1);
 namespace App\Modules\Optional\ManagedProcesses\Presentation\Providers;
 
 use App\Modules\Optional\ManagedProcesses\Application\Contracts\ProcessDefinitionRegistry;
+use App\Modules\Optional\ManagedProcesses\Application\Exports\AdminImportExecutionsDataTableExportProvider;
+use App\Modules\Optional\ManagedProcesses\Application\Exports\AdminImportRowErrorsDataTableExportProvider;
+use App\Modules\Optional\ManagedProcesses\Application\Exports\AdminManagedProcessDefinitionsDataTableExportProvider;
+use App\Modules\Optional\ManagedProcesses\Application\Exports\AdminManagedProcessRunsDataTableExportProvider;
+use App\Modules\Optional\ManagedProcesses\Application\Exports\AdminManagedProcessSchedulesDataTableExportProvider;
 use App\Modules\Optional\ManagedProcesses\Application\ManagedProcessesDeactivationGuard;
 use App\Modules\Optional\ManagedProcesses\Application\Permissions\ManagedProcessesPermissionCatalog;
 use App\Modules\Optional\ManagedProcesses\Application\Public\Contracts\ManagedProcessReporter;
@@ -26,5 +31,12 @@ final class ManagedProcessesServiceProvider extends ServiceProvider
         $this->app->bind(ManagedProcessRunInspector::class, DatabaseManagedProcessRunInspector::class);
         $this->app->tag([ManagedProcessesPermissionCatalog::class], 'atlas.permission_catalogs');
         $this->app->tag([ManagedProcessesDeactivationGuard::class], 'atlas.module_deactivation_guards');
+        $this->app->tag([
+            AdminImportExecutionsDataTableExportProvider::class,
+            AdminImportRowErrorsDataTableExportProvider::class,
+            AdminManagedProcessDefinitionsDataTableExportProvider::class,
+            AdminManagedProcessRunsDataTableExportProvider::class,
+            AdminManagedProcessSchedulesDataTableExportProvider::class,
+        ], 'atlas.admin_data_table_export_providers');
     }
 }

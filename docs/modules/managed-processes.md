@@ -144,4 +144,4 @@ Managed processes participate in module deactivation guards. Unsafe active runs 
 
 Queued jobs restore correlation, actor, team, module, and process-run context before execution.
 
-Progress and terminal states publish notifications/realtime progress through the Notifications foundation.
+Progress and terminal states publish notifications/realtime progress through the Notifications foundation. Terminal managed-process notifications include a deep link to the Admin run detail only when the recipient's current module and permission context allows `admin.managed-processes.show`; otherwise the notification is delivered without a deep link so user notification surfaces do not lead to an avoidable 403.

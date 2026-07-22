@@ -25,22 +25,30 @@ final readonly class TableState
 
     public static function fromRequest(Request $request, TableDefinition $definition): self
     {
-        $page = max(1, min(10000, $request->integer('page', 1)));
-        $perPage = self::allowedPerPage($request->integer('per_page', 10));
-        $direction = strtolower((string) $request->query('direction', $definition->defaultDirection));
+        return self::fromPayload($request->query->all(), $definition);
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     */
+    public static function fromPayload(array $payload, TableDefinition $definition): self
+    {
+        $page = max(1, min(10000, self::intValue($payload['page'] ?? 1)));
+        $perPage = self::allowedPerPage(self::intValue($payload['per_page'] ?? 10));
+        $direction = strtolower(self::stringValue($payload['direction'] ?? $definition->defaultDirection));
         $direction = $direction === 'desc' ? 'desc' : 'asc';
-        $sort = (string) $request->query('sort', $definition->defaultSort);
+        $sort = self::stringValue($payload['sort'] ?? $definition->defaultSort);
 
         if (! in_array($sort, $definition->sortableKeys(), true)) {
             $sort = $definition->defaultSort;
         }
 
-        $search = preg_replace('/[[:cntrl:]]/', '', (string) $request->query('search', '')) ?? '';
+        $search = preg_replace('/[[:cntrl:]]/', '', self::stringValue($payload['search'] ?? '')) ?? '';
         $search = mb_substr(trim($search), 0, 120);
-        $hasColumns = $request->query->has('columns');
-        $columns = self::safeColumnList((string) $request->query('columns', ''), $definition->columnKeys());
-        $columnOrder = self::safeColumnList((string) $request->query('column_order', ''), $definition->columnKeys());
-        $view = $request->query('view');
+        $hasColumns = array_key_exists('columns', $payload);
+        $columns = self::safeColumnList(self::stringValue($payload['columns'] ?? ''), $definition->columnKeys());
+        $columnOrder = self::safeColumnList(self::stringValue($payload['column_order'] ?? ''), $definition->columnKeys());
+        $view = $payload['view'] ?? null;
 
         return new self(
             page: $page,
@@ -52,6 +60,20 @@ final readonly class TableState
             columnOrder: $columnOrder === [] ? $definition->columnKeys() : $columnOrder,
             view: is_string($view) && $view !== '' ? mb_substr($view, 0, 64) : null,
         );
+    }
+
+    private static function intValue(mixed $value): int
+    {
+        return is_numeric($value) ? (int) $value : 0;
+    }
+
+    private static function stringValue(mixed $value): string
+    {
+        if (is_scalar($value) || $value instanceof \Stringable) {
+            return (string) $value;
+        }
+
+        return '';
     }
 
     /**

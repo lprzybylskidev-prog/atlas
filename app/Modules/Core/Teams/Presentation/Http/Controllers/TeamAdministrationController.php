@@ -23,6 +23,7 @@ use App\Shared\Application\Tables\TableRequestContext;
 use App\Shared\Application\Tables\TableSavedViewService;
 use App\Shared\Application\Tables\TableState;
 use App\Shared\Infrastructure\Database\DatabaseTable;
+use App\Shared\Presentation\Support\AdminDataTableExportMeta;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -66,7 +67,7 @@ final class TeamAdministrationController
 
         return Inertia::render('Admin/Teams/Index', [
             'teams' => $result->rows,
-            'table' => $result->tableMeta($definition->key),
+            'table' => $result->tableMeta($definition->key, AdminDataTableExportMeta::defaults()),
         ]);
     }
 

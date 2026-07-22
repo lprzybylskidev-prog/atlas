@@ -19,7 +19,7 @@ import UiState from '../../../Components/UiState.vue';
 import AdminLayout from '../../../Layouts/AdminLayout.vue';
 import { useTranslator } from '../../../Localization/translator';
 import { formatTimestamp } from '../../../Utils/formatters';
-import type { DataTableColumn } from '../../../Types/data-table';
+import type { DataTableColumn, DataTableExportMeta } from '../../../Types/data-table';
 import type { FormSelectOption } from '../../../Components/Form/FormSelect.vue';
 
 interface ImpactPreview {
@@ -80,6 +80,7 @@ const props = defineProps<{
     history: RelationshipRow[];
     tree: HierarchyNode[];
     preview: ImpactPreview | null;
+    exports: DataTableExportMeta;
 }>();
 
 const { t } = useTranslator('en');
@@ -471,6 +472,9 @@ function endRelationship(relationship: RelationshipRow): void {
                 :columns="historyColumns"
                 row-key="publicId"
                 state-key="admin.managers.relationship-history"
+                export-key="admin.managers.relationship-history"
+                :exports="exports"
+                :filters="{ team: selectedTeamPublicId }"
                 empty-label="No relationship history."
             />
         </PageStack>

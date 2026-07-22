@@ -12,7 +12,7 @@ import MetricGrid from '../../../Components/MetricGrid.vue';
 import PageStack from '../../../Components/PageStack.vue';
 import AdminLayout from '../../../Layouts/AdminLayout.vue';
 import { useTranslator } from '../../../Localization/translator';
-import type { DataTableAction, DataTableColumn } from '../../../Types/data-table';
+import type { DataTableAction, DataTableColumn, DataTableExportMeta } from '../../../Types/data-table';
 
 interface FileRecord extends Record<string, unknown> {
     publicId: string;
@@ -42,7 +42,7 @@ interface FileSummary {
     unsupported: number;
 }
 
-const props = defineProps<{ files: FileRecord[]; summary: FileSummary }>();
+const props = defineProps<{ files: FileRecord[]; summary: FileSummary; exports: DataTableExportMeta }>();
 const { t } = useTranslator('en');
 const draftSearch = ref('');
 const draftState = ref('all');
@@ -156,6 +156,9 @@ function clearFilters(): void {
                 row-key="publicId"
                 :actions="actions"
                 state-key="admin.files"
+                export-key="admin.files"
+                :exports="exports"
+                :filters="{ state }"
                 empty-label="No files match the current filters."
             />
         </PageStack>

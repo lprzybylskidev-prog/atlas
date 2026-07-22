@@ -9,6 +9,7 @@ use App\Modules\Optional\ManagedProcesses\Application\Enums\ProcessRunStatus;
 use App\Modules\Optional\ManagedProcesses\Application\Public\Contracts\ManagedProcessRunner;
 use App\Modules\Optional\ManagedProcesses\Application\Public\DTOs\ProcessDefinition;
 use App\Shared\Infrastructure\Database\DatabaseTable;
+use App\Shared\Presentation\Support\AdminDataTableExportMeta;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -31,6 +32,7 @@ final readonly class AdminManagedProcessesController
         return Inertia::render('Admin/ManagedProcesses/Runs', [
             'runs' => $this->runs(),
             'summary' => $this->summary(),
+            'exports' => AdminDataTableExportMeta::defaults(),
         ]);
     }
 
@@ -39,6 +41,7 @@ final readonly class AdminManagedProcessesController
         return Inertia::render('Admin/ManagedProcesses/Imports', [
             'importExecutions' => $this->importExecutions(),
             'summary' => $this->summary(),
+            'exports' => AdminDataTableExportMeta::defaults(),
         ]);
     }
 
@@ -51,6 +54,7 @@ final readonly class AdminManagedProcessesController
                 'schedulable' => count(array_filter($this->definitions->all(), fn (ProcessDefinition $definition): bool => $definition->scheduleSupported)),
                 'manual' => count(array_filter($this->definitions->all(), fn (ProcessDefinition $definition): bool => $definition->manualStartSupported)),
             ],
+            'exports' => AdminDataTableExportMeta::defaults(),
         ]);
     }
 
@@ -74,6 +78,7 @@ final readonly class AdminManagedProcessesController
             'run' => $this->runRow($record),
             'logs' => $this->logs($this->intValue($record->id ?? null)),
             'importExecution' => $this->importExecution($this->intValue($record->id ?? null)),
+            'exports' => AdminDataTableExportMeta::defaults(),
         ]);
     }
 
@@ -161,6 +166,7 @@ final readonly class AdminManagedProcessesController
                 'schedules' => (int) DB::table(DatabaseTable::MANAGED_PROCESS_SCHEDULES)->where('enabled', true)->count(),
                 'disabled' => (int) DB::table(DatabaseTable::MANAGED_PROCESS_SCHEDULES)->where('enabled', false)->count(),
             ],
+            'exports' => AdminDataTableExportMeta::defaults(),
         ]);
     }
 

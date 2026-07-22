@@ -13,7 +13,7 @@ import FormSelect from '../../../Components/Form/FormSelect.vue';
 import PageStack from '../../../Components/PageStack.vue';
 import SeverityBadge from '../../../Components/SeverityBadge.vue';
 import AdminLayout from '../../../Layouts/AdminLayout.vue';
-import type { DataTableColumn } from '../../../Types/data-table';
+import type { DataTableColumn, DataTableExportMeta } from '../../../Types/data-table';
 
 interface Run {
     publicId: string;
@@ -77,7 +77,7 @@ interface ImportExecution {
     errors: ImportError[];
 }
 
-const props = defineProps<{ run: Run; logs: Log[]; importExecution: ImportExecution | null }>();
+const props = defineProps<{ run: Run; logs: Log[]; importExecution: ImportExecution | null; exports: DataTableExportMeta }>();
 
 const draftSearch = ref('');
 const draftSeverity = ref('all');
@@ -210,6 +210,9 @@ function statusSeverity(value: string): string {
                     :columns="importErrorColumns"
                     row-key="publicId"
                     state-key="admin.managed-processes.import-errors"
+                    export-key="admin.managed-processes.import-row-errors"
+                    :exports="exports"
+                    :filters="{ run: run.publicId }"
                     empty-label="No import row errors were recorded."
                 />
             </SurfaceCard>

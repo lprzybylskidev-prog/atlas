@@ -7,6 +7,7 @@ namespace App\Modules\Optional\FeatureFlags\Presentation\Http\Controllers;
 use App\Modules\Optional\FeatureFlags\Application\Contracts\FeatureFlagRegistry;
 use App\Modules\Optional\FeatureFlags\Application\Contracts\FeatureFlagStore;
 use App\Shared\Infrastructure\Database\DatabaseTable;
+use App\Shared\Presentation\Support\AdminDataTableExportMeta;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -35,6 +36,7 @@ final readonly class AdminFeatureFlagsController
             'teams' => $teams,
             'selectedTeamPublicId' => $selectedTeamPublicId,
             'history' => $this->store->recentHistory(),
+            'exports' => AdminDataTableExportMeta::defaults(),
         ]);
     }
 

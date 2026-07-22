@@ -6,6 +6,8 @@ namespace App\Modules\Optional\Search\Presentation\Providers;
 
 use App\Modules\Optional\Search\Application\Contracts\SearchDocumentStore;
 use App\Modules\Optional\Search\Application\Contracts\SearchIndexRegistry;
+use App\Modules\Optional\Search\Application\Exports\AdminSearchIndexesDataTableExportProvider;
+use App\Modules\Optional\Search\Application\Exports\AdminSearchRebuildsDataTableExportProvider;
 use App\Modules\Optional\Search\Application\Indexing\SearchOutboxEventDispatcher;
 use App\Modules\Optional\Search\Application\Lifecycle\SearchDataLifecycleParticipant;
 use App\Modules\Optional\Search\Application\Permissions\SearchPermissionCatalog;
@@ -43,5 +45,9 @@ final class SearchServiceProvider extends ServiceProvider
         $this->app->tag([SearchDataLifecycleParticipant::class], 'atlas.data_lifecycle_participants');
         $this->app->tag(['search.managed_process.rebuild_definition'], 'atlas.managed_process_definitions');
         $this->app->tag([SearchRebuildProcessHandler::class], 'atlas.managed_process_handlers');
+        $this->app->tag([
+            AdminSearchIndexesDataTableExportProvider::class,
+            AdminSearchRebuildsDataTableExportProvider::class,
+        ], 'atlas.admin_data_table_export_providers');
     }
 }

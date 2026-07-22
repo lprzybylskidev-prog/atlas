@@ -6,6 +6,7 @@ namespace Tests\Unit\Foundation;
 
 use App\Modules\Core\Audit\AuditModule;
 use App\Modules\Core\Authorization\AuthorizationModule;
+use App\Modules\Core\Exports\ExportsModule;
 use App\Modules\Core\Files\FilesModule;
 use App\Modules\Core\Health\HealthModule;
 use App\Modules\Core\Identity\IdentityModule;
@@ -109,6 +110,7 @@ final class ModuleRegistryTest extends TestCase
             FeatureFlagsModule::class,
             IntegrationsModule::class,
             ManagedProcessesModule::class,
+            ExportsModule::class,
             ImportsModule::class,
             SearchModule::class,
             ReportsModule::class,

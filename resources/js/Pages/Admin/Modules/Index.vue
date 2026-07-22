@@ -133,6 +133,7 @@ const actions: DataTableAction<ModuleRow>[] = [{ key: 'show', label: 'Manage tea
                 row-key="moduleKey"
                 :actions="actions"
                 :table="table"
+                :filters="filters"
                 ui-locale="en"
             />
         </PageStack>

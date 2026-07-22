@@ -63,7 +63,7 @@
         ],
         "dev": [
             "Composer\\Config::disableProcessTimeout",
-            "pnpm exec concurrently -c \"#93c5fd,#c4b5fd,#fb7185,#fdba74\" \"php artisan serve\" \"php artisan queue:listen --tries=1 --timeout=0\" \"php artisan pail --timeout=0\" \"pnpm dev\" --names=server,queue,logs,vite --kill-others"
+            "pnpm exec concurrently -c \"#93c5fd,#c4b5fd,#fb7185,#fdba74,#86efac\" \"php artisan serve\" \"php artisan queue:listen redis --queue=exports,search,files,files-large,default --sleep=1 --tries=1 --timeout=60\" \"php artisan schedule:work\" \"php artisan pail --timeout=0\" \"pnpm dev\" --names=server,queue,scheduler,logs,vite --kill-others"
         ],
         "demo:reset": [
             "@php artisan demo:reset"
@@ -86,7 +86,7 @@
             "pnpm stylelint"
         ],
         "analyse": [
-            "vendor/bin/phpstan analyse app/Modules/Core/Audit app/Modules/Core/Authorization app/Modules/Core/Files app/Modules/Core/Health app/Modules/Core/Identity/Application app/Modules/Core/Identity/Domain app/Modules/Core/Identity/Infrastructure app/Modules/Core/Identity/Presentation app/Modules/Core/Notifications app/Modules/Core/Settings app/Modules/Core/Teams app/Modules/Core/Users --memory-limit=512M",
+            "vendor/bin/phpstan analyse app/Modules/Core/Audit app/Modules/Core/Authorization app/Modules/Core/Exports app/Modules/Core/Files app/Modules/Core/Health app/Modules/Core/Identity/Application app/Modules/Core/Identity/Domain app/Modules/Core/Identity/Infrastructure app/Modules/Core/Identity/Presentation app/Modules/Core/Notifications app/Modules/Core/Settings app/Modules/Core/Teams app/Modules/Core/Users --memory-limit=512M",
             "vendor/bin/phpstan analyse app/Modules/Optional app/Shared/Application app/Shared/Domain app/Shared/Infrastructure app/Shared/Presentation --memory-limit=512M",
             "vendor/bin/phpstan analyse bootstrap config database routes tests --memory-limit=512M"
         ],

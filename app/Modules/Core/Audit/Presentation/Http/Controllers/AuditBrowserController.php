@@ -10,6 +10,7 @@ use App\Shared\Application\Tables\TableRequestContext;
 use App\Shared\Application\Tables\TableSavedViewService;
 use App\Shared\Application\Tables\TableState;
 use App\Shared\Infrastructure\Database\DatabaseTable;
+use App\Shared\Presentation\Support\AdminDataTableExportMeta;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -40,7 +41,7 @@ final readonly class AuditBrowserController
 
         $result = $this->tables->process($rows, $definition, $state)
             ->withSavedViews($this->views->listFor(AdminTableDefinitions::AUDIT, $userId, $teamId));
-        $table = $result->tableMeta(AdminTableDefinitions::AUDIT);
+        $table = $result->tableMeta(AdminTableDefinitions::AUDIT, AdminDataTableExportMeta::defaults());
         $tableState = $table['state'] ?? [];
         $table['state'] = is_array($tableState)
             ? [...$tableState, 'filters' => $this->viewFilters($filters)]
@@ -81,6 +82,7 @@ final readonly class AuditBrowserController
                 'rejectedCount' => count(array_filter($events, static fn (array $event): bool => ($event['result'] ?? '') === 'rejected')),
             ],
             'events' => $events,
+            'exports' => AdminDataTableExportMeta::defaults(),
         ]);
     }
 

@@ -10,7 +10,7 @@ import FormSelect from '../../../Components/Form/FormSelect.vue';
 import MetricGrid from '../../../Components/MetricGrid.vue';
 import PageStack from '../../../Components/PageStack.vue';
 import AdminLayout from '../../../Layouts/AdminLayout.vue';
-import type { DataTableAction, DataTableColumn } from '../../../Types/data-table';
+import type { DataTableAction, DataTableColumn, DataTableExportMeta } from '../../../Types/data-table';
 import { managedProcessSubnavigation } from './navigation';
 
 interface Definition extends Record<string, unknown> {
@@ -29,6 +29,7 @@ interface Definition extends Record<string, unknown> {
 const props = defineProps<{
     definitions: Definition[];
     summary: { definitions: number; schedulable: number; manual: number };
+    exports: DataTableExportMeta;
 }>();
 
 const moduleFilter = ref('');
@@ -130,6 +131,9 @@ function resetFilters(): void {
                 row-key="key"
                 :actions="actions"
                 state-key="admin.managed-processes.definitions"
+                export-key="admin.managed-processes.definitions"
+                :exports="exports"
+                :filters="{ module: moduleFilter, schedule: scheduleFilter, manual: manualFilter }"
                 empty-label="No definitions match the current filters."
             />
         </PageStack>

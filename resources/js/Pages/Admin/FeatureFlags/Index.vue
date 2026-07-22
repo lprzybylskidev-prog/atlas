@@ -14,7 +14,7 @@ import MetricGrid from '../../../Components/MetricGrid.vue';
 import PageStack from '../../../Components/PageStack.vue';
 import SurfaceCard from '../../../Components/SurfaceCard.vue';
 import AdminLayout from '../../../Layouts/AdminLayout.vue';
-import type { DataTableColumn } from '../../../Types/data-table';
+import type { DataTableColumn, DataTableExportMeta } from '../../../Types/data-table';
 
 interface FeatureFlagRow extends Record<string, unknown> {
     key: string;
@@ -55,6 +55,7 @@ const props = defineProps<{
     teams: TeamOption[];
     selectedTeamPublicId: string | null;
     history: HistoryRow[];
+    exports: DataTableExportMeta;
 }>();
 
 const form = useForm({
@@ -197,6 +198,9 @@ function clearTeam(): void {
                 :columns="flagColumns"
                 row-key="key"
                 state-key="admin.feature-flags.flags"
+                export-key="admin.feature-flags.flags"
+                :exports="exports"
+                :filters="{ team: form.team_public_id }"
                 empty-label="No feature flags are registered."
             />
 
@@ -206,6 +210,8 @@ function clearTeam(): void {
                 :columns="historyColumns"
                 row-key="publicId"
                 state-key="admin.feature-flags.history"
+                export-key="admin.feature-flags.history"
+                :exports="exports"
                 empty-label="No feature flag changes recorded."
             />
         </PageStack>

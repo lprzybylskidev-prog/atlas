@@ -20,6 +20,7 @@ Development services:
 - nginx;
 - php-fpm;
 - scheduler;
+- queue worker;
 - PostgreSQL;
 - Redis;
 - Meilisearch;
@@ -104,10 +105,18 @@ http://localhost:8000
 The `app` service is the VS Code/Codex workspace container and intentionally runs `sleep infinity`.
 HTTP traffic goes through the development `nginx` service and the separate `php-fpm` service. The `scheduler` service runs `php artisan schedule:work` against the same code mount so local readiness has a fresh scheduler heartbeat instead of becoming unhealthy after `ATLAS_SCHEDULER_HEARTBEAT_STALE_SECONDS`.
 
+The `worker` service runs the local Redis queue listener for Atlas runtime queues:
+
+```text
+exports,search,files,files-large,default
+```
+
+This worker must be running during normal Admin/UI development so queued exports, managed-process runs, search rebuilds, file scans, and default Laravel jobs do not remain stuck in `queued` state. Local development uses `queue:listen` instead of a long-lived `queue:work` process so queued jobs boot the current application code after edits.
+
 To apply nginx/php-fpm service changes without rebuilding the Dev Container:
 
 ```text
-docker compose -f .devcontainer/docker-compose.yml up -d --no-build nginx php-fpm scheduler
+docker compose -f .devcontainer/docker-compose.yml up -d --no-build nginx php-fpm scheduler worker
 ```
 
 This may start existing runtime images and recreate only the affected runtime services. It must not rebuild the Dev Container.

@@ -43,6 +43,7 @@ const actions: DataTableAction<NotificationRow>[] = [
         label: t('notifications.open'),
         href: (row) => (row.deepLinkUrl === '' ? '/notifications' : row.deepLinkUrl),
         method: 'get',
+        nativeNavigation: true,
         tone: 'info',
     },
     {

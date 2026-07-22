@@ -6,6 +6,7 @@ namespace App\Modules\Core\Users\Presentation\Providers;
 
 use App\Modules\Core\Users\Application\Contracts\FirstPasswordLinkIssuer;
 use App\Modules\Core\Users\Application\Contracts\UserAccountRepository;
+use App\Modules\Core\Users\Application\Exports\AdminUsersDataTableExportProvider;
 use App\Modules\Core\Users\Application\Permissions\UserPermissionCatalog;
 use App\Modules\Core\Users\Application\Public\Contracts\UserAccountCreator;
 use App\Modules\Core\Users\Application\PublicUserAccountCreator;
@@ -22,6 +23,7 @@ final class UsersServiceProvider extends ServiceProvider
         $this->app->bind(FirstPasswordLinkIssuer::class, LaravelFirstPasswordLinkIssuer::class);
         $this->app->bind(UserAccountCreator::class, PublicUserAccountCreator::class);
         $this->app->tag([UserPermissionCatalog::class], 'atlas.permission_catalogs');
+        $this->app->tag([AdminUsersDataTableExportProvider::class], 'atlas.admin_data_table_export_providers');
     }
 
     public function boot(): void

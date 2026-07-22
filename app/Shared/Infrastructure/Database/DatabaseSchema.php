@@ -22,6 +22,8 @@ final class DatabaseSchema
 
     public const CORE_FILES = 'core_files';
 
+    public const CORE_EXPORTS = 'core_exports';
+
     public const OPTIONAL_INTEGRATIONS = 'optional_integrations';
 
     public const OPTIONAL_MANAGED_PROCESSES = 'optional_managed_processes';
@@ -29,8 +31,6 @@ final class DatabaseSchema
     public const OPTIONAL_IMPORTS = 'optional_imports';
 
     public const OPTIONAL_FEATURE_FLAGS = 'optional_feature_flags';
-
-    public const OPTIONAL_REPORTS = 'optional_reports';
 
     public const SHARED = 'shared';
 
@@ -47,11 +47,11 @@ final class DatabaseSchema
             self::CORE_SETTINGS,
             self::CORE_NOTIFICATIONS,
             self::CORE_FILES,
+            self::CORE_EXPORTS,
             self::OPTIONAL_INTEGRATIONS,
             self::OPTIONAL_MANAGED_PROCESSES,
             self::OPTIONAL_IMPORTS,
             self::OPTIONAL_FEATURE_FLAGS,
-            self::OPTIONAL_REPORTS,
             self::SHARED,
         ];
     }

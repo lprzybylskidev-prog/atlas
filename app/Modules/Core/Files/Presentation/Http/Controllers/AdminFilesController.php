@@ -6,6 +6,7 @@ namespace App\Modules\Core\Files\Presentation\Http\Controllers;
 
 use App\Modules\Core\Files\Infrastructure\Persistence\DatabaseFileStorage;
 use App\Shared\Infrastructure\Database\DatabaseTable;
+use App\Shared\Presentation\Support\AdminDataTableExportMeta;
 use Illuminate\Database\Query\JoinClause;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -53,6 +54,7 @@ final readonly class AdminFilesController
         return Inertia::render('Admin/Files/Index', [
             'files' => $records,
             'summary' => $this->summary(),
+            'exports' => AdminDataTableExportMeta::defaults(),
         ]);
     }
 

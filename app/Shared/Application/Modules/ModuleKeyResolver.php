@@ -76,6 +76,10 @@ final class ModuleKeyResolver
             return 'search';
         }
 
+        if (str_starts_with($permission, 'admin.exports.') || str_starts_with($permission, 'exports.')) {
+            return 'exports';
+        }
+
         if (str_starts_with($permission, 'admin.reports.') || str_starts_with($permission, 'reports.')) {
             return 'reports';
         }

@@ -9,6 +9,7 @@ use App\Modules\Optional\Search\Application\Contracts\SearchIndexRegistry;
 use App\Modules\Optional\Search\Application\Public\DTOs\SearchIndexDescriptor;
 use App\Modules\Optional\Search\Application\SearchRebuildProcess;
 use App\Shared\Infrastructure\Database\DatabaseTable;
+use App\Shared\Presentation\Support\AdminDataTableExportMeta;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Config;
@@ -41,6 +42,7 @@ final readonly class AdminSearchController
             'readiness' => $readiness,
             'recentRebuilds' => $rebuilds,
             'rebuildConfirmation' => 'REBUILD SEARCH',
+            'exports' => AdminDataTableExportMeta::defaults(),
         ]);
     }
 

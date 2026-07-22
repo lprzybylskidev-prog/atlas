@@ -17,6 +17,7 @@ use App\Modules\Core\Authorization\Presentation\Http\Controllers\StoreOnboarding
 use App\Modules\Core\Authorization\Presentation\Http\Controllers\StoreRoleController;
 use App\Modules\Core\Authorization\Presentation\Http\Controllers\UpdateOnboardingPackageController;
 use App\Modules\Core\Authorization\Presentation\Http\Controllers\UpdateRoleController;
+use App\Modules\Core\Exports\Presentation\Http\Controllers\AdminDataTableExportController;
 use App\Modules\Core\Files\Presentation\Http\Controllers\AdminFilesController;
 use App\Modules\Core\Identity\Application\Admin\HighRiskAdministrativeOperation;
 use App\Modules\Core\Identity\Presentation\Http\Controllers\AdminModeController;
@@ -146,4 +147,5 @@ Route::middleware(['auth', 'admin.mode', 'route.permission'])->group(function ()
     Route::delete('/admin/table-views/{view}', [TableSavedViewController::class, 'destroy'])->name('admin.table-views.destroy');
     Route::post('/admin/table-views/{view}/copy', [TableSavedViewController::class, 'copy'])->name('admin.table-views.copy');
     Route::post('/admin/table-views/{view}/default', [TableSavedViewController::class, 'default'])->name('admin.table-views.default');
+    Route::post('/admin/exports/data-table', AdminDataTableExportController::class)->name('admin.exports.data-table');
 });

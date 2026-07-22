@@ -5,6 +5,7 @@ import type { Component } from 'vue';
 import { computed, ref } from 'vue';
 
 import CodeViewer from '../../../Components/CodeViewer.vue';
+import DataTableExportMenu from '../../../Components/DataTableExportMenu.vue';
 import FilterPanel from '../../../Components/FilterPanel.vue';
 import FormButton from '../../../Components/Form/FormButton.vue';
 import FormCheckbox from '../../../Components/Form/FormCheckbox.vue';
@@ -20,6 +21,7 @@ import UiState from '../../../Components/UiState.vue';
 import { useModal } from '../../../Composables/useModal';
 import AdminLayout from '../../../Layouts/AdminLayout.vue';
 import { useTranslator } from '../../../Localization/translator';
+import type { DataTableExportMeta } from '../../../Types/data-table';
 
 interface FailedJob {
     uuid: string;
@@ -46,6 +48,7 @@ interface QueueSummary {
 const props = defineProps<{
     jobs: FailedJob[];
     summary: QueueSummary;
+    exports: DataTableExportMeta;
 }>();
 
 const { t } = useTranslator('en');
@@ -63,6 +66,16 @@ const dateTo = ref('');
 const expanded = ref<string | null>(props.jobs[0]?.uuid ?? null);
 const selected = ref<string[]>([]);
 const retrying = ref(false);
+const failedJobExportColumns = [
+    'uuid',
+    'connection',
+    'queue',
+    'failedAt',
+    'displayName',
+    'jobClass',
+    'exceptionType',
+    'exceptionMessage',
+] as const;
 
 const connections = computed(() => optionsFrom(props.jobs.map((job) => job.connection).filter(Boolean)));
 const queues = computed(() => optionsFrom(props.jobs.map((job) => job.queue).filter(Boolean)));
@@ -261,6 +274,19 @@ function isWithinDateRange(job: FailedJob): boolean {
             </SurfaceCard>
 
             <section class="space-y-3">
+                <div class="flex justify-end">
+                    <DataTableExportMenu
+                        table-key="admin.queues.failed-jobs"
+                        :exports="exports"
+                        :columns="[...failedJobExportColumns]"
+                        :column-order="[...failedJobExportColumns]"
+                        :filters="{ connection, queue, from: dateFrom, to: dateTo }"
+                        :search="search"
+                        sort="failedAt"
+                        direction="desc"
+                    />
+                </div>
+
                 <SurfaceCard
                     v-for="job in filteredJobs"
                     :key="job.uuid"

@@ -32,6 +32,7 @@ final class ReportsModule implements ModuleDefinition
             new ModuleKey('health'),
             new ModuleKey('files'),
             new ModuleKey('managed_processes'),
+            new ModuleKey('exports'),
         ];
     }
 

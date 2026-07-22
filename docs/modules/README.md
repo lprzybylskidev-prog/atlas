@@ -9,6 +9,7 @@ Each file is the canonical current-state description of one Atlas module or tigh
 - [Admin](admin.md) — administrative module scope and screens.
 - [TimeTracking](time-tracking.md) — work time, breaks, inactivity, corrections, settlement, and reporting.
 - [Files](files.md) — private storage, quarantine, malware scanning, and retention.
+- [Exports](exports.md) — Core export snapshots, artifact lifecycle, render credentials, CSV/XLSX/PDF generation, and browser print.
 - [Managed processes](managed-processes.md) — process definitions, runs, structured logs, queues, schedules, retry/cancel, progress, and Admin visibility.
 - [Imports](imports.md) — mapping, validation, preview, execution, progress, and errors.
 - [Integrations](integrations.md) — external adapters, retries, idempotency, and visibility.
@@ -17,4 +18,4 @@ Each file is the canonical current-state description of one Atlas module or tigh
 - [Health](health.md) — liveness, readiness, dependency classification, and Admin diagnostics.
 - [Search](search.md) — Meilisearch projections, indexing, rebuild, and health.
 - [Feature flags](feature-flags.md) — typed rollout flags, global/team values, history, audit, and Admin management.
-- [Reports](reports.md) — report/export snapshots, artifact lifecycle metadata, render credentials, and PDF/print lifecycle ownership.
+- [Reports](reports.md) — optional named reports, report-specific charts, catalogs, and Core Exports integration points.

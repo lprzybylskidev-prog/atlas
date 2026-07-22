@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Core\Files\Presentation\Providers;
 
 use App\Modules\Core\Files\Application\Contracts\MalwareScanner;
+use App\Modules\Core\Files\Application\Exports\AdminFilesDataTableExportProvider;
 use App\Modules\Core\Files\Application\Permissions\FilesPermissionCatalog;
 use App\Modules\Core\Files\Application\Public\Contracts\FileLifecycle;
 use App\Modules\Core\Files\Application\Public\Contracts\FileMaintenance;
@@ -45,5 +46,6 @@ final class FilesServiceProvider extends ServiceProvider
             throw new RuntimeException(sprintf('Unsupported Files malware scanner [%s].', $scanner));
         });
         $this->app->tag([FilesPermissionCatalog::class], 'atlas.permission_catalogs');
+        $this->app->tag([AdminFilesDataTableExportProvider::class], 'atlas.admin_data_table_export_providers');
     }
 }

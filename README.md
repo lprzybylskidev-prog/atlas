@@ -161,6 +161,7 @@ The baseline production topology uses one host or VM with Docker Compose. Postgr
 The Dev Container no-rebuild restriction applies only to the development Dev Container after its first successful start. It does not restrict normal rebuilding of production images and containers.
 
 The development application container includes Docker CLI and the Docker Compose plugin through a development-only host Docker socket mount, allowing the local Atlas Compose stack to be inspected from inside VS Code.
+The Dev Container Compose stack includes long-running scheduler and queue listener services so scheduled operations, queued exports, file scans, search jobs, and managed processes run during normal local Admin/UI development. The development queue listener boots fresh application code for jobs after edits.
 
 ## Current status
 

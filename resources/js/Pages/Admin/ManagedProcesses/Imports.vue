@@ -10,7 +10,7 @@ import FormSelect from '../../../Components/Form/FormSelect.vue';
 import MetricGrid from '../../../Components/MetricGrid.vue';
 import PageStack from '../../../Components/PageStack.vue';
 import AdminLayout from '../../../Layouts/AdminLayout.vue';
-import type { DataTableAction, DataTableColumn } from '../../../Types/data-table';
+import type { DataTableAction, DataTableColumn, DataTableExportMeta } from '../../../Types/data-table';
 import { managedProcessSubnavigation } from './navigation';
 
 interface ImportExecution extends Record<string, unknown> {
@@ -28,6 +28,7 @@ interface ImportExecution extends Record<string, unknown> {
 const props = defineProps<{
     importExecutions: ImportExecution[];
     summary: { imports: number };
+    exports: DataTableExportMeta;
 }>();
 
 const importFilter = ref('');
@@ -128,6 +129,9 @@ function resetFilters(): void {
                 row-key="publicId"
                 :actions="actions"
                 state-key="admin.managed-processes.imports"
+                export-key="admin.managed-processes.imports"
+                :exports="exports"
+                :filters="{ import: importFilter, status: statusFilter, source: sourceFilter, from: fromFilter, to: toFilter }"
                 empty-label="No import executions match the current filters."
             />
         </PageStack>

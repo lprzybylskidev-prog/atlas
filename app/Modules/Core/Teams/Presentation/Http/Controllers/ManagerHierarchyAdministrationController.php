@@ -12,6 +12,7 @@ use App\Modules\Core\Teams\Application\Public\DTOs\ManagerHierarchyNode;
 use App\Modules\Core\Teams\Application\Public\DTOs\ManagerImpactPreview;
 use App\Modules\Core\Teams\Application\Public\DTOs\ManagerRelationshipSummary;
 use App\Shared\Infrastructure\Database\DatabaseTable;
+use App\Shared\Presentation\Support\AdminDataTableExportMeta;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -51,6 +52,7 @@ final class ManagerHierarchyAdministrationController
             'history' => array_map($this->relationship(...), $teamPublicId === '' ? [] : $this->hierarchy->relationshipHistory($teamPublicId)),
             'tree' => array_map($this->node(...), $teamPublicId === '' ? [] : $this->hierarchy->tree($teamPublicId)),
             'preview' => $preview,
+            'exports' => AdminDataTableExportMeta::defaults(),
         ]);
     }
 

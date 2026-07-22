@@ -11,7 +11,7 @@ import PageStack from '../../../Components/PageStack.vue';
 import SeverityBadge from '../../../Components/SeverityBadge.vue';
 import AdminLayout from '../../../Layouts/AdminLayout.vue';
 import { useTranslator } from '../../../Localization/translator';
-import type { DataTableAction, DataTableColumn } from '../../../Types/data-table';
+import type { DataTableAction, DataTableColumn, DataTableExportMeta } from '../../../Types/data-table';
 
 interface IntegrationRecord extends Record<string, unknown> {
     key: string;
@@ -57,6 +57,7 @@ const props = defineProps<{
     summary: IntegrationSummary;
     externalApiEnabled: boolean;
     recentRuns: RecentRunInput[];
+    exports: DataTableExportMeta;
 }>();
 
 const { t } = useTranslator('en');
@@ -152,6 +153,8 @@ const recentRunColumns: DataTableColumn<RecentRun>[] = [
                 row-key="key"
                 :actions="integrationActions"
                 state-key="admin.integrations.adapters"
+                export-key="admin.integrations.adapters"
+                :exports="exports"
                 empty-label="No integration adapters registered."
             />
 
@@ -161,6 +164,8 @@ const recentRunColumns: DataTableColumn<RecentRun>[] = [
                 :columns="recentRunColumns"
                 row-key="rowKey"
                 state-key="admin.integrations.recent-runs"
+                export-key="admin.integrations.runs"
+                :exports="exports"
                 empty-label="No synchronization runs recorded."
             />
         </PageStack>

@@ -6,7 +6,7 @@ Canonical shared contract for data tables, query strings, saved views, exports, 
 
 Every table uses the shared TanStack Table wrapper.
 
-The Phase 10 shared `DataTable` wrapper is the only application table framework. Current Admin tables use backend-validated table state, server-side pagination, sorting, and filtering, deterministic English query-string keys, column visibility/order state, row selection for the currently loaded page, loading/empty/error/no-results states, and row actions. Report/export actions are provided through the Reports module lifecycle instead of browser-local table generation.
+The Phase 10 shared `DataTable` wrapper is the only application table framework. Current Admin tables use backend-validated table state, server-side pagination, sorting, and filtering, deterministic English query-string keys, column visibility/order state, row selection for the currently loaded page, loading/empty/error/no-results states, and row actions. Export actions are provided through the Core Exports lifecycle instead of browser-local table generation.
 
 Tables keep readable minimum widths for data cells and row actions. When the visible column set is wider than the available viewport, the shared wrapper uses horizontal scrolling instead of compressing columns until values or actions overlap. Truncated data cells expose the full formatted value through the shared tooltip pattern while keeping the formatted value selectable for normal browser copy operations.
 
@@ -14,7 +14,7 @@ Row actions that need confirmation use the shared modal flow through `DataTableA
 
 Saved views persist safe table configuration only: search/filter state, sorting, visible columns, column order, grouping keys, and fixed or dynamic time-range metadata. They never persist row data. Private views are owner-scoped, team-shared views are active-team scoped, and system views are read-only from the normal table UI. System views may be copied into private or team-shared views. Shared/system view changes are recorded through the current security audit bridge until the full Phase 11 Audit module exists.
 
-Phase 24 implements the later report/export/PDF/chart/print artifact lifecycle after files, notifications, audit, active-team context, and operational visibility exist.
+Phase 24 implements the later report/export/PDF/chart/print artifact lifecycle after files, notifications, audit, active-team context, and operational visibility exist. Phase 24a moves the reusable lifecycle into the Core Exports module so Admin and business data surfaces can export without depending on optional Reports.
 
 Admin table data columns place `public_id` first. Admin tables expose all safe non-secret columns from their backing table through the column visibility menu, while default visibility stays limited to the most operationally important fields. Secret values such as passwords, remember tokens, authentication tokens, MFA secrets, and recovery codes are never exposed as table columns.
 
@@ -88,7 +88,9 @@ Exports and print must honor:
 - permissions;
 - active team.
 
-Small exports may run synchronously.
+Admin tables using the shared backend `TableState` enter the export lifecycle through Core Exports `AdminDataTableExportProvider` implementations. The snapshot factory revalidates the table state against the table definition and provider-authorized columns before recording the immutable export request.
+
+Small exports may run synchronously through Core Exports.
 
 Large exports use managed-process queues and notify the user when ready. This depends on the managed-process, notification, and operational-health foundations rather than inventing a local progress mechanism.
 
@@ -128,7 +130,7 @@ Charts:
 
 ### Report generation pipeline
 
-Every generated report/export follows one explicit lifecycle, using managed-process runs for queued execution, progress, structured logs, retry/cancel visibility, and Admin operations where execution is not safely synchronous:
+Every generated report/export follows one explicit Core Exports lifecycle, using managed-process runs for queued execution, progress, structured logs, retry/cancel visibility, and Admin operations where execution is not safely synchronous:
 
 1. authorize user, active team, module, dataset, filters, and columns;
 2. persist an immutable request snapshot and release/rule version;

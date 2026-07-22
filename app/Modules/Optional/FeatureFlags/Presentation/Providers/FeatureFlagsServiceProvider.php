@@ -6,6 +6,8 @@ namespace App\Modules\Optional\FeatureFlags\Presentation\Providers;
 
 use App\Modules\Optional\FeatureFlags\Application\Contracts\FeatureFlagRegistry;
 use App\Modules\Optional\FeatureFlags\Application\Contracts\FeatureFlagStore;
+use App\Modules\Optional\FeatureFlags\Application\Exports\AdminFeatureFlagHistoryDataTableExportProvider;
+use App\Modules\Optional\FeatureFlags\Application\Exports\AdminFeatureFlagsDataTableExportProvider;
 use App\Modules\Optional\FeatureFlags\Application\FeatureFlagDefinitions;
 use App\Modules\Optional\FeatureFlags\Application\FeatureFlagService;
 use App\Modules\Optional\FeatureFlags\Application\Permissions\FeatureFlagsPermissionCatalog;
@@ -22,5 +24,9 @@ final class FeatureFlagsServiceProvider extends ServiceProvider
         $this->app->bind(FeatureFlagEvaluator::class, FeatureFlagService::class);
 
         $this->app->tag([FeatureFlagsPermissionCatalog::class], 'atlas.permission_catalogs');
+        $this->app->tag([
+            AdminFeatureFlagsDataTableExportProvider::class,
+            AdminFeatureFlagHistoryDataTableExportProvider::class,
+        ], 'atlas.admin_data_table_export_providers');
     }
 }

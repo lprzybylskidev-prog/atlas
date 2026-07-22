@@ -89,6 +89,10 @@ const closeUserMenu = (): void => {
     userMenuOpen.value = false;
 };
 
+const notificationHref = (deepLinkUrl: string | null): string => deepLinkUrl ?? '/notifications';
+
+const isNativeNotificationHref = (deepLinkUrl: string | null): boolean => notificationHref(deepLinkUrl).startsWith('/exports/');
+
 const breadcrumbs = computed(() => page.props.navigation.breadcrumbs);
 const isAdminMode = computed(() => props.mode === 'admin');
 const canEnterAdmin = computed(() => page.props.auth.availableAdminRoutes.includes('admin.system-status'));
@@ -381,8 +385,30 @@ watch(
                                                 class="mt-0.5 h-4 w-4 shrink-0"
                                                 :stroke-width="1.8"
                                             />
+                                            <a
+                                                v-if="isNativeNotificationHref(notification.deepLinkUrl)"
+                                                :href="notificationHref(notification.deepLinkUrl)"
+                                                class="min-w-0 flex-1 focus-visible:outline focus-visible:outline-amber-500"
+                                                role="menuitem"
+                                                @click="closeUserMenu"
+                                            >
+                                                <TruncatedText
+                                                    :text="notification.title"
+                                                    text-class="text-sm font-medium text-zinc-900 dark:text-zinc-100"
+                                                />
+                                                <TruncatedText
+                                                    v-if="notification.body"
+                                                    :text="notification.body"
+                                                    :lines="2"
+                                                    text-class="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400"
+                                                />
+                                                <p class="mt-1 text-xs text-zinc-400 dark:text-zinc-500">
+                                                    {{ notificationTimestamp(notification.createdAt) }}
+                                                </p>
+                                            </a>
                                             <Link
-                                                :href="notification.deepLinkUrl ?? '/notifications'"
+                                                v-else
+                                                :href="notificationHref(notification.deepLinkUrl)"
                                                 class="min-w-0 flex-1 focus-visible:outline focus-visible:outline-amber-500"
                                                 role="menuitem"
                                                 @click="closeUserMenu"

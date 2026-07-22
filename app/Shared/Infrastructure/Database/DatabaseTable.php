@@ -94,11 +94,11 @@ final class DatabaseTable
 
     public const FEATURE_FLAG_HISTORY = DatabaseSchema::OPTIONAL_FEATURE_FLAGS.'.feature_flag_history';
 
-    public const REPORT_EXPORT_REQUESTS = DatabaseSchema::OPTIONAL_REPORTS.'.export_requests';
+    public const REPORT_EXPORT_REQUESTS = DatabaseSchema::CORE_EXPORTS.'.export_requests';
 
-    public const REPORT_EXPORT_ARTIFACTS = DatabaseSchema::OPTIONAL_REPORTS.'.export_artifacts';
+    public const REPORT_EXPORT_ARTIFACTS = DatabaseSchema::CORE_EXPORTS.'.export_artifacts';
 
-    public const REPORT_RENDER_CREDENTIALS = DatabaseSchema::OPTIONAL_REPORTS.'.render_credentials';
+    public const REPORT_RENDER_CREDENTIALS = DatabaseSchema::CORE_EXPORTS.'.render_credentials';
 
     public const CACHE = DatabaseSchema::SHARED.'.cache';
 

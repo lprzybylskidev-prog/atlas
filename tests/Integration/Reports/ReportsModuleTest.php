@@ -7,38 +7,46 @@ namespace Tests\Integration\Reports;
 use App\Modules\Core\Authorization\Application\Public\Contracts\EffectivePermissionChecker;
 use App\Modules\Core\Authorization\Application\Public\DTOs\EffectivePermissionDecision;
 use App\Modules\Core\Authorization\Application\Public\DTOs\EffectivePermissionRequest;
+use App\Modules\Core\Exports\Application\AdminDataTableExportProviderRegistry;
+use App\Modules\Core\Exports\Application\AdminDataTableExportSnapshotFactory;
+use App\Modules\Core\Exports\Application\Contracts\AdminDataTableExportProvider;
+use App\Modules\Core\Exports\Application\Contracts\ReportChartProvider;
+use App\Modules\Core\Exports\Application\Contracts\ReportExportDataProvider;
+use App\Modules\Core\Exports\Application\Contracts\ReportRenderReadinessProbe;
+use App\Modules\Core\Exports\Application\DTOs\AuthorizationFingerprint;
+use App\Modules\Core\Exports\Application\DTOs\ReportChartDefinition;
+use App\Modules\Core\Exports\Application\DTOs\ReportChartPoint;
+use App\Modules\Core\Exports\Application\DTOs\ReportChartSeries;
+use App\Modules\Core\Exports\Application\DTOs\ReportExportColumn;
+use App\Modules\Core\Exports\Application\DTOs\ReportExportRequestSnapshot;
+use App\Modules\Core\Exports\Application\DTOs\ReportRenderReadinessResult;
+use App\Modules\Core\Exports\Application\Enums\ReportExportFormat;
+use App\Modules\Core\Exports\Application\Enums\ReportExportStatus;
+use App\Modules\Core\Exports\Application\Exceptions\ReportArtifactNotDownloadable;
+use App\Modules\Core\Exports\Application\Exceptions\ReportRenderCredentialInvalid;
+use App\Modules\Core\Exports\Application\Exceptions\ReportRenderVisualsNotReady;
+use App\Modules\Core\Exports\Application\ExportsDeactivationGuard;
+use App\Modules\Core\Exports\Application\Public\Contracts\ReportExportArtifactAccess;
+use App\Modules\Core\Exports\Application\Public\Contracts\ReportExportGenerationDispatcher;
+use App\Modules\Core\Exports\Application\Public\Contracts\ReportExportMaintenance;
+use App\Modules\Core\Exports\Application\Public\Contracts\ReportExportRequestRecorder;
+use App\Modules\Core\Exports\Application\Public\Contracts\ReportRenderCredentialAccess;
+use App\Modules\Core\Exports\Application\Public\Contracts\ReportRenderCredentialIssuer;
+use App\Modules\Core\Exports\Application\Public\DTOs\AdminDataTableExportContext;
+use App\Modules\Core\Exports\Application\Public\DTOs\ReportExportGenerationRequest;
+use App\Modules\Core\Exports\Application\Public\Permissions\ReportsPermissionCatalog;
+use App\Modules\Core\Exports\Application\ReportExportDataProviderRegistry;
+use App\Modules\Core\Exports\Application\ReportExportGenerationProcess;
+use App\Modules\Core\Exports\Infrastructure\Runtime\ReportExportGenerationProcessHandler;
+use App\Modules\Core\Identity\Application\Public\Contracts\UserCredentialAccountDirectory;
+use App\Modules\Core\Identity\Application\Public\DTOs\AdminUserCredentialAccount;
 use App\Modules\Core\Identity\Infrastructure\Persistence\User;
 use App\Modules\Core\Teams\Infrastructure\Persistence\Team;
+use App\Modules\Core\Users\Application\Exports\AdminUsersDataTableExportProvider;
 use App\Modules\Optional\ManagedProcesses\Application\Contracts\ProcessDefinitionRegistry;
 use App\Modules\Optional\ManagedProcesses\Application\DTOs\ProcessLogEntry;
 use App\Modules\Optional\ManagedProcesses\Application\Enums\ProcessRunStatus;
 use App\Modules\Optional\ManagedProcesses\Application\Public\Contracts\ManagedProcessRunner;
-use App\Modules\Optional\Reports\Application\Contracts\ReportChartProvider;
-use App\Modules\Optional\Reports\Application\Contracts\ReportExportDataProvider;
-use App\Modules\Optional\Reports\Application\Contracts\ReportRenderReadinessProbe;
-use App\Modules\Optional\Reports\Application\DTOs\AuthorizationFingerprint;
-use App\Modules\Optional\Reports\Application\DTOs\ReportChartDefinition;
-use App\Modules\Optional\Reports\Application\DTOs\ReportChartPoint;
-use App\Modules\Optional\Reports\Application\DTOs\ReportChartSeries;
-use App\Modules\Optional\Reports\Application\DTOs\ReportExportColumn;
-use App\Modules\Optional\Reports\Application\DTOs\ReportExportGenerationRequest;
-use App\Modules\Optional\Reports\Application\DTOs\ReportExportRequestSnapshot;
-use App\Modules\Optional\Reports\Application\DTOs\ReportRenderReadinessResult;
-use App\Modules\Optional\Reports\Application\Enums\ReportExportFormat;
-use App\Modules\Optional\Reports\Application\Enums\ReportExportStatus;
-use App\Modules\Optional\Reports\Application\Exceptions\ReportArtifactNotDownloadable;
-use App\Modules\Optional\Reports\Application\Exceptions\ReportRenderCredentialInvalid;
-use App\Modules\Optional\Reports\Application\Exceptions\ReportRenderVisualsNotReady;
-use App\Modules\Optional\Reports\Application\Permissions\ReportsPermissionCatalog;
-use App\Modules\Optional\Reports\Application\Public\Contracts\ReportExportArtifactAccess;
-use App\Modules\Optional\Reports\Application\Public\Contracts\ReportExportGenerationDispatcher;
-use App\Modules\Optional\Reports\Application\Public\Contracts\ReportExportMaintenance;
-use App\Modules\Optional\Reports\Application\Public\Contracts\ReportExportRequestRecorder;
-use App\Modules\Optional\Reports\Application\Public\Contracts\ReportRenderCredentialAccess;
-use App\Modules\Optional\Reports\Application\Public\Contracts\ReportRenderCredentialIssuer;
-use App\Modules\Optional\Reports\Application\ReportExportGenerationProcess;
-use App\Modules\Optional\Reports\Application\ReportsDeactivationGuard;
-use App\Modules\Optional\Reports\Infrastructure\Runtime\ReportExportGenerationProcessHandler;
 use App\Shared\Application\Modules\Contracts\ModuleGate;
 use App\Shared\Application\Modules\ModuleAccessDecision;
 use App\Shared\Application\Modules\ModuleAccessDenialReason;
@@ -46,6 +54,10 @@ use App\Shared\Application\Modules\ModuleAccessRequest;
 use App\Shared\Application\Modules\ModuleDeactivationRequest;
 use App\Shared\Application\Modules\ModuleKey;
 use App\Shared\Application\Modules\ModuleKeyResolver;
+use App\Shared\Application\Tables\AdminTableDefinitions;
+use App\Shared\Application\Tables\TableColumn;
+use App\Shared\Application\Tables\TableDefinition;
+use App\Shared\Application\Tables\TableState;
 use App\Shared\Infrastructure\Database\DatabaseTable;
 use DateTimeImmutable;
 use Illuminate\Database\QueryException;
@@ -151,13 +163,308 @@ final class ReportsModuleTest extends TestCase
             self::fail('Report export generation process definition was not registered.');
         }
 
-        self::assertSame('reports', $definition->moduleKey);
-        self::assertSame('reports', $definition->queueName);
+        self::assertSame('exports', $definition->moduleKey);
+        self::assertSame('exports', $definition->queueName);
         self::assertSame('one_active_per_actor', $definition->concurrencyPolicy);
         self::assertFalse($definition->manualStartSupported);
         self::assertSame(ReportsPermissionCatalog::REQUEST, $definition->permissions->run);
-        self::assertSame('reports', $resolver->forPermission(ReportsPermissionCatalog::ADMIN_INDEX));
-        self::assertSame('reports', $resolver->forPermission(ReportsPermissionCatalog::REQUEST));
+        self::assertSame('exports', $resolver->forPermission(ReportsPermissionCatalog::ADMIN_INDEX));
+        self::assertSame('exports', $resolver->forPermission(ReportsPermissionCatalog::REQUEST));
+    }
+
+    public function test_admin_data_table_state_is_mapped_to_authorized_export_snapshots(): void
+    {
+        [$user, $team] = $this->userAndTeam();
+        $provider = new FakeAdminUsersDataTableExportProvider;
+
+        $snapshot = (new AdminDataTableExportSnapshotFactory)->snapshot(
+            $provider,
+            new AdminDataTableExportContext(
+                state: new TableState(
+                    page: 3,
+                    perPage: 250,
+                    sort: 'secret',
+                    direction: 'desc',
+                    search: " anna\n ",
+                    columns: ['secret', 'email', 'unknown', 'publicId'],
+                    columnOrder: ['secret', 'publicId', 'email'],
+                    view: '01JVIEW',
+                ),
+                requestingUserId: (int) $user->id,
+                requestingUserPublicId: (string) $user->public_id,
+                activeTeamId: (int) $team->id,
+                activeTeamPublicId: (string) $team->public_id,
+                filters: ['status' => 'active'],
+                timeRange: ['from' => '2026-07-01', 'to' => '2026-07-22'],
+                estimatedRowCount: 12,
+            ),
+            ReportExportFormat::Xlsx,
+        );
+
+        self::assertSame('admin.users', $snapshot->reportKey);
+        self::assertSame('Admin users', $snapshot->reportName);
+        self::assertSame('users', $snapshot->moduleKey);
+        self::assertSame(ReportExportFormat::Xlsx, $snapshot->format);
+        self::assertSame(['status' => 'active', 'search' => 'anna'], $snapshot->filters);
+        self::assertSame([['id' => 'email', 'desc' => true]], $snapshot->sorting);
+        self::assertSame(['email', 'publicId'], $snapshot->visibleColumns);
+        self::assertSame(['publicId', 'email'], $snapshot->columnOrder);
+        self::assertSame(['from' => '2026-07-01', 'to' => '2026-07-22'], $snapshot->timeRange);
+        self::assertSame(12, $snapshot->estimatedRowCount);
+
+        $authorization = $snapshot->authorization->toArray();
+
+        self::assertSame('users', $authorization['module_key']);
+        self::assertSame([ReportsPermissionCatalog::REQUEST], $authorization['permission_names']);
+        self::assertSame(['email', 'publicId'], $authorization['allowed_columns']);
+        self::assertSame('admin-users-export-v1', $authorization['rule_version']);
+    }
+
+    public function test_admin_data_table_export_providers_are_available_to_admin_and_report_registries(): void
+    {
+        $this->app->bind('exports.test.admin_data_table_provider', fn (): FakeAdminUsersDataTableExportProvider => new FakeAdminUsersDataTableExportProvider);
+        $this->app->tag(['exports.test.admin_data_table_provider'], 'atlas.admin_data_table_export_providers');
+
+        $adminProvider = $this->app->make(AdminDataTableExportProviderRegistry::class)->get('admin.users');
+        $reportProvider = $this->app->make(ReportExportDataProviderRegistry::class)->get('admin.users');
+
+        self::assertInstanceOf(FakeAdminUsersDataTableExportProvider::class, $adminProvider);
+        self::assertInstanceOf(FakeAdminUsersDataTableExportProvider::class, $reportProvider);
+        self::assertSame($adminProvider->tableKey(), $reportProvider->reportKey());
+        self::assertContains('admin.users', $this->app->make(AdminDataTableExportProviderRegistry::class)->tableKeys());
+    }
+
+    public function test_shared_admin_data_table_export_providers_are_registered(): void
+    {
+        $registry = $this->app->make(AdminDataTableExportProviderRegistry::class);
+        $keys = $registry->tableKeys();
+
+        foreach ([
+            AdminTableDefinitions::USERS,
+            AdminTableDefinitions::TEAMS,
+            AdminTableDefinitions::MANAGER_RELATIONSHIP_HISTORY,
+            AdminTableDefinitions::ROLES,
+            AdminTableDefinitions::PACKAGES,
+            AdminTableDefinitions::PERMISSIONS,
+            AdminTableDefinitions::AUDIT,
+            AdminTableDefinitions::SECURITY_HISTORY,
+            AdminTableDefinitions::IMPERSONATION_SESSION_EVENTS,
+            AdminTableDefinitions::RATE_LIMITS,
+            AdminTableDefinitions::MODULES,
+            AdminTableDefinitions::APPLICATION_LOGS,
+            AdminTableDefinitions::FAILED_JOBS,
+            AdminTableDefinitions::MODULE_DETAIL_TEAMS,
+            AdminTableDefinitions::MODULE_DETAIL_HISTORY,
+            AdminTableDefinitions::MODULE_DETAIL_SCHEDULES,
+            AdminTableDefinitions::FILES,
+            AdminTableDefinitions::INTEGRATION_ADAPTERS,
+            AdminTableDefinitions::INTEGRATION_RUNS,
+            AdminTableDefinitions::SEARCH_INDEXES,
+            AdminTableDefinitions::SEARCH_REBUILDS,
+            AdminTableDefinitions::FEATURE_FLAGS,
+            AdminTableDefinitions::FEATURE_FLAG_HISTORY,
+            AdminTableDefinitions::MANAGED_PROCESS_RUNS,
+            AdminTableDefinitions::MANAGED_PROCESS_DEFINITIONS,
+            AdminTableDefinitions::MANAGED_PROCESS_SCHEDULES,
+            AdminTableDefinitions::IMPORT_EXECUTIONS,
+            AdminTableDefinitions::IMPORT_ROW_ERRORS,
+        ] as $tableKey) {
+            self::assertContains($tableKey, $keys);
+
+            $provider = $registry->get($tableKey);
+            self::assertSame($tableKey, $provider->reportKey());
+            self::assertContains(ReportExportFormat::Csv, $provider->supportedFormats(new AdminDataTableExportContext(
+                state: TableState::fromPayload([], $provider->tableDefinition()),
+                requestingUserId: 1,
+                requestingUserPublicId: '01J000000000000000000000AA',
+                activeTeamId: null,
+                activeTeamPublicId: null,
+                filters: [],
+                timeRange: null,
+                estimatedRowCount: null,
+            )));
+        }
+    }
+
+    public function test_admin_users_data_table_export_provider_maps_filters_sorting_and_safe_columns(): void
+    {
+        $provider = new AdminUsersDataTableExportProvider(new FakeUserCredentialAccountDirectory);
+        $request = new ReportExportGenerationRequest(
+            publicId: '01JEXPORT0000000000000001',
+            reportKey: 'admin.users',
+            reportName: 'Admin users',
+            moduleKey: 'users',
+            format: ReportExportFormat::Csv,
+            activeTeamPublicId: null,
+            requestingUserPublicId: '01J000000000000000000000AA',
+            filters: ['search' => 'anna'],
+            sorting: [['id' => 'email', 'desc' => true]],
+            visibleColumns: ['publicId', 'email', 'failedLoginAttempts'],
+            columnOrder: ['email', 'publicId', 'failedLoginAttempts'],
+            allowedColumns: ['publicId', 'email', 'failedLoginAttempts'],
+            timeRange: null,
+            releaseVersion: 'test-release',
+            ruleVersion: 'admin-users-export-v1',
+            expiresAt: new DateTimeImmutable('+7 days'),
+        );
+
+        $rows = iterator_to_array($provider->rows($request), false);
+        $columns = $provider->columns($request);
+
+        self::assertSame(AdminTableDefinitions::USERS, $provider->tableKey());
+        self::assertSame(ReportsPermissionCatalog::REQUEST, $provider->requestPermission());
+        self::assertSame(AdminTableDefinitions::get(AdminTableDefinitions::USERS)->columnKeys(), $provider->allowedExportColumns(new AdminDataTableExportContext(
+            state: TableState::fromPayload([], AdminTableDefinitions::get(AdminTableDefinitions::USERS)),
+            requestingUserId: 1,
+            requestingUserPublicId: '01J000000000000000000000AA',
+            activeTeamId: null,
+            activeTeamPublicId: null,
+            filters: [],
+            timeRange: null,
+            estimatedRowCount: null,
+        )));
+        self::assertSame('Public ID', $columns[0]->label);
+        self::assertCount(1, $rows);
+        self::assertSame('anna@example.test', $rows[0]['email'] ?? null);
+        self::assertSame('01J000000000000000000000AA', $rows[0]['publicId'] ?? null);
+    }
+
+    public function test_admin_data_table_export_endpoint_rebuilds_safe_authorized_snapshots(): void
+    {
+        [$user, $team] = $this->userAndTeam();
+        $this->app->bind(EffectivePermissionChecker::class, AllowAllEffectivePermissionChecker::class);
+        $this->app->bind(ManagedProcessRunner::class, FakeReportManagedProcessRunner::class);
+
+        $response = $this->actingAs($user)
+            ->withSession([
+                'active_team_public_id' => (string) $team->public_id,
+                'atlas_admin_mode_entered_at' => now()->toIso8601String(),
+                'atlas_admin_mode_last_activity_at' => now()->toIso8601String(),
+            ])
+            ->post(route('admin.exports.data-table'), [
+                'table_key' => AdminTableDefinitions::USERS,
+                'format' => ReportExportFormat::Csv->value,
+                'page' => 2,
+                'per_page' => 250,
+                'sort' => 'not_a_column',
+                'direction' => 'desc',
+                'search' => " anna\n",
+                'columns' => 'email,not_a_column,publicId,email',
+                'column_order' => 'not_a_column,publicId,email',
+                'status' => 'active',
+                'nested' => ['ignored' => true],
+            ]);
+
+        $response->assertRedirect();
+        $response->assertSessionHas('success', 'Export request was accepted.');
+
+        $record = DB::table(DatabaseTable::REPORT_EXPORT_REQUESTS)->where('report_key', AdminTableDefinitions::USERS)->first();
+
+        self::assertNotNull($record);
+        self::assertSame('users', $record->module_key);
+        self::assertSame((string) $team->public_id, $record->active_team_public_id);
+        self::assertSame((string) $user->public_id, $record->requesting_user_public_id);
+        self::assertSame(ReportExportStatus::Queued->value, $record->status);
+        self::assertFalse((bool) $record->synchronous_allowed);
+        self::assertSame(['search' => 'anna', 'status' => 'active'], $this->jsonObject($record->filters ?? null));
+        self::assertSame([['id' => 'name', 'desc' => true]], $this->jsonObjectOrList($record->sorting ?? null));
+        self::assertSame(['email', 'publicId'], $this->jsonStringList($record->visible_columns ?? null));
+        self::assertSame(['publicId', 'email'], $this->jsonStringList($record->column_order ?? null));
+
+        $authorization = $this->jsonObject($record->authorization_snapshot ?? null);
+
+        self::assertSame('users', $authorization['module_key'] ?? null);
+        self::assertSame((string) $team->public_id, $authorization['active_team_public_id'] ?? null);
+        self::assertSame((string) $user->public_id, $authorization['requesting_user_public_id'] ?? null);
+        self::assertSame([ReportsPermissionCatalog::REQUEST], $authorization['permission_names'] ?? null);
+        self::assertSame('admin-users-export-v1', $authorization['rule_version'] ?? null);
+        self::assertNotNull($record->process_run_id);
+    }
+
+    public function test_admin_data_table_export_endpoint_rechecks_owning_module_gate(): void
+    {
+        [$user, $team] = $this->userAndTeam();
+        $this->app->bind(EffectivePermissionChecker::class, AllowAllEffectivePermissionChecker::class);
+        $this->app->bind(ModuleGate::class, DenyUsersReportModuleGate::class);
+        $this->app->bind(ManagedProcessRunner::class, FakeReportManagedProcessRunner::class);
+
+        $response = $this->actingAs($user)
+            ->withSession([
+                'active_team_public_id' => (string) $team->public_id,
+                'atlas_admin_mode_entered_at' => now()->toIso8601String(),
+                'atlas_admin_mode_last_activity_at' => now()->toIso8601String(),
+            ])
+            ->post(route('admin.exports.data-table'), [
+                'table_key' => AdminTableDefinitions::USERS,
+                'format' => ReportExportFormat::Csv->value,
+                'columns' => 'email',
+            ]);
+
+        $response->assertRedirect();
+        $response->assertSessionHas('error', 'Module [users] is not available for this operational action.');
+        $this->assertDatabaseCount(DatabaseTable::REPORT_EXPORT_REQUESTS, 0);
+    }
+
+    public function test_admin_data_table_browser_print_endpoint_redirects_to_print_view(): void
+    {
+        [$user, $team] = $this->userAndTeam();
+        $this->app->bind(EffectivePermissionChecker::class, AllowAllEffectivePermissionChecker::class);
+
+        $response = $this->actingAs($user)
+            ->withSession([
+                'active_team_public_id' => (string) $team->public_id,
+                'atlas_admin_mode_entered_at' => now()->toIso8601String(),
+                'atlas_admin_mode_last_activity_at' => now()->toIso8601String(),
+            ])
+            ->post(route('admin.exports.data-table'), [
+                'table_key' => AdminTableDefinitions::USERS,
+                'format' => ReportExportFormat::BrowserPrint->value,
+                'columns' => 'publicId,email',
+            ]);
+
+        $record = DB::table(DatabaseTable::REPORT_EXPORT_REQUESTS)->where('report_key', AdminTableDefinitions::USERS)->first();
+
+        self::assertNotNull($record);
+        self::assertSame(ReportExportStatus::Requested->value, $record->status);
+        $response->assertRedirect(route('exports.print', ['export' => $this->stringValue($record->public_id ?? null)]));
+    }
+
+    public function test_admin_data_table_export_endpoint_runs_recorded_csv_request_through_real_handler(): void
+    {
+        [$user, $team] = $this->userAndTeam();
+        $this->app->bind(EffectivePermissionChecker::class, AllowAllEffectivePermissionChecker::class);
+        Storage::fake('atlas_files');
+        Config::set('atlas.files.disk', 'atlas_files');
+
+        $response = $this->actingAs($user)
+            ->withSession([
+                'active_team_public_id' => (string) $team->public_id,
+                'atlas_admin_mode_entered_at' => now()->toIso8601String(),
+                'atlas_admin_mode_last_activity_at' => now()->toIso8601String(),
+            ])
+            ->post(route('admin.exports.data-table'), [
+                'table_key' => AdminTableDefinitions::USERS,
+                'format' => ReportExportFormat::Csv->value,
+                'columns' => 'publicId,email',
+            ]);
+
+        $response->assertRedirect();
+
+        $runPublicId = DB::table(DatabaseTable::MANAGED_PROCESS_RUNS)
+            ->where('process_key', ReportExportGenerationProcess::KEY)
+            ->value('public_id');
+
+        self::assertIsString($runPublicId);
+
+        $this->app->make(ReportExportGenerationProcessHandler::class)->handle($runPublicId);
+
+        $artifact = DB::table(DatabaseTable::REPORT_EXPORT_ARTIFACTS)->where('status', ReportExportStatus::Available->value)->first();
+
+        self::assertNotNull($artifact);
+        $this->assertDatabaseHas(DatabaseTable::REPORT_EXPORT_REQUESTS, [
+            'report_key' => AdminTableDefinitions::USERS,
+            'status' => ReportExportStatus::Available->value,
+        ]);
     }
 
     public function test_it_dispatches_generation_through_managed_process_runs(): void
@@ -184,8 +491,8 @@ final class ReportsModuleTest extends TestCase
     public function test_dispatch_snapshot_generates_small_exports_synchronously(): void
     {
         $this->app->bind(ManagedProcessRunner::class, FakeReportManagedProcessRunner::class);
-        $this->app->bind('reports.test.admin_users_provider', fn (): FakeReportDataProvider => new FakeReportDataProvider);
-        $this->app->tag(['reports.test.admin_users_provider'], 'atlas.report_data_providers');
+        $this->app->bind('exports.test.admin_users_provider', fn (): FakeReportDataProvider => new FakeReportDataProvider);
+        $this->app->tag(['exports.test.admin_users_provider'], 'atlas.export_data_providers');
         Storage::fake('atlas_files');
         Config::set('atlas.files.disk', 'atlas_files');
         [$user, $team] = $this->userAndTeam();
@@ -209,6 +516,28 @@ final class ReportsModuleTest extends TestCase
             'public_id' => $result->artifactPublicId,
             'status' => ReportExportStatus::Available->value,
         ]);
+    }
+
+    public function test_dispatch_snapshot_reuses_available_artifact_without_queuing_duplicate_process(): void
+    {
+        $this->app->bind(ManagedProcessRunner::class, FakeReportManagedProcessRunner::class);
+        $this->app->bind('exports.test.admin_users_provider', fn (): FakeReportDataProvider => new FakeReportDataProvider);
+        $this->app->tag(['exports.test.admin_users_provider'], 'atlas.export_data_providers');
+        Storage::fake('atlas_files');
+        Config::set('atlas.files.disk', 'atlas_files');
+        [$user, $team] = $this->userAndTeam();
+        $snapshot = $this->snapshot($user, $team, estimatedRowCount: 1);
+
+        $first = $this->app->make(ReportExportGenerationDispatcher::class)->dispatchSnapshot($snapshot);
+        $second = $this->app->make(ReportExportGenerationDispatcher::class)->dispatchSnapshot($snapshot);
+
+        self::assertSame('sync', $first->executionMode);
+        self::assertSame('cached', $second->executionMode);
+        self::assertSame($first->exportRequestPublicId, $second->exportRequestPublicId);
+        self::assertSame($first->artifactPublicId, $second->artifactPublicId);
+        $this->assertDatabaseCount(DatabaseTable::MANAGED_PROCESS_RUNS, 0);
+        $this->assertDatabaseCount(DatabaseTable::REPORT_EXPORT_REQUESTS, 1);
+        $this->assertDatabaseCount(DatabaseTable::REPORT_EXPORT_ARTIFACTS, 1);
     }
 
     public function test_dispatch_snapshot_queues_pdfs_even_when_the_estimate_is_small_by_default(): void
@@ -237,7 +566,7 @@ final class ReportsModuleTest extends TestCase
     {
         [$user, $team] = $this->userAndTeam();
         $request = $this->app->make(ReportExportRequestRecorder::class)->record($this->snapshot($user, $team));
-        $guard = $this->app->make(ReportsDeactivationGuard::class);
+        $guard = $this->app->make(ExportsDeactivationGuard::class);
 
         $blocked = $guard->assess(new ModuleDeactivationRequest(
             moduleKey: new ModuleKey('users'),
@@ -325,6 +654,23 @@ final class ReportsModuleTest extends TestCase
         self::assertSame(10, $download->sizeBytes);
     }
 
+    public function test_download_route_uses_route_permission_and_artifact_authorization(): void
+    {
+        $this->app->bind(ModuleGate::class, AllowAllReportModuleGate::class);
+        $this->app->bind(EffectivePermissionChecker::class, AllowAllEffectivePermissionChecker::class);
+        [$user, $team] = $this->userAndTeam();
+        $request = $this->app->make(ReportExportRequestRecorder::class)->record($this->snapshot($user, $team));
+        $requestId = DB::table(DatabaseTable::REPORT_EXPORT_REQUESTS)->where('public_id', $request->publicId)->value('id');
+        $artifactPublicId = $this->insertAvailableArtifact($this->numericId($requestId), $this->numericId($user->id), 'admin-users.csv');
+
+        $response = $this->actingAs($user)
+            ->withSession(['active_team_public_id' => (string) $team->public_id])
+            ->get(route('exports.download', ['artifact' => $artifactPublicId]));
+
+        $response->assertOk();
+        $response->assertDownload('admin-users.csv');
+    }
+
     public function test_download_rejects_a_different_requesting_user(): void
     {
         $this->app->bind(ModuleGate::class, AllowAllReportModuleGate::class);
@@ -363,8 +709,8 @@ final class ReportsModuleTest extends TestCase
     {
         $this->app->bind(ModuleGate::class, AllowAllReportModuleGate::class);
         $this->app->bind(ManagedProcessRunner::class, FakeReportManagedProcessRunner::class);
-        $this->app->bind('reports.test.admin_users_provider', fn (): FakeReportDataProvider => new FakeReportDataProvider);
-        $this->app->tag(['reports.test.admin_users_provider'], 'atlas.report_data_providers');
+        $this->app->bind('exports.test.admin_users_provider', fn (): FakeReportDataProvider => new FakeReportDataProvider);
+        $this->app->tag(['exports.test.admin_users_provider'], 'atlas.export_data_providers');
         Storage::fake('atlas_files');
         Config::set('atlas.files.disk', 'atlas_files');
 
@@ -395,7 +741,7 @@ final class ReportsModuleTest extends TestCase
             'type' => 'report_export.available',
             'severity' => 'success',
             'title' => 'Report export is ready',
-            'deep_link_url' => '/reports/exports/'.$this->stringValue($artifact->public_id ?? null).'/download',
+            'deep_link_url' => '/exports/'.$this->stringValue($artifact->public_id ?? null).'/download',
         ]);
 
         $file = DB::table(DatabaseTable::FILE_OBJECTS)->where('public_id', $artifact->file_object_public_id)->first();
@@ -422,8 +768,8 @@ final class ReportsModuleTest extends TestCase
     public function test_generation_rechecks_audit_export_permission(): void
     {
         $this->app->bind(ManagedProcessRunner::class, FakeReportManagedProcessRunner::class);
-        $this->app->bind('reports.test.admin_users_provider', fn (): FakeReportDataProvider => new FakeReportDataProvider);
-        $this->app->tag(['reports.test.admin_users_provider'], 'atlas.report_data_providers');
+        $this->app->bind('exports.test.admin_users_provider', fn (): FakeReportDataProvider => new FakeReportDataProvider);
+        $this->app->tag(['exports.test.admin_users_provider'], 'atlas.export_data_providers');
         [$user, $team] = $this->userAndTeam();
         $request = $this->app->make(ReportExportRequestRecorder::class)->record($this->snapshot($user, $team, auditExport: true));
         $this->app->bind(ModuleGate::class, DenyAuditExportReportModuleGate::class);
@@ -441,8 +787,8 @@ final class ReportsModuleTest extends TestCase
     {
         $this->app->bind(ModuleGate::class, AllowAllReportModuleGate::class);
         $this->app->bind(ManagedProcessRunner::class, FakeReportManagedProcessRunner::class);
-        $this->app->bind('reports.test.admin_users_provider', fn (): FakeReportDataProvider => new FakeReportDataProvider);
-        $this->app->tag(['reports.test.admin_users_provider'], 'atlas.report_data_providers');
+        $this->app->bind('exports.test.admin_users_provider', fn (): FakeReportDataProvider => new FakeReportDataProvider);
+        $this->app->tag(['exports.test.admin_users_provider'], 'atlas.export_data_providers');
         Storage::fake('atlas_files');
         Config::set('atlas.files.disk', 'atlas_files');
 
@@ -499,8 +845,8 @@ final class ReportsModuleTest extends TestCase
     {
         $this->app->bind(ModuleGate::class, AllowAllReportModuleGate::class);
         $this->app->bind(ManagedProcessRunner::class, FakeReportManagedProcessRunner::class);
-        $this->app->bind('reports.test.admin_users_provider', fn (): FakeReportDataProvider => new FakeReportDataProvider);
-        $this->app->tag(['reports.test.admin_users_provider'], 'atlas.report_data_providers');
+        $this->app->bind('exports.test.admin_users_provider', fn (): FakeReportDataProvider => new FakeReportDataProvider);
+        $this->app->tag(['exports.test.admin_users_provider'], 'atlas.export_data_providers');
         Storage::fake('atlas_files');
         Config::set('atlas.files.disk', 'atlas_files');
 
@@ -539,7 +885,7 @@ final class ReportsModuleTest extends TestCase
     public function test_render_credentials_are_short_lived_hashed_bound_and_one_time(): void
     {
         $this->app->bind(ModuleGate::class, AllowAllReportModuleGate::class);
-        Config::set('atlas.reports.render_token_ttl_seconds', 120);
+        Config::set('atlas.exports.render_token_ttl_seconds', 120);
         [$user, $team] = $this->userAndTeam();
         $request = $this->app->make(ReportExportRequestRecorder::class)->record($this->snapshot($user, $team, ReportExportFormat::Pdf));
 
@@ -571,8 +917,8 @@ final class ReportsModuleTest extends TestCase
     {
         $this->app->bind(ModuleGate::class, AllowAllReportModuleGate::class);
         $this->app->bind(ManagedProcessRunner::class, FakeReportManagedProcessRunner::class);
-        $this->app->bind('reports.test.admin_users_provider', fn (): FakeReportDataProvider => new FakeReportDataProvider);
-        $this->app->tag(['reports.test.admin_users_provider'], 'atlas.report_data_providers');
+        $this->app->bind('exports.test.admin_users_provider', fn (): FakeReportDataProvider => new FakeReportDataProvider);
+        $this->app->tag(['exports.test.admin_users_provider'], 'atlas.export_data_providers');
         Storage::fake('atlas_files');
         Config::set('atlas.files.disk', 'atlas_files');
 
@@ -622,10 +968,10 @@ final class ReportsModuleTest extends TestCase
     public function test_pdf_generation_renders_multipage_tables_with_chromium(): void
     {
         $this->app->bind(ManagedProcessRunner::class, FakeReportManagedProcessRunner::class);
-        $this->app->bind('reports.test.admin_users_provider', fn (): FakeReportDataProvider => new FakeReportDataProvider);
-        $this->app->bind('reports.test.admin_users_chart_provider', fn (): FakeReportChartProvider => new FakeReportChartProvider);
-        $this->app->tag(['reports.test.admin_users_provider'], 'atlas.report_data_providers');
-        $this->app->tag(['reports.test.admin_users_chart_provider'], 'atlas.report_chart_providers');
+        $this->app->bind('exports.test.admin_users_provider', fn (): FakeReportDataProvider => new FakeReportDataProvider);
+        $this->app->bind('exports.test.admin_users_chart_provider', fn (): FakeReportChartProvider => new FakeReportChartProvider);
+        $this->app->tag(['exports.test.admin_users_provider'], 'atlas.export_data_providers');
+        $this->app->tag(['exports.test.admin_users_chart_provider'], 'atlas.export_chart_providers');
         Storage::fake('atlas_files');
         Config::set('atlas.files.disk', 'atlas_files');
 
@@ -666,16 +1012,16 @@ final class ReportsModuleTest extends TestCase
     {
         $this->app->bind(ModuleGate::class, AllowAllReportModuleGate::class);
         $this->app->bind(EffectivePermissionChecker::class, AllowAllEffectivePermissionChecker::class);
-        $this->app->bind('reports.test.admin_users_provider', fn (): FakeReportDataProvider => new FakeReportDataProvider);
-        $this->app->bind('reports.test.admin_users_chart_provider', fn (): FakeReportChartProvider => new FakeReportChartProvider);
-        $this->app->tag(['reports.test.admin_users_provider'], 'atlas.report_data_providers');
-        $this->app->tag(['reports.test.admin_users_chart_provider'], 'atlas.report_chart_providers');
+        $this->app->bind('exports.test.admin_users_provider', fn (): FakeReportDataProvider => new FakeReportDataProvider);
+        $this->app->bind('exports.test.admin_users_chart_provider', fn (): FakeReportChartProvider => new FakeReportChartProvider);
+        $this->app->tag(['exports.test.admin_users_provider'], 'atlas.export_data_providers');
+        $this->app->tag(['exports.test.admin_users_chart_provider'], 'atlas.export_chart_providers');
         [$user, $team] = $this->userAndTeam();
         $request = $this->app->make(ReportExportRequestRecorder::class)->record($this->snapshot($user, $team, ReportExportFormat::BrowserPrint));
 
         $response = $this->actingAs($user)
             ->withSession(['active_team_public_id' => (string) $team->public_id])
-            ->get('/reports/exports/'.$request->publicId.'/print');
+            ->get('/exports/'.$request->publicId.'/print');
 
         $response->assertOk();
         $response->assertHeader('content-type', 'text/html; charset=UTF-8');
@@ -692,7 +1038,7 @@ final class ReportsModuleTest extends TestCase
         $response->assertSee('Open cases');
         $response->assertSee('<svg viewBox="0 0 100 10"', false);
         $response->assertSee('Atlas');
-        $response->assertSee('Atlas report export.');
+        $response->assertSee('Atlas export.');
         $response->assertSee('Total rows: 1.');
         $response->assertSee('anna@example.test');
         $response->assertDontSee('/build/assets', false);
@@ -707,8 +1053,8 @@ final class ReportsModuleTest extends TestCase
     {
         $this->app->bind(ModuleGate::class, AllowAllReportModuleGate::class);
         $this->app->bind(ManagedProcessRunner::class, FakeReportManagedProcessRunner::class);
-        $this->app->bind('reports.test.not_ready_probe', fn (): FakeNotReadyRenderProbe => new FakeNotReadyRenderProbe);
-        $this->app->tag(['reports.test.not_ready_probe'], 'atlas.report_render_readiness_probes');
+        $this->app->bind('exports.test.not_ready_probe', fn (): FakeNotReadyRenderProbe => new FakeNotReadyRenderProbe);
+        $this->app->tag(['exports.test.not_ready_probe'], 'atlas.export_render_readiness_probes');
         [$user, $team] = $this->userAndTeam();
         $request = $this->app->make(ReportExportRequestRecorder::class)->record($this->snapshot($user, $team, ReportExportFormat::Pdf));
         $runPublicId = $this->app->make(ReportExportGenerationDispatcher::class)->dispatch(
@@ -798,7 +1144,7 @@ final class ReportsModuleTest extends TestCase
             'updated_at' => now(),
         ]);
 
-        self::assertSame(0, Artisan::call('reports:cleanup-expired'));
+        self::assertSame(0, Artisan::call('exports:cleanup-expired'));
         self::assertStringContainsString(
             'Expired 1 request(s), expired 1 artifact(s), deleted 1 file(s), failed 0 file delete(s).',
             Artisan::output(),
@@ -1045,7 +1391,24 @@ final class DenyReportRequestModuleGate implements ModuleGate
 {
     public function inspect(ModuleAccessRequest $request): ModuleAccessDecision
     {
-        if ($request->moduleKey === 'reports' && $request->requiredPermission === ReportsPermissionCatalog::REQUEST) {
+        if ($request->moduleKey === 'exports' && $request->requiredPermission === ReportsPermissionCatalog::REQUEST) {
+            return ModuleAccessDecision::deny(ModuleAccessDenialReason::PermissionDenied);
+        }
+
+        return ModuleAccessDecision::allow();
+    }
+
+    public function allows(ModuleAccessRequest $request): bool
+    {
+        return $this->inspect($request)->allowed;
+    }
+}
+
+final class DenyUsersReportModuleGate implements ModuleGate
+{
+    public function inspect(ModuleAccessRequest $request): ModuleAccessDecision
+    {
+        if ($request->moduleKey === 'users') {
             return ModuleAccessDecision::deny(ModuleAccessDenialReason::PermissionDenied);
         }
 
@@ -1063,6 +1426,14 @@ final class AllowAllEffectivePermissionChecker implements EffectivePermissionChe
     public function check(EffectivePermissionRequest $request): EffectivePermissionDecision
     {
         return new EffectivePermissionDecision(true, 'allowed');
+    }
+}
+
+final class DenyAllEffectivePermissionChecker implements EffectivePermissionChecker
+{
+    public function check(EffectivePermissionRequest $request): EffectivePermissionDecision
+    {
+        return new EffectivePermissionDecision(false, 'denied');
     }
 }
 
@@ -1095,6 +1466,179 @@ final class FakeReportDataProvider implements ReportExportDataProvider
                 'secret' => 'internal-token',
             ];
         }
+    }
+}
+
+final class FakeAdminUsersDataTableExportProvider implements AdminDataTableExportProvider
+{
+    public function tableKey(): string
+    {
+        return 'admin.users';
+    }
+
+    public function reportKey(): string
+    {
+        return $this->tableKey();
+    }
+
+    public function tableName(): string
+    {
+        return 'Admin users';
+    }
+
+    public function owningModuleKey(): string
+    {
+        return 'users';
+    }
+
+    public function requestPermission(): string
+    {
+        return ReportsPermissionCatalog::REQUEST;
+    }
+
+    public function ruleVersion(): string
+    {
+        return 'admin-users-export-v1';
+    }
+
+    public function tableDefinition(): TableDefinition
+    {
+        return new TableDefinition('admin.users', [
+            new TableColumn('publicId'),
+            new TableColumn('email'),
+            new TableColumn('secret', sortable: false, searchable: false, defaultVisible: false),
+        ], 'email');
+    }
+
+    public function allowedExportColumns(AdminDataTableExportContext $context): array
+    {
+        return ['publicId', 'email'];
+    }
+
+    public function supportedFormats(AdminDataTableExportContext $context): array
+    {
+        return [
+            ReportExportFormat::Csv,
+            ReportExportFormat::Xlsx,
+            ReportExportFormat::Pdf,
+            ReportExportFormat::BrowserPrint,
+        ];
+    }
+
+    public function columns(ReportExportGenerationRequest $request): array
+    {
+        return [
+            new ReportExportColumn('publicId', 'Public ID'),
+            new ReportExportColumn('email', 'Email'),
+        ];
+    }
+
+    public function rows(ReportExportGenerationRequest $request): iterable
+    {
+        yield [
+            'publicId' => '01J000000000000000000000AA',
+            'email' => 'anna@example.test',
+        ];
+    }
+}
+
+final class FakeUserCredentialAccountDirectory implements UserCredentialAccountDirectory
+{
+    public function allOptions(): array
+    {
+        return [];
+    }
+
+    public function allAdminRows(): array
+    {
+        return [
+            new AdminUserCredentialAccount(
+                id: 1,
+                publicId: '01J000000000000000000000AA',
+                name: 'Anna Admin',
+                email: 'anna@example.test',
+                isActive: true,
+                emailVerified: true,
+                firstPasswordSet: true,
+                loginLocked: false,
+                mfaEnabled: true,
+                online: false,
+                accountSensitivity: 'standard',
+                emailVerifiedAt: '2026-07-20T08:00:00+00:00',
+                twoFactorConfirmedAt: '2026-07-20T08:30:00+00:00',
+                firstPasswordSetAt: '2026-07-20T09:00:00+00:00',
+                deactivatedAt: null,
+                failedLoginAttempts: 0,
+                loginLockCount: 0,
+                loginLockedUntil: null,
+                createdAt: '2026-07-20T08:00:00+00:00',
+                updatedAt: '2026-07-20T09:00:00+00:00',
+            ),
+            new AdminUserCredentialAccount(
+                id: 2,
+                publicId: '01J000000000000000000000AB',
+                name: 'Bartosz Operator',
+                email: 'bartosz@example.test',
+                isActive: true,
+                emailVerified: true,
+                firstPasswordSet: true,
+                loginLocked: false,
+                mfaEnabled: false,
+                online: false,
+                accountSensitivity: 'standard',
+                emailVerifiedAt: '2026-07-20T08:00:00+00:00',
+                twoFactorConfirmedAt: null,
+                firstPasswordSetAt: '2026-07-20T09:00:00+00:00',
+                deactivatedAt: null,
+                failedLoginAttempts: 0,
+                loginLockCount: 0,
+                loginLockedUntil: null,
+                createdAt: '2026-07-20T08:00:00+00:00',
+                updatedAt: '2026-07-20T09:00:00+00:00',
+            ),
+        ];
+    }
+
+    public function findAdminRow(string $publicId): ?AdminUserCredentialAccount
+    {
+        foreach ($this->allAdminRows() as $row) {
+            if ($row->publicId === $publicId) {
+                return $row;
+            }
+        }
+
+        return null;
+    }
+
+    public function publicIdExists(string $publicId): bool
+    {
+        return $this->findAdminRow($publicId) !== null;
+    }
+
+    public function emailExists(string $email, ?string $exceptPublicId = null): bool
+    {
+        foreach ($this->allAdminRows() as $row) {
+            if ($row->email === $email && $row->publicId !== $exceptPublicId) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public function updateIdentity(string $publicId, string $name, string $email, string $accountSensitivity): ?AdminUserCredentialAccount
+    {
+        return $this->findAdminRow($publicId);
+    }
+
+    public function verifyEmail(string $publicId): ?AdminUserCredentialAccount
+    {
+        return $this->findAdminRow($publicId);
+    }
+
+    public function requireEmailVerification(string $publicId): ?AdminUserCredentialAccount
+    {
+        return $this->findAdminRow($publicId);
     }
 }
 
@@ -1155,14 +1699,14 @@ final class FakeReportManagedProcessRunner implements ManagedProcessRunner
         DB::table(DatabaseTable::MANAGED_PROCESS_RUNS)->insert([
             'public_id' => $publicId,
             'process_key' => $processKey,
-            'module_key' => 'reports',
+            'module_key' => 'exports',
             'scope' => 'team',
             'team_id' => is_numeric($teamId) ? (int) $teamId : null,
             'actor_user_id' => is_numeric($actorId) ? (int) $actorId : null,
             'source_type' => $sourceType,
             'input_snapshot' => json_encode($input ?? ['_input' => 'none'], JSON_THROW_ON_ERROR),
             'queue_connection' => 'sync',
-            'queue_name' => 'reports',
+            'queue_name' => 'exports',
             'job_identifier' => null,
             'status' => ProcessRunStatus::Queued->value,
             'current_stage' => 'queued',

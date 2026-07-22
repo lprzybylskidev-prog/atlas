@@ -67,18 +67,18 @@ return [
         ],
     ],
 
-    'reports' => [
-        'render_token_ttl_seconds' => (int) env('ATLAS_REPORT_RENDER_TOKEN_TTL_SECONDS', 300),
-        'synchronous_export_max_rows' => (int) env('ATLAS_REPORT_SYNC_EXPORT_MAX_ROWS', 1000),
-        'synchronous_export_max_cells' => (int) env('ATLAS_REPORT_SYNC_EXPORT_MAX_CELLS', 10000),
-        'synchronous_timeout_seconds' => (int) env('ATLAS_REPORT_SYNC_TIMEOUT_SECONDS', 15),
-        'synchronous_pdf_enabled' => (bool) env('ATLAS_REPORT_SYNC_PDF_ENABLED', false),
-        'synchronous_pdf_max_rows' => (int) env('ATLAS_REPORT_SYNC_PDF_MAX_ROWS', 0),
-        'synchronous_pdf_max_cells' => (int) env('ATLAS_REPORT_SYNC_PDF_MAX_CELLS', 0),
+    'exports' => [
+        'render_token_ttl_seconds' => (int) env('ATLAS_EXPORT_RENDER_TOKEN_TTL_SECONDS', env('ATLAS_REPORT_RENDER_TOKEN_TTL_SECONDS', 300)),
+        'synchronous_export_max_rows' => (int) env('ATLAS_EXPORT_SYNC_MAX_ROWS', env('ATLAS_REPORT_SYNC_EXPORT_MAX_ROWS', 1000)),
+        'synchronous_export_max_cells' => (int) env('ATLAS_EXPORT_SYNC_MAX_CELLS', env('ATLAS_REPORT_SYNC_EXPORT_MAX_CELLS', 10000)),
+        'synchronous_timeout_seconds' => (int) env('ATLAS_EXPORT_SYNC_TIMEOUT_SECONDS', env('ATLAS_REPORT_SYNC_TIMEOUT_SECONDS', 15)),
+        'synchronous_pdf_enabled' => (bool) env('ATLAS_EXPORT_SYNC_PDF_ENABLED', env('ATLAS_REPORT_SYNC_PDF_ENABLED', false)),
+        'synchronous_pdf_max_rows' => (int) env('ATLAS_EXPORT_SYNC_PDF_MAX_ROWS', env('ATLAS_REPORT_SYNC_PDF_MAX_ROWS', 0)),
+        'synchronous_pdf_max_cells' => (int) env('ATLAS_EXPORT_SYNC_PDF_MAX_CELLS', env('ATLAS_REPORT_SYNC_PDF_MAX_CELLS', 0)),
         'company' => [
-            'name' => env('ATLAS_REPORT_COMPANY_NAME', 'Atlas'),
-            'logo_path' => env('ATLAS_REPORT_COMPANY_LOGO_PATH', 'brand/atlas-logo.svg'),
-            'footer' => env('ATLAS_REPORT_COMPANY_FOOTER', 'Atlas report export.'),
+            'name' => env('ATLAS_EXPORT_COMPANY_NAME', env('ATLAS_REPORT_COMPANY_NAME', 'Atlas')),
+            'logo_path' => env('ATLAS_EXPORT_COMPANY_LOGO_PATH', env('ATLAS_REPORT_COMPANY_LOGO_PATH', 'brand/atlas-logo.svg')),
+            'footer' => env('ATLAS_EXPORT_COMPANY_FOOTER', env('ATLAS_REPORT_COMPANY_FOOTER', 'Atlas export.')),
         ],
     ],
 

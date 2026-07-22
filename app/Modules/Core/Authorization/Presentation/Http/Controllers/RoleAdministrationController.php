@@ -10,6 +10,7 @@ use App\Shared\Application\Tables\TableRequestContext;
 use App\Shared\Application\Tables\TableSavedViewService;
 use App\Shared\Application\Tables\TableState;
 use App\Shared\Infrastructure\Database\DatabaseTable;
+use App\Shared\Presentation\Support\AdminDataTableExportMeta;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
@@ -49,7 +50,7 @@ final readonly class RoleAdministrationController
 
         return Inertia::render('Admin/Authorization/Roles', [
             'roles' => $result->rows,
-            'table' => $result->tableMeta($definition->key),
+            'table' => $result->tableMeta($definition->key, AdminDataTableExportMeta::defaults()),
         ]);
     }
 

@@ -13,6 +13,7 @@ use App\Modules\Optional\ManagedProcesses\Application\Contracts\ProcessDefinitio
 use App\Modules\Optional\ManagedProcesses\Application\DTOs\ProcessLogEntry;
 use App\Modules\Optional\ManagedProcesses\Application\Enums\ProcessLogSeverity;
 use App\Modules\Optional\ManagedProcesses\Application\Enums\ProcessRunStatus;
+use App\Modules\Optional\ManagedProcesses\Application\Permissions\ManagedProcessesPermissionCatalog;
 use App\Modules\Optional\ManagedProcesses\Application\Public\Contracts\ManagedProcessRunner;
 use App\Modules\Optional\ManagedProcesses\Application\Public\DTOs\ProcessDefinition;
 use App\Shared\Application\Modules\Contracts\ModuleGate;
@@ -324,9 +325,23 @@ final readonly class ManagedProcessManager implements ManagedProcessRunner
             recipientUserPublicId: $actorPublicId,
             teamPublicId: $this->teamPublicId($this->intValue($run->team_id)),
             severity: in_array($status, [ProcessRunStatus::Failed, ProcessRunStatus::Cancelled], true) ? 'warning' : 'success',
-            deepLinkUrl: '/admin/managed-processes/'.$runPublicId,
+            deepLinkUrl: $this->terminalNotificationDeepLinkUrl($runPublicId, $actorPublicId, $this->teamPublicId($this->intValue($run->team_id))),
             data: ['run_public_id' => $runPublicId, 'status' => $status->value],
         ));
+    }
+
+    private function terminalNotificationDeepLinkUrl(string $runPublicId, string $actorPublicId, ?string $teamPublicId): ?string
+    {
+        if ($this->moduleGate->allows(new ModuleAccessRequest(
+            moduleKey: 'managed_processes',
+            activeTeamPublicId: $teamPublicId,
+            userPublicId: $actorPublicId,
+            requiredPermission: ManagedProcessesPermissionCatalog::SHOW,
+        ))) {
+            return '/admin/managed-processes/'.$runPublicId;
+        }
+
+        return null;
     }
 
     private function publishRealtimeProgress(string $runPublicId, ProcessRunStatus $status, ?int $current, ?int $total, ?string $label): void

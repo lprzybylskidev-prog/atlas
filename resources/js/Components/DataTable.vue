@@ -42,11 +42,19 @@ import {
 import { computed, h, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import type { Component, VNodeChild } from 'vue';
 
+import DataTableExportMenu from './DataTableExportMenu.vue';
 import { useModal } from '../Composables/useModal';
 import { useToast } from '../Composables/useToast';
 import type { TranslationKey } from '../Localization/catalog';
 import { useTranslator } from '../Localization/translator';
-import type { DataTableAction, DataTableBulkAction, DataTableColumn, DataTableMeta, DataTableSavedView } from '../Types/data-table';
+import type {
+    DataTableAction,
+    DataTableBulkAction,
+    DataTableColumn,
+    DataTableExportMeta,
+    DataTableMeta,
+    DataTableSavedView,
+} from '../Types/data-table';
 import {
     formatDate,
     formatEmpty,
@@ -78,6 +86,9 @@ const props = withDefaults(
         totalRows?: number;
         uiLocale?: string;
         stateKey?: string;
+        filters?: Record<string, string | number | boolean | null | undefined>;
+        exportKey?: string;
+        exports?: DataTableExportMeta;
         bulkActionHandler?: (payload: { action: DataTableBulkAction; rowIds: string[] }) => void | Promise<void>;
         table?: DataTableMeta;
         loading?: boolean;
@@ -90,6 +101,9 @@ const props = withDefaults(
         totalRows: undefined,
         uiLocale: undefined,
         stateKey: undefined,
+        filters: undefined,
+        exportKey: undefined,
+        exports: undefined,
         bulkActionHandler: undefined,
         table: undefined,
         loading: false,
@@ -302,6 +316,7 @@ const paginationButtonClass =
     'inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-zinc-300 bg-white px-3 text-sm font-medium text-zinc-700 transition hover:border-zinc-400 hover:bg-zinc-100 hover:text-zinc-950 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:border-zinc-300 disabled:hover:bg-white disabled:hover:text-zinc-700 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:border-zinc-600 dark:hover:bg-zinc-800 dark:hover:text-zinc-50 dark:disabled:hover:border-zinc-700 dark:disabled:hover:bg-zinc-900 dark:disabled:hover:text-zinc-200';
 const actionColumnWidth = computed(() => `${Math.max(8, props.actions.length * 2.5 + 2)}rem`);
 const actionColumnStyle = computed(() => ({ minWidth: actionColumnWidth.value, width: actionColumnWidth.value }));
+const exportMeta = computed(() => props.table?.exports ?? props.exports);
 
 function stateStorageKey(): string | null {
     return props.stateKey ? `atlas.datatable.${props.stateKey}` : null;
@@ -448,7 +463,7 @@ function currentServerState(): Record<string, string | number> {
 }
 
 function currentFilterState(): Record<string, QueryPrimitive> {
-    const filters: Record<string, QueryPrimitive> = { ...(props.table?.state.filters ?? {}) };
+    const filters: Record<string, QueryPrimitive> = { ...(props.table?.state.filters ?? {}), ...(props.filters ?? {}) };
 
     if (typeof window === 'undefined') {
         return filters;
@@ -865,6 +880,7 @@ function visibleActions(row: TRow): DataTableAction<TRow>[] {
 }
 
 async function runRowAction(action: DataTableAction<TRow>, row: TRow): Promise<void> {
+    const href = action.href(row);
     const confirmationSubject = typeof action.confirm === 'function' ? action.confirm(row) : action.confirm;
 
     if (
@@ -881,7 +897,13 @@ async function runRowAction(action: DataTableAction<TRow>, row: TRow): Promise<v
         return;
     }
 
-    router.visit(action.href(row), {
+    if (action.nativeNavigation === true) {
+        window.location.assign(href);
+
+        return;
+    }
+
+    router.visit(href, {
         method: action.method ?? 'get',
         preserveScroll: true,
     });
@@ -1182,6 +1204,19 @@ onBeforeUnmount(() => {
                         </div>
                     </div>
                 </details>
+                <DataTableExportMenu
+                    v-if="exportMeta && (props.table?.key || exportKey)"
+                    :table-key="props.table?.key ?? exportKey ?? ''"
+                    :exports="exportMeta"
+                    :columns="props.columns.filter((column) => columnVisibility[column.key] ?? true).map((column) => column.key)"
+                    :column-order="orderedColumns.map((column) => column.key)"
+                    :filters="currentFilterState()"
+                    :search="globalFilter"
+                    :sort="sorting[0]?.id ?? props.table?.state.sort ?? props.columns[0]?.key ?? ''"
+                    :direction="sorting[0]?.desc ? 'desc' : 'asc'"
+                    :per-page="pagination.pageSize"
+                    :ui-locale="uiLocale"
+                />
                 <details ref="columnsMenu" class="relative">
                     <summary :class="menuButtonClass">
                         <IconSettings aria-hidden="true" class="h-4 w-4" :stroke-width="1.8" />

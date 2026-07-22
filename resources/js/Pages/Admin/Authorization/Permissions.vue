@@ -145,6 +145,7 @@ const columns: DataTableColumn<PermissionRow>[] = [
                 :columns="columns"
                 row-key="publicId"
                 :table="table"
+                :filters="filters"
                 ui-locale="en"
             />
         </PageStack>

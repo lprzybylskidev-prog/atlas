@@ -16,7 +16,8 @@ interface RealtimeResponse {
 }
 
 const STORAGE_KEY = 'atlas.realtime.lastEventPublicId';
-const POLL_INTERVAL_MS = 15000;
+const INITIAL_POLL_DELAY_MS = 1000;
+const POLL_INTERVAL_MS = 5000;
 let registered = false;
 let timer: number | undefined;
 
@@ -26,7 +27,7 @@ export function registerRealtimeEvents(): void {
     }
 
     registered = true;
-    timer = window.setTimeout(pollRealtimeEvents, POLL_INTERVAL_MS);
+    timer = window.setTimeout(pollRealtimeEvents, INITIAL_POLL_DELAY_MS);
 
     window.addEventListener('beforeunload', () => {
         if (timer !== undefined) {

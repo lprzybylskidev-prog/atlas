@@ -9,32 +9,7 @@ import FormSelect from '../../../Components/Form/FormSelect.vue';
 import PageStack from '../../../Components/PageStack.vue';
 import AdminLayout from '../../../Layouts/AdminLayout.vue';
 import { useTranslator } from '../../../Localization/translator';
-import type { DataTableColumn } from '../../../Types/data-table';
-
-interface SecurityHistoryUser {
-    publicId: string;
-    name: string;
-    email: string;
-    context: string;
-}
-
-interface SecurityHistoryEvent extends Record<string, unknown> {
-    publicId: string;
-    occurredAt: string;
-    user: SecurityHistoryUser;
-    module: string;
-    action: string;
-    result: string;
-    source: string;
-    actorPublicId: string;
-    actualActorPublicId: string;
-    impersonatedUserPublicId: string;
-    impersonationSessionId: string;
-    targetType: string;
-    targetPublicId: string;
-    teamPublicId: string;
-    reason: string;
-}
+import type { DataTableColumn, DataTableMeta } from '../../../Types/data-table';
 
 interface SecurityHistoryRow extends Record<string, unknown> {
     publicId: string;
@@ -60,7 +35,8 @@ interface SecurityHistoryOption {
 }
 
 const props = defineProps<{
-    events: SecurityHistoryEvent[];
+    events: SecurityHistoryRow[];
+    table: DataTableMeta;
     filters: SecurityHistoryFilters;
     userOptions: SecurityHistoryOption[];
 }>();
@@ -69,22 +45,6 @@ const { t } = useTranslator('en');
 const filters = reactive<SecurityHistoryFilters>({ ...props.filters });
 const userOptions = [{ value: '', label: 'All users' }, ...props.userOptions];
 const showUserColumn = computed(() => props.filters.userPublicId === '');
-
-const rows = computed<SecurityHistoryRow[]>(() =>
-    props.events.map((event) => ({
-        publicId: event.publicId,
-        userName: event.user.name !== '' ? event.user.name : event.user.publicId,
-        userEmail: event.user.email !== '' ? event.user.email : event.user.publicId,
-        userContext: event.user.context,
-        occurredAt: event.occurredAt,
-        action: event.action,
-        result: event.result,
-        source: event.source,
-        teamPublicId: event.teamPublicId,
-        impersonationSessionId: event.impersonationSessionId,
-        reason: event.reason,
-    })),
-);
 
 const columns = computed<DataTableColumn<SecurityHistoryRow>[]>(() => [
     { key: 'userName', label: 'User', hidden: !showUserColumn.value },
@@ -135,10 +95,10 @@ watch(
 
             <DataTable
                 :title="t('pages.security_history.title')"
-                :rows="rows"
+                :rows="events"
                 :columns="columns"
                 row-key="publicId"
-                state-key="admin.audit.security-history"
+                :table="table"
                 :empty-label="t('pages.security_history.empty')"
                 ui-locale="en"
             />

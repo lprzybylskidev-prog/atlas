@@ -6,6 +6,7 @@ namespace Tests\Feature\ManagedProcesses;
 
 use App\Modules\Core\Authorization\Application\Roles\InstallStarterRoles;
 use App\Modules\Core\Authorization\Application\Roles\StarterRoleName;
+use App\Modules\Core\Exports\Application\Public\Permissions\ReportsPermissionCatalog;
 use App\Modules\Core\Identity\Infrastructure\Persistence\User;
 use App\Modules\Core\Teams\Infrastructure\Persistence\Team;
 use App\Modules\Optional\ManagedProcesses\Application\Contracts\ManagedProcessHandler;
@@ -166,6 +167,30 @@ final class ManagedProcessesAdminTest extends TestCase
                 ->has('importExecution.errors', 2));
     }
 
+    public function test_terminal_notification_omits_admin_deep_link_when_process_details_are_not_available(): void
+    {
+        [$admin, $team] = $this->adminWithTeam();
+
+        $runPublicId = $this->app->make(ManagedProcessRunner::class)->start(
+            processKey: 'test.exports.generate',
+            sourceType: 'system',
+            input: ['export_request_public_id' => '01JEXPORT0000000000000001'],
+            actorPublicId: (string) $admin->public_id,
+            teamPublicId: (string) $team->public_id,
+        );
+
+        $this->assertDatabaseHas(DatabaseTable::MANAGED_PROCESS_RUNS, [
+            'public_id' => $runPublicId,
+            'process_key' => 'test.exports.generate',
+            'status' => ProcessRunStatus::Succeeded->value,
+        ]);
+        $this->assertDatabaseHas(DatabaseTable::NOTIFICATIONS, [
+            'type' => 'managed_process.terminal',
+            'title' => 'Managed process finished',
+            'deep_link_url' => null,
+        ]);
+    }
+
     public function test_admin_can_create_and_disable_managed_process_schedule(): void
     {
         [$admin, $team] = $this->adminWithTeam();
@@ -275,17 +300,27 @@ final class ManagedProcessesAdminTest extends TestCase
             description: 'Test-only import process fixture.',
             queueName: 'imports',
         ));
+        $this->app->bind('tests.managed_processes.export_definition', fn (): ProcessDefinition => $this->makeProcessDefinition(
+            key: 'test.exports.generate',
+            moduleKey: 'exports',
+            label: 'Test export generation',
+            description: 'Test-only export process fixture.',
+            queueName: 'exports',
+            runPermission: ReportsPermissionCatalog::REQUEST,
+        ));
         $this->app->tag([
             'tests.managed_processes.maintenance_definition',
             'tests.managed_processes.import_definition',
+            'tests.managed_processes.export_definition',
         ], 'atlas.managed_process_definitions');
         $this->app->tag([
             TestMaintenanceProcessHandler::class,
             TestImportProcessHandler::class,
+            TestExportProcessHandler::class,
         ], 'atlas.managed_process_handlers');
     }
 
-    private function makeProcessDefinition(string $key, string $moduleKey, string $label, string $description, string $queueName): ProcessDefinition
+    private function makeProcessDefinition(string $key, string $moduleKey, string $label, string $description, string $queueName, string $runPermission = ManagedProcessesPermissionCatalog::RUN): ProcessDefinition
     {
         return new ProcessDefinition(
             key: $key,
@@ -296,7 +331,7 @@ final class ManagedProcessesAdminTest extends TestCase
             inputSchema: ['type' => 'object'],
             permissions: new ProcessPermissions(
                 view: ManagedProcessesPermissionCatalog::SHOW,
-                run: ManagedProcessesPermissionCatalog::RUN,
+                run: $runPermission,
                 retry: ManagedProcessesPermissionCatalog::RETRY,
                 cancel: ManagedProcessesPermissionCatalog::CANCEL,
                 schedule: ManagedProcessesPermissionCatalog::SCHEDULES_STORE,
@@ -443,6 +478,30 @@ final readonly class TestImportProcessHandler implements ManagedProcessHandler
             label: 'Import completed with warnings',
             counters: ['processed' => 4, 'success' => 2, 'warning' => 2, 'skipped' => 2],
             resultSummary: ['rows_total' => 4, 'rows_imported' => 2, 'rows_warned' => 2],
+        );
+    }
+}
+
+final readonly class TestExportProcessHandler implements ManagedProcessHandler
+{
+    public function __construct(private ManagedProcessRunner $runner) {}
+
+    public function processKey(): string
+    {
+        return 'test.exports.generate';
+    }
+
+    public function handle(string $runPublicId): void
+    {
+        $this->runner->updateProgress(
+            runPublicId: $runPublicId,
+            status: ProcessRunStatus::Succeeded,
+            stage: 'completed',
+            current: 1,
+            total: 1,
+            label: 'Export generated',
+            counters: ['processed' => 1, 'success' => 1],
+            resultSummary: ['artifact_public_id' => '01JARTIFACT00000000000001'],
         );
     }
 }

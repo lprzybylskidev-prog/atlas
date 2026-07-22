@@ -12,6 +12,7 @@ use App\Shared\Application\Tables\TableRequestContext;
 use App\Shared\Application\Tables\TableSavedViewService;
 use App\Shared\Application\Tables\TableState;
 use App\Shared\Infrastructure\Database\DatabaseTable;
+use App\Shared\Presentation\Support\AdminDataTableExportMeta;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
@@ -38,7 +39,7 @@ final readonly class RateLimitAdministrationController
 
         return Inertia::render('Admin/RateLimits/Index', [
             'policies' => $result->rows,
-            'table' => $result->tableMeta(AdminTableDefinitions::RATE_LIMITS),
+            'table' => $result->tableMeta(AdminTableDefinitions::RATE_LIMITS, AdminDataTableExportMeta::defaults()),
             'policyOptions' => array_map(
                 static fn (RateLimitPolicy $policy): array => ['value' => $policy->name, 'label' => $policy->name],
                 $this->catalog()->all(),

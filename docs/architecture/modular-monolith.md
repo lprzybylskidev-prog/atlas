@@ -230,6 +230,7 @@ Schema names are stable lowercase `snake_case` identifiers:
 - `core_audit` for audit and security audit persistence;
 - `core_settings` for typed settings persistence;
 - `core_notifications` for notification and realtime delivery persistence once Phase 15 starts;
+- `core_exports` for reusable export request snapshots, generated artifact metadata, and render credentials;
 - `shared` for shared technical infrastructure such as Outbox, saved table views, module activation state, and framework runtime tables that Atlas intentionally owns centrally;
 - `optional_<module>` for optional foundation modules;
 - `application_<module>` for debt collection business modules.
@@ -250,10 +251,11 @@ Current table ownership:
 | `core_audit` | `audit_events`, `audit_security_events` |
 | `core_settings` | `settings_global_values`, `settings_team_values`, `settings_user_values`, `settings_security_values` |
 | `core_notifications` | `notifications`, `notification_recipients`, `notification_preferences`, `realtime_events` |
+| `core_exports` | `export_requests`, `export_artifacts`, `render_credentials` |
 | `shared` | `cache`, `cache_locks`, `jobs`, `job_batches`, `failed_jobs`, `outbox_events`, `outbox_consumed_events`, `table_saved_views`, `table_saved_view_defaults`, `module_global_states`, `module_team_states`, `module_activation_schedules`, `module_activation_history` |
 | `public` allowlist | `migrations`, package-owned diagnostics tables such as Telescope and Pulse tables |
 
-Runtime table references use `App\Shared\Infrastructure\Database\DatabaseTable` constants for schema-qualified Atlas-owned table names. Migrations create required schemas through `App\Shared\Infrastructure\Database\DatabaseSchema`. The configured PostgreSQL `search_path` includes Atlas schemas only so Laravel database maintenance commands can see and wipe all schemas deterministically; application code must still use schema-qualified Atlas-owned table names.
+Runtime table references use `App\Shared\Infrastructure\Database\DatabaseTable` constants for schema-qualified Atlas-owned table names. Migrations create required schemas through `App\Shared\Infrastructure\Database\DatabaseSchema`. The configured PostgreSQL `search_path` includes Atlas schemas only so Laravel database maintenance commands can see and wipe all schemas deterministically; application code must still use schema-qualified Atlas-owned table names. During the Phase 24a ownership move, `optional_reports` remains in the default `search_path` only as a pre-production legacy cleanup entry so existing development databases can migrate export state to `core_exports` or wipe old report-owned tables safely.
 
 Module contribution contracts are framework-independent declarations consumed by shared Presentation/Admin infrastructure:
 
