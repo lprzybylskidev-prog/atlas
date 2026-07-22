@@ -42,6 +42,20 @@ async function confirmAdministratorAccess(page: Page): Promise<void> {
 }
 
 test.describe('Admin visibility', () => {
+    test('renders Auth and application table surfaces through the shared shell', async ({ page }) => {
+        await page.goto('/login');
+
+        await expect(page.getByRole('heading', { name: /Zaloguj się|Log in/ })).toBeVisible();
+
+        await signIn(page, users.admin);
+        await page.goto('/notifications');
+
+        const main = page.getByRole('main');
+
+        await expect(page.getByRole('heading', { name: /Powiadomienia|Notifications/, exact: true })).toBeVisible();
+        await expect(main.getByRole('table')).toBeVisible();
+    });
+
     test('hides Admin entry from users without the route permission', async ({ page }) => {
         await signIn(page, users.limited);
         await openUserMenu(page);
@@ -69,6 +83,32 @@ test.describe('Admin visibility', () => {
         await expect(main.getByRole('heading', { name: 'Modules', exact: true })).toBeVisible();
         await expect(main.getByText('Active runs, failures, warnings, schedules, and process backlog.', { exact: true })).toHaveCount(0);
         await expect(main.getByText('Identity', { exact: true })).toBeVisible();
-        await expect(main.getByText('Search', { exact: true })).toHaveCount(0);
+        await expect(main.getByText('Search', { exact: true })).toBeVisible();
+    });
+
+    test('keeps module links in the sidebar and managed-process sections in shell subnavigation', async ({ page }) => {
+        await signIn(page, users.admin);
+        await page.goto('/admin/managed-processes/imports');
+
+        if (page.url().includes('/user/confirm-password')) {
+            await confirmAdministratorAccess(page);
+        }
+
+        const sidebar = page.getByRole('navigation', { name: /Główna nawigacja|Main navigation/ });
+
+        await sidebar.getByText('Oversight', { exact: true }).click();
+        await expect(sidebar.getByRole('link', { name: 'Processes' })).toBeVisible();
+        await expect(sidebar.getByRole('link', { name: 'Imports' })).toHaveCount(0);
+        await expect(sidebar.getByRole('link', { name: 'Definitions' })).toHaveCount(0);
+        await expect(sidebar.getByRole('link', { name: 'Schedules' })).toHaveCount(0);
+
+        const subnavigation = page.getByRole('navigation', { name: 'Managed process sections' });
+
+        await expect(subnavigation.getByRole('link', { name: 'Runs' })).toBeVisible();
+        await expect(subnavigation.getByRole('link', { name: 'Imports' })).toHaveAttribute('aria-current', 'page');
+        await expect(subnavigation.getByRole('link', { name: 'Definitions' })).toBeVisible();
+        await expect(subnavigation.getByRole('link', { name: 'Schedules' })).toBeVisible();
+
+        await expect(page.getByRole('heading', { name: 'Import executions', exact: true })).toBeVisible();
     });
 });

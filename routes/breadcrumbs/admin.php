@@ -49,6 +49,12 @@ Breadcrumbs::for('admin.users.edit', function (Generator $breadcrumbs): void {
     $breadcrumbs->push('Edit');
 });
 
+Breadcrumbs::for('admin.users.impersonate', function (Generator $breadcrumbs): void {
+    $breadcrumbs->push(__('breadcrumbs.admin'));
+    $breadcrumbs->push('Users', route('admin.users.index'));
+    $breadcrumbs->push('Impersonate');
+});
+
 Breadcrumbs::for('admin.authorization.roles.index', function (Generator $breadcrumbs): void {
     $breadcrumbs->push(__('breadcrumbs.admin'));
     $breadcrumbs->push('Roles');
@@ -123,6 +129,11 @@ Breadcrumbs::for('admin.queues.index', function (Generator $breadcrumbs): void {
 Breadcrumbs::for('admin.files.index', function (Generator $breadcrumbs): void {
     $breadcrumbs->push(__('breadcrumbs.admin'));
     $breadcrumbs->push('Files');
+});
+
+Breadcrumbs::for('admin.integrations.index', function (Generator $breadcrumbs): void {
+    $breadcrumbs->push(__('breadcrumbs.admin'));
+    $breadcrumbs->push('Integrations');
 });
 
 Breadcrumbs::for('admin.modules.index', function (Generator $breadcrumbs): void {

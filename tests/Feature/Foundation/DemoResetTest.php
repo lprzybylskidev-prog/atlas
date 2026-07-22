@@ -87,4 +87,93 @@ final class DemoResetTest extends TestCase
             ->assertOk()
             ->assertInertia(fn (AssertableInertia $page) => $page->component('Admin/SystemStatus'));
     }
+
+    public function test_development_demo_admin_can_access_current_core_frontend_surfaces(): void
+    {
+        $this->seed(DatabaseSeeder::class);
+        $this->seed(DevelopmentDemoSeeder::class);
+
+        $user = User::query()
+            ->where('email', DevelopmentDemoSeeder::PREVIEW_EMAIL)
+            ->firstOrFail();
+        $teamPublicId = DB::table(DatabaseTable::TEAMS)
+            ->where('name', DevelopmentDemoSeeder::ADMIN_TEAM_NAME)
+            ->value('public_id');
+
+        self::assertIsString($teamPublicId);
+
+        $this->get('/login')
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page->component('Auth/Login'));
+
+        foreach ($this->applicationSurfaces() as $path => $component) {
+            $response = $this->actingAs($user)
+                ->withSession(['active_team_public_id' => $teamPublicId])
+                ->get($path);
+
+            self::assertSame(200, $response->getStatusCode(), sprintf('Expected [%s] to render after demo seed.', $path));
+            $response->assertInertia(fn (AssertableInertia $page) => $page->component($component));
+        }
+
+        $this->actingAs($user)
+            ->get('/team/select')
+            ->assertRedirect(route('dashboard'));
+
+        foreach ($this->adminSurfaces((string) $user->public_id, $teamPublicId) as $path => $component) {
+            $response = $this->actingAs($user)
+                ->withSession([
+                    'active_team_public_id' => $teamPublicId,
+                    'auth.password_confirmed_at' => now()->unix(),
+                    'atlas_admin_mode_entered_at' => now()->toIso8601String(),
+                    'atlas_admin_mode_last_activity_at' => now()->toIso8601String(),
+                    'atlas_admin_high_risk_confirmed_at' => now()->toIso8601String(),
+                ])
+                ->get($path);
+
+            self::assertSame(200, $response->getStatusCode(), sprintf('Expected [%s] to render after demo seed.', $path));
+            $response->assertInertia(fn (AssertableInertia $page) => $page->component($component));
+        }
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function applicationSurfaces(): array
+    {
+        return [
+            '/user/confirm-password' => 'Auth/ConfirmPassword',
+            '/' => 'Dashboard',
+            '/notifications' => 'Notifications/Index',
+        ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function adminSurfaces(string $userPublicId, string $teamPublicId): array
+    {
+        return [
+            '/admin' => 'Admin/SystemStatus',
+            '/admin/users' => 'Admin/Users/Index',
+            '/admin/users/create' => 'Admin/Users/Create',
+            sprintf('/admin/users/%s/edit', $userPublicId) => 'Admin/Users/Edit',
+            '/admin/teams' => 'Admin/Teams/Index',
+            '/admin/teams/create' => 'Admin/Teams/Create',
+            sprintf('/admin/teams/%s/edit', $teamPublicId) => 'Admin/Teams/Edit',
+            '/admin/managers' => 'Admin/Managers/Index',
+            '/admin/authorization/roles' => 'Admin/Authorization/Roles',
+            '/admin/authorization/roles/create' => 'Admin/Authorization/Roles/Create',
+            '/admin/authorization/packages' => 'Admin/Authorization/Packages',
+            '/admin/authorization/packages/create' => 'Admin/Authorization/Packages/Create',
+            '/admin/authorization/permissions' => 'Admin/Authorization/Permissions',
+            '/admin/audit' => 'Admin/Audit/Index',
+            '/admin/audit/security-history' => 'Admin/Audit/SecurityHistory',
+            '/admin/rate-limits' => 'Admin/RateLimits/Index',
+            '/admin/logs' => 'Admin/Logs/Index',
+            '/admin/queues' => 'Admin/Queues/Index',
+            '/admin/files' => 'Admin/Files/Index',
+            '/admin/modules' => 'Admin/Modules/Index',
+            '/admin/modules/identity' => 'Admin/Modules/Show',
+        ];
+    }
 }

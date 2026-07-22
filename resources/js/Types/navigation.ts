@@ -10,3 +10,12 @@ export interface NavigationNode {
     children?: NavigationNode[];
     visible?: boolean;
 }
+
+export interface ShellSubnavigationItem {
+    key: string;
+    label: string;
+    href: string;
+    icon?: FunctionalComponent;
+    active?: boolean;
+    visible?: boolean;
+}

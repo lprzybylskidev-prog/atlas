@@ -10,7 +10,11 @@ import FormDateInput from '../../../Components/Form/FormDateInput.vue';
 import FormInput from '../../../Components/Form/FormInput.vue';
 import FormSelect from '../../../Components/Form/FormSelect.vue';
 import MetricGrid from '../../../Components/MetricGrid.vue';
+import PageStack from '../../../Components/PageStack.vue';
+import SurfaceCard from '../../../Components/SurfaceCard.vue';
+import TextBadge from '../../../Components/TextBadge.vue';
 import Tooltip from '../../../Components/Tooltip.vue';
+import UiState from '../../../Components/UiState.vue';
 import AdminLayout from '../../../Layouts/AdminLayout.vue';
 import { useTranslator } from '../../../Localization/translator';
 
@@ -108,20 +112,20 @@ function optionsFrom(values: string[]): { value: string; label: string }[] {
     return [{ value: 'all', label: 'All' }, ...unique.map((value) => ({ value, label: value }))];
 }
 
-function levelClass(value: string): string {
+function levelTone(value: string): 'danger' | 'info' | 'neutral' | 'warning' {
     if (['error', 'critical', 'alert', 'emergency'].includes(value)) {
-        return 'border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-900 dark:bg-rose-950 dark:text-rose-200';
+        return 'danger';
     }
 
     if (['warning', 'notice'].includes(value)) {
-        return 'border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-200';
+        return 'warning';
     }
 
     if (value === 'info') {
-        return 'border-teal-200 bg-teal-50 text-teal-700 dark:border-teal-900 dark:bg-teal-950 dark:text-teal-200';
+        return 'info';
     }
 
-    return 'border-zinc-200 bg-zinc-50 text-zinc-600 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300';
+    return 'neutral';
 }
 
 function toggle(publicId: string): void {
@@ -185,7 +189,7 @@ function endOfDay(value: string): number {
 <template>
     <Head :title="t('pages.admin.logs.head_title')" />
     <AdminLayout :title="t('pages.admin.logs.title')" :title-icon="IconFileText">
-        <section class="space-y-5">
+        <PageStack>
             <MetricGrid :items="summaryItems" />
 
             <FilterPanel
@@ -205,10 +209,12 @@ function endOfDay(value: string): number {
             </FilterPanel>
 
             <section class="space-y-3">
-                <article
+                <SurfaceCard
                     v-for="entry in filteredLogs"
                     :key="entry.publicId"
-                    class="overflow-hidden rounded-lg border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-950"
+                    :aria-label="`Log entry ${entry.publicId}`"
+                    :padded="false"
+                    overflow="hidden"
                 >
                     <button
                         type="button"
@@ -218,12 +224,7 @@ function endOfDay(value: string): number {
                     >
                         <span class="min-w-0 space-y-2">
                             <span class="flex flex-wrap items-center gap-2">
-                                <span
-                                    class="inline-flex h-6 items-center rounded-md border px-2 text-xs font-semibold uppercase"
-                                    :class="levelClass(entry.level)"
-                                >
-                                    {{ entry.level || 'unknown' }}
-                                </span>
+                                <TextBadge :label="entry.level || 'unknown'" :tone="levelTone(entry.level)" uppercase />
                                 <span class="text-xs text-zinc-500 dark:text-zinc-400">{{ entry.occurredAt || `line ${entry.line}` }}</span>
                                 <span v-if="entry.module" class="text-xs font-medium text-zinc-600 dark:text-zinc-300">{{
                                     entry.module
@@ -288,15 +289,10 @@ function endOfDay(value: string): number {
 
                         <CodeViewer v-if="entry.details" class="mt-4" :content="entry.details" language="log" max-height="max-h-[28rem]" />
                     </div>
-                </article>
+                </SurfaceCard>
 
-                <section
-                    v-if="filteredLogs.length === 0"
-                    class="rounded-lg border border-dashed border-zinc-300 bg-white p-8 text-center text-sm text-zinc-500 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-400"
-                >
-                    No log entries match the current filters.
-                </section>
+                <UiState v-if="filteredLogs.length === 0" variant="no-results" title="No log entries match the current filters." />
             </section>
-        </section>
+        </PageStack>
     </AdminLayout>
 </template>

@@ -2,6 +2,7 @@
 import AtlasLogo from '../Components/AtlasLogo.vue';
 import FullscreenTransitionLoader from '../Components/FullscreenTransitionLoader.vue';
 import IconButton from '../Components/IconButton.vue';
+import SurfaceCard from '../Components/SurfaceCard.vue';
 import TruncatedText from '../Components/TruncatedText.vue';
 import { useLocaleSwitcher } from '../Composables/useLocaleSwitcher';
 import { useTheme } from '../Composables/useTheme';
@@ -72,9 +73,9 @@ const { t } = useTranslator();
                         <h2 class="mt-2 text-2xl font-semibold text-zinc-950 dark:text-zinc-50">{{ title }}</h2>
                         <p class="mt-2 text-sm leading-6 text-zinc-600 dark:text-zinc-300">{{ subtitle }}</p>
                     </div>
-                    <div class="rounded-lg border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 sm:p-6">
+                    <SurfaceCard aria-label="Authentication form" body-class="sm:p-6">
                         <slot />
-                    </div>
+                    </SurfaceCard>
                 </div>
             </div>
         </section>

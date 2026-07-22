@@ -48,7 +48,7 @@ final class ModuleGateRuntimeTest extends TestCase
         ));
 
         $notDeployed = $gate->inspect(new ModuleAccessRequest(
-            moduleKey: 'search',
+            moduleKey: 'not_deployed_test_module',
             activeTeamPublicId: $team->public_id,
             userPublicId: $admin->public_id,
             requiredPermission: 'admin.system-status',

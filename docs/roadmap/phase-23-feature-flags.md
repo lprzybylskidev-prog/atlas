@@ -12,6 +12,7 @@ Implement typed feature flags before later optional/business capabilities use co
 - [Phase 12 — Settings and localization](phase-12-settings-localization.md)
 - [Phase 14 — Module availability and activation](phase-14-module-activation.md)
 - [Phase 16 — Admin operations and health](phase-16-admin-health.md)
+- [Phase 22a — Frontend rebuild and design system hardening](phase-22a-frontend-rebuild.md)
 
 ## Implementation contract
 

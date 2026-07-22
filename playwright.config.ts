@@ -13,6 +13,7 @@ const e2eEnvironment = {
     CACHE_STORE: 'redis',
     DB_CONNECTION: 'pgsql',
     DB_DATABASE: 'atlas_e2e',
+    ATLAS_RATE_LIMIT_AUTH_LOGIN_MAX_ATTEMPTS: '200',
     MAIL_MAILER: 'array',
     QUEUE_CONNECTION: 'redis',
     REDIS_CACHE_DB: '5',

@@ -29,6 +29,25 @@ export function formatPercent(value: number | EmptyValue, locale = 'pl-PL'): str
     return new Intl.NumberFormat(locale, { maximumFractionDigits: 2, style: 'percent' }).format(value);
 }
 
+export function formatFileSize(value: number | EmptyValue, locale = 'pl-PL'): string {
+    if (isEmptyValue(value)) {
+        return formatEmpty(value);
+    }
+
+    const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+    let size = value;
+    let unitIndex = 0;
+
+    while (size >= 1024 && unitIndex < units.length - 1) {
+        size /= 1024;
+        unitIndex += 1;
+    }
+
+    const maximumFractionDigits = unitIndex === 0 ? 0 : 1;
+
+    return `${new Intl.NumberFormat(locale, { maximumFractionDigits }).format(size)} ${units[unitIndex]}`;
+}
+
 export function minorToMajor(amountMinor: number): number {
     return amountMinor / 100;
 }

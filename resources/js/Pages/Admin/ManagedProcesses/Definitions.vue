@@ -8,9 +8,10 @@ import FilterPanel from '../../../Components/FilterPanel.vue';
 import DataTable from '../../../Components/DataTable.vue';
 import FormSelect from '../../../Components/Form/FormSelect.vue';
 import MetricGrid from '../../../Components/MetricGrid.vue';
+import PageStack from '../../../Components/PageStack.vue';
 import AdminLayout from '../../../Layouts/AdminLayout.vue';
 import type { DataTableAction, DataTableColumn } from '../../../Types/data-table';
-import ManagedProcessTabs from './Partials/ManagedProcessTabs.vue';
+import { managedProcessSubnavigation } from './navigation';
 
 interface Definition extends Record<string, unknown> {
     key: string;
@@ -102,9 +103,13 @@ function resetFilters(): void {
 
 <template>
     <Head title="Process definitions" />
-    <AdminLayout title="Process definitions" :title-icon="IconListDetails">
-        <section class="space-y-5">
-            <ManagedProcessTabs active="definitions" />
+    <AdminLayout
+        title="Process definitions"
+        :title-icon="IconListDetails"
+        :subnavigation="managedProcessSubnavigation('definitions')"
+        subnavigation-label="Managed process sections"
+    >
+        <PageStack>
             <MetricGrid :items="summaryItems" columns="grid gap-3 sm:grid-cols-3" />
             <FilterPanel
                 title="Definition filters"
@@ -127,6 +132,6 @@ function resetFilters(): void {
                 state-key="admin.managed-processes.definitions"
                 empty-label="No definitions match the current filters."
             />
-        </section>
+        </PageStack>
     </AdminLayout>
 </template>

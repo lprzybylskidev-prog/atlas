@@ -16,6 +16,7 @@ use App\Modules\Core\Users\UsersModule;
 use App\Modules\Optional\Imports\ImportsModule;
 use App\Modules\Optional\Integrations\IntegrationsModule;
 use App\Modules\Optional\ManagedProcesses\ManagedProcessesModule;
+use App\Modules\Optional\Search\SearchModule;
 use App\Shared\Application\Modules\Contracts\ModuleDefinition;
 use App\Shared\Application\Modules\Exceptions\DuplicateModuleKey;
 use App\Shared\Application\Modules\Exceptions\MissingRequiredModuleDependency;
@@ -106,6 +107,7 @@ final class ModuleRegistryTest extends TestCase
             IntegrationsModule::class,
             ManagedProcessesModule::class,
             ImportsModule::class,
+            SearchModule::class,
         ], $configured['deployed']);
 
         foreach ($configured['deployed'] as $moduleClass) {

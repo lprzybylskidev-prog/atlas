@@ -1,10 +1,13 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import { Head, Link } from '@inertiajs/vue3';
+import { Head } from '@inertiajs/vue3';
 import { IconArrowLeft, IconHome, IconLock, IconRefresh, IconServerOff } from '@tabler/icons-vue';
 
+import ActionLink from '../Components/ActionLink.vue';
 import AtlasLogo from '../Components/AtlasLogo.vue';
+import FormButton from '../Components/Form/FormButton.vue';
 import FullscreenTransitionLoader from '../Components/FullscreenTransitionLoader.vue';
+import IconTile from '../Components/IconTile.vue';
 import IconButton from '../Components/IconButton.vue';
 import { useLocaleSwitcher } from '../Composables/useLocaleSwitcher';
 import { useTheme } from '../Composables/useTheme';
@@ -75,11 +78,7 @@ const content = computed(() => {
 
         <section class="flex flex-1 items-center justify-center py-12">
             <div class="w-full max-w-xl">
-                <div
-                    class="mb-6 flex h-14 w-14 items-center justify-center rounded-lg border border-teal-200 bg-teal-50 text-teal-700 dark:border-teal-900/70 dark:bg-teal-950/40 dark:text-teal-200"
-                >
-                    <component :is="content.icon" class="h-7 w-7" aria-hidden="true" />
-                </div>
+                <IconTile class="mb-6" :icon="content.icon" tone="teal" />
 
                 <p class="text-sm font-semibold tracking-normal text-teal-700 dark:text-teal-300">{{ status }}</p>
                 <h1 class="mt-3 text-3xl font-semibold tracking-normal text-zinc-950 dark:text-zinc-50 sm:text-4xl">
@@ -90,21 +89,12 @@ const content = computed(() => {
                 </p>
 
                 <div class="mt-8 flex flex-wrap gap-3">
-                    <button
-                        type="button"
-                        class="inline-flex items-center gap-2 rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-800 transition hover:bg-zinc-100 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 dark:border-zinc-700 dark:text-zinc-100 dark:hover:bg-zinc-900 dark:focus:ring-offset-zinc-950"
-                        @click="goBack"
-                    >
-                        <IconArrowLeft class="h-4 w-4" aria-hidden="true" />
+                    <FormButton type="button" tone="neutral" :icon="IconArrowLeft" @click="goBack">
                         {{ t('errors.actions.back') }}
-                    </button>
-                    <Link
-                        href="/"
-                        class="inline-flex items-center gap-2 rounded-lg bg-teal-700 px-4 py-2 text-sm font-medium text-white transition hover:bg-teal-800 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 dark:bg-teal-600 dark:hover:bg-teal-500 dark:focus:ring-offset-zinc-950"
-                    >
-                        <IconHome class="h-4 w-4" aria-hidden="true" />
+                    </FormButton>
+                    <ActionLink href="/" tone="primary" :icon="IconHome">
                         {{ t('errors.actions.home') }}
-                    </Link>
+                    </ActionLink>
                 </div>
             </div>
         </section>

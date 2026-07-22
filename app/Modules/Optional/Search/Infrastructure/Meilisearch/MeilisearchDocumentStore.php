@@ -7,6 +7,7 @@ namespace App\Modules\Optional\Search\Infrastructure\Meilisearch;
 use App\Modules\Optional\Search\Application\Contracts\SearchDocumentStore;
 use App\Modules\Optional\Search\Application\Public\DTOs\SearchDocument;
 use App\Modules\Optional\Search\Application\Public\DTOs\SearchIndexDescriptor;
+use InvalidArgumentException;
 use Meilisearch\Client;
 
 final readonly class MeilisearchDocumentStore implements SearchDocumentStore
@@ -63,8 +64,29 @@ final readonly class MeilisearchDocumentStore implements SearchDocumentStore
     private function configureIndex(SearchIndexDescriptor $descriptor, string $indexName): void
     {
         $index = $this->client->index($indexName);
-        $index->updateSearchableAttributes($descriptor->searchableFields);
-        $index->updateFilterableAttributes($descriptor->filterableFields);
-        $index->updateSortableAttributes($descriptor->sortableFields);
+        $index->updateSearchableAttributes($this->nonEmptyStrings($descriptor->searchableFields));
+        $index->updateFilterableAttributes($this->nonEmptyStrings($descriptor->filterableFields));
+        $index->updateSortableAttributes($this->nonEmptyStrings($descriptor->sortableFields));
+    }
+
+    /**
+     * @param  list<string>  $values
+     * @return list<non-empty-string>
+     */
+    private function nonEmptyStrings(array $values): array
+    {
+        $normalized = [];
+
+        foreach ($values as $value) {
+            $field = trim($value);
+
+            if ($field === '') {
+                throw new InvalidArgumentException('Search index fields must be non-empty strings.');
+            }
+
+            $normalized[] = $field;
+        }
+
+        return $normalized;
     }
 }

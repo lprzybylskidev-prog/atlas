@@ -16,6 +16,60 @@ Keep custom CSS minimal, ideally zero.
 
 Reuse and extend existing shared components before creating new ones.
 
+### Agent-facing implementation protocol
+
+Frontend work must be easy to continue safely by an agent that only knows the repository contracts. Before creating or materially changing a view, record or verify the view contract:
+
+- route name;
+- Vue page;
+- layout;
+- controller or data provider;
+- sidebar entry;
+- breadcrumb;
+- backend permission;
+- module gate;
+- active-team behavior;
+- demo and e2e seeder visibility;
+- shared primitives and formatters used;
+- manual review URL and account.
+
+The view contract prevents a visual rewrite from accidentally disconnecting navigation, authorization, module availability, breadcrumbs, demo visibility, or tests.
+
+Implementation order:
+
+1. inspect similar accepted views;
+2. inspect shared primitives, composables, and formatters;
+3. extend the shared layer when a recurring pattern is missing;
+4. compose the page from shared primitives and module-specific data;
+5. verify route visibility, authorization, module gates, breadcrumbs, light theme, dark theme, responsive layout, and keyboard behavior.
+
+Pages must not contain reusable design-system decisions. Pages choose data, labels, route actions, and module-specific composition; shared components, composables, and formatters own visual structure, control styling, common states, formatting, and repeated interaction patterns.
+
+### Shell and shared frontend composition
+
+The Atlas shell owns navigation hierarchy:
+
+- `Sidebar` is for modules, Admin operational areas, and other primary work areas.
+- `TopBar` plus `ShellSubnavigation` is for secondary views inside the selected module or operational area.
+- Page-local tab cards must not be used for module subsections.
+- Breadcrumbs remain centralized and visible independently of shell subnavigation.
+
+Use `AdminLayout` or `AppLayout` `subnavigation` props for module subsection links. A page may define module-specific subnavigation items locally, but the rendering, active state treatment, spacing, theme behavior, and responsive overflow belong to `ShellSubnavigation`.
+
+Shared application and Admin pages use the same base primitives. Context-specific layouts such as `AdminLayout` and `AppLayout` may differ, but reusable surfaces, tables, forms, filters, dialogs, formatters, badges, tooltips, and visual states belong to the shared frontend layer.
+
+Shared surface composition uses:
+
+- `PageStack` for the main vertical page rhythm and width constraint.
+- `SurfaceCard` for bordered card surfaces, optional header actions, and the canonical card shell.
+- `CardHeader` for card titles with documented icon variants.
+- `SectionHeader` for unframed section headings that must not create nested cards.
+- `MetricGrid` for repeated operational metric cards.
+- `FilterPanel` for custom filters outside `DataTable`.
+- `DataTable` for tabular data whenever the interaction fits a normal table.
+
+Do not nest `SurfaceCard` inside another `SurfaceCard`. If a subsection contains filters plus a table, use an unframed `SectionHeader`, then `FilterPanel` and `DataTable` as siblings.
+
 ### TailAdmin licensing guard
 
 Atlas starts with TailAdmin Free patterns and project-owned components only.
@@ -298,17 +352,21 @@ Use shared form components for:
 
 Current shared primitives live under `resources/js/Components/Form` and include `AtlasForm`, `FormInput`, `FormTextarea`, `FormSelect`, `FormAutocomplete`, `EntitySearchInput`, `FormCheckbox`, `FormRadioGroup`, date and datetime inputs, `FormMoneyInput`, `FormFileUpload`, `FormFieldError`, and `FormButton`.
 
-Custom Admin filter forms that are not owned by the shared `DataTable` wrapper use `resources/js/Components/FilterPanel.vue`. The panel keeps the heading, neutral Clear action, primary Apply action, spacing, result summary, and light/dark theme treatment consistent across custom operational screens. Do not hand-build local Admin filter button rows when this panel fits.
+Custom filter forms that are not owned by the shared `DataTable` wrapper use `resources/js/Components/FilterPanel.vue`. The panel keeps the heading, neutral Clear action, primary Apply action, spacing, result summary, and light/dark theme treatment consistent across custom operational screens. Do not hand-build local filter button rows when this panel fits.
 
-Admin page-level action links such as Create and Back use `resources/js/Components/ActionLink.vue`, and ordinary Admin form footers use `resources/js/Components/FormActions.vue`. This keeps primary link buttons, neutral navigation links, focus treatment, wrapping, and spacing consistent without duplicating long Tailwind class strings in pages.
+Page-level action links such as Create and Back use `resources/js/Components/ActionLink.vue`, and ordinary form footers use `resources/js/Components/FormActions.vue`. This keeps primary link buttons, neutral navigation links, focus treatment, wrapping, and spacing consistent without duplicating long Tailwind class strings in pages.
 
 Repeated operational count/status cards use `resources/js/Components/MetricGrid.vue`. Use it for compact page-level metrics before hand-building local metric card grids.
 
-Admin and operational card titles use `resources/js/Components/CardHeader.vue` so card headers keep the same text-only dashboard-style heading, title weight, subtitle spacing, and dark-theme treatment across the system. Do not introduce a second card-header language with colored icon tiles unless the whole dashboard/admin card system is deliberately redesigned.
+Application, Admin, and operational card titles use `SurfaceCard`, `CardHeader`, and `SectionHeader` so card headers keep one visual language for title weight, subtitle spacing, background, border, icon placement, actions, and dark-theme treatment across the system. Titled `SurfaceCard` headers must render like the current Admin dashboard cards: a distinct header band with the shared background, bottom border, `px-4 py-3` spacing, title/subtitle stack, approved icon tile, optional actions on the right, and matching dark-theme treatment. Phase 22a deliberately redesigns the shared card system around documented icon variants: larger colored icons for main operational cards and smaller neutral icons for secondary cards such as filters, compact status sections, and helper panels. Do not hand-build local header structures or one-off icon tiles in pages.
+
+Every page-level `SurfaceCard` with a title must pass an approved icon or explicitly suppress the icon through a documented component-level exception. Anonymous `SurfaceCard` usage is allowed only for deliberate structural wrappers or repeated record rows, and those wrappers must expose an accessible label. `SectionHeader` always requires an icon because it is a visible section heading.
+
+Do not name shared primitives after `Admin` or `App` unless the component is coupled to that shell, route family, or permission boundary. A shared card is `SurfaceCard`, not `AdminCard`; a shell layout can be `AdminLayout` because it owns Admin navigation and route context.
 
 Repeated role, permission, and option checklists use `resources/js/Components/CheckboxList.vue` instead of rebuilding local checkbox grids in pages. Keep one-off binary settings on `FormCheckbox`.
 
-Technical payloads, JSON/TOML snippets, log details, and stack traces use `resources/js/Components/CodeViewer.vue`. Do not hand-build local `<pre>` blocks or one-off stack-trace renderers in Admin pages when this viewer fits.
+Technical payloads, JSON/TOML snippets, log details, and stack traces use `resources/js/Components/CodeViewer.vue`. Do not hand-build local `<pre>` blocks or one-off stack-trace renderers in pages when this viewer fits.
 
 The Admin dashboard keeps its three primary operational cards: Release, Readiness, and Modules. Module-owned operational areas contribute status signals into the Modules card instead of adding standalone dashboard cards unless a new dashboard structure is deliberately designed and documented first.
 
@@ -374,7 +432,7 @@ The Inertia flash contract accepts queued messages with type, translation key or
 
 Use the shared `UiState` component for loading, empty, error, and no-results states.
 
-Use shared frontend formatters from `resources/js/Utils/formatters.ts` for date, time, datetime, money, number, percent, status, and empty values. Money conversion uses integer minor units at component boundaries.
+Use shared frontend formatters from `resources/js/Utils/formatters.ts` for date, time, datetime, money, number, percent, file size, status, and empty values. Money conversion uses integer minor units at component boundaries.
 
 ---
 

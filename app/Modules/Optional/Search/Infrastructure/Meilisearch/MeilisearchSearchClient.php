@@ -40,11 +40,7 @@ final readonly class MeilisearchSearchClient implements SearchClient
 
         $hits = [];
 
-        foreach (($response->getHits() ?? []) as $hit) {
-            if (! is_array($hit)) {
-                continue;
-            }
-
+        foreach ($response->getHits() as $hit) {
             $publicId = $hit['id'] ?? null;
             $moduleKey = $hit['module_key'] ?? null;
 
@@ -54,7 +50,7 @@ final readonly class MeilisearchSearchClient implements SearchClient
 
             unset($hit['id'], $hit['module_key'], $hit['team_public_ids'], $hit['permission_keys'], $hit['visibility_hash']);
 
-            $hits[] = new SearchHit($publicId, $moduleKey, $hit);
+            $hits[] = new SearchHit($publicId, $moduleKey, $this->stringKeyedFields($hit));
         }
 
         return new SearchResult(
@@ -94,5 +90,22 @@ final readonly class MeilisearchSearchClient implements SearchClient
             static fn (string $value): string => '"'.addcslashes($value, '"\\').'"',
             $values,
         ));
+    }
+
+    /**
+     * @param  array<mixed, mixed>  $fields
+     * @return array<string, mixed>
+     */
+    private function stringKeyedFields(array $fields): array
+    {
+        $normalized = [];
+
+        foreach ($fields as $key => $value) {
+            if (is_string($key)) {
+                $normalized[$key] = $value;
+            }
+        }
+
+        return $normalized;
     }
 }

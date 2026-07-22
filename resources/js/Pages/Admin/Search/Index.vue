@@ -4,12 +4,14 @@ import { IconAlertTriangle, IconDatabaseSearch, IconRotateClockwise, IconSearch,
 import type { Component } from 'vue';
 import { computed } from 'vue';
 
-import CardHeader from '../../../Components/CardHeader.vue';
+import SurfaceCard from '../../../Components/SurfaceCard.vue';
 import DataTable from '../../../Components/DataTable.vue';
+import AtlasForm from '../../../Components/Form/AtlasForm.vue';
 import FormButton from '../../../Components/Form/FormButton.vue';
 import FormInput from '../../../Components/Form/FormInput.vue';
 import FormSelect from '../../../Components/Form/FormSelect.vue';
 import MetricGrid from '../../../Components/MetricGrid.vue';
+import PageStack from '../../../Components/PageStack.vue';
 import SeverityBadge from '../../../Components/SeverityBadge.vue';
 import AdminLayout from '../../../Layouts/AdminLayout.vue';
 import type { DataTableAction, DataTableColumn } from '../../../Types/data-table';
@@ -130,26 +132,24 @@ function startRebuild(): void {
 <template>
     <Head title="Search" />
     <AdminLayout title="Search" :title-icon="IconSearch">
-        <section class="space-y-5">
+        <PageStack>
             <MetricGrid :items="summaryItems" />
 
-            <section class="rounded-lg border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
-                <div class="flex flex-wrap items-start justify-between gap-3">
-                    <CardHeader title="Meilisearch readiness" :icon="IconSearch" :subtitle="readiness.description" />
+            <SurfaceCard title="Meilisearch readiness" :icon="IconSearch" :subtitle="readiness.description">
+                <template #actions>
                     <SeverityBadge
                         :value="readinessSeverity(readiness.status)"
                         :label="readiness.blocking ? `${readiness.status} blocking` : readiness.status"
                     />
-                </div>
-            </section>
+                </template>
+            </SurfaceCard>
 
-            <section class="rounded-lg border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
-                <form class="space-y-4" @submit.prevent="startRebuild">
-                    <CardHeader
-                        title="Start rebuild"
-                        :icon="IconRotateClockwise"
-                        subtitle="Rebuilds are queued and visible in managed process logs."
-                    />
+            <SurfaceCard
+                title="Start rebuild"
+                :icon="IconRotateClockwise"
+                subtitle="Rebuilds are queued and visible in managed process logs."
+            >
+                <AtlasForm class="space-y-4" :processing="form.processing" @submit="startRebuild">
                     <div class="grid gap-4 md:grid-cols-3">
                         <FormSelect v-model="form.module_key" label="Module" :options="moduleOptions" />
                         <FormSelect v-model="form.index_key" label="Index" :options="indexOptions" />
@@ -178,8 +178,8 @@ function startRebuild(): void {
                             Process definitions
                         </Link>
                     </div>
-                </form>
-            </section>
+                </AtlasForm>
+            </SurfaceCard>
 
             <DataTable
                 title="Registered search indexes"
@@ -199,6 +199,6 @@ function startRebuild(): void {
                 state-key="admin.search.rebuilds"
                 empty-label="No search rebuild runs recorded."
             />
-        </section>
+        </PageStack>
     </AdminLayout>
 </template>

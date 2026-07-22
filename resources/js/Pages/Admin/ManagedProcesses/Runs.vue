@@ -9,10 +9,11 @@ import DataTable from '../../../Components/DataTable.vue';
 import FormDateInput from '../../../Components/Form/FormDateInput.vue';
 import FormSelect from '../../../Components/Form/FormSelect.vue';
 import MetricGrid from '../../../Components/MetricGrid.vue';
+import PageStack from '../../../Components/PageStack.vue';
 import AdminLayout from '../../../Layouts/AdminLayout.vue';
 import { useTranslator } from '../../../Localization/translator';
 import type { DataTableAction, DataTableColumn } from '../../../Types/data-table';
-import ManagedProcessTabs from './Partials/ManagedProcessTabs.vue';
+import { managedProcessSubnavigation } from './navigation';
 
 interface Run extends Record<string, unknown> {
     publicId: string;
@@ -127,9 +128,13 @@ function resetFilters(): void {
 
 <template>
     <Head :title="t('pages.admin.managed_processes.head_title')" />
-    <AdminLayout :title="t('pages.admin.managed_processes.title')" :title-icon="IconSettingsAutomation">
-        <section class="space-y-5">
-            <ManagedProcessTabs active="runs" />
+    <AdminLayout
+        :title="t('pages.admin.managed_processes.title')"
+        :title-icon="IconSettingsAutomation"
+        :subnavigation="managedProcessSubnavigation('runs')"
+        subnavigation-label="Managed process sections"
+    >
+        <PageStack>
             <MetricGrid :items="summaryItems" columns="grid gap-3 sm:grid-cols-3" />
             <FilterPanel
                 title="Run filters"
@@ -157,6 +162,6 @@ function resetFilters(): void {
                 state-key="admin.managed-processes.runs"
                 empty-label="No process runs match the current filters."
             />
-        </section>
+        </PageStack>
     </AdminLayout>
 </template>

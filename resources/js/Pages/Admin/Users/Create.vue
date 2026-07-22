@@ -4,13 +4,14 @@ import { Head, useForm } from '@inertiajs/vue3';
 import { IconArrowLeft, IconPlus, IconTrash, IconUserPlus } from '@tabler/icons-vue';
 
 import ActionLink from '../../../Components/ActionLink.vue';
-import CardHeader from '../../../Components/CardHeader.vue';
 import CheckboxList from '../../../Components/CheckboxList.vue';
 import AtlasForm from '../../../Components/Form/AtlasForm.vue';
 import FormActions from '../../../Components/FormActions.vue';
 import FormButton from '../../../Components/Form/FormButton.vue';
 import FormInput from '../../../Components/Form/FormInput.vue';
 import FormSelect from '../../../Components/Form/FormSelect.vue';
+import SurfaceCard from '../../../Components/SurfaceCard.vue';
+import UiState from '../../../Components/UiState.vue';
 import AdminLayout from '../../../Layouts/AdminLayout.vue';
 import { useTranslator } from '../../../Localization/translator';
 import type { FormSelectOption } from '../../../Components/Form/FormSelect.vue';
@@ -183,34 +184,33 @@ function submit(): void {
     <Head :title="t('pages.admin.users.create.head_title')" />
     <AdminLayout :title="t('pages.admin.users.create.title')" :title-icon="IconUserPlus">
         <AtlasForm class="space-y-5" :processing="form.processing" @submit="submit">
-            <section class="rounded-lg border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950">
+            <SurfaceCard title="Account identity" :icon="IconUserPlus">
                 <div class="grid gap-4 sm:grid-cols-2">
                     <FormInput v-model="form.name" label="Name" :error="form.errors.name" />
                     <FormInput v-model="form.email" label="Email" type="email" :error="form.errors.email" />
                 </div>
-            </section>
+            </SurfaceCard>
 
-            <section class="rounded-lg border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950">
-                <div class="flex flex-wrap items-center justify-between gap-3">
-                    <CardHeader
-                        title="Team assignments"
-                        :icon="IconUserPlus"
-                        subtitle="A user must belong to at least one team. Roles and permissions are assigned in that team context."
-                    />
+            <SurfaceCard
+                title="Team assignments"
+                :icon="IconUserPlus"
+                subtitle="A user must belong to at least one team. Roles and permissions are assigned in that team context."
+            >
+                <template #actions>
                     <FormButton type="button" tone="neutral" :icon="IconPlus" :disabled="!canAdd" @click="add">Add team</FormButton>
-                </div>
+                </template>
 
-                <p v-if="form.errors.team_assignments" class="mt-3 text-xs text-rose-600 dark:text-rose-300">
+                <p v-if="form.errors.team_assignments" class="text-xs text-rose-600 dark:text-rose-300">
                     {{ form.errors.team_assignments }}
                 </p>
 
-                <div class="mt-5 space-y-4">
-                    <div
+                <div class="space-y-4">
+                    <UiState
                         v-if="form.team_assignments.length === 0"
-                        class="rounded-lg border border-dashed border-zinc-300 p-4 text-sm text-zinc-500 dark:border-zinc-700 dark:text-zinc-400"
-                    >
-                        Add at least one team assignment.
-                    </div>
+                        variant="empty"
+                        title="Add at least one team assignment."
+                        size="compact"
+                    />
 
                     <div
                         v-for="(assignment, index) in form.team_assignments"
@@ -296,7 +296,7 @@ function submit(): void {
                         </section>
                     </div>
                 </div>
-            </section>
+            </SurfaceCard>
 
             <FormActions>
                 <FormButton type="submit" :loading="form.processing">

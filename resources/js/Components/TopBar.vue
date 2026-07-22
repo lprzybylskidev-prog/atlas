@@ -20,6 +20,7 @@ import type { Component } from 'vue';
 
 import IconButton from './IconButton.vue';
 import FormSelect from './Form/FormSelect.vue';
+import ShellSubnavigation from './ShellSubnavigation.vue';
 import TruncatedText from './TruncatedText.vue';
 import { useLocaleSwitcher } from '../Composables/useLocaleSwitcher';
 import { useSidebar } from '../Composables/useSidebar';
@@ -27,6 +28,7 @@ import { useTheme } from '../Composables/useTheme';
 import { useTranslator } from '../Localization/translator';
 import { clearTeamScopedState } from '../Services/teamScopedState';
 import type { AtlasPageProps } from '../Types/inertia';
+import type { ShellSubnavigationItem } from '../Types/navigation';
 import { formatTimestamp } from '../Utils/formatters';
 
 const props = withDefaults(
@@ -36,12 +38,16 @@ const props = withDefaults(
         mode?: 'app' | 'admin';
         showLocaleSwitcher?: boolean;
         uiLocale?: string;
+        subnavigation?: ShellSubnavigationItem[];
+        subnavigationLabel?: string;
     }>(),
     {
         mode: 'app',
         titleIcon: undefined,
         showLocaleSwitcher: true,
         uiLocale: undefined,
+        subnavigation: () => [],
+        subnavigationLabel: 'Section navigation',
     },
 );
 
@@ -443,5 +449,6 @@ watch(
                 </div>
             </div>
         </div>
+        <ShellSubnavigation v-if="subnavigation.length > 0" :items="subnavigation" :label="subnavigationLabel" />
     </header>
 </template>

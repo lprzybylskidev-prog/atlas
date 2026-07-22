@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
+import { IconLayoutDashboard } from '@tabler/icons-vue';
 
 import { useTranslator } from '../../Localization/translator';
 import type { ComposableViewDataProviderResult, ResolvedComposableViewElement } from '../../Types/composable-view';
-import CardHeader from '../CardHeader.vue';
+import SurfaceCard from '../SurfaceCard.vue';
 
 const props = defineProps<{
     element: ResolvedComposableViewElement;
@@ -34,14 +35,14 @@ onMounted(async () => {
 </script>
 
 <template>
-    <article
-        class="overflow-hidden rounded-lg border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-950"
+    <SurfaceCard
+        :title="element.definition.fallbackTitle"
+        :subtitle="element.definition.fallbackDescription ?? undefined"
+        :icon="IconLayoutDashboard"
+        :padded="false"
+        overflow="hidden"
         :class="[element.placement.dimensions.minHeightClass, element.placement.dimensions.spanClass]"
     >
-        <div class="border-b border-zinc-200 bg-zinc-50 px-4 py-3 dark:border-zinc-800 dark:bg-zinc-900/60">
-            <CardHeader :title="element.definition.fallbackTitle" :subtitle="element.definition.fallbackDescription ?? undefined" />
-        </div>
-
         <div v-if="loading" class="p-4 text-sm text-zinc-500 dark:text-zinc-400">{{ t('composable_view.loading') }}</div>
 
         <div v-else-if="isPermissionDenied" class="p-4 text-sm text-zinc-600 dark:text-zinc-300">
@@ -61,5 +62,5 @@ onMounted(async () => {
         </div>
 
         <component :is="element.definition.component" v-else :data="result?.data" />
-    </article>
+    </SurfaceCard>
 </template>

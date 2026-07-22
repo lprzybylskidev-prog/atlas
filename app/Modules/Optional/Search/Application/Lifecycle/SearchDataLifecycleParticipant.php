@@ -73,10 +73,18 @@ final readonly class SearchDataLifecycleParticipant implements DataLifecyclePart
     }
 
     /**
-     * @return iterable<SearchLifecycleProjector>
+     * @return list<SearchLifecycleProjector>
      */
-    private function projectors(): iterable
+    private function projectors(): array
     {
-        return app()->tagged('atlas.search_lifecycle_projectors');
+        $projectors = [];
+
+        foreach (app()->tagged('atlas.search_lifecycle_projectors') as $projector) {
+            if ($projector instanceof SearchLifecycleProjector) {
+                $projectors[] = $projector;
+            }
+        }
+
+        return $projectors;
     }
 }

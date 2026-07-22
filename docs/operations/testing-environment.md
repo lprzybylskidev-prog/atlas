@@ -41,6 +41,7 @@ Playwright e2e tests use:
 - Redis cache DB: `5`;
 - cache prefix: `atlas_e2e_cache`;
 - environment: `testing`;
+- auth login rate-limit max attempts: high e2e-only override in `playwright.config.ts`, so repeated browser login workflows do not block the suite;
 - isolated application port: `8010`;
 - isolated Vite port: `5174`.
 
@@ -50,7 +51,7 @@ PHPUnit, feature tests, and Playwright e2e tests must not mutate the same databa
 
 The committed PHPUnit contract lives in `phpunit.xml`. The repository intentionally does not track `.env.testing` because Atlas blocks committed `.env.*` files. A developer may create a local `.env.testing` only as an override matching the values in `phpunit.xml`.
 
-Playwright e2e environment values live in `playwright.config.ts`. The Playwright web server command prepares `atlas_e2e`, clears Laravel config, runs `migrate:fresh --force`, clears cache-backed state, seeds the deterministic e2e fixture set, and starts isolated local servers. The Laravel e2e server uses PHP's built-in server with Laravel's router file so the configured e2e environment is inherited by the request process. Playwright must not depend on an already-running development Laravel server or Vite server.
+Playwright e2e environment values live in `playwright.config.ts`. The Playwright web server command prepares `atlas_e2e`, clears Laravel config, runs `migrate:fresh --force`, clears cache-backed state, seeds the deterministic e2e fixture set, and starts isolated local servers. The Laravel e2e server uses PHP's built-in server with Laravel's router file so the configured e2e environment is inherited by the request process. Playwright must not depend on an already-running development Laravel server or Vite server. The e2e-only auth login rate-limit override exists because full browser suites intentionally perform many successful login workflows; production and feature-test rate-limit contracts must stay covered without weakening production configuration.
 
 `tools/testing/ensure-test-databases.sh` creates the local PostgreSQL databases required by PHPUnit and Playwright. Public Composer and pnpm commands call this setup where they need stateful test databases.
 

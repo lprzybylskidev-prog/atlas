@@ -37,8 +37,8 @@ Do not replace this index after the initial technical foundation is completed. C
 
 ## Current phase
 
-- Phase: [Phase 22 — Search](docs/roadmap/phase-22-search.md)
-- Status: `not started`
+- Phase: [Phase 22 — Search](docs/roadmap/phase-22-search.md), then [Phase 22a — Frontend rebuild and design system hardening](docs/roadmap/phase-22a-frontend-rebuild.md)
+- Status: Phase 22 `complete`; Phase 22a `complete`
 
 ## Roadmap dependency repair note
 
@@ -234,7 +234,7 @@ Harden Audit context discovery and security category classification before non-H
 
 ### Phase 20b — Managed processes, process logs, and scheduler
 
-**Status:** `complete pending final commit`
+**Status:** `complete`
 
 Implement the shared run, queue, structured process-log, progress, retry/cancel, schedule, notification, audit, and Admin visibility foundation before Imports and later long-running workflows depend on it.
 
@@ -242,7 +242,7 @@ Implement the shared run, queue, structured process-log, progress, retry/cancel,
 
 ### Phase 21 — Imports
 
-**Status:** `complete pending final commit`
+**Status:** `complete`
 
 Implement reusable import pipelines on top of the managed-process foundation after files, notifications, audit, integrations, module activation, and operational health are complete.
 
@@ -250,11 +250,19 @@ Implement reusable import pipelines on top of the managed-process foundation aft
 
 ### Phase 22 — Search
 
-**Status:** `not started`
+**Status:** `complete`
 
 Implement full-text search as module-owned Meilisearch projections with Outbox indexing, authorization, visibility, and zero-downtime rebuilds.
 
 [Open implementation contract and tasks](docs/roadmap/phase-22-search.md)
+
+### Phase 22a — Frontend rebuild and design system hardening
+
+**Status:** `in progress`
+
+Rebuild the current Atlas frontend into a consistent, reusable, documented, and tested UI system before adding more Auth, application, or Admin workflows and modules.
+
+[Open implementation contract and tasks](docs/roadmap/phase-22a-frontend-rebuild.md)
 
 ### Phase 23 — Feature flags
 

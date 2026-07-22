@@ -12,7 +12,11 @@ import FormDateInput from '../../../Components/Form/FormDateInput.vue';
 import FormInput from '../../../Components/Form/FormInput.vue';
 import FormSelect from '../../../Components/Form/FormSelect.vue';
 import MetricGrid from '../../../Components/MetricGrid.vue';
+import PageStack from '../../../Components/PageStack.vue';
+import SurfaceCard from '../../../Components/SurfaceCard.vue';
+import TextBadge from '../../../Components/TextBadge.vue';
 import Tooltip from '../../../Components/Tooltip.vue';
+import UiState from '../../../Components/UiState.vue';
 import { useModal } from '../../../Composables/useModal';
 import AdminLayout from '../../../Layouts/AdminLayout.vue';
 import { useTranslator } from '../../../Localization/translator';
@@ -215,7 +219,7 @@ function isWithinDateRange(job: FailedJob): boolean {
 <template>
     <Head :title="t('pages.admin.queues.head_title')" />
     <AdminLayout :title="t('pages.admin.queues.title')" :title-icon="IconRotateClockwise">
-        <section class="space-y-5">
+        <PageStack>
             <MetricGrid :items="summaryItems" />
 
             <FilterPanel
@@ -234,7 +238,7 @@ function isWithinDateRange(job: FailedJob): boolean {
                 </div>
             </FilterPanel>
 
-            <section class="rounded-lg border border-zinc-200 bg-white p-3 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+            <SurfaceCard title="Bulk retry" :icon="IconRotateClockwise">
                 <div class="flex flex-wrap items-center justify-between gap-3">
                     <FormCheckbox
                         :model-value="allVisibleSelected"
@@ -254,23 +258,21 @@ function isWithinDateRange(job: FailedJob): boolean {
                         Retry selected
                     </FormButton>
                 </div>
-            </section>
+            </SurfaceCard>
 
             <section class="space-y-3">
-                <article
+                <SurfaceCard
                     v-for="job in filteredJobs"
                     :key="job.uuid"
-                    class="overflow-hidden rounded-lg border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-950"
+                    :aria-label="`Failed job ${job.uuid}`"
+                    :padded="false"
+                    overflow="hidden"
                 >
                     <div class="grid grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-3 px-4 py-3">
                         <FormCheckbox v-model="selected" :value="job.uuid" :aria-label="`Select failed job ${job.uuid}`" class="mt-1" />
                         <button type="button" class="min-w-0 text-left" :aria-expanded="expanded === job.uuid" @click="toggle(job.uuid)">
                             <span class="flex flex-wrap items-center gap-2">
-                                <span
-                                    class="inline-flex h-6 items-center rounded-md border border-rose-200 bg-rose-50 px-2 text-xs font-semibold uppercase text-rose-700 dark:border-rose-900 dark:bg-rose-950 dark:text-rose-200"
-                                >
-                                    failed
-                                </span>
+                                <TextBadge label="failed" tone="danger" uppercase />
                                 <span class="text-xs text-zinc-500 dark:text-zinc-400">{{ job.failedAt }}</span>
                                 <span class="text-xs font-medium text-zinc-600 dark:text-zinc-300">{{ job.connection }}</span>
                                 <span class="text-xs text-zinc-500 dark:text-zinc-400">{{ job.queue }}</span>
@@ -329,15 +331,10 @@ function isWithinDateRange(job: FailedJob): boolean {
                             <CodeViewer title="Exception" :content="job.exception" language="stack" />
                         </div>
                     </div>
-                </article>
+                </SurfaceCard>
 
-                <section
-                    v-if="filteredJobs.length === 0"
-                    class="rounded-lg border border-dashed border-zinc-300 bg-white p-8 text-center text-sm text-zinc-500 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-400"
-                >
-                    No failed jobs match the current filters.
-                </section>
+                <UiState v-if="filteredJobs.length === 0" variant="no-results" title="No failed jobs match the current filters." />
             </section>
-        </section>
+        </PageStack>
     </AdminLayout>
 </template>

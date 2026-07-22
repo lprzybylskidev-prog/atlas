@@ -8,6 +8,7 @@ use App\Modules\Optional\ManagedProcesses\Application\Public\Contracts\ManagedPr
 use App\Modules\Optional\ManagedProcesses\Application\Public\Contracts\ManagedProcessReporter;
 use App\Modules\Optional\ManagedProcesses\Application\Public\Contracts\ManagedProcessRunInspector;
 use App\Modules\Optional\Search\Application\Contracts\SearchIndexRegistry;
+use App\Modules\Optional\Search\Application\Public\Contracts\SearchRebuildDocumentProvider;
 use App\Modules\Optional\Search\Application\Rebuild\SearchIndexMaintenanceService;
 use App\Modules\Optional\Search\Application\SearchRebuildProcess;
 use App\Shared\Infrastructure\Operations\OperationalModuleGuard;
@@ -64,7 +65,7 @@ final readonly class SearchRebuildProcessHandler implements ManagedProcessHandle
         }
 
         $this->reporter->running($runPublicId, 'rebuilding_indexes', 0, $total, 'Rebuilding indexes');
-        $reports = $this->maintenance->rebuild($moduleKey, $indexKey, app()->tagged('atlas.search_rebuild_document_providers'));
+        $reports = $this->maintenance->rebuild($moduleKey, $indexKey, $this->documentProviders());
 
         foreach ($reports as $offset => $report) {
             $this->reporter->info($runPublicId, 'checkpoint', 'Search index rebuild validated and promoted.', 'rebuilding_indexes', $report->toSummary());
@@ -80,5 +81,21 @@ final readonly class SearchRebuildProcessHandler implements ManagedProcessHandle
     private function nullableString(mixed $value): ?string
     {
         return is_string($value) && trim($value) !== '' ? trim($value) : null;
+    }
+
+    /**
+     * @return list<SearchRebuildDocumentProvider>
+     */
+    private function documentProviders(): array
+    {
+        $providers = [];
+
+        foreach (app()->tagged('atlas.search_rebuild_document_providers') as $provider) {
+            if ($provider instanceof SearchRebuildDocumentProvider) {
+                $providers[] = $provider;
+            }
+        }
+
+        return $providers;
     }
 }

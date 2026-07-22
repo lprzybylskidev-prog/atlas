@@ -19,6 +19,7 @@ const isDarkOverlay = computed(() => fullscreenTransitionLoading.theme === 'dark
         >
             <div
                 v-if="fullscreenTransitionLoading.visible"
+                data-testid="fullscreen-transition-loader"
                 class="fixed inset-0 z-[9999] flex items-center justify-center"
                 :class="isDarkOverlay ? 'bg-zinc-950 text-zinc-50' : 'bg-zinc-50 text-zinc-950'"
                 role="status"

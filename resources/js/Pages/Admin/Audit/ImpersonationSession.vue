@@ -4,6 +4,8 @@ import { IconArrowLeft, IconUserScan } from '@tabler/icons-vue';
 
 import ActionLink from '../../../Components/ActionLink.vue';
 import DataTable from '../../../Components/DataTable.vue';
+import PageStack from '../../../Components/PageStack.vue';
+import SurfaceCard from '../../../Components/SurfaceCard.vue';
 import AdminLayout from '../../../Layouts/AdminLayout.vue';
 import type { DataTableColumn } from '../../../Types/data-table';
 
@@ -55,41 +57,41 @@ const columns: DataTableColumn<AuditEventRow>[] = [
 <template>
     <Head :title="`Impersonation ${session.id}`" />
     <AdminLayout title="Impersonation audit" :title-icon="IconUserScan">
-        <section class="space-y-5">
+        <PageStack>
             <div class="flex justify-start">
                 <ActionLink href="/admin/audit" :icon="IconArrowLeft"> Back to audit </ActionLink>
             </div>
 
-            <section
-                class="grid gap-3 rounded-lg border border-zinc-200 bg-white p-5 text-sm dark:border-zinc-800 dark:bg-zinc-950 md:grid-cols-2"
-            >
-                <div>
-                    <p class="text-xs font-semibold uppercase text-zinc-500 dark:text-zinc-400">Session</p>
-                    <p class="mt-1 break-all font-mono text-zinc-900 dark:text-zinc-100">{{ session.id }}</p>
+            <SurfaceCard title="Session summary" :icon="IconUserScan">
+                <div class="grid gap-3 text-sm md:grid-cols-2">
+                    <div>
+                        <p class="text-xs font-semibold uppercase text-zinc-500 dark:text-zinc-400">Session</p>
+                        <p class="mt-1 break-all font-mono text-zinc-900 dark:text-zinc-100">{{ session.id }}</p>
+                    </div>
+                    <div>
+                        <p class="text-xs font-semibold uppercase text-zinc-500 dark:text-zinc-400">Reason</p>
+                        <p class="mt-1 text-zinc-900 dark:text-zinc-100">{{ session.reason }}</p>
+                    </div>
+                    <div>
+                        <p class="text-xs font-semibold uppercase text-zinc-500 dark:text-zinc-400">Administrator</p>
+                        <p class="mt-1 break-all font-mono text-zinc-900 dark:text-zinc-100">{{ session.actualActorPublicId }}</p>
+                    </div>
+                    <div>
+                        <p class="text-xs font-semibold uppercase text-zinc-500 dark:text-zinc-400">User</p>
+                        <p class="mt-1 break-all font-mono text-zinc-900 dark:text-zinc-100">{{ session.impersonatedUserPublicId }}</p>
+                    </div>
+                    <div>
+                        <p class="text-xs font-semibold uppercase text-zinc-500 dark:text-zinc-400">Started</p>
+                        <p class="mt-1 text-zinc-900 dark:text-zinc-100">{{ session.startedAt }}</p>
+                    </div>
+                    <div>
+                        <p class="text-xs font-semibold uppercase text-zinc-500 dark:text-zinc-400">Ended</p>
+                        <p class="mt-1 text-zinc-900 dark:text-zinc-100">{{ session.endedAt ?? 'Active or not recorded' }}</p>
+                    </div>
                 </div>
-                <div>
-                    <p class="text-xs font-semibold uppercase text-zinc-500 dark:text-zinc-400">Reason</p>
-                    <p class="mt-1 text-zinc-900 dark:text-zinc-100">{{ session.reason }}</p>
-                </div>
-                <div>
-                    <p class="text-xs font-semibold uppercase text-zinc-500 dark:text-zinc-400">Administrator</p>
-                    <p class="mt-1 break-all font-mono text-zinc-900 dark:text-zinc-100">{{ session.actualActorPublicId }}</p>
-                </div>
-                <div>
-                    <p class="text-xs font-semibold uppercase text-zinc-500 dark:text-zinc-400">User</p>
-                    <p class="mt-1 break-all font-mono text-zinc-900 dark:text-zinc-100">{{ session.impersonatedUserPublicId }}</p>
-                </div>
-                <div>
-                    <p class="text-xs font-semibold uppercase text-zinc-500 dark:text-zinc-400">Started</p>
-                    <p class="mt-1 text-zinc-900 dark:text-zinc-100">{{ session.startedAt }}</p>
-                </div>
-                <div>
-                    <p class="text-xs font-semibold uppercase text-zinc-500 dark:text-zinc-400">Ended</p>
-                    <p class="mt-1 text-zinc-900 dark:text-zinc-100">{{ session.endedAt ?? 'Active or not recorded' }}</p>
-                </div>
-            </section>
+            </SurfaceCard>
 
             <DataTable title="Session events" :rows="props.events" :columns="columns" row-key="publicId" />
-        </section>
+        </PageStack>
     </AdminLayout>
 </template>

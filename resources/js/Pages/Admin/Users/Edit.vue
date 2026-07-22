@@ -4,7 +4,6 @@ import { IconArrowLeft, IconTrash, IconUserEdit, IconUsersGroup } from '@tabler/
 import { reactive } from 'vue';
 
 import ActionLink from '../../../Components/ActionLink.vue';
-import CardHeader from '../../../Components/CardHeader.vue';
 import CheckboxList from '../../../Components/CheckboxList.vue';
 import FormActions from '../../../Components/FormActions.vue';
 import RecordActions from '../../../Components/RecordActions.vue';
@@ -12,7 +11,10 @@ import AtlasForm from '../../../Components/Form/AtlasForm.vue';
 import FormButton from '../../../Components/Form/FormButton.vue';
 import FormInput from '../../../Components/Form/FormInput.vue';
 import FormSelect from '../../../Components/Form/FormSelect.vue';
+import PageStack from '../../../Components/PageStack.vue';
 import StatusBadge from '../../../Components/StatusBadge.vue';
+import SurfaceCard from '../../../Components/SurfaceCard.vue';
+import UiState from '../../../Components/UiState.vue';
 import AdminLayout from '../../../Layouts/AdminLayout.vue';
 import { useTranslator } from '../../../Localization/translator';
 import type { FormSelectOption } from '../../../Components/Form/FormSelect.vue';
@@ -148,43 +150,38 @@ function updateTeamAuthorization(teamPublicId: string): void {
 <template>
     <Head :title="t('pages.admin.users.edit.head_title')" />
     <AdminLayout :title="t('pages.admin.users.edit.title')" :title-icon="IconUserEdit">
-        <section class="space-y-5">
-            <section class="rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950">
-                <CardHeader title="Actions" :icon="IconUserEdit" />
-                <RecordActions class="mt-3" :actions="recordActions" />
-            </section>
+        <PageStack>
+            <SurfaceCard title="Actions" :icon="IconUserEdit">
+                <RecordActions :actions="recordActions" />
+            </SurfaceCard>
 
             <div class="grid gap-5 xl:grid-cols-[minmax(0,1fr)_24rem]">
                 <div class="space-y-5">
-                    <AtlasForm
-                        class="rounded-lg border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950"
-                        :processing="form.processing"
-                        @submit="submit"
-                    >
-                        <div class="grid gap-4 sm:grid-cols-2">
-                            <FormInput v-model="form.name" label="Name" :error="form.errors.name" />
-                            <FormInput v-model="form.email" label="Email" type="email" :error="form.errors.email" />
-                            <FormSelect
-                                v-model="form.account_sensitivity"
-                                label="Account sensitivity"
-                                :options="sensitivityOptions"
-                                :error="form.errors.account_sensitivity"
-                            />
-                        </div>
+                    <SurfaceCard title="Account identity" :icon="IconUserEdit">
+                        <AtlasForm :processing="form.processing" @submit="submit">
+                            <div class="grid gap-4 sm:grid-cols-2">
+                                <FormInput v-model="form.name" label="Name" :error="form.errors.name" />
+                                <FormInput v-model="form.email" label="Email" type="email" :error="form.errors.email" />
+                                <FormSelect
+                                    v-model="form.account_sensitivity"
+                                    label="Account sensitivity"
+                                    :options="sensitivityOptions"
+                                    :error="form.errors.account_sensitivity"
+                                />
+                            </div>
 
-                        <FormActions class="mt-5">
-                            <FormButton type="submit" :loading="form.processing">
-                                {{ form.processing ? 'Saving...' : 'Save changes' }}
-                            </FormButton>
-                            <ActionLink href="/admin/users" :icon="IconArrowLeft"> Back to users </ActionLink>
-                        </FormActions>
-                    </AtlasForm>
+                            <FormActions class="mt-5">
+                                <FormButton type="submit" :loading="form.processing">
+                                    {{ form.processing ? 'Saving...' : 'Save changes' }}
+                                </FormButton>
+                                <ActionLink href="/admin/users" :icon="IconArrowLeft"> Back to users </ActionLink>
+                            </FormActions>
+                        </AtlasForm>
+                    </SurfaceCard>
 
-                    <section class="rounded-lg border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950">
-                        <CardHeader title="Team access" :icon="IconUsersGroup" />
-
+                    <SurfaceCard title="Team access" :icon="IconUsersGroup">
                         <AtlasForm
-                            class="mt-4 grid gap-3 md:grid-cols-[minmax(0,1fr)_auto]"
+                            class="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto]"
                             :processing="teamForm.processing"
                             @submit="addTeamAccess"
                         >
@@ -208,9 +205,7 @@ function updateTeamAuthorization(teamPublicId: string): void {
                         <div
                             class="mt-5 divide-y divide-zinc-200 rounded-lg border border-zinc-200 dark:divide-zinc-800 dark:border-zinc-800"
                         >
-                            <div v-if="teamMemberships.length === 0" class="p-4 text-sm text-zinc-500 dark:text-zinc-400">
-                                No active team access.
-                            </div>
+                            <UiState v-if="teamMemberships.length === 0" variant="empty" title="No active team access." size="compact" />
                             <div v-for="membership in teamMemberships" :key="membership.teamPublicId" class="space-y-4 p-4">
                                 <div>
                                     <div class="flex flex-wrap items-center gap-2">
@@ -269,12 +264,11 @@ function updateTeamAuthorization(teamPublicId: string): void {
                                 </div>
                             </div>
                         </div>
-                    </section>
+                    </SurfaceCard>
                 </div>
 
-                <aside class="rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950">
-                    <CardHeader title="Account status" :icon="IconUserEdit" />
-                    <dl class="mt-4 space-y-3 text-sm">
+                <SurfaceCard title="Account status" :icon="IconUserEdit">
+                    <dl class="space-y-3 text-sm">
                         <div class="flex items-center justify-between gap-3">
                             <dt class="text-zinc-500 dark:text-zinc-400">Active</dt>
                             <dd><StatusBadge :value="user.isActive" /></dd>
@@ -296,8 +290,8 @@ function updateTeamAuthorization(teamPublicId: string): void {
                             <dd><StatusBadge :value="user.mfaEnabled" /></dd>
                         </div>
                     </dl>
-                </aside>
+                </SurfaceCard>
             </div>
-        </section>
+        </PageStack>
     </AdminLayout>
 </template>

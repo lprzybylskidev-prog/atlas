@@ -64,7 +64,7 @@ final class E2eVisibilitySeeder extends Seeder
 
         $activation = app(ModuleActivationService::class);
 
-        foreach (['integrations', 'managed_processes', 'imports'] as $moduleKey) {
+        foreach (['integrations', 'managed_processes', 'imports', 'search'] as $moduleKey) {
             $activation->change(new ModuleActivationChange(
                 moduleKey: $moduleKey,
                 scope: ModuleActivationScope::Global,

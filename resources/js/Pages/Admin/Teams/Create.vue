@@ -4,13 +4,14 @@ import { IconArrowLeft, IconPlus, IconPuzzle, IconTrash, IconUsersGroup } from '
 import { computed } from 'vue';
 
 import ActionLink from '../../../Components/ActionLink.vue';
-import CardHeader from '../../../Components/CardHeader.vue';
 import CheckboxList from '../../../Components/CheckboxList.vue';
 import FormActions from '../../../Components/FormActions.vue';
 import AtlasForm from '../../../Components/Form/AtlasForm.vue';
 import FormButton from '../../../Components/Form/FormButton.vue';
 import FormInput from '../../../Components/Form/FormInput.vue';
 import FormSelect from '../../../Components/Form/FormSelect.vue';
+import SurfaceCard from '../../../Components/SurfaceCard.vue';
+import UiState from '../../../Components/UiState.vue';
 import AdminLayout from '../../../Layouts/AdminLayout.vue';
 import { useTranslator } from '../../../Localization/translator';
 import type { FormSelectOption } from '../../../Components/Form/FormSelect.vue';
@@ -125,27 +126,21 @@ function submit(): void {
     <Head :title="t('pages.admin.teams.create.head_title')" />
     <AdminLayout :title="t('pages.admin.teams.create.title')" :title-icon="IconUsersGroup">
         <AtlasForm class="space-y-5" :processing="form.processing" @submit="submit">
-            <section class="max-w-2xl rounded-lg border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950">
+            <SurfaceCard class="max-w-2xl" title="Team identity" :icon="IconUsersGroup">
                 <FormInput v-model="form.name" label="Name" :error="form.errors.name" />
-            </section>
+            </SurfaceCard>
 
-            <section class="rounded-lg border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950">
-                <div class="flex flex-wrap items-center justify-between gap-3">
-                    <CardHeader
-                        title="Initial members"
-                        :icon="IconUsersGroup"
-                        subtitle="Assign users, roles, and direct permissions while creating the team."
-                    />
+            <SurfaceCard
+                title="Initial members"
+                :icon="IconUsersGroup"
+                subtitle="Assign users, roles, and direct permissions while creating the team."
+            >
+                <template #actions>
                     <FormButton type="button" tone="neutral" :icon="IconPlus" :disabled="!canAdd" @click="add">Add user</FormButton>
-                </div>
+                </template>
 
-                <div class="mt-5 space-y-4">
-                    <div
-                        v-if="form.user_assignments.length === 0"
-                        class="rounded-lg border border-dashed border-zinc-300 p-4 text-sm text-zinc-500 dark:border-zinc-700 dark:text-zinc-400"
-                    >
-                        No initial members.
-                    </div>
+                <div class="space-y-4">
+                    <UiState v-if="form.user_assignments.length === 0" variant="empty" title="No initial members." size="compact" />
 
                     <div
                         v-for="(assignment, index) in form.user_assignments"
@@ -181,15 +176,10 @@ function submit(): void {
                         </div>
                     </div>
                 </div>
-            </section>
+            </SurfaceCard>
 
-            <section class="rounded-lg border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950">
-                <div class="flex flex-wrap items-center justify-between gap-3">
-                    <CardHeader
-                        title="Module overrides"
-                        :icon="IconPuzzle"
-                        subtitle="Set team-specific module state while creating the team."
-                    />
+            <SurfaceCard title="Module overrides" :icon="IconPuzzle" subtitle="Set team-specific module state while creating the team.">
+                <template #actions>
                     <FormButton
                         type="button"
                         tone="neutral"
@@ -199,15 +189,10 @@ function submit(): void {
                     >
                         Add module
                     </FormButton>
-                </div>
+                </template>
 
-                <div class="mt-5 space-y-4">
-                    <div
-                        v-if="form.module_overrides.length === 0"
-                        class="rounded-lg border border-dashed border-zinc-300 p-4 text-sm text-zinc-500 dark:border-zinc-700 dark:text-zinc-400"
-                    >
-                        No team module overrides.
-                    </div>
+                <div class="space-y-4">
+                    <UiState v-if="form.module_overrides.length === 0" variant="empty" title="No team module overrides." size="compact" />
 
                     <div
                         v-for="(override, index) in form.module_overrides"
@@ -227,7 +212,7 @@ function submit(): void {
                         </FormButton>
                     </div>
                 </div>
-            </section>
+            </SurfaceCard>
 
             <FormActions class="mt-5">
                 <FormButton type="submit" :loading="form.processing">

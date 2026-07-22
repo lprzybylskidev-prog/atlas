@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Optional\Search\Presentation\Jobs;
 
 use App\Modules\Optional\Search\Application\Indexing\SearchOutboxEventIndexer;
+use App\Modules\Optional\Search\Application\Public\Contracts\SearchEventProjector;
 use App\Shared\Application\Outbox\IntegrationEventMessage;
 use DateTimeImmutable;
 use Illuminate\Bus\Queueable;
@@ -50,7 +51,7 @@ final class HandleSearchOutboxEvent implements ShouldQueue
 
     public function handle(SearchOutboxEventIndexer $indexer): void
     {
-        $indexer->handle($this->message(), app()->tagged('atlas.search_event_projectors'));
+        $indexer->handle($this->message(), $this->projectors());
     }
 
     private function message(): IntegrationEventMessage
@@ -65,5 +66,21 @@ final class HandleSearchOutboxEvent implements ShouldQueue
             correlationId: $this->correlationId,
             causationId: $this->causationId,
         );
+    }
+
+    /**
+     * @return list<SearchEventProjector>
+     */
+    private function projectors(): array
+    {
+        $projectors = [];
+
+        foreach (app()->tagged('atlas.search_event_projectors') as $projector) {
+            if ($projector instanceof SearchEventProjector) {
+                $projectors[] = $projector;
+            }
+        }
+
+        return $projectors;
     }
 }

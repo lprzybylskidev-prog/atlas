@@ -4,7 +4,6 @@ import { IconArrowLeft, IconPuzzle, IconTrash, IconUsersGroup } from '@tabler/ic
 import { computed, reactive } from 'vue';
 
 import ActionLink from '../../../Components/ActionLink.vue';
-import CardHeader from '../../../Components/CardHeader.vue';
 import CheckboxList from '../../../Components/CheckboxList.vue';
 import FormActions from '../../../Components/FormActions.vue';
 import RecordActions from '../../../Components/RecordActions.vue';
@@ -12,7 +11,10 @@ import AtlasForm from '../../../Components/Form/AtlasForm.vue';
 import FormButton from '../../../Components/Form/FormButton.vue';
 import FormInput from '../../../Components/Form/FormInput.vue';
 import FormSelect from '../../../Components/Form/FormSelect.vue';
+import PageStack from '../../../Components/PageStack.vue';
 import StatusBadge from '../../../Components/StatusBadge.vue';
+import SurfaceCard from '../../../Components/SurfaceCard.vue';
+import UiState from '../../../Components/UiState.vue';
 import AdminLayout from '../../../Layouts/AdminLayout.vue';
 import { useTranslator } from '../../../Localization/translator';
 import type { FormSelectOption } from '../../../Components/Form/FormSelect.vue';
@@ -185,34 +187,29 @@ function clearModule(module: ModuleStateRow): void {
 <template>
     <Head :title="t('pages.admin.teams.edit.head_title')" />
     <AdminLayout :title="t('pages.admin.teams.edit.title')" :title-icon="IconUsersGroup">
-        <section class="space-y-5">
-            <section class="rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950">
-                <CardHeader title="Actions" :icon="IconUsersGroup" />
-                <RecordActions class="mt-3" :actions="recordActions" />
-            </section>
+        <PageStack>
+            <SurfaceCard title="Actions" :icon="IconUsersGroup">
+                <RecordActions :actions="recordActions" />
+            </SurfaceCard>
 
             <div class="grid gap-5 xl:grid-cols-[minmax(0,1fr)_20rem]">
                 <div class="space-y-5">
-                    <AtlasForm
-                        class="rounded-lg border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950"
-                        :processing="form.processing"
-                        @submit="submit"
-                    >
-                        <FormInput v-model="form.name" label="Name" :error="form.errors.name" />
+                    <SurfaceCard title="Team identity" :icon="IconUsersGroup">
+                        <AtlasForm :processing="form.processing" @submit="submit">
+                            <FormInput v-model="form.name" label="Name" :error="form.errors.name" />
 
-                        <FormActions class="mt-5">
-                            <FormButton type="submit" :loading="form.processing">
-                                {{ form.processing ? 'Saving...' : 'Save changes' }}
-                            </FormButton>
-                            <ActionLink href="/admin/teams" :icon="IconArrowLeft"> Back to teams </ActionLink>
-                        </FormActions>
-                    </AtlasForm>
+                            <FormActions class="mt-5">
+                                <FormButton type="submit" :loading="form.processing">
+                                    {{ form.processing ? 'Saving...' : 'Save changes' }}
+                                </FormButton>
+                                <ActionLink href="/admin/teams" :icon="IconArrowLeft"> Back to teams </ActionLink>
+                            </FormActions>
+                        </AtlasForm>
+                    </SurfaceCard>
 
-                    <section class="rounded-lg border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950">
-                        <CardHeader title="Members" :icon="IconUsersGroup" />
-
+                    <SurfaceCard title="Members" :icon="IconUsersGroup">
                         <AtlasForm
-                            class="mt-4 grid gap-3 md:grid-cols-[minmax(0,1fr)_auto]"
+                            class="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto]"
                             :processing="addMemberForm.processing"
                             @submit="addMember"
                         >
@@ -228,9 +225,7 @@ function clearModule(module: ModuleStateRow): void {
                         <div
                             class="mt-5 divide-y divide-zinc-200 rounded-lg border border-zinc-200 dark:divide-zinc-800 dark:border-zinc-800"
                         >
-                            <div v-if="memberships.length === 0" class="p-4 text-sm text-zinc-500 dark:text-zinc-400">
-                                No active members.
-                            </div>
+                            <UiState v-if="memberships.length === 0" variant="empty" title="No active members." size="compact" />
 
                             <div v-for="membership in memberships" :key="membership.userPublicId" class="space-y-4 p-4">
                                 <div>
@@ -285,13 +280,10 @@ function clearModule(module: ModuleStateRow): void {
                                 </div>
                             </div>
                         </div>
-                    </section>
+                    </SurfaceCard>
 
-                    <section class="rounded-lg border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950">
-                        <CardHeader title="Modules" :icon="IconPuzzle" />
-                        <div
-                            class="mt-5 divide-y divide-zinc-200 rounded-lg border border-zinc-200 dark:divide-zinc-800 dark:border-zinc-800"
-                        >
+                    <SurfaceCard title="Modules" :icon="IconPuzzle">
+                        <div class="divide-y divide-zinc-200 rounded-lg border border-zinc-200 dark:divide-zinc-800 dark:border-zinc-800">
                             <div v-for="module in moduleStates" :key="module.moduleKey" class="space-y-4 p-4">
                                 <div class="flex flex-wrap items-center justify-between gap-3">
                                     <div>
@@ -336,12 +328,11 @@ function clearModule(module: ModuleStateRow): void {
                                 </div>
                             </div>
                         </div>
-                    </section>
+                    </SurfaceCard>
                 </div>
 
-                <aside class="rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950">
-                    <CardHeader title="Team status" :icon="IconUsersGroup" />
-                    <dl class="mt-4 space-y-3 text-sm">
+                <SurfaceCard title="Team status" :icon="IconUsersGroup">
+                    <dl class="space-y-3 text-sm">
                         <div class="flex items-center justify-between gap-3">
                             <dt class="text-zinc-500 dark:text-zinc-400">Active</dt>
                             <dd><StatusBadge :value="team.isActive" /></dd>
@@ -351,8 +342,8 @@ function clearModule(module: ModuleStateRow): void {
                             <dd class="mt-1 break-all font-mono text-xs text-zinc-700 dark:text-zinc-200">{{ team.publicId }}</dd>
                         </div>
                     </dl>
-                </aside>
+                </SurfaceCard>
             </div>
-        </section>
+        </PageStack>
     </AdminLayout>
 </template>

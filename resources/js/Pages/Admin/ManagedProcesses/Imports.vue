@@ -8,9 +8,10 @@ import DataTable from '../../../Components/DataTable.vue';
 import FormDateInput from '../../../Components/Form/FormDateInput.vue';
 import FormSelect from '../../../Components/Form/FormSelect.vue';
 import MetricGrid from '../../../Components/MetricGrid.vue';
+import PageStack from '../../../Components/PageStack.vue';
 import AdminLayout from '../../../Layouts/AdminLayout.vue';
 import type { DataTableAction, DataTableColumn } from '../../../Types/data-table';
-import ManagedProcessTabs from './Partials/ManagedProcessTabs.vue';
+import { managedProcessSubnavigation } from './navigation';
 
 interface ImportExecution extends Record<string, unknown> {
     publicId: string;
@@ -96,9 +97,13 @@ function resetFilters(): void {
 
 <template>
     <Head title="Import executions" />
-    <AdminLayout title="Import executions" :title-icon="IconFileImport">
-        <section class="space-y-5">
-            <ManagedProcessTabs active="imports" />
+    <AdminLayout
+        title="Import executions"
+        :title-icon="IconFileImport"
+        :subnavigation="managedProcessSubnavigation('imports')"
+        subnavigation-label="Managed process sections"
+    >
+        <PageStack>
             <MetricGrid :items="summaryItems" />
             <FilterPanel
                 title="Import filters"
@@ -125,6 +130,6 @@ function resetFilters(): void {
                 state-key="admin.managed-processes.imports"
                 empty-label="No import executions match the current filters."
             />
-        </section>
+        </PageStack>
     </AdminLayout>
 </template>

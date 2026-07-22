@@ -1,5 +1,5 @@
 <script setup lang="ts" generic="TRow extends Record<string, unknown>">
-import { Link, router } from '@inertiajs/vue3';
+import { router } from '@inertiajs/vue3';
 import {
     FlexRender,
     getCoreRowModel,
@@ -54,6 +54,7 @@ import type { DataTableAction, DataTableBulkAction, DataTableColumn, DataTableMe
 import {
     formatDate,
     formatEmpty,
+    formatFileSize,
     formatMoney,
     formatNumber,
     formatPercent,
@@ -676,6 +677,10 @@ function formatCell(value: unknown, format: DataTableColumn<TRow>['format']): VN
         return formatMoney(value as { amountMinor: number; currency: string }, props.uiLocale ?? 'en');
     }
 
+    if (format === 'file-size' && typeof value === 'number') {
+        return formatFileSize(value, props.uiLocale ?? 'en');
+    }
+
     if (format === 'number' && typeof value === 'number') {
         return formatNumber(value, props.uiLocale ?? 'en');
     }
@@ -737,6 +742,10 @@ function formattedCellText(value: unknown, format: DataTableColumn<TRow>['format
         return formatMoney(value as { amountMinor: number; currency: string }, props.uiLocale ?? 'en');
     }
 
+    if (format === 'file-size' && typeof value === 'number') {
+        return formatFileSize(value, props.uiLocale ?? 'en');
+    }
+
     if (format === 'number' && typeof value === 'number') {
         return formatNumber(value, props.uiLocale ?? 'en');
     }
@@ -775,6 +784,10 @@ function formatExportCell(value: unknown, format: DataTableColumn<TRow>['format'
 
     if (format === 'money' && value !== null && typeof value === 'object' && 'amountMinor' in value && 'currency' in value) {
         return formatMoney(value as { amountMinor: number; currency: string }, props.uiLocale ?? 'en');
+    }
+
+    if (format === 'file-size' && typeof value === 'number') {
+        return formatFileSize(value, props.uiLocale ?? 'en');
     }
 
     return formatEmpty(value);
@@ -1448,6 +1461,29 @@ function visibleActions(row: TRow): DataTableAction<TRow>[] {
     return props.actions.filter((action) => action.visible?.(row) ?? true);
 }
 
+async function runRowAction(action: DataTableAction<TRow>, row: TRow): Promise<void> {
+    const confirmationSubject = typeof action.confirm === 'function' ? action.confirm(row) : action.confirm;
+
+    if (
+        confirmationSubject !== undefined &&
+        !(await confirm({
+            titleKey: 'datatable.action.confirm.title',
+            descriptionKey: 'datatable.action.confirm.description',
+            confirmKey: 'datatable.action.confirm.confirm',
+            cancelKey: 'datatable.action.confirm.cancel',
+            tone: actionTone(action) === 'danger' ? 'danger' : 'warning',
+            subject: confirmationSubject,
+        }))
+    ) {
+        return;
+    }
+
+    router.visit(action.href(row), {
+        method: action.method ?? 'get',
+        preserveScroll: true,
+    });
+}
+
 function bulkActionIcon(action: DataTableBulkAction): Component {
     if (action.key.includes('deactivate')) {
         return IconUserOff;
@@ -1559,7 +1595,7 @@ function dataColumnWidthClass(columnId: string): string {
         return 'min-w-40';
     }
 
-    if (column.format === 'money') {
+    if (column.format === 'money' || column.format === 'file-size') {
         return 'min-w-36';
     }
 
@@ -1939,15 +1975,12 @@ onBeforeUnmount(() => {
                                             align="end"
                                             placement="top"
                                         >
-                                            <Link
-                                                :href="action.href(row.original)"
-                                                :method="action.method ?? 'get'"
-                                                as="button"
+                                            <button
                                                 type="button"
                                                 class="inline-flex h-8 w-8 items-center justify-center rounded-md border transition"
                                                 :class="actionClass(action)"
                                                 :aria-label="action.label"
-                                                :preserve-scroll="true"
+                                                @click="runRowAction(action, row.original)"
                                             >
                                                 <component
                                                     :is="actionIcon(action)"
@@ -1955,7 +1988,7 @@ onBeforeUnmount(() => {
                                                     class="h-4 w-4"
                                                     :stroke-width="1.8"
                                                 />
-                                            </Link>
+                                            </button>
                                         </Tooltip>
                                     </div>
                                 </td>

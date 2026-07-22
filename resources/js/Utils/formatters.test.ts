@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { formatEmpty, formatMoney, formatStatus, formatTimestamp, majorToMinor, minorToMajor } from './formatters';
+import { formatEmpty, formatFileSize, formatMoney, formatStatus, formatTimestamp, majorToMinor, minorToMajor } from './formatters';
 
 describe('shared formatters', () => {
     it('uses a stable empty value fallback', () => {
@@ -19,6 +19,11 @@ describe('shared formatters', () => {
     it('formats technical statuses for display', () => {
         expect(formatStatus('email_verification_required')).toBe('Email Verification Required');
         expect(formatStatus('')).toBe('-');
+    });
+
+    it('formats file sizes consistently', () => {
+        expect(formatFileSize(512, 'en-US')).toBe('512 B');
+        expect(formatFileSize(1536, 'en-US')).toBe('1.5 KB');
     });
 
     it('formats timestamps for application locales', () => {

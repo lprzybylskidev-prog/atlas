@@ -11,6 +11,7 @@ import Sidebar from '../Components/Sidebar.vue';
 import TopBar from '../Components/TopBar.vue';
 import ToastViewport from '../Components/ToastViewport.vue';
 import type { AtlasPageProps } from '../Types/inertia';
+import type { ShellSubnavigationItem } from '../Types/navigation';
 
 withDefaults(
     defineProps<{
@@ -19,12 +20,16 @@ withDefaults(
         mode?: 'app' | 'admin';
         showLocaleSwitcher?: boolean;
         uiLocale?: string;
+        subnavigation?: ShellSubnavigationItem[];
+        subnavigationLabel?: string;
     }>(),
     {
         titleIcon: undefined,
         mode: 'app',
         showLocaleSwitcher: true,
         uiLocale: undefined,
+        subnavigation: () => [],
+        subnavigationLabel: 'Section navigation',
     },
 );
 
@@ -68,6 +73,8 @@ const impersonation = computed(() => page.props.auth?.impersonation);
                     :mode="mode"
                     :show-locale-switcher="showLocaleSwitcher"
                     :ui-locale="uiLocale"
+                    :subnavigation="subnavigation"
+                    :subnavigation-label="subnavigationLabel"
                     @open-mobile-menu="mobileMenuOpen = true"
                 />
                 <main class="flex-1 px-4 py-5 sm:px-6 lg:px-8">

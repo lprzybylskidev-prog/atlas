@@ -4,6 +4,7 @@ import { IconAlertTriangle, IconCircleCheck, IconLayoutDashboard } from '@tabler
 import { computed } from 'vue';
 
 import ComposableViewHost from '../../Components/ComposableView/ComposableViewHost.vue';
+import TextBadge from '../../Components/TextBadge.vue';
 import AdminLayout from '../../Layouts/AdminLayout.vue';
 import { resolveComposableHostView, SYSTEM_STATUS_ELEMENTS } from '../../Services/composableViewRegistry';
 import type { ComposableViewAvailability } from '../../Types/composable-view';
@@ -14,6 +15,21 @@ const props = defineProps<{
 
 const view = computed(() => resolveComposableHostView('admin.system-status', SYSTEM_STATUS_ELEMENTS, props.availability));
 const unavailableSignals = computed(() => view.value.elements.filter((element) => element.availability.reason !== 'available'));
+const statusBadge = computed(() => {
+    if (unavailableSignals.value.length === 0) {
+        return {
+            label: 'All signals available',
+            tone: 'success' as const,
+            icon: IconCircleCheck,
+        };
+    }
+
+    return {
+        label: `${unavailableSignals.value.length} signals unavailable`,
+        tone: 'warning' as const,
+        icon: IconAlertTriangle,
+    };
+});
 </script>
 
 <template>
@@ -30,24 +46,7 @@ const unavailableSignals = computed(() => view.value.elements.filter((element) =
                         Release identity, external readiness, and module health in one operational view.
                     </p>
                 </div>
-                <div
-                    class="inline-flex w-fit items-center gap-2 rounded-lg border px-3 py-2 text-sm font-semibold"
-                    :class="
-                        unavailableSignals.length === 0
-                            ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
-                            : 'border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300'
-                    "
-                >
-                    <component
-                        :is="unavailableSignals.length === 0 ? IconCircleCheck : IconAlertTriangle"
-                        aria-hidden="true"
-                        class="size-4"
-                        :stroke-width="1.8"
-                    />
-                    <span>{{
-                        unavailableSignals.length === 0 ? 'All signals available' : `${unavailableSignals.length} signals unavailable`
-                    }}</span>
-                </div>
+                <TextBadge :label="statusBadge.label" :tone="statusBadge.tone" :icon="statusBadge.icon" />
             </section>
 
             <ComposableViewHost :view="view" />

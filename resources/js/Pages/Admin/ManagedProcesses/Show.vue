@@ -3,13 +3,17 @@ import { Head, router } from '@inertiajs/vue3';
 import { IconFileText, IconListDetails, IconRefresh, IconSettingsAutomation, IconX } from '@tabler/icons-vue';
 import { computed, ref } from 'vue';
 
-import CardHeader from '../../../Components/CardHeader.vue';
+import SurfaceCard from '../../../Components/SurfaceCard.vue';
 import CodeViewer from '../../../Components/CodeViewer.vue';
+import DataTable from '../../../Components/DataTable.vue';
 import FilterPanel from '../../../Components/FilterPanel.vue';
+import FormButton from '../../../Components/Form/FormButton.vue';
 import FormInput from '../../../Components/Form/FormInput.vue';
 import FormSelect from '../../../Components/Form/FormSelect.vue';
+import PageStack from '../../../Components/PageStack.vue';
 import SeverityBadge from '../../../Components/SeverityBadge.vue';
 import AdminLayout from '../../../Layouts/AdminLayout.vue';
+import type { DataTableColumn } from '../../../Types/data-table';
 
 interface Run {
     publicId: string;
@@ -50,6 +54,15 @@ interface Log {
     correlationId: string;
 }
 
+interface ImportError extends Record<string, unknown> {
+    publicId: string;
+    rowNumber: number | null;
+    fieldName: string | null;
+    severity: string;
+    errorCode: string;
+    message: string;
+}
+
 interface ImportExecution {
     publicId: string;
     importKey: string;
@@ -61,14 +74,7 @@ interface ImportExecution {
     statistics: Record<string, unknown>;
     idempotencyKey: string | null;
     idempotencyState: string;
-    errors: {
-        publicId: string;
-        rowNumber: number | null;
-        fieldName: string | null;
-        severity: string;
-        errorCode: string;
-        message: string;
-    }[];
+    errors: ImportError[];
 }
 
 const props = defineProps<{ run: Run; logs: Log[]; importExecution: ImportExecution | null }>();
@@ -86,6 +92,13 @@ const reason = ref('Operator reviewed the run in Admin.');
 const severities = computed(() => optionList(props.logs.map((log) => log.severity)));
 const stages = computed(() => optionList(props.logs.map((log) => log.stage).filter((value): value is string => value !== null)));
 const types = computed(() => optionList(props.logs.map((log) => log.eventType)));
+const importErrorColumns: DataTableColumn<ImportError>[] = [
+    { key: 'rowNumber', label: 'Row', format: 'number' },
+    { key: 'fieldName', label: 'Field' },
+    { key: 'severity', label: 'Severity', format: 'severity' },
+    { key: 'errorCode', label: 'Code' },
+    { key: 'message', label: 'Message' },
+];
 const filteredLogs = computed(() => {
     const query = search.value.toLowerCase().trim();
 
@@ -140,8 +153,8 @@ function statusSeverity(value: string): string {
 <template>
     <Head :title="run.processKey" />
     <AdminLayout :title="run.processKey" :title-icon="IconSettingsAutomation">
-        <section class="space-y-5">
-            <section class="rounded-lg border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+        <PageStack>
+            <SurfaceCard title="Run summary" :icon="IconSettingsAutomation">
                 <div class="flex flex-wrap items-start justify-between gap-4">
                     <div class="space-y-2">
                         <SeverityBadge :value="statusSeverity(run.status)" :label="run.status" />
@@ -153,52 +166,35 @@ function statusSeverity(value: string): string {
                     </div>
                     <div class="flex flex-wrap items-end gap-2">
                         <FormInput v-model="reason" label="Reason" class="min-w-72" />
-                        <button
-                            type="button"
-                            class="inline-flex h-10 items-center gap-2 rounded-lg border border-zinc-200 px-3 text-sm font-medium text-zinc-700 hover:bg-zinc-50 disabled:opacity-50 dark:border-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-900"
-                            :disabled="!run.canRetry"
-                            @click="retry"
-                        >
-                            <IconRefresh aria-hidden="true" class="h-4 w-4" :stroke-width="1.8" /> Retry
-                        </button>
-                        <button
-                            type="button"
-                            class="inline-flex h-10 items-center gap-2 rounded-lg border border-rose-200 px-3 text-sm font-medium text-rose-700 hover:bg-rose-50 disabled:opacity-50 dark:border-rose-900 dark:text-rose-300 dark:hover:bg-rose-950"
-                            :disabled="!run.canCancel"
-                            @click="cancel"
-                        >
-                            <IconX aria-hidden="true" class="h-4 w-4" :stroke-width="1.8" /> Cancel
-                        </button>
+                        <FormButton type="button" tone="neutral" :icon="IconRefresh" :disabled="!run.canRetry" @click="retry">
+                            Retry
+                        </FormButton>
+                        <FormButton type="button" tone="danger" :icon="IconX" :disabled="!run.canCancel" @click="cancel">
+                            Cancel
+                        </FormButton>
                     </div>
                 </div>
-            </section>
+            </SurfaceCard>
 
             <div class="grid gap-5 xl:grid-cols-3">
-                <section class="rounded-lg border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
-                    <CardHeader title="Counters" :icon="IconListDetails" />
-                    <dl class="mt-3 grid grid-cols-2 gap-3 text-sm">
+                <SurfaceCard title="Counters" :icon="IconListDetails">
+                    <dl class="grid grid-cols-2 gap-3 text-sm">
                         <div v-for="(value, key) in run.counters" :key="key">
                             <dt class="text-xs uppercase text-zinc-500 dark:text-zinc-400">{{ key }}</dt>
                             <dd class="font-medium text-zinc-950 dark:text-zinc-50">{{ value }}</dd>
                         </div>
                     </dl>
-                </section>
-                <section class="rounded-lg border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
-                    <CardHeader title="Input summary" :icon="IconFileText" />
-                    <CodeViewer class="mt-3" :content="JSON.stringify(run.inputSnapshot, null, 2)" language="json" />
-                </section>
-                <section class="rounded-lg border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
-                    <CardHeader title="Result summary" :icon="IconFileText" />
-                    <CodeViewer class="mt-3" :content="JSON.stringify(run.resultSummary, null, 2)" language="json" />
-                </section>
+                </SurfaceCard>
+                <SurfaceCard title="Input summary" :icon="IconFileText">
+                    <CodeViewer :content="JSON.stringify(run.inputSnapshot, null, 2)" language="json" />
+                </SurfaceCard>
+                <SurfaceCard title="Result summary" :icon="IconFileText">
+                    <CodeViewer :content="JSON.stringify(run.resultSummary, null, 2)" language="json" />
+                </SurfaceCard>
             </div>
 
-            <section
-                v-if="importExecution"
-                class="rounded-lg border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-950"
-            >
-                <CardHeader title="Import detail" :icon="IconListDetails" />
-                <div class="mt-3 grid gap-4 text-sm md:grid-cols-4">
+            <SurfaceCard v-if="importExecution" title="Import detail" :icon="IconListDetails">
+                <div class="grid gap-4 text-sm md:grid-cols-4">
                     <p><span class="text-zinc-500">Source</span><br />{{ importExecution.sourceType }}</p>
                     <p>
                         <span class="text-zinc-500">Idempotency</span><br />{{ importExecution.idempotencyKey }} /
@@ -207,27 +203,16 @@ function statusSeverity(value: string): string {
                     <p><span class="text-zinc-500">External ref</span><br />{{ importExecution.externalReference ?? 'n/a' }}</p>
                     <p><span class="text-zinc-500">Row errors</span><br />{{ importExecution.errors.length }}</p>
                 </div>
-                <div class="mt-4 overflow-x-auto">
-                    <table class="min-w-full divide-y divide-zinc-200 text-left text-sm dark:divide-zinc-800">
-                        <thead class="bg-zinc-50 text-xs uppercase text-zinc-500 dark:bg-zinc-900 dark:text-zinc-400">
-                            <tr>
-                                <th class="px-3 py-2">Row</th>
-                                <th class="px-3 py-2">Field</th>
-                                <th class="px-3 py-2">Code</th>
-                                <th class="px-3 py-2">Message</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-zinc-100 dark:divide-zinc-900">
-                            <tr v-for="error in importExecution.errors" :key="error.publicId">
-                                <td class="px-3 py-2">{{ error.rowNumber ?? 'n/a' }}</td>
-                                <td class="px-3 py-2">{{ error.fieldName ?? 'row' }}</td>
-                                <td class="px-3 py-2 font-mono text-xs">{{ error.errorCode }}</td>
-                                <td class="px-3 py-2">{{ error.message }}</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </section>
+                <DataTable
+                    class="mt-4"
+                    title="Import row errors"
+                    :rows="importExecution.errors"
+                    :columns="importErrorColumns"
+                    row-key="publicId"
+                    state-key="admin.managed-processes.import-errors"
+                    empty-label="No import row errors were recorded."
+                />
+            </SurfaceCard>
 
             <FilterPanel
                 :summary="`Showing ${filteredLogs.length} of ${logs.length} process log events.`"
@@ -243,11 +228,7 @@ function statusSeverity(value: string): string {
             </FilterPanel>
 
             <section class="space-y-3">
-                <article
-                    v-for="log in filteredLogs"
-                    :key="log.publicId"
-                    class="rounded-lg border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-950"
-                >
+                <SurfaceCard v-for="log in filteredLogs" :key="log.publicId" :aria-label="`Process log ${log.publicId}`">
                     <div class="flex flex-wrap items-center gap-2">
                         <SeverityBadge :value="statusSeverity(log.severity)" :label="log.severity" />
                         <span class="text-xs text-zinc-500 dark:text-zinc-400">{{ log.occurredAt }}</span>
@@ -256,8 +237,8 @@ function statusSeverity(value: string): string {
                     </div>
                     <p class="mt-2 text-sm text-zinc-950 dark:text-zinc-50">{{ log.message }}</p>
                     <CodeViewer class="mt-3" :content="JSON.stringify(log.safeContext, null, 2)" language="json" />
-                </article>
+                </SurfaceCard>
             </section>
-        </section>
+        </PageStack>
     </AdminLayout>
 </template>

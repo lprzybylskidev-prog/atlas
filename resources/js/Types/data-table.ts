@@ -3,7 +3,8 @@ export interface DataTableColumn<TRow extends Record<string, unknown>> {
     label: string;
     sortable?: boolean;
     hidden?: boolean;
-    format?: 'boolean' | 'count' | 'date' | 'datetime' | 'list' | 'money' | 'number' | 'percent' | 'severity' | 'status' | 'time';
+    format?:
+        'boolean' | 'count' | 'date' | 'datetime' | 'file-size' | 'list' | 'money' | 'number' | 'percent' | 'severity' | 'status' | 'time';
 }
 
 export interface DataTableAction<TRow extends Record<string, unknown>> {
@@ -11,7 +12,7 @@ export interface DataTableAction<TRow extends Record<string, unknown>> {
     label: string;
     method?: 'get' | 'post' | 'patch' | 'delete';
     href: (row: TRow) => string;
-    confirm?: string;
+    confirm?: string | ((row: TRow) => string);
     tone?: 'neutral' | 'info' | 'success' | 'warning' | 'danger';
     visible?: (row: TRow) => boolean;
 }

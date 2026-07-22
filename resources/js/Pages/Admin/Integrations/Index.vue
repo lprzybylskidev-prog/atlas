@@ -1,17 +1,19 @@
 <script setup lang="ts">
-import { Head, router } from '@inertiajs/vue3';
+import { Head } from '@inertiajs/vue3';
 import { IconActivityHeartbeat, IconAlertTriangle, IconPlugConnected, IconRotateClockwise } from '@tabler/icons-vue';
 import type { Component } from 'vue';
-import { computed, ref } from 'vue';
+import { computed } from 'vue';
 
-import CardHeader from '../../../Components/CardHeader.vue';
+import SurfaceCard from '../../../Components/SurfaceCard.vue';
+import DataTable from '../../../Components/DataTable.vue';
 import MetricGrid from '../../../Components/MetricGrid.vue';
+import PageStack from '../../../Components/PageStack.vue';
 import SeverityBadge from '../../../Components/SeverityBadge.vue';
-import Tooltip from '../../../Components/Tooltip.vue';
 import AdminLayout from '../../../Layouts/AdminLayout.vue';
 import { useTranslator } from '../../../Localization/translator';
+import type { DataTableAction, DataTableColumn } from '../../../Types/data-table';
 
-interface IntegrationRecord {
+interface IntegrationRecord extends Record<string, unknown> {
     key: string;
     name: string;
     adapterClass: string;
@@ -36,7 +38,7 @@ interface IntegrationSummary {
     failedLastRuns: number;
 }
 
-interface RecentRun {
+interface RecentRunInput {
     integrationKey: string | null;
     operation: string | null;
     correlationId: string | null;
@@ -46,15 +48,18 @@ interface RecentRun {
     message: string | null;
 }
 
+interface RecentRun extends RecentRunInput, Record<string, unknown> {
+    rowKey: string;
+}
+
 const props = defineProps<{
     integrations: IntegrationRecord[];
     summary: IntegrationSummary;
     externalApiEnabled: boolean;
-    recentRuns: RecentRun[];
+    recentRuns: RecentRunInput[];
 }>();
 
 const { t } = useTranslator('en');
-const testing = ref<string | null>(null);
 
 const summaryItems = computed<{ label: string; value: string; icon: Component; tone: 'amber' | 'emerald' | 'rose' | 'teal' }[]>(() => [
     { label: 'Registered', value: String(props.summary.registered), icon: IconPlugConnected, tone: 'teal' },
@@ -73,140 +78,91 @@ const summaryItems = computed<{ label: string; value: string; icon: Component; t
     },
 ]);
 
-function testConnection(integration: IntegrationRecord): void {
-    testing.value = integration.key;
-    router.post(`/admin/integrations/${integration.key}/test`, {}, { preserveScroll: true, onFinish: () => (testing.value = null) });
-}
+const integrationColumns: DataTableColumn<IntegrationRecord>[] = [
+    { key: 'name', label: 'Integration' },
+    { key: 'key', label: 'Key' },
+    { key: 'sourceOfTruth', label: 'Source of truth' },
+    { key: 'adapterClass', label: 'Adapter', hidden: true },
+    { key: 'circuitState', label: 'Circuit', format: 'severity' },
+    { key: 'lastSuccessAt', label: 'Last success', format: 'datetime' },
+    { key: 'lastErrorAt', label: 'Last error', format: 'datetime' },
+    { key: 'lastErrorMessage', label: 'Last error message', hidden: true },
+    { key: 'externalApiEnabled', label: 'External API', format: 'boolean', hidden: true },
+];
 
-function statusSeverity(value: string | null): string {
-    if (value === 'succeeded' || value === 'closed') {
-        return 'success';
-    }
+const integrationActions: DataTableAction<IntegrationRecord>[] = [
+    {
+        key: 'test',
+        label: 'Test connection',
+        method: 'post',
+        href: (integration) => `/admin/integrations/${integration.key}/test`,
+        tone: 'info',
+    },
+];
 
-    if (value === 'failed' || value === 'open') {
-        return 'failed';
-    }
+const integrationRows = computed<IntegrationRecord[]>(() =>
+    props.integrations.map((integration) => ({
+        ...integration,
+        circuitState: integration.circuitState ?? 'closed',
+    })),
+);
 
-    return 'warning';
-}
+const recentRunRows = computed<RecentRun[]>(() =>
+    props.recentRuns.map((run, index) => ({
+        ...run,
+        rowKey: `${run.integrationKey ?? 'integration'}-${run.correlationId ?? index}`,
+    })),
+);
+
+const recentRunColumns: DataTableColumn<RecentRun>[] = [
+    { key: 'integrationKey', label: 'Integration' },
+    { key: 'operation', label: 'Operation' },
+    { key: 'status', label: 'Status', format: 'severity' },
+    { key: 'startedAt', label: 'Started', format: 'datetime' },
+    { key: 'finishedAt', label: 'Finished', format: 'datetime', hidden: true },
+    { key: 'correlationId', label: 'Correlation' },
+    { key: 'message', label: 'Message', hidden: true },
+];
 </script>
 
 <template>
     <Head :title="t('pages.admin.integrations.head_title')" />
     <AdminLayout :title="t('pages.admin.integrations.title')" :title-icon="IconPlugConnected">
-        <section class="space-y-5">
+        <PageStack>
             <MetricGrid :items="summaryItems" />
 
-            <section class="rounded-lg border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
-                <div class="flex flex-wrap items-center justify-between gap-3">
-                    <CardHeader
-                        title="External API boundary"
-                        :icon="IconPlugConnected"
-                        :subtitle="`Global access: ${externalApiEnabled ? 'enabled' : 'disabled'}`"
-                        :tone="externalApiEnabled ? 'amber' : 'emerald'"
-                    />
+            <SurfaceCard
+                title="External API boundary"
+                :icon="IconPlugConnected"
+                :subtitle="`Global access: ${externalApiEnabled ? 'enabled' : 'disabled'}`"
+                :tone="externalApiEnabled ? 'amber' : 'emerald'"
+            >
+                <template #actions>
                     <SeverityBadge
                         :value="externalApiEnabled ? 'warning' : 'success'"
                         :label="externalApiEnabled ? 'enabled' : 'disabled'"
                     />
-                </div>
-            </section>
+                </template>
+            </SurfaceCard>
 
-            <section class="overflow-hidden rounded-lg border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
-                <div class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-zinc-200 text-left text-sm dark:divide-zinc-800">
-                        <thead class="bg-zinc-50 text-xs uppercase text-zinc-500 dark:bg-zinc-900 dark:text-zinc-400">
-                            <tr>
-                                <th class="px-4 py-3">Integration</th>
-                                <th class="px-4 py-3">Source of truth</th>
-                                <th class="px-4 py-3">Circuit</th>
-                                <th class="px-4 py-3">Last success</th>
-                                <th class="px-4 py-3">Last error</th>
-                                <th class="px-4 py-3 text-right">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-zinc-100 dark:divide-zinc-900">
-                            <tr v-if="integrations.length === 0">
-                                <td colspan="6" class="px-4 py-8 text-center text-sm text-zinc-500 dark:text-zinc-400">
-                                    No integration adapters registered.
-                                </td>
-                            </tr>
-                            <tr v-for="integration in integrations" :key="integration.key" class="align-top">
-                                <td class="max-w-[18rem] px-4 py-3">
-                                    <p class="truncate font-medium text-zinc-950 dark:text-zinc-50">{{ integration.name }}</p>
-                                    <p class="mt-1 truncate font-mono text-xs text-zinc-500 dark:text-zinc-400">{{ integration.key }}</p>
-                                </td>
-                                <td class="max-w-[20rem] px-4 py-3 text-zinc-700 dark:text-zinc-300">
-                                    <p class="truncate">{{ integration.sourceOfTruth }}</p>
-                                    <p class="mt-1 truncate text-xs text-zinc-500 dark:text-zinc-400">{{ integration.adapterClass }}</p>
-                                </td>
-                                <td class="px-4 py-3">
-                                    <SeverityBadge
-                                        :value="statusSeverity(integration.circuitState)"
-                                        :label="integration.circuitState ?? 'closed'"
-                                    />
-                                </td>
-                                <td class="whitespace-nowrap px-4 py-3 text-zinc-700 dark:text-zinc-300">
-                                    {{ integration.lastSuccessAt ?? 'Never' }}
-                                </td>
-                                <td class="max-w-[18rem] px-4 py-3 text-zinc-700 dark:text-zinc-300">
-                                    <p class="truncate">{{ integration.lastErrorAt ?? 'Never' }}</p>
-                                    <p v-if="integration.lastErrorMessage" class="mt-1 truncate text-xs text-red-600 dark:text-red-300">
-                                        {{ integration.lastErrorMessage }}
-                                    </p>
-                                </td>
-                                <td class="px-4 py-3 text-right">
-                                    <Tooltip text="Test connection">
-                                        <button
-                                            type="button"
-                                            class="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-zinc-200 text-zinc-700 hover:bg-zinc-50 focus:outline-none focus:ring-2 focus:ring-teal-500 disabled:cursor-not-allowed disabled:opacity-60 dark:border-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-900"
-                                            :disabled="testing === integration.key"
-                                            @click="testConnection(integration)"
-                                        >
-                                            <IconRotateClockwise aria-hidden="true" class="h-4 w-4" :stroke-width="1.8" />
-                                        </button>
-                                    </Tooltip>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </section>
+            <DataTable
+                title="Integration adapters"
+                :rows="integrationRows"
+                :columns="integrationColumns"
+                row-key="key"
+                :actions="integrationActions"
+                state-key="admin.integrations.adapters"
+                empty-label="No integration adapters registered."
+            />
 
-            <section class="overflow-hidden rounded-lg border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
-                <div class="border-b border-zinc-200 px-4 py-3 dark:border-zinc-800">
-                    <CardHeader title="Recent synchronization runs" :icon="IconRotateClockwise" />
-                </div>
-                <div class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-zinc-200 text-left text-sm dark:divide-zinc-800">
-                        <thead class="bg-zinc-50 text-xs uppercase text-zinc-500 dark:bg-zinc-900 dark:text-zinc-400">
-                            <tr>
-                                <th class="px-4 py-3">Integration</th>
-                                <th class="px-4 py-3">Operation</th>
-                                <th class="px-4 py-3">Status</th>
-                                <th class="px-4 py-3">Started</th>
-                                <th class="px-4 py-3">Correlation</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-zinc-100 dark:divide-zinc-900">
-                            <tr v-if="recentRuns.length === 0">
-                                <td colspan="5" class="px-4 py-8 text-center text-sm text-zinc-500 dark:text-zinc-400">
-                                    No synchronization runs recorded.
-                                </td>
-                            </tr>
-                            <tr v-for="run in recentRuns" :key="`${run.integrationKey}-${run.correlationId}`">
-                                <td class="px-4 py-3 font-medium text-zinc-950 dark:text-zinc-50">{{ run.integrationKey }}</td>
-                                <td class="px-4 py-3 text-zinc-700 dark:text-zinc-300">{{ run.operation }}</td>
-                                <td class="px-4 py-3">
-                                    <SeverityBadge :value="statusSeverity(run.status)" :label="run.status ?? 'unknown'" />
-                                </td>
-                                <td class="whitespace-nowrap px-4 py-3 text-zinc-700 dark:text-zinc-300">{{ run.startedAt }}</td>
-                                <td class="px-4 py-3 font-mono text-xs text-zinc-500 dark:text-zinc-400">{{ run.correlationId }}</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </section>
-        </section>
+            <DataTable
+                title="Recent synchronization runs"
+                :rows="recentRunRows"
+                :columns="recentRunColumns"
+                row-key="rowKey"
+                state-key="admin.integrations.recent-runs"
+                empty-label="No synchronization runs recorded."
+            />
+        </PageStack>
     </AdminLayout>
 </template>

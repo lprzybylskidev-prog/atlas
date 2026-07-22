@@ -6,6 +6,7 @@ import AtlasForm from '../../Components/Form/AtlasForm.vue';
 import FormButton from '../../Components/Form/FormButton.vue';
 import FormCheckbox from '../../Components/Form/FormCheckbox.vue';
 import FormInput from '../../Components/Form/FormInput.vue';
+import NoticeBanner from '../../Components/NoticeBanner.vue';
 import AuthLayout from '../../Layouts/AuthLayout.vue';
 import { useTranslator } from '../../Localization/translator';
 
@@ -65,22 +66,19 @@ const cancelConflict = (): void => {
 
             <FormCheckbox v-model="form.remember" :label="t('auth.login.remember')" />
 
-            <div
-                v-if="hasSessionConflict"
-                class="rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-100"
-                role="alert"
-            >
-                <p class="font-medium">{{ t('auth.login.session_conflict.title') }}</p>
-                <p class="mt-1 leading-6">{{ t('auth.login.session_conflict.description') }}</p>
-                <div class="mt-4 grid gap-2 sm:grid-cols-2">
-                    <FormButton type="button" tone="neutral" class="h-10 w-full" :disabled="form.processing" @click="cancelConflict">
-                        {{ t('auth.login.session_conflict.cancel') }}
-                    </FormButton>
-                    <FormButton type="button" tone="danger" class="h-10 w-full" :loading="form.processing" @click="continueHere">
-                        {{ t('auth.login.session_conflict.continue') }}
-                    </FormButton>
-                </div>
-            </div>
+            <NoticeBanner v-if="hasSessionConflict" :title="t('auth.login.session_conflict.title')" tone="warning" role="alert">
+                {{ t('auth.login.session_conflict.description') }}
+                <template #actions>
+                    <div class="grid gap-2 sm:grid-cols-2">
+                        <FormButton type="button" tone="neutral" class="h-10 w-full" :disabled="form.processing" @click="cancelConflict">
+                            {{ t('auth.login.session_conflict.cancel') }}
+                        </FormButton>
+                        <FormButton type="button" tone="danger" class="h-10 w-full" :loading="form.processing" @click="continueHere">
+                            {{ t('auth.login.session_conflict.continue') }}
+                        </FormButton>
+                    </div>
+                </template>
+            </NoticeBanner>
 
             <FormButton type="submit" class="h-11 w-full" :loading="form.processing">
                 {{ form.processing ? t('auth.login.submitting') : t('auth.login.submit') }}

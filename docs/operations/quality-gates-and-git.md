@@ -23,6 +23,8 @@ Provide project-level commands.
 
 At the frontend foundation checkpoint, `composer lint` also runs `pnpm lint` and `pnpm stylelint`, while `composer check` delegates frontend verification to `pnpm check`.
 
+`composer analyse` runs PHPStan/Larastan at the configured maximum practical level in deterministic repository chunks. The chunking is operational only: it avoids PHP worker segmentation faults on large aggregate batches while preserving the same analysed paths from `phpstan.neon`.
+
 ### pnpm
 
 - `pnpm format`
@@ -41,7 +43,7 @@ PHPUnit uses separate `Unit`, `Integration`, and `Feature` test suites. `Integra
 
 Stateful PHPUnit tests use the dedicated `atlas_testing` PostgreSQL database, Redis DB `2`, Redis cache DB `3`, and the `atlas_testing_cache` prefix. `composer test`, `composer test:integration`, and `composer test:feature` prepare the PHPUnit database through `tools/testing/ensure-test-databases.sh`.
 
-`pnpm test:e2e` runs Playwright against isolated local servers on `127.0.0.1:8010` for Laravel and `127.0.0.1:5174` for Vite. The Playwright setup uses the dedicated `atlas_e2e` PostgreSQL database, Redis DB `4`, Redis cache DB `5`, and the `atlas_e2e_cache` prefix. It clears Laravel config, runs `migrate:fresh --force`, clears cache-backed test state, and seeds `E2eVisibilitySeeder`, which first runs the production-safe `DatabaseSeeder`, so authenticated shell checks can log in through the real login form without depending on local development demo data. The e2e Laravel server uses PHP's built-in server directly instead of `php artisan serve` so the full e2e environment reaches the request process.
+`pnpm test:e2e` runs Playwright against isolated local servers on `127.0.0.1:8010` for Laravel and `127.0.0.1:5174` for Vite. The Playwright setup uses the dedicated `atlas_e2e` PostgreSQL database, Redis DB `4`, Redis cache DB `5`, and the `atlas_e2e_cache` prefix. It clears Laravel config, runs `migrate:fresh --force`, clears cache-backed test state, and seeds `E2eVisibilitySeeder`, which first runs the production-safe `DatabaseSeeder`, so authenticated shell checks can log in through the real login form without depending on local development demo data. The e2e Laravel server uses PHP's built-in server directly instead of `php artisan serve` so the full e2e environment reaches the request process. The e2e environment raises the auth login rate-limit threshold only for the isolated browser suite; production rate limits and feature-level rate-limit assertions must not be weakened.
 
 The durable testing environment strategy lives in [Testing environment](testing-environment.md).
 

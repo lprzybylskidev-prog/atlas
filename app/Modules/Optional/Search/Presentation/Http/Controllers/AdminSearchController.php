@@ -46,11 +46,11 @@ final readonly class AdminSearchController
 
     public function rebuild(Request $request): RedirectResponse
     {
-        $validated = $request->validate([
+        $validated = $this->stringKeyedArray($request->validate([
             'confirmation' => ['required', 'string', 'in:REBUILD SEARCH'],
             'module_key' => ['nullable', 'string', 'max:120'],
             'index_key' => ['nullable', 'string', 'max:180'],
-        ]);
+        ]));
 
         try {
             $runPublicId = $this->runner->start(
@@ -113,7 +113,7 @@ final readonly class AdminSearchController
      */
     private function recentRebuildRuns(): array
     {
-        return DB::table(DatabaseTable::MANAGED_PROCESS_RUNS)
+        return array_values(DB::table(DatabaseTable::MANAGED_PROCESS_RUNS)
             ->where('process_key', SearchRebuildProcess::KEY)
             ->orderByDesc('created_at')
             ->limit(20)
@@ -130,7 +130,7 @@ final readonly class AdminSearchController
                 'finishedAt' => $this->string($row->finished_at ?? null),
             ])
             ->values()
-            ->all();
+            ->all());
     }
 
     /**
@@ -179,5 +179,25 @@ final readonly class AdminSearchController
     private function nullableInt(mixed $value): ?int
     {
         return is_numeric($value) ? (int) $value : null;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function stringKeyedArray(mixed $value): array
+    {
+        if (! is_array($value)) {
+            return [];
+        }
+
+        $normalized = [];
+
+        foreach ($value as $key => $item) {
+            if (is_string($key)) {
+                $normalized[$key] = $item;
+            }
+        }
+
+        return $normalized;
     }
 }

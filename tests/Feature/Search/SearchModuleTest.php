@@ -32,6 +32,7 @@ use App\Shared\Application\Outbox\Contracts\OutboxConsumerDeduplicator;
 use App\Shared\Application\Outbox\IntegrationEventMessage;
 use App\Shared\Infrastructure\Operations\OperationalModuleGuard;
 use DateTimeImmutable;
+use Illuminate\Testing\PendingCommand;
 use InvalidArgumentException;
 use Tests\TestCase;
 
@@ -136,7 +137,13 @@ final class SearchModuleTest extends TestCase
 
     public function test_rebuild_command_requires_actor_and_team_context(): void
     {
-        $this->artisan('search:rebuild')
+        $command = $this->artisan('search:rebuild');
+
+        if (! $command instanceof PendingCommand) {
+            self::fail('Search rebuild command did not return a pending test command.');
+        }
+
+        $command
             ->expectsOutput('Both --actor and --team are required so Search rebuilds remain authorized and audited.')
             ->assertFailed();
     }
@@ -147,10 +154,14 @@ final class SearchModuleTest extends TestCase
         $resolver = new ModuleKeyResolver;
         $definition = $this->app->make(ProcessDefinitionRegistry::class)->get(SearchRebuildProcess::KEY);
 
+        if ($definition === null) {
+            self::fail('Search rebuild process definition was not registered.');
+        }
+
         $this->assertSame('search', $resolver->forPermission(SearchPermissionCatalog::ADMIN_REBUILD));
-        $this->assertSame(SearchRebuildProcess::KEY, $definition?->key);
-        $this->assertSame('search', $definition?->moduleKey);
-        $this->assertSame('search', $definition?->queueName);
+        $this->assertSame(SearchRebuildProcess::KEY, $definition->key);
+        $this->assertSame('search', $definition->moduleKey);
+        $this->assertSame('search', $definition->queueName);
         $this->assertContains(SearchPermissionCatalog::QUERY, array_map(static fn ($permission): string => $permission->name, $permissions));
     }
 
@@ -252,12 +263,19 @@ final class PersonChangedProjector implements SearchEventProjector
 
     public function documentsFor(IntegrationEventMessage $event): array
     {
+        $publicId = $event->payload['public_id'] ?? null;
+        $displayName = $event->payload['display_name'] ?? null;
+
+        if (! is_string($publicId) || ! is_string($displayName)) {
+            return [];
+        }
+
         return [
             new SearchDocument(
-                publicId: (string) $event->payload['public_id'],
+                publicId: $publicId,
                 indexKey: 'cases.people',
                 moduleKey: 'cases',
-                fields: ['display_name' => (string) $event->payload['display_name']],
+                fields: ['display_name' => $displayName],
                 teamPublicIds: ['01JZTEAM000000000000001'],
                 permissionKeys: ['cases.people.view'],
                 visibilityHash: 'visibility-v1',
