@@ -40,6 +40,8 @@ return new class extends Migration
             $table->string('rule_version');
             $table->string('status', 32);
             $table->boolean('synchronous_allowed')->default(false);
+            $table->boolean('audit_export')->default(false);
+            $table->unsignedBigInteger('estimated_row_count')->nullable();
             $table->foreignId('process_run_id')->nullable()->constrained(DatabaseTable::MANAGED_PROCESS_RUNS)->nullOnDelete();
             $table->timestampTz('queued_at')->nullable();
             $table->timestampTz('started_at')->nullable();
@@ -55,6 +57,7 @@ return new class extends Migration
             $table->index(['requested_by_user_id', 'status']);
             $table->index(['format', 'status']);
             $table->index(['expires_at', 'status']);
+            $table->index(['synchronous_allowed', 'format']);
         });
 
         Schema::create(DatabaseTable::REPORT_EXPORT_ARTIFACTS, function (Blueprint $table): void {
@@ -62,6 +65,7 @@ return new class extends Migration
             $table->ulid('public_id')->unique();
             $table->foreignId('export_request_id')->constrained(DatabaseTable::REPORT_EXPORT_REQUESTS)->restrictOnDelete();
             $table->foreignId('file_object_id')->nullable()->constrained(DatabaseTable::FILE_OBJECTS)->restrictOnDelete();
+            $table->string('file_object_public_id', 26)->nullable();
             $table->string('status', 32);
             $table->string('filename');
             $table->string('content_type');
@@ -75,12 +79,13 @@ return new class extends Migration
 
             $table->unique(['export_request_id', 'status'], 'report_export_artifacts_request_status_unique');
             $table->index(['file_object_id']);
+            $table->index(['file_object_public_id']);
             $table->index(['status', 'expires_at']);
             $table->index(['created_by_user_id', 'status']);
         });
 
         DB::statement(sprintf(
-            "alter table %s add constraint report_export_artifacts_available_complete_check check (status <> 'available' or (file_object_id is not null and checksum_sha256 is not null and checksum_sha256 <> '' and size_bytes > 0 and available_at is not null and failed_at is null))",
+            "alter table %s add constraint report_export_artifacts_available_complete_check check (status <> 'available' or (file_object_id is not null and file_object_public_id is not null and file_object_public_id <> '' and checksum_sha256 is not null and checksum_sha256 <> '' and size_bytes > 0 and available_at is not null and failed_at is null))",
             DatabaseTable::REPORT_EXPORT_ARTIFACTS,
         ));
         DB::statement(sprintf(

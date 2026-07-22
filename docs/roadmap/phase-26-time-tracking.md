@@ -151,7 +151,7 @@ Implement optional TimeTracking only after every known foundation it depends on 
 - Comparison shows current, previous, absolute difference, and percentage difference in summary plus a detailed user/metric table.
 - Color indicates direction only, never automatically good/bad.
 - Compare work, breaks, excess break, accepted Other work, maintenance, and module activity.
-- Reports reuse shared TanStack Table, saved views, CSV/XLSX/PDF/print, report headers, permissions, queued exports, and TailAdmin Pro charts.
+- Reports reuse shared TanStack Table, saved views, CSV/XLSX/PDF/print, report headers, permissions, queued exports, and Atlas chart wrappers.
 - PDF, XLSX, print include team, filters, range, generation time, generating user, timezone, totals, company identity; PDF/print include pages.
 - Timezone for all daily/weekly/monthly/yearly/settlement logic is `Europe/Warsaw`. Daylight-saving changes must not create artificial work.
 - Timestamp transport remains ISO with timezone.
@@ -258,7 +258,7 @@ Implement optional TimeTracking only after every known foundation it depends on 
 - [ ] Add saved views through shared table module.
 - [ ] Add CSV, XLSX, PDF, and print through shared reporting.
 - [ ] Add optional period comparison.
-- [ ] Add TailAdmin Pro charts after license confirmation.
+- [ ] Add report charts through shared Atlas chart wrappers.
 - [ ] Ensure impersonation time is simulated and excluded from official records.
 - [ ] Add development-only demo seeders for example TimeTracking scenarios after real TimeTracking tables exist.
 - [ ] Add complete audit.

@@ -15,15 +15,6 @@ return [
         'source' => env('ATLAS_RELEASE_SOURCE') ?: null,
     ],
 
-    'ui' => [
-        'tailadmin' => [
-            'pro_license_state' => env('ATLAS_TAILADMIN_PRO_LICENSE_STATE', 'not_confirmed'),
-            'pro_license_confirmed_at' => env('ATLAS_TAILADMIN_PRO_LICENSE_CONFIRMED_AT') ?: null,
-            'pro_license_confirmed_by' => env('ATLAS_TAILADMIN_PRO_LICENSE_CONFIRMED_BY') ?: null,
-            'pro_redistribution_confirmed' => env('ATLAS_TAILADMIN_PRO_REDISTRIBUTION_CONFIRMED', false),
-        ],
-    ],
-
     'time' => [
         'business_timezone' => env('APP_TIMEZONE', 'Europe/Warsaw'),
         'technical_storage_timezone' => 'UTC',
@@ -73,6 +64,21 @@ return [
             'host' => env('ATLAS_FILES_CLAMAV_HOST', env('ATLAS_HEALTH_CLAMAV_HOST') ?: 'clamav'),
             'port' => (int) env('ATLAS_FILES_CLAMAV_PORT', env('ATLAS_HEALTH_CLAMAV_PORT', 3310)),
             'timeout_seconds' => (int) env('ATLAS_FILES_CLAMAV_TIMEOUT_SECONDS', 30),
+        ],
+    ],
+
+    'reports' => [
+        'render_token_ttl_seconds' => (int) env('ATLAS_REPORT_RENDER_TOKEN_TTL_SECONDS', 300),
+        'synchronous_export_max_rows' => (int) env('ATLAS_REPORT_SYNC_EXPORT_MAX_ROWS', 1000),
+        'synchronous_export_max_cells' => (int) env('ATLAS_REPORT_SYNC_EXPORT_MAX_CELLS', 10000),
+        'synchronous_timeout_seconds' => (int) env('ATLAS_REPORT_SYNC_TIMEOUT_SECONDS', 15),
+        'synchronous_pdf_enabled' => (bool) env('ATLAS_REPORT_SYNC_PDF_ENABLED', false),
+        'synchronous_pdf_max_rows' => (int) env('ATLAS_REPORT_SYNC_PDF_MAX_ROWS', 0),
+        'synchronous_pdf_max_cells' => (int) env('ATLAS_REPORT_SYNC_PDF_MAX_CELLS', 0),
+        'company' => [
+            'name' => env('ATLAS_REPORT_COMPANY_NAME', 'Atlas'),
+            'logo_path' => env('ATLAS_REPORT_COMPANY_LOGO_PATH', 'brand/atlas-logo.svg'),
+            'footer' => env('ATLAS_REPORT_COMPANY_FOOTER', 'Atlas report export.'),
         ],
     ],
 

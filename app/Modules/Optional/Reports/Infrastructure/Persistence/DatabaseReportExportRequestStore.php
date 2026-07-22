@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Optional\Reports\Infrastructure\Persistence;
 
+use App\Modules\Core\Files\Application\Public\DTOs\StoredFile;
 use App\Modules\Optional\Reports\Application\Contracts\ReportExportRequestStore;
 use App\Modules\Optional\Reports\Application\DTOs\ReportExportRequestSnapshot;
 use App\Modules\Optional\Reports\Application\Enums\ReportExportStatus;
@@ -52,6 +53,8 @@ final class DatabaseReportExportRequestStore implements ReportExportRequestStore
             'rule_version' => $snapshot->ruleVersion,
             'status' => ReportExportStatus::Requested->value,
             'synchronous_allowed' => $snapshot->synchronousAllowed,
+            'audit_export' => $snapshot->auditExport,
+            'estimated_row_count' => $snapshot->estimatedRowCount,
             'expires_at' => $snapshot->expiresAt,
             'created_at' => $now,
             'updated_at' => $now,
@@ -128,6 +131,73 @@ final class DatabaseReportExportRequestStore implements ReportExportRequestStore
                     'updated_at' => now('UTC'),
                 ]);
         });
+    }
+
+    public function publishArtifact(string $requestPublicId, StoredFile $file, string $filename, string $contentType): string
+    {
+        if ($file->internalId === null) {
+            throw new \RuntimeException('Stored report artifact must expose its internal file object identifier.');
+        }
+
+        return DB::transaction(function () use ($requestPublicId, $file, $filename, $contentType): string {
+            $request = DB::table(DatabaseTable::REPORT_EXPORT_REQUESTS)->where('public_id', $requestPublicId)->lockForUpdate()->first();
+
+            if ($request === null || ! is_numeric($request->id ?? null)) {
+                throw new \RuntimeException('Report export request was not found.');
+            }
+
+            DB::table(DatabaseTable::REPORT_EXPORT_ARTIFACTS)
+                ->where('export_request_id', (int) $request->id)
+                ->where('status', ReportExportStatus::Generating->value)
+                ->update([
+                    'status' => ReportExportStatus::Failed->value,
+                    'failed_at' => now('UTC'),
+                    'updated_at' => now('UTC'),
+                ]);
+
+            $artifactPublicId = (string) Str::ulid();
+
+            DB::table(DatabaseTable::REPORT_EXPORT_ARTIFACTS)->insert([
+                'public_id' => $artifactPublicId,
+                'export_request_id' => (int) $request->id,
+                'file_object_id' => $file->internalId,
+                'file_object_public_id' => $file->publicId,
+                'status' => ReportExportStatus::Available->value,
+                'filename' => $filename,
+                'content_type' => $contentType,
+                'size_bytes' => $file->sizeBytes,
+                'checksum_sha256' => $file->checksumSha256,
+                'created_by_user_id' => is_numeric($request->requested_by_user_id ?? null) ? (int) $request->requested_by_user_id : null,
+                'available_at' => now('UTC'),
+                'failed_at' => null,
+                'expires_at' => $request->expires_at,
+                'created_at' => now('UTC'),
+                'updated_at' => now('UTC'),
+            ]);
+
+            DB::table(DatabaseTable::REPORT_EXPORT_REQUESTS)->where('id', (int) $request->id)->update([
+                'status' => ReportExportStatus::Available->value,
+                'finished_at' => now('UTC'),
+                'failed_at' => null,
+                'safe_error_summary' => null,
+                'updated_at' => now('UTC'),
+            ]);
+
+            return $artifactPublicId;
+        });
+    }
+
+    public function availableArtifactPublicId(string $requestPublicId): ?string
+    {
+        $publicId = DB::table(DatabaseTable::REPORT_EXPORT_ARTIFACTS.' as artifacts')
+            ->join(DatabaseTable::REPORT_EXPORT_REQUESTS.' as requests', 'artifacts.export_request_id', '=', 'requests.id')
+            ->where('requests.public_id', $requestPublicId)
+            ->where('requests.status', ReportExportStatus::Available->value)
+            ->where('artifacts.status', ReportExportStatus::Available->value)
+            ->where('artifacts.expires_at', '>', now('UTC'))
+            ->value('artifacts.public_id');
+
+        return is_string($publicId) && $publicId !== '' ? $publicId : null;
     }
 
     private function recordFromRow(object $row): ReportExportRequestRecord

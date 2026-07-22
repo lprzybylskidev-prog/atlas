@@ -12,6 +12,7 @@
     "require": {
         "php": "^8.3",
         "diglactic/laravel-breadcrumbs": "^10.1",
+        "guzzlehttp/guzzle": "^7.15.1",
         "inertiajs/inertia-laravel": "^3.1",
         "laravel/fortify": "^1.36",
         "laravel/framework": "^13.8",
@@ -20,6 +21,7 @@
         "laravel/scout": "^11.3",
         "laravel/tinker": "^3.0",
         "meilisearch/meilisearch-php": "^1.16",
+        "phpoffice/phpspreadsheet": "^5.9",
         "sentry/sentry-laravel": "^4.26",
         "spatie/laravel-permission": "^8.3",
         "tightenco/ziggy": "^2.6",

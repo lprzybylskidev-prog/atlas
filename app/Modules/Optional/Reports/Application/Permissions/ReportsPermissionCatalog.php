@@ -13,6 +13,8 @@ final class ReportsPermissionCatalog implements ModulePermissionContribution
 
     public const DOWNLOAD = 'reports.download';
 
+    public const PRINT = 'reports.exports.print';
+
     public const AUDIT_EXPORT = 'reports.audit-export';
 
     public const ADMIN_INDEX = 'admin.reports.index';
@@ -22,6 +24,7 @@ final class ReportsPermissionCatalog implements ModulePermissionContribution
         return [
             new ModulePermissionDefinition(self::REQUEST, 'Request authorized report and export artifacts.'),
             new ModulePermissionDefinition(self::DOWNLOAD, 'Download generated report and export artifacts after reauthorization.'),
+            new ModulePermissionDefinition(self::PRINT, 'Render authorized report and export browser print layouts.'),
             new ModulePermissionDefinition(self::AUDIT_EXPORT, 'Export detailed audit/history datasets instead of ordinary final report values.'),
             new ModulePermissionDefinition(self::ADMIN_INDEX, 'View report and export generation lifecycle status in Admin operations.'),
         ];

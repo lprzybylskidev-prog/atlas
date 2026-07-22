@@ -102,7 +102,7 @@ final readonly class ManagedProcessManager implements ManagedProcessRunner
         }
 
         $input = $this->decodeJson($run->input_snapshot);
-        $newRun = $this->start($definition->key, 'manual', $input, $actorPublicId, $teamPublicId, $this->requiredString($run, 'correlation_id'));
+        $newRun = $this->start($definition->key, 'retry', $input, $actorPublicId, $teamPublicId, $this->requiredString($run, 'correlation_id'));
         $newRunId = $this->runId($newRun);
 
         $this->database->table(DatabaseTable::MANAGED_PROCESS_RUNS)

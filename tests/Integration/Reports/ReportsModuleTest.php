@@ -4,32 +4,70 @@ declare(strict_types=1);
 
 namespace Tests\Integration\Reports;
 
+use App\Modules\Core\Authorization\Application\Public\Contracts\EffectivePermissionChecker;
+use App\Modules\Core\Authorization\Application\Public\DTOs\EffectivePermissionDecision;
+use App\Modules\Core\Authorization\Application\Public\DTOs\EffectivePermissionRequest;
 use App\Modules\Core\Identity\Infrastructure\Persistence\User;
 use App\Modules\Core\Teams\Infrastructure\Persistence\Team;
 use App\Modules\Optional\ManagedProcesses\Application\Contracts\ProcessDefinitionRegistry;
 use App\Modules\Optional\ManagedProcesses\Application\DTOs\ProcessLogEntry;
 use App\Modules\Optional\ManagedProcesses\Application\Enums\ProcessRunStatus;
 use App\Modules\Optional\ManagedProcesses\Application\Public\Contracts\ManagedProcessRunner;
+use App\Modules\Optional\Reports\Application\Contracts\ReportChartProvider;
+use App\Modules\Optional\Reports\Application\Contracts\ReportExportDataProvider;
+use App\Modules\Optional\Reports\Application\Contracts\ReportRenderReadinessProbe;
 use App\Modules\Optional\Reports\Application\DTOs\AuthorizationFingerprint;
+use App\Modules\Optional\Reports\Application\DTOs\ReportChartDefinition;
+use App\Modules\Optional\Reports\Application\DTOs\ReportChartPoint;
+use App\Modules\Optional\Reports\Application\DTOs\ReportChartSeries;
+use App\Modules\Optional\Reports\Application\DTOs\ReportExportColumn;
+use App\Modules\Optional\Reports\Application\DTOs\ReportExportGenerationRequest;
 use App\Modules\Optional\Reports\Application\DTOs\ReportExportRequestSnapshot;
+use App\Modules\Optional\Reports\Application\DTOs\ReportRenderReadinessResult;
 use App\Modules\Optional\Reports\Application\Enums\ReportExportFormat;
 use App\Modules\Optional\Reports\Application\Enums\ReportExportStatus;
+use App\Modules\Optional\Reports\Application\Exceptions\ReportArtifactNotDownloadable;
+use App\Modules\Optional\Reports\Application\Exceptions\ReportRenderCredentialInvalid;
+use App\Modules\Optional\Reports\Application\Exceptions\ReportRenderVisualsNotReady;
 use App\Modules\Optional\Reports\Application\Permissions\ReportsPermissionCatalog;
+use App\Modules\Optional\Reports\Application\Public\Contracts\ReportExportArtifactAccess;
 use App\Modules\Optional\Reports\Application\Public\Contracts\ReportExportGenerationDispatcher;
+use App\Modules\Optional\Reports\Application\Public\Contracts\ReportExportMaintenance;
 use App\Modules\Optional\Reports\Application\Public\Contracts\ReportExportRequestRecorder;
+use App\Modules\Optional\Reports\Application\Public\Contracts\ReportRenderCredentialAccess;
+use App\Modules\Optional\Reports\Application\Public\Contracts\ReportRenderCredentialIssuer;
 use App\Modules\Optional\Reports\Application\ReportExportGenerationProcess;
+use App\Modules\Optional\Reports\Application\ReportsDeactivationGuard;
+use App\Modules\Optional\Reports\Infrastructure\Runtime\ReportExportGenerationProcessHandler;
+use App\Shared\Application\Modules\Contracts\ModuleGate;
+use App\Shared\Application\Modules\ModuleAccessDecision;
+use App\Shared\Application\Modules\ModuleAccessDenialReason;
+use App\Shared\Application\Modules\ModuleAccessRequest;
+use App\Shared\Application\Modules\ModuleDeactivationRequest;
+use App\Shared\Application\Modules\ModuleKey;
 use App\Shared\Application\Modules\ModuleKeyResolver;
 use App\Shared\Infrastructure\Database\DatabaseTable;
 use DateTimeImmutable;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use PhpOffice\PhpSpreadsheet\IOFactory;
 use Tests\TestCase;
 
 final class ReportsModuleTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->app->bind(ModuleGate::class, AllowAllReportModuleGate::class);
+    }
 
     public function test_it_records_immutable_authorized_export_request_snapshots_idempotently(): void
     {
@@ -53,6 +91,55 @@ final class ReportsModuleTest extends TestCase
             'request_fingerprint' => $snapshot->requestFingerprint(),
             'authorization_fingerprint' => $snapshot->authorization->hash(),
         ]);
+    }
+
+    public function test_audit_exports_are_fingerprinted_and_marked_separately(): void
+    {
+        [$user, $team] = $this->userAndTeam();
+        $ordinary = $this->app->make(ReportExportRequestRecorder::class)->record($this->snapshot($user, $team));
+        $audit = $this->app->make(ReportExportRequestRecorder::class)->record($this->snapshot($user, $team, auditExport: true));
+
+        self::assertNotSame($ordinary->publicId, $audit->publicId);
+        self::assertNotSame($ordinary->requestFingerprint, $audit->requestFingerprint);
+        $this->assertDatabaseHas(DatabaseTable::REPORT_EXPORT_REQUESTS, [
+            'public_id' => $audit->publicId,
+            'audit_export' => true,
+        ]);
+    }
+
+    public function test_synchronous_export_policy_requires_safe_estimates_and_keeps_pdfs_queued_by_default(): void
+    {
+        [$user, $team] = $this->userAndTeam();
+
+        $withoutEstimate = $this->app->make(ReportExportRequestRecorder::class)->record($this->snapshot($user, $team));
+        $smallCsv = $this->app->make(ReportExportRequestRecorder::class)->record($this->snapshot($user, $team, estimatedRowCount: 2));
+        $pdf = $this->app->make(ReportExportRequestRecorder::class)->record($this->snapshot($user, $team, ReportExportFormat::Pdf, estimatedRowCount: 1));
+
+        $this->assertDatabaseHas(DatabaseTable::REPORT_EXPORT_REQUESTS, [
+            'public_id' => $withoutEstimate->publicId,
+            'synchronous_allowed' => false,
+            'estimated_row_count' => null,
+        ]);
+        $this->assertDatabaseHas(DatabaseTable::REPORT_EXPORT_REQUESTS, [
+            'public_id' => $smallCsv->publicId,
+            'synchronous_allowed' => true,
+            'estimated_row_count' => 2,
+        ]);
+        $this->assertDatabaseHas(DatabaseTable::REPORT_EXPORT_REQUESTS, [
+            'public_id' => $pdf->publicId,
+            'format' => ReportExportFormat::Pdf->value,
+            'synchronous_allowed' => false,
+            'estimated_row_count' => 1,
+        ]);
+    }
+
+    public function test_recording_export_requests_rechecks_module_gate(): void
+    {
+        [$user, $team] = $this->userAndTeam();
+        $this->app->bind(ModuleGate::class, DenyReportRequestModuleGate::class);
+
+        $this->expectException(\RuntimeException::class);
+        $this->app->make(ReportExportRequestRecorder::class)->record($this->snapshot($user, $team));
     }
 
     public function test_it_registers_generation_process_and_permission_module_mapping(): void
@@ -94,6 +181,88 @@ final class ReportsModuleTest extends TestCase
         ]);
     }
 
+    public function test_dispatch_snapshot_generates_small_exports_synchronously(): void
+    {
+        $this->app->bind(ManagedProcessRunner::class, FakeReportManagedProcessRunner::class);
+        $this->app->bind('reports.test.admin_users_provider', fn (): FakeReportDataProvider => new FakeReportDataProvider);
+        $this->app->tag(['reports.test.admin_users_provider'], 'atlas.report_data_providers');
+        Storage::fake('atlas_files');
+        Config::set('atlas.files.disk', 'atlas_files');
+        [$user, $team] = $this->userAndTeam();
+
+        $result = $this->app->make(ReportExportGenerationDispatcher::class)->dispatchSnapshot($this->snapshot(
+            user: $user,
+            team: $team,
+            estimatedRowCount: 1,
+        ));
+
+        self::assertSame('sync', $result->executionMode);
+        self::assertNotNull($result->artifactPublicId);
+        self::assertNull($result->processRunPublicId);
+        $this->assertDatabaseCount(DatabaseTable::MANAGED_PROCESS_RUNS, 0);
+        $this->assertDatabaseHas(DatabaseTable::REPORT_EXPORT_REQUESTS, [
+            'public_id' => $result->exportRequestPublicId,
+            'status' => ReportExportStatus::Available->value,
+            'synchronous_allowed' => true,
+        ]);
+        $this->assertDatabaseHas(DatabaseTable::REPORT_EXPORT_ARTIFACTS, [
+            'public_id' => $result->artifactPublicId,
+            'status' => ReportExportStatus::Available->value,
+        ]);
+    }
+
+    public function test_dispatch_snapshot_queues_pdfs_even_when_the_estimate_is_small_by_default(): void
+    {
+        $this->app->bind(ManagedProcessRunner::class, FakeReportManagedProcessRunner::class);
+        [$user, $team] = $this->userAndTeam();
+
+        $result = $this->app->make(ReportExportGenerationDispatcher::class)->dispatchSnapshot($this->snapshot(
+            user: $user,
+            team: $team,
+            format: ReportExportFormat::Pdf,
+            estimatedRowCount: 1,
+        ));
+
+        self::assertSame('queued', $result->executionMode);
+        self::assertNotNull($result->processRunPublicId);
+        self::assertNull($result->artifactPublicId);
+        $this->assertDatabaseHas(DatabaseTable::REPORT_EXPORT_REQUESTS, [
+            'public_id' => $result->exportRequestPublicId,
+            'status' => ReportExportStatus::Queued->value,
+            'synchronous_allowed' => false,
+        ]);
+    }
+
+    public function test_report_requests_block_owning_module_deactivation_until_terminal(): void
+    {
+        [$user, $team] = $this->userAndTeam();
+        $request = $this->app->make(ReportExportRequestRecorder::class)->record($this->snapshot($user, $team));
+        $guard = $this->app->make(ReportsDeactivationGuard::class);
+
+        $blocked = $guard->assess(new ModuleDeactivationRequest(
+            moduleKey: new ModuleKey('users'),
+            teamId: (int) $team->id,
+            requestedBy: (string) $user->public_id,
+        ));
+
+        self::assertFalse($blocked->canDeactivate());
+        self::assertSame('report_export', $blocked->blockers[0]->processType);
+        self::assertSame($request->publicId, $blocked->blockers[0]->processIdentifier);
+
+        DB::table(DatabaseTable::REPORT_EXPORT_REQUESTS)->where('public_id', $request->publicId)->update([
+            'status' => ReportExportStatus::Failed->value,
+            'updated_at' => now(),
+        ]);
+
+        $allowed = $guard->assess(new ModuleDeactivationRequest(
+            moduleKey: new ModuleKey('users'),
+            teamId: (int) $team->id,
+            requestedBy: (string) $user->public_id,
+        ));
+
+        self::assertTrue($allowed->canDeactivate());
+    }
+
     public function test_available_artifacts_must_be_complete_before_they_can_be_downloadable(): void
     {
         [$user, $team] = $this->userAndTeam();
@@ -133,6 +302,514 @@ final class ReportsModuleTest extends TestCase
         $this->insertAvailableArtifact($this->numericId($requestId), $this->numericId($user->id), 'admin-users-copy.csv');
     }
 
+    public function test_download_reauthorizes_actor_team_module_and_clean_file(): void
+    {
+        $this->app->bind(ModuleGate::class, AllowAllReportModuleGate::class);
+        [$user, $team] = $this->userAndTeam();
+        $request = $this->app->make(ReportExportRequestRecorder::class)->record($this->snapshot($user, $team));
+        $requestId = DB::table(DatabaseTable::REPORT_EXPORT_REQUESTS)->where('public_id', $request->publicId)->value('id');
+        $artifactPublicId = $this->insertAvailableArtifact($this->numericId($requestId), $this->numericId($user->id), 'admin-users.csv');
+
+        $download = $this->app->make(ReportExportArtifactAccess::class)->download(
+            artifactPublicId: $artifactPublicId,
+            actorPublicId: (string) $user->public_id,
+            activeTeamPublicId: (string) $team->public_id,
+        );
+
+        self::assertSame($artifactPublicId, $download->artifactPublicId);
+        self::assertSame($request->publicId, $download->exportRequestPublicId);
+        self::assertSame('local', $download->disk);
+        self::assertSame('reports/admin-users.csv', $download->path);
+        self::assertSame('admin-users.csv', $download->filename);
+        self::assertSame('text/csv', $download->contentType);
+        self::assertSame(10, $download->sizeBytes);
+    }
+
+    public function test_download_rejects_a_different_requesting_user(): void
+    {
+        $this->app->bind(ModuleGate::class, AllowAllReportModuleGate::class);
+        [$user, $team] = $this->userAndTeam();
+        $otherUser = User::factory()->create(['public_id' => '01J00000000000000000000063']);
+        $request = $this->app->make(ReportExportRequestRecorder::class)->record($this->snapshot($user, $team));
+        $requestId = DB::table(DatabaseTable::REPORT_EXPORT_REQUESTS)->where('public_id', $request->publicId)->value('id');
+        $artifactPublicId = $this->insertAvailableArtifact($this->numericId($requestId), $this->numericId($user->id), 'admin-users.csv');
+
+        $this->expectException(ReportArtifactNotDownloadable::class);
+
+        $this->app->make(ReportExportArtifactAccess::class)->download(
+            artifactPublicId: $artifactPublicId,
+            actorPublicId: (string) $otherUser->public_id,
+            activeTeamPublicId: (string) $team->public_id,
+        );
+    }
+
+    public function test_download_rejects_audit_export_when_audit_permission_is_revoked(): void
+    {
+        [$user, $team] = $this->userAndTeam();
+        $request = $this->app->make(ReportExportRequestRecorder::class)->record($this->snapshot($user, $team, auditExport: true));
+        $requestId = DB::table(DatabaseTable::REPORT_EXPORT_REQUESTS)->where('public_id', $request->publicId)->value('id');
+        $artifactPublicId = $this->insertAvailableArtifact($this->numericId($requestId), $this->numericId($user->id), 'admin-users.csv');
+        $this->app->bind(ModuleGate::class, DenyAuditExportReportModuleGate::class);
+
+        $this->expectException(\RuntimeException::class);
+        $this->app->make(ReportExportArtifactAccess::class)->download(
+            artifactPublicId: $artifactPublicId,
+            actorPublicId: (string) $user->public_id,
+            activeTeamPublicId: (string) $team->public_id,
+        );
+    }
+
+    public function test_csv_generation_publishes_private_available_artifact_from_registered_provider(): void
+    {
+        $this->app->bind(ModuleGate::class, AllowAllReportModuleGate::class);
+        $this->app->bind(ManagedProcessRunner::class, FakeReportManagedProcessRunner::class);
+        $this->app->bind('reports.test.admin_users_provider', fn (): FakeReportDataProvider => new FakeReportDataProvider);
+        $this->app->tag(['reports.test.admin_users_provider'], 'atlas.report_data_providers');
+        Storage::fake('atlas_files');
+        Config::set('atlas.files.disk', 'atlas_files');
+
+        [$user, $team] = $this->userAndTeam();
+        $request = $this->app->make(ReportExportRequestRecorder::class)->record($this->snapshot($user, $team));
+        $runPublicId = $this->app->make(ReportExportGenerationDispatcher::class)->dispatch(
+            requestPublicId: $request->publicId,
+            actorPublicId: (string) $user->public_id,
+            teamPublicId: (string) $team->public_id,
+        );
+
+        $this->app->make(ReportExportGenerationProcessHandler::class)->handle($runPublicId);
+
+        $artifact = DB::table(DatabaseTable::REPORT_EXPORT_ARTIFACTS)->where('status', ReportExportStatus::Available->value)->first();
+
+        self::assertNotNull($artifact);
+        $this->assertDatabaseHas(DatabaseTable::REPORT_EXPORT_REQUESTS, [
+            'public_id' => $request->publicId,
+            'status' => ReportExportStatus::Available->value,
+        ]);
+        $this->assertDatabaseHas(DatabaseTable::REPORT_EXPORT_ARTIFACTS, [
+            'export_request_id' => $this->numericId($artifact->export_request_id ?? null),
+            'status' => ReportExportStatus::Available->value,
+            'content_type' => 'text/csv; charset=UTF-8',
+            'size_bytes' => $this->numericId($artifact->size_bytes ?? null),
+        ]);
+        $this->assertDatabaseHas(DatabaseTable::NOTIFICATIONS, [
+            'type' => 'report_export.available',
+            'severity' => 'success',
+            'title' => 'Report export is ready',
+            'deep_link_url' => '/reports/exports/'.$this->stringValue($artifact->public_id ?? null).'/download',
+        ]);
+
+        $file = DB::table(DatabaseTable::FILE_OBJECTS)->where('public_id', $artifact->file_object_public_id)->first();
+
+        self::assertNotNull($file);
+        self::assertSame('clean', $file->scan_state);
+        $path = $this->stringValue($file->path ?? null);
+
+        Storage::disk('atlas_files')->assertExists($path);
+        $contents = Storage::disk('atlas_files')->get($path);
+
+        if ($contents === null) {
+            self::fail('Expected generated CSV contents.');
+        }
+
+        $lines = array_values(array_filter(explode("\n", trim($contents)), static fn (string $line): bool => $line !== ''));
+
+        self::assertSame(['Public ID', 'Email', 'Status'], str_getcsv($lines[0]));
+        self::assertSame(['01J000000000000000000000AA', 'anna@example.test', "'=active"], str_getcsv($lines[1]));
+        self::assertSame(['Total rows', '1'], str_getcsv($lines[2]));
+        self::assertStringNotContainsString('internal-token', $contents);
+    }
+
+    public function test_generation_rechecks_audit_export_permission(): void
+    {
+        $this->app->bind(ManagedProcessRunner::class, FakeReportManagedProcessRunner::class);
+        $this->app->bind('reports.test.admin_users_provider', fn (): FakeReportDataProvider => new FakeReportDataProvider);
+        $this->app->tag(['reports.test.admin_users_provider'], 'atlas.report_data_providers');
+        [$user, $team] = $this->userAndTeam();
+        $request = $this->app->make(ReportExportRequestRecorder::class)->record($this->snapshot($user, $team, auditExport: true));
+        $this->app->bind(ModuleGate::class, DenyAuditExportReportModuleGate::class);
+        $runPublicId = $this->app->make(ReportExportGenerationDispatcher::class)->dispatch(
+            requestPublicId: $request->publicId,
+            actorPublicId: (string) $user->public_id,
+            teamPublicId: (string) $team->public_id,
+        );
+
+        $this->expectException(\RuntimeException::class);
+        $this->app->make(ReportExportGenerationProcessHandler::class)->handle($runPublicId);
+    }
+
+    public function test_xlsx_generation_publishes_private_available_artifact_from_registered_provider(): void
+    {
+        $this->app->bind(ModuleGate::class, AllowAllReportModuleGate::class);
+        $this->app->bind(ManagedProcessRunner::class, FakeReportManagedProcessRunner::class);
+        $this->app->bind('reports.test.admin_users_provider', fn (): FakeReportDataProvider => new FakeReportDataProvider);
+        $this->app->tag(['reports.test.admin_users_provider'], 'atlas.report_data_providers');
+        Storage::fake('atlas_files');
+        Config::set('atlas.files.disk', 'atlas_files');
+
+        [$user, $team] = $this->userAndTeam();
+        $request = $this->app->make(ReportExportRequestRecorder::class)->record($this->snapshot($user, $team, ReportExportFormat::Xlsx));
+        $runPublicId = $this->app->make(ReportExportGenerationDispatcher::class)->dispatch(
+            requestPublicId: $request->publicId,
+            actorPublicId: (string) $user->public_id,
+            teamPublicId: (string) $team->public_id,
+        );
+
+        $this->app->make(ReportExportGenerationProcessHandler::class)->handle($runPublicId);
+
+        $artifact = DB::table(DatabaseTable::REPORT_EXPORT_ARTIFACTS)->where('status', ReportExportStatus::Available->value)->first();
+
+        self::assertNotNull($artifact);
+        $this->assertDatabaseHas(DatabaseTable::REPORT_EXPORT_REQUESTS, [
+            'public_id' => $request->publicId,
+            'status' => ReportExportStatus::Available->value,
+            'format' => ReportExportFormat::Xlsx->value,
+        ]);
+        $this->assertDatabaseHas(DatabaseTable::REPORT_EXPORT_ARTIFACTS, [
+            'export_request_id' => $this->numericId($artifact->export_request_id ?? null),
+            'status' => ReportExportStatus::Available->value,
+            'content_type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        ]);
+
+        $file = DB::table(DatabaseTable::FILE_OBJECTS)->where('public_id', $artifact->file_object_public_id)->first();
+
+        self::assertNotNull($file);
+        $path = $this->stringValue($file->path ?? null);
+        Storage::disk('atlas_files')->assertExists($path);
+        $xlsxPath = Storage::disk('atlas_files')->path($path);
+        $spreadsheet = IOFactory::load($xlsxPath);
+
+        try {
+            $sheet = $spreadsheet->getActiveSheet();
+
+            self::assertSame('Public ID', $sheet->getCell('A1')->getValue());
+            self::assertSame('Email', $sheet->getCell('B1')->getValue());
+            self::assertSame('Status', $sheet->getCell('C1')->getValue());
+            self::assertSame('01J000000000000000000000AA', $sheet->getCell('A2')->getValue());
+            self::assertSame('anna@example.test', $sheet->getCell('B2')->getValue());
+            self::assertSame("'=active", $sheet->getCell('C2')->getValue());
+            self::assertNull($sheet->getCell('D1')->getValue());
+            self::assertSame('Total rows', $sheet->getCell('A4')->getValue());
+            self::assertSame('1', $sheet->getCell('B4')->getValue());
+        } finally {
+            $spreadsheet->disconnectWorksheets();
+        }
+    }
+
+    public function test_exports_intersect_visible_columns_with_authorized_columns(): void
+    {
+        $this->app->bind(ModuleGate::class, AllowAllReportModuleGate::class);
+        $this->app->bind(ManagedProcessRunner::class, FakeReportManagedProcessRunner::class);
+        $this->app->bind('reports.test.admin_users_provider', fn (): FakeReportDataProvider => new FakeReportDataProvider);
+        $this->app->tag(['reports.test.admin_users_provider'], 'atlas.report_data_providers');
+        Storage::fake('atlas_files');
+        Config::set('atlas.files.disk', 'atlas_files');
+
+        [$user, $team] = $this->userAndTeam();
+        $request = $this->app->make(ReportExportRequestRecorder::class)->record($this->snapshot(
+            user: $user,
+            team: $team,
+            visibleColumns: ['public_id', 'email', 'status', 'secret'],
+        ));
+        $runPublicId = $this->app->make(ReportExportGenerationDispatcher::class)->dispatch(
+            requestPublicId: $request->publicId,
+            actorPublicId: (string) $user->public_id,
+            teamPublicId: (string) $team->public_id,
+        );
+
+        $this->app->make(ReportExportGenerationProcessHandler::class)->handle($runPublicId);
+        $artifact = DB::table(DatabaseTable::REPORT_EXPORT_ARTIFACTS)->where('status', ReportExportStatus::Available->value)->first();
+
+        self::assertNotNull($artifact);
+        $file = DB::table(DatabaseTable::FILE_OBJECTS)->where('public_id', $artifact->file_object_public_id)->first();
+
+        self::assertNotNull($file);
+        $contents = Storage::disk('atlas_files')->get($this->stringValue($file->path ?? null));
+
+        if ($contents === null) {
+            self::fail('Expected generated CSV contents.');
+        }
+
+        $lines = array_values(array_filter(explode("\n", trim($contents)), static fn (string $line): bool => $line !== ''));
+
+        self::assertSame(['Public ID', 'Email', 'Status'], str_getcsv($lines[0]));
+        self::assertStringNotContainsString('internal-token', $contents);
+        self::assertStringNotContainsString('Secret', $contents);
+    }
+
+    public function test_render_credentials_are_short_lived_hashed_bound_and_one_time(): void
+    {
+        $this->app->bind(ModuleGate::class, AllowAllReportModuleGate::class);
+        Config::set('atlas.reports.render_token_ttl_seconds', 120);
+        [$user, $team] = $this->userAndTeam();
+        $request = $this->app->make(ReportExportRequestRecorder::class)->record($this->snapshot($user, $team, ReportExportFormat::Pdf));
+
+        $issued = $this->app->make(ReportRenderCredentialIssuer::class)->issue($request->publicId);
+        $record = DB::table(DatabaseTable::REPORT_RENDER_CREDENTIALS)->where('public_id', $issued->publicId)->first();
+
+        self::assertNotNull($record);
+        self::assertNotSame($issued->token, $record->token_hash);
+        self::assertSame(hash('sha256', $issued->token), $record->token_hash);
+        self::assertSame(['email', 'public_id', 'status'], $this->jsonStringList($record->allowed_columns ?? null));
+        $dataset = $this->jsonObject($record->allowed_dataset ?? null);
+        self::assertSame('admin.users', $dataset['report_key'] ?? null);
+        self::assertSame(['search' => 'anna'], $dataset['filters'] ?? null);
+
+        $resolved = $this->app->make(ReportRenderCredentialAccess::class)->resolve($issued->token);
+
+        self::assertSame($issued->publicId, $resolved->publicId);
+        self::assertSame($request->publicId, $resolved->request->publicId);
+        self::assertSame(ReportExportFormat::Pdf, $resolved->request->format);
+        self::assertSame((string) $user->public_id, $resolved->request->requestingUserPublicId);
+        self::assertSame((string) $team->public_id, $resolved->request->activeTeamPublicId);
+
+        $this->app->make(ReportRenderCredentialAccess::class)->consume($resolved->publicId);
+        $this->expectException(ReportRenderCredentialInvalid::class);
+        $this->app->make(ReportRenderCredentialAccess::class)->resolve($issued->token);
+    }
+
+    public function test_pdf_generation_uses_render_credentials_and_playwright_renderer(): void
+    {
+        $this->app->bind(ModuleGate::class, AllowAllReportModuleGate::class);
+        $this->app->bind(ManagedProcessRunner::class, FakeReportManagedProcessRunner::class);
+        $this->app->bind('reports.test.admin_users_provider', fn (): FakeReportDataProvider => new FakeReportDataProvider);
+        $this->app->tag(['reports.test.admin_users_provider'], 'atlas.report_data_providers');
+        Storage::fake('atlas_files');
+        Config::set('atlas.files.disk', 'atlas_files');
+
+        [$user, $team] = $this->userAndTeam();
+        $request = $this->app->make(ReportExportRequestRecorder::class)->record($this->snapshot($user, $team, ReportExportFormat::Pdf));
+        $runPublicId = $this->app->make(ReportExportGenerationDispatcher::class)->dispatch(
+            requestPublicId: $request->publicId,
+            actorPublicId: (string) $user->public_id,
+            teamPublicId: (string) $team->public_id,
+        );
+
+        $this->app->make(ReportExportGenerationProcessHandler::class)->handle($runPublicId);
+
+        $artifact = DB::table(DatabaseTable::REPORT_EXPORT_ARTIFACTS)->where('status', ReportExportStatus::Available->value)->first();
+
+        self::assertNotNull($artifact);
+        $this->assertDatabaseHas(DatabaseTable::REPORT_EXPORT_REQUESTS, [
+            'public_id' => $request->publicId,
+            'status' => ReportExportStatus::Available->value,
+            'format' => ReportExportFormat::Pdf->value,
+        ]);
+        $this->assertDatabaseHas(DatabaseTable::REPORT_EXPORT_ARTIFACTS, [
+            'export_request_id' => $this->numericId($artifact->export_request_id ?? null),
+            'status' => ReportExportStatus::Available->value,
+            'content_type' => 'application/pdf',
+        ]);
+        self::assertSame(1, DB::table(DatabaseTable::REPORT_RENDER_CREDENTIALS)
+            ->where('report_key', 'admin.users')
+            ->whereNotNull('consumed_at')
+            ->count());
+
+        $file = DB::table(DatabaseTable::FILE_OBJECTS)->where('public_id', $artifact->file_object_public_id)->first();
+
+        self::assertNotNull($file);
+        $path = $this->stringValue($file->path ?? null);
+        Storage::disk('atlas_files')->assertExists($path);
+        $contents = Storage::disk('atlas_files')->get($path);
+
+        if ($contents === null) {
+            self::fail('Expected generated PDF contents.');
+        }
+
+        self::assertStringStartsWith('%PDF-', $contents);
+        self::assertGreaterThan(1000, strlen($contents));
+    }
+
+    public function test_pdf_generation_renders_multipage_tables_with_chromium(): void
+    {
+        $this->app->bind(ManagedProcessRunner::class, FakeReportManagedProcessRunner::class);
+        $this->app->bind('reports.test.admin_users_provider', fn (): FakeReportDataProvider => new FakeReportDataProvider);
+        $this->app->bind('reports.test.admin_users_chart_provider', fn (): FakeReportChartProvider => new FakeReportChartProvider);
+        $this->app->tag(['reports.test.admin_users_provider'], 'atlas.report_data_providers');
+        $this->app->tag(['reports.test.admin_users_chart_provider'], 'atlas.report_chart_providers');
+        Storage::fake('atlas_files');
+        Config::set('atlas.files.disk', 'atlas_files');
+
+        [$user, $team] = $this->userAndTeam();
+        $request = $this->app->make(ReportExportRequestRecorder::class)->record($this->snapshot(
+            user: $user,
+            team: $team,
+            format: ReportExportFormat::Pdf,
+            rowCount: 180,
+        ));
+        $runPublicId = $this->app->make(ReportExportGenerationDispatcher::class)->dispatch(
+            requestPublicId: $request->publicId,
+            actorPublicId: (string) $user->public_id,
+            teamPublicId: (string) $team->public_id,
+        );
+
+        $this->app->make(ReportExportGenerationProcessHandler::class)->handle($runPublicId);
+
+        $artifact = DB::table(DatabaseTable::REPORT_EXPORT_ARTIFACTS)->where('status', ReportExportStatus::Available->value)->first();
+
+        self::assertNotNull($artifact);
+        $file = DB::table(DatabaseTable::FILE_OBJECTS)->where('public_id', $artifact->file_object_public_id)->first();
+
+        self::assertNotNull($file);
+        $contents = Storage::disk('atlas_files')->get($this->stringValue($file->path ?? null));
+
+        if ($contents === null) {
+            self::fail('Expected generated PDF contents.');
+        }
+
+        self::assertStringStartsWith('%PDF-', $contents);
+        self::assertGreaterThanOrEqual(2, substr_count($contents, '/Type /Page'));
+        self::assertGreaterThan(2000, strlen($contents));
+        self::assertStringContainsString('/Count', $contents);
+    }
+
+    public function test_browser_print_renders_shared_report_layout_with_local_inline_fonts(): void
+    {
+        $this->app->bind(ModuleGate::class, AllowAllReportModuleGate::class);
+        $this->app->bind(EffectivePermissionChecker::class, AllowAllEffectivePermissionChecker::class);
+        $this->app->bind('reports.test.admin_users_provider', fn (): FakeReportDataProvider => new FakeReportDataProvider);
+        $this->app->bind('reports.test.admin_users_chart_provider', fn (): FakeReportChartProvider => new FakeReportChartProvider);
+        $this->app->tag(['reports.test.admin_users_provider'], 'atlas.report_data_providers');
+        $this->app->tag(['reports.test.admin_users_chart_provider'], 'atlas.report_chart_providers');
+        [$user, $team] = $this->userAndTeam();
+        $request = $this->app->make(ReportExportRequestRecorder::class)->record($this->snapshot($user, $team, ReportExportFormat::BrowserPrint));
+
+        $response = $this->actingAs($user)
+            ->withSession(['active_team_public_id' => (string) $team->public_id])
+            ->get('/reports/exports/'.$request->publicId.'/print');
+
+        $response->assertOk();
+        $response->assertHeader('content-type', 'text/html; charset=UTF-8');
+        $response->assertSee('window.print()', false);
+        $response->assertSee('@page', false);
+        $response->assertSee('display: table-header-group', false);
+        $response->assertSee('page-break-inside: avoid', false);
+        $response->assertSee('counter(page)', false);
+        $response->assertSee('data:font/woff2;base64,', false);
+        $response->assertSee('data:image/svg+xml;base64,', false);
+        $response->assertSee('Admin users');
+        $response->assertSee('Report charts');
+        $response->assertSee('Cases by status');
+        $response->assertSee('Open cases');
+        $response->assertSee('<svg viewBox="0 0 100 10"', false);
+        $response->assertSee('Atlas');
+        $response->assertSee('Atlas report export.');
+        $response->assertSee('Total rows: 1.');
+        $response->assertSee('anna@example.test');
+        $response->assertDontSee('/build/assets', false);
+        $response->assertDontSee('internal-token');
+        self::assertSame(1, DB::table(DatabaseTable::REPORT_RENDER_CREDENTIALS)
+            ->where('report_key', 'admin.users')
+            ->whereNotNull('consumed_at')
+            ->count());
+    }
+
+    public function test_pdf_generation_fails_without_publishing_when_required_visuals_are_not_ready(): void
+    {
+        $this->app->bind(ModuleGate::class, AllowAllReportModuleGate::class);
+        $this->app->bind(ManagedProcessRunner::class, FakeReportManagedProcessRunner::class);
+        $this->app->bind('reports.test.not_ready_probe', fn (): FakeNotReadyRenderProbe => new FakeNotReadyRenderProbe);
+        $this->app->tag(['reports.test.not_ready_probe'], 'atlas.report_render_readiness_probes');
+        [$user, $team] = $this->userAndTeam();
+        $request = $this->app->make(ReportExportRequestRecorder::class)->record($this->snapshot($user, $team, ReportExportFormat::Pdf));
+        $runPublicId = $this->app->make(ReportExportGenerationDispatcher::class)->dispatch(
+            requestPublicId: $request->publicId,
+            actorPublicId: (string) $user->public_id,
+            teamPublicId: (string) $team->public_id,
+        );
+
+        try {
+            $this->app->make(ReportExportGenerationProcessHandler::class)->handle($runPublicId);
+            self::fail('Expected PDF generation to fail when a required visual is not ready.');
+        } catch (ReportRenderVisualsNotReady) {
+        }
+
+        $this->assertDatabaseHas(DatabaseTable::REPORT_EXPORT_REQUESTS, [
+            'public_id' => $request->publicId,
+            'status' => ReportExportStatus::Failed->value,
+            'safe_error_summary' => 'Report [admin.users] is not ready for PDF rendering: chart canvas did not signal ready',
+        ]);
+        $this->assertDatabaseHas(DatabaseTable::NOTIFICATIONS, [
+            'type' => 'report_export.failed',
+            'severity' => 'warning',
+            'title' => 'Report export failed',
+        ]);
+        $this->assertDatabaseCount(DatabaseTable::REPORT_EXPORT_ARTIFACTS, 0);
+        $this->assertDatabaseCount(DatabaseTable::REPORT_RENDER_CREDENTIALS, 0);
+    }
+
+    public function test_expired_render_credentials_are_rejected(): void
+    {
+        $this->app->bind(ModuleGate::class, AllowAllReportModuleGate::class);
+        [$user, $team] = $this->userAndTeam();
+        $request = $this->app->make(ReportExportRequestRecorder::class)->record($this->snapshot($user, $team, ReportExportFormat::Pdf));
+        $issued = $this->app->make(ReportRenderCredentialIssuer::class)->issue($request->publicId);
+
+        DB::table(DatabaseTable::REPORT_RENDER_CREDENTIALS)->where('public_id', $issued->publicId)->update([
+            'expires_at' => new DateTimeImmutable('2000-01-01 00:00:00 UTC'),
+            'updated_at' => now(),
+        ]);
+
+        $this->expectException(ReportRenderCredentialInvalid::class);
+        $this->app->make(ReportRenderCredentialAccess::class)->resolve($issued->token);
+    }
+
+    public function test_cleanup_expires_artifacts_requests_and_deletes_files_through_files_lifecycle(): void
+    {
+        [$user, $team] = $this->userAndTeam();
+        $request = $this->app->make(ReportExportRequestRecorder::class)->record($this->snapshot($user, $team));
+        $requestId = DB::table(DatabaseTable::REPORT_EXPORT_REQUESTS)->where('public_id', $request->publicId)->value('id');
+        $artifactPublicId = $this->insertAvailableArtifact($this->numericId($requestId), $this->numericId($user->id), 'admin-users.csv', expired: true);
+        $filePublicId = DB::table(DatabaseTable::REPORT_EXPORT_ARTIFACTS)->where('public_id', $artifactPublicId)->value('file_object_public_id');
+
+        DB::table(DatabaseTable::REPORT_EXPORT_REQUESTS)->where('public_id', $request->publicId)->update([
+            'expires_at' => now()->subDay(),
+            'updated_at' => now(),
+        ]);
+
+        $result = $this->app->make(ReportExportMaintenance::class)->cleanupExpired(new DateTimeImmutable('now'));
+
+        self::assertSame(1, $result->expiredRequests);
+        self::assertSame(1, $result->expiredArtifacts);
+        self::assertSame(1, $result->deletedFiles);
+        self::assertSame(0, $result->failedFileDeletes);
+        $this->assertDatabaseHas(DatabaseTable::REPORT_EXPORT_ARTIFACTS, [
+            'public_id' => $artifactPublicId,
+            'status' => ReportExportStatus::Expired->value,
+        ]);
+        $this->assertDatabaseHas(DatabaseTable::REPORT_EXPORT_REQUESTS, [
+            'public_id' => $request->publicId,
+            'status' => ReportExportStatus::Expired->value,
+        ]);
+        $this->assertDatabaseMissing(DatabaseTable::FILE_OBJECTS, [
+            'public_id' => $filePublicId,
+            'deleted_at' => null,
+        ]);
+    }
+
+    public function test_cleanup_expired_command_runs_report_retention_cleanup(): void
+    {
+        [$user, $team] = $this->userAndTeam();
+        $request = $this->app->make(ReportExportRequestRecorder::class)->record($this->snapshot($user, $team));
+        $requestId = DB::table(DatabaseTable::REPORT_EXPORT_REQUESTS)->where('public_id', $request->publicId)->value('id');
+        $this->insertAvailableArtifact($this->numericId($requestId), $this->numericId($user->id), 'admin-users.csv', expired: true);
+
+        DB::table(DatabaseTable::REPORT_EXPORT_REQUESTS)->where('public_id', $request->publicId)->update([
+            'expires_at' => now()->subDay(),
+            'updated_at' => now(),
+        ]);
+
+        self::assertSame(0, Artisan::call('reports:cleanup-expired'));
+        self::assertStringContainsString(
+            'Expired 1 request(s), expired 1 artifact(s), deleted 1 file(s), failed 0 file delete(s).',
+            Artisan::output(),
+        );
+
+        $this->assertDatabaseHas(DatabaseTable::REPORT_EXPORT_REQUESTS, [
+            'public_id' => $request->publicId,
+            'status' => ReportExportStatus::Expired->value,
+        ]);
+    }
+
     /**
      * @return array{0: User, 1: Team}
      */
@@ -145,25 +822,47 @@ final class ReportsModuleTest extends TestCase
             'slug' => 'operations-reports',
             'is_active' => true,
         ]);
+        DB::table(DatabaseTable::TEAM_USER_ASSIGNMENTS)->insert([
+            'team_id' => $team->id,
+            'user_id' => $user->id,
+            'is_head_manager' => false,
+            'valid_from' => now()->subMinute(),
+            'valid_to' => null,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
 
         return [$user, $team];
     }
 
-    private function snapshot(User $user, Team $team): ReportExportRequestSnapshot
-    {
+    /**
+     * @param  list<string>  $visibleColumns
+     */
+    private function snapshot(
+        User $user,
+        Team $team,
+        ReportExportFormat $format = ReportExportFormat::Csv,
+        array $visibleColumns = ['public_id', 'email', 'status'],
+        bool $auditExport = false,
+        ?int $estimatedRowCount = null,
+        ?int $rowCount = null,
+    ): ReportExportRequestSnapshot {
         return new ReportExportRequestSnapshot(
             reportKey: 'admin.users',
             reportName: 'Admin users',
             moduleKey: 'users',
-            format: ReportExportFormat::Csv,
+            format: $format,
             activeTeamId: (int) $team->id,
             activeTeamPublicId: (string) $team->public_id,
             requestingUserId: (int) $user->id,
             requestingUserPublicId: (string) $user->public_id,
-            filters: ['search' => 'anna'],
+            filters: array_filter(
+                ['search' => 'anna', 'row_count' => $rowCount],
+                static fn (mixed $value): bool => $value !== null,
+            ),
             sorting: [['id' => 'email', 'desc' => false]],
-            visibleColumns: ['public_id', 'email', 'status'],
-            columnOrder: ['public_id', 'email', 'status'],
+            visibleColumns: $visibleColumns,
+            columnOrder: $visibleColumns,
             timeRange: ['from' => null, 'to' => null],
             authorization: new AuthorizationFingerprint(
                 moduleKey: 'users',
@@ -177,13 +876,20 @@ final class ReportsModuleTest extends TestCase
             ruleVersion: 'reports-v1',
             expiresAt: new DateTimeImmutable('+7 days'),
             synchronousAllowed: true,
+            auditExport: $auditExport,
+            estimatedRowCount: $estimatedRowCount,
         );
     }
 
-    private function insertAvailableArtifact(int $requestId, int $userId, string $filename): void
+    private function insertAvailableArtifact(int $requestId, int $userId, string $filename, bool $expired = false): string
     {
+        Storage::fake('local');
+        Storage::disk('local')->put('reports/'.$filename, 'export-data');
+        $filePublicId = (string) Str::ulid();
+        $artifactPublicId = (string) Str::ulid();
+
         $fileObjectId = DB::table(DatabaseTable::FILE_OBJECTS)->insertGetId([
-            'public_id' => (string) Str::ulid(),
+            'public_id' => $filePublicId,
             'disk' => 'local',
             'path' => 'reports/'.$filename,
             'canonical_file_object_id' => null,
@@ -208,10 +914,16 @@ final class ReportsModuleTest extends TestCase
             'updated_at' => now(),
         ]);
 
+        DB::table(DatabaseTable::REPORT_EXPORT_REQUESTS)->where('id', $requestId)->update([
+            'status' => ReportExportStatus::Available->value,
+            'updated_at' => now(),
+        ]);
+
         DB::table(DatabaseTable::REPORT_EXPORT_ARTIFACTS)->insert([
-            'public_id' => (string) Str::ulid(),
+            'public_id' => $artifactPublicId,
             'export_request_id' => $requestId,
             'file_object_id' => $fileObjectId,
+            'file_object_public_id' => $filePublicId,
             'status' => ReportExportStatus::Available->value,
             'filename' => $filename,
             'content_type' => 'text/csv',
@@ -220,10 +932,12 @@ final class ReportsModuleTest extends TestCase
             'created_by_user_id' => $userId,
             'available_at' => now(),
             'failed_at' => null,
-            'expires_at' => now()->addDay(),
+            'expires_at' => $expired ? now()->subDay() : now()->addDay(),
             'created_at' => now(),
             'updated_at' => now(),
         ]);
+
+        return $artifactPublicId;
     }
 
     private function numericId(mixed $value): int
@@ -233,6 +947,194 @@ final class ReportsModuleTest extends TestCase
         }
 
         return (int) $value;
+    }
+
+    private function stringValue(mixed $value): string
+    {
+        if (! is_string($value) || $value === '') {
+            self::fail('Expected a non-empty string value.');
+        }
+
+        return $value;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function jsonStringList(mixed $value): array
+    {
+        $decoded = $this->jsonObjectOrList($value);
+        $strings = [];
+
+        foreach ($decoded as $item) {
+            if (is_string($item)) {
+                $strings[] = $item;
+            }
+        }
+
+        return $strings;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function jsonObject(mixed $value): array
+    {
+        $decoded = $this->jsonObjectOrList($value);
+        $object = [];
+
+        foreach ($decoded as $key => $item) {
+            if (is_string($key)) {
+                $object[$key] = $item;
+            }
+        }
+
+        return $object;
+    }
+
+    /**
+     * @return array<mixed, mixed>
+     */
+    private function jsonObjectOrList(mixed $value): array
+    {
+        if (! is_string($value) || $value === '') {
+            self::fail('Expected a JSON string.');
+        }
+
+        $decoded = json_decode($value, true, 512, JSON_THROW_ON_ERROR);
+
+        if (! is_array($decoded)) {
+            self::fail('Expected a JSON array or object.');
+        }
+
+        return $decoded;
+    }
+}
+
+final class AllowAllReportModuleGate implements ModuleGate
+{
+    public function inspect(ModuleAccessRequest $request): ModuleAccessDecision
+    {
+        return ModuleAccessDecision::allow();
+    }
+
+    public function allows(ModuleAccessRequest $request): bool
+    {
+        return true;
+    }
+}
+
+final class DenyAuditExportReportModuleGate implements ModuleGate
+{
+    public function inspect(ModuleAccessRequest $request): ModuleAccessDecision
+    {
+        if ($request->requiredPermission === ReportsPermissionCatalog::AUDIT_EXPORT) {
+            return ModuleAccessDecision::deny(ModuleAccessDenialReason::PermissionDenied);
+        }
+
+        return ModuleAccessDecision::allow();
+    }
+
+    public function allows(ModuleAccessRequest $request): bool
+    {
+        return $this->inspect($request)->allowed;
+    }
+}
+
+final class DenyReportRequestModuleGate implements ModuleGate
+{
+    public function inspect(ModuleAccessRequest $request): ModuleAccessDecision
+    {
+        if ($request->moduleKey === 'reports' && $request->requiredPermission === ReportsPermissionCatalog::REQUEST) {
+            return ModuleAccessDecision::deny(ModuleAccessDenialReason::PermissionDenied);
+        }
+
+        return ModuleAccessDecision::allow();
+    }
+
+    public function allows(ModuleAccessRequest $request): bool
+    {
+        return $this->inspect($request)->allowed;
+    }
+}
+
+final class AllowAllEffectivePermissionChecker implements EffectivePermissionChecker
+{
+    public function check(EffectivePermissionRequest $request): EffectivePermissionDecision
+    {
+        return new EffectivePermissionDecision(true, 'allowed');
+    }
+}
+
+final class FakeReportDataProvider implements ReportExportDataProvider
+{
+    public function reportKey(): string
+    {
+        return 'admin.users';
+    }
+
+    public function columns(ReportExportGenerationRequest $request): array
+    {
+        return [
+            new ReportExportColumn('public_id', 'Public ID'),
+            new ReportExportColumn('email', 'Email'),
+            new ReportExportColumn('status', 'Status'),
+            new ReportExportColumn('secret', 'Secret'),
+        ];
+    }
+
+    public function rows(ReportExportGenerationRequest $request): iterable
+    {
+        $rowCount = is_numeric($request->filters['row_count'] ?? null) ? max(1, (int) $request->filters['row_count']) : 1;
+
+        for ($row = 1; $row <= $rowCount; $row++) {
+            yield [
+                'public_id' => $row === 1 ? '01J000000000000000000000AA' : sprintf('01J000000000000000%08d', $row),
+                'email' => $row === 1 ? 'anna@example.test' : sprintf('anna+%03d@example.test', $row),
+                'status' => '=active',
+                'secret' => 'internal-token',
+            ];
+        }
+    }
+}
+
+final class FakeReportChartProvider implements ReportChartProvider
+{
+    public function reportKey(): string
+    {
+        return 'admin.users';
+    }
+
+    public function charts(ReportExportGenerationRequest $request): array
+    {
+        return [
+            new ReportChartDefinition(
+                key: 'cases-by-status',
+                title: 'Cases by status',
+                description: 'Open cases by lifecycle status.',
+                unit: 'cases',
+                series: [
+                    new ReportChartSeries('Open cases', [
+                        new ReportChartPoint('New', 12),
+                        new ReportChartPoint('In progress', 7),
+                        new ReportChartPoint('Closed', 3),
+                    ]),
+                ],
+            ),
+        ];
+    }
+}
+
+final class FakeNotReadyRenderProbe implements ReportRenderReadinessProbe
+{
+    public function reportKey(): string
+    {
+        return 'admin.users';
+    }
+
+    public function check(ReportExportGenerationRequest $request): ReportRenderReadinessResult
+    {
+        return ReportRenderReadinessResult::notReady($request->reportKey, 'chart canvas did not signal ready');
     }
 }
 

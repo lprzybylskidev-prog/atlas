@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Core\Files\Application\Public\Contracts;
 
+use App\Modules\Core\Files\Application\Public\DTOs\DownloadableFile;
 use App\Modules\Core\Files\Application\Public\DTOs\StoredFile;
 use Illuminate\Http\UploadedFile;
 
@@ -14,5 +15,12 @@ interface FileStorage
      */
     public function storeUpload(UploadedFile $file, ?int $actorId = null, ?int $teamId = null, array $metadata = []): StoredFile;
 
+    /**
+     * @param  array<string, scalar|null>  $metadata
+     */
+    public function storeGenerated(string $filename, string $mimeType, string $contents, ?int $actorId = null, ?int $teamId = null, array $metadata = []): StoredFile;
+
     public function cleanDownloadPath(string $publicId, ?int $actorId = null, ?int $teamId = null): string;
+
+    public function cleanDownloadFile(string $publicId, ?int $actorId = null, ?int $teamId = null): DownloadableFile;
 }

@@ -35,6 +35,8 @@ final readonly class ReportExportRequestSnapshot
         public string $ruleVersion,
         public DateTimeImmutable $expiresAt,
         public bool $synchronousAllowed = false,
+        public bool $auditExport = false,
+        public ?int $estimatedRowCount = null,
     ) {}
 
     public function requestFingerprint(): string
@@ -53,6 +55,8 @@ final readonly class ReportExportRequestSnapshot
             'authorization_fingerprint' => $this->authorization->hash(),
             'release_version' => $this->releaseVersion,
             'rule_version' => $this->ruleVersion,
+            'audit_export' => $this->auditExport,
+            'estimated_row_count' => $this->estimatedRowCount,
         ], JSON_THROW_ON_ERROR));
     }
 }

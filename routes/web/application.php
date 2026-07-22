@@ -7,6 +7,8 @@ use App\Modules\Core\Notifications\Presentation\Http\Controllers\BulkMarkNotific
 use App\Modules\Core\Notifications\Presentation\Http\Controllers\MarkNotificationReadController;
 use App\Modules\Core\Notifications\Presentation\Http\Controllers\NotificationCenterController;
 use App\Modules\Core\Notifications\Presentation\Http\Controllers\RealtimeEventsController;
+use App\Modules\Optional\Reports\Presentation\Http\Controllers\DownloadReportArtifactController;
+use App\Modules\Optional\Reports\Presentation\Http\Controllers\PrintReportExportController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -21,5 +23,7 @@ Route::middleware(['auth', 'route.permission'])->group(function (): void {
     Route::post('/notifications/read', BulkMarkNotificationReadController::class)->name('notifications.read.bulk');
     Route::post('/notifications/{notification}/read', MarkNotificationReadController::class)->name('notifications.read');
     Route::get('/realtime/events', RealtimeEventsController::class)->name('notifications.realtime.events');
+    Route::get('/reports/exports/{artifact}/download', DownloadReportArtifactController::class)->name('reports.download');
+    Route::get('/reports/exports/{export}/print', PrintReportExportController::class)->name('reports.exports.print');
     Route::post('/team/switch', [ActiveTeamController::class, 'switch'])->name('team.switch');
 });

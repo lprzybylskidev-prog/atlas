@@ -49,7 +49,7 @@ A run stores:
 
 - public ID;
 - process key and owning module;
-- source type such as manual, schedule, CLI, internal API, external API, file import, integration, maintenance, or system;
+- source type such as manual, retry, schedule, CLI, internal API, external API, file import, integration, maintenance, or system;
 - actor and active team where applicable;
 - input snapshot or no-input marker;
 - queue and job identifiers where queued;
@@ -133,6 +133,8 @@ Admin provides:
 - dashboard/system-status signals for active runs, failed runs, warnings, queue backlog, schedule failures, and module deactivation blockers.
 
 Run, retry, cancel, and schedule actions require backend authorization, active-team scope, ModuleGate checks, Admin mode, and audit. External-effect or irreversible processes require explicit confirmation and Admin mode/high-risk controls where applicable.
+
+Retry starts a new run with `source_type=retry` and retry lineage. It does not require the process definition to permit manual starts.
 
 The development reset does not seed artificial process runs, logs, import executions, or schedules. A clean installation starts with an empty run history until real module-owned work is executed.
 

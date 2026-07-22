@@ -16,5 +16,6 @@ final readonly class StoredFile
         public string $checksumSha256,
         public FileScanState $scanState,
         public bool $deduplicated = false,
+        public ?int $internalId = null,
     ) {}
 }

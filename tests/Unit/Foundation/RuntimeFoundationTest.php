@@ -19,14 +19,6 @@ class RuntimeFoundationTest extends TestCase
         self::assertSame('UTC', config('atlas.time.technical_storage_timezone'));
     }
 
-    public function test_tailadmin_pro_license_state_is_recorded_as_not_confirmed(): void
-    {
-        self::assertSame('not_confirmed', config('atlas.ui.tailadmin.pro_license_state'));
-        self::assertNull(config('atlas.ui.tailadmin.pro_license_confirmed_at'));
-        self::assertNull(config('atlas.ui.tailadmin.pro_license_confirmed_by'));
-        self::assertFalse(config('atlas.ui.tailadmin.pro_redistribution_confirmed'));
-    }
-
     public function test_foundation_uses_postgresql_and_redis_runtime_services(): void
     {
         self::assertSame('pgsql', config('database.default'));

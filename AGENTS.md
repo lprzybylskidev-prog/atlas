@@ -101,7 +101,6 @@ Frontend:
 - TypeScript;
 - Vite;
 - Tailwind CSS;
-- TailAdmin;
 - TanStack Table;
 - Tabler Icons;
 - Vitest;

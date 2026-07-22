@@ -112,10 +112,12 @@ Company data, logo, and footer come from centralized report configuration.
 
 ### Charts
 
-Use TailAdmin Pro charts first after license confirmation.
+Use shared Atlas chart wrappers owned by the repository.
 
 Charts:
 
+- render through shared Atlas chart wrappers in application UI;
+- render through the shared report HTML/SVG chart contract for PDF and browser print;
 - use the same filters as the table;
 - supplement, not replace, tabular data;
 - may be included in PDF and print;

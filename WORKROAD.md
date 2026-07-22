@@ -37,7 +37,7 @@ Do not replace this index after the initial technical foundation is completed. C
 
 ## Current phase
 
-- Phase: [Phase 24 — Reports, exports, PDF, charts, and print](docs/roadmap/phase-24-reports-exports-print.md)
+- Phase: [Phase 24a — Core export foundation and Admin data integration](docs/roadmap/phase-24a-core-export-foundation.md)
 - Status: `active`
 
 ## Roadmap dependency repair note
@@ -76,7 +76,7 @@ Install and configure the Laravel backend foundation, shared primitives, timezon
 
 **Status:** `complete`
 
-Build the Vue/Inertia/Tailwind frontend foundation, fixed composable views, themes, accessibility, and TailAdmin licensing guard.
+Build the Vue/Inertia/Tailwind frontend foundation, fixed composable views, themes, accessibility, and shared Atlas UI rules.
 
 [Open implementation contract and tasks](docs/roadmap/phase-03-frontend.md)
 
@@ -274,11 +274,19 @@ Implement typed feature flags with safe targeting, evaluation, lifecycle, audit,
 
 ### Phase 24 — Reports, exports, PDF, charts, and print
 
-**Status:** `active`
+**Status:** `complete`
 
 Build report/export pipelines, browser print, Chromium-based PDF generation, chart wrappers, artifact storage, notifications, and report layouts after table, file, notification, audit, and health foundations exist.
 
 [Open implementation contract and tasks](docs/roadmap/phase-24-reports-exports-print.md)
+
+### Phase 24a — Core export foundation and Admin data integration
+
+**Status:** `active`
+
+Extract reusable export, PDF, print, artifact, and render lifecycle ownership into Core and add export/print support to every exportable Admin DataTable and custom Admin data surface while keeping Reports optional.
+
+[Open implementation contract and tasks](docs/roadmap/phase-24a-core-export-foundation.md)
 
 ### Phase 25 — Security, privacy, deletion, and anonymization
 

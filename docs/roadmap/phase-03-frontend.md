@@ -2,16 +2,16 @@
 
 ## Implementation contract
 
-- Use Inertia, Vue 3, strict TypeScript, Vite, Tailwind CSS, TailAdmin, Tabler Icons, and TanStack Table.
+- Use Inertia, Vue 3, strict TypeScript, Vite, Tailwind CSS, Tabler Icons, and TanStack Table.
 - pnpm is the only JavaScript package manager. Other lockfiles are forbidden.
 - UI implementation order is:
   1. reuse an existing shared Atlas component;
-  2. use a TailAdmin component or pattern;
+  2. extend the shared Atlas UI layer when a recurring primitive is missing;
   3. use Tailwind utilities;
   4. write custom CSS only as a last resort.
 - Custom CSS should be minimal, ideally zero.
-- Before first use of any paid TailAdmin Pro component, chart, asset, or template fragment, stop and explicitly warn the user that a license purchase is required. Continue only after confirmation. Record the confirmation so it is never asked again in the repository.
-- TailAdmin Pro charts are the default chart solution. An additional chart library requires a concrete missing capability and prior discussion.
+- Third-party UI templates, paid component source, paid chart source, or proprietary design-system assets require explicit project-owner approval and license verification before introduction.
+- Charts use shared Atlas chart wrappers owned by the repository.
 - Light and dark themes are developed simultaneously from the first component. A screen is not complete if only one theme is correct.
 - Verify both themes for normal, hover, focus, disabled, loading, success, warning, and error states, plus forms, tables, dialogs, charts, notifications, reports, and key print screens.
 - The main layout has a collapsible left module sidebar. Expanded state shows icons and text; collapsed state shows icons with custom accessible tooltips.
@@ -21,7 +21,7 @@
 - Every application and Admin page has centralized breadcrumbs based on named routes and translation keys.
 - Use custom tooltips/popovers; native HTML `title` attributes are forbidden.
 - Use Tabler Icons consistently. An unclear action cannot rely on an icon alone.
-- Target WCAG 2.2 AA. TailAdmin components must be corrected when inaccessible.
+- Target WCAG 2.2 AA. Shared Atlas components must be corrected when inaccessible.
 - Frontend structure uses `Pages`, `Layouts`, `Components`, `Composables`, `Types`, and `Services`. `Utils` is created only when the first real shared frontend utility exists.
 - Pages compose screens and contain no business rules.
 - Inertia plus local state is the default. Composables hold shared UI logic. Pinia is used only for true persistent cross-screen state and may not contain domain logic.
@@ -89,27 +89,14 @@
 - Elements are delivered by code and registered through typed contracts.
 - Initial neutral elements may include notifications, queued-operation progress, the user's recent security events, administrator system status, and TimeTracking summaries when that module is active.
 - Do not add artificial KPI cards or decorative charts merely to fill a screen.
-- Start frontend implementation with TailAdmin Free and project-owned components only.
-- Do not purchase or adopt TailAdmin Pro preemptively.
-- Before the first real use of any Pro-only component, stop and request one explicit user confirmation that the appropriate license has been purchased.
-- Without confirmation:
-  - do not copy TailAdmin Pro source code;
-  - do not reproduce a paid component one-to-one;
-  - use a Free equivalent or a project-owned implementation.
-- After confirmation, record the approved Pro-license state in project documentation/configuration so the agent does not ask again.
-- Before introducing TailAdmin Pro assets into Atlas, verify that the company license permits their intended use.
-- If the license does not permit the intended use, Atlas must use TailAdmin Free or project-owned components.
+- Atlas uses project-owned shared components and Tailwind CSS rather than a third-party UI template kit.
+- Do not copy paid/proprietary UI source or reproduce paid components one-to-one without explicit approval and license verification.
 
-- [x] Use TailAdmin Free and project-owned components until a Pro-only need is encountered.
-- [x] Add a documented one-time TailAdmin Pro purchase/license confirmation checkpoint.
-- [x] Record TailAdmin Pro license state so future work does not repeat the question.
-- [x] Add a release checklist item verifying redistribution/source-transfer rights for any TailAdmin Pro assets.
-- [x] Ensure a non-Pro fallback exists when redistribution is not permitted.
+- [x] Use project-owned shared components and Tailwind CSS as the frontend foundation.
+- [x] Record that copied paid/proprietary UI assets require explicit approval and license verification.
 - [x] Install Vue 3, Inertia, TypeScript, Vite, and Tailwind CSS.
 - [x] Configure pnpm as the only package manager.
 - [x] Remove and forbid other lockfiles.
-- [x] Install TailAdmin Vue Starter as the reviewed Free source checkpoint without vendoring upstream source.
-- [x] Add TailAdmin Pro license guard and first-use warning workflow.
 - [x] Install Tabler Icons.
 - [x] Install TanStack Table for Vue.
 - [x] Install Vitest.

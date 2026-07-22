@@ -1,6 +1,6 @@
 # Phase 24 — Reports, exports, PDF, charts, and print
 
-**Status:** `active`
+**Status:** `complete`
 
 ## Objective
 
@@ -29,7 +29,7 @@ Build the shared report/export generation lifecycle after tables, saved views, f
 - PDF and print include page numbering.
 - Company identity, logo, and footer come from centralized report configuration.
 - Ordinary exports show final values and meaningful markers. Detailed history uses a separate audit export permission.
-- Charts use TailAdmin Pro first after license confirmation.
+- Charts use shared Atlas chart wrappers owned by the repository.
 - Charts share the table's filters and data contract, supplement rather than replace the table, and may appear in PDF/print.
 - Large ranges aggregate by day, week, or month.
 - Do not add decorative analytics without a real interpretive purpose.
@@ -58,44 +58,44 @@ Build the shared report/export generation lifecycle after tables, saved views, f
 - [x] Implement idempotent generation jobs and managed-process concurrency controls.
 - [x] Prevent partial or duplicate artifacts from becoming downloadable.
 - [x] Store checksum, content type, size, creator, status, release/rule version, and expiry metadata.
-- [ ] Reauthorize every artifact download and implement retention cleanup.
-- [ ] Add CSV exports.
-- [ ] Add XLSX exports.
-- [ ] Add PDF exports.
-- [ ] Implement shared HTML/CSS report layouts for both browser print and PDF.
-- [ ] Implement headless Chromium/Playwright PDF rendering.
-- [ ] Implement short-lived one-time report render credentials bound to report, user, team, dataset, and allowed columns.
-- [ ] Ensure PDF rendering never depends on a live user browser session.
-- [ ] Package report fonts locally and prohibit network font loading during rendering.
-- [ ] Define A4, margins, repeated table headers, page-break, page-number, footer, and print-color rules.
-- [ ] Implement a render-ready contract for charts and other asynchronous visuals.
-- [ ] Fail PDF generation when required visuals do not finish rendering.
-- [ ] Queue all large PDFs and define safe thresholds for any synchronous PDF path.
-- [ ] Integrate PDF progress, failure, retry, storage, expiry, and notifications with shared reporting and managed-process infrastructure.
-- [ ] Add Chromium-based tests for multipage tables, repeated headers, charts, fonts, page numbers, and failure handling.
-- [ ] Add browser print layouts.
-- [ ] Make exports honor filters, sorting, visible columns, permissions, and active team.
-- [ ] Enforce ModuleGate for report views, export requests, queued export/PDF jobs, download authorization, and render-token access.
-- [ ] Register report/export deactivation guards for unsafe in-flight generation where a module owns report jobs.
-- [ ] Add synchronous small exports.
-- [ ] Add queued large exports as managed-process runs.
-- [ ] Add export-ready notifications.
-- [ ] Add storage expiry and cleanup.
-- [ ] Add centralized report header configuration.
-- [ ] Add company data, logo, and footer configuration.
-- [ ] Add report page numbering.
-- [ ] Add totals.
-- [ ] Add separate audit export permission.
-- [ ] Before first TailAdmin Pro chart use, stop and request license confirmation.
-- [ ] Build shared TailAdmin Pro chart wrappers.
-- [ ] Add charts to PDF and print where justified.
-- [ ] Verify all report/chart/export/print states in light and dark themes.
-- [ ] Commit reports, exports, PDF, charts, and print.
+- [x] Reauthorize every artifact download and implement retention cleanup.
+- [x] Add CSV exports.
+- [x] Add XLSX exports.
+- [x] Add PDF exports.
+- [x] Implement shared HTML/CSS report layouts for both browser print and PDF.
+- [x] Implement headless Chromium/Playwright PDF rendering.
+- [x] Implement short-lived one-time report render credentials bound to report, user, team, dataset, and allowed columns.
+- [x] Ensure PDF rendering never depends on a live user browser session.
+- [x] Package report fonts locally and prohibit network font loading during rendering.
+- [x] Define A4, margins, repeated table headers, page-break, page-number, footer, and print-color rules.
+- [x] Implement a render-ready contract for charts and other asynchronous visuals.
+- [x] Fail PDF generation when required visuals do not finish rendering.
+- [x] Queue all large PDFs and define safe thresholds for any synchronous PDF path.
+- [x] Integrate PDF progress, failure, retry, storage, expiry, and notifications with shared reporting and managed-process infrastructure.
+- [x] Add Chromium-based tests for multipage tables, repeated headers, charts, fonts, page numbers, and failure handling.
+- [x] Add browser print layouts.
+- [x] Make exports honor filters, sorting, visible columns, permissions, and active team.
+- [x] Enforce ModuleGate for report views, export requests, queued export/PDF jobs, download authorization, and render-token access.
+- [x] Register report/export deactivation guards for unsafe in-flight generation where a module owns report jobs.
+- [x] Add synchronous small exports.
+- [x] Add queued large exports as managed-process runs.
+- [x] Add export-ready notifications.
+- [x] Add storage expiry and cleanup.
+- [x] Add centralized report header configuration.
+- [x] Add company data, logo, and footer configuration.
+- [x] Add report page numbering.
+- [x] Add totals.
+- [x] Add separate audit export permission.
+- [x] Use project-owned chart wrappers instead of a third-party UI template dependency.
+- [x] Build shared Atlas chart wrappers.
+- [x] Add charts to PDF and print where justified.
+- [x] Verify all report/chart/export/print states in light and dark themes.
+- [x] Commit reports, exports, PDF, charts, and print.
 
 ## Completion criteria
 
-- [ ] Reports and exports use the shared lifecycle and managed-process visibility end to end.
-- [ ] Generated artifacts are private, authorized, expiring, and safe to retry.
-- [ ] PDF and browser print share the same report contract.
-- [ ] Progress and failures are visible through notifications and Admin operations.
-- [ ] Relevant tests and documentation are current.
+- [x] Reports and exports use the shared lifecycle and managed-process visibility end to end.
+- [x] Generated artifacts are private, authorized, expiring, and safe to retry.
+- [x] PDF and browser print share the same report contract.
+- [x] Progress and failures are visible through notifications and Admin operations.
+- [x] Relevant tests and documentation are current.

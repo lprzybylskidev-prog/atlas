@@ -14,11 +14,4 @@ Canonical production topology and operational procedures. This document compleme
 
 ## Release checklist
 
-Before any release containing TailAdmin Pro assets, verify and record that:
-
-- the company has purchased the appropriate TailAdmin Pro license;
-- the license permits the intended Atlas use;
-- redistribution and source-transfer rights are compatible with the delivery model;
-- any Pro-only asset has a documented non-Pro fallback when redistribution is not permitted.
-
-Record the verified state through `ATLAS_TAILADMIN_PRO_LICENSE_STATE`, `ATLAS_TAILADMIN_PRO_LICENSE_CONFIRMED_AT`, `ATLAS_TAILADMIN_PRO_LICENSE_CONFIRMED_BY`, and `ATLAS_TAILADMIN_PRO_REDISTRIBUTION_CONFIRMED`.
+Before any release containing copied third-party UI templates, paid component source, paid chart source, or proprietary design-system assets, verify and document that the license permits the intended Atlas use, redistribution, and source-transfer model.

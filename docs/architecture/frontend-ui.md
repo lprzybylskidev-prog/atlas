@@ -1,16 +1,17 @@
 # Frontend and shared UI architecture
 
-Canonical current rules for TailAdmin usage, themes, layout, routing, frontend structure, accessibility, forms, modals, confirmations, alerts, and toasts.
+Canonical current rules for Atlas frontend UI usage, themes, layout, routing, frontend structure, accessibility, forms, modals, confirmations, alerts, and toasts.
 
 ## Frontend and UI
 
-### TailAdmin hierarchy
+### UI Implementation Hierarchy
 
 When implementing UI:
 
-1. check TailAdmin Vue Starter / Pro first;
-2. use Tailwind utilities if no suitable component exists;
-3. use custom CSS only as a last resort.
+1. reuse an existing shared Atlas component;
+2. extend the shared Atlas UI layer when a recurring primitive is missing;
+3. use Tailwind utilities for one-off composition;
+4. write custom CSS only as a last resort.
 
 Keep custom CSS minimal, ideally zero.
 
@@ -67,37 +68,17 @@ Shared surface composition uses:
 - `MetricGrid` for repeated operational metric cards.
 - `FilterPanel` for custom filters outside `DataTable`.
 - `DataTable` for tabular data whenever the interaction fits a normal table.
+- `AtlasBarChart` for accessible repository-owned bar charts.
 
 Every Inertia Admin page rendered through `AdminLayout` uses `PageStack` as the outer page-content wrapper. `PageStack` is fluid by default and owns only full-width page rhythm. Admin pages must not introduce narrow page variants or recreate page width with page-local `mx-auto`, `max-w-*`, or ad hoc container classes.
 
 Do not nest `SurfaceCard` inside another `SurfaceCard`. If a subsection contains filters plus a table, use an unframed `SectionHeader`, then `FilterPanel` and `DataTable` as siblings.
 
-### TailAdmin licensing guard
+### Third-Party UI Assets
 
-Atlas starts with TailAdmin Free patterns and project-owned components only.
+Atlas uses project-owned Vue components and Tailwind CSS for its UI foundation.
 
-TailAdmin Pro source, paid charts, paid assets, or Pro-only template fragments must not be copied, reproduced one-to-one, or introduced before the project owner explicitly confirms that the appropriate company license has been purchased and verified for Atlas use.
-
-The current TailAdmin Pro license state is **not confirmed** and is recorded in `config/atlas.php` as `atlas.ui.tailadmin.pro_license_state = not_confirmed`.
-
-The related environment variables are:
-
-- `ATLAS_TAILADMIN_PRO_LICENSE_STATE`;
-- `ATLAS_TAILADMIN_PRO_LICENSE_CONFIRMED_AT`;
-- `ATLAS_TAILADMIN_PRO_LICENSE_CONFIRMED_BY`;
-- `ATLAS_TAILADMIN_PRO_REDISTRIBUTION_CONFIRMED`.
-
-If a Pro-only need appears:
-
-- stop implementation before introducing the asset;
-- ask for one explicit confirmation that the license has been purchased;
-- verify redistribution/source-transfer rights before release;
-- update the recorded license state so future work does not repeat the same question;
-- keep or build a non-Pro fallback when redistribution is not permitted.
-
-The first frontend review checkpoint uses project-owned components and no TailAdmin Pro assets.
-
-TailAdmin Vue Starter is installed as the reviewed Free TailAdmin source checkpoint documented in [TailAdmin Vue Starter](tailadmin-vue-starter.md). Atlas does not vendor the upstream source tree unless the exact asset/license status is verified for source transfer.
+Do not introduce copied third-party UI templates, paid component source, paid chart source, or proprietary design-system assets unless the project owner explicitly requests that dependency and its license is verified for Atlas' delivery model.
 
 Do not create duplicate:
 
@@ -110,6 +91,8 @@ Do not create duplicate:
 - tables;
 - formatters;
 - chart wrappers.
+
+Shared chart wrappers must use repository-owned Vue/SVG composition by default, expose accessible text labels, support light and dark themes, and avoid adding chart libraries unless a concrete missing capability justifies the dependency.
 
 Avoid giant god-components. Extract stable common cores with focused variants or adapters.
 
@@ -309,7 +292,7 @@ Require:
 - accessible tables;
 - accessible charts where possible.
 
-Fix inaccessible TailAdmin components rather than accepting defects.
+Fix inaccessible shared components rather than accepting defects.
 
 ### Icons and tooltips
 

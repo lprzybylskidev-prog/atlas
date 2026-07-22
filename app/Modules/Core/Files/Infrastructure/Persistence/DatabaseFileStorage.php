@@ -13,6 +13,7 @@ use App\Modules\Core\Files\Application\Exceptions\FileNotAvailableForDownload;
 use App\Modules\Core\Files\Application\Public\Contracts\FileLifecycle;
 use App\Modules\Core\Files\Application\Public\Contracts\FileMaintenance;
 use App\Modules\Core\Files\Application\Public\Contracts\FileStorage;
+use App\Modules\Core\Files\Application\Public\DTOs\DownloadableFile;
 use App\Modules\Core\Files\Application\Public\DTOs\FileLifecycleResult;
 use App\Modules\Core\Files\Application\Public\DTOs\FileMaintenanceResult;
 use App\Modules\Core\Files\Application\Public\DTOs\StoredFile;
@@ -101,10 +102,67 @@ final readonly class DatabaseFileStorage implements FileLifecycle, FileMaintenan
             $checksum,
             is_object($deduplicated) ? FileScanState::Clean : FileScanState::Pending,
             is_object($deduplicated),
+            $id,
+        );
+    }
+
+    public function storeGenerated(string $filename, string $mimeType, string $contents, ?int $actorId = null, ?int $teamId = null, array $metadata = []): StoredFile
+    {
+        $disk = Config::string('atlas.files.disk', 'atlas_files');
+        $extension = strtolower((string) pathinfo($filename, PATHINFO_EXTENSION));
+        $checksum = hash('sha256', $contents);
+        $sizeBytes = strlen($contents);
+        $publicId = (string) Str::ulid();
+        $path = sprintf('%s/%s/%s', now('UTC')->format('Y/m/d'), Str::lower(Str::random(12)), Str::lower((string) Str::ulid()).($extension === '' ? '' : '.'.$extension));
+
+        Storage::disk($disk)->put($path, $contents, ['visibility' => 'private']);
+
+        $id = (int) $this->db->table(DatabaseTable::FILE_OBJECTS)->insertGetId([
+            'public_id' => $publicId,
+            'disk' => $disk,
+            'path' => $path,
+            'canonical_file_object_id' => null,
+            'physical_owner' => true,
+            'original_name' => $filename,
+            'extension' => $extension,
+            'mime_type' => $mimeType,
+            'size_bytes' => $sizeBytes,
+            'checksum_sha256' => $checksum,
+            'scan_state' => FileScanState::Clean->value,
+            'scan_state_changed_at' => now(),
+            'scan_attempts' => 0,
+            'available_at' => now(),
+            'quarantined_at' => now(),
+            'metadata' => $this->json($metadata),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->recordAudit('file.generated', 'succeeded', $actorId, $teamId, $publicId, [
+            'original_name' => $filename,
+            'mime_type' => $mimeType,
+            'size_bytes' => $sizeBytes,
+            'checksum_sha256' => $checksum,
+        ]);
+
+        return new StoredFile(
+            publicId: $publicId,
+            originalName: $filename,
+            mimeType: $mimeType,
+            sizeBytes: $sizeBytes,
+            checksumSha256: $checksum,
+            scanState: FileScanState::Clean,
+            deduplicated: false,
+            internalId: $id,
         );
     }
 
     public function cleanDownloadPath(string $publicId, ?int $actorId = null, ?int $teamId = null): string
+    {
+        return $this->cleanDownloadFile($publicId, $actorId, $teamId)->path;
+    }
+
+    public function cleanDownloadFile(string $publicId, ?int $actorId = null, ?int $teamId = null): DownloadableFile
     {
         $row = $this->db->table(DatabaseTable::FILE_OBJECTS)->where('public_id', $publicId)->whereNull('deleted_at')->first();
 
@@ -125,7 +183,15 @@ final readonly class DatabaseFileStorage implements FileLifecycle, FileMaintenan
 
         $this->recordAudit('file.downloaded', 'succeeded', $actorId, $teamId, $publicId);
 
-        return $path;
+        return new DownloadableFile(
+            publicId: $publicId,
+            disk: $disk,
+            path: $path,
+            filename: $this->string($row->original_name ?? null) ?? 'download',
+            mimeType: $this->string($row->mime_type ?? null) ?? 'application/octet-stream',
+            sizeBytes: $this->intValue($row->size_bytes ?? null),
+            checksumSha256: $this->string($row->checksum_sha256 ?? null) ?? '',
+        );
     }
 
     public function markScanning(int $fileObjectId): ?object

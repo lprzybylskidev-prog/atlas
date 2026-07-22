@@ -27,7 +27,6 @@ Atlas is designed around:
 - PostgreSQL
 - Redis for cache, sessions, queues, locks, and rate limiting
 - Vue 3, TypeScript, Inertia, Vite, and Tailwind CSS
-- TailAdmin Free initially, with an explicit licensing checkpoint before any Pro-only use
 - PHPUnit, PHPStan/Larastan, and Pint
 - ESLint, Prettier, Stylelint, Vitest, and Playwright
 - Docker Compose and VS Code Dev Containers
@@ -192,5 +191,3 @@ As the project grows, this README must present the current high-level system sco
 ## License and third-party assets
 
 Third-party dependencies and assets must be used according to their licenses.
-
-TailAdmin Pro requires explicit purchase confirmation and license verification before any Pro-only asset is introduced into Atlas.

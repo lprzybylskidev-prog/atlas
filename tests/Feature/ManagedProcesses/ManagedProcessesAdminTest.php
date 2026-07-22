@@ -86,6 +86,22 @@ final class ManagedProcessesAdminTest extends TestCase
                 ->where('run.publicId', $runPublicId)
                 ->where('run.canRetry', true)
                 ->has('logs', 7));
+
+        $retryResponse = $this->actingAs($admin)
+            ->withSession($this->adminSession($team))
+            ->post('/admin/managed-processes/'.$runPublicId.'/retry', [
+                'reason' => 'Retry after warnings.',
+            ])
+            ->assertRedirect();
+
+        $retryRunPublicId = basename((string) $retryResponse->headers->get('Location'));
+        $originalRunId = DB::table(DatabaseTable::MANAGED_PROCESS_RUNS)->where('public_id', $runPublicId)->value('id');
+
+        $this->assertDatabaseHas(DatabaseTable::MANAGED_PROCESS_RUNS, [
+            'public_id' => $retryRunPublicId,
+            'source_type' => 'retry',
+            'retry_of_run_id' => $originalRunId,
+        ]);
     }
 
     public function test_import_execution_uses_managed_process_run_and_import_detail(): void
