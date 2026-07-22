@@ -258,7 +258,7 @@ Implement full-text search as module-owned Meilisearch projections with Outbox i
 
 ### Phase 22a — Frontend rebuild and design system hardening
 
-**Status:** `in progress`
+**Status:** `complete`
 
 Rebuild the current Atlas frontend into a consistent, reusable, documented, and tested UI system before adding more Auth, application, or Admin workflows and modules.
 
