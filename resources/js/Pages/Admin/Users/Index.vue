@@ -7,6 +7,7 @@ import ActionLink from '../../../Components/ActionLink.vue';
 import DataTable from '../../../Components/DataTable.vue';
 import FilterPanel from '../../../Components/FilterPanel.vue';
 import FormSelect from '../../../Components/Form/FormSelect.vue';
+import PageStack from '../../../Components/PageStack.vue';
 import { runBulkRecordAction } from '../../../Composables/useBulkRecordActions';
 import AdminLayout from '../../../Layouts/AdminLayout.vue';
 import { useTranslator } from '../../../Localization/translator';
@@ -238,7 +239,7 @@ async function handleBulkAction(payload: { action: DataTableBulkAction; rowIds: 
 <template>
     <Head :title="t('pages.admin.users.index.head_title')" />
     <AdminLayout :title="t('pages.admin.users.index.title')" :title-icon="IconUserPlus">
-        <section class="space-y-5">
+        <PageStack>
             <div class="flex justify-end">
                 <ActionLink href="/admin/users/create" :icon="IconUserPlus" tone="primary"> Create user </ActionLink>
             </div>
@@ -270,6 +271,6 @@ async function handleBulkAction(payload: { action: DataTableBulkAction; rowIds: 
                 :table="table"
                 ui-locale="en"
             />
-        </section>
+        </PageStack>
     </AdminLayout>
 </template>

@@ -55,6 +55,36 @@ describe('shared UI guardrails', () => {
         expect(adminLayout).toContain(':show-locale-switcher="false"');
     });
 
+    it('keeps admin page content on the shared page width primitive', () => {
+        const pageStack = Object.entries(vueFiles).find(([file]) => file.endsWith('/PageStack.vue'))?.[1];
+
+        expect(pageStack).toBeDefined();
+        expect(pageStack).toContain('w-full space-y-5');
+        expect(pageStack).not.toContain('max-w-');
+        expect(pageStack).not.toContain('width?:');
+
+        for (const [file, contents] of Object.entries(vueFiles)) {
+            if (!file.includes('/Pages/')) {
+                continue;
+            }
+
+            expect(contents, `${file}: PageStack must stay fluid; pages must not select width variants.`).not.toMatch(
+                /<PageStack\b[^>]*\swidth=/,
+            );
+        }
+
+        for (const [file, contents] of Object.entries(vueFiles)) {
+            if (!file.includes('/Pages/Admin/') || !contents.includes('<AdminLayout')) {
+                continue;
+            }
+
+            expect(contents, `${file}: Admin pages must use PageStack for canonical content width and vertical rhythm.`).toContain(
+                '<PageStack',
+            );
+            expect(contents, `${file}: Admin pages must import PageStack when rendered through AdminLayout.`).toContain('PageStack.vue');
+        }
+    });
+
     it('keeps admin filter actions on the shared filter panel pattern', () => {
         const filterPanel = Object.entries(vueFiles).find(([file]) => file.endsWith('/FilterPanel.vue'))?.[1];
 

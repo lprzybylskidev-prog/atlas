@@ -179,6 +179,7 @@ Completed migration batch:
 
 Verification notes:
 
+- Post-completion consistency repair: Admin pages rendered through `AdminLayout` now consistently use a fluid `PageStack` for full-width page rhythm. Earlier Phase 22a migration notes were correct about shared tables/forms/cards in many places but missed page-width drift where some Admin pages used full shell width while others used constrained or page-local wrappers.
 - Targeted Playwright coverage for `tests/e2e/admin-visibility.spec.ts` passes in Chromium and Firefox after e2e seeding.
 - Frontend theme snapshots were regenerated for the rebuilt Auth, application, and Admin shells in Chromium and Firefox.
 - `tests/e2e/frontend-surfaces.spec.ts` sweeps the current static Auth, application, and Admin frontend surfaces through the rebuilt shared shells in light and dark themes in Chromium and Firefox.

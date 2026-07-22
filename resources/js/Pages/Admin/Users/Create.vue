@@ -10,6 +10,7 @@ import FormActions from '../../../Components/FormActions.vue';
 import FormButton from '../../../Components/Form/FormButton.vue';
 import FormInput from '../../../Components/Form/FormInput.vue';
 import FormSelect from '../../../Components/Form/FormSelect.vue';
+import PageStack from '../../../Components/PageStack.vue';
 import SurfaceCard from '../../../Components/SurfaceCard.vue';
 import UiState from '../../../Components/UiState.vue';
 import AdminLayout from '../../../Layouts/AdminLayout.vue';
@@ -183,127 +184,132 @@ function submit(): void {
 <template>
     <Head :title="t('pages.admin.users.create.head_title')" />
     <AdminLayout :title="t('pages.admin.users.create.title')" :title-icon="IconUserPlus">
-        <AtlasForm class="space-y-5" :processing="form.processing" @submit="submit">
-            <SurfaceCard title="Account identity" :icon="IconUserPlus">
-                <div class="grid gap-4 sm:grid-cols-2">
-                    <FormInput v-model="form.name" label="Name" :error="form.errors.name" />
-                    <FormInput v-model="form.email" label="Email" type="email" :error="form.errors.email" />
-                </div>
-            </SurfaceCard>
-
-            <SurfaceCard
-                title="Team assignments"
-                :icon="IconUserPlus"
-                subtitle="A user must belong to at least one team. Roles and permissions are assigned in that team context."
-            >
-                <template #actions>
-                    <FormButton type="button" tone="neutral" :icon="IconPlus" :disabled="!canAdd" @click="add">Add team</FormButton>
-                </template>
-
-                <p v-if="form.errors.team_assignments" class="text-xs text-rose-600 dark:text-rose-300">
-                    {{ form.errors.team_assignments }}
-                </p>
-
-                <div class="space-y-4">
-                    <UiState
-                        v-if="form.team_assignments.length === 0"
-                        variant="empty"
-                        title="Add at least one team assignment."
-                        size="compact"
-                    />
-
-                    <div
-                        v-for="(assignment, index) in form.team_assignments"
-                        :key="index"
-                        class="space-y-4 rounded-lg border border-zinc-200 p-4 dark:border-zinc-800"
-                    >
-                        <div class="grid gap-3 xl:grid-cols-[minmax(0,1fr)_16rem_auto]">
-                            <FormSelect
-                                v-model="assignment.team_public_id"
-                                label="Team"
-                                :options="teamOptionsForAssignment(assignment)"
-                                :error="form.errors[`team_assignments.${index}.team_public_id`]"
-                                @update:model-value="changeAssignmentTeam(assignment)"
-                            />
-                            <FormSelect
-                                v-model="assignment.source"
-                                label="Assignment source"
-                                :options="sourceOptions"
-                                :error="form.errors[`team_assignments.${index}.source`]"
-                                @update:model-value="changeAssignmentSource(assignment)"
-                            />
-                            <FormButton
-                                type="button"
-                                tone="danger"
-                                class="mt-0 xl:mt-6"
-                                :icon="IconTrash"
-                                @click="removeTeamAssignment(index)"
-                            >
-                                Remove
-                            </FormButton>
-                        </div>
-
-                        <FormSelect
-                            v-if="assignment.team_public_id !== '' && assignment.source === 'package'"
-                            v-model="assignment.onboarding_package"
-                            label="Preset"
-                            :options="packageOptionsForAssignment(assignment)"
-                            :error="form.errors[`team_assignments.${index}.onboarding_package`]"
-                        />
-
-                        <FormSelect
-                            v-if="assignment.team_public_id !== '' && assignment.source === 'copy'"
-                            v-model="assignment.copy_authorization_from_user"
-                            label="Copy roles and permissions from"
-                            :options="copySourceOptionsForAssignment(assignment)"
-                            :error="form.errors[`team_assignments.${index}.copy_authorization_from_user`]"
-                        />
-
-                        <div v-if="assignment.team_public_id !== '' && assignment.source === 'manual'" class="grid gap-4 xl:grid-cols-2">
-                            <CheckboxList v-model="assignment.role_names" label="Roles" :options="roleOptions" />
-                            <CheckboxList
-                                v-model="assignment.direct_permission_names"
-                                label="Direct permissions"
-                                :options="permissionOptions"
-                            />
-                        </div>
-
-                        <section
-                            v-if="assignment.team_public_id !== ''"
-                            class="rounded-lg border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-900/50"
-                        >
-                            <h3 class="text-xs font-semibold uppercase text-zinc-500 dark:text-zinc-400">Effective preview</h3>
-                            <div class="mt-3 grid gap-4 xl:grid-cols-3">
-                                <div>
-                                    <p class="text-xs font-semibold text-zinc-500 dark:text-zinc-400">Roles</p>
-                                    <p class="mt-1 break-words text-sm text-zinc-700 dark:text-zinc-200">
-                                        {{ resolvedRoles(assignment).join(', ') || 'None' }}
-                                    </p>
-                                </div>
-                                <div>
-                                    <p class="text-xs font-semibold text-zinc-500 dark:text-zinc-400">Direct permissions</p>
-                                    <p class="mt-1 break-words text-sm text-zinc-700 dark:text-zinc-200">
-                                        {{ resolvedDirectPermissions(assignment).join(', ') || 'None' }}
-                                    </p>
-                                </div>
-                                <div>
-                                    <p class="text-xs font-semibold text-zinc-500 dark:text-zinc-400">Effective permissions</p>
-                                    <p class="mt-1 break-words text-sm text-zinc-700 dark:text-zinc-200">
-                                        {{ effectivePermissions(assignment).join(', ') || 'None' }}
-                                    </p>
-                                </div>
-                            </div>
-                        </section>
+        <PageStack>
+            <AtlasForm class="space-y-5" :processing="form.processing" @submit="submit">
+                <SurfaceCard title="Account identity" :icon="IconUserPlus">
+                    <div class="grid gap-4 sm:grid-cols-2">
+                        <FormInput v-model="form.name" label="Name" :error="form.errors.name" />
+                        <FormInput v-model="form.email" label="Email" type="email" :error="form.errors.email" />
                     </div>
-                </div>
-            </SurfaceCard>
+                </SurfaceCard>
 
-            <FormActions>
-                <FormButton type="submit" :loading="form.processing">
-                    {{ form.processing ? 'Creating...' : 'Create user' }}
-                </FormButton>
-                <ActionLink href="/admin/users" :icon="IconArrowLeft"> Back to users </ActionLink>
-            </FormActions>
-        </AtlasForm>
+                <SurfaceCard
+                    title="Team assignments"
+                    :icon="IconUserPlus"
+                    subtitle="A user must belong to at least one team. Roles and permissions are assigned in that team context."
+                >
+                    <template #actions>
+                        <FormButton type="button" tone="neutral" :icon="IconPlus" :disabled="!canAdd" @click="add">Add team</FormButton>
+                    </template>
+
+                    <p v-if="form.errors.team_assignments" class="text-xs text-rose-600 dark:text-rose-300">
+                        {{ form.errors.team_assignments }}
+                    </p>
+
+                    <div class="space-y-4">
+                        <UiState
+                            v-if="form.team_assignments.length === 0"
+                            variant="empty"
+                            title="Add at least one team assignment."
+                            size="compact"
+                        />
+
+                        <div
+                            v-for="(assignment, index) in form.team_assignments"
+                            :key="index"
+                            class="space-y-4 rounded-lg border border-zinc-200 p-4 dark:border-zinc-800"
+                        >
+                            <div class="grid gap-3 xl:grid-cols-[minmax(0,1fr)_16rem_auto]">
+                                <FormSelect
+                                    v-model="assignment.team_public_id"
+                                    label="Team"
+                                    :options="teamOptionsForAssignment(assignment)"
+                                    :error="form.errors[`team_assignments.${index}.team_public_id`]"
+                                    @update:model-value="changeAssignmentTeam(assignment)"
+                                />
+                                <FormSelect
+                                    v-model="assignment.source"
+                                    label="Assignment source"
+                                    :options="sourceOptions"
+                                    :error="form.errors[`team_assignments.${index}.source`]"
+                                    @update:model-value="changeAssignmentSource(assignment)"
+                                />
+                                <FormButton
+                                    type="button"
+                                    tone="danger"
+                                    class="mt-0 xl:mt-6"
+                                    :icon="IconTrash"
+                                    @click="removeTeamAssignment(index)"
+                                >
+                                    Remove
+                                </FormButton>
+                            </div>
+
+                            <FormSelect
+                                v-if="assignment.team_public_id !== '' && assignment.source === 'package'"
+                                v-model="assignment.onboarding_package"
+                                label="Preset"
+                                :options="packageOptionsForAssignment(assignment)"
+                                :error="form.errors[`team_assignments.${index}.onboarding_package`]"
+                            />
+
+                            <FormSelect
+                                v-if="assignment.team_public_id !== '' && assignment.source === 'copy'"
+                                v-model="assignment.copy_authorization_from_user"
+                                label="Copy roles and permissions from"
+                                :options="copySourceOptionsForAssignment(assignment)"
+                                :error="form.errors[`team_assignments.${index}.copy_authorization_from_user`]"
+                            />
+
+                            <div
+                                v-if="assignment.team_public_id !== '' && assignment.source === 'manual'"
+                                class="grid gap-4 xl:grid-cols-2"
+                            >
+                                <CheckboxList v-model="assignment.role_names" label="Roles" :options="roleOptions" />
+                                <CheckboxList
+                                    v-model="assignment.direct_permission_names"
+                                    label="Direct permissions"
+                                    :options="permissionOptions"
+                                />
+                            </div>
+
+                            <section
+                                v-if="assignment.team_public_id !== ''"
+                                class="rounded-lg border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-900/50"
+                            >
+                                <h3 class="text-xs font-semibold uppercase text-zinc-500 dark:text-zinc-400">Effective preview</h3>
+                                <div class="mt-3 grid gap-4 xl:grid-cols-3">
+                                    <div>
+                                        <p class="text-xs font-semibold text-zinc-500 dark:text-zinc-400">Roles</p>
+                                        <p class="mt-1 break-words text-sm text-zinc-700 dark:text-zinc-200">
+                                            {{ resolvedRoles(assignment).join(', ') || 'None' }}
+                                        </p>
+                                    </div>
+                                    <div>
+                                        <p class="text-xs font-semibold text-zinc-500 dark:text-zinc-400">Direct permissions</p>
+                                        <p class="mt-1 break-words text-sm text-zinc-700 dark:text-zinc-200">
+                                            {{ resolvedDirectPermissions(assignment).join(', ') || 'None' }}
+                                        </p>
+                                    </div>
+                                    <div>
+                                        <p class="text-xs font-semibold text-zinc-500 dark:text-zinc-400">Effective permissions</p>
+                                        <p class="mt-1 break-words text-sm text-zinc-700 dark:text-zinc-200">
+                                            {{ effectivePermissions(assignment).join(', ') || 'None' }}
+                                        </p>
+                                    </div>
+                                </div>
+                            </section>
+                        </div>
+                    </div>
+                </SurfaceCard>
+
+                <FormActions>
+                    <FormButton type="submit" :loading="form.processing">
+                        {{ form.processing ? 'Creating...' : 'Create user' }}
+                    </FormButton>
+                    <ActionLink href="/admin/users" :icon="IconArrowLeft"> Back to users </ActionLink>
+                </FormActions>
+            </AtlasForm>
+        </PageStack>
     </AdminLayout>
 </template>

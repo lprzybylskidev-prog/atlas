@@ -8,6 +8,7 @@ import DataTable from '../../../Components/DataTable.vue';
 import FormDateInput from '../../../Components/Form/FormDateInput.vue';
 import FormInput from '../../../Components/Form/FormInput.vue';
 import FormSelect from '../../../Components/Form/FormSelect.vue';
+import PageStack from '../../../Components/PageStack.vue';
 import AdminLayout from '../../../Layouts/AdminLayout.vue';
 import { useTranslator } from '../../../Localization/translator';
 import type { DataTableColumn, DataTableMeta } from '../../../Types/data-table';
@@ -208,7 +209,7 @@ watch(
 <template>
     <Head title="Audit" />
     <AdminLayout :title="t('pages.admin.audit.title')" :title-icon="IconClipboardList">
-        <section class="space-y-4">
+        <PageStack>
             <FilterPanel @apply="applyFilters" @clear="clearFilters">
                 <div class="grid gap-3 md:grid-cols-3 xl:grid-cols-6">
                     <FormSelect v-model="filters.module" class="mt-1" aria-label="Module" :options="moduleOptions" />
@@ -237,6 +238,6 @@ watch(
                 </div>
             </FilterPanel>
             <DataTable title="Audit events" :rows="events" :columns="columns" row-key="publicId" :table="table" ui-locale="en" />
-        </section>
+        </PageStack>
     </AdminLayout>
 </template>

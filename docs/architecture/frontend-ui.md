@@ -68,6 +68,8 @@ Shared surface composition uses:
 - `FilterPanel` for custom filters outside `DataTable`.
 - `DataTable` for tabular data whenever the interaction fits a normal table.
 
+Every Inertia Admin page rendered through `AdminLayout` uses `PageStack` as the outer page-content wrapper. `PageStack` is fluid by default and owns only full-width page rhythm. Admin pages must not introduce narrow page variants or recreate page width with page-local `mx-auto`, `max-w-*`, or ad hoc container classes.
+
 Do not nest `SurfaceCard` inside another `SurfaceCard`. If a subsection contains filters plus a table, use an unframed `SectionHeader`, then `FilterPanel` and `DataTable` as siblings.
 
 ### TailAdmin licensing guard

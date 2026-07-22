@@ -10,6 +10,7 @@ import FormCheckbox from '../../../Components/Form/FormCheckbox.vue';
 import FormSelect from '../../../Components/Form/FormSelect.vue';
 import FormTextarea from '../../../Components/Form/FormTextarea.vue';
 import NoticeBanner from '../../../Components/NoticeBanner.vue';
+import PageStack from '../../../Components/PageStack.vue';
 import SurfaceCard from '../../../Components/SurfaceCard.vue';
 import AdminLayout from '../../../Layouts/AdminLayout.vue';
 import type { FormSelectOption } from '../../../Components/Form/FormSelect.vue';
@@ -39,7 +40,7 @@ function submit(): void {
 <template>
     <Head title="Start impersonation" />
     <AdminLayout title="Start impersonation" :title-icon="IconUserScan">
-        <section class="mx-auto max-w-2xl space-y-5">
+        <PageStack>
             <NoticeBanner tone="warning"> Business actions during impersonation are real production actions. </NoticeBanner>
 
             <SurfaceCard title="Impersonation request" :icon="IconUserScan">
@@ -75,6 +76,6 @@ function submit(): void {
                     </FormActions>
                 </AtlasForm>
             </SurfaceCard>
-        </section>
+        </PageStack>
     </AdminLayout>
 </template>

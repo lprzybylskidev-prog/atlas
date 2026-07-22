@@ -41,7 +41,7 @@ function submit(): void {
 <template>
     <Head :title="t('team.select.head_title')" />
     <AppLayout :title="t('team.select.title')" :title-icon="IconBuildingCommunity" :show-locale-switcher="false">
-        <PageStack width="narrow">
+        <PageStack>
             <SurfaceCard :title="t('team.select.heading')" :icon="IconBuildingCommunity" :subtitle="t('team.select.description')">
                 <AtlasForm class="space-y-4" :processing="submitting" @submit="submit">
                     <FormSelect

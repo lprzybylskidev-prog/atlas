@@ -6,6 +6,7 @@ import { computed, reactive } from 'vue';
 import DataTable from '../../../Components/DataTable.vue';
 import FilterPanel from '../../../Components/FilterPanel.vue';
 import FormSelect from '../../../Components/Form/FormSelect.vue';
+import PageStack from '../../../Components/PageStack.vue';
 import AdminLayout from '../../../Layouts/AdminLayout.vue';
 import { useTranslator } from '../../../Localization/translator';
 import type { DataTableAction, DataTableColumn, DataTableMeta } from '../../../Types/data-table';
@@ -102,7 +103,7 @@ const actions: DataTableAction<ModuleRow>[] = [{ key: 'show', label: 'Manage tea
 <template>
     <Head title="Modules" />
     <AdminLayout :title="t('navigation.modules')" :title-icon="IconPuzzle">
-        <section class="space-y-5">
+        <PageStack>
             <FilterPanel
                 title="Module filters"
                 :summary="`Showing ${filteredModules.length} of ${modules.length} loaded modules.`"
@@ -134,6 +135,6 @@ const actions: DataTableAction<ModuleRow>[] = [{ key: 'show', label: 'Manage tea
                 :table="table"
                 ui-locale="en"
             />
-        </section>
+        </PageStack>
     </AdminLayout>
 </template>

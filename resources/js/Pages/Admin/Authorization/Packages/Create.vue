@@ -9,6 +9,7 @@ import AtlasForm from '../../../../Components/Form/AtlasForm.vue';
 import FormButton from '../../../../Components/Form/FormButton.vue';
 import FormInput from '../../../../Components/Form/FormInput.vue';
 import FormSelect from '../../../../Components/Form/FormSelect.vue';
+import PageStack from '../../../../Components/PageStack.vue';
 import SurfaceCard from '../../../../Components/SurfaceCard.vue';
 import AdminLayout from '../../../../Layouts/AdminLayout.vue';
 import { useTranslator } from '../../../../Localization/translator';
@@ -37,51 +38,53 @@ function submit(): void {
 <template>
     <Head :title="t('pages.admin.packages.create.head_title')" />
     <AdminLayout :title="t('pages.admin.packages.create.title')" :title-icon="IconPackages">
-        <AtlasForm class="grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(24rem,32rem)]" :processing="form.processing" @submit="submit">
-            <SurfaceCard title="Preset identity" :icon="IconPackages">
-                <div class="grid gap-4 sm:grid-cols-2">
-                    <FormSelect
-                        v-model="form.team_public_id"
-                        label="Team"
-                        :options="[{ value: '', label: 'Select team' }, ...teamOptions]"
-                        :error="form.errors.team_public_id"
+        <PageStack>
+            <AtlasForm class="grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(24rem,32rem)]" :processing="form.processing" @submit="submit">
+                <SurfaceCard title="Preset identity" :icon="IconPackages">
+                    <div class="grid gap-4 sm:grid-cols-2">
+                        <FormSelect
+                            v-model="form.team_public_id"
+                            label="Team"
+                            :options="[{ value: '', label: 'Select team' }, ...teamOptions]"
+                            :error="form.errors.team_public_id"
+                        />
+                        <FormInput
+                            v-model="form.name"
+                            label="Technical name"
+                            placeholder="department.responsibility"
+                            :error="form.errors.name"
+                            monospace
+                        />
+                        <FormInput v-model="form.label" label="Label" :error="form.errors.label" />
+                    </div>
+
+                    <CheckboxList
+                        v-model="form.initial_roles"
+                        class="mt-5"
+                        label="Initial roles"
+                        :options="roleOptions"
+                        :error="form.errors.initial_roles"
+                        max-height="max-h-40"
+                        :item-monospace="false"
                     />
-                    <FormInput
-                        v-model="form.name"
-                        label="Technical name"
-                        placeholder="department.responsibility"
-                        :error="form.errors.name"
-                        monospace
+                </SurfaceCard>
+
+                <SurfaceCard title="Direct permissions" :icon="IconPackages">
+                    <CheckboxList
+                        v-model="form.direct_permissions"
+                        :options="permissionOptions"
+                        :error="form.errors.direct_permissions"
+                        max-height="max-h-[32rem]"
                     />
-                    <FormInput v-model="form.label" label="Label" :error="form.errors.label" />
-                </div>
+                </SurfaceCard>
 
-                <CheckboxList
-                    v-model="form.initial_roles"
-                    class="mt-5"
-                    label="Initial roles"
-                    :options="roleOptions"
-                    :error="form.errors.initial_roles"
-                    max-height="max-h-40"
-                    :item-monospace="false"
-                />
-            </SurfaceCard>
-
-            <SurfaceCard title="Direct permissions" :icon="IconPackages">
-                <CheckboxList
-                    v-model="form.direct_permissions"
-                    :options="permissionOptions"
-                    :error="form.errors.direct_permissions"
-                    max-height="max-h-[32rem]"
-                />
-            </SurfaceCard>
-
-            <FormActions class="xl:col-span-2">
-                <FormButton type="submit" :loading="form.processing">
-                    {{ form.processing ? 'Saving...' : 'Save preset' }}
-                </FormButton>
-                <ActionLink href="/admin/authorization/packages" :icon="IconArrowLeft"> Back to presets </ActionLink>
-            </FormActions>
-        </AtlasForm>
+                <FormActions class="xl:col-span-2">
+                    <FormButton type="submit" :loading="form.processing">
+                        {{ form.processing ? 'Saving...' : 'Save preset' }}
+                    </FormButton>
+                    <ActionLink href="/admin/authorization/packages" :icon="IconArrowLeft"> Back to presets </ActionLink>
+                </FormActions>
+            </AtlasForm>
+        </PageStack>
     </AdminLayout>
 </template>

@@ -4,6 +4,7 @@ import { IconAlertTriangle, IconCircleCheck, IconLayoutDashboard } from '@tabler
 import { computed } from 'vue';
 
 import ComposableViewHost from '../../Components/ComposableView/ComposableViewHost.vue';
+import PageStack from '../../Components/PageStack.vue';
 import TextBadge from '../../Components/TextBadge.vue';
 import AdminLayout from '../../Layouts/AdminLayout.vue';
 import { resolveComposableHostView, SYSTEM_STATUS_ELEMENTS } from '../../Services/composableViewRegistry';
@@ -35,11 +36,11 @@ const statusBadge = computed(() => {
 <template>
     <Head title="Admin dashboard" />
     <AdminLayout title="Admin dashboard" :title-icon="IconLayoutDashboard">
-        <section class="space-y-4">
+        <PageStack>
             <section
                 class="flex flex-col gap-4 border-b border-zinc-200 pb-5 dark:border-zinc-800 lg:flex-row lg:items-end lg:justify-between"
             >
-                <div class="max-w-3xl">
+                <div>
                     <p class="text-xs font-semibold uppercase tracking-wide text-teal-700 dark:text-teal-300">Operations</p>
                     <h1 class="mt-2 text-2xl font-semibold text-zinc-950 dark:text-zinc-50">Admin dashboard</h1>
                     <p class="mt-2 text-sm leading-6 text-zinc-600 dark:text-zinc-300">
@@ -50,6 +51,6 @@ const statusBadge = computed(() => {
             </section>
 
             <ComposableViewHost :view="view" />
-        </section>
+        </PageStack>
     </AdminLayout>
 </template>

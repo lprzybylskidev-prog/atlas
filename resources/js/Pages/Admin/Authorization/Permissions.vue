@@ -5,6 +5,7 @@ import { computed, reactive } from 'vue';
 import DataTable from '../../../Components/DataTable.vue';
 import FilterPanel from '../../../Components/FilterPanel.vue';
 import FormSelect from '../../../Components/Form/FormSelect.vue';
+import PageStack from '../../../Components/PageStack.vue';
 import AdminLayout from '../../../Layouts/AdminLayout.vue';
 import type { DataTableColumn, DataTableMeta } from '../../../Types/data-table';
 import { useTranslator } from '../../../Localization/translator';
@@ -110,7 +111,7 @@ const columns: DataTableColumn<PermissionRow>[] = [
 <template>
     <Head :title="t('pages.admin.permissions.head_title')" />
     <AdminLayout :title="t('pages.admin.permissions.title')">
-        <section class="space-y-5">
+        <PageStack>
             <FilterPanel
                 title="Permission filters"
                 :summary="`Showing ${filteredPermissions.length} of ${permissions.length} loaded permissions.`"
@@ -146,6 +147,6 @@ const columns: DataTableColumn<PermissionRow>[] = [
                 :table="table"
                 ui-locale="en"
             />
-        </section>
+        </PageStack>
     </AdminLayout>
 </template>

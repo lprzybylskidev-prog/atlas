@@ -7,6 +7,7 @@ import ActionLink from '../../../Components/ActionLink.vue';
 import DataTable from '../../../Components/DataTable.vue';
 import FilterPanel from '../../../Components/FilterPanel.vue';
 import FormSelect from '../../../Components/Form/FormSelect.vue';
+import PageStack from '../../../Components/PageStack.vue';
 import { runBulkRecordAction } from '../../../Composables/useBulkRecordActions';
 import AdminLayout from '../../../Layouts/AdminLayout.vue';
 import { useTranslator } from '../../../Localization/translator';
@@ -104,7 +105,7 @@ async function handleBulkAction(payload: { action: DataTableBulkAction; rowIds: 
 <template>
     <Head :title="t('pages.admin.teams.head_title')" />
     <AdminLayout :title="t('pages.admin.teams.title')" :title-icon="IconUsersGroup">
-        <section class="space-y-5">
+        <PageStack>
             <div class="flex justify-end">
                 <ActionLink href="/admin/teams/create" :icon="IconUsersGroup" tone="primary"> Create team </ActionLink>
             </div>
@@ -131,6 +132,6 @@ async function handleBulkAction(payload: { action: DataTableBulkAction; rowIds: 
                 :table="table"
                 ui-locale="en"
             />
-        </section>
+        </PageStack>
     </AdminLayout>
 </template>
