@@ -37,8 +37,8 @@ Do not replace this index after the initial technical foundation is completed. C
 
 ## Current phase
 
-- Phase: [Phase 23 — Feature flags](docs/roadmap/phase-23-feature-flags.md)
-- Status: `complete`
+- Phase: [Phase 24 — Reports, exports, PDF, charts, and print](docs/roadmap/phase-24-reports-exports-print.md)
+- Status: `active`
 
 ## Roadmap dependency repair note
 
@@ -274,7 +274,7 @@ Implement typed feature flags with safe targeting, evaluation, lifecycle, audit,
 
 ### Phase 24 — Reports, exports, PDF, charts, and print
 
-**Status:** `not started`
+**Status:** `active`
 
 Build report/export pipelines, browser print, Chromium-based PDF generation, chart wrappers, artifact storage, notifications, and report layouts after table, file, notification, audit, and health foundations exist.
 

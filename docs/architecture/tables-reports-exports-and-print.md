@@ -6,7 +6,7 @@ Canonical shared contract for data tables, query strings, saved views, exports, 
 
 Every table uses the shared TanStack Table wrapper.
 
-The Phase 10 shared `DataTable` wrapper is the only application table framework. Current Admin tables use backend-validated table state, server-side pagination, sorting, and filtering, deterministic English query-string keys, column visibility/order state, row selection for the currently loaded page, loading/empty/error/no-results states, row actions, and local CSV/XLSX/PDF/print actions for the currently loaded visible dataset.
+The Phase 10 shared `DataTable` wrapper is the only application table framework. Current Admin tables use backend-validated table state, server-side pagination, sorting, and filtering, deterministic English query-string keys, column visibility/order state, row selection for the currently loaded page, loading/empty/error/no-results states, and row actions. Report/export actions are provided through the Reports module lifecycle instead of browser-local table generation.
 
 Tables keep readable minimum widths for data cells and row actions. When the visible column set is wider than the available viewport, the shared wrapper uses horizontal scrolling instead of compressing columns until values or actions overlap. Truncated data cells expose the full formatted value through the shared tooltip pattern while keeping the formatted value selectable for normal browser copy operations.
 

@@ -50,7 +50,7 @@ Current implementation foundation:
 - Admin team administration screens are available at `/admin/teams`; team creation and editing use separate Admin views, show team identity and active state, and manage team members with team-scoped roles and direct permissions.
 - Admin module activation screens are available at `/admin/modules`; module activation can also be managed from team creation and editing workflows.
 - Admin user administration is available at `/admin/users`, shows users in the shared TanStack `DataTable`, supports current account-status actions, requires at least one team assignment during user creation, shows exact effective team-scoped assignments before submission, can apply a package or copy another user's role/direct-permission assignments in the selected team, manages user team access and team-scoped role/direct-permission assignments, and routes account creation through the normal user creation use case.
-- Current Admin tables use the shared `DataTable` wrapper with backend-validated query-string state, server-side pagination/sorting/filtering, saved views, and client CSV, XLSX, PDF, and print export actions for the currently loaded visible dataset. Server-side queued exports remain part of the later reporting/export lifecycle.
+- Current Admin tables use the shared `DataTable` wrapper with backend-validated query-string state, server-side pagination/sorting/filtering, and saved views. Report/export actions are owned by the Reports module lifecycle rather than generated locally in the browser.
 
 Starter roles:
 

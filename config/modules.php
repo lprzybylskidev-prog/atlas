@@ -15,6 +15,7 @@ use App\Modules\Optional\FeatureFlags\FeatureFlagsModule;
 use App\Modules\Optional\Imports\ImportsModule;
 use App\Modules\Optional\Integrations\IntegrationsModule;
 use App\Modules\Optional\ManagedProcesses\ManagedProcessesModule;
+use App\Modules\Optional\Reports\ReportsModule;
 use App\Modules\Optional\Search\SearchModule;
 
 return [
@@ -33,5 +34,6 @@ return [
         ManagedProcessesModule::class,
         ImportsModule::class,
         SearchModule::class,
+        ReportsModule::class,
     ],
 ];

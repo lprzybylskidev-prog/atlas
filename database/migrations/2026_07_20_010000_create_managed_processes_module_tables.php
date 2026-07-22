@@ -14,6 +14,9 @@ return new class extends Migration
     {
         DatabaseSchema::ensure(DatabaseSchema::OPTIONAL_MANAGED_PROCESSES);
 
+        Schema::dropIfExists(DatabaseTable::REPORT_RENDER_CREDENTIALS);
+        Schema::dropIfExists(DatabaseTable::REPORT_EXPORT_ARTIFACTS);
+        Schema::dropIfExists(DatabaseTable::REPORT_EXPORT_REQUESTS);
         Schema::dropIfExists(DatabaseTable::IMPORT_IDEMPOTENCY_KEYS);
         Schema::dropIfExists(DatabaseTable::IMPORT_ROW_ERRORS);
         Schema::dropIfExists(DatabaseTable::IMPORT_EXECUTIONS);

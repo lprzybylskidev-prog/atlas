@@ -20,18 +20,14 @@ import {
     IconCircleCheck,
     IconCopy,
     IconDeviceFloppy,
-    IconDownload,
     IconEraser,
     IconExternalLink,
-    IconFileSpreadsheet,
-    IconFileText,
     IconKey,
     IconLockOpen,
     IconLogout,
     IconMailCheck,
     IconPencil,
     IconPlayerPlay,
-    IconPrinter,
     IconRefresh,
     IconSearch,
     IconSelectAll,
@@ -79,7 +75,6 @@ const props = withDefaults(
         actions?: DataTableAction<TRow>[];
         bulkActions?: DataTableBulkAction[];
         emptyLabel?: string;
-        exportable?: boolean;
         totalRows?: number;
         uiLocale?: string;
         stateKey?: string;
@@ -92,7 +87,6 @@ const props = withDefaults(
         actions: () => [],
         bulkActions: () => [],
         emptyLabel: undefined,
-        exportable: true,
         totalRows: undefined,
         uiLocale: undefined,
         stateKey: undefined,
@@ -143,7 +137,6 @@ const pagination = ref<PaginationState>(
 );
 const rowSelection = ref({});
 const columnsMenu = ref<HTMLDetailsElement | null>(null);
-const exportMenu = ref<HTMLDetailsElement | null>(null);
 const viewsMenu = ref<HTMLDetailsElement | null>(null);
 const { t } = useTranslator(props.uiLocale);
 const { busy, confirm } = useModal();
@@ -155,7 +148,7 @@ const selectedViewId = ref(props.table?.state.view ?? '');
 let serverSyncTimer: ReturnType<typeof window.setTimeout> | undefined;
 let syncingServerState = false;
 
-const selectable = computed(() => props.exportable || props.bulkActions.length > 0);
+const selectable = computed(() => props.bulkActions.length > 0);
 const orderedColumns = computed(() => {
     const order = props.table?.state.columnOrder ?? [];
 
@@ -271,14 +264,6 @@ const table = useVueTable({
 const visibleDataColumns = computed(() => orderedColumns.value.filter((column) => table.getColumn(column.key)?.getIsVisible() ?? false));
 const selectedCount = computed(() => Object.keys(rowSelection.value).length);
 const selectedRowIds = computed(() => Object.keys(rowSelection.value));
-const selectedRows = computed(() => table.getSelectedRowModel().rows.map((row) => row.original));
-const exportRows = computed(() => {
-    if (selectedRows.value.length > 0) {
-        return selectedRows.value;
-    }
-
-    return table.getRowModel().rows.map((row) => row.original);
-});
 const pageOptions = computed(() => Array.from({ length: table.getPageCount() || 1 }, (_, index) => index));
 const pageSelectOptions = computed(() => pageOptions.value.map((index) => ({ value: index, label: String(index + 1) })));
 const pageSizeOptions = [10, 25, 50, 100, 250];
@@ -761,38 +746,6 @@ function formattedCellText(value: unknown, format: DataTableColumn<TRow>['format
     return formatEmpty(value);
 }
 
-function formatExportCell(value: unknown, format: DataTableColumn<TRow>['format']): string {
-    if (format === 'boolean') {
-        return value === true ? t('datatable.boolean.yes') : t('datatable.boolean.no');
-    }
-
-    if (format === 'list' && Array.isArray(value)) {
-        return value.join(', ');
-    }
-
-    if (format === 'count' && Array.isArray(value)) {
-        return String(value.length);
-    }
-
-    if ((format === 'date' || format === 'time' || format === 'datetime') && typeof value === 'string' && value !== '') {
-        return value;
-    }
-
-    if ((format === 'severity' || format === 'status') && typeof value === 'string') {
-        return localizedStatus(value);
-    }
-
-    if (format === 'money' && value !== null && typeof value === 'object' && 'amountMinor' in value && 'currency' in value) {
-        return formatMoney(value as { amountMinor: number; currency: string }, props.uiLocale ?? 'en');
-    }
-
-    if (format === 'file-size' && typeof value === 'number') {
-        return formatFileSize(value, props.uiLocale ?? 'en');
-    }
-
-    return formatEmpty(value);
-}
-
 function localizedStatus(value: string): string {
     const normalized = value.toLowerCase().trim().replaceAll(/\s+/gu, '_').replaceAll('-', '_');
     const statusKeys: Record<string, TranslationKey> = {
@@ -819,282 +772,6 @@ function localizedStatus(value: string): string {
     return key === undefined ? formatStatus(value) : t(key);
 }
 
-function exportPayload(): { headers: string[]; rows: string[][] } {
-    return {
-        headers: visibleDataColumns.value.map((column) => column.label),
-        rows: exportRows.value.map((row) => visibleDataColumns.value.map((column) => formatExportCell(row[column.key], column.format))),
-    };
-}
-
-function filename(extension: string): string {
-    const slug = props.title.toLowerCase().replace(/[^a-z0-9]+/g, '-') || 'table';
-
-    return `${slug}.${extension}`;
-}
-
-function downloadBlob(blob: Blob, name: string): void {
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-
-    link.href = url;
-    link.download = name;
-    link.click();
-    URL.revokeObjectURL(url);
-}
-
-async function canExport(): Promise<boolean> {
-    if (exportRows.value.length <= 5000) {
-        return true;
-    }
-
-    return confirm({
-        titleKey: 'datatable.export.large.title',
-        descriptionKey: 'datatable.export.large.description',
-        confirmKey: 'datatable.export.large.confirm',
-        cancelKey: 'datatable.export.large.cancel',
-        tone: 'warning',
-    });
-}
-
-async function exportCsv(): Promise<void> {
-    if (!(await canExport())) {
-        return;
-    }
-
-    await withBusyModal('datatable.export.processing.title', 'datatable.export.processing.description', () => {
-        const { headers, rows } = exportPayload();
-        const csv = [headers.map(escapeCsv).join(','), ...rows.map((row) => row.join(','))].join('\n');
-        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
-
-        downloadBlob(blob, filename('csv'));
-        toast.success('toast.export.ready');
-    });
-}
-
-async function exportXlsx(): Promise<void> {
-    if (!(await canExport())) {
-        return;
-    }
-
-    await withBusyModal('datatable.export.processing.title', 'datatable.export.processing.description', () => {
-        const { headers, rows } = exportPayload();
-        const sheetRows = [headers, ...rows]
-            .map(
-                (row, rowIndex) =>
-                    `<row r="${rowIndex + 1}">${row
-                        .map((value, cellIndex) => {
-                            const cellReference = `${columnName(cellIndex + 1)}${rowIndex + 1}`;
-
-                            return `<c r="${cellReference}" t="inlineStr"><is><t>${escapeXml(value)}</t></is></c>`;
-                        })
-                        .join('')}</row>`,
-            )
-            .join('');
-        const worksheet = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>${sheetRows}</sheetData></worksheet>`;
-        const workbook =
-            '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="Export" sheetId="1" r:id="rId1"/></sheets></workbook>';
-        const workbookRelationships =
-            '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/></Relationships>';
-        const rootRelationships =
-            '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>';
-        const contentTypes =
-            '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/></Types>';
-        const blob = createZip([
-            { name: '[Content_Types].xml', content: contentTypes },
-            { name: '_rels/.rels', content: rootRelationships },
-            { name: 'xl/workbook.xml', content: workbook },
-            { name: 'xl/_rels/workbook.xml.rels', content: workbookRelationships },
-            { name: 'xl/worksheets/sheet1.xml', content: worksheet },
-        ]);
-
-        downloadBlob(blob, filename('xlsx'));
-        toast.success('toast.export.ready');
-    });
-}
-
-async function exportPdf(): Promise<void> {
-    if (!(await canExport())) {
-        return;
-    }
-
-    await withBusyModal('datatable.export.processing.title', 'datatable.export.processing.description', () => {
-        const { headers, rows } = exportPayload();
-        const blob = new Blob([createPdfTable(props.title, headers, rows)], { type: 'application/pdf' });
-
-        downloadBlob(blob, filename('pdf'));
-        toast.success('toast.export.ready');
-    });
-}
-
-function escapeCsv(value: string): string {
-    return `"${value.replace(/"/g, '""')}"`;
-}
-
-function escapeXml(value: string): string {
-    return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-}
-
-function columnName(columnNumber: number): string {
-    let name = '';
-    let current = columnNumber;
-
-    while (current > 0) {
-        const remainder = (current - 1) % 26;
-        name = String.fromCharCode(65 + remainder) + name;
-        current = Math.floor((current - remainder) / 26);
-    }
-
-    return name;
-}
-
-async function printTable(): Promise<void> {
-    if (!(await canExport())) {
-        return;
-    }
-
-    await withBusyModal('datatable.export.processing.title', 'datatable.export.processing.description', () => {
-        const { headers, rows } = exportPayload();
-        const printWindow = window.open('', '_blank', 'width=1200,height=800');
-
-        if (!printWindow) {
-            window.print();
-            return;
-        }
-
-        printWindow.document.write(`
-        <!doctype html>
-        <html>
-            <head>
-                <meta charset="utf-8">
-                <meta name="viewport" content="width=device-width, initial-scale=1">
-                <title>${escapeHtml(props.title)}</title>
-                <style>
-                    :root {
-                        color-scheme: light;
-                        font-family: Arial, Helvetica, sans-serif;
-                    }
-
-                    * {
-                        box-sizing: border-box;
-                    }
-
-                    html,
-                    body {
-                        min-width: 0;
-                        margin: 0;
-                        color: #111827;
-                        background: #ffffff;
-                    }
-
-                    body {
-                        padding: 24px;
-                    }
-
-                    .print-sheet {
-                        width: 100%;
-                    }
-
-                    h1 {
-                        margin: 0 0 16px;
-                        font-size: 20px;
-                        line-height: 1.2;
-                    }
-
-                    table {
-                        width: 100%;
-                        border-collapse: collapse;
-                        table-layout: auto;
-                        font-size: 12px;
-                        line-height: 1.35;
-                    }
-
-                    th,
-                    td {
-                        border: 1px solid #d4d4d8;
-                        padding: 6px 8px;
-                        text-align: left;
-                        vertical-align: top;
-                        overflow-wrap: anywhere;
-                    }
-
-                    th {
-                        background: #f4f4f5;
-                        font-weight: 700;
-                    }
-
-                    @page {
-                        size: A4 landscape;
-                        margin: 10mm;
-                    }
-
-                    @media print {
-                        html,
-                        body {
-                            width: auto;
-                            min-width: 0;
-                        }
-
-                        body {
-                            padding: 0;
-                        }
-
-                        h1 {
-                            margin-bottom: 6mm;
-                            font-size: 13pt;
-                        }
-
-                        table {
-                            width: 100%;
-                            font-size: 8.5pt;
-                            line-height: 1.25;
-                        }
-
-                        th,
-                        td {
-                            padding: 2.5mm 2mm;
-                        }
-
-                        th {
-                            background: #f3f4f6 !important;
-                            -webkit-print-color-adjust: exact;
-                            print-color-adjust: exact;
-                        }
-
-                        thead {
-                            display: table-header-group;
-                        }
-
-                        tr {
-                            break-inside: avoid;
-                        }
-                    }
-                </style>
-            </head>
-            <body>
-                <main class="print-sheet">
-                    <h1>${escapeHtml(props.title)}</h1>
-                    <table>
-                        <thead><tr>${headers.map((header) => `<th>${escapeHtml(header)}</th>`).join('')}</tr></thead>
-                        <tbody>${rows
-                            .map((row) => `<tr>${row.map((cell) => `<td>${escapeHtml(cell)}</td>`).join('')}</tr>`)
-                            .join('')}</tbody>
-                    </table>
-                </main>
-            </body>
-        </html>
-    `);
-        printWindow.document.close();
-        printWindow.focus();
-        window.setTimeout(() => {
-            printWindow.print();
-        }, 100);
-    });
-}
-
-function escapeHtml(value: string): string {
-    return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-}
-
 async function withBusyModal(
     titleKey: TranslationKey,
     descriptionKey: TranslationKey,
@@ -1111,280 +788,6 @@ async function withBusyModal(
     } finally {
         close();
     }
-}
-
-function createZip(files: { name: string; content: string }[]): Blob {
-    const encoder = new TextEncoder();
-    const localParts: Uint8Array[] = [];
-    const centralParts: Uint8Array[] = [];
-    let offset = 0;
-
-    files.forEach((file) => {
-        const name = encoder.encode(file.name);
-        const data = encoder.encode(file.content);
-        const checksum = crc32(data);
-        const localHeader = zipHeader(30);
-
-        localHeader.setUint32(0, 0x04034b50, true);
-        localHeader.setUint16(4, 20, true);
-        localHeader.setUint16(8, 0, true);
-        localHeader.setUint32(14, checksum, true);
-        localHeader.setUint32(18, data.length, true);
-        localHeader.setUint32(22, data.length, true);
-        localHeader.setUint16(26, name.length, true);
-        localParts.push(new Uint8Array(localHeader.buffer), name, data);
-
-        const centralHeader = zipHeader(46);
-        centralHeader.setUint32(0, 0x02014b50, true);
-        centralHeader.setUint16(4, 20, true);
-        centralHeader.setUint16(6, 20, true);
-        centralHeader.setUint16(10, 0, true);
-        centralHeader.setUint32(16, checksum, true);
-        centralHeader.setUint32(20, data.length, true);
-        centralHeader.setUint32(24, data.length, true);
-        centralHeader.setUint16(28, name.length, true);
-        centralHeader.setUint32(42, offset, true);
-        centralParts.push(new Uint8Array(centralHeader.buffer), name);
-
-        offset += localHeader.byteLength + name.length + data.length;
-    });
-
-    const centralOffset = offset;
-    const centralSize = centralParts.reduce((sum, part) => sum + part.length, 0);
-    const end = zipHeader(22);
-
-    end.setUint32(0, 0x06054b50, true);
-    end.setUint16(8, files.length, true);
-    end.setUint16(10, files.length, true);
-    end.setUint32(12, centralSize, true);
-    end.setUint32(16, centralOffset, true);
-
-    return new Blob([...localParts, ...centralParts, new Uint8Array(end.buffer)].map(arrayBufferBlobPart), {
-        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    });
-}
-
-function arrayBufferBlobPart(part: Uint8Array): ArrayBuffer {
-    const copy = new Uint8Array(part.length);
-
-    copy.set(part);
-
-    return copy.buffer;
-}
-
-function zipHeader(size: number): DataView {
-    return new DataView(new ArrayBuffer(size));
-}
-
-function crc32(data: Uint8Array): number {
-    let crc = 0xffffffff;
-
-    for (const byte of data) {
-        crc = (crc >>> 8) ^ crc32Table[(crc ^ byte) & 0xff];
-    }
-
-    return (crc ^ 0xffffffff) >>> 0;
-}
-
-const crc32Table = Array.from({ length: 256 }, (_, index) => {
-    let value = index;
-
-    for (let bit = 0; bit < 8; bit += 1) {
-        value = value & 1 ? 0xedb88320 ^ (value >>> 1) : value >>> 1;
-    }
-
-    return value >>> 0;
-});
-
-function createPdfTable(title: string, headers: string[], rows: string[][]): string {
-    const objects: string[] = [];
-    const pageObjects: number[] = [];
-    const pageWidth = 842;
-    const pageHeight = 595;
-    const margin = 28;
-    const tableWidth = pageWidth - margin * 2;
-    const titleHeight = 28;
-    const headerHeight = 24;
-    const rowHeight = 22;
-    const columnWidths = pdfColumnWidths(headers, rows, tableWidth);
-    const rowsPerPage = Math.max(1, Math.floor((pageHeight - margin * 2 - titleHeight - headerHeight) / rowHeight));
-    const pageCount = Math.max(1, Math.ceil(rows.length / rowsPerPage));
-
-    objects.push('<< /Type /Catalog /Pages 2 0 R >>');
-    objects.push('');
-    objects.push('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>');
-    objects.push('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>');
-
-    for (let pageIndex = 0; pageIndex < pageCount; pageIndex += 1) {
-        const pageRows = rows.slice(pageIndex * rowsPerPage, (pageIndex + 1) * rowsPerPage);
-        const content = pdfTablePageContent({
-            title,
-            pageIndex,
-            pageCount,
-            headers,
-            rows: pageRows,
-            columnWidths,
-            pageHeight,
-            margin,
-            tableWidth,
-            titleHeight,
-            headerHeight,
-            rowHeight,
-        });
-        const contentObjectNumber = objects.length + 1;
-        const pageObjectNumber = objects.length + 2;
-
-        objects.push(`<< /Length ${content.length} >>\nstream\n${content}\nendstream`);
-        objects.push(
-            `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${pageWidth} ${pageHeight}] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents ${contentObjectNumber} 0 R >>`,
-        );
-        pageObjects.push(pageObjectNumber);
-    }
-
-    objects[1] = `<< /Type /Pages /Kids [${pageObjects.map((objectNumber) => `${objectNumber} 0 R`).join(' ')}] /Count ${pageObjects.length} >>`;
-
-    let pdf = '%PDF-1.4\n';
-    const offsets = [0];
-
-    objects.forEach((object, index) => {
-        offsets.push(pdf.length);
-        pdf += `${index + 1} 0 obj\n${object}\nendobj\n`;
-    });
-
-    const xrefOffset = pdf.length;
-    pdf += `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n`;
-    offsets.slice(1).forEach((offsetValue) => {
-        pdf += `${String(offsetValue).padStart(10, '0')} 00000 n \n`;
-    });
-    pdf += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF`;
-
-    return pdf;
-}
-
-function pdfTablePageContent(config: {
-    title: string;
-    pageIndex: number;
-    pageCount: number;
-    headers: string[];
-    rows: string[][];
-    columnWidths: number[];
-    pageHeight: number;
-    margin: number;
-    tableWidth: number;
-    titleHeight: number;
-    headerHeight: number;
-    rowHeight: number;
-}): string {
-    const commands: string[] = [];
-    const tableTop = config.pageHeight - config.margin - config.titleHeight;
-    let y = tableTop;
-
-    commands.push('0.82 0.82 0.86 RG');
-    commands.push('0.5 w');
-    commands.push(pdfText(config.title, config.margin, config.pageHeight - config.margin - 14, 14, 'F2'));
-
-    if (config.pageCount > 1) {
-        commands.push(
-            pdfText(
-                `Page ${config.pageIndex + 1} of ${config.pageCount}`,
-                config.pageHeight + 190,
-                config.pageHeight - config.margin - 14,
-                8,
-            ),
-        );
-    }
-
-    commands.push(`0.95 0.95 0.96 rg ${config.margin} ${y - config.headerHeight} ${config.tableWidth} ${config.headerHeight} re f`);
-    drawPdfRow(commands, config.headers, config.columnWidths, config.margin, y - config.headerHeight, config.headerHeight, true);
-    y -= config.headerHeight;
-
-    config.rows.forEach((row) => {
-        drawPdfRow(commands, row, config.columnWidths, config.margin, y - config.rowHeight, config.rowHeight, false);
-        y -= config.rowHeight;
-    });
-
-    return commands.join('\n');
-}
-
-function drawPdfRow(
-    commands: string[],
-    row: string[],
-    columnWidths: number[],
-    startX: number,
-    y: number,
-    height: number,
-    header: boolean,
-): void {
-    let x = startX;
-
-    columnWidths.forEach((width, index) => {
-        commands.push(`${x.toFixed(2)} ${y.toFixed(2)} ${width.toFixed(2)} ${height.toFixed(2)} re S`);
-        commands.push(
-            pdfText(fitPdfCell(row[index] ?? '', width, header ? 8 : 7), x + 5, y + (header ? 8 : 7), header ? 8 : 7, header ? 'F2' : 'F1'),
-        );
-        x += width;
-    });
-}
-
-function pdfText(value: string, x: number, y: number, size: number, font = 'F1'): string {
-    return `0 0 0 rg BT /${font} ${size} Tf ${x.toFixed(2)} ${y.toFixed(2)} Td (${escapePdfString(normalizePdfText(value))}) Tj ET`;
-}
-
-function fitPdfCell(value: string, width: number, fontSize: number): string {
-    const maxCharacters = Math.max(4, Math.floor((width - 10) / (fontSize * 0.5)));
-    const normalizedValue = normalizePdfText(value);
-
-    if (normalizedValue.length <= maxCharacters) {
-        return normalizedValue;
-    }
-
-    return `${normalizedValue.slice(0, Math.max(1, maxCharacters - 3))}...`;
-}
-
-function pdfColumnWidths(headers: string[], rows: string[][], tableWidth: number): number[] {
-    const scores = headers.map((header, index) => {
-        const sampleMax = rows.reduce((max, row) => Math.max(max, normalizePdfText(row[index] ?? '').length), 0);
-
-        return Math.max(normalizePdfText(header).length * 1.4, Math.min(sampleMax, 32), 8);
-    });
-    const totalScore = scores.reduce((sum, score) => sum + score, 0);
-    const rawWidths = scores.map((score) => Math.max(44, (score / totalScore) * tableWidth));
-    const rawTotal = rawWidths.reduce((sum, width) => sum + width, 0);
-
-    return rawWidths.map((width) => (width / rawTotal) * tableWidth);
-}
-
-function normalizePdfText(value: string): string {
-    const replacements: Record<string, string> = {
-        Ą: 'A',
-        Ć: 'C',
-        Ę: 'E',
-        Ł: 'L',
-        Ń: 'N',
-        Ó: 'O',
-        Ś: 'S',
-        Ż: 'Z',
-        Ź: 'Z',
-        ą: 'a',
-        ć: 'c',
-        ę: 'e',
-        ł: 'l',
-        ń: 'n',
-        ó: 'o',
-        ś: 's',
-        ż: 'z',
-        ź: 'z',
-    };
-
-    return value
-        .replace(/[ĄĆĘŁŃÓŚŻŹąćęłńóśżź]/g, (character) => replacements[character] ?? character)
-        .normalize('NFKD')
-        .replace(/[\u0300-\u036f]/g, '')
-        .replace(/[^\x20-\x7e]/g, '?');
-}
-
-function escapePdfString(value: string): string {
-    return value.replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)');
 }
 
 function rowId(row: TRow): string {
@@ -1665,10 +1068,6 @@ function closeMenusOnOutsideClick(event: MouseEvent): void {
         columnsMenu.value.open = false;
     }
 
-    if (exportMenu.value && !exportMenu.value.contains(target)) {
-        exportMenu.value.open = false;
-    }
-
     if (viewsMenu.value && !viewsMenu.value.contains(target)) {
         viewsMenu.value.open = false;
     }
@@ -1803,52 +1202,6 @@ onBeforeUnmount(() => {
                             />
                             {{ column.label }}
                         </div>
-                    </div>
-                </details>
-                <details v-if="exportable" ref="exportMenu" class="relative">
-                    <summary :class="menuButtonClass">
-                        <IconDownload aria-hidden="true" class="h-4 w-4" :stroke-width="1.8" />
-                        {{ t('datatable.export') }}
-                    </summary>
-                    <div
-                        class="absolute right-0 z-20 mt-2 w-56 rounded-lg border border-zinc-200 bg-white p-2 shadow-lg dark:border-zinc-800 dark:bg-zinc-950"
-                    >
-                        <button
-                            type="button"
-                            class="flex h-9 w-full items-center gap-2 rounded-md px-2 text-sm font-medium text-zinc-700 transition hover:bg-zinc-100 hover:text-zinc-950 dark:text-zinc-200 dark:hover:bg-zinc-900 dark:hover:text-zinc-50"
-                            @click="exportCsv"
-                        >
-                            <IconFileText aria-hidden="true" class="h-4 w-4 text-teal-600 dark:text-teal-400" :stroke-width="1.8" />
-                            CSV
-                        </button>
-                        <button
-                            type="button"
-                            class="flex h-9 w-full items-center gap-2 rounded-md px-2 text-sm font-medium text-zinc-700 transition hover:bg-zinc-100 hover:text-zinc-950 dark:text-zinc-200 dark:hover:bg-zinc-900 dark:hover:text-zinc-50"
-                            @click="exportXlsx"
-                        >
-                            <IconFileSpreadsheet
-                                aria-hidden="true"
-                                class="h-4 w-4 text-emerald-600 dark:text-emerald-400"
-                                :stroke-width="1.8"
-                            />
-                            XLSX
-                        </button>
-                        <button
-                            type="button"
-                            class="flex h-9 w-full items-center gap-2 rounded-md px-2 text-sm font-medium text-zinc-700 transition hover:bg-zinc-100 hover:text-zinc-950 dark:text-zinc-200 dark:hover:bg-zinc-900 dark:hover:text-zinc-50"
-                            @click="exportPdf"
-                        >
-                            <IconFileText aria-hidden="true" class="h-4 w-4 text-rose-600 dark:text-rose-400" :stroke-width="1.8" />
-                            PDF
-                        </button>
-                        <button
-                            type="button"
-                            class="flex h-9 w-full items-center gap-2 rounded-md px-2 text-sm font-medium text-zinc-700 transition hover:bg-zinc-100 hover:text-zinc-950 dark:text-zinc-200 dark:hover:bg-zinc-900 dark:hover:text-zinc-50"
-                            @click="printTable"
-                        >
-                            <IconPrinter aria-hidden="true" class="h-4 w-4 text-indigo-600 dark:text-indigo-400" :stroke-width="1.8" />
-                            Print
-                        </button>
                     </div>
                 </details>
             </div>

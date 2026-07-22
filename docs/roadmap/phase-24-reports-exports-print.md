@@ -1,6 +1,6 @@
 # Phase 24 — Reports, exports, PDF, charts, and print
 
-**Status:** `not started`
+**Status:** `active`
 
 ## Objective
 
@@ -54,10 +54,10 @@ Build the shared report/export generation lifecycle after tables, saved views, f
 
 ## Tasks
 
-- [ ] Implement immutable report/export request snapshots and authorization fingerprints.
-- [ ] Implement idempotent generation jobs and managed-process concurrency controls.
-- [ ] Prevent partial or duplicate artifacts from becoming downloadable.
-- [ ] Store checksum, content type, size, creator, status, release/rule version, and expiry metadata.
+- [x] Implement immutable report/export request snapshots and authorization fingerprints.
+- [x] Implement idempotent generation jobs and managed-process concurrency controls.
+- [x] Prevent partial or duplicate artifacts from becoming downloadable.
+- [x] Store checksum, content type, size, creator, status, release/rule version, and expiry metadata.
 - [ ] Reauthorize every artifact download and implement retention cleanup.
 - [ ] Add CSV exports.
 - [ ] Add XLSX exports.

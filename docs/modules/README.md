@@ -17,3 +17,4 @@ Each file is the canonical current-state description of one Atlas module or tigh
 - [Health](health.md) — liveness, readiness, dependency classification, and Admin diagnostics.
 - [Search](search.md) — Meilisearch projections, indexing, rebuild, and health.
 - [Feature flags](feature-flags.md) — typed rollout flags, global/team values, history, audit, and Admin management.
+- [Reports](reports.md) — report/export snapshots, artifact lifecycle metadata, render credentials, and PDF/print lifecycle ownership.

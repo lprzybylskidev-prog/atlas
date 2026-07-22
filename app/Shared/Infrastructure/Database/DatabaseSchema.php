@@ -30,6 +30,8 @@ final class DatabaseSchema
 
     public const OPTIONAL_FEATURE_FLAGS = 'optional_feature_flags';
 
+    public const OPTIONAL_REPORTS = 'optional_reports';
+
     public const SHARED = 'shared';
 
     /**
@@ -49,6 +51,7 @@ final class DatabaseSchema
             self::OPTIONAL_MANAGED_PROCESSES,
             self::OPTIONAL_IMPORTS,
             self::OPTIONAL_FEATURE_FLAGS,
+            self::OPTIONAL_REPORTS,
             self::SHARED,
         ];
     }

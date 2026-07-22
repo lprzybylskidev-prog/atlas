@@ -17,6 +17,7 @@ use App\Modules\Optional\FeatureFlags\FeatureFlagsModule;
 use App\Modules\Optional\Imports\ImportsModule;
 use App\Modules\Optional\Integrations\IntegrationsModule;
 use App\Modules\Optional\ManagedProcesses\ManagedProcessesModule;
+use App\Modules\Optional\Reports\ReportsModule;
 use App\Modules\Optional\Search\SearchModule;
 use App\Shared\Application\Modules\Contracts\ModuleDefinition;
 use App\Shared\Application\Modules\Exceptions\DuplicateModuleKey;
@@ -110,6 +111,7 @@ final class ModuleRegistryTest extends TestCase
             ManagedProcessesModule::class,
             ImportsModule::class,
             SearchModule::class,
+            ReportsModule::class,
         ], $configured['deployed']);
 
         foreach ($configured['deployed'] as $moduleClass) {
