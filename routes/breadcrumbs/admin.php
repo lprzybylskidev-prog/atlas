@@ -131,6 +131,11 @@ Breadcrumbs::for('admin.files.index', function (Generator $breadcrumbs): void {
     $breadcrumbs->push('Files');
 });
 
+Breadcrumbs::for('admin.feature-flags.index', function (Generator $breadcrumbs): void {
+    $breadcrumbs->push(__('breadcrumbs.admin'));
+    $breadcrumbs->push('Feature flags');
+});
+
 Breadcrumbs::for('admin.integrations.index', function (Generator $breadcrumbs): void {
     $breadcrumbs->push(__('breadcrumbs.admin'));
     $breadcrumbs->push('Integrations');

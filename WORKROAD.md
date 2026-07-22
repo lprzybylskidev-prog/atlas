@@ -37,8 +37,8 @@ Do not replace this index after the initial technical foundation is completed. C
 
 ## Current phase
 
-- Phase: [Phase 22 — Search](docs/roadmap/phase-22-search.md), then [Phase 22a — Frontend rebuild and design system hardening](docs/roadmap/phase-22a-frontend-rebuild.md)
-- Status: Phase 22 `complete`; Phase 22a `complete`
+- Phase: [Phase 23 — Feature flags](docs/roadmap/phase-23-feature-flags.md)
+- Status: `complete`
 
 ## Roadmap dependency repair note
 
@@ -266,7 +266,7 @@ Rebuild the current Atlas frontend into a consistent, reusable, documented, and 
 
 ### Phase 23 — Feature flags
 
-**Status:** `not started`
+**Status:** `complete`
 
 Implement typed feature flags with safe targeting, evaluation, lifecycle, audit, and administrative controls.
 

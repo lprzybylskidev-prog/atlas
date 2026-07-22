@@ -171,7 +171,7 @@ The Laravel foundation includes Fortify, Horizon, Scout with Meilisearch, Sentry
 
 The baseline frontend shell is available through Inertia/Vue with strict TypeScript, light and dark themes, responsive auth/application/admin layouts, PL/EN frontend localization with Polish default for regular UI, English-only Admin shell copy, the Atlas logo and favicon, and a local demo reset command documented in [`docs/operations/seeding-and-demo-data.md`](docs/operations/seeding-and-demo-data.md).
 
-Atlas-owned persistence is split across explicit PostgreSQL schemas such as `core_identity`, `core_teams`, `core_authorization`, `core_audit`, `core_settings`, `core_notifications`, `core_files`, `optional_integrations`, and `shared`; the architecture map lives in [`docs/architecture/modular-monolith.md`](docs/architecture/modular-monolith.md).
+Atlas-owned persistence is split across explicit PostgreSQL schemas such as `core_identity`, `core_teams`, `core_authorization`, `core_audit`, `core_settings`, `core_notifications`, `core_files`, `optional_feature_flags`, `optional_integrations`, and `shared`; the architecture map lives in [`docs/architecture/modular-monolith.md`](docs/architecture/modular-monolith.md).
 
 The Notifications foundation provides typed user/team notifications, in-app read state, optional email delivery, avatar-dropdown previews, and a shared-datatable notification center; realtime push integrations continue in Phase 15.
 
@@ -182,6 +182,8 @@ The Integrations foundation provides typed external adapter registration, extern
 The Managed Processes and Imports foundations provide registered process definitions, process runs, structured process logs, progress and counters, retry/cancel actions, managed schedules, Admin process visibility, import execution records, idempotency state, row/field errors, and development demo runs/logs. Admin uses four managed-process tabs: Runs, Imports, Definitions, and Schedules.
 
 The Search foundation is available as an optional module for module-owned Meilisearch projections. Current contracts cover explicit index descriptors, immutable search document payloads, Outbox-fed queued indexing, active-team and permission-scoped search queries, registered Search permissions, a `search:rebuild` CLI entry point, Admin Search status and confirmed rebuild starts, and a managed-process rebuild definition on the `search` queue; concrete business indexes remain module-owned and rebuildable projections rather than sources of truth.
+
+The Feature Flags foundation is available as an optional module for typed rollout flags. Current contracts cover code-owned boolean flag definitions, global and per-team values, effective-value precedence, append-only history, Audit events, Admin management at `/admin/feature-flags`, and the rule that flags cannot replace module activation or authorization.
 
 The implementation status and first unfinished phase are always shown in [`WORKROAD.md`](WORKROAD.md). The current roadmap focus is finishing shared foundations in dependency order before the first debt collection business modules are introduced.
 

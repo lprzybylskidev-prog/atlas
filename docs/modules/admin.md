@@ -59,6 +59,8 @@ The managed-process Admin area does not expose arbitrary shell cron, raw Artisan
 
 The Admin integrations browser is available at `/admin/integrations`. It shows registered adapter status, source-of-truth notes, last success, last error, circuit state, recent synchronization runs, and external API boundary status. Test-connection actions are permission-protected and never display secrets.
 
+The Admin feature flag browser is available at `/admin/feature-flags`. It shows code-registered typed rollout flags, selected-team effective state, global and team values, source precedence, and recent history. Administrators may update global values, update selected-team overrides, and clear selected-team overrides after providing a reason. Feature flags do not grant permissions, activate modules, bypass ModuleGate, or replace backend authorization checks.
+
 Laravel Pulse is available from the Admin navigation at `/admin/pulse`. It is a package-owned internal performance dashboard for authorized operational administrators and is protected by `auth`, password confirmation, Pulse's `viewPulse` gate, and the `admin.pulse.view` permission. Pulse is not an Inertia screen and uses its own Livewire/Blade dashboard.
 
 Laravel Telescope is available from Admin navigation only in local/development environments at `/telescope`. It is a package-owned diagnostics dashboard protected by `auth`, password confirmation, Telescope's `viewTelescope` gate, the active team context, and the `admin.telescope.view` permission. Telescope is not an Inertia screen and remains unavailable in tests, production, and untrusted environments.

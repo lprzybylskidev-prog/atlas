@@ -1,6 +1,6 @@
 # Phase 23 — Feature flags
 
-**Status:** `not started`
+**Status:** `complete`
 
 ## Objective
 
@@ -23,19 +23,19 @@ Implement typed feature flags before later optional/business capabilities use co
 
 ## Tasks
 
-- [ ] Create optional `FeatureFlags` module.
-- [ ] Define typed feature flags.
-- [ ] Support global and per-team values.
-- [ ] Store history.
-- [ ] Add permissions.
-- [ ] Add admin management.
-- [ ] Audit changes.
-- [ ] Prevent feature flags from replacing module activation.
-- [ ] Commit FeatureFlags module.
+- [x] Create optional `FeatureFlags` module.
+- [x] Define typed feature flags.
+- [x] Support global and per-team values.
+- [x] Store history.
+- [x] Add permissions.
+- [x] Add admin management.
+- [x] Audit changes.
+- [x] Prevent feature flags from replacing module activation.
+- [x] Commit FeatureFlags module.
 
 ## Completion criteria
 
-- [ ] Feature flags are typed, audited, permissioned, and scoped without replacing module activation or authorization.
-- [ ] History is complete for global and per-team flag changes.
-- [ ] Later phases can use flags only for rollout behavior, not missing security or lifecycle controls.
-- [ ] Relevant tests and documentation are current.
+- [x] Feature flags are typed, audited, permissioned, and scoped without replacing module activation or authorization.
+- [x] History is complete for global and per-team flag changes.
+- [x] Later phases can use flags only for rollout behavior, not missing security or lifecycle controls.
+- [x] Relevant tests and documentation are current.

@@ -7,6 +7,7 @@ import {
     IconPlugConnected,
     IconFiles,
     IconFileText,
+    IconFlag3,
     IconGauge,
     IconKey,
     IconLayoutDashboard,
@@ -195,6 +196,14 @@ const groups = computed<NavigationGroup[]>(() => {
                     icon: IconFiles,
                     active: props.currentPath === '/admin/files',
                     visible: canSeeAdminRoute('admin.files.index'),
+                },
+                {
+                    key: 'oversight.feature-flags',
+                    label: t('navigation.feature_flags'),
+                    href: '/admin/feature-flags',
+                    icon: IconFlag3,
+                    active: props.currentPath === '/admin/feature-flags',
+                    visible: canSeeAdminRoute('admin.feature-flags.index'),
                 },
                 {
                     key: 'oversight.integrations',

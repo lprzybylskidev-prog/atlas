@@ -83,6 +83,7 @@ Current producers include:
 - shared DataTable team/system saved-view create, update, and delete.
 - module activation global changes, team override changes, schedule creation, schedule cancellation, rejected activation attempts, and rejected schedule attempts.
 - administrative mode enter/exit, high-risk reauthentication, impersonation start/end, sensitive-account override decisions, and impersonated actions enriched with actual administrator and impersonation context.
+- feature flag global value changes, team override changes, and team override clear actions.
 
 Future imports, integrations, files, reports, privacy, and TimeTracking workflows use the same Audit module writer instead of creating separate audit tables.
 

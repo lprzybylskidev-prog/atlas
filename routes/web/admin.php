@@ -33,6 +33,7 @@ use App\Modules\Core\Users\Presentation\Http\Controllers\StoreUserAccountControl
 use App\Modules\Core\Users\Presentation\Http\Controllers\UpdateUserAccountController;
 use App\Modules\Core\Users\Presentation\Http\Controllers\UserAccountActionController;
 use App\Modules\Core\Users\Presentation\Http\Controllers\UserAdministrationController;
+use App\Modules\Optional\FeatureFlags\Presentation\Http\Controllers\AdminFeatureFlagsController;
 use App\Modules\Optional\Imports\Presentation\Http\Controllers\AdminImportsController;
 use App\Modules\Optional\Integrations\Presentation\Http\Controllers\AdminIntegrationsController;
 use App\Modules\Optional\ManagedProcesses\Presentation\Http\Controllers\AdminManagedProcessesController;
@@ -112,6 +113,10 @@ Route::middleware(['auth', 'admin.mode', 'route.permission'])->group(function ()
     Route::post('/admin/queues/failed-jobs/retry', [AdminFailedJobController::class, 'retry'])->name('admin.queues.retry');
     Route::get('/admin/files', [AdminFilesController::class, 'index'])->name('admin.files.index');
     Route::post('/admin/files/{file}/rescan', [AdminFilesController::class, 'rescan'])->name('admin.files.rescan');
+    Route::get('/admin/feature-flags', [AdminFeatureFlagsController::class, 'index'])->name('admin.feature-flags.index');
+    Route::patch('/admin/feature-flags/{flag}/global', [AdminFeatureFlagsController::class, 'updateGlobal'])->name('admin.feature-flags.global.update');
+    Route::patch('/admin/feature-flags/{flag}/teams', [AdminFeatureFlagsController::class, 'updateTeam'])->name('admin.feature-flags.team.update');
+    Route::delete('/admin/feature-flags/{flag}/teams', [AdminFeatureFlagsController::class, 'clearTeam'])->name('admin.feature-flags.team.clear');
     Route::get('/admin/integrations', [AdminIntegrationsController::class, 'index'])->name('admin.integrations.index');
     Route::post('/admin/integrations/{integration}/test', [AdminIntegrationsController::class, 'test'])->name('admin.integrations.test');
     Route::get('/admin/search', [AdminSearchController::class, 'index'])->name('admin.search.index');

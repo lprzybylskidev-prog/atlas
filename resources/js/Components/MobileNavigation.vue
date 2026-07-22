@@ -5,6 +5,7 @@ import {
     IconClipboardList,
     IconFiles,
     IconFileText,
+    IconFlag3,
     IconGauge,
     IconKey,
     IconLayoutDashboard,
@@ -144,6 +145,12 @@ const groups = computed<MobileNavigationGroup[]>(() => {
                     visible: canSeeAdminRoute('admin.queues.index'),
                 },
                 { label: t('navigation.files'), href: '/admin/files', icon: IconFiles, visible: canSeeAdminRoute('admin.files.index') },
+                {
+                    label: t('navigation.feature_flags'),
+                    href: '/admin/feature-flags',
+                    icon: IconFlag3,
+                    visible: canSeeAdminRoute('admin.feature-flags.index'),
+                },
                 {
                     label: t('navigation.integrations'),
                     href: '/admin/integrations',

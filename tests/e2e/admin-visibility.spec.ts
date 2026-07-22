@@ -98,6 +98,7 @@ test.describe('Admin visibility', () => {
 
         await sidebar.getByText('Oversight', { exact: true }).click();
         await expect(sidebar.getByRole('link', { name: 'Processes' })).toBeVisible();
+        await expect(sidebar.getByRole('link', { name: 'Feature flags' })).toBeVisible();
         await expect(sidebar.getByRole('link', { name: 'Imports' })).toHaveCount(0);
         await expect(sidebar.getByRole('link', { name: 'Definitions' })).toHaveCount(0);
         await expect(sidebar.getByRole('link', { name: 'Schedules' })).toHaveCount(0);

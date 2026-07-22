@@ -16,3 +16,4 @@ Each file is the canonical current-state description of one Atlas module or tigh
 - [Settings](settings.md) — typed settings, scope, precedence, validation, and caching.
 - [Health](health.md) — liveness, readiness, dependency classification, and Admin diagnostics.
 - [Search](search.md) — Meilisearch projections, indexing, rebuild, and health.
+- [Feature flags](feature-flags.md) — typed rollout flags, global/team values, history, audit, and Admin management.

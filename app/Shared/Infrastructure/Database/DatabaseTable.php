@@ -88,6 +88,12 @@ final class DatabaseTable
 
     public const IMPORT_IDEMPOTENCY_KEYS = DatabaseSchema::OPTIONAL_IMPORTS.'.import_idempotency_keys';
 
+    public const FEATURE_FLAG_GLOBAL_VALUES = DatabaseSchema::OPTIONAL_FEATURE_FLAGS.'.feature_flag_global_values';
+
+    public const FEATURE_FLAG_TEAM_VALUES = DatabaseSchema::OPTIONAL_FEATURE_FLAGS.'.feature_flag_team_values';
+
+    public const FEATURE_FLAG_HISTORY = DatabaseSchema::OPTIONAL_FEATURE_FLAGS.'.feature_flag_history';
+
     public const CACHE = DatabaseSchema::SHARED.'.cache';
 
     public const CACHE_LOCKS = DatabaseSchema::SHARED.'.cache_locks';
