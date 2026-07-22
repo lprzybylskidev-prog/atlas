@@ -1,4 +1,5 @@
 import { useToast } from '../Composables/useToast';
+import type { TranslationKey } from '../Localization/catalog';
 
 const SAFE_RETRY_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
 let registered = false;
@@ -13,28 +14,28 @@ export function handledNetworkStatus(status: number): status is NetworkStatus {
     return status === 401 || status === 403 || status === 419 || status === 422 || status === 429 || status >= 500;
 }
 
-export function networkMessage(status: NetworkStatus): string {
+export function networkMessage(status: NetworkStatus): TranslationKey {
     if (status === 401) {
-        return 'Your sign-in session ended. Please sign in again.';
+        return 'network.status.401';
     }
 
     if (status === 403) {
-        return 'You are not authorized to perform this action.';
+        return 'network.status.403';
     }
 
     if (status === 419) {
-        return 'The page security token expired. Refresh the page before submitting again.';
+        return 'network.status.419';
     }
 
     if (status === 422) {
-        return 'Some submitted fields need attention.';
+        return 'network.status.422';
     }
 
     if (status === 429) {
-        return 'Too many requests. Please wait before trying again.';
+        return 'network.status.429';
     }
 
-    return 'The server could not complete the request.';
+    return 'network.status.server_error';
 }
 
 export function registerNetworkHandling(): void {
@@ -48,8 +49,8 @@ export function registerNetworkHandling(): void {
     window.addEventListener('offline', () => {
         toast.push({
             type: 'warning',
-            message: 'You are offline.',
-            description: 'Atlas will not retry unsafe changes automatically.',
+            key: 'network.offline.title',
+            descriptionKey: 'network.offline.description',
             timeoutMs: null,
             critical: true,
         });
@@ -58,8 +59,8 @@ export function registerNetworkHandling(): void {
     window.addEventListener('online', () => {
         toast.push({
             type: 'info',
-            message: 'Back online.',
-            description: 'Refresh the current view if any data looks stale.',
+            key: 'network.back_online.title',
+            descriptionKey: 'network.back_online.description',
         });
     });
 
@@ -69,7 +70,7 @@ export function registerNetworkHandling(): void {
         if (response !== null && handledNetworkStatus(response.status)) {
             toast.push({
                 type: response.status >= 500 ? 'error' : 'warning',
-                message: networkMessage(response.status),
+                key: networkMessage(response.status),
                 timeoutMs: response.status >= 500 ? null : 30000,
                 critical: response.status >= 500,
             });
@@ -81,7 +82,7 @@ export function registerNetworkHandling(): void {
 
         toast.push({
             type: 'error',
-            message: 'A browser request failed.',
+            key: 'network.exception.title',
             description: message,
             timeoutMs: null,
             critical: true,

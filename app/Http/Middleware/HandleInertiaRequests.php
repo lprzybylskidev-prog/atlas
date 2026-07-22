@@ -9,6 +9,7 @@ use App\Modules\Core\Authorization\Application\Public\DTOs\EffectivePermissionRe
 use App\Modules\Core\Identity\Application\Admin\ImpersonationManager;
 use App\Modules\Core\Notifications\Application\Public\Contracts\NotificationInbox;
 use App\Modules\Core\Notifications\Application\Public\DTOs\NotificationSummary;
+use App\Modules\Core\Notifications\Presentation\Support\NotificationTextLocalizer;
 use App\Modules\Core\Settings\Application\Settings\EffectiveSettings;
 use App\Shared\Infrastructure\Database\DatabaseTable;
 use Diglactic\Breadcrumbs\Breadcrumbs;
@@ -45,6 +46,7 @@ final class HandleInertiaRequests extends Middleware
             ],
             'locale' => app()->getLocale(),
             'supportedLocales' => ['pl', 'en'],
+            'translations' => $this->translations(),
             'preferences' => [
                 'theme' => $this->theme($request),
             ],
@@ -53,8 +55,6 @@ final class HandleInertiaRequests extends Middleware
             ],
             'notifications' => $this->notifications($request),
             'flash' => [
-                'success' => $request->session()->get('success'),
-                'error' => $request->session()->get('error'),
                 'messages' => $request->session()->get('flash.messages', []),
             ],
         ];
@@ -243,6 +243,7 @@ final class HandleInertiaRequests extends Middleware
 
         /** @var NotificationInbox $notifications */
         $notifications = app(NotificationInbox::class);
+        $localizer = new NotificationTextLocalizer;
         $team = is_string($teamPublicId) ? $teamPublicId : null;
 
         return [
@@ -252,8 +253,8 @@ final class HandleInertiaRequests extends Middleware
                     'publicId' => $notification->publicId,
                     'type' => $notification->type,
                     'severity' => $notification->severity,
-                    'title' => $notification->title,
-                    'body' => $notification->body,
+                    'title' => $localizer->title($notification),
+                    'body' => $localizer->body($notification),
                     'deepLinkUrl' => $notification->deepLinkUrl,
                     'teamPublicId' => $notification->teamPublicId,
                     'read' => $notification->read,
@@ -294,5 +295,40 @@ final class HandleInertiaRequests extends Middleware
         }
 
         return $items;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function translations(): array
+    {
+        $path = lang_path(app()->getLocale().'.json');
+
+        if (! is_file($path)) {
+            return [];
+        }
+
+        /** @var mixed $decoded */
+        $decoded = json_decode((string) file_get_contents($path), true, flags: JSON_THROW_ON_ERROR);
+
+        if (! is_array($decoded)) {
+            return [];
+        }
+
+        $translations = [];
+
+        foreach ($decoded as $key => $value) {
+            if (
+                is_string($key)
+                && is_string($value)
+                && preg_match('/^[a-z0-9_]+(?:\.[a-z0-9_]+)+$/', $key) === 1
+            ) {
+                $translations[$key] = $value;
+            }
+        }
+
+        ksort($translations);
+
+        return $translations;
     }
 }

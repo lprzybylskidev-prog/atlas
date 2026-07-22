@@ -8,6 +8,7 @@ use App\Modules\Optional\Integrations\Application\Contracts\IntegrationRegistry;
 use App\Modules\Optional\Integrations\Application\DTOs\IntegrationDefinition;
 use App\Shared\Infrastructure\Database\DatabaseTable;
 use App\Shared\Presentation\Support\AdminDataTableExportMeta;
+use App\Shared\Presentation\Support\FlashMessage;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Config;
@@ -36,7 +37,9 @@ final readonly class AdminIntegrationsController
         $adapter = $this->registry->get($integration);
 
         if ($adapter === null) {
-            return redirect()->route('admin.integrations.index')->with('error', 'Integration adapter was not found.');
+            return redirect()->route('admin.integrations.index')->with('flash.messages', [
+                FlashMessage::error('flash.integrations.adapter_not_found'),
+            ]);
         }
 
         $result = $adapter->testConnection((string) Str::uuid());
@@ -59,7 +62,11 @@ final readonly class AdminIntegrationsController
 
         return redirect()
             ->route('admin.integrations.index')
-            ->with($result->successful ? 'success' : 'error', $result->message);
+            ->with('flash.messages', [
+                $result->successful
+                    ? FlashMessage::success('flash.integrations.test_succeeded')
+                    : FlashMessage::error('flash.integrations.test_failed'),
+            ]);
     }
 
     /**

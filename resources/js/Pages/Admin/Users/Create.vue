@@ -53,7 +53,7 @@ const props = defineProps<{
     rolePermissionMap: Record<string, string[]>;
 }>();
 
-const { t } = useTranslator('en');
+const { t } = useTranslator();
 const form = useForm({
     name: '',
     email: '',

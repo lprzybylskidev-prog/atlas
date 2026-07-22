@@ -187,7 +187,7 @@ Verification notes:
 - `playwright.config.ts` now applies an e2e-only high `ATLAS_RATE_LIMIT_AUTH_LOGIN_MAX_ATTEMPTS` value because the full browser suite performs many real login attempts. This is not a production rate-limit change.
 - `tests/e2e/audit-saved-views.spec.ts` now covers the browser-critical saved-view contract: save, select, update, and copy preserve audit filters. Default/delete behavior should remain covered outside this oversized browser workflow.
 - Full `pnpm test:e2e` passes after the rebuild with 22/22 tests passing in Chromium and Firefox after `pnpm build`.
-- `composer demo:reset` passes on the local development database and recreates the documented `admin@example.test` / `password` demo account.
+- `composer demo:reset` passes on the local development database and recreates the documented `admin@example.test` / `password` development bootstrap account.
 - `Tests\Feature\Foundation\DemoResetTest::test_development_demo_admin_can_access_current_core_frontend_surfaces` verifies the current Auth, application, and core Admin Vue surfaces after the foundation demo seeder, including active-team fallback and Admin mode session state.
 
 ## Final frontend review routes
@@ -195,7 +195,7 @@ Verification notes:
 Review baseline:
 
 - Demo reset: run `composer demo:reset`, then sign in as `admin@example.test` / `password`.
-- Core review scope: Auth, application shell, Admin dashboard, identity access, organization, oversight, files, logs, queues, rate limits, and module activation routes are expected to work with the minimal development demo account.
+- Core review scope: Auth, application shell, Admin dashboard, identity access, organization, oversight, files, logs, queues, rate limits, and module activation routes are expected to work with the minimal development bootstrap account.
 - Optional-module browser scope: integrations, search, managed processes, and imports are verified through `E2eVisibilitySeeder`, because the development demo seeder intentionally does not create optional module activation states or operational sample records.
 - External diagnostics: Pulse and Telescope remain external package UIs; Phase 22a tracks their sidebar visibility only, not Atlas Vue primitive composition.
 

@@ -33,7 +33,7 @@ const props = defineProps<{
     table: DataTableMeta;
 }>();
 
-const { t } = useTranslator('en');
+const { t } = useTranslator();
 
 const filters = reactive({
     status: 'all',
@@ -138,7 +138,6 @@ async function handleBulkAction(payload: { action: DataTableBulkAction; rowIds: 
                 :bulk-action-handler="handleBulkAction"
                 :table="table"
                 :filters="filters"
-                ui-locale="en"
             />
         </PageStack>
     </AdminLayout>

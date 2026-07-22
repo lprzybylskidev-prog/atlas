@@ -17,7 +17,7 @@ defineProps<{
     permissionOptions: string[];
 }>();
 
-const { t } = useTranslator('en');
+const { t } = useTranslator();
 const form = useForm({
     name: '',
     permissions: [] as string[],

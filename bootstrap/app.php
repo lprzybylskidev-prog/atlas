@@ -7,7 +7,6 @@ use App\Http\Middleware\AttachRequestId;
 use App\Http\Middleware\BlockProhibitedImpersonationOperations;
 use App\Http\Middleware\EnforceUserSessionSecurity;
 use App\Http\Middleware\EnsureActiveTeamSelected;
-use App\Http\Middleware\ForceAdminLocale;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\RequireAdministrativeMode;
 use App\Http\Middleware\RequireHighRiskAdministrativeAuthorization;
@@ -68,7 +67,6 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->append(AttachRequestId::class);
         $middleware->web(append: [
             SetLocaleFromSession::class,
-            ForceAdminLocale::class,
             EnforceUserSessionSecurity::class,
             ApplyImpersonationContext::class,
             EnsureActiveTeamSelected::class,

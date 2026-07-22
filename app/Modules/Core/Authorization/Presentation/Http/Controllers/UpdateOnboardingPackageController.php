@@ -6,6 +6,7 @@ namespace App\Modules\Core\Authorization\Presentation\Http\Controllers;
 
 use App\Modules\Core\Authorization\Application\Contracts\OnboardingPackageStore;
 use App\Modules\Core\Authorization\Application\Packages\OnboardingPackageCatalog;
+use App\Shared\Presentation\Support\FlashMessage;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 
@@ -45,7 +46,9 @@ final readonly class UpdateOnboardingPackageController
 
         return redirect()
             ->route('admin.authorization.packages.edit', ['package' => $package])
-            ->with('success', 'Preset was updated.');
+            ->with('flash.messages', [
+                FlashMessage::success('flash.authorization.package_updated'),
+            ]);
     }
 
     /**

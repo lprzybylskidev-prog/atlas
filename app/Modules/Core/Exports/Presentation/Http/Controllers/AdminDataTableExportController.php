@@ -11,6 +11,7 @@ use App\Modules\Core\Exports\Application\Public\Contracts\ReportExportGeneration
 use App\Modules\Core\Exports\Application\Public\DTOs\AdminDataTableExportContext;
 use App\Shared\Application\Tables\TableState;
 use App\Shared\Infrastructure\Database\DatabaseTable;
+use App\Shared\Presentation\Support\FlashMessage;
 use DateTimeImmutable;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -74,8 +75,10 @@ final readonly class AdminDataTableExportController
                 format: $format,
             );
             $result = $this->dispatcher->dispatchSnapshot($snapshot);
-        } catch (RuntimeException $exception) {
-            return back()->with('error', $exception->getMessage());
+        } catch (RuntimeException) {
+            return back()->with('flash.messages', [
+                FlashMessage::error('flash.exports.queue_failed'),
+            ]);
         }
 
         if ($format === ReportExportFormat::BrowserPrint) {
@@ -83,7 +86,9 @@ final readonly class AdminDataTableExportController
         }
 
         return back()
-            ->with('success', 'Export request was accepted.')
+            ->with('flash.messages', [
+                FlashMessage::success('flash.exports.queued'),
+            ])
             ->with('export_request_public_id', $result->exportRequestPublicId)
             ->with('export_execution_mode', $result->executionMode)
             ->with('export_artifact_public_id', $result->artifactPublicId)

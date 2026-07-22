@@ -29,7 +29,7 @@ Implement typed settings and real PL/EN localization before sessions, Admin mode
 - Translation keys are stable technical keys, never source strings.
 - No hardcoded user-facing strings.
 - PL/EN parity and missing-key checks are required.
-- Backend exceptions, CLI, documentation, and Admin panel remain English.
+- Backend exceptions, CLI, documentation, technical identifiers, and operational command output remain English. Admin panel text is user-facing and follows the shared Polish/English localization model.
 
 ## Tasks
 
@@ -52,7 +52,7 @@ Implement typed settings and real PL/EN localization before sessions, Admin mode
 - [x] Audit security-setting changes.
 - [x] Add PL and EN translation catalogs.
 - [x] Add missing-key and parity checks.
-- [x] Ensure admin panel remains English only.
+- [x] Preserve English technical artifacts while allowing Admin panel user-facing text to follow the shared localization model.
 - [x] Commit settings and localization.
 
 ## Completion criteria

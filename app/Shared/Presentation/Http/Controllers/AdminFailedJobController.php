@@ -11,9 +11,11 @@ use App\Shared\Infrastructure\Database\DatabaseTable;
 use App\Shared\Infrastructure\Operations\OperationalModuleGuard;
 use App\Shared\Infrastructure\Queues\FailedJobAdminRows;
 use App\Shared\Presentation\Support\AdminDataTableExportMeta;
+use App\Shared\Presentation\Support\FlashMessage;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -31,6 +33,7 @@ final readonly class AdminFailedJobController
         return Inertia::render('Admin/Queues/Index', [
             'jobs' => $this->rows->rows(),
             'summary' => $this->summary(),
+            'queueOperations' => $this->queueOperations(),
             'exports' => AdminDataTableExportMeta::defaults(),
         ]);
     }
@@ -41,7 +44,9 @@ final readonly class AdminFailedJobController
         $uuids = $validated['uuids'];
 
         if (count($uuids) > 1 && $validated['confirmation'] !== 'RETRY') {
-            return redirect()->route('admin.queues.index')->with('error', 'Mass retry requires typed confirmation.');
+            return redirect()->route('admin.queues.index')->with('flash.messages', [
+                FlashMessage::error('flash.queues.retry_typed_confirmation_required'),
+            ]);
         }
 
         $jobs = DB::table(DatabaseTable::FAILED_JOBS)
@@ -51,7 +56,9 @@ final readonly class AdminFailedJobController
             ->all();
 
         if (count($jobs) !== count($uuids)) {
-            return redirect()->route('admin.queues.index')->with('error', 'One or more failed jobs no longer exist.');
+            return redirect()->route('admin.queues.index')->with('flash.messages', [
+                FlashMessage::error('flash.queues.retry_missing'),
+            ]);
         }
 
         foreach ($jobs as $job) {
@@ -66,14 +73,18 @@ final readonly class AdminFailedJobController
         $exitCode = Artisan::call('queue:retry', ['id' => $uuids]);
 
         if ($exitCode !== 0) {
-            return redirect()->route('admin.queues.index')->with('error', 'Failed jobs could not be retried.');
+            return redirect()->route('admin.queues.index')->with('flash.messages', [
+                FlashMessage::error('flash.queues.retry_failed'),
+            ]);
         }
 
         $this->recordRetryAudit($request, $jobs);
 
         return redirect()
             ->route('admin.queues.index')
-            ->with('success', count($jobs) === 1 ? 'Failed job was queued for retry.' : 'Failed jobs were queued for retry.');
+            ->with('flash.messages', [
+                FlashMessage::success(count($jobs) === 1 ? 'flash.queues.retry_single_queued' : 'flash.queues.retry_multiple_queued'),
+            ]);
     }
 
     /**
@@ -99,6 +110,94 @@ final readonly class AdminFailedJobController
             'latestFailedAt' => is_object($aggregate) && is_scalar($aggregate->latest_failed_at ?? null) ? (string) $aggregate->latest_failed_at : null,
             'oldestFailedAt' => is_object($aggregate) && is_scalar($aggregate->oldest_failed_at ?? null) ? (string) $aggregate->oldest_failed_at : null,
         ];
+    }
+
+    /**
+     * @return array{connection: string, driver: string, horizonPath: string|null, knownQueues: list<array{queue: string, configured: bool, failedJobs: int}>, totalFailedJobs: int, completedHistory: 'managed_processes'}
+     */
+    private function queueOperations(): array
+    {
+        $connection = Config::string('queue.default');
+        $driver = Config::string('queue.connections.'.$connection.'.driver', $connection);
+        $failedByQueue = DB::table(DatabaseTable::FAILED_JOBS)
+            ->selectRaw('queue, count(*) as total')
+            ->groupBy('queue')
+            ->pluck('total', 'queue');
+        $configuredQueues = $this->configuredQueues($connection);
+        $knownQueues = [];
+
+        foreach (array_unique([...$configuredQueues, ...array_keys($failedByQueue->all())]) as $queue) {
+            if (! is_string($queue) || $queue === '') {
+                continue;
+            }
+
+            $knownQueues[] = [
+                'queue' => $queue,
+                'configured' => in_array($queue, $configuredQueues, true),
+                'failedJobs' => is_numeric($failedByQueue[$queue] ?? null) ? (int) $failedByQueue[$queue] : 0,
+            ];
+        }
+
+        usort($knownQueues, static fn (array $left, array $right): int => $left['queue'] <=> $right['queue']);
+
+        return [
+            'connection' => $connection,
+            'driver' => $driver,
+            'horizonPath' => $this->horizonPath(),
+            'knownQueues' => $knownQueues,
+            'totalFailedJobs' => (int) array_sum(array_column($knownQueues, 'failedJobs')),
+            'completedHistory' => 'managed_processes',
+        ];
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function configuredQueues(string $connection): array
+    {
+        $queues = [];
+        $defaultQueue = Config::get('queue.connections.'.$connection.'.queue');
+
+        if (is_string($defaultQueue) && $defaultQueue !== '') {
+            $queues[] = $defaultQueue;
+        }
+
+        $supervisors = Config::get('horizon.defaults', []);
+
+        if (is_array($supervisors)) {
+            foreach ($supervisors as $supervisor) {
+                if (! is_array($supervisor)) {
+                    continue;
+                }
+
+                $configured = $supervisor['queue'] ?? null;
+
+                if (is_string($configured) && $configured !== '') {
+                    $queues[] = $configured;
+                }
+
+                if (is_array($configured)) {
+                    foreach ($configured as $queue) {
+                        if (is_string($queue) && $queue !== '') {
+                            $queues[] = $queue;
+                        }
+                    }
+                }
+            }
+        }
+
+        return array_values(array_unique($queues));
+    }
+
+    private function horizonPath(): ?string
+    {
+        $path = Config::get('horizon.path');
+
+        if (! is_string($path) || trim($path) === '') {
+            return null;
+        }
+
+        return '/'.trim($path, '/');
     }
 
     /**

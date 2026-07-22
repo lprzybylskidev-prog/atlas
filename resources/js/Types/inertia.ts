@@ -53,6 +53,7 @@ export interface AtlasPageProps {
     };
     locale: string;
     supportedLocales: string[];
+    translations: Record<string, string>;
     preferences: {
         theme: 'light' | 'dark';
     };
@@ -67,8 +68,6 @@ export interface AtlasPageProps {
         latest: AtlasNotificationSummary[];
     };
     flash: {
-        success: string | null;
-        error: string | null;
         messages?: {
             type: 'success' | 'info' | 'warning' | 'error';
             key?: string;

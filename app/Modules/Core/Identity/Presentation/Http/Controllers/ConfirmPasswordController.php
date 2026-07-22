@@ -6,6 +6,7 @@ namespace App\Modules\Core\Identity\Presentation\Http\Controllers;
 
 use App\Modules\Core\Identity\Application\Admin\AdministrativeSessionManager;
 use App\Modules\Core\Identity\Infrastructure\Persistence\User;
+use App\Shared\Presentation\Support\FlashMessage;
 use Illuminate\Contracts\Auth\StatefulGuard;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -68,7 +69,9 @@ final readonly class ConfirmPasswordController
                 ]);
             }
 
-            return redirect()->intended(route('admin.system-status'))->with('success', 'Administrative mode is active.');
+            return redirect()->intended(route('admin.system-status'))->with('flash.messages', [
+                FlashMessage::success('flash.auth.admin_mode_active'),
+            ]);
         }
 
         if ($pending === AdministrativeSessionManager::PENDING_HIGH_RISK) {
@@ -80,7 +83,9 @@ final readonly class ConfirmPasswordController
                 ]);
             }
 
-            return redirect()->intended(route('admin.system-status'))->with('success', 'High-risk authorization is fresh.');
+            return redirect()->intended(route('admin.system-status'))->with('flash.messages', [
+                FlashMessage::success('flash.auth.high_risk_fresh'),
+            ]);
         }
 
         return redirect()->intended(route('dashboard'));

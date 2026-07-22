@@ -9,6 +9,7 @@ import FilterPanel from '../../../Components/FilterPanel.vue';
 import FormInput from '../../../Components/Form/FormInput.vue';
 import FormSelect from '../../../Components/Form/FormSelect.vue';
 import MetricGrid from '../../../Components/MetricGrid.vue';
+import NoticeBanner from '../../../Components/NoticeBanner.vue';
 import PageStack from '../../../Components/PageStack.vue';
 import AdminLayout from '../../../Layouts/AdminLayout.vue';
 import { useTranslator } from '../../../Localization/translator';
@@ -43,21 +44,21 @@ interface FileSummary {
 }
 
 const props = defineProps<{ files: FileRecord[]; summary: FileSummary; exports: DataTableExportMeta }>();
-const { t } = useTranslator('en');
+const { t } = useTranslator();
 const draftSearch = ref('');
 const draftState = ref('all');
 const search = ref('');
 const state = ref('all');
 
-const states = [
-    { value: 'all', label: 'All' },
-    { value: 'pending', label: 'Pending' },
-    { value: 'scanning', label: 'Scanning' },
-    { value: 'clean', label: 'Clean' },
-    { value: 'infected', label: 'Infected' },
-    { value: 'failed', label: 'Failed' },
-    { value: 'unsupported', label: 'Unsupported' },
-];
+const states = computed(() => [
+    { value: 'all', label: t('pages.admin.files.all') },
+    { value: 'pending', label: t('pages.admin.files.state.pending') },
+    { value: 'scanning', label: t('pages.admin.files.state.scanning') },
+    { value: 'clean', label: t('pages.admin.files.state.clean') },
+    { value: 'infected', label: t('pages.admin.files.state.infected') },
+    { value: 'failed', label: t('pages.admin.files.state.failed') },
+    { value: 'unsupported', label: t('pages.admin.files.state.unsupported') },
+]);
 
 const filteredFiles = computed(() => {
     const query = search.value.trim().toLowerCase();
@@ -86,36 +87,44 @@ const filteredFiles = computed(() => {
 });
 
 const summaryItems = computed<{ label: string; value: string; icon: Component }[]>(() => [
-    { label: 'Total', value: String(props.summary.total), icon: IconFiles },
-    { label: 'Clean', value: String(props.summary.clean), icon: IconFiles },
-    { label: 'Blocked', value: String(props.summary.infected + props.summary.failed + props.summary.unsupported), icon: IconFileAlert },
-    { label: 'Queued', value: String(props.summary.pending + props.summary.scanning), icon: IconRotateClockwise },
+    { label: t('pages.admin.files.metric.total'), value: String(props.summary.total), icon: IconFiles },
+    { label: t('pages.admin.files.metric.clean'), value: String(props.summary.clean), icon: IconFiles },
+    {
+        label: t('pages.admin.files.metric.blocked'),
+        value: String(props.summary.infected + props.summary.failed + props.summary.unsupported),
+        icon: IconFileAlert,
+    },
+    {
+        label: t('pages.admin.files.metric.queued'),
+        value: String(props.summary.pending + props.summary.scanning),
+        icon: IconRotateClockwise,
+    },
 ]);
 
 const columns: DataTableColumn<FileRecord>[] = [
-    { key: 'publicId', label: 'Public ID', hidden: true },
-    { key: 'originalName', label: 'File' },
-    { key: 'mimeType', label: 'MIME type' },
-    { key: 'scanState', label: 'State', format: 'severity' },
-    { key: 'sizeBytes', label: 'Size', format: 'file-size' },
-    { key: 'checksumSha256', label: 'Checksum' },
-    { key: 'scannedAt', label: 'Scanned', format: 'datetime' },
-    { key: 'provider', label: 'Provider', hidden: true },
-    { key: 'engineVersion', label: 'Engine', hidden: true },
-    { key: 'signatureVersion', label: 'Signatures', hidden: true },
-    { key: 'scanAttempts', label: 'Attempts', format: 'number', hidden: true },
-    { key: 'quarantinedAt', label: 'Quarantined', format: 'datetime', hidden: true },
-    { key: 'availableAt', label: 'Available', format: 'datetime', hidden: true },
-    { key: 'threatName', label: 'Threat', hidden: true },
+    { key: 'publicId', label: t('pages.admin.files.public_id'), hidden: true },
+    { key: 'originalName', label: t('pages.admin.files.file') },
+    { key: 'mimeType', label: t('pages.admin.files.mime_type') },
+    { key: 'scanState', label: t('pages.admin.files.state'), format: 'severity' },
+    { key: 'sizeBytes', label: t('pages.admin.files.size'), format: 'file-size' },
+    { key: 'checksumSha256', label: t('pages.admin.files.checksum') },
+    { key: 'scannedAt', label: t('pages.admin.files.scanned'), format: 'datetime' },
+    { key: 'provider', label: t('pages.admin.files.provider'), hidden: true },
+    { key: 'engineVersion', label: t('pages.admin.files.engine'), hidden: true },
+    { key: 'signatureVersion', label: t('pages.admin.files.signatures'), hidden: true },
+    { key: 'scanAttempts', label: t('pages.admin.files.attempts'), format: 'number', hidden: true },
+    { key: 'quarantinedAt', label: t('pages.admin.files.quarantined'), format: 'datetime', hidden: true },
+    { key: 'availableAt', label: t('pages.admin.files.available'), format: 'datetime', hidden: true },
+    { key: 'threatName', label: t('pages.admin.files.threat'), hidden: true },
 ];
 
 const actions: DataTableAction<FileRecord>[] = [
     {
         key: 'rescan',
-        label: 'Queue malware rescan',
+        label: t('pages.admin.files.queue_rescan'),
         method: 'post',
         href: (file) => `/admin/files/${file.publicId}/rescan`,
-        confirm: (file) => `Queue malware rescan for ${file.originalName}?`,
+        confirm: (file) => t('pages.admin.files.queue_rescan_confirm', { file: file.originalName }),
         tone: 'warning',
     },
 ];
@@ -137,20 +146,23 @@ function clearFilters(): void {
     <AdminLayout :title="t('pages.admin.files.title')" :title-icon="IconFiles">
         <PageStack>
             <MetricGrid :items="summaryItems" />
+            <NoticeBanner :title="t('pages.admin.files.bounded_title')">
+                {{ t('pages.admin.files.bounded') }}
+            </NoticeBanner>
 
             <FilterPanel
-                :summary="`Showing ${filteredFiles.length} of ${props.files.length} loaded files.`"
+                :summary="t('pages.admin.files.loaded_summary', { visible: filteredFiles.length, loaded: props.files.length })"
                 @apply="applyFilters"
                 @clear="clearFilters"
             >
                 <div class="grid gap-3 lg:grid-cols-[minmax(0,1fr)_220px]">
-                    <FormInput v-model="draftSearch" name="search" label="Search" type="text" autocomplete="off" />
-                    <FormSelect v-model="draftState" name="state" label="Scan state" :options="states" />
+                    <FormInput v-model="draftSearch" name="search" :label="t('pages.admin.files.search')" type="text" autocomplete="off" />
+                    <FormSelect v-model="draftState" name="state" :label="t('pages.admin.files.scan_state')" :options="states" />
                 </div>
             </FilterPanel>
 
             <DataTable
-                title="Files"
+                :title="t('pages.admin.files.title')"
                 :rows="filteredFiles"
                 :columns="columns"
                 row-key="publicId"
@@ -159,7 +171,7 @@ function clearFilters(): void {
                 export-key="admin.files"
                 :exports="exports"
                 :filters="{ state }"
-                empty-label="No files match the current filters."
+                :empty-label="t('pages.admin.files.empty_filtered')"
             />
         </PageStack>
     </AdminLayout>

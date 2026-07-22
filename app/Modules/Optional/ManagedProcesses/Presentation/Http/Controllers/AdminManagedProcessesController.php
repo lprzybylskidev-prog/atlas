@@ -10,6 +10,7 @@ use App\Modules\Optional\ManagedProcesses\Application\Public\Contracts\ManagedPr
 use App\Modules\Optional\ManagedProcesses\Application\Public\DTOs\ProcessDefinition;
 use App\Shared\Infrastructure\Database\DatabaseTable;
 use App\Shared\Presentation\Support\AdminDataTableExportMeta;
+use App\Shared\Presentation\Support\FlashMessage;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -98,11 +99,15 @@ final readonly class AdminManagedProcessesController
                 actorPublicId: $this->actorPublicId($request),
                 teamPublicId: $this->teamPublicId($request),
             );
-        } catch (RuntimeException $exception) {
-            return redirect()->route('admin.managed-processes.index')->with('error', $exception->getMessage());
+        } catch (RuntimeException) {
+            return redirect()->route('admin.managed-processes.index')->with('flash.messages', [
+                FlashMessage::error('flash.managed_processes.run_failed'),
+            ]);
         }
 
-        return redirect()->route('admin.managed-processes.show', $runPublicId)->with('success', 'Managed process run was started.');
+        return redirect()->route('admin.managed-processes.show', $runPublicId)->with('flash.messages', [
+            FlashMessage::success('flash.managed_processes.run_started'),
+        ]);
     }
 
     public function runDefinition(Request $request, string $process): RedirectResponse
@@ -110,7 +115,9 @@ final readonly class AdminManagedProcessesController
         $definition = $this->definitions->get($process);
 
         if ($definition === null) {
-            return redirect()->route('admin.managed-processes.index')->with('error', 'Managed process definition was not found.');
+            return redirect()->route('admin.managed-processes.index')->with('flash.messages', [
+                FlashMessage::error('flash.managed_processes.definition_not_found'),
+            ]);
         }
 
         try {
@@ -121,11 +128,15 @@ final readonly class AdminManagedProcessesController
                 actorPublicId: $this->actorPublicId($request),
                 teamPublicId: $this->teamPublicId($request),
             );
-        } catch (RuntimeException $exception) {
-            return redirect()->route('admin.managed-processes.index')->with('error', $exception->getMessage());
+        } catch (RuntimeException) {
+            return redirect()->route('admin.managed-processes.index')->with('flash.messages', [
+                FlashMessage::error('flash.managed_processes.run_failed'),
+            ]);
         }
 
-        return redirect()->route('admin.managed-processes.show', $runPublicId)->with('success', 'Managed process run was started.');
+        return redirect()->route('admin.managed-processes.show', $runPublicId)->with('flash.messages', [
+            FlashMessage::success('flash.managed_processes.run_started'),
+        ]);
     }
 
     public function retry(Request $request, string $run): RedirectResponse
@@ -134,11 +145,15 @@ final readonly class AdminManagedProcessesController
 
         try {
             $newRun = $this->runner->retry($run, $this->actorPublicId($request), $this->teamPublicId($request), $this->stringValue($validated['reason'] ?? null));
-        } catch (RuntimeException $exception) {
-            return redirect()->route('admin.managed-processes.show', $run)->with('error', $exception->getMessage());
+        } catch (RuntimeException) {
+            return redirect()->route('admin.managed-processes.show', $run)->with('flash.messages', [
+                FlashMessage::error('flash.managed_processes.retry_failed'),
+            ]);
         }
 
-        return redirect()->route('admin.managed-processes.show', $newRun)->with('success', 'Managed process retry was started.');
+        return redirect()->route('admin.managed-processes.show', $newRun)->with('flash.messages', [
+            FlashMessage::success('flash.managed_processes.retry_started'),
+        ]);
     }
 
     public function cancel(Request $request, string $run): RedirectResponse
@@ -147,11 +162,15 @@ final readonly class AdminManagedProcessesController
 
         try {
             $this->runner->cancel($run, $this->actorPublicId($request), $this->teamPublicId($request), $this->stringValue($validated['reason'] ?? null));
-        } catch (RuntimeException $exception) {
-            return redirect()->route('admin.managed-processes.show', $run)->with('error', $exception->getMessage());
+        } catch (RuntimeException) {
+            return redirect()->route('admin.managed-processes.show', $run)->with('flash.messages', [
+                FlashMessage::error('flash.managed_processes.cancel_failed'),
+            ]);
         }
 
-        return redirect()->route('admin.managed-processes.show', $run)->with('success', 'Managed process run was cancelled.');
+        return redirect()->route('admin.managed-processes.show', $run)->with('flash.messages', [
+            FlashMessage::success('flash.managed_processes.cancelled'),
+        ]);
     }
 
     public function schedules(): Response
@@ -181,7 +200,9 @@ final readonly class AdminManagedProcessesController
         $cronExpression = trim($this->stringValue($validated['cron_expression'] ?? null));
 
         if ($definition === null || ! $definition->scheduleSupported) {
-            return redirect()->route('admin.managed-processes.schedules.index')->with('error', 'Process schedule is not supported.');
+            return redirect()->route('admin.managed-processes.schedules.index')->with('flash.messages', [
+                FlashMessage::error('flash.managed_processes.schedule_not_supported'),
+            ]);
         }
 
         if (! $this->isValidCronExpression($cronExpression)) {
@@ -211,7 +232,9 @@ final readonly class AdminManagedProcessesController
             'updated_at' => now(),
         ]);
 
-        return redirect()->route('admin.managed-processes.schedules.index')->with('success', 'Managed process schedule was created.');
+        return redirect()->route('admin.managed-processes.schedules.index')->with('flash.messages', [
+            FlashMessage::success('flash.managed_processes.schedule_created'),
+        ]);
     }
 
     public function disableSchedule(Request $request, string $schedule): RedirectResponse
@@ -227,7 +250,9 @@ final readonly class AdminManagedProcessesController
                 'updated_at' => now(),
             ]);
 
-        return redirect()->route('admin.managed-processes.schedules.index')->with('success', 'Managed process schedule was disabled.');
+        return redirect()->route('admin.managed-processes.schedules.index')->with('flash.messages', [
+            FlashMessage::success('flash.managed_processes.schedule_disabled'),
+        ]);
     }
 
     /**

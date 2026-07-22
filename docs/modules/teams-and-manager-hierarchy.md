@@ -13,7 +13,7 @@ Current implementation foundation:
 - `teams.public_id` is the public ULID identifier;
 - `App\Modules\Core\Teams\Domain\ValueObjects\TeamPublicId` is the typed domain identifier for team public IDs;
 - `team_user_assignments` stores the current team membership foundation used by active-team authorization checks.
-- `App\Modules\Core\Teams\Application\Public\Contracts\BootstrapTeamProvider` exposes the narrow public bootstrap contract used by first-administrator and demo setup flows.
+- `App\Modules\Core\Teams\Application\Public\Contracts\BootstrapTeamProvider` exposes the narrow public bootstrap contract used by first-administrator, system bootstrap, and development bootstrap flows.
 - `App\Modules\Core\Teams\Application\Public\Contracts\UserTeamMembershipManager` exposes Admin user-team membership operations for adding and removing user-team access from User and Team administration workflows.
 - `App\Modules\Core\Teams\Application\Public\Contracts\ManagerHierarchy` exposes stable manager hierarchy reads, impact previews, relationship changes, head-manager changes, and direct-report/subtree scopes for TimeTracking and later modules.
 

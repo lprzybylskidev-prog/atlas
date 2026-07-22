@@ -37,7 +37,7 @@ Do not replace this index after the initial technical foundation is completed. C
 
 ## Current phase
 
-- Phase: [Phase 24b — Admin localization, messaging, operational visibility, and bootstrap repair](docs/roadmap/phase-24b-admin-localization-messaging-and-bootstrap-repair.md)
+- Phase: [Phase 25 — Admin panel rebuild and operational UX repair](docs/roadmap/phase-25-admin-panel-rebuild-operational-ux.md)
 - Status: `not started`
 
 ## Roadmap dependency repair note
@@ -288,42 +288,42 @@ Extract reusable export, PDF, print, artifact, and render lifecycle ownership in
 
 [Open implementation contract and tasks](docs/roadmap/phase-24a-core-export-foundation.md)
 
-### Phase 24b — Admin localization, messaging, operational visibility, and bootstrap repair
+### Phase 25 — Admin panel rebuild and operational UX repair
 
 **Status:** `not started`
 
-Repair cross-cutting issues discovered after Phase 24a by localizing Admin UI, normalizing flash and notification behavior, broadening Admin operational data visibility, and separating mandatory bootstrap seeders from the currently empty demo seeder.
+Rebuild Admin panel views from the existing backend foundations and shared frontend primitives, fixing partial localization, duplicated operational surfaces, dashboard signal ownership, toast storms, bounded-view disclaimers, and operational incident lifecycle.
 
-[Open implementation contract and tasks](docs/roadmap/phase-24b-admin-localization-messaging-and-bootstrap-repair.md)
+[Open implementation contract and tasks](docs/roadmap/phase-25-admin-panel-rebuild-operational-ux.md)
 
-### Phase 25 — Security, privacy, deletion, and anonymization
+### Phase 26 — Security, privacy, deletion, and anonymization
 
 **Status:** `not started`
 
 Implement privacy, retention, hard deletion, anonymization orchestration, legal holds, previews, approvals, and evidence after controlled copy owners exist.
 
-[Open implementation contract and tasks](docs/roadmap/phase-25-security-privacy.md)
+[Open implementation contract and tasks](docs/roadmap/phase-26-security-privacy.md)
 
-### Phase 26 — Optional TimeTracking module
+### Phase 27 — Optional TimeTracking module
 
 **Status:** `not started`
 
 Implement optional operational TimeTracking, breaks, other work, inactivity, corrections, settlement, reporting, and analysis-ready data after all known shared dependencies exist.
 
-[Open implementation contract and tasks](docs/roadmap/phase-26-time-tracking.md)
+[Open implementation contract and tasks](docs/roadmap/phase-27-time-tracking.md)
 
-### Phase 27 — Production deployment, backup, restore, and rollback
+### Phase 28 — Production deployment, backup, restore, and rollback
 
 **Status:** `not started`
 
 Implement the single-host production Docker topology, HTTPS, deployment releases, PostgreSQL backups, restore, readiness, and rollback.
 
-[Open implementation contract and tasks](docs/roadmap/phase-27-deployment-backup-rollback.md)
+[Open implementation contract and tasks](docs/roadmap/phase-28-deployment-backup-rollback.md)
 
-### Phase 28 — Final foundation verification
+### Phase 29 — Final test audit, full-app E2E review, and foundation verification
 
 **Status:** `not started`
 
-Perform final architecture, security, documentation, testing, restore, deployment, and technical-foundation verification before debt collection business modules begin.
+Perform a full test-suite audit, browser-level E2E review of the whole application, architecture/security/documentation verification, restore/deployment checks, and final technical-foundation hardening before debt collection business modules begin.
 
-[Open implementation contract and tasks](docs/roadmap/phase-28-final-verification.md)
+[Open implementation contract and tasks](docs/roadmap/phase-29-final-verification.md)

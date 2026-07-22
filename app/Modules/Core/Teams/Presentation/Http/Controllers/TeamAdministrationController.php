@@ -24,6 +24,7 @@ use App\Shared\Application\Tables\TableSavedViewService;
 use App\Shared\Application\Tables\TableState;
 use App\Shared\Infrastructure\Database\DatabaseTable;
 use App\Shared\Presentation\Support\AdminDataTableExportMeta;
+use App\Shared\Presentation\Support\FlashMessage;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -174,7 +175,9 @@ final class TeamAdministrationController
             }
         }
 
-        return redirect()->route('admin.teams.index')->with('success', 'Team was created.');
+        return redirect()->route('admin.teams.index')->with('flash.messages', [
+            FlashMessage::success('flash.teams.created'),
+        ]);
     }
 
     public function update(Request $request, string $team): RedirectResponse
@@ -207,21 +210,27 @@ final class TeamAdministrationController
             'isActive' => $record->is_active,
         ]);
 
-        return redirect()->route('admin.teams.edit', ['team' => $team])->with('success', 'Team was updated.');
+        return redirect()->route('admin.teams.edit', ['team' => $team])->with('flash.messages', [
+            FlashMessage::success('flash.teams.updated'),
+        ]);
     }
 
     public function activate(Request $request, string $team): RedirectResponse
     {
         $this->changeActivation($request, $team, true);
 
-        return redirect()->route('admin.teams.index')->with('success', 'Team was activated.');
+        return redirect()->route('admin.teams.index')->with('flash.messages', [
+            FlashMessage::success('flash.teams.activated'),
+        ]);
     }
 
     public function deactivate(Request $request, string $team): RedirectResponse
     {
         $this->changeActivation($request, $team, false);
 
-        return redirect()->route('admin.teams.index')->with('success', 'Team was deactivated.');
+        return redirect()->route('admin.teams.index')->with('flash.messages', [
+            FlashMessage::success('flash.teams.deactivated'),
+        ]);
     }
 
     public function destroy(Request $request, string $team): RedirectResponse
@@ -245,7 +254,9 @@ final class TeamAdministrationController
             $this->recordAudit($request, 'team.delete_rejected', 'rejected', 'team', $team, [], []);
         }
 
-        return redirect()->route('admin.teams.index')->with('success', 'Team delete was attempted.');
+        return redirect()->route('admin.teams.index')->with('flash.messages', [
+            FlashMessage::success('flash.teams.delete_attempted'),
+        ]);
     }
 
     private function changeActivation(Request $request, string $team, bool $active): void

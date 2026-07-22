@@ -38,6 +38,13 @@ final class AdminQueuesTest extends TestCase
             ->assertInertia(fn (AssertableInertia $page) => $page
                 ->component('Admin/Queues/Index')
                 ->where('summary.failedCount', 1)
+                ->where('queueOperations.connection', 'redis')
+                ->where('queueOperations.driver', 'redis')
+                ->where('queueOperations.completedHistory', 'managed_processes')
+                ->where('queueOperations.totalFailedJobs', 1)
+                ->where('queueOperations.knownQueues.1.queue', 'emails')
+                ->where('queueOperations.knownQueues.1.configured', false)
+                ->where('queueOperations.knownQueues.1.failedJobs', 1)
                 ->where('jobs.0.uuid', '11111111-1111-4111-8111-111111111111')
                 ->where('jobs.0.queue', 'emails')
                 ->where('jobs.0.displayName', 'Demo failed job')
@@ -89,7 +96,8 @@ final class AdminQueuesTest extends TestCase
                 'uuids' => [$uuid],
             ])
             ->assertRedirect('/admin/queues')
-            ->assertSessionHas('success', 'Failed job was queued for retry.');
+            ->assertSessionHas('flash.messages.0.key', 'flash.queues.retry_single_queued')
+            ->assertSessionMissing('success');
 
         self::assertDatabaseHas(DatabaseTable::AUDIT_EVENTS, [
             'module' => 'authorization',
@@ -129,7 +137,8 @@ final class AdminQueuesTest extends TestCase
                 ],
             ])
             ->assertRedirect('/admin/queues')
-            ->assertSessionHas('error', 'Mass retry requires typed confirmation.');
+            ->assertSessionHas('flash.messages.0.key', 'flash.queues.retry_typed_confirmation_required')
+            ->assertSessionMissing('error');
     }
 
     private function insertFailedJob(string $uuid, string $queue): void

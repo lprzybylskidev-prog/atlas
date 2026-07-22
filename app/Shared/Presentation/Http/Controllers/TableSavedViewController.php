@@ -6,6 +6,7 @@ namespace App\Shared\Presentation\Http\Controllers;
 
 use App\Shared\Application\Tables\TableRequestContext;
 use App\Shared\Application\Tables\TableSavedViewService;
+use App\Shared\Presentation\Support\FlashMessage;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 
@@ -31,7 +32,11 @@ final readonly class TableSavedViewController
             actorPublicId: $actorPublicId,
         );
 
-        return back()->with('success', 'Table view was saved.')->with('table_view_public_id', $publicId);
+        return back()
+            ->with('flash.messages', [
+                FlashMessage::success('flash.table_views.saved'),
+            ])
+            ->with('table_view_public_id', $publicId);
     }
 
     public function update(Request $request, string $view): RedirectResponse
@@ -48,7 +53,9 @@ final readonly class TableSavedViewController
             actorPublicId: $actorPublicId,
         );
 
-        return back()->with('success', 'Table view was updated.');
+        return back()->with('flash.messages', [
+            FlashMessage::success('flash.table_views.updated'),
+        ]);
     }
 
     public function destroy(Request $request, string $view): RedirectResponse
@@ -57,7 +64,9 @@ final readonly class TableSavedViewController
 
         $this->views->delete($view, $userId, $teamId, $actorPublicId);
 
-        return back()->with('success', 'Table view was deleted.');
+        return back()->with('flash.messages', [
+            FlashMessage::success('flash.table_views.deleted'),
+        ]);
     }
 
     public function copy(Request $request, string $view): RedirectResponse
@@ -76,7 +85,11 @@ final readonly class TableSavedViewController
             actorPublicId: $actorPublicId,
         );
 
-        return back()->with('success', 'Table view was copied.')->with('table_view_public_id', $publicId);
+        return back()
+            ->with('flash.messages', [
+                FlashMessage::success('flash.table_views.copied'),
+            ])
+            ->with('table_view_public_id', $publicId);
     }
 
     public function default(Request $request, string $view): RedirectResponse
@@ -85,7 +98,9 @@ final readonly class TableSavedViewController
 
         $this->views->setDefault($view, $userId, $teamId);
 
-        return back()->with('success', 'Default table view was updated.');
+        return back()->with('flash.messages', [
+            FlashMessage::success('flash.table_views.default_updated'),
+        ]);
     }
 
     /**

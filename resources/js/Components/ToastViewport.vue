@@ -68,14 +68,6 @@ function pushFlashMessages(): void {
             critical: message.critical,
         });
     });
-
-    if (flash.success) {
-        push({ type: 'success', message: flash.success });
-    }
-
-    if (flash.error) {
-        push({ type: 'error', message: flash.error, timeoutMs: null });
-    }
 }
 
 onMounted(pushFlashMessages);

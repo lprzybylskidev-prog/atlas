@@ -21,8 +21,8 @@ describe('networkHandling', () => {
         expect(handledNetworkStatus(404)).toBe(false);
     });
 
-    it('uses explicit messages for session expiry and rate limiting', () => {
-        expect(networkMessage(419)).toContain('security token');
-        expect(networkMessage(429)).toContain('Too many requests');
+    it('uses explicit translation keys for session expiry and rate limiting', () => {
+        expect(networkMessage(419)).toBe('network.status.419');
+        expect(networkMessage(429)).toBe('network.status.429');
     });
 });

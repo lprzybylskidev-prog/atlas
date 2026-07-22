@@ -6,6 +6,7 @@ namespace App\Modules\Core\Authorization\Presentation\Http\Controllers;
 
 use App\Modules\Core\Authorization\Application\Contracts\OnboardingPackageStore;
 use App\Modules\Core\Teams\Application\Public\Contracts\UserTeamMembershipManager;
+use App\Shared\Presentation\Support\FlashMessage;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -49,7 +50,9 @@ final readonly class StoreOnboardingPackageController
 
         return redirect()
             ->route('admin.authorization.packages.index')
-            ->with('success', 'Preset was saved.');
+            ->with('flash.messages', [
+                FlashMessage::success('flash.authorization.package_saved'),
+            ]);
     }
 
     /**

@@ -10,6 +10,7 @@ use App\Modules\Optional\Search\Application\Public\DTOs\SearchIndexDescriptor;
 use App\Modules\Optional\Search\Application\SearchRebuildProcess;
 use App\Shared\Infrastructure\Database\DatabaseTable;
 use App\Shared\Presentation\Support\AdminDataTableExportMeta;
+use App\Shared\Presentation\Support\FlashMessage;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Config;
@@ -62,11 +63,15 @@ final readonly class AdminSearchController
                 actorPublicId: $this->actorPublicId($request),
                 teamPublicId: $this->teamPublicId($request),
             );
-        } catch (RuntimeException $exception) {
-            return redirect()->route('admin.search.index')->with('error', $exception->getMessage());
+        } catch (RuntimeException) {
+            return redirect()->route('admin.search.index')->with('flash.messages', [
+                FlashMessage::error('flash.search.rebuild_failed'),
+            ]);
         }
 
-        return redirect()->route('admin.managed-processes.show', $runPublicId)->with('success', 'Search rebuild was started.');
+        return redirect()->route('admin.managed-processes.show', $runPublicId)->with('flash.messages', [
+            FlashMessage::success('flash.search.rebuild_started'),
+        ]);
     }
 
     /**

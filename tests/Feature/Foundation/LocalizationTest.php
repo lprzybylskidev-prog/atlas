@@ -4,12 +4,17 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Foundation;
 
+use App\Modules\Core\Authorization\Application\Roles\InstallStarterRoles;
+use App\Modules\Core\Authorization\Application\Roles\StarterRoleName;
 use App\Modules\Core\Identity\Infrastructure\Persistence\User;
 use App\Modules\Core\Settings\Application\Enums\UserSettingKey;
+use App\Modules\Core\Teams\Infrastructure\Persistence\Team;
 use App\Shared\Infrastructure\Database\DatabaseTable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Inertia\Testing\AssertableInertia;
+use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
 class LocalizationTest extends TestCase
@@ -45,6 +50,55 @@ class LocalizationTest extends TestCase
         sort($englishKeys);
 
         self::assertSame($englishKeys, $polishKeys);
+    }
+
+    public function test_atlas_owned_json_language_keys_are_stable_semantic_keys(): void
+    {
+        $atlasPrefixes = [
+            'actions',
+            'app',
+            'auth',
+            'brand',
+            'breadcrumbs',
+            'composable_view',
+            'datatable',
+            'errors',
+            'flash',
+            'form',
+            'mail',
+            'modal',
+            'navigation',
+            'network',
+            'notifications',
+            'pages',
+            'team',
+            'toast',
+            'user',
+        ];
+
+        foreach (['pl', 'en'] as $locale) {
+            $catalog = json_decode((string) file_get_contents(lang_path($locale.'.json')), true);
+
+            self::assertIsArray($catalog);
+
+            foreach (array_keys($catalog) as $key) {
+                if (! is_string($key) || ! str_contains($key, '.')) {
+                    continue;
+                }
+
+                $prefix = (string) str($key)->before('.');
+
+                if (! in_array($prefix, $atlasPrefixes, true)) {
+                    continue;
+                }
+
+                self::assertMatchesRegularExpression(
+                    '/^[a-z0-9_]+(?:\.[a-z0-9_]+)+$/',
+                    $key,
+                    sprintf('Atlas-owned translation key [%s] in [%s] must be stable and namespaced.', $key, $locale),
+                );
+            }
+        }
     }
 
     public function test_polish_and_english_php_language_catalogs_have_matching_keys(): void
@@ -85,7 +139,34 @@ class LocalizationTest extends TestCase
             ->assertOk()
             ->assertInertia(fn (AssertableInertia $page) => $page
                 ->where('locale', 'en')
+                ->where('translations', fn (Collection $translations): bool => $translations->get('auth.login.title') === 'Log in'
+                    && $translations->get('actions.logout') === 'Log out'
+                    && ! $translations->has('Reset Password'))
                 ->where('supportedLocales', ['pl', 'en']));
+    }
+
+    public function test_admin_routes_follow_the_shared_locale_pipeline(): void
+    {
+        $user = User::factory()->create();
+        $team = Team::query()->create(['name' => 'Administration']);
+
+        $this->assignStarterRoleInTeam($user, $team, StarterRoleName::Administrator->value);
+
+        $this->actingAs($user)
+            ->withCookie('atlas_locale', 'pl')
+            ->withSession([
+                'active_team_public_id' => $team->public_id,
+                'auth.password_confirmed_at' => now()->unix(),
+                'atlas_admin_mode_entered_at' => now()->toIso8601String(),
+                'atlas_admin_mode_last_activity_at' => now()->toIso8601String(),
+                'atlas_admin_high_risk_confirmed_at' => now()->toIso8601String(),
+            ])
+            ->get('/admin')
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('locale', 'pl')
+                ->where('translations', fn (Collection $translations): bool => $translations->get('pages.admin.queues.title') === 'Kolejki'
+                    && $translations->get('actions.logout') === 'Wyloguj'));
     }
 
     public function test_authenticated_locale_change_is_persisted_as_user_setting(): void
@@ -192,5 +273,26 @@ class LocalizationTest extends TestCase
         sort($keys);
 
         return $keys;
+    }
+
+    private function assignStarterRoleInTeam(User $user, Team $team, string $roleName): void
+    {
+        $this->app->make(InstallStarterRoles::class)->handle();
+
+        $role = Role::query()->where('name', $roleName)->firstOrFail();
+
+        DB::table(DatabaseTable::TEAM_USER_ASSIGNMENTS)->insert([
+            'team_id' => $team->id,
+            'user_id' => $user->id,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        DB::table(DatabaseTable::MODEL_HAS_ROLES)->insert([
+            'role_id' => $role->id,
+            'model_type' => config('auth.providers.users.model'),
+            'model_id' => $user->id,
+            'team_id' => $team->id,
+        ]);
     }
 }

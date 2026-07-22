@@ -18,7 +18,7 @@ Complete operational health, readiness, logging, alerts, queues, diagnostics, an
 
 ## Implementation contract
 
-- Admin panel is developed in parallel with foundations, is English-only, and has its own layout, route namespace, menu, and permissions.
+- Admin panel is developed in parallel with foundations and has its own layout, route namespace, menu, and permissions. Phase 25 supersedes the earlier English-only assumption and rebuilds Admin views as localized Polish/English operational UI while technical artifacts remain English.
 - Admin uses the same Domain/Application use cases as the regular UI, with stronger audit and confirmation where needed.
 - Admin is not a generic CRUD generator or an incubator for misplaced business logic.
 - Initial Admin areas include Users, Roles, Permissions, Teams, Managers, Logs, Storage, System Status, Queues, Failed Jobs, Imports, Integrations, Feature Flags, Audit, and Module Activation.

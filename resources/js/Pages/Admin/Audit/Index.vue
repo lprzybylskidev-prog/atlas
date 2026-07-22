@@ -8,6 +8,7 @@ import DataTable from '../../../Components/DataTable.vue';
 import FormDateInput from '../../../Components/Form/FormDateInput.vue';
 import FormInput from '../../../Components/Form/FormInput.vue';
 import FormSelect from '../../../Components/Form/FormSelect.vue';
+import NoticeBanner from '../../../Components/NoticeBanner.vue';
 import PageStack from '../../../Components/PageStack.vue';
 import AdminLayout from '../../../Layouts/AdminLayout.vue';
 import { useTranslator } from '../../../Localization/translator';
@@ -74,7 +75,7 @@ const props = defineProps<{
     filterOptions: AuditFilterOptions;
 }>();
 
-const { t } = useTranslator('en');
+const { t } = useTranslator();
 const filters = reactive<AuditFilters>({ ...props.filters });
 const resultOptions = [
     { value: '', label: 'Any result' },
@@ -210,6 +211,9 @@ watch(
     <Head title="Audit" />
     <AdminLayout :title="t('pages.admin.audit.title')" :title-icon="IconClipboardList">
         <PageStack>
+            <NoticeBanner :title="t('pages.admin.audit.bounded_title')">
+                {{ t('pages.admin.audit.bounded') }}
+            </NoticeBanner>
             <FilterPanel @apply="applyFilters" @clear="clearFilters">
                 <div class="grid gap-3 md:grid-cols-3 xl:grid-cols-6">
                     <FormSelect v-model="filters.module" class="mt-1" aria-label="Module" :options="moduleOptions" />
@@ -237,7 +241,7 @@ watch(
                     <FormDateInput v-model="filters.dateTo" aria-label="Date to" />
                 </div>
             </FilterPanel>
-            <DataTable title="Audit events" :rows="events" :columns="columns" row-key="publicId" :table="table" ui-locale="en" />
+            <DataTable title="Audit events" :rows="events" :columns="columns" row-key="publicId" :table="table" />
         </PageStack>
     </AdminLayout>
 </template>

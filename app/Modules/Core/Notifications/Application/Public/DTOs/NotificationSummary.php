@@ -6,6 +6,9 @@ namespace App\Modules\Core\Notifications\Application\Public\DTOs;
 
 final readonly class NotificationSummary
 {
+    /**
+     * @param  array<string, scalar|null>  $data
+     */
     public function __construct(
         public string $publicId,
         public string $type,
@@ -17,5 +20,6 @@ final readonly class NotificationSummary
         public bool $read,
         public string $createdAt,
         public ?string $readAt,
+        public array $data = [],
     ) {}
 }

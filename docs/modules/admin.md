@@ -8,7 +8,7 @@ The admin panel is built from the beginning in parallel with the application fou
 
 Rules:
 
-- English only;
+- Polish and English localization through the shared localization model;
 - own Presentation layer;
 - own routes;
 - own layout;
@@ -29,6 +29,8 @@ The Admin dashboard is an operational status surface, not a duplicate navigation
 
 Current Admin tables use the shared `DataTable` wrapper. Their first data column is `public_id`, they keep the most important operational columns visible by default, and they expose remaining safe non-secret table columns through the Columns menu. Search, sorting, pagination, column visibility, and column order are backend-validated and synchronized through deterministic English query-string keys. Admin users can save private or active-team-shared table views, set a default view, copy a system/shared view, and delete only editable non-system views. Team-shared saved-view changes are recorded through the Audit module. When an Admin index exposes safe row actions, the same supported mutating actions are also available as selected-row bulk actions for the currently loaded page.
 
+Admin request-result flashes use the shared keyed `flash.messages` contract consumed by the toast viewport. Operational actions must send localized PL/EN translation keys instead of backend-rendered English sentences or raw exception messages. Technical diagnostics remain available inside operational tables, detail screens, logs, audit records, and process logs.
+
 Phase 24a maintains the current Admin export integration inventory in [Core export foundation and Admin data integration](../roadmap/phase-24a-core-export-foundation.md). Exportable Admin DataTable and custom data surfaces must register Core Exports providers; intentionally unsupported surfaces must keep their rationale documented there.
 
 Custom Admin operational views that do not use the shared `DataTable` filter surface keep their filters in the shared `FilterPanel` pattern: the panel title is `Filters`, Clear is a neutral action, Apply is the primary action, and optional loaded-result summaries sit below the fields. Page-level Create and Back links use the shared `ActionLink`, and form footers use `FormActions`. Inline operational forms keep one- or two-step actions aligned with their fields at desktop widths and wrap predictably on small screens.
@@ -45,7 +47,9 @@ The Admin rate-limit browser is available at `/admin/rate-limits`. It is read-on
 
 The Admin application-log browser is available at `/admin/logs`. It exposes curated application log entries from Atlas' canonical application log source only, parses structured JSON production records and readable development records, groups multiline stack traces under their originating log entry, redacts sensitive context and obvious sensitive inline text, and presents safe operational fields such as level, message, module, source, event name, correlation ID, request ID, environment, and channel through a dedicated expandable log viewer. The UI does not accept filesystem paths, browse directories, download server files, or execute shell commands.
 
-The Admin queues browser is available at `/admin/queues`. It exposes failed jobs from Atlas' configured failed-job table only, shows queue/connection/job/exception summaries, and provides expandable payload and exception details for authorized operators. Administrators may retry one failed job after confirmation. Mass retry is limited to selected known failed-job UUIDs and requires typed confirmation `RETRY`. Retry actions are audited as security-sensitive queue operations. Admin does not expose arbitrary `queue:retry all`, range retry, queue clearing, failed-job flushing, shell access, or arbitrary command execution.
+The Admin queues browser is available at `/admin/queues`. It exposes a queue-operations snapshot made from Atlas configuration and durable failed-job persistence: configured queue names, active queue connection/driver, Horizon path when configured, failed-job counts per known queue, and the retryable failed-job dataset from Atlas' configured failed-job table. It does not duplicate Horizon internals or treat raw Redis queue structures as durable Atlas history. Completed/running operational work that Atlas owns is tracked through Managed Processes, process logs, and owning module state.
+
+The failed-job section shows queue/connection/job/exception summaries and expandable payload and exception details for authorized operators. Administrators may retry one failed job after confirmation. Mass retry is limited to selected known failed-job UUIDs and requires typed confirmation `RETRY`. Retry actions are audited as security-sensitive queue operations. Admin does not expose arbitrary `queue:retry all`, range retry, queue clearing, failed-job flushing, shell access, or arbitrary command execution.
 
 Failed-job retry actions are ModuleGate-checked against the module inferred from the queued job class before retrying.
 

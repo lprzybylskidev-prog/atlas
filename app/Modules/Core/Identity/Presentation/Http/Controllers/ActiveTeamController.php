@@ -9,6 +9,7 @@ use App\Modules\Core\Audit\Application\Public\DTOs\AuditEvent;
 use App\Modules\Core\Audit\Application\Public\Enums\SecurityAuditCategory;
 use App\Modules\Core\Identity\Application\Public\Contracts\UserSessionRegistry;
 use App\Shared\Infrastructure\Database\DatabaseTable;
+use App\Shared\Presentation\Support\FlashMessage;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -49,7 +50,9 @@ final readonly class ActiveTeamController
         $this->sessions->touch($request);
         $this->recordSwitchAudit($request, is_string($previous) ? $previous : null, $teamPublicId);
 
-        return redirect()->intended(route('dashboard'))->with('success', 'Active team was selected.');
+        return redirect()->intended(route('dashboard'))->with('flash.messages', [
+            FlashMessage::success('flash.auth.active_team_selected'),
+        ]);
     }
 
     public function switch(Request $request): RedirectResponse
@@ -61,7 +64,9 @@ final readonly class ActiveTeamController
         $this->sessions->touch($request);
         $this->recordSwitchAudit($request, is_string($previous) ? $previous : null, $teamPublicId);
 
-        return back()->with('success', 'Active team was switched.');
+        return back()->with('flash.messages', [
+            FlashMessage::success('flash.auth.active_team_switched'),
+        ]);
     }
 
     /**

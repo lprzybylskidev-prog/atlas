@@ -55,7 +55,7 @@ const props = defineProps<{
     moduleStates: ModuleStateRow[];
 }>();
 
-const { t } = useTranslator('en');
+const { t } = useTranslator();
 const form = useForm({
     name: props.team.name,
 });

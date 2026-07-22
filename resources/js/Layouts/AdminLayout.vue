@@ -25,8 +25,7 @@ withDefaults(
         :title="title"
         :title-icon="titleIcon"
         mode="admin"
-        :show-locale-switcher="false"
-        ui-locale="en"
+        :show-locale-switcher="true"
         :subnavigation="subnavigation"
         :subnavigation-label="subnavigationLabel"
     >

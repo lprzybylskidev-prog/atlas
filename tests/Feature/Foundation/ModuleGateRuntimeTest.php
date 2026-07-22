@@ -24,7 +24,7 @@ final class ModuleGateRuntimeTest extends TestCase
         $gate = app(ModuleGate::class);
         $admin = DB::table(DatabaseTable::USERS)->where('email', E2eVisibilitySeeder::ADMIN_EMAIL)->first();
         $limited = DB::table(DatabaseTable::USERS)->where('email', E2eVisibilitySeeder::LIMITED_EMAIL)->first();
-        $team = DB::table(DatabaseTable::TEAMS)->first();
+        $team = DB::table(DatabaseTable::TEAMS)->where('name', E2eVisibilitySeeder::TEAM_NAME)->first();
 
         self::assertIsObject($admin);
         self::assertIsObject($limited);

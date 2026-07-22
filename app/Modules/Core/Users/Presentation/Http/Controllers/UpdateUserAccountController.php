@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Core\Users\Presentation\Http\Controllers;
 
 use App\Modules\Core\Identity\Application\Public\Contracts\UserCredentialAccountDirectory;
+use App\Shared\Presentation\Support\FlashMessage;
 use Closure;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -35,7 +36,9 @@ final readonly class UpdateUserAccountController
             abort(404);
         }
 
-        return redirect()->route('admin.users.edit', ['user' => $user])->with('success', 'User was updated.');
+        return redirect()->route('admin.users.edit', ['user' => $user])->with('flash.messages', [
+            FlashMessage::success('flash.users.updated'),
+        ]);
     }
 
     /**

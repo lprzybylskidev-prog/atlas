@@ -1,17 +1,18 @@
 import { describe, expect, it } from 'vitest';
 
-import { defaultLocale, supportedLocales, translations } from './catalog';
+import * as catalog from './catalog';
+import { defaultLocale, supportedLocales } from './catalog';
 
-describe('frontend translation catalog', () => {
+describe('frontend localization catalog contract', () => {
     it('uses Polish as the default locale', () => {
         expect(defaultLocale).toBe('pl');
     });
 
-    it('keeps all supported locale catalogs in parity', () => {
-        const defaultKeys = Object.keys(translations[defaultLocale]).sort();
+    it('keeps frontend locale support explicit without owning translated copy', () => {
+        expect(supportedLocales).toEqual(['pl', 'en']);
+    });
 
-        for (const locale of supportedLocales) {
-            expect(Object.keys(translations[locale]).sort(), locale).toEqual(defaultKeys);
-        }
+    it('does not reintroduce an independent frontend translation catalog', () => {
+        expect('translations' in catalog).toBe(false);
     });
 });

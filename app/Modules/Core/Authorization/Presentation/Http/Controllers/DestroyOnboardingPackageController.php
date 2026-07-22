@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Core\Authorization\Presentation\Http\Controllers;
 
 use App\Modules\Core\Authorization\Application\Contracts\OnboardingPackageStore;
+use App\Shared\Presentation\Support\FlashMessage;
 use Illuminate\Http\RedirectResponse;
 
 final readonly class DestroyOnboardingPackageController
@@ -17,6 +18,8 @@ final readonly class DestroyOnboardingPackageController
     {
         $this->packages->deactivate($package);
 
-        return redirect()->route('admin.authorization.packages.index')->with('success', 'Preset was deactivated.');
+        return redirect()->route('admin.authorization.packages.index')->with('flash.messages', [
+            FlashMessage::success('flash.authorization.package_deactivated'),
+        ]);
     }
 }

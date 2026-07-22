@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Middleware;
 
 use App\Modules\Core\Identity\Application\Admin\ImpersonationManager;
+use App\Shared\Presentation\Support\FlashMessage;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -34,6 +35,8 @@ final readonly class RequireImpersonationExternalEffectAcknowledgement
             ], 409);
         }
 
-        return redirect()->back(303)->with('error', 'This operation has external effects while impersonation is active. Confirm the real-effect warning before continuing.');
+        return redirect()->back(303)->with('flash.messages', [
+            FlashMessage::error('flash.auth.external_effect_ack_required'),
+        ]);
     }
 }

@@ -13,6 +13,7 @@ use App\Modules\Core\Teams\Application\Public\DTOs\ManagerImpactPreview;
 use App\Modules\Core\Teams\Application\Public\DTOs\ManagerRelationshipSummary;
 use App\Shared\Infrastructure\Database\DatabaseTable;
 use App\Shared\Presentation\Support\AdminDataTableExportMeta;
+use App\Shared\Presentation\Support\FlashMessage;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -82,7 +83,9 @@ final class ManagerHierarchyAdministrationController
 
         return redirect()
             ->route('admin.managers.index', ['team' => $this->string($values['team_public_id'] ?? '')])
-            ->with('success', 'Manager relationship was created.');
+            ->with('flash.messages', [
+                FlashMessage::success('flash.teams.manager_relationship_created'),
+            ]);
     }
 
     public function end(Request $request, string $relationship): RedirectResponse
@@ -107,7 +110,9 @@ final class ManagerHierarchyAdministrationController
 
         return redirect()
             ->route('admin.managers.index', ['team' => $this->string($values['team_public_id'] ?? '')])
-            ->with('success', 'Manager relationship was ended.');
+            ->with('flash.messages', [
+                FlashMessage::success('flash.teams.manager_relationship_ended'),
+            ]);
     }
 
     public function head(Request $request): RedirectResponse
@@ -134,7 +139,9 @@ final class ManagerHierarchyAdministrationController
 
         return redirect()
             ->route('admin.managers.index', ['team' => $this->string($values['team_public_id'] ?? '')])
-            ->with('success', 'Head manager status was updated.');
+            ->with('flash.messages', [
+                FlashMessage::success('flash.teams.head_manager_updated'),
+            ]);
     }
 
     private function selectedTeamPublicId(Request $request): string

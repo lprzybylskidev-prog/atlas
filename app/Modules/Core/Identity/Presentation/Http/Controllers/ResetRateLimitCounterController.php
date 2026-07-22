@@ -10,6 +10,7 @@ use App\Modules\Core\Audit\Application\Public\Enums\SecurityAuditCategory;
 use App\Modules\Core\Identity\Application\RateLimiting\RateLimitPolicyCatalog;
 use App\Modules\Core\Identity\Application\RateLimiting\RateLimitRejectionRecorder;
 use App\Shared\Infrastructure\Database\DatabaseTable;
+use App\Shared\Presentation\Support\FlashMessage;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -58,7 +59,9 @@ final readonly class ResetRateLimitCounterController
             securityCategory: SecurityAuditCategory::RateLimit,
         ));
 
-        return redirect()->route('admin.rate-limits.index')->with('success', 'Rate-limit counter was reset.');
+        return redirect()->route('admin.rate-limits.index')->with('flash.messages', [
+            FlashMessage::success('flash.rate_limits.counter_reset'),
+        ]);
     }
 
     /**

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Core\Teams\Presentation\Http\Controllers;
 
 use App\Modules\Core\Authorization\Application\Public\Contracts\UserTeamAuthorizationManager;
+use App\Shared\Presentation\Support\FlashMessage;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 
@@ -38,7 +39,9 @@ final readonly class UserTeamAuthorizationController
             );
         }
 
-        return redirect()->route('admin.users.edit', ['user' => $user])->with('success', 'Team authorization was updated.');
+        return redirect()->route('admin.users.edit', ['user' => $user])->with('flash.messages', [
+            FlashMessage::success('flash.teams.authorization_updated'),
+        ]);
     }
 
     /**

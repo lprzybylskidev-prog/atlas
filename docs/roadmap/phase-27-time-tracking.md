@@ -1,4 +1,4 @@
-# Phase 26 — Optional TimeTracking module
+# Phase 27 — Optional TimeTracking module
 
 **Status:** `not started`
 
@@ -17,7 +17,7 @@ Implement optional TimeTracking only after every known foundation it depends on 
 - [Phase 18 — Administrative mode and impersonation](phase-18-admin-impersonation.md)
 - [Phase 23 — Feature flags](phase-23-feature-flags.md)
 - [Phase 24 — Reports, exports, PDF, charts, and print](phase-24-reports-exports-print.md)
-- [Phase 25 — Security, privacy, deletion, and anonymization](phase-25-security-privacy.md)
+- [Phase 26 — Security, privacy, deletion, and anonymization](phase-26-security-privacy.md)
 - [TimeTracking module documentation](../modules/time-tracking.md)
 
 ## Implementation contract

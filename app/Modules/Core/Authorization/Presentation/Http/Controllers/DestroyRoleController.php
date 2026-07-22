@@ -8,6 +8,7 @@ use App\Modules\Core\Audit\Application\Public\Contracts\AuditRecorder;
 use App\Modules\Core\Audit\Application\Public\DTOs\AuditEvent;
 use App\Modules\Core\Audit\Application\Public\Enums\SecurityAuditCategory;
 use App\Shared\Infrastructure\Database\DatabaseTable;
+use App\Shared\Presentation\Support\FlashMessage;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -41,7 +42,9 @@ final readonly class DestroyRoleController
             ], []);
         }
 
-        return redirect()->route('admin.authorization.roles.index')->with('success', 'Role delete was attempted.');
+        return redirect()->route('admin.authorization.roles.index')->with('flash.messages', [
+            FlashMessage::success('flash.authorization.role_delete_attempted'),
+        ]);
     }
 
     /**

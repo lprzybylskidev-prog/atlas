@@ -9,6 +9,7 @@ use App\Modules\Core\Audit\Application\Public\DTOs\AuditEvent;
 use App\Modules\Core\Audit\Application\Public\Enums\SecurityAuditCategory;
 use App\Modules\Core\Authorization\Application\Permissions\PermissionCatalogRegistry;
 use App\Shared\Infrastructure\Database\DatabaseTable;
+use App\Shared\Presentation\Support\FlashMessage;
 use Closure;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -75,7 +76,9 @@ final readonly class UpdateRoleController
 
         return redirect()
             ->route('admin.authorization.roles.edit', ['role' => $name])
-            ->with('success', 'Role was updated.');
+            ->with('flash.messages', [
+                FlashMessage::success('flash.authorization.role_updated'),
+            ]);
     }
 
     /**

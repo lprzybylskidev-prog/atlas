@@ -356,7 +356,8 @@ final class ReportsModuleTest extends TestCase
             ]);
 
         $response->assertRedirect();
-        $response->assertSessionHas('success', 'Export request was accepted.');
+        $response->assertSessionHas('flash.messages.0.key', 'flash.exports.queued');
+        $response->assertSessionMissing('success');
 
         $record = DB::table(DatabaseTable::REPORT_EXPORT_REQUESTS)->where('report_key', AdminTableDefinitions::USERS)->first();
 
@@ -401,7 +402,8 @@ final class ReportsModuleTest extends TestCase
             ]);
 
         $response->assertRedirect();
-        $response->assertSessionHas('error', 'Module [users] is not available for this operational action.');
+        $response->assertSessionHas('flash.messages.0.key', 'flash.exports.queue_failed');
+        $response->assertSessionMissing('error');
         $this->assertDatabaseCount(DatabaseTable::REPORT_EXPORT_REQUESTS, 0);
     }
 
@@ -740,9 +742,21 @@ final class ReportsModuleTest extends TestCase
         $this->assertDatabaseHas(DatabaseTable::NOTIFICATIONS, [
             'type' => 'report_export.available',
             'severity' => 'success',
-            'title' => 'Report export is ready',
+            'title' => 'notifications.exports.available.title',
             'deep_link_url' => '/exports/'.$this->stringValue($artifact->public_id ?? null).'/download',
         ]);
+        $notification = DB::table(DatabaseTable::NOTIFICATIONS)->where('type', 'report_export.available')->first();
+
+        self::assertNotNull($notification);
+        $notificationData = json_decode($this->stringValue($notification->data ?? null), true, 512, JSON_THROW_ON_ERROR);
+
+        if (! is_array($notificationData)) {
+            self::fail('Expected report export notification data to be a JSON object.');
+        }
+
+        self::assertSame('notifications.exports.available.title', $notificationData['title_key'] ?? null);
+        self::assertSame('notifications.exports.available.body', $notificationData['body_key'] ?? null);
+        self::assertSame('Admin users', $notificationData['report_name'] ?? null);
 
         $file = DB::table(DatabaseTable::FILE_OBJECTS)->where('public_id', $artifact->file_object_public_id)->first();
 
@@ -1077,8 +1091,20 @@ final class ReportsModuleTest extends TestCase
         $this->assertDatabaseHas(DatabaseTable::NOTIFICATIONS, [
             'type' => 'report_export.failed',
             'severity' => 'warning',
-            'title' => 'Report export failed',
+            'title' => 'notifications.exports.failed.title',
         ]);
+        $failedNotification = DB::table(DatabaseTable::NOTIFICATIONS)->where('type', 'report_export.failed')->first();
+
+        self::assertNotNull($failedNotification);
+        $failedNotificationData = json_decode($this->stringValue($failedNotification->data ?? null), true, 512, JSON_THROW_ON_ERROR);
+
+        if (! is_array($failedNotificationData)) {
+            self::fail('Expected failed report export notification data to be a JSON object.');
+        }
+
+        self::assertSame('notifications.exports.failed.title', $failedNotificationData['title_key'] ?? null);
+        self::assertSame('notifications.exports.failed.body', $failedNotificationData['body_key'] ?? null);
+        self::assertSame('Admin users', $failedNotificationData['report_name'] ?? null);
         $this->assertDatabaseCount(DatabaseTable::REPORT_EXPORT_ARTIFACTS, 0);
         $this->assertDatabaseCount(DatabaseTable::REPORT_RENDER_CREDENTIALS, 0);
     }

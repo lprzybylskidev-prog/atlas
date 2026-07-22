@@ -6,6 +6,7 @@ import { computed, reactive, watch } from 'vue';
 import DataTable from '../../../Components/DataTable.vue';
 import FilterPanel from '../../../Components/FilterPanel.vue';
 import FormSelect from '../../../Components/Form/FormSelect.vue';
+import NoticeBanner from '../../../Components/NoticeBanner.vue';
 import PageStack from '../../../Components/PageStack.vue';
 import AdminLayout from '../../../Layouts/AdminLayout.vue';
 import { useTranslator } from '../../../Localization/translator';
@@ -41,7 +42,7 @@ const props = defineProps<{
     userOptions: SecurityHistoryOption[];
 }>();
 
-const { t } = useTranslator('en');
+const { t } = useTranslator();
 const filters = reactive<SecurityHistoryFilters>({ ...props.filters });
 const userOptions = [{ value: '', label: 'All users' }, ...props.userOptions];
 const showUserColumn = computed(() => props.filters.userPublicId === '');
@@ -87,6 +88,9 @@ watch(
     <Head :title="t('pages.security_history.head_title')" />
     <AdminLayout :title="t('pages.security_history.title')" :title-icon="IconShieldSearch">
         <PageStack>
+            <NoticeBanner :title="t('pages.security_history.bounded_title')">
+                {{ t('pages.security_history.bounded') }}
+            </NoticeBanner>
             <FilterPanel @apply="applyFilters" @clear="clearFilters">
                 <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                     <FormSelect v-model="filters.userPublicId" class="mt-1" label="User" aria-label="User" :options="userOptions" />
@@ -100,7 +104,6 @@ watch(
                 row-key="publicId"
                 :table="table"
                 :empty-label="t('pages.security_history.empty')"
-                ui-locale="en"
             />
         </PageStack>
     </AdminLayout>

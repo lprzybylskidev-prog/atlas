@@ -21,7 +21,7 @@ defineProps<{
     teamOptions: FormSelectOption[];
 }>();
 
-const { t } = useTranslator('en');
+const { t } = useTranslator();
 const form = useForm({
     team_public_id: '',
     name: '',

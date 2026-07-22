@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Shared\Infrastructure\Console;
 
 use Database\Seeders\DatabaseSeeder;
+use Database\Seeders\DevelopmentBootstrapSeeder;
 use Database\Seeders\DevelopmentDemoSeeder;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\File;
@@ -47,6 +48,11 @@ final class ResetDemoEnvironment extends Command
 
         $this->call('db:seed', [
             '--class' => DatabaseSeeder::class,
+            '--force' => true,
+        ]);
+
+        $this->call('db:seed', [
+            '--class' => DevelopmentBootstrapSeeder::class,
             '--force' => true,
         ]);
 

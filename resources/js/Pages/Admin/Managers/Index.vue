@@ -83,7 +83,7 @@ const props = defineProps<{
     exports: DataTableExportMeta;
 }>();
 
-const { t } = useTranslator('en');
+const { t } = useTranslator();
 const today = new Date().toISOString().slice(0, 10);
 const selectedRelationship = ref<string | null>(null);
 

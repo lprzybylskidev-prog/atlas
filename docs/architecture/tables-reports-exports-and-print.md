@@ -92,7 +92,7 @@ Admin tables using the shared backend `TableState` enter the export lifecycle th
 
 Small exports may run synchronously through Core Exports.
 
-Large exports use managed-process queues and notify the user when ready. This depends on the managed-process, notification, and operational-health foundations rather than inventing a local progress mechanism.
+Large exports use managed-process queues and notify the user when ready. This depends on the managed-process, notification, and operational-health foundations rather than inventing a local progress mechanism. Admin export requests emit one localized immediate keyed flash for the request outcome; terminal artifact readiness, failure, or completion belongs to the export lifecycle notification path with a useful deep link when an artifact or result view exists.
 
 Use storage with expiry and cleanup.
 
@@ -138,7 +138,7 @@ Every generated report/export follows one explicit Core Exports lifecycle, using
 4. select synchronous execution only below explicit safety thresholds, otherwise queue;
 5. generate through an idempotent job with concurrency limits per user/team/report type;
 6. store the artifact privately with checksum, content type, size, creator, expiry, and status;
-7. notify the requester on success or failure;
+7. notify the requester once on success or failure with localized notification text and a download deep link when an artifact exists;
 8. authorize every download again;
 9. expire and delete artifacts through retention jobs.
 

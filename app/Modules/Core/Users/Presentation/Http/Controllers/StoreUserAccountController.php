@@ -11,6 +11,7 @@ use App\Modules\Core\Identity\Application\Public\Contracts\UserCredentialAccount
 use App\Modules\Core\Teams\Application\Public\Contracts\UserTeamMembershipManager;
 use App\Modules\Core\Users\Application\Commands\CreateUserAccountCommand;
 use App\Modules\Core\Users\Application\CreateUserAccount;
+use App\Shared\Presentation\Support\FlashMessage;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -99,7 +100,9 @@ final readonly class StoreUserAccountController
 
         return redirect()
             ->route('admin.users.index')
-            ->with('success', 'User account was created and the first-password link was sent.');
+            ->with('flash.messages', [
+                FlashMessage::success('flash.users.created_first_password_sent'),
+            ]);
     }
 
     /**

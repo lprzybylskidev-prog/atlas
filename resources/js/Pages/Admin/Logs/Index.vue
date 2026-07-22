@@ -11,6 +11,7 @@ import FormDateInput from '../../../Components/Form/FormDateInput.vue';
 import FormInput from '../../../Components/Form/FormInput.vue';
 import FormSelect from '../../../Components/Form/FormSelect.vue';
 import MetricGrid from '../../../Components/MetricGrid.vue';
+import NoticeBanner from '../../../Components/NoticeBanner.vue';
 import PageStack from '../../../Components/PageStack.vue';
 import SurfaceCard from '../../../Components/SurfaceCard.vue';
 import TextBadge from '../../../Components/TextBadge.vue';
@@ -49,7 +50,7 @@ const props = defineProps<{
     exports: DataTableExportMeta;
 }>();
 
-const { t } = useTranslator('en');
+const { t } = useTranslator();
 const draftSearch = ref('');
 const draftLevel = ref('all');
 const draftModule = ref('all');
@@ -115,16 +116,16 @@ const filteredLogs = computed(() => {
 });
 
 const summaryItems = computed<{ label: string; value: string; icon: Component }[]>(() => [
-    { label: 'Source', value: props.summary.source, icon: IconServer },
-    { label: 'File', value: props.summary.pathLabel, icon: IconFileText },
-    { label: 'Loaded entries', value: String(props.summary.rows), icon: IconListDetails },
-    { label: 'Visible entries', value: String(filteredLogs.value.length), icon: IconEye },
+    { label: t('pages.admin.logs.metric.source'), value: props.summary.source, icon: IconServer },
+    { label: t('pages.admin.logs.metric.file'), value: props.summary.pathLabel, icon: IconFileText },
+    { label: t('pages.admin.logs.metric.loaded_entries'), value: String(props.summary.rows), icon: IconListDetails },
+    { label: t('pages.admin.logs.metric.visible_entries'), value: String(filteredLogs.value.length), icon: IconEye },
 ]);
 
 function optionsFrom(values: string[]): { value: string; label: string }[] {
     const unique = [...new Set(values)].sort((a, b) => a.localeCompare(b));
 
-    return [{ value: 'all', label: 'All' }, ...unique.map((value) => ({ value, label: value }))];
+    return [{ value: 'all', label: t('pages.admin.logs.all') }, ...unique.map((value) => ({ value, label: value }))];
 }
 
 function levelTone(value: string): 'danger' | 'info' | 'neutral' | 'warning' {
@@ -206,20 +207,27 @@ function endOfDay(value: string): number {
     <AdminLayout :title="t('pages.admin.logs.title')" :title-icon="IconFileText">
         <PageStack>
             <MetricGrid :items="summaryItems" />
+            <NoticeBanner :title="t('pages.admin.logs.bounded_title')">
+                {{ t('pages.admin.logs.bounded') }}
+            </NoticeBanner>
 
             <FilterPanel
-                :summary="`Showing ${filteredLogs.length} of ${props.summary.rows} loaded log entries.`"
+                :summary="t('pages.admin.logs.loaded_summary', { visible: filteredLogs.length, loaded: props.summary.rows })"
                 @apply="applyFilters"
                 @clear="clearFilters"
             >
                 <div
                     class="grid gap-4 xl:grid-cols-[minmax(0,2fr)_minmax(10rem,0.7fr)_minmax(10rem,0.7fr)_minmax(9rem,0.6fr)_minmax(9rem,0.6fr)]"
                 >
-                    <FormInput v-model="draftSearch" label="Search" placeholder="Message, correlation ID, module, source" />
-                    <FormSelect v-model="draftLevel" label="Level" :options="levels" />
-                    <FormSelect v-model="draftModule" label="Module" :options="modules" />
-                    <FormDateInput v-model="draftDateFrom" label="From date" />
-                    <FormDateInput v-model="draftDateTo" label="To date" />
+                    <FormInput
+                        v-model="draftSearch"
+                        :label="t('pages.admin.logs.search')"
+                        :placeholder="t('pages.admin.logs.search_placeholder')"
+                    />
+                    <FormSelect v-model="draftLevel" :label="t('pages.admin.logs.level')" :options="levels" />
+                    <FormSelect v-model="draftModule" :label="t('pages.admin.logs.module')" :options="modules" />
+                    <FormDateInput v-model="draftDateFrom" :label="t('pages.admin.logs.from_date')" />
+                    <FormDateInput v-model="draftDateTo" :label="t('pages.admin.logs.to_date')" />
                 </div>
             </FilterPanel>
 
@@ -240,7 +248,7 @@ function endOfDay(value: string): number {
                 <SurfaceCard
                     v-for="entry in filteredLogs"
                     :key="entry.publicId"
-                    :aria-label="`Log entry ${entry.publicId}`"
+                    :aria-label="t('pages.admin.logs.entry_aria', { publicId: entry.publicId })"
                     :padded="false"
                     overflow="hidden"
                 >
@@ -252,17 +260,25 @@ function endOfDay(value: string): number {
                     >
                         <span class="min-w-0 space-y-2">
                             <span class="flex flex-wrap items-center gap-2">
-                                <TextBadge :label="entry.level || 'unknown'" :tone="levelTone(entry.level)" uppercase />
-                                <span class="text-xs text-zinc-500 dark:text-zinc-400">{{ entry.occurredAt || `line ${entry.line}` }}</span>
+                                <TextBadge :label="entry.level || t('pages.admin.logs.unknown')" :tone="levelTone(entry.level)" uppercase />
+                                <span class="text-xs text-zinc-500 dark:text-zinc-400">{{
+                                    entry.occurredAt || t('pages.admin.logs.line_value', { line: entry.line })
+                                }}</span>
                                 <span v-if="entry.module" class="text-xs font-medium text-zinc-600 dark:text-zinc-300">{{
                                     entry.module
                                 }}</span>
                                 <span v-if="entry.source" class="text-xs text-zinc-500 dark:text-zinc-400">{{ entry.source }}</span>
                                 <span v-if="entry.eventName" class="text-xs text-zinc-500 dark:text-zinc-400">{{ entry.eventName }}</span>
                             </span>
-                            <Tooltip :text="entry.message || 'No message'" placement="top" align="start" full-width wide>
+                            <Tooltip
+                                :text="entry.message || t('pages.admin.logs.no_message')"
+                                placement="top"
+                                align="start"
+                                full-width
+                                wide
+                            >
                                 <span class="block truncate text-sm font-medium text-zinc-950 dark:text-zinc-50">
-                                    {{ entry.message || 'No message' }}
+                                    {{ entry.message || t('pages.admin.logs.no_message') }}
                                 </span>
                             </Tooltip>
                         </span>
@@ -277,49 +293,63 @@ function endOfDay(value: string): number {
                     <div v-if="expanded === entry.publicId" class="border-t border-zinc-200 px-4 py-4 dark:border-zinc-800">
                         <dl class="grid gap-3 text-xs sm:grid-cols-2 xl:grid-cols-4">
                             <div>
-                                <dt class="font-semibold uppercase text-zinc-500 dark:text-zinc-400">Line</dt>
+                                <dt class="font-semibold uppercase text-zinc-500 dark:text-zinc-400">{{ t('pages.admin.logs.line') }}</dt>
                                 <dd class="mt-1 font-mono text-zinc-800 dark:text-zinc-200">{{ entry.line }}</dd>
                             </div>
                             <div v-if="entry.eventName">
-                                <dt class="font-semibold uppercase text-zinc-500 dark:text-zinc-400">Event name</dt>
+                                <dt class="font-semibold uppercase text-zinc-500 dark:text-zinc-400">
+                                    {{ t('pages.admin.logs.event_name') }}
+                                </dt>
                                 <dd class="mt-1 break-all text-zinc-800 dark:text-zinc-200">{{ entry.eventName }}</dd>
                             </div>
                             <div v-if="entry.source">
-                                <dt class="font-semibold uppercase text-zinc-500 dark:text-zinc-400">Source</dt>
+                                <dt class="font-semibold uppercase text-zinc-500 dark:text-zinc-400">{{ t('pages.admin.logs.source') }}</dt>
                                 <dd class="mt-1 text-zinc-800 dark:text-zinc-200">{{ entry.source }}</dd>
                             </div>
                             <div v-if="entry.module">
-                                <dt class="font-semibold uppercase text-zinc-500 dark:text-zinc-400">Module</dt>
+                                <dt class="font-semibold uppercase text-zinc-500 dark:text-zinc-400">{{ t('pages.admin.logs.module') }}</dt>
                                 <dd class="mt-1 text-zinc-800 dark:text-zinc-200">{{ entry.module }}</dd>
                             </div>
                             <div v-if="entry.correlationId">
-                                <dt class="font-semibold uppercase text-zinc-500 dark:text-zinc-400">Correlation ID</dt>
+                                <dt class="font-semibold uppercase text-zinc-500 dark:text-zinc-400">
+                                    {{ t('pages.admin.logs.correlation_id') }}
+                                </dt>
                                 <dd class="mt-1 break-all font-mono text-zinc-800 dark:text-zinc-200">{{ entry.correlationId }}</dd>
                             </div>
                             <div v-if="entry.requestId">
-                                <dt class="font-semibold uppercase text-zinc-500 dark:text-zinc-400">Request ID</dt>
+                                <dt class="font-semibold uppercase text-zinc-500 dark:text-zinc-400">
+                                    {{ t('pages.admin.logs.request_id') }}
+                                </dt>
                                 <dd class="mt-1 break-all font-mono text-zinc-800 dark:text-zinc-200">{{ entry.requestId }}</dd>
                             </div>
                             <div v-if="entry.channel">
-                                <dt class="font-semibold uppercase text-zinc-500 dark:text-zinc-400">Channel</dt>
+                                <dt class="font-semibold uppercase text-zinc-500 dark:text-zinc-400">
+                                    {{ t('pages.admin.logs.channel') }}
+                                </dt>
                                 <dd class="mt-1 text-zinc-800 dark:text-zinc-200">{{ entry.channel }}</dd>
                             </div>
                             <div v-if="entry.environment">
-                                <dt class="font-semibold uppercase text-zinc-500 dark:text-zinc-400">Environment</dt>
+                                <dt class="font-semibold uppercase text-zinc-500 dark:text-zinc-400">
+                                    {{ t('pages.admin.logs.environment') }}
+                                </dt>
                                 <dd class="mt-1 text-zinc-800 dark:text-zinc-200">{{ entry.environment }}</dd>
                             </div>
                         </dl>
 
                         <section class="mt-4 rounded-lg border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-800 dark:bg-zinc-900">
-                            <p class="text-xs font-semibold uppercase text-zinc-500 dark:text-zinc-400">Full message</p>
-                            <p class="mt-2 break-words text-sm text-zinc-900 dark:text-zinc-100">{{ entry.message || 'No message' }}</p>
+                            <p class="text-xs font-semibold uppercase text-zinc-500 dark:text-zinc-400">
+                                {{ t('pages.admin.logs.full_message') }}
+                            </p>
+                            <p class="mt-2 break-words text-sm text-zinc-900 dark:text-zinc-100">
+                                {{ entry.message || t('pages.admin.logs.no_message') }}
+                            </p>
                         </section>
 
                         <CodeViewer v-if="entry.details" class="mt-4" :content="entry.details" language="log" max-height="max-h-[28rem]" />
                     </div>
                 </SurfaceCard>
 
-                <UiState v-if="filteredLogs.length === 0" variant="no-results" title="No log entries match the current filters." />
+                <UiState v-if="filteredLogs.length === 0" variant="no-results" :title="t('pages.admin.logs.empty_filtered')" />
             </section>
         </PageStack>
     </AdminLayout>

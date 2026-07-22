@@ -413,6 +413,7 @@ final class DatabaseNotificationStore implements NotificationInbox, Notification
                 'notifications.title',
                 'notifications.body',
                 'notifications.deep_link_url',
+                'notifications.data',
                 'teams.public_id as team_public_id',
                 'notification_recipients.read_at',
                 'notifications.created_at',
@@ -447,10 +448,37 @@ final class DatabaseNotificationStore implements NotificationInbox, Notification
                 read: $readAt !== null,
                 createdAt: $this->dateTimeString($values['created_at'] ?? null),
                 readAt: $this->nullableDateTimeString($readAt),
+                data: $this->jsonScalarMap($values['data'] ?? null),
             );
         }
 
         return $rows;
+    }
+
+    /**
+     * @return array<string, scalar|null>
+     */
+    private function jsonScalarMap(mixed $value): array
+    {
+        if (! is_string($value) || $value === '') {
+            return [];
+        }
+
+        $decoded = json_decode($value, true);
+
+        if (! is_array($decoded)) {
+            return [];
+        }
+
+        $result = [];
+
+        foreach ($decoded as $key => $item) {
+            if (is_string($key) && (is_scalar($item) || $item === null)) {
+                $result[$key] = $item;
+            }
+        }
+
+        return $result;
     }
 
     private function userId(string $userPublicId): ?int

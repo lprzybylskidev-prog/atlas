@@ -7,6 +7,7 @@ namespace App\Modules\Core\Files\Presentation\Http\Controllers;
 use App\Modules\Core\Files\Infrastructure\Persistence\DatabaseFileStorage;
 use App\Shared\Infrastructure\Database\DatabaseTable;
 use App\Shared\Presentation\Support\AdminDataTableExportMeta;
+use App\Shared\Presentation\Support\FlashMessage;
 use Illuminate\Database\Query\JoinClause;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -74,10 +75,14 @@ final readonly class AdminFilesController
         );
 
         if (! $requested) {
-            return redirect()->route('admin.files.index')->with('error', 'File was not found.');
+            return redirect()->route('admin.files.index')->with('flash.messages', [
+                FlashMessage::error('flash.files.not_found'),
+            ]);
         }
 
-        return redirect()->route('admin.files.index')->with('success', 'File rescan was queued.');
+        return redirect()->route('admin.files.index')->with('flash.messages', [
+            FlashMessage::success('flash.files.rescan_queued'),
+        ]);
     }
 
     /**

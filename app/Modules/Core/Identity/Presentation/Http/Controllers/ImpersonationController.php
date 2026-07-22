@@ -7,6 +7,7 @@ namespace App\Modules\Core\Identity\Presentation\Http\Controllers;
 use App\Modules\Core\Identity\Application\Admin\ImpersonationManager;
 use App\Modules\Core\Identity\Infrastructure\Persistence\User;
 use App\Shared\Infrastructure\Database\DatabaseTable;
+use App\Shared\Presentation\Support\FlashMessage;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -62,14 +63,18 @@ final readonly class ImpersonationController
             ]);
         }
 
-        return redirect()->route('dashboard')->with('success', 'Impersonation started.');
+        return redirect()->route('dashboard')->with('flash.messages', [
+            FlashMessage::success('flash.auth.impersonation_started'),
+        ]);
     }
 
     public function destroy(Request $request): RedirectResponse
     {
         $this->impersonation->stop($request);
 
-        return redirect()->route('admin.system-status')->with('success', 'Impersonation ended.');
+        return redirect()->route('admin.system-status')->with('flash.messages', [
+            FlashMessage::success('flash.auth.impersonation_ended'),
+        ]);
     }
 
     /**

@@ -1,4 +1,4 @@
-# Phase 27 — Production deployment, backup, restore, and rollback
+# Phase 28 — Production deployment, backup, restore, and rollback
 
 **Status:** `not started`
 
@@ -12,7 +12,7 @@ Finalize production topology, deployment, backup, restore, readiness, release me
 - [Phase 19 — Files](phase-19-files.md)
 - [Phase 22 — Search](phase-22-search.md)
 - [Phase 24 — Reports, exports, PDF, charts, and print](phase-24-reports-exports-print.md)
-- [Phase 25 — Security, privacy, deletion, and anonymization](phase-25-security-privacy.md)
+- [Phase 26 — Security, privacy, deletion, and anonymization](phase-26-security-privacy.md)
 - [Production deployment, backup, and recovery](../operations/production-deployment-backup-and-recovery.md)
 - [Health, observability, and maintenance](../operations/health-observability-and-maintenance.md)
 

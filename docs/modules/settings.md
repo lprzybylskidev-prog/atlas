@@ -51,7 +51,7 @@ Invalid values are rejected explicitly. Unsupported locales are rejected; suppor
 
 ## Localization Preference
 
-The `/locale` route stores the selected language as a typed user setting for authenticated users and also keeps the temporary `atlas_locale` cookie for guest/login flows. Inertia shared props expose the effective `locale` and supported locale list.
+The `/locale` route stores the selected language as a typed user setting for authenticated users and also keeps the temporary `atlas_locale` cookie for guest/login flows. Inertia shared props expose the effective `locale` and supported locale list. Auth, regular application, and Admin shells use this same preference; Admin no longer forces English for user-facing interface text.
 
 The `/theme` route stores the selected light/dark theme as a typed user setting for authenticated users and also keeps the temporary `atlas_theme` cookie for guest/login flows. Inertia shared props expose `preferences.theme` so frontend shells can initialize from the effective backend preference.
 

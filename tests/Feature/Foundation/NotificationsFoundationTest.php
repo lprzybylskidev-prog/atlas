@@ -81,6 +81,38 @@ final class NotificationsFoundationTest extends TestCase
                 ->where('notifications.latest.0.title', 'Dropdown notification'));
     }
 
+    public function test_notification_center_localizes_keyed_notification_text(): void
+    {
+        Queue::fake();
+        app()->setLocale('pl');
+
+        [$user, $team] = $this->userWithTeam(StarterRoleName::WorkspaceAccess->value);
+
+        $this->app->make(NotificationPublisher::class)->publish(new CreateNotification(
+            type: 'report_export.available',
+            title: 'notifications.exports.available.title',
+            body: 'notifications.exports.available.body',
+            recipientUserPublicId: (string) $user->public_id,
+            teamPublicId: (string) $team->public_id,
+            deepLinkUrl: '/exports/01J00000000000000000000AAA/download',
+            data: [
+                'title_key' => 'notifications.exports.available.title',
+                'body_key' => 'notifications.exports.available.body',
+                'report_name' => 'Użytkownicy',
+            ],
+        ));
+
+        $this->actingAs($user)
+            ->withSession(['active_team_public_id' => $team->public_id])
+            ->get('/notifications')
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('notificationRows.0.title', 'Eksport jest gotowy')
+                ->where('notificationRows.0.body', 'Eksport Użytkownicy jest gotowy do pobrania.')
+                ->where('notifications.latest.0.title', 'Eksport jest gotowy')
+                ->where('notifications.latest.0.body', 'Eksport Użytkownicy jest gotowy do pobrania.'));
+    }
+
     public function test_user_can_mark_notifications_read_in_bulk(): void
     {
         Queue::fake();

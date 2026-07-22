@@ -61,6 +61,7 @@ Starter roles:
 - `system.administrator` is the special bootstrap/full-access role created from all currently registered permission catalogs;
 - `system.administrator` is not a model for ordinary company roles or presets;
 - starter role installation creates missing roles only and does not silently update existing roles when permissions are added later.
+- production-safe system bootstrap creates the mandatory `Administration` team, synchronizes the `system.administrator` role with all currently registered permissions, and enables deployed module access needed for that team through normal module activation state.
 
 Operational CLI:
 
@@ -68,6 +69,7 @@ Operational CLI:
 - `authorization:update-administrator-role --apply --reason="..."` adds only missing permissions and records security audit;
 - `atlas:first-administrator --name="..." --email="..." --team="..."` creates the first administrator only while no administrator role assignment exists;
 - first administrator bootstrap creates the account through the normal user creation use case, sends the standard first-password link, and does not accept or generate a final password.
+- local/development preview administrator creation is owned by `Database\Seeders\DevelopmentBootstrapSeeder`, not by the development demo seeder.
 
 Presets:
 

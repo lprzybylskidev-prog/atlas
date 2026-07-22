@@ -7,6 +7,7 @@ namespace App\Http\Middleware;
 use App\Modules\Core\Identity\Application\Public\Contracts\UserSessionRegistry;
 use App\Modules\Core\Identity\Application\Sessions\SessionLimitResolver;
 use App\Modules\Core\Identity\Infrastructure\Persistence\User;
+use App\Shared\Presentation\Support\FlashMessage;
 use Closure;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -49,11 +50,11 @@ final readonly class EnforceUserSessionSecurity
         $limits = $this->limits->limitsFor($user);
 
         if ($createdAt->copy()->addMinutes($limits['maximum'])->lte($now)) {
-            return $this->expire($request, 'Your session reached its maximum lifetime. Please sign in again.');
+            return $this->expire($request, 'flash.auth.session_expired_lifetime');
         }
 
         if ($lastActivityAt->copy()->addMinutes($limits['inactivity'])->lte($now)) {
-            return $this->expire($request, 'Your session expired due to inactivity. Please sign in again.');
+            return $this->expire($request, 'flash.auth.session_expired_inactivity');
         }
 
         $this->sessions->touch($request);
@@ -77,7 +78,7 @@ final readonly class EnforceUserSessionSecurity
         return Carbon::parse($value);
     }
 
-    private function expire(Request $request, string $message): RedirectResponse
+    private function expire(Request $request, string $messageKey): RedirectResponse
     {
         $sessionId = $request->session()->getId();
 
@@ -89,6 +90,8 @@ final readonly class EnforceUserSessionSecurity
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        return redirect()->route('login')->with('error', $message);
+        return redirect()->route('login')->with('flash.messages', [
+            FlashMessage::error($messageKey),
+        ]);
     }
 }

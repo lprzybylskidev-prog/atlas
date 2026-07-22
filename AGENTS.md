@@ -14,7 +14,7 @@ This file is the permanent engineering constitution for agents working in the re
 - Business purpose: support the company's debt collection operations.
 - Permanent PHP root namespace: `App`.
 - Regular user UI: Polish and English, Polish by default.
-- Technical documentation, code, commits, technical errors, CLI output, and Admin UI: English.
+- Technical documentation, code, commits, technical errors, CLI output, and operational command output: English.
 
 ## Required working mode
 
@@ -126,7 +126,9 @@ Infrastructure and quality:
 - Use one canonical name for each user-facing concept across navigation, labels, actions, breadcrumbs, documentation, demo data, and tests. When renaming or clarifying a concept, search for legacy synonyms and update them or document why a legacy technical name remains internal only.
 - User/team/role/permission behavior is system-wide, not Admin UI-specific. Frontend filtering may improve ergonomics, but backend contracts and use cases must enforce the same team scope and authorization invariants.
 - Validation errors shown to users must use translated human field names and translated accepted values. Never expose raw request keys such as `team_assignments.0.team_public_id`, database column names, enum internals, or other implementation identifiers in user-facing validation messages.
-- Admin UI validation errors, flash messages, breadcrumbs, and backend-rendered interface text must be English regardless of the regular user's selected application locale.
+- Admin UI validation errors, flash messages, breadcrumbs, and backend-rendered interface text are user-facing and must support Polish and English through the same localization model as the regular UI.
+- Laravel translation files are the canonical source of truth for Atlas-owned user-facing localization. Frontend code must receive already translated text or a Laravel-derived active-locale dictionary; do not maintain independent manually duplicated PL/EN frontend translation catalogs for Atlas-owned copy.
+- Atlas-owned translation entries must use stable, namespaced semantic keys instead of natural-language source-string keys. Laravel framework/vendor source-string translations may remain only where required by Laravel or package behavior.
 - Regular application UI tables must not expose technical implementation values such as internal IDs, raw event types, enum keys, database names, or public identifiers unless the value is genuinely user-facing. Remove those columns or render translated human labels; Admin and diagnostic UI may expose technical values when they are necessary for operations.
 - Development demo data must evolve with the application and cover representative current workflows, edge cases, and permission/team/module combinations. Demo seeders must not mask authorization or team-scope problems by granting every user every role, permission, team, or module unless that exact scenario is intentional and named.
 
@@ -227,11 +229,16 @@ Read [`docs/architecture/security-baseline.md`](docs/architecture/security-basel
 
 ## Frontend rules
 
+- Frontend views are product surfaces, not a thin delivery detail for backend features. A change is not complete merely because routes, props, permissions, tables, and tests exist; the rendered workflow must be understandable, actionable, localized, and reviewable by the target user.
+- Do not patch a structurally poor view with more cards, explanatory text, warnings, or local styling. If a view needs long copy to explain why it shows partial data, where the real workflow lives, or what an operator should infer, stop and redesign the view contract with proper ownership, navigation, filters, pagination, drill-down, states, and actions.
+- When an existing view is visibly incoherent, noisy, mixed-language, duplicated, or misleading, do not use it as the design baseline. Inspect it only to recover route contracts, props, permissions, data ownership, actions, edge cases, and regression risks, then rebuild the view around accepted shared primitives and a clear workflow.
 - Use shared UI primitives before creating new local components.
 - Explicitly tell the user when a change introduces or materially changes visible frontend UI so they can review it in the browser.
 - When creating or changing views, inspect nearby existing views, shared components, and established UI patterns first; keep screens visually and behaviorally coherent instead of making each page feel designed in isolation.
 - Before creating or materially changing any frontend view, identify the view contract: route name, Vue page, layout, controller or data provider, sidebar entry, breadcrumb, backend permission, module gate, active-team behavior, demo/e2e seeder visibility, shared primitives used, and manual review URL. Do not start visual implementation until these relationships are understood.
+- The view contract must include the user's primary task, secondary actions, data ownership, empty/loading/error/permission-denied states, localization source, expected dashboard or notification behavior, and the exact review data needed to see the workflow honestly.
 - Before creating or materially changing any frontend view, first inspect similar existing views in the same shell or workflow and shared UI components, then reuse or extend the closest accepted pattern. Do not invent local card, header, table, filter, form, badge, tooltip, formatter, empty-state, loading-state, unavailable-state, or action-bar patterns when a shared primitive or accepted pattern exists.
+- Existing accepted frontend modules must be used. Rebuilds may clear bad page implementations, but they must preserve and compose accepted shared UI primitives, composables, services, formatters, table/form/dialog/toast infrastructure, layouts, theme system, localization helpers, route helpers, and testing fixtures wherever they fit the accepted contracts.
 - Shared UI primitives must not be named for `Admin` or `App` unless they are genuinely tied to that shell, route family, or permission boundary. Cards, tables, forms, filters, dialogs, badges, tooltips, formatters, and visual states are shared Atlas primitives with context-specific composition, not separate Admin-only and App-only systems.
 - Shared cards and operational panels must follow the documented Atlas UI system. Every shared card must use an approved icon treatment unless a documented shared primitive explicitly defines a different pattern: larger colored icons for main/operational cards, smaller neutral icons for secondary cards such as filters and compact helper sections.
 - Shared card headers must use the approved shared structure matching the current Admin dashboard card header band: background, bottom border, spacing, typography, subtitle, icon placement, actions, light theme, and dark theme. Do not remove established icons, header backgrounds, or status affordances while touching a view unless the replacement is documented and applied consistently across the affected area.
@@ -250,7 +257,14 @@ Read [`docs/architecture/security-baseline.md`](docs/architecture/security-basel
 - Do not duplicate backend permission logic in the client.
 - Query-string state must be deterministic and shareable where applicable.
 - Loading, empty, error, offline, and permission-denied states are first-class UI states.
+- Bounded datasets must be represented through real controls such as server-side pagination, filters, date/range controls, counters, saved views, and deep links. Do not use prominent bounded-view notices as the primary mechanism for compensating for incomplete tables or weak operational views.
+- User feedback must have clear ownership. Do not create toast storms, duplicate flashes, competing terminal notifications, or raw technical status spam. A user action should produce the minimum useful immediate response and, for asynchronous work, one clear terminal outcome with a useful link.
+- Operational dashboards must show concise actionable state, not sidebar navigation, raw logs, raw queue/process step streams, or architecture explanations. Dashboard signals must be deduplicated and attributed to the correct owner or shown as global when ownership is not module-specific.
 - When adding or materially changing an Admin operational area, add or update a meaningful Admin dashboard status signal when the area exposes health, queues, failures, approvals, security events, module state, integrations, files, imports, reports, or operator action. The Admin dashboard must not duplicate sidebar navigation; the sidebar owns navigation, and the dashboard owns operational visibility.
+- For large Admin or operational rebuilds, work sidebar entry by sidebar entry or workflow by workflow. Complete the full workflow for one entry, including index/list, create, edit, show/detail, dialogs, filters, row/bulk actions, exports, breadcrumbs, permissions, module gates, toasts/notifications, and subviews, then pause for browser review before continuing.
+- For user-reviewed UI work, prepare deterministic review data that exposes representative records, edge cases, permissions, module states, operational failures, empty states, validation paths, and action paths. Do not ask the user to approve a mostly empty or artificially happy-path screen.
+- Temporary review-only seeders, fixtures, helper classes, routes, UI controls, and test harnesses may exist only when explicitly tracked by the active phase. They must remain available while owner review is in progress and must be removed before the phase is marked complete unless a permanent demo-data scope is explicitly accepted.
+- Rendered UI must be manually or browser-automated reviewed in the active locale(s) before declaring localization complete. Backend translation-key parity alone is insufficient.
 
 Read [`docs/architecture/frontend-ui.md`](docs/architecture/frontend-ui.md) for shared UI changes and [`docs/architecture/tables-reports-exports-and-print.md`](docs/architecture/tables-reports-exports-and-print.md) for tables or reporting work.
 
@@ -275,6 +289,8 @@ Stateful PHPUnit tests and Playwright e2e tests use separate PostgreSQL database
 Permission-gated and module-gated UI visibility needs Playwright coverage where manual checks would be error-prone, but backend authorization tests remain mandatory.
 
 For UI work, use Playwright coverage for critical rendered workflows, light/dark theme behavior, browser-console cleanliness, and permission/module-gated visibility where manual checking would be error-prone. E2E tests are comparatively heavy: run them at the end of a phase, when the user asks for them, before release/deployment, or when they are genuinely useful for debugging a browser/UI problem; do not run them reflexively after every small UI edit. E2E tests must keep the browser console clean: fail on runtime page errors, `console.error`, failed monitored asset/API requests, and unexpected HTTP 4xx/5xx responses. New Playwright tests should use the shared `tests/e2e/support/test` fixture so these guards apply consistently.
+
+For frontend-heavy work, tests must protect the accepted user experience, not just implementation plumbing. Add rendered assertions for visible copy, primary actions, state transitions, empty/error states, localization, toasts/notifications, and permission/module-gated visibility when those behaviors are part of the change. Negative assertions are required when preventing a known regression, such as accidental English copy in Polish UI, duplicate operational signals, or toast storms.
 
 Do not reduce strictness, skip failing checks, delete tests, or weaken assertions merely to make a task pass.
 

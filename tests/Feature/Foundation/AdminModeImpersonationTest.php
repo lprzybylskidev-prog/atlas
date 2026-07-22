@@ -316,7 +316,8 @@ final class AdminModeImpersonationTest extends TestCase
             ->from('/testing/source')
             ->post('/testing/external-effect')
             ->assertRedirect('/testing/source')
-            ->assertSessionHas('error');
+            ->assertSessionHas('flash.messages.0.key', 'flash.auth.external_effect_ack_required')
+            ->assertSessionMissing('error');
 
         $this->actingAs($admin)
             ->withSession($session)

@@ -8,8 +8,10 @@ import DataTable from '../../../Components/DataTable.vue';
 import FormDateInput from '../../../Components/Form/FormDateInput.vue';
 import FormSelect from '../../../Components/Form/FormSelect.vue';
 import MetricGrid from '../../../Components/MetricGrid.vue';
+import NoticeBanner from '../../../Components/NoticeBanner.vue';
 import PageStack from '../../../Components/PageStack.vue';
 import AdminLayout from '../../../Layouts/AdminLayout.vue';
+import { useTranslator } from '../../../Localization/translator';
 import type { DataTableAction, DataTableColumn, DataTableExportMeta } from '../../../Types/data-table';
 import { managedProcessSubnavigation } from './navigation';
 
@@ -31,6 +33,7 @@ const props = defineProps<{
     exports: DataTableExportMeta;
 }>();
 
+const { t } = useTranslator();
 const importFilter = ref('');
 const statusFilter = ref('');
 const sourceFilter = ref('');
@@ -49,24 +52,31 @@ const filteredRows = computed(() =>
             matchesDateRange(entry.createdAt, fromFilter.value, toFilter.value),
     ),
 );
-const summaryItems = computed(() => [{ label: 'Import runs', value: String(props.summary.imports), icon: IconFileImport }]);
+const summaryItems = computed(() => [
+    { label: t('pages.admin.managed_processes.imports.metric.import_runs'), value: String(props.summary.imports), icon: IconFileImport },
+]);
 
 const columns: DataTableColumn<ImportExecution>[] = [
-    { key: 'importKey', label: 'Import' },
-    { key: 'sourceType', label: 'Source' },
-    { key: 'status', label: 'Status', format: 'severity' },
-    { key: 'idempotencyKey', label: 'Idempotency key' },
-    { key: 'idempotencyState', label: 'Idempotency state' },
-    { key: 'statistics', label: 'Statistics' },
-    { key: 'createdAt', label: 'Created', format: 'datetime' },
+    { key: 'importKey', label: t('pages.admin.managed_processes.import') },
+    { key: 'sourceType', label: t('pages.admin.managed_processes.source') },
+    { key: 'status', label: t('pages.admin.managed_processes.status'), format: 'severity' },
+    { key: 'idempotencyKey', label: t('pages.admin.managed_processes.idempotency_key') },
+    { key: 'idempotencyState', label: t('pages.admin.managed_processes.idempotency_state') },
+    { key: 'statistics', label: t('pages.admin.managed_processes.statistics') },
+    { key: 'createdAt', label: t('pages.admin.managed_processes.created'), format: 'datetime' },
 ];
 const actions: DataTableAction<ImportExecution>[] = [
-    { key: 'open', label: 'Open logs', href: (entry) => `/admin/managed-processes/${entry.runPublicId}`, tone: 'info' },
+    {
+        key: 'open',
+        label: t('pages.admin.managed_processes.open_logs'),
+        href: (entry) => `/admin/managed-processes/${entry.runPublicId}`,
+        tone: 'info',
+    },
 ];
 
 function optionList(values: string[]): { value: string; label: string }[] {
     return [
-        { value: '', label: 'All' },
+        { value: '', label: t('pages.admin.managed_processes.all') },
         ...Array.from(new Set(values))
             .sort()
             .map((value) => ({ value, label: value })),
@@ -97,33 +107,41 @@ function resetFilters(): void {
 </script>
 
 <template>
-    <Head title="Import executions" />
+    <Head :title="t('pages.admin.managed_processes.imports.head_title')" />
     <AdminLayout
-        title="Import executions"
+        :title="t('pages.admin.managed_processes.imports.title')"
         :title-icon="IconFileImport"
-        :subnavigation="managedProcessSubnavigation('imports')"
-        subnavigation-label="Managed process sections"
+        :subnavigation="managedProcessSubnavigation('imports', t)"
+        :subnavigation-label="t('pages.admin.managed_processes.nav.label')"
     >
         <PageStack>
             <MetricGrid :items="summaryItems" />
+            <NoticeBanner :title="t('pages.admin.managed_processes.bounded_title')">
+                {{ t('pages.admin.managed_processes.bounded_imports') }}
+            </NoticeBanner>
             <FilterPanel
-                title="Import filters"
-                :summary="`Showing ${filteredRows.length} of ${props.importExecutions.length} loaded import executions.`"
+                :title="t('pages.admin.managed_processes.imports.filters')"
+                :summary="
+                    t('pages.admin.managed_processes.imports.summary', {
+                        visible: filteredRows.length,
+                        total: props.importExecutions.length,
+                    })
+                "
                 @apply="() => {}"
                 @clear="resetFilters"
             >
                 <div
                     class="grid gap-4 sm:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_minmax(10rem,0.7fr)_minmax(10rem,0.7fr)_minmax(9rem,0.6fr)_minmax(9rem,0.6fr)]"
                 >
-                    <FormSelect v-model="importFilter" label="Import" :options="importOptions" />
-                    <FormSelect v-model="statusFilter" label="Status" :options="statusOptions" />
-                    <FormSelect v-model="sourceFilter" label="Source" :options="sourceOptions" />
-                    <FormDateInput v-model="fromFilter" label="Created from" />
-                    <FormDateInput v-model="toFilter" label="Created to" />
+                    <FormSelect v-model="importFilter" :label="t('pages.admin.managed_processes.import')" :options="importOptions" />
+                    <FormSelect v-model="statusFilter" :label="t('pages.admin.managed_processes.status')" :options="statusOptions" />
+                    <FormSelect v-model="sourceFilter" :label="t('pages.admin.managed_processes.source')" :options="sourceOptions" />
+                    <FormDateInput v-model="fromFilter" :label="t('pages.admin.managed_processes.created_from')" />
+                    <FormDateInput v-model="toFilter" :label="t('pages.admin.managed_processes.created_to')" />
                 </div>
             </FilterPanel>
             <DataTable
-                title="Import executions"
+                :title="t('pages.admin.managed_processes.imports.title')"
                 :rows="filteredRows"
                 :columns="columns"
                 row-key="publicId"
@@ -132,7 +150,7 @@ function resetFilters(): void {
                 export-key="admin.managed-processes.imports"
                 :exports="exports"
                 :filters="{ import: importFilter, status: statusFilter, source: sourceFilter, from: fromFilter, to: toFilter }"
-                empty-label="No import executions match the current filters."
+                :empty-label="t('pages.admin.managed_processes.imports.empty')"
             />
         </PageStack>
     </AdminLayout>

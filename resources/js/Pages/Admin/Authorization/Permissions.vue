@@ -31,7 +31,7 @@ const props = defineProps<{
     table: DataTableMeta;
 }>();
 
-const { t } = useTranslator('en');
+const { t } = useTranslator();
 
 const filters = reactive({
     module: 'all',
@@ -146,7 +146,6 @@ const columns: DataTableColumn<PermissionRow>[] = [
                 row-key="publicId"
                 :table="table"
                 :filters="filters"
-                ui-locale="en"
             />
         </PageStack>
     </AdminLayout>

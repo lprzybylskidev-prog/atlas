@@ -18,6 +18,7 @@ use App\Modules\Core\Users\Application\Contracts\FirstPasswordLinkIssuer;
 use App\Modules\Core\Users\Application\DeactivateUserAccount;
 use App\Modules\Core\Users\Application\ResetUserMfa;
 use App\Modules\Core\Users\Application\UnlockUserAccount;
+use App\Shared\Presentation\Support\FlashMessage;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 
@@ -38,28 +39,36 @@ final readonly class UserAccountActionController
     {
         $this->activate->handle(new ActivateUserAccountCommand($user));
 
-        return redirect()->route('admin.users.index')->with('success', 'User was activated.');
+        return redirect()->route('admin.users.index')->with('flash.messages', [
+            FlashMessage::success('flash.users.activated'),
+        ]);
     }
 
     public function deactivate(string $user): RedirectResponse
     {
         $this->deactivate->handle(new DeactivateUserAccountCommand($user));
 
-        return redirect()->route('admin.users.index')->with('success', 'User was deactivated.');
+        return redirect()->route('admin.users.index')->with('flash.messages', [
+            FlashMessage::success('flash.users.deactivated'),
+        ]);
     }
 
     public function verifyEmail(string $user): RedirectResponse
     {
         $this->accounts->verifyEmail($user);
 
-        return redirect()->route('admin.users.index')->with('success', 'User email was verified.');
+        return redirect()->route('admin.users.index')->with('flash.messages', [
+            FlashMessage::success('flash.users.email_verified'),
+        ]);
     }
 
     public function requireEmailVerification(string $user): RedirectResponse
     {
         $this->accounts->requireEmailVerification($user);
 
-        return redirect()->route('admin.users.index')->with('success', 'User email verification was required again.');
+        return redirect()->route('admin.users.index')->with('flash.messages', [
+            FlashMessage::success('flash.users.email_verification_required'),
+        ]);
     }
 
     public function resendFirstPassword(Request $request, string $user): RedirectResponse
@@ -71,7 +80,9 @@ final readonly class UserAccountActionController
             }
         }
 
-        return redirect()->route('admin.users.index')->with('success', 'First-password link was sent.');
+        return redirect()->route('admin.users.index')->with('flash.messages', [
+            FlashMessage::success('flash.users.first_password_sent'),
+        ]);
     }
 
     public function unlock(Request $request, string $user): RedirectResponse
@@ -84,7 +95,9 @@ final readonly class UserAccountActionController
             reason: 'Admin user action',
         ));
 
-        return redirect()->route('admin.users.index')->with('success', 'User login was unlocked.');
+        return redirect()->route('admin.users.index')->with('flash.messages', [
+            FlashMessage::success('flash.users.login_unlocked'),
+        ]);
     }
 
     public function resetMfa(Request $request, string $user): RedirectResponse
@@ -97,7 +110,9 @@ final readonly class UserAccountActionController
             reason: 'Admin user action',
         ));
 
-        return redirect()->route('admin.users.index')->with('success', 'User MFA was reset.');
+        return redirect()->route('admin.users.index')->with('flash.messages', [
+            FlashMessage::success('flash.users.mfa_reset'),
+        ]);
     }
 
     public function invalidateSessions(Request $request, string $user): RedirectResponse
@@ -116,6 +131,8 @@ final readonly class UserAccountActionController
             category: SecurityAuditCategory::Session,
         ));
 
-        return redirect()->route('admin.users.index')->with('success', 'User sessions were invalidated.');
+        return redirect()->route('admin.users.index')->with('flash.messages', [
+            FlashMessage::success('flash.users.sessions_invalidated'),
+        ]);
     }
 }

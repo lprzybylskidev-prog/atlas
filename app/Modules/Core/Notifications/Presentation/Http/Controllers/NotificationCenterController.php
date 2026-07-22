@@ -6,6 +6,7 @@ namespace App\Modules\Core\Notifications\Presentation\Http\Controllers;
 
 use App\Modules\Core\Notifications\Application\Public\Contracts\NotificationInbox;
 use App\Modules\Core\Notifications\Application\Public\DTOs\NotificationSummary;
+use App\Modules\Core\Notifications\Presentation\Support\NotificationTextLocalizer;
 use App\Shared\Application\Tables\AdminTableDefinitions;
 use App\Shared\Application\Tables\ArrayTableProcessor;
 use App\Shared\Application\Tables\TableRequestContext;
@@ -31,6 +32,7 @@ final readonly class NotificationCenterController
         [$userId, $teamId] = $this->context->userTeam($request);
         $userPublicId = data_get($request->user(), 'public_id');
         $teamPublicId = $request->hasSession() ? $request->session()->get('active_team_public_id') : null;
+        $localizer = new NotificationTextLocalizer;
 
         $rows = is_string($userPublicId)
             ? array_map(
@@ -38,8 +40,8 @@ final readonly class NotificationCenterController
                     'publicId' => $notification->publicId,
                     'type' => $notification->type,
                     'severity' => $notification->severity,
-                    'title' => $notification->title,
-                    'body' => $notification->body ?? '',
+                    'title' => $localizer->title($notification),
+                    'body' => $localizer->body($notification) ?? '',
                     'teamPublicId' => $notification->teamPublicId ?? '',
                     'read' => $notification->read,
                     'createdAt' => $notification->createdAt,

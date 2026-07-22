@@ -62,7 +62,7 @@ Rejected because the same token-cost problem would reappear during later applica
 
 All existing phase headings, implementation contracts, and checkboxes were moved to `docs/roadmap/phase-*.md`.
 
-The migration verification records source and destination hashes and confirms that phase content was preserved except for the separately accepted update replacing the former root-files-only handoff with the new root-plus-docs model.
+The migration was verified at the time of the split by comparing source and destination hashes and checkbox counts. The temporary verification artifact was later removed because the current roadmap index in `WORKROAD.md` and the active phase files under `docs/roadmap/` are the canonical sources.
 
 ## Supersedes / superseded by
 

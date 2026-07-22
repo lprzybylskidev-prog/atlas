@@ -30,7 +30,7 @@ const props = defineProps<{
     permissionOptions: string[];
 }>();
 
-const { t } = useTranslator('en');
+const { t } = useTranslator();
 const packageRecord = props.package;
 const form = useForm({
     label: packageRecord.label,

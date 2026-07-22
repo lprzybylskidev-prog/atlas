@@ -103,12 +103,20 @@ function handleRealtimeEvents(events: RealtimeEvent[]): void {
     }
 
     if (refreshNotifications) {
-        router.reload({ only: ['notifications'] });
+        router.reload({ only: notificationReloadProps() });
     }
 
     if (reloadPage) {
         window.location.reload();
     }
+}
+
+function notificationReloadProps(): string[] {
+    if (window.location.pathname.startsWith('/notifications')) {
+        return ['notifications', 'notificationRows', 'table'];
+    }
+
+    return ['notifications'];
 }
 
 function severityToastType(value: unknown): 'success' | 'info' | 'warning' | 'error' {

@@ -8,7 +8,9 @@ use App\Modules\Core\Authorization\Application\Roles\StarterRoleName;
 use App\Modules\Core\Identity\Infrastructure\Persistence\User;
 use App\Shared\Infrastructure\Database\DatabaseTable;
 use Database\Seeders\DatabaseSeeder;
+use Database\Seeders\DevelopmentBootstrapSeeder;
 use Database\Seeders\DevelopmentDemoSeeder;
+use Database\Seeders\SystemBootstrapSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Config;
@@ -44,24 +46,25 @@ final class DemoResetTest extends TestCase
         ]);
         $this->assertGreaterThan(0, DB::table(DatabaseTable::PERMISSIONS)->count());
         $this->assertDatabaseMissing(DatabaseTable::USERS, [
-            'email' => DevelopmentDemoSeeder::PREVIEW_EMAIL,
+            'email' => DevelopmentBootstrapSeeder::PREVIEW_EMAIL,
         ]);
+        $this->assertDatabaseHas(DatabaseTable::TEAMS, ['name' => SystemBootstrapSeeder::ADMINISTRATION_TEAM_NAME]);
     }
 
-    public function test_development_demo_seeder_creates_only_clean_admin_foundation(): void
+    public function test_development_bootstrap_seeder_creates_only_clean_admin_foundation(): void
     {
         $this->seed(DatabaseSeeder::class);
-        $this->seed(DevelopmentDemoSeeder::class);
+        $this->seed(DevelopmentBootstrapSeeder::class);
 
         $user = User::query()
-            ->where('email', DevelopmentDemoSeeder::PREVIEW_EMAIL)
+            ->where('email', DevelopmentBootstrapSeeder::PREVIEW_EMAIL)
             ->firstOrFail();
 
         $this->assertSame('Admin', $user->name);
-        $this->assertTrue(Hash::check(DevelopmentDemoSeeder::PREVIEW_PASSWORD, $user->password));
+        $this->assertTrue(Hash::check(DevelopmentBootstrapSeeder::PREVIEW_PASSWORD, $user->password));
         $this->assertNotNull($user->email_verified_at);
         $this->assertDatabaseCount(DatabaseTable::USERS, 1);
-        $this->assertDatabaseHas(DatabaseTable::TEAMS, ['name' => DevelopmentDemoSeeder::ADMIN_TEAM_NAME]);
+        $this->assertDatabaseHas(DatabaseTable::TEAMS, ['name' => SystemBootstrapSeeder::ADMINISTRATION_TEAM_NAME]);
         $this->assertDatabaseCount(DatabaseTable::TEAMS, 1);
         $this->assertDatabaseHas(DatabaseTable::ROLES, ['name' => StarterRoleName::Administrator->value]);
         $this->assertDatabaseCount(DatabaseTable::USER_ONBOARDING_PACKAGES, 0);
@@ -71,7 +74,7 @@ final class DemoResetTest extends TestCase
         $this->assertDatabaseCount(DatabaseTable::MANAGED_PROCESS_SCHEDULES, 0);
         $this->assertDatabaseCount(DatabaseTable::TEAM_MANAGER_RELATIONSHIPS, 0);
 
-        $teamPublicId = DB::table(DatabaseTable::TEAMS)->where('name', DevelopmentDemoSeeder::ADMIN_TEAM_NAME)->value('public_id');
+        $teamPublicId = DB::table(DatabaseTable::TEAMS)->where('name', SystemBootstrapSeeder::ADMINISTRATION_TEAM_NAME)->value('public_id');
 
         self::assertIsString($teamPublicId);
 
@@ -91,13 +94,14 @@ final class DemoResetTest extends TestCase
     public function test_development_demo_admin_can_access_current_core_frontend_surfaces(): void
     {
         $this->seed(DatabaseSeeder::class);
+        $this->seed(DevelopmentBootstrapSeeder::class);
         $this->seed(DevelopmentDemoSeeder::class);
 
         $user = User::query()
-            ->where('email', DevelopmentDemoSeeder::PREVIEW_EMAIL)
+            ->where('email', DevelopmentBootstrapSeeder::PREVIEW_EMAIL)
             ->firstOrFail();
         $teamPublicId = DB::table(DatabaseTable::TEAMS)
-            ->where('name', DevelopmentDemoSeeder::ADMIN_TEAM_NAME)
+            ->where('name', SystemBootstrapSeeder::ADMINISTRATION_TEAM_NAME)
             ->value('public_id');
 
         self::assertIsString($teamPublicId);
@@ -133,6 +137,22 @@ final class DemoResetTest extends TestCase
             self::assertSame(200, $response->getStatusCode(), sprintf('Expected [%s] to render after demo seed.', $path));
             $response->assertInertia(fn (AssertableInertia $page) => $page->component($component));
         }
+    }
+
+    public function test_development_demo_seeder_is_currently_no_op(): void
+    {
+        $this->seed(DatabaseSeeder::class);
+
+        $usersBefore = DB::table(DatabaseTable::USERS)->count();
+        $teamsBefore = DB::table(DatabaseTable::TEAMS)->count();
+
+        $this->seed(DevelopmentDemoSeeder::class);
+
+        $this->assertSame($usersBefore, DB::table(DatabaseTable::USERS)->count());
+        $this->assertSame($teamsBefore, DB::table(DatabaseTable::TEAMS)->count());
+        $this->assertDatabaseMissing(DatabaseTable::USERS, [
+            'email' => DevelopmentBootstrapSeeder::PREVIEW_EMAIL,
+        ]);
     }
 
     /**

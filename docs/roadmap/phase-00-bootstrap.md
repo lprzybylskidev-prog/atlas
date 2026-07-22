@@ -9,7 +9,7 @@
 - `WORKROAD.md` contains the lightweight ordered phase index; binding executable specifications live in linked `docs/roadmap/phase-*.md` files.
 - `CHATGPT_PROMPT.md` supports future conceptual work on Atlas.
 - Temporary discussion and continuation files are not part of the working repository. Accepted context must live in canonical documentation.
-- All documentation, code, commits, technical errors, CLI output, and Admin UI use English.
+- All documentation, code, commits, technical errors, CLI output, and operational command output use English. Admin UI is user-facing and supports Polish and English through the shared localization model.
 - The regular end-user UI supports Polish and English, with Polish as the default.
 - The first repository operation is `git init`.
 - The project uses English Conventional Commits, produced by the agent in the smallest logical units.

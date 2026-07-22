@@ -149,8 +149,8 @@ final readonly class ReportExportArtifactGenerator
         try {
             $this->notifications->publish(new CreateNotification(
                 type: 'report_export.available',
-                title: 'Report export is ready',
-                body: sprintf('%s export is ready to download.', $generationRequest->reportName),
+                title: 'notifications.exports.available.title',
+                body: 'notifications.exports.available.body',
                 recipientUserPublicId: $generationRequest->requestingUserPublicId,
                 teamPublicId: $generationRequest->activeTeamPublicId,
                 severity: 'success',
@@ -159,7 +159,10 @@ final readonly class ReportExportArtifactGenerator
                     'export_request_public_id' => $generationRequest->publicId,
                     'artifact_public_id' => $artifactPublicId,
                     'report_key' => $generationRequest->reportKey,
+                    'report_name' => $generationRequest->reportName,
                     'format' => $generationRequest->format->value,
+                    'title_key' => 'notifications.exports.available.title',
+                    'body_key' => 'notifications.exports.available.body',
                 ],
             ));
         } catch (Throwable $exception) {
@@ -178,8 +181,8 @@ final readonly class ReportExportArtifactGenerator
         try {
             $this->notifications->publish(new CreateNotification(
                 type: 'report_export.failed',
-                title: 'Report export failed',
-                body: mb_substr($message, 0, 500),
+                title: 'notifications.exports.failed.title',
+                body: 'notifications.exports.failed.body',
                 recipientUserPublicId: $this->requiredString($request, 'requesting_user_public_id'),
                 teamPublicId: $this->nullableString($request, 'active_team_public_id'),
                 severity: 'warning',
@@ -187,7 +190,11 @@ final readonly class ReportExportArtifactGenerator
                 data: [
                     'export_request_public_id' => $this->requiredString($request, 'public_id'),
                     'report_key' => $this->requiredString($request, 'report_key'),
+                    'report_name' => $this->requiredString($request, 'report_name'),
                     'format' => $this->requiredString($request, 'format'),
+                    'failure_message' => mb_substr($message, 0, 500),
+                    'title_key' => 'notifications.exports.failed.title',
+                    'body_key' => 'notifications.exports.failed.body',
                 ],
             ));
         } catch (Throwable) {

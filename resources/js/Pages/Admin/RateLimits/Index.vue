@@ -41,7 +41,7 @@ defineProps<{
     policyOptions: PolicyOption[];
 }>();
 
-const { t } = useTranslator('en');
+const { t } = useTranslator();
 const instructionsOpen = ref(false);
 const form = useForm({
     policy: '',
@@ -50,16 +50,16 @@ const form = useForm({
 });
 
 const columns: DataTableColumn<RateLimitPolicyRow>[] = [
-    { key: 'publicId', label: 'Public ID', hidden: true },
-    { key: 'policy', label: 'Policy' },
-    { key: 'maxAttempts', label: 'Max attempts', format: 'number' },
-    { key: 'decaySeconds', label: 'Decay seconds', format: 'number' },
-    { key: 'keyParts', label: 'Key parts' },
-    { key: 'progressiveDelays', label: 'Progressive delays', hidden: true },
-    { key: 'temporaryLockSeconds', label: 'Temporary lock seconds', format: 'number', hidden: true },
-    { key: 'rejections', label: 'Rejections', format: 'number' },
-    { key: 'distinctKeys', label: 'Distinct keys', format: 'number' },
-    { key: 'lastRejectedAt', label: 'Last rejected at', format: 'datetime', hidden: true },
+    { key: 'publicId', label: t('pages.admin.rate_limits.public_id'), hidden: true },
+    { key: 'policy', label: t('pages.admin.rate_limits.policy') },
+    { key: 'maxAttempts', label: t('pages.admin.rate_limits.max_attempts'), format: 'number' },
+    { key: 'decaySeconds', label: t('pages.admin.rate_limits.decay_seconds'), format: 'number' },
+    { key: 'keyParts', label: t('pages.admin.rate_limits.key_parts') },
+    { key: 'progressiveDelays', label: t('pages.admin.rate_limits.progressive_delays'), hidden: true },
+    { key: 'temporaryLockSeconds', label: t('pages.admin.rate_limits.temporary_lock_seconds'), format: 'number', hidden: true },
+    { key: 'rejections', label: t('pages.admin.rate_limits.rejections'), format: 'number' },
+    { key: 'distinctKeys', label: t('pages.admin.rate_limits.distinct_keys'), format: 'number' },
+    { key: 'lastRejectedAt', label: t('pages.admin.rate_limits.last_rejected_at'), format: 'datetime', hidden: true },
 ];
 
 function resetCounter(): void {
@@ -81,14 +81,14 @@ function openInstructions(): void {
     <AdminLayout :title="t('pages.admin.rate_limits.title')" :title-icon="IconLockAccess">
         <PageStack>
             <SurfaceCard
-                title="Reset one counter"
+                :title="t('pages.admin.rate_limits.reset_one_counter')"
                 :icon="IconLockAccess"
-                subtitle="Enter the exact limiter key produced by the policy key parts. Thresholds remain read-only and cannot be edited here."
+                :subtitle="t('pages.admin.rate_limits.reset_one_counter_subtitle')"
             >
                 <template #actions>
-                    <Tooltip text="How to reset a counter" placement="top">
+                    <Tooltip :text="t('pages.admin.rate_limits.instructions')" placement="top">
                         <IconButton
-                            label="How to reset a counter"
+                            :label="t('pages.admin.rate_limits.instructions')"
                             :icon="IconInfoCircle"
                             class="h-9 w-9 shrink-0"
                             @click="openInstructions"
@@ -101,9 +101,18 @@ function openInstructions(): void {
                     :processing="form.processing"
                     @submit="resetCounter"
                 >
-                    <FormSelect v-model="form.policy" label="Policy" :options="policyOptions" :error="form.errors.policy" />
-                    <FormInput v-model="form.limiter_key" label="Exact limiter key" :error="form.errors.limiter_key" />
-                    <FormInput v-model="form.reason" label="Reset reason" :error="form.errors.reason" />
+                    <FormSelect
+                        v-model="form.policy"
+                        :label="t('pages.admin.rate_limits.policy')"
+                        :options="policyOptions"
+                        :error="form.errors.policy"
+                    />
+                    <FormInput
+                        v-model="form.limiter_key"
+                        :label="t('pages.admin.rate_limits.exact_limiter_key')"
+                        :error="form.errors.limiter_key"
+                    />
+                    <FormInput v-model="form.reason" :label="t('pages.admin.rate_limits.reset_reason')" :error="form.errors.reason" />
                     <FormButton
                         type="submit"
                         tone="danger"
@@ -111,37 +120,44 @@ function openInstructions(): void {
                         :loading="form.processing"
                         :disabled="!form.policy || !form.limiter_key.trim() || !form.reason.trim()"
                     >
-                        Reset counter
+                        {{ t('pages.admin.rate_limits.reset_counter') }}
                     </FormButton>
                 </AtlasForm>
             </SurfaceCard>
 
-            <DataTable title="Rate-limit policies" :rows="policies" :columns="columns" row-key="publicId" :table="table" ui-locale="en" />
+            <DataTable
+                :title="t('pages.admin.rate_limits.policies')"
+                :rows="policies"
+                :columns="columns"
+                row-key="publicId"
+                :table="table"
+            />
         </PageStack>
 
         <DialogPanel
             v-model:open="instructionsOpen"
-            title="Reset one rate-limit counter"
+            :title="t('pages.admin.rate_limits.reset_one_counter')"
             :icon="IconInfoCircle"
-            close-label="Close instructions"
+            :close-label="t('pages.admin.rate_limits.close_instructions')"
         >
             <div class="space-y-3">
                 <p>
-                    Use this only after verifying that a legitimate user, IP address, API client, or team operation was blocked by a rate
-                    limit.
+                    {{ t('pages.admin.rate_limits.instructions_intro') }}
                 </p>
                 <ol class="list-decimal space-y-2 pl-5">
-                    <li>Select the policy that owns the counter, such as <span class="font-mono">auth.login</span>.</li>
                     <li>
-                        Enter the exact limiter key generated from that policy key, for example
+                        {{ t('pages.admin.rate_limits.instructions_step_policy') }}
+                        <span class="font-mono">auth.login</span>.
+                    </li>
+                    <li>
+                        {{ t('pages.admin.rate_limits.instructions_step_key') }}
                         <span class="font-mono">auth.login|user:name@example.test|ip:127.0.0.1</span>.
                     </li>
                     <li>
-                        Provide a concrete operational reason. The reset is recorded in security audit with the policy, key, actor, reason,
-                        and correlation ID.
+                        {{ t('pages.admin.rate_limits.instructions_step_reason') }}
                     </li>
                 </ol>
-                <p>Resetting a counter does not edit thresholds, add policies, remove policies, or disable rate limiting.</p>
+                <p>{{ t('pages.admin.rate_limits.instructions_footer') }}</p>
             </div>
         </DialogPanel>
     </AdminLayout>

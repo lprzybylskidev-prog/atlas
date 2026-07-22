@@ -10,11 +10,13 @@ import FormButton from '../../../Components/Form/FormButton.vue';
 import FormCheckbox from '../../../Components/Form/FormCheckbox.vue';
 import FormDateTimeInput from '../../../Components/Form/FormDateTimeInput.vue';
 import FormInput from '../../../Components/Form/FormInput.vue';
+import NoticeBanner from '../../../Components/NoticeBanner.vue';
 import PageStack from '../../../Components/PageStack.vue';
 import StatusBadge from '../../../Components/StatusBadge.vue';
 import SurfaceCard from '../../../Components/SurfaceCard.vue';
 import TextBadge from '../../../Components/TextBadge.vue';
 import AdminLayout from '../../../Layouts/AdminLayout.vue';
+import { useTranslator } from '../../../Localization/translator';
 import type { DataTableExportMeta } from '../../../Types/data-table';
 
 interface ModuleDetails {
@@ -71,6 +73,7 @@ const props = defineProps<{
     exports: DataTableExportMeta;
 }>();
 
+const { t } = useTranslator();
 const moduleTeamExportColumns = ['moduleKey', 'name', 'isActive', 'teamEnabled', 'effectiveEnabled', 'source', 'version'] as const;
 const moduleHistoryExportColumns = [
     'moduleKey',
@@ -195,33 +198,37 @@ function cancelSchedule(publicId: string, reason: string): void {
 </script>
 
 <template>
-    <Head :title="`Module ${module.moduleKey}`" />
-    <AdminLayout :title="`Module ${module.moduleKey}`" :title-icon="IconPuzzle">
+    <Head :title="t('pages.admin.modules.show_title', { module: module.moduleKey })" />
+    <AdminLayout :title="t('pages.admin.modules.show_title', { module: module.moduleKey })" :title-icon="IconPuzzle">
         <PageStack>
-            <ActionLink href="/admin/modules" :icon="IconArrowLeft"> Back to modules </ActionLink>
+            <ActionLink href="/admin/modules" :icon="IconArrowLeft">{{ t('pages.admin.modules.back_to_modules') }}</ActionLink>
 
             <div class="grid gap-5 xl:grid-cols-[minmax(0,1fr)_20rem]">
                 <div class="space-y-5">
-                    <SurfaceCard title="Global activation" :icon="IconPuzzle">
+                    <SurfaceCard :title="t('pages.admin.modules.global_activation')" :icon="IconPuzzle">
                         <AtlasForm :processing="globalForm.processing" @submit="submitGlobal">
                             <div class="grid gap-4 md:grid-cols-[auto_minmax(0,1fr)_auto]">
                                 <FormCheckbox v-model="globalForm.enabled" :disabled="module.readOnly || !module.supportsGlobalActivation">
-                                    Globally enabled
+                                    {{ t('pages.admin.modules.globally_enabled') }}
                                 </FormCheckbox>
-                                <FormInput v-model="globalForm.reason" label="Reason" :error="globalForm.errors.reason" />
+                                <FormInput
+                                    v-model="globalForm.reason"
+                                    :label="t('pages.admin.modules.reason')"
+                                    :error="globalForm.errors.reason"
+                                />
                                 <FormButton
                                     type="submit"
                                     class="mt-0 md:mt-6"
                                     :disabled="module.readOnly || !module.supportsGlobalActivation || !globalForm.reason.trim()"
                                     :loading="globalForm.processing"
                                 >
-                                    Save global state
+                                    {{ t('pages.admin.modules.save_global_state') }}
                                 </FormButton>
                             </div>
                         </AtlasForm>
                     </SurfaceCard>
 
-                    <SurfaceCard title="Global schedule" :icon="IconPuzzle">
+                    <SurfaceCard :title="t('pages.admin.modules.global_schedule')" :icon="IconPuzzle">
                         <AtlasForm :processing="globalScheduleForm.processing" @submit="scheduleGlobal">
                             <div class="grid gap-4 xl:grid-cols-[auto_minmax(0,14rem)_minmax(0,1fr)_auto]">
                                 <FormCheckbox
@@ -229,14 +236,18 @@ function cancelSchedule(publicId: string, reason: string): void {
                                     :disabled="module.readOnly || !module.supportsGlobalActivation"
                                     class="mt-0 xl:mt-6"
                                 >
-                                    Target enabled
+                                    {{ t('pages.admin.modules.target_enabled') }}
                                 </FormCheckbox>
                                 <FormDateTimeInput
                                     v-model="globalScheduleForm.effective_at"
-                                    label="Effective at"
+                                    :label="t('pages.admin.modules.effective_at')"
                                     :error="globalScheduleForm.errors.effective_at"
                                 />
-                                <FormInput v-model="globalScheduleForm.reason" label="Reason" :error="globalScheduleForm.errors.reason" />
+                                <FormInput
+                                    v-model="globalScheduleForm.reason"
+                                    :label="t('pages.admin.modules.reason')"
+                                    :error="globalScheduleForm.errors.reason"
+                                />
                                 <FormButton
                                     type="submit"
                                     class="mt-0 xl:mt-6"
@@ -248,13 +259,13 @@ function cancelSchedule(publicId: string, reason: string): void {
                                     "
                                     :loading="globalScheduleForm.processing"
                                 >
-                                    Schedule global
+                                    {{ t('pages.admin.modules.schedule_global') }}
                                 </FormButton>
                             </div>
                         </AtlasForm>
                     </SurfaceCard>
 
-                    <SurfaceCard title="Teams" :icon="IconPuzzle">
+                    <SurfaceCard :title="t('pages.admin.modules.teams')" :icon="IconPuzzle">
                         <template #actions>
                             <DataTableExportMenu
                                 table-key="admin.modules.detail.teams"
@@ -284,21 +295,24 @@ function cancelSchedule(publicId: string, reason: string): void {
                                         v-model="teamForm(team).enabled"
                                         :disabled="module.readOnly || !module.supportsTeamActivation"
                                     >
-                                        Enabled override
+                                        {{ t('pages.admin.modules.enabled_override') }}
                                     </FormCheckbox>
-                                    <FormInput v-model="teamForm(team).reason" label="Override reason" />
+                                    <FormInput v-model="teamForm(team).reason" :label="t('pages.admin.modules.override_reason')" />
                                     <FormButton
                                         type="button"
                                         class="mt-0 xl:mt-6"
                                         :disabled="module.readOnly || !module.supportsTeamActivation || !teamForm(team).reason.trim()"
                                         @click="submitTeam(team)"
                                     >
-                                        Save override
+                                        {{ t('pages.admin.modules.save_override') }}
                                     </FormButton>
                                 </div>
 
                                 <div class="grid gap-3 xl:grid-cols-[minmax(0,1fr)_auto]">
-                                    <FormInput v-model="teamForm(team).clearReason" label="Clear override reason" />
+                                    <FormInput
+                                        v-model="teamForm(team).clearReason"
+                                        :label="t('pages.admin.modules.clear_override_reason')"
+                                    />
                                     <FormButton
                                         type="button"
                                         tone="danger"
@@ -306,7 +320,7 @@ function cancelSchedule(publicId: string, reason: string): void {
                                         :disabled="team.source !== 'team' || !teamForm(team).clearReason.trim()"
                                         @click="clearTeam(team)"
                                     >
-                                        Inherit global
+                                        {{ t('pages.admin.modules.inherit_global') }}
                                     </FormButton>
                                 </div>
 
@@ -316,10 +330,13 @@ function cancelSchedule(publicId: string, reason: string): void {
                                         :disabled="module.readOnly || !module.supportsTeamActivation"
                                         class="mt-0 xl:mt-6"
                                     >
-                                        Scheduled target
+                                        {{ t('pages.admin.modules.scheduled_target') }}
                                     </FormCheckbox>
-                                    <FormDateTimeInput v-model="teamScheduleForm(team).effective_at" label="Effective at" />
-                                    <FormInput v-model="teamScheduleForm(team).reason" label="Schedule reason" />
+                                    <FormDateTimeInput
+                                        v-model="teamScheduleForm(team).effective_at"
+                                        :label="t('pages.admin.modules.effective_at')"
+                                    />
+                                    <FormInput v-model="teamScheduleForm(team).reason" :label="t('pages.admin.modules.schedule_reason')" />
                                     <FormButton
                                         type="button"
                                         class="mt-0 xl:mt-6"
@@ -331,7 +348,7 @@ function cancelSchedule(publicId: string, reason: string): void {
                                         "
                                         @click="scheduleTeam(team)"
                                     >
-                                        Schedule
+                                        {{ t('pages.admin.modules.schedule') }}
                                     </FormButton>
                                 </div>
                             </div>
@@ -340,24 +357,28 @@ function cancelSchedule(publicId: string, reason: string): void {
                 </div>
 
                 <aside class="space-y-5">
-                    <SurfaceCard title="State" :icon="IconPuzzle">
+                    <NoticeBanner :title="t('pages.admin.modules.bounded_title')">
+                        {{ t('pages.admin.modules.bounded_history') }}
+                    </NoticeBanner>
+
+                    <SurfaceCard :title="t('pages.admin.modules.state')" :icon="IconPuzzle">
                         <dl class="space-y-3 text-sm">
                             <div class="flex justify-between gap-3">
-                                <dt class="text-zinc-500 dark:text-zinc-400">Category</dt>
+                                <dt class="text-zinc-500 dark:text-zinc-400">{{ t('pages.admin.modules.category') }}</dt>
                                 <dd>{{ module.category }}</dd>
                             </div>
                             <div class="flex justify-between gap-3">
-                                <dt class="text-zinc-500 dark:text-zinc-400">Available</dt>
+                                <dt class="text-zinc-500 dark:text-zinc-400">{{ t('pages.admin.modules.available') }}</dt>
                                 <dd><StatusBadge :value="module.technicallyAvailable" /></dd>
                             </div>
                             <div class="flex justify-between gap-3">
-                                <dt class="text-zinc-500 dark:text-zinc-400">Global</dt>
+                                <dt class="text-zinc-500 dark:text-zinc-400">{{ t('pages.admin.modules.global') }}</dt>
                                 <dd><StatusBadge :value="module.globallyEnabled" /></dd>
                             </div>
                         </dl>
                     </SurfaceCard>
 
-                    <SurfaceCard title="Recent history" :icon="IconPuzzle">
+                    <SurfaceCard :title="t('pages.admin.modules.recent_history')" :icon="IconPuzzle">
                         <template #actions>
                             <DataTableExportMenu
                                 table-key="admin.modules.detail.history"
@@ -370,7 +391,9 @@ function cancelSchedule(publicId: string, reason: string): void {
                             />
                         </template>
                         <div class="space-y-3 text-sm">
-                            <p v-if="history.length === 0" class="text-zinc-500 dark:text-zinc-400">No activation history.</p>
+                            <p v-if="history.length === 0" class="text-zinc-500 dark:text-zinc-400">
+                                {{ t('pages.admin.modules.no_activation_history') }}
+                            </p>
                             <div v-for="row in history" :key="`${row.scope}-${row.effectiveAt}-${row.reason}`">
                                 <p class="font-medium text-zinc-900 dark:text-zinc-100">{{ row.scope }} · {{ row.source }}</p>
                                 <p class="text-xs text-zinc-500 dark:text-zinc-400">{{ row.effectiveAt }}</p>
@@ -379,7 +402,7 @@ function cancelSchedule(publicId: string, reason: string): void {
                         </div>
                     </SurfaceCard>
 
-                    <SurfaceCard title="Schedules" :icon="IconPuzzle">
+                    <SurfaceCard :title="t('pages.admin.modules.schedules')" :icon="IconPuzzle">
                         <template #actions>
                             <DataTableExportMenu
                                 table-key="admin.modules.detail.schedules"
@@ -392,7 +415,9 @@ function cancelSchedule(publicId: string, reason: string): void {
                             />
                         </template>
                         <div class="space-y-3 text-sm">
-                            <p v-if="schedules.length === 0" class="text-zinc-500 dark:text-zinc-400">No scheduled changes.</p>
+                            <p v-if="schedules.length === 0" class="text-zinc-500 dark:text-zinc-400">
+                                {{ t('pages.admin.modules.no_scheduled_changes') }}
+                            </p>
                             <div v-for="row in schedules" :key="row.publicId" class="space-y-2">
                                 <p class="font-medium text-zinc-900 dark:text-zinc-100">{{ row.scope }} · {{ row.status }}</p>
                                 <p class="text-xs text-zinc-500 dark:text-zinc-400">{{ row.effectiveAt }}</p>
@@ -401,9 +426,11 @@ function cancelSchedule(publicId: string, reason: string): void {
                                     v-if="row.status === 'scheduled'"
                                     type="button"
                                     tone="danger"
-                                    @click="cancelSchedule(row.publicId, `Cancelled from module ${module.moduleKey} administration.`)"
+                                    @click="
+                                        cancelSchedule(row.publicId, t('pages.admin.modules.cancel_reason', { module: module.moduleKey }))
+                                    "
                                 >
-                                    Cancel
+                                    {{ t('pages.admin.modules.cancel') }}
                                 </FormButton>
                             </div>
                         </div>

@@ -28,7 +28,7 @@ const props = defineProps<{
         readOnly: boolean;
     }[];
 }>();
-const { t } = useTranslator('en');
+const { t } = useTranslator();
 const form = useForm({
     name: '',
     user_assignments: [] as {

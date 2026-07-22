@@ -1,4 +1,4 @@
-# Phase 25 — Security, privacy, deletion, and anonymization
+# Phase 26 — Security, privacy, deletion, and anonymization
 
 **Status:** `not started`
 
@@ -14,6 +14,7 @@ Implement the full security, privacy, hard-delete, and anonymization orchestrati
 - [Phase 20b — Managed processes, process logs, and scheduler](phase-20b-managed-processes.md)
 - [Phase 22 — Search](phase-22-search.md)
 - [Phase 24 — Reports, exports, PDF, charts, and print](phase-24-reports-exports-print.md)
+- [Phase 25 — Admin panel rebuild and operational UX repair](phase-25-admin-panel-rebuild-operational-ux.md)
 - [Audit, privacy, deletion, and anonymization](../architecture/audit-privacy-and-deletion.md)
 - [Security baseline](../architecture/security-baseline.md)
 

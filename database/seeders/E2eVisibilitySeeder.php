@@ -30,11 +30,13 @@ final class E2eVisibilitySeeder extends Seeder
 
     public const PASSWORD = 'password';
 
+    public const TEAM_NAME = 'E2E Visibility Team';
+
     public function run(): void
     {
         $this->call(DatabaseSeeder::class);
 
-        $team = app(BootstrapTeamProvider::class)->provide('E2E Visibility Team');
+        $team = app(BootstrapTeamProvider::class)->provide(self::TEAM_NAME);
         $admin = $this->user(self::ADMIN_EMAIL, 'Visibility Admin');
         $limited = $this->user(self::LIMITED_EMAIL, 'Visibility User');
 

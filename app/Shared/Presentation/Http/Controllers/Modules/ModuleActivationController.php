@@ -22,6 +22,7 @@ use App\Shared\Application\Tables\TableSavedViewService;
 use App\Shared\Application\Tables\TableState;
 use App\Shared\Infrastructure\Database\DatabaseTable;
 use App\Shared\Presentation\Support\AdminDataTableExportMeta;
+use App\Shared\Presentation\Support\FlashMessage;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -91,7 +92,9 @@ final readonly class ModuleActivationController
             expectedVersion: $this->intValue($validated, 'version'),
         ));
 
-        return redirect()->route('admin.modules.show', ['module' => $module])->with('success', 'Global module activation was updated.');
+        return redirect()->route('admin.modules.show', ['module' => $module])->with('flash.messages', [
+            FlashMessage::success('flash.modules.global_activation_updated'),
+        ]);
     }
 
     public function updateTeam(Request $request, string $module, string $team): RedirectResponse
@@ -117,7 +120,9 @@ final readonly class ModuleActivationController
             expectedVersion: $this->intValue($validated, 'version'),
         ));
 
-        return redirect()->back()->with('success', 'Team module override was updated.');
+        return redirect()->back()->with('flash.messages', [
+            FlashMessage::success('flash.modules.team_override_updated'),
+        ]);
     }
 
     public function clearTeam(Request $request, string $module, string $team): RedirectResponse
@@ -136,7 +141,9 @@ final readonly class ModuleActivationController
         $this->activation->clearTeamOverride($module, $teamId, $actorUserId, $reason);
         $this->recordAudit($request, 'module.team_override_cleared', 'succeeded', $module, $reason);
 
-        return redirect()->back()->with('success', 'Team module override was cleared.');
+        return redirect()->back()->with('flash.messages', [
+            FlashMessage::success('flash.modules.team_override_cleared'),
+        ]);
     }
 
     public function scheduleGlobal(Request $request, string $module): RedirectResponse
@@ -155,7 +162,9 @@ final readonly class ModuleActivationController
             actorUserId: $this->actorUserId($request),
         ), CarbonImmutable::parse($this->stringValue($validated, 'effective_at'), 'UTC'));
 
-        return redirect()->back()->with('success', 'Global module activation change was scheduled.');
+        return redirect()->back()->with('flash.messages', [
+            FlashMessage::success('flash.modules.global_activation_scheduled'),
+        ]);
     }
 
     public function scheduleTeam(Request $request, string $module, string $team): RedirectResponse
@@ -180,7 +189,9 @@ final readonly class ModuleActivationController
             teamId: $teamId,
         ), CarbonImmutable::parse($this->stringValue($validated, 'effective_at'), 'UTC'));
 
-        return redirect()->back()->with('success', 'Team module activation change was scheduled.');
+        return redirect()->back()->with('flash.messages', [
+            FlashMessage::success('flash.modules.team_activation_scheduled'),
+        ]);
     }
 
     public function cancelSchedule(Request $request, string $module, string $schedule): RedirectResponse
@@ -200,7 +211,9 @@ final readonly class ModuleActivationController
             'schedule_public_id' => $schedule,
         ]);
 
-        return redirect()->back()->with('success', 'Module activation schedule was cancelled.');
+        return redirect()->back()->with('flash.messages', [
+            FlashMessage::success('flash.modules.schedule_cancelled'),
+        ]);
     }
 
     private function attemptChange(Request $request, ModuleActivationChange $change): void

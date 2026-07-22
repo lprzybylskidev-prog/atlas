@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Core\Notifications\Presentation\Http\Controllers;
 
 use App\Modules\Core\Notifications\Application\Public\Contracts\NotificationInbox;
+use App\Shared\Presentation\Support\FlashMessage;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 
@@ -31,6 +32,8 @@ final readonly class BulkMarkNotificationReadController
             }
         }
 
-        return back()->with('success', 'Notifications were marked as read.');
+        return back()->with('flash.messages', [
+            FlashMessage::success('flash.notifications.marked_read_bulk'),
+        ]);
     }
 }

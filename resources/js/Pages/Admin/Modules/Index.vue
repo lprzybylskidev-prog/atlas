@@ -30,7 +30,7 @@ const props = defineProps<{
     table: DataTableMeta;
 }>();
 
-const { t } = useTranslator('en');
+const { t } = useTranslator();
 
 const filters = reactive({
     category: 'all',
@@ -40,14 +40,14 @@ const filters = reactive({
 });
 
 const categoryOptions = computed(() => [
-    { value: 'all', label: 'All categories' },
+    { value: 'all', label: t('pages.admin.modules.all_categories') },
     ...Array.from(new Set(props.modules.map((module) => module.category)))
         .sort((left, right) => left.localeCompare(right))
         .map((category) => ({ value: category, label: category })),
 ]);
 
 const sourceOptions = computed(() => [
-    { value: 'all', label: 'All team sources' },
+    { value: 'all', label: t('pages.admin.modules.all_team_sources') },
     ...Array.from(new Set(props.modules.map((module) => module.teamStateSource)))
         .sort((left, right) => left.localeCompare(right))
         .map((source) => ({ value: source, label: source })),
@@ -85,56 +85,69 @@ function resetFilters(): void {
 }
 
 const columns: DataTableColumn<ModuleRow>[] = [
-    { key: 'moduleKey', label: 'Module' },
-    { key: 'category', label: 'Category' },
-    { key: 'technicallyAvailable', label: 'Available', format: 'boolean' },
-    { key: 'globallyEnabled', label: 'Global', format: 'boolean' },
-    { key: 'teamEnabled', label: 'Active team', format: 'boolean' },
-    { key: 'effectiveEnabled', label: 'Effective', format: 'boolean' },
-    { key: 'teamStateSource', label: 'Team source' },
-    { key: 'supportsGlobalActivation', label: 'Global support', format: 'boolean', hidden: true },
-    { key: 'supportsTeamActivation', label: 'Team support', format: 'boolean', hidden: true },
-    { key: 'requiredDependencies', label: 'Required dependencies', hidden: true },
-    { key: 'optionalDependencies', label: 'Optional dependencies', hidden: true },
+    { key: 'moduleKey', label: t('pages.admin.modules.module') },
+    { key: 'category', label: t('pages.admin.modules.category') },
+    { key: 'technicallyAvailable', label: t('pages.admin.modules.available'), format: 'boolean' },
+    { key: 'globallyEnabled', label: t('pages.admin.modules.global'), format: 'boolean' },
+    { key: 'teamEnabled', label: t('pages.admin.modules.active_team'), format: 'boolean' },
+    { key: 'effectiveEnabled', label: t('pages.admin.modules.effective'), format: 'boolean' },
+    { key: 'teamStateSource', label: t('pages.admin.modules.team_source') },
+    { key: 'supportsGlobalActivation', label: t('pages.admin.modules.global_support'), format: 'boolean', hidden: true },
+    { key: 'supportsTeamActivation', label: t('pages.admin.modules.team_support'), format: 'boolean', hidden: true },
+    { key: 'requiredDependencies', label: t('pages.admin.modules.required_dependencies'), hidden: true },
+    { key: 'optionalDependencies', label: t('pages.admin.modules.optional_dependencies'), hidden: true },
 ];
-const actions: DataTableAction<ModuleRow>[] = [{ key: 'show', label: 'Manage teams', href: (row) => `/admin/modules/${row.moduleKey}` }];
+const actions: DataTableAction<ModuleRow>[] = [
+    { key: 'show', label: t('pages.admin.modules.manage_teams'), href: (row) => `/admin/modules/${row.moduleKey}` },
+];
 </script>
 
 <template>
-    <Head title="Modules" />
+    <Head :title="t('navigation.modules')" />
     <AdminLayout :title="t('navigation.modules')" :title-icon="IconPuzzle">
         <PageStack>
             <FilterPanel
-                title="Module filters"
-                :summary="`Showing ${filteredModules.length} of ${modules.length} loaded modules.`"
+                :title="t('pages.admin.modules.filters')"
+                :summary="t('pages.admin.modules.summary', { visible: filteredModules.length, total: modules.length })"
                 @apply="() => {}"
                 @clear="resetFilters"
             >
                 <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-                    <FormSelect v-model="filters.category" label="Category" :options="categoryOptions" />
-                    <FormSelect v-model="filters.source" label="Team source" :options="sourceOptions" />
+                    <FormSelect v-model="filters.category" :label="t('pages.admin.modules.category')" :options="categoryOptions" />
+                    <FormSelect v-model="filters.source" :label="t('pages.admin.modules.team_source')" :options="sourceOptions" />
                     <FormSelect
                         v-model="filters.availability"
-                        label="Available"
-                        :options="booleanOptions('Any availability', 'Available', 'Unavailable')"
+                        :label="t('pages.admin.modules.available')"
+                        :options="
+                            booleanOptions(
+                                t('pages.admin.modules.any_availability'),
+                                t('pages.admin.modules.available'),
+                                t('pages.admin.modules.unavailable'),
+                            )
+                        "
                     />
                     <FormSelect
                         v-model="filters.effective"
-                        label="Effective"
-                        :options="booleanOptions('Any effective state', 'Enabled', 'Disabled')"
+                        :label="t('pages.admin.modules.effective')"
+                        :options="
+                            booleanOptions(
+                                t('pages.admin.modules.any_effective_state'),
+                                t('pages.admin.modules.enabled'),
+                                t('pages.admin.modules.disabled'),
+                            )
+                        "
                     />
                 </div>
             </FilterPanel>
 
             <DataTable
-                title="Modules"
+                :title="t('navigation.modules')"
                 :rows="filteredModules"
                 :columns="columns"
                 row-key="moduleKey"
                 :actions="actions"
                 :table="table"
                 :filters="filters"
-                ui-locale="en"
             />
         </PageStack>
     </AdminLayout>

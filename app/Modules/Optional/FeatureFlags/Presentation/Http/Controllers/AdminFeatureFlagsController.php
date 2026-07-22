@@ -8,6 +8,7 @@ use App\Modules\Optional\FeatureFlags\Application\Contracts\FeatureFlagRegistry;
 use App\Modules\Optional\FeatureFlags\Application\Contracts\FeatureFlagStore;
 use App\Shared\Infrastructure\Database\DatabaseTable;
 use App\Shared\Presentation\Support\AdminDataTableExportMeta;
+use App\Shared\Presentation\Support\FlashMessage;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -58,11 +59,15 @@ final readonly class AdminFeatureFlagsController
                 $this->actorPublicId($request),
                 $reason,
             );
-        } catch (InvalidArgumentException $exception) {
-            return $this->redirectToIndex($teamPublicId)->with('error', $exception->getMessage());
+        } catch (InvalidArgumentException) {
+            return $this->redirectToIndex($teamPublicId)->with('flash.messages', [
+                FlashMessage::error('flash.feature_flags.global_update_failed'),
+            ]);
         }
 
-        return $this->redirectToIndex($teamPublicId)->with('success', 'Global feature flag value was updated.');
+        return $this->redirectToIndex($teamPublicId)->with('flash.messages', [
+            FlashMessage::success('flash.feature_flags.global_updated'),
+        ]);
     }
 
     public function updateTeam(Request $request, string $flag): RedirectResponse
@@ -77,7 +82,9 @@ final readonly class AdminFeatureFlagsController
         $reason = $this->inputString($request, 'reason');
 
         if (! $this->teamExists($teamPublicId)) {
-            return $this->redirectToIndex(null)->with('error', 'Team was not found.');
+            return $this->redirectToIndex(null)->with('flash.messages', [
+                FlashMessage::error('flash.feature_flags.team_not_found'),
+            ]);
         }
 
         try {
@@ -88,11 +95,15 @@ final readonly class AdminFeatureFlagsController
                 $this->actorPublicId($request),
                 $reason,
             );
-        } catch (InvalidArgumentException $exception) {
-            return $this->redirectToIndex($teamPublicId)->with('error', $exception->getMessage());
+        } catch (InvalidArgumentException) {
+            return $this->redirectToIndex($teamPublicId)->with('flash.messages', [
+                FlashMessage::error('flash.feature_flags.team_update_failed'),
+            ]);
         }
 
-        return $this->redirectToIndex($teamPublicId)->with('success', 'Team feature flag override was updated.');
+        return $this->redirectToIndex($teamPublicId)->with('flash.messages', [
+            FlashMessage::success('flash.feature_flags.team_updated'),
+        ]);
     }
 
     public function clearTeam(Request $request, string $flag): RedirectResponse
@@ -105,7 +116,9 @@ final readonly class AdminFeatureFlagsController
         $reason = $this->inputString($request, 'reason');
 
         if (! $this->teamExists($teamPublicId)) {
-            return $this->redirectToIndex(null)->with('error', 'Team was not found.');
+            return $this->redirectToIndex(null)->with('flash.messages', [
+                FlashMessage::error('flash.feature_flags.team_not_found'),
+            ]);
         }
 
         try {
@@ -115,11 +128,15 @@ final readonly class AdminFeatureFlagsController
                 $this->actorPublicId($request),
                 $reason,
             );
-        } catch (InvalidArgumentException $exception) {
-            return $this->redirectToIndex($teamPublicId)->with('error', $exception->getMessage());
+        } catch (InvalidArgumentException) {
+            return $this->redirectToIndex($teamPublicId)->with('flash.messages', [
+                FlashMessage::error('flash.feature_flags.team_clear_failed'),
+            ]);
         }
 
-        return $this->redirectToIndex($teamPublicId)->with('success', 'Team feature flag override was cleared.');
+        return $this->redirectToIndex($teamPublicId)->with('flash.messages', [
+            FlashMessage::success('flash.feature_flags.team_cleared'),
+        ]);
     }
 
     /**

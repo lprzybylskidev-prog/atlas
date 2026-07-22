@@ -176,7 +176,7 @@ final class AdminUserCreationTest extends TestCase
         Notification::assertNothingSent();
     }
 
-    public function test_admin_user_creation_validation_errors_use_admin_english_field_names(): void
+    public function test_admin_user_creation_validation_errors_follow_shared_locale_field_names(): void
     {
         Notification::fake();
         app()->setLocale('pl');
@@ -199,7 +199,7 @@ final class AdminUserCreationTest extends TestCase
             ])
             ->assertRedirect('/admin/users/create')
             ->assertSessionHasErrors([
-                'team_assignments.0.team_public_id' => 'The team in the assignment field is required.',
+                'team_assignments.0.team_public_id' => 'Pole zespół w przypisaniu jest wymagane.',
             ]);
 
         Notification::assertNothingSent();
