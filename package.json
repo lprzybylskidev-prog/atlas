@@ -2,7 +2,7 @@
     "$schema": "https://www.schemastore.org/package.json",
     "private": true,
     "name": "atlas",
-    "packageManager": "pnpm@11.13.0",
+    "packageManager": "pnpm@11.18.0",
     "type": "module",
     "scripts": {
         "build": "vite build",
@@ -28,7 +28,6 @@
         "eslint-plugin-vue": "^10.9.2",
         "laravel-vite-plugin": "^3.1",
         "lefthook": "^2.1.10",
-        "playwright": "^1.61.1",
         "prettier": "^3.9.5",
         "stylelint": "^17.14.0",
         "tailwindcss": "^4.0.0",
@@ -44,6 +43,7 @@
         "@tabler/icons-vue": "^3.44.0",
         "@tanstack/vue-table": "^8.21.3",
         "@vitejs/plugin-vue": "^6.0.7",
+        "playwright": "^1.61.1",
         "vue": "^3.5.39"
     },
     "browserslist": [

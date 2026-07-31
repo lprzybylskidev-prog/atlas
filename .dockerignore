@@ -1,0 +1,14 @@
+.git
+.env
+.env.*
+node_modules
+storage/logs
+storage/framework/cache
+storage/framework/sessions
+storage/framework/testing
+storage/framework/views
+storage/app/private/report-render
+tests/e2e/test-results
+test-results
+playwright-report
+coverage

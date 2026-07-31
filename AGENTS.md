@@ -119,6 +119,14 @@ Infrastructure and quality:
 - Stylelint;
 - Lefthook.
 
+### Runtime environment parity
+
+- External mechanisms and runtime dependencies must be designed, implemented, checked, and documented for all supported Atlas execution modes: the VS Code Dev Container used for application development, the production Docker image/Compose stack, and a manual Ubuntu/Debian-style server installation without containers.
+- Health and readiness checks must verify the real dependency chain used by the application, not only one convenient binary or local development artifact. Checks must read explicit environment/configuration first, then use documented auto-discovery for common Linux/container paths, and report actionable non-secret metadata when degraded.
+- When adding or changing an external dependency, update the matching Dev Container/runtime image setup, production image or deployment documentation, manual server installation guidance, health/readiness checks, tests, and canonical operations/module documentation in the same change.
+- From inside the active VS Code Dev Container, do not rebuild the `app` Dev Container as normal task execution. If a Dev Container rebuild is required, finish all repository changes and runtime-container validation first, then give the user one concise outside-container prompt/command explaining why the rebuild is needed, what it applies, and what should work afterward.
+- Runtime service containers such as `php-fpm`, `worker`, `scheduler`, and production image builds may be prepared and validated separately when they do not require rebuilding the active development workspace container. Avoid restarting the user's active `app` container unless the user explicitly asks or the final rebuild handoff requires it.
+
 ## Engineering principles
 
 ### System consistency

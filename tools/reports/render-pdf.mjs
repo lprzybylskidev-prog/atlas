@@ -9,8 +9,16 @@ if (!inputPath || !outputPath) {
 }
 
 const html = await readFile(inputPath, 'utf8');
-const browser = await chromium.launch({
+const launchOptions = {
     headless: true,
+};
+
+if (process.env.ATLAS_CHROMIUM_BINARY) {
+    launchOptions.executablePath = process.env.ATLAS_CHROMIUM_BINARY;
+}
+
+const browser = await chromium.launch({
+    ...launchOptions,
 });
 
 try {

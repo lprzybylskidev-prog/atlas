@@ -16,6 +16,7 @@ use Illuminate\Database\ConnectionInterface;
 use Illuminate\Filesystem\Filesystem;
 use Illuminate\Support\Facades\Config;
 use Meilisearch\Client as MeilisearchClient;
+use Symfony\Component\Process\ExecutableFinder;
 use Throwable;
 
 final readonly class AtlasReadinessChecker implements ReadinessChecker
@@ -303,30 +304,59 @@ final readonly class AtlasReadinessChecker implements ReadinessChecker
         $critical = Config::boolean('atlas.operations.health.chromium.critical', false);
         $configuredBinary = $this->nullableConfigString('atlas.operations.health.chromium.binary');
         $binary = $configuredBinary ?? $this->autoDiscoveredChromiumBinary();
+        $node = (new ExecutableFinder)->find('node');
+        $rendererScript = base_path('tools/reports/render-pdf.mjs');
+        $playwrightPackage = base_path('node_modules/playwright/package.json');
+        $metadata = [
+            'chromium_binary' => $binary === null ? 'missing' : 'available',
+            'node' => $node === null ? 'missing' : 'available',
+            'playwright_package' => $this->files->isFile($playwrightPackage) ? 'available' : 'missing',
+            'renderer_script' => $this->files->isFile($rendererScript) ? 'available' : 'missing',
+        ];
+
+        if ($binary !== null) {
+            $metadata['source'] = $configuredBinary === null ? 'auto-discovered' : 'configured';
+        }
 
         if ($binary === null) {
             return $critical
-                ? ReadinessCheckResult::unhealthy('chromium-pdf', 'Chromium/PDF', true, 'Chromium/PDF rendering is critical but no binary is configured.')
-                : ReadinessCheckResult::degraded('chromium-pdf', 'Chromium/PDF', false, 'Chromium/PDF renderer is not configured and is treated as degraded.');
+                ? ReadinessCheckResult::unhealthy('chromium-pdf', 'Chromium/PDF', true, 'Chromium/PDF rendering is critical but no Chromium binary is configured or discoverable.', $metadata)
+                : ReadinessCheckResult::degraded('chromium-pdf', 'Chromium/PDF', false, 'Chromium/PDF renderer has no configured or discoverable Chromium binary.', $metadata);
         }
 
-        if ($this->files->isFile($binary) && is_executable($binary)) {
-            return ReadinessCheckResult::healthy(
-                key: 'chromium-pdf',
-                label: 'Chromium/PDF',
-                blocking: $critical,
-                description: $critical
-                    ? 'Critical Chromium/PDF renderer binary is executable.'
-                    : 'Optional Chromium/PDF renderer binary is executable.',
-                metadata: [
-                    'source' => $configuredBinary === null ? 'auto-discovered' : 'configured',
-                ],
-            );
+        if (! $this->files->isFile($binary) || ! is_executable($binary)) {
+            return $critical
+                ? ReadinessCheckResult::unhealthy('chromium-pdf', 'Chromium/PDF', true, 'Critical Chromium/PDF renderer binary is missing or not executable.', $metadata)
+                : ReadinessCheckResult::degraded('chromium-pdf', 'Chromium/PDF', false, 'Optional Chromium/PDF renderer binary is missing or not executable.', $metadata);
         }
 
-        return $critical
-            ? ReadinessCheckResult::unhealthy('chromium-pdf', 'Chromium/PDF', true, 'Critical Chromium/PDF renderer binary is missing or not executable.')
-            : ReadinessCheckResult::degraded('chromium-pdf', 'Chromium/PDF', false, 'Optional Chromium/PDF renderer binary is missing or not executable.');
+        if ($node === null) {
+            return $critical
+                ? ReadinessCheckResult::unhealthy('chromium-pdf', 'Chromium/PDF', true, 'Critical Chromium/PDF rendering requires Node.js, but node is not available in PATH.', $metadata)
+                : ReadinessCheckResult::degraded('chromium-pdf', 'Chromium/PDF', false, 'Chromium/PDF rendering requires Node.js, but node is not available in PATH.', $metadata);
+        }
+
+        if (! $this->files->isFile($playwrightPackage)) {
+            return $critical
+                ? ReadinessCheckResult::unhealthy('chromium-pdf', 'Chromium/PDF', true, 'Critical Chromium/PDF rendering requires the Playwright package, but it is not installed.', $metadata)
+                : ReadinessCheckResult::degraded('chromium-pdf', 'Chromium/PDF', false, 'Chromium/PDF rendering requires the Playwright package, but it is not installed.', $metadata);
+        }
+
+        if (! $this->files->isFile($rendererScript)) {
+            return $critical
+                ? ReadinessCheckResult::unhealthy('chromium-pdf', 'Chromium/PDF', true, 'Critical Chromium/PDF renderer script is missing.', $metadata)
+                : ReadinessCheckResult::degraded('chromium-pdf', 'Chromium/PDF', false, 'Chromium/PDF renderer script is missing.', $metadata);
+        }
+
+        return ReadinessCheckResult::healthy(
+            key: 'chromium-pdf',
+            label: 'Chromium/PDF',
+            blocking: $critical,
+            description: $critical
+                ? 'Critical Chromium/PDF rendering runtime is available.'
+                : 'Optional Chromium/PDF rendering runtime is available.',
+            metadata: $metadata,
+        );
     }
 
     private function autoDiscoveredChromiumBinary(): ?string
@@ -350,9 +380,16 @@ final readonly class AtlasReadinessChecker implements ReadinessChecker
     private function chromiumBinaryCandidates(): array
     {
         $playwrightCandidates = glob('/ms-playwright/*/chrome-linux*/chrome') ?: [];
+        $finder = new ExecutableFinder;
 
         return array_values(array_unique([
             ...$playwrightCandidates,
+            ...array_filter([
+                $finder->find('chromium'),
+                $finder->find('chromium-browser'),
+                $finder->find('google-chrome'),
+                $finder->find('google-chrome-stable'),
+            ]),
             '/usr/bin/chromium',
             '/usr/bin/chromium-browser',
             '/usr/bin/google-chrome',

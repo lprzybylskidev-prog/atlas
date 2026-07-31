@@ -32,7 +32,7 @@ Development services:
 The application Dev Container also includes Docker CLI and the Docker Compose plugin.
 It uses Docker-outside-of-Docker by mounting the host Docker socket at `/var/run/docker.sock`.
 This is development-only tooling for inspecting and controlling the local Atlas Compose stack from inside VS Code.
-When running Compose commands from inside the Dev Container, `ATLAS_WORKSPACE_SOURCE` may be set to the repository path as seen by the Docker host so newly created runtime services mount the real working tree rather than the container-local `/workspace` path.
+VS Code sets `ATLAS_WORKSPACE_SOURCE` inside Dev Container terminals to the repository path as seen by the Docker host. Keep this value in place when running Compose commands from inside the Dev Container so newly created runtime services mount the real working tree rather than the container-local `/workspace` path.
 The application Dev Container also includes Python 3, `pip`, and `venv` as development tooling for local automation, scripts, and future AI-adjacent experiments. Python is not part of the Atlas application runtime unless a later accepted phase explicitly adds it.
 
 ## Initial Dev Container start
@@ -105,6 +105,8 @@ http://localhost:8000
 The `app` service is the VS Code/Codex workspace container and intentionally runs `sleep infinity`.
 HTTP traffic goes through the development `nginx` service and the separate `php-fpm` service. The `scheduler` service runs `php artisan schedule:work` against the same code mount so local readiness has a fresh scheduler heartbeat instead of becoming unhealthy after `ATLAS_SCHEDULER_HEARTBEAT_STALE_SECONDS`.
 
+The `php-fpm`, `scheduler`, and `worker` runtime services use the production PHP image during local Compose development. That image includes Node.js and system Chromium so web readiness and queued PDF export execution validate the same PDF runtime chain that production uses. The separate VS Code `app` Dev Container still includes the broader Playwright browser set for E2E development.
+
 The `worker` service runs the local Redis queue listener for Atlas runtime queues:
 
 ```text
@@ -123,6 +125,13 @@ docker compose -f .devcontainer/docker-compose.yml up -d --no-build nginx php-fp
 
 This may start existing runtime images and recreate only the affected runtime services. It must not rebuild the Dev Container.
 
+If an existing terminal predates the `ATLAS_WORKSPACE_SOURCE` environment variable, export the host repository path before recreating runtime services from inside the Dev Container:
+
+```text
+export ATLAS_WORKSPACE_SOURCE=/absolute/host/path/to/atlas
+docker compose -f .devcontainer/docker-compose.yml up -d --no-build nginx php-fpm scheduler worker
+```
+
 ### Dev Container rebuild rule
 
 After the first successful Dev Container start, rebuilding is categorically forbidden as normal work because it may break the Codex VS Code extension.
@@ -138,6 +147,8 @@ Changes that require new mounts, such as the Docker socket mount, cannot be full
 A rebuild is allowed only as a final unavoidable option and with explicit user awareness.
 
 The agent must never rebuild unilaterally.
+
+When a rebuild is required, the agent must first finish all repository changes and runtime-container validation that can be done without rebuilding the active `app` Dev Container. The final handoff must contain one outside-container prompt or command for the user, explaining the purpose of the rebuild, the files it applies, and the expected post-rebuild behavior.
 
 ### VS Code extensions
 

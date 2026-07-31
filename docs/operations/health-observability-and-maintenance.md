@@ -65,7 +65,7 @@ Meilisearch is degraded by default and becomes blocking only when Atlas marks Se
 
 ClamAV is blocking whenever the Files capability is active in production because unscanned files must remain quarantined. It may also be forced critical through `ATLAS_HEALTH_CLAMAV_CRITICAL=true`; the daemon endpoint is configured with `ATLAS_HEALTH_CLAMAV_HOST` and `ATLAS_HEALTH_CLAMAV_PORT`.
 
-The Chromium/Playwright renderer is degraded by default and becomes blocking only when Atlas marks PDF rendering critical through `ATLAS_HEALTH_CHROMIUM_CRITICAL=true`. The renderer binary path may be configured with `ATLAS_HEALTH_CHROMIUM_BINARY`; when no explicit path is configured, readiness auto-detects common Chromium locations, including the local Dev Container Playwright path under `/ms-playwright` and the runtime package path under `/usr/bin/chromium`.
+The Chromium/Playwright renderer is degraded by default and becomes blocking only when Atlas marks PDF rendering critical through `ATLAS_HEALTH_CHROMIUM_CRITICAL=true`. The renderer binary path may be configured with `ATLAS_HEALTH_CHROMIUM_BINARY`; when no explicit path is configured, readiness auto-detects common Chromium locations, including the local Dev Container Playwright path under `/ms-playwright`, system browser commands available on `PATH`, and common `/usr/bin/*` browser paths. Readiness also verifies that `node` is available, the Atlas renderer script exists, and the runtime `playwright` package is installed, because PDF exports require the full Node/Playwright/Chromium chain.
 
 Public health endpoint exposes no sensitive details.
 

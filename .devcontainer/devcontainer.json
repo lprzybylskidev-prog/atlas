@@ -5,6 +5,7 @@
   "workspaceFolder": "/workspace",
   "remoteUser": "vscode",
   "remoteEnv": {
+    "ATLAS_WORKSPACE_SOURCE": "${localWorkspaceFolder}",
     "SHELL": "/bin/bash"
   },
   "shutdownAction": "stopCompose",

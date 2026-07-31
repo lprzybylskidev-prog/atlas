@@ -68,6 +68,15 @@ Chromium/PDF renderer health configuration:
 - `ATLAS_HEALTH_CHROMIUM_CRITICAL`;
 - `ATLAS_HEALTH_CHROMIUM_BINARY`.
 
+The Chromium/PDF readiness check verifies the real PDF rendering runtime, not only the browser binary. A healthy check requires:
+
+- a configured or auto-discovered executable Chromium-compatible browser;
+- `node` available on `PATH`;
+- the Atlas PDF renderer script at `tools/reports/render-pdf.mjs`;
+- the runtime `playwright` package installed under `node_modules`.
+
+When `ATLAS_HEALTH_CHROMIUM_BINARY` is not set, Atlas auto-discovers common runtime locations, including Playwright browsers under `/ms-playwright`, system `chromium`/`chromium-browser`/Google Chrome on `PATH`, and common `/usr/bin/*` browser paths.
+
 ## Admin Diagnostics
 
 Admin System Status includes a Readiness card loaded from `GET /admin/system-status/readiness`.
