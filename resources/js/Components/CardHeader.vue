@@ -9,6 +9,7 @@ withDefaults(
         tone?: 'teal' | 'sky' | 'emerald' | 'amber' | 'rose' | 'zinc';
         size?: 'sm' | 'md';
         iconVariant?: 'main' | 'secondary' | 'none';
+        titleId?: string;
     }>(),
     {
         icon: undefined,
@@ -16,6 +17,7 @@ withDefaults(
         tone: 'teal',
         size: 'md',
         iconVariant: 'secondary',
+        titleId: undefined,
     },
 );
 
@@ -43,7 +45,9 @@ function iconToneClass(tone: string): string {
             <component :is="icon" aria-hidden="true" :class="iconVariant === 'main' ? 'h-5 w-5' : 'h-4 w-4'" :stroke-width="1.8" />
         </span>
         <div class="min-w-0">
-            <h2 :class="size === 'sm' ? 'text-sm' : 'text-base'" class="font-semibold text-zinc-950 dark:text-zinc-50">{{ title }}</h2>
+            <h2 :id="titleId" :class="size === 'sm' ? 'text-sm' : 'text-base'" class="font-semibold text-zinc-950 dark:text-zinc-50">
+                {{ title }}
+            </h2>
             <p v-if="subtitle" class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">{{ subtitle }}</p>
         </div>
     </div>

@@ -22,6 +22,8 @@ final class DatabaseSchema
 
     public const CORE_FILES = 'core_files';
 
+    public const CORE_PRIVACY = 'core_privacy';
+
     public const CORE_EXPORTS = 'core_exports';
 
     public const OPTIONAL_INTEGRATIONS = 'optional_integrations';
@@ -47,6 +49,7 @@ final class DatabaseSchema
             self::CORE_SETTINGS,
             self::CORE_NOTIFICATIONS,
             self::CORE_FILES,
+            self::CORE_PRIVACY,
             self::CORE_EXPORTS,
             self::OPTIONAL_INTEGRATIONS,
             self::OPTIONAL_MANAGED_PROCESSES,

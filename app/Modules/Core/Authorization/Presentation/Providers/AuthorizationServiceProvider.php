@@ -9,6 +9,7 @@ use App\Modules\Core\Authorization\Application\Contracts\PermissionRoleStore;
 use App\Modules\Core\Authorization\Application\Exports\AdminOnboardingPackagesDataTableExportProvider;
 use App\Modules\Core\Authorization\Application\Exports\AdminPermissionsDataTableExportProvider;
 use App\Modules\Core\Authorization\Application\Exports\AdminRolesDataTableExportProvider;
+use App\Modules\Core\Authorization\Application\Lifecycle\UserAuthorizationDataLifecycleParticipant;
 use App\Modules\Core\Authorization\Application\Packages\PublicOnboardingPackageDirectory;
 use App\Modules\Core\Authorization\Application\Packages\PublicUserAuthorizationAssignmentCopier;
 use App\Modules\Core\Authorization\Application\Packages\PublicUserOnboardingPackageApplier;
@@ -43,6 +44,7 @@ final class AuthorizationServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->tag([CoreAuthorizationPermissionCatalog::class], 'atlas.permission_catalogs');
+        $this->app->tag([UserAuthorizationDataLifecycleParticipant::class], 'atlas.data_lifecycle_participants');
         $this->app->bind(EffectivePermissionChecker::class, SpatieEffectivePermissionChecker::class);
         $this->app->bind(AdministratorAccessManager::class, AdministratorAccess::class);
         $this->app->bind(OnboardingPackageDirectory::class, PublicOnboardingPackageDirectory::class);

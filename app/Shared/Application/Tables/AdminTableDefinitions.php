@@ -44,6 +44,12 @@ final class AdminTableDefinitions
 
     public const FILES = 'admin.files';
 
+    public const PRIVACY_RETENTION_COVERAGE = 'admin.privacy-retention.coverage';
+
+    public const PRIVACY_LEGAL_HOLDS = 'admin.privacy-retention.legal-holds';
+
+    public const PRIVACY_OPERATIONS = 'admin.privacy-retention.operations';
+
     public const INTEGRATION_ADAPTERS = 'admin.integrations.adapters';
 
     public const INTEGRATION_RUNS = 'admin.integrations.runs';
@@ -340,6 +346,47 @@ final class AdminTableDefinitions
                 new TableColumn('acknowledgedBy', defaultVisible: false),
                 new TableColumn('acknowledgementReason', defaultVisible: false),
                 new TableColumn('threatName', defaultVisible: false),
+                new TableColumn('createdAt', defaultVisible: false),
+            ], 'createdAt', 'desc'),
+            self::PRIVACY_RETENTION_COVERAGE => new TableDefinition($key, [
+                new TableColumn('publicId', defaultVisible: false),
+                new TableColumn('area'),
+                new TableColumn('ownerModule'),
+                new TableColumn('coverage'),
+                new TableColumn('hardDeletePolicy'),
+                new TableColumn('anonymizationPolicy'),
+                new TableColumn('retentionControlled', searchable: false),
+                new TableColumn('hasParticipant', searchable: false),
+            ], 'area'),
+            self::PRIVACY_LEGAL_HOLDS => new TableDefinition($key, [
+                new TableColumn('publicId'),
+                new TableColumn('subjectType'),
+                new TableColumn('subjectIdentifier'),
+                new TableColumn('status'),
+                new TableColumn('teamPublicId'),
+                new TableColumn('createdByPublicId', defaultVisible: false),
+                new TableColumn('reason'),
+                new TableColumn('expiresOn'),
+                new TableColumn('releasedAt'),
+                new TableColumn('releaseReason', defaultVisible: false),
+                new TableColumn('createdAt'),
+            ], 'createdAt', 'desc'),
+            self::PRIVACY_OPERATIONS => new TableDefinition($key, [
+                new TableColumn('publicId'),
+                new TableColumn('operation'),
+                new TableColumn('status'),
+                new TableColumn('subjectType'),
+                new TableColumn('subjectIdentifier'),
+                new TableColumn('dryRun', searchable: false),
+                new TableColumn('canExecute', searchable: false),
+                new TableColumn('estimatedRecords', searchable: false),
+                new TableColumn('participantCount', searchable: false),
+                new TableColumn('blockerCount', searchable: false),
+                new TableColumn('teamPublicId'),
+                new TableColumn('actorPublicId', defaultVisible: false),
+                new TableColumn('reason', defaultVisible: false),
+                new TableColumn('confirmationPhrase', defaultVisible: false),
+                new TableColumn('previewedAt'),
                 new TableColumn('createdAt', defaultVisible: false),
             ], 'createdAt', 'desc'),
             self::INTEGRATION_ADAPTERS => new TableDefinition($key, [

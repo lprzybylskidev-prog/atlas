@@ -119,6 +119,7 @@ The planned shared system capabilities include:
 - Settings and localization
 - Notifications
 - Files
+- Privacy, retention, hard-delete, and anonymization readiness
 - Admin operations
 - Health and readiness
 - Module availability and activation
@@ -171,7 +172,7 @@ The Laravel foundation includes Fortify, Horizon, Scout with Meilisearch, Sentry
 
 The baseline frontend shell is available through Inertia/Vue with strict TypeScript, light and dark themes, responsive auth/application/admin layouts, PL/EN frontend localization with Polish default for regular UI, English-only Admin shell copy, the Atlas logo and favicon, and a local demo reset command documented in [`docs/operations/seeding-and-demo-data.md`](docs/operations/seeding-and-demo-data.md).
 
-Atlas-owned persistence is split across explicit PostgreSQL schemas such as `core_identity`, `core_teams`, `core_authorization`, `core_audit`, `core_settings`, `core_notifications`, `core_files`, `optional_feature_flags`, `optional_integrations`, and `shared`; the architecture map lives in [`docs/architecture/modular-monolith.md`](docs/architecture/modular-monolith.md).
+Atlas-owned persistence is split across explicit PostgreSQL schemas such as `core_identity`, `core_teams`, `core_authorization`, `core_audit`, `core_settings`, `core_notifications`, `core_files`, `core_privacy`, `optional_feature_flags`, `optional_integrations`, and `shared`; the architecture map lives in [`docs/architecture/modular-monolith.md`](docs/architecture/modular-monolith.md).
 
 The Notifications foundation provides typed user/team notifications, in-app read state, optional email delivery, avatar-dropdown previews, and a shared-datatable notification center; realtime push integrations continue in Phase 15.
 
@@ -179,7 +180,11 @@ The Files foundation provides private file metadata, generated storage paths, ch
 
 The Integrations foundation provides typed external adapter registration, external API access disabled by default, credential/scope policy contracts, external-ID mapping, synchronization history, idempotency records, retry/backoff execution, circuit-breaker state, correlation IDs, secret-safe audit records, deactivation guards, and an Admin integration status screen with permission-protected test-connection actions.
 
-The Managed Processes and Imports foundations provide registered process definitions, process runs, structured process logs, progress and counters, retry/cancel actions, managed schedules, Admin process visibility, import execution records, idempotency state, row/field errors, and development demo runs/logs. Admin uses four managed-process tabs: Runs, Imports, Definitions, and Schedules.
+The Managed Processes and Imports foundations provide registered process definitions, process runs, structured process logs, progress and counters, retry/cancel actions, managed schedules, Admin process visibility, import execution records, idempotency state, and row/field errors. Admin combines ordinary and import-linked runs in one process history, with definition and schedule subviews for operational control.
+
+The Privacy and retention foundation provides the Core `privacy` module, separate privacy/hard-delete/anonymization permissions, `core_privacy` operation request/preview/legal-hold persistence, a lifecycle participant registry for controlled copies, and Admin browsers at `/admin/privacy-retention` and `/admin/privacy-retention/legal-holds` with high-risk dry-run impact preview creation and legal-hold blockers. Destructive hard-delete and irreversible anonymization execution remain gated Phase 26 work requiring typed confirmation, final blocker evaluation, idempotent execution, and audit.
+
+HTTP security headers are applied globally, and dependency audit command coverage is tracked as technical configuration rather than exposed as an Admin screen.
 
 The Search foundation is available as an optional module for module-owned Meilisearch projections. Current contracts cover explicit index descriptors, immutable search document payloads, Outbox-fed queued indexing, active-team and permission-scoped search queries, registered Search permissions, a `search:rebuild` CLI entry point, Admin Search status and confirmed rebuild starts, and a managed-process rebuild definition on the `search` queue; concrete business indexes remain module-owned and rebuildable projections rather than sources of truth.
 

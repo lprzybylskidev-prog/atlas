@@ -21,6 +21,7 @@ import { applyTableFilters, clearTableFilters } from '../../../Composables/useTa
 import AdminLayout from '../../../Layouts/AdminLayout.vue';
 import { useTranslator } from '../../../Localization/translator';
 import type { DataTableAction, DataTableColumn, DataTableMeta } from '../../../Types/data-table';
+import { moduleLabel } from '../../../Utils/moduleLabels';
 import { formatDateTime } from '../../../Utils/formatters';
 
 interface IntegrationRow extends Record<string, unknown> {
@@ -84,6 +85,8 @@ const filters = ref({ ...filterDefaults, ...filterValues() });
 const rows = computed<IntegrationRow[]>(() =>
     props.integrations.map((integration) => ({
         ...integration,
+        requiredModules: integration.requiredModules.map((module) => moduleLabel(module, t)),
+        optionalModules: integration.optionalModules.map((module) => moduleLabel(module, t)),
         circuitState: circuitLabel(integration.circuitState),
         lastRunStatus: statusLabel(integration.lastRunStatus),
     })),

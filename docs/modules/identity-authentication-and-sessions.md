@@ -28,6 +28,12 @@ Rules:
 - account must be active to log in;
 - deactivation does not delete the account.
 
+## Privacy Lifecycle
+
+The Users module registers `UserAccountDataLifecycleParticipant` for `user` subjects. The participant treats the Identity user row as the stable technical anchor for audit and related foreign-key references, so hard-delete and anonymization execution redacts the account instead of physically deleting it.
+
+Execution removes database-backed sessions, password reset tokens, password history rows, and WebAuthn credentials for the user. It clears MFA secrets/recovery codes, remember token, login-lock state, per-user session overrides, email verification, and first-password state, marks the account inactive, and replaces name/email with neutral redacted values. Producers must use public contracts rather than deleting `users` directly.
+
 Current persistence baseline:
 
 - `users.id` is the internal BIGINT identifier;

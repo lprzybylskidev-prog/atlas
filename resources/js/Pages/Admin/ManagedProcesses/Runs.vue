@@ -15,6 +15,7 @@ import { applyTableFilters, clearTableFilters } from '../../../Composables/useTa
 import { useTranslator } from '../../../Localization/translator';
 import type { DataTableAction, DataTableBulkAction, DataTableColumn, DataTableMeta } from '../../../Types/data-table';
 import type { ManagedProcessFilterOptions, ManagedProcessRunRow, ManagedProcessSummary } from '../../../Types/managed-processes';
+import { moduleLabel } from '../../../Utils/moduleLabels';
 
 const props = defineProps<{
     runs: ManagedProcessRunRow[];
@@ -41,6 +42,7 @@ const filters = ref({ ...filterDefaults, ...filterValues() });
 const rows = computed<ManagedProcessRunRow[]>(() =>
     props.runs.map((run) => ({
         ...run,
+        moduleKey: moduleLabel(run.moduleKey, t),
         status: processStatusLabel(run.status, t),
         sourceType: processSourceLabel(run.sourceType, t),
         importSourceType: run.importSourceType === null ? '' : processSourceLabel(run.importSourceType, t),
@@ -106,7 +108,9 @@ const sourceOptions = computed<FormSelectOption[]>(() =>
     ),
 );
 const moduleOptions = computed<FormSelectOption[]>(() =>
-    allOptions(props.filterOptions.modules ?? [], t('pages.admin.managed_processes.filters.any_module')),
+    allOptions(props.filterOptions.modules ?? [], t('pages.admin.managed_processes.filters.any_module'), (module) =>
+        moduleLabel(module, t),
+    ),
 );
 const importOptions = computed<FormSelectOption[]>(() =>
     allOptions(props.filterOptions.imports ?? [], t('pages.admin.managed_processes.filters.any_import')),

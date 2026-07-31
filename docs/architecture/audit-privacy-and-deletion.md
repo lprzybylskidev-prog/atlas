@@ -6,6 +6,10 @@ Canonical cross-module requirements for audit evidence, soft delete, hard delete
 
 Three distinct modes exist.
 
+`App\Modules\Core\Privacy\PrivacyModule` owns the cross-module privacy and retention orchestration surface. It is separate from Audit: Audit stores immutable evidence, while Privacy coordinates deletion, anonymization, retention, legal-hold, and controlled-copy participation workflows.
+
+The Admin entry point is `/admin/privacy-retention`. The current surface shows readiness, controlled-copy coverage, and durable dry-run impact previews. Destructive execution routes must not be introduced until the full high-risk workflow is implemented.
+
 ### Soft delete
 
 Default behavior where suitable.
@@ -23,6 +27,8 @@ Allowed only through dedicated administrative use cases with:
 - complete audit.
 
 Financial, audit, legal, and retention-controlled data generally must not be hard deleted.
+
+The central Privacy executor may run hard-delete only from a saved executable preview. It must reserve the operation, verify the typed confirmation phrase, recheck legal/retention blockers, call registered lifecycle participants idempotently, persist the terminal status, and write a security audit event.
 
 ### Irreversible anonymization
 
@@ -42,6 +48,12 @@ A dedicated explicit process that de-identifies all controlled copies, including
 - generated copies.
 
 Preserve only neutral technical records where required.
+
+The same central Privacy executor coordinates irreversible anonymization. Module participants own the actual de-identification of their controlled copies, while the Privacy module owns the high-risk guardrails, status transitions, blocker handling, execution metadata, and audit record.
+
+Core related tables are covered by module-owned participants. Identity/Users neutralizes the user account and removes authentication secrets and session-derived rows. Teams ends active memberships and manager relationships while preserving neutral history. Authorization removes user-specific role, direct-permission, and onboarding-package assignments while preserving system definitions.
+
+Shared derived data such as subject-derived cache entries, cache locks, and pending queued jobs is removed idempotently by the shared lifecycle participant. Durable audit evidence, outbox history, failed-job diagnostics, and other legally or operationally retained records are not generic cache cleanup targets; they require explicit module-owned redaction or retention policy.
 
 Respect legal retention rules.
 
@@ -74,6 +86,8 @@ Audit records should include where relevant:
 - meaningful before and after values;
 - reason;
 - result.
+
+Audit persistence must be secret-safe. The database recorder redacts sensitive text and payload keys in reasons, before/after values, and metadata before writing rows. Producers must still avoid sending raw credentials, tokens, headers, full request/response bodies, or unnecessary personal data into audit events.
 
 Audit is append-only and not normally editable. PostgreSQL triggers reject ordinary updates and deletes on audit tables.
 

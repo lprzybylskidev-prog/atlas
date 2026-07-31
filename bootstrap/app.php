@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Http\Middleware\ApplyImpersonationContext;
+use App\Http\Middleware\ApplySecurityHeaders;
 use App\Http\Middleware\AttachRequestId;
 use App\Http\Middleware\BlockProhibitedImpersonationOperations;
 use App\Http\Middleware\EnforceUserSessionSecurity;
@@ -65,6 +66,7 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
 
         $middleware->append(AttachRequestId::class);
+        $middleware->append(ApplySecurityHeaders::class);
         $middleware->web(append: [
             SetLocaleFromSession::class,
             EnforceUserSessionSecurity::class,

@@ -109,6 +109,63 @@ final class AuditFoundationTest extends TestCase
         ]);
     }
 
+    public function test_audit_recorder_redacts_sensitive_payloads_before_persistence(): void
+    {
+        $this->app->make(AuditRecorder::class)->record(new AuditEvent(
+            module: 'tests',
+            action: 'audit.redaction_probe',
+            result: 'succeeded',
+            source: 'test',
+            reason: 'Operator pasted Bearer secret-token for user@example.test by mistake.',
+            before: [
+                'email' => 'user@example.test',
+                'safe_status' => 'pending',
+                'nested' => [
+                    'authorization' => 'Bearer secret-token',
+                    'safe_note' => 'kept',
+                ],
+            ],
+            after: [
+                'api_key' => 'atlas-secret-key',
+                'safe_status' => 'approved',
+            ],
+            metadata: [
+                'correlation_id' => 'request-1',
+                'headers' => ['Authorization' => 'Bearer secret-token'],
+                'safe_reference' => 'SUP-100',
+            ],
+        ));
+
+        $row = DB::table(DatabaseTable::AUDIT_EVENTS)
+            ->where('action', 'audit.redaction_probe')
+            ->first();
+
+        self::assertNotNull($row);
+        self::assertSame('Operator pasted [redacted] for [redacted] by mistake.', $row->reason);
+
+        self::assertIsString($row->before_values);
+        self::assertIsString($row->after_values);
+        self::assertIsString($row->metadata);
+
+        $before = json_decode($row->before_values, true, flags: JSON_THROW_ON_ERROR);
+        $after = json_decode($row->after_values, true, flags: JSON_THROW_ON_ERROR);
+        $metadata = json_decode($row->metadata, true, flags: JSON_THROW_ON_ERROR);
+        self::assertIsArray($before);
+        self::assertIsArray($after);
+        self::assertIsArray($metadata);
+        self::assertIsArray($before['nested'] ?? null);
+
+        self::assertSame('[redacted]', $before['email']);
+        self::assertSame('pending', $before['safe_status']);
+        self::assertSame('[redacted]', $before['nested']['authorization']);
+        self::assertSame('kept', $before['nested']['safe_note']);
+        self::assertSame('[redacted]', $after['api_key']);
+        self::assertSame('approved', $after['safe_status']);
+        self::assertSame('request-1', $metadata['correlation_id']);
+        self::assertSame('[redacted]', $metadata['headers']);
+        self::assertSame('SUP-100', $metadata['safe_reference']);
+    }
+
     public function test_audit_recorder_enriches_impersonation_context_without_event_duplication(): void
     {
         Route::post('/admin/testing/audit-impersonation-context', function (): Response {

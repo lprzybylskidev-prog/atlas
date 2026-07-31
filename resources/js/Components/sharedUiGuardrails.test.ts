@@ -150,6 +150,7 @@ describe('shared UI guardrails', () => {
         const operationalTile = Object.entries(vueFiles).find(([file]) => file.endsWith('/OperationalTile.vue'))?.[1];
         const operationalMetricTile = Object.entries(vueFiles).find(([file]) => file.endsWith('/OperationalMetricTile.vue'))?.[1];
         const dialogPanel = Object.entries(vueFiles).find(([file]) => file.endsWith('/DialogPanel.vue'))?.[1];
+        const modalHost = Object.entries(vueFiles).find(([file]) => file.endsWith('/ModalHost.vue'))?.[1];
 
         expect(shellNamedCard).toBeUndefined();
         expect(surfaceCard).toBeDefined();
@@ -188,10 +189,16 @@ describe('shared UI guardrails', () => {
         expect(operationalMetricTile).toBeDefined();
         expect(dialogPanel).toBeDefined();
         expect(dialogPanel).toContain('aria-modal="true"');
-        expect(dialogPanel).toContain('IconTile');
+        expect(dialogPanel).toContain('CardHeader');
+        expect(modalHost).toBeDefined();
+        expect(modalHost).toContain('CardHeader');
 
         for (const [file, contents] of Object.entries(vueFiles)) {
-            const mayUseCardHeader = file.endsWith('/SurfaceCard.vue') || file.endsWith('/SectionHeader.vue');
+            const mayUseCardHeader =
+                file.endsWith('/SurfaceCard.vue') ||
+                file.endsWith('/SectionHeader.vue') ||
+                file.endsWith('/DialogPanel.vue') ||
+                file.endsWith('/ModalHost.vue');
 
             if (mayUseCardHeader) {
                 continue;
@@ -268,7 +275,7 @@ describe('shared UI guardrails', () => {
         }
     });
 
-    it('keeps phase 25 admin navigation limited to accepted rebuild entry points', () => {
+    it('keeps admin navigation limited to accepted entry points', () => {
         const sidebar = Object.entries(vueFiles).find(([file]) => file.endsWith('/Sidebar.vue'))?.[1];
         const mobileNavigation = Object.entries(vueFiles).find(([file]) => file.endsWith('/MobileNavigation.vue'))?.[1];
 
@@ -282,6 +289,7 @@ describe('shared UI guardrails', () => {
             expect(contents).toContain("canSeeAdminRoute('admin.managed-processes.index')");
             expect(contents).toContain("canSeeAdminRoute('admin.queues.index')");
             expect(contents).toContain("canSeeAdminRoute('admin.files.index')");
+            expect(contents).toContain("canSeeAdminRoute('admin.privacy-retention.index')");
             expect(contents).toContain("canSeeAdminRoute('admin.logs.index')");
             expect(contents).toContain("canSeeAdminRoute('admin.feature-flags.index')");
             expect(contents).toContain("canSeeAdminRoute('admin.rate-limits.index')");
@@ -359,7 +367,7 @@ describe('shared UI guardrails', () => {
         expect(sensitivity).toContain('accountSensitivityValues');
     });
 
-    it('keeps phase 25 admin presentation limited to accepted sidebar workflow rebuilds', () => {
+    it('keeps admin presentation limited to accepted sidebar workflow rebuilds', () => {
         const adminPages = Object.keys(vueFiles)
             .filter((file) => file.includes('/Pages/Admin/'))
             .sort();
@@ -391,6 +399,10 @@ describe('shared UI guardrails', () => {
             '../Pages/Admin/Modules/Index.vue',
             '../Pages/Admin/Modules/Show.vue',
             '../Pages/Admin/Modules/TeamConfiguration.vue',
+            '../Pages/Admin/PrivacyRetention/Index.vue',
+            '../Pages/Admin/PrivacyRetention/LegalHoldCreate.vue',
+            '../Pages/Admin/PrivacyRetention/LegalHolds.vue',
+            '../Pages/Admin/PrivacyRetention/Operations.vue',
             '../Pages/Admin/Queues/Index.vue',
             '../Pages/Admin/RateLimits/Index.vue',
             '../Pages/Admin/Search/Index.vue',

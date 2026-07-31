@@ -2,6 +2,7 @@
 import { IconAlertTriangle, IconCircleCheck, IconCircleDashed, IconCircleX, IconInfoCircle } from '@tabler/icons-vue';
 
 import { useTranslator } from '../../../Localization/translator';
+import { moduleLabel } from '../../../Utils/moduleLabels';
 
 type ModuleIssue = {
     severity: 'healthy' | 'degraded' | 'unhealthy' | 'info' | string;
@@ -78,12 +79,6 @@ const issueIcon = (severity: string) => {
 
     return statusIcon(severity);
 };
-
-const moduleLabel = (key: string): string =>
-    key
-        .split('-')
-        .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-        .join(' ');
 </script>
 
 <template>
@@ -141,7 +136,7 @@ const moduleLabel = (key: string): string =>
                             <component :is="statusIcon(module.status)" class="size-4" :stroke-width="1.8" />
                         </span>
                         <div class="min-w-0">
-                            <p class="truncate text-sm font-semibold text-zinc-950 dark:text-zinc-50">{{ moduleLabel(module.key) }}</p>
+                            <p class="truncate text-sm font-semibold text-zinc-950 dark:text-zinc-50">{{ moduleLabel(module.key, t) }}</p>
                             <p class="text-xs uppercase text-zinc-500 dark:text-zinc-400">{{ module.category }}</p>
                         </div>
                     </div>

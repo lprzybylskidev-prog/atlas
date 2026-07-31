@@ -5,6 +5,7 @@ Each file is the canonical current-state description of one Atlas module or tigh
 - [Identity, authentication, users, and sessions](identity-authentication-and-sessions.md) — account lifecycle, password, MFA, login, and session behavior.
 - [Authorization](authorization.md) — permissions, roles, framework boundary, and enforcement.
 - [Audit](audit.md) — application audit, security audit, immutable evidence, and Admin audit browsing.
+- [Privacy and retention](privacy.md) — privacy workflows, retention, hard-delete/anonymization readiness, legal holds, and controlled-copy coverage.
 - [Teams and manager hierarchy](teams-and-manager-hierarchy.md) — team assignment and manager DAG behavior.
 - [Admin](admin.md) — administrative module scope and screens.
 - [TimeTracking](time-tracking.md) — work time, breaks, inactivity, corrections, settlement, and reporting.

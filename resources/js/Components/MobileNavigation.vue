@@ -173,6 +173,12 @@ const groups = computed<MobileNavigationGroup[]>(() => {
                     visible: canSeeAdminRoute('admin.files.index'),
                 },
                 {
+                    label: t('navigation.privacy_retention'),
+                    href: '/admin/privacy-retention',
+                    icon: IconShieldCheck,
+                    visible: canSeeAdminRoute('admin.privacy-retention.index'),
+                },
+                {
                     label: t('navigation.logs'),
                     href: '/admin/logs',
                     icon: IconFileText,

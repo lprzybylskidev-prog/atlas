@@ -15,6 +15,7 @@ enum SecurityAuditCategory: string
     case Integrations = 'integrations';
     case Mfa = 'mfa';
     case Password = 'password';
+    case Privacy = 'privacy';
     case QueueOperations = 'queue_operations';
     case RateLimit = 'rate_limit';
     case Security = 'security';

@@ -9,6 +9,7 @@ use App\Modules\Optional\ManagedProcesses\Application\Exports\AdminImportRowErro
 use App\Modules\Optional\ManagedProcesses\Application\Exports\AdminManagedProcessDefinitionsDataTableExportProvider;
 use App\Modules\Optional\ManagedProcesses\Application\Exports\AdminManagedProcessRunsDataTableExportProvider;
 use App\Modules\Optional\ManagedProcesses\Application\Exports\AdminManagedProcessSchedulesDataTableExportProvider;
+use App\Modules\Optional\ManagedProcesses\Application\Lifecycle\ManagedProcessDataLifecycleParticipant;
 use App\Modules\Optional\ManagedProcesses\Application\ManagedProcessesDeactivationGuard;
 use App\Modules\Optional\ManagedProcesses\Application\Permissions\ManagedProcessesPermissionCatalog;
 use App\Modules\Optional\ManagedProcesses\Application\Public\Contracts\ManagedProcessReporter;
@@ -30,6 +31,7 @@ final class ManagedProcessesServiceProvider extends ServiceProvider
         $this->app->bind(ManagedProcessRunInspector::class, DatabaseManagedProcessRunInspector::class);
         $this->app->tag([ManagedProcessesPermissionCatalog::class], 'atlas.permission_catalogs');
         $this->app->tag([ManagedProcessesDeactivationGuard::class], 'atlas.module_deactivation_guards');
+        $this->app->tag([ManagedProcessDataLifecycleParticipant::class], 'atlas.data_lifecycle_participants');
         $this->app->tag([
             AdminImportRowErrorsDataTableExportProvider::class,
             AdminManagedProcessDefinitionsDataTableExportProvider::class,

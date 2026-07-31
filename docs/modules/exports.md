@@ -58,6 +58,20 @@ The current implementation preserves the Phase 24 lifecycle while moving ownersh
 - Exports registers a module deactivation guard that blocks deactivating a module while that module owns requested, queued, or generating export requests.
 - Successful and failed generation publishes one terminal requester notification through the Notifications module in addition to managed-process progress updates. Export notifications store stable translation keys and safe parameters so the notification dropdown and notification center render PL/EN text in the viewer's current locale. Ready notifications include a deep link to `/exports/{artifact}/download`; failed notifications do not expose raw exception text as user-facing copy and keep diagnostic details in the export request or process logs.
 
+## Privacy lifecycle
+
+Exports registers `ExportDataLifecycleParticipant` with the shared `atlas.data_lifecycle_participants` tag.
+
+Privacy previews report matching controlled copies as:
+
+- `exports.requests`;
+- `exports.artifacts`;
+- `exports.render_credentials`.
+
+Active export requests (`requested`, `queued`, or `generating`) add the `export_generation_active` blocker so privacy execution cannot mutate export snapshots or artifacts while generation is in flight.
+
+For completed export requests, privacy execution preserves neutral operational history while redacting request snapshots, authorization snapshots, sorting/column/time-range metadata, and safe error summaries. Matching render credentials are deleted. Matching export artifacts are expired, detached from their file object metadata, renamed to a neutral redacted marker, and the linked private file copy is removed through the Files `FileLifecycle` contract. This keeps export artifact cleanup aligned with the Files module rather than duplicating file-storage deletion logic in Exports.
+
 Public contracts exposed for other modules:
 
 - `ReportExportRequestRecorder` records authorized immutable request snapshots.

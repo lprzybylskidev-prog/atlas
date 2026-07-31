@@ -17,6 +17,7 @@ import { applyTableFilters, clearTableFilters } from '../../../Composables/useTa
 import AdminLayout from '../../../Layouts/AdminLayout.vue';
 import { useTranslator } from '../../../Localization/translator';
 import type { DataTableAction, DataTableColumn, DataTableMeta } from '../../../Types/data-table';
+import { moduleLabel } from '../../../Utils/moduleLabels';
 
 interface TeamOption {
     publicId: string;
@@ -104,6 +105,7 @@ const form = useForm<{
 const flagRows = computed<FeatureFlagRow[]>(() =>
     props.flags.map((flag) => ({
         ...flag,
+        ownerModule: moduleLabel(flag.ownerModule, t),
         source: sourceLabel(flag.source),
         lifecycle: lifecycleLabel(flag.lifecycle),
         type: typeLabel(flag.type),
@@ -172,7 +174,7 @@ const sourceOptions = computed<FormSelectOption[]>(() => [
     { value: 'team', label: sourceLabel('team') },
 ]);
 const ownerOptions = computed<FormSelectOption[]>(() =>
-    allOptions(props.filterOptions.owners, t('pages.admin.feature_flags.filters.any_owner')),
+    allOptions(props.filterOptions.owners, t('pages.admin.feature_flags.filters.any_owner'), (value) => moduleLabel(value, t)),
 );
 const lifecycleOptions = computed<FormSelectOption[]>(() =>
     allOptions(props.filterOptions.lifecycles, t('pages.admin.feature_flags.filters.any_lifecycle'), lifecycleLabel),

@@ -56,6 +56,10 @@ final class ModuleKeyResolver
             return 'files';
         }
 
+        if (str_starts_with($permission, 'admin.privacy-retention.') || str_starts_with($permission, 'privacy.')) {
+            return 'privacy';
+        }
+
         if (str_starts_with($permission, 'admin.feature-flags.') || str_starts_with($permission, 'feature-flags.')) {
             return 'feature_flags';
         }

@@ -25,7 +25,7 @@ final readonly class SearchDataLifecycleParticipant implements DataLifecyclePart
     public function preview(DataLifecycleSubject $subject, DataLifecycleOperation $operation): DataLifecyclePreview
     {
         return new DataLifecyclePreview([
-            new DataLifecycleImpact('search.indexes', $this->countAffected($subject, $operation), true),
+            new DataLifecycleImpact('search.indexes', $this->countAffected($subject, $operation), true, $this->details($subject, $operation)),
         ]);
     }
 
@@ -70,6 +70,31 @@ final readonly class SearchDataLifecycleParticipant implements DataLifecyclePart
         }
 
         return $affected;
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private function details(DataLifecycleSubject $subject, DataLifecycleOperation $operation): array
+    {
+        $details = [];
+
+        foreach ($this->projectors() as $projector) {
+            if (! $projector->supports($subject, $operation)) {
+                continue;
+            }
+
+            foreach ($projector->documentIdsFor($subject, $operation) as $indexKey => $documentPublicIds) {
+                foreach ($documentPublicIds as $documentPublicId) {
+                    $details[] = [
+                        'index_key' => $indexKey,
+                        'document_public_id' => $documentPublicId,
+                    ];
+                }
+            }
+        }
+
+        return $details;
     }
 
     /**

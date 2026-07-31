@@ -27,6 +27,10 @@ Admin user-team access management:
 - Admin can remove access from a team only with a reason;
 - removing access ends the effective `team_user_assignments` row through `valid_to`, removes user-specific role and direct-permission assignments in that team, audits the operation, and invalidates user sessions operating in that team.
 
+## Privacy Lifecycle
+
+Teams registers `TeamUserDataLifecycleParticipant` for `user` subjects. Privacy execution does not delete teams or historical relationship rows. It ends active team assignments for the user, clears the head-manager marker on those assignments, ends active manager relationships where the user is manager or report, and redacts actor-only references (`created_by_user_id`, `ended_by_user_id`) to preserve hierarchy history without keeping unnecessary personal actor links.
+
 Manager relationships are team-scoped and stored in `core_teams.team_manager_relationships`.
 
 Support:

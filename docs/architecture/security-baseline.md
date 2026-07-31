@@ -32,6 +32,19 @@ Canonical security baseline that applies across Atlas. Read together with the af
 - Administrative counter resets require explicit confirmation and audit.
 - User-facing errors must not reveal exact thresholds when that would assist abuse.
 
+## System Protection
+
+Atlas applies HTTP security headers through global middleware:
+
+- `Content-Security-Policy`;
+- `X-Frame-Options`;
+- `X-Content-Type-Options`;
+- `Referrer-Policy`;
+- `Permissions-Policy`;
+- `Strict-Transport-Security` on HTTPS responses.
+
+Dependency audit command coverage for Composer and pnpm lockfiles is tracked as technical configuration and test coverage. It is not exposed as an Admin screen because it does not provide an operator workflow.
+
 ## Malware Scanning
 
 - All uploaded files pass through a `MalwareScanner` contract.

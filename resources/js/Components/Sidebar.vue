@@ -213,6 +213,14 @@ const groups = computed<NavigationGroup[]>(() => {
                     visible: canSeeAdminRoute('admin.files.index'),
                 },
                 {
+                    key: 'system-configuration.privacy-retention',
+                    label: t('navigation.privacy_retention'),
+                    href: '/admin/privacy-retention',
+                    icon: IconShieldCheck,
+                    active: props.currentPath.startsWith('/admin/privacy-retention'),
+                    visible: canSeeAdminRoute('admin.privacy-retention.index'),
+                },
+                {
                     key: 'system-configuration.logs',
                     label: t('navigation.logs'),
                     href: '/admin/logs',

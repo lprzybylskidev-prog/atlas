@@ -59,7 +59,14 @@ final class SharedApplicationContractsTest extends TestCase
     public function test_data_lifecycle_preview_and_result_expose_impacts_blockers_and_idempotent_steps(): void
     {
         $preview = new DataLifecyclePreview(
-            impacts: [new DataLifecycleImpact(dataSet: 'identity.users', estimatedRecords: 1, irreversible: true)],
+            impacts: [
+                new DataLifecycleImpact(
+                    dataSet: 'identity.users',
+                    estimatedRecords: 1,
+                    irreversible: true,
+                    details: [['public_id' => '01J00000000000000000000001']],
+                ),
+            ],
             blockers: [new DataLifecycleBlocker(code: 'active-case', message: 'Subject has an active case.')],
         );
         $result = new DataLifecycleResult(
@@ -68,6 +75,7 @@ final class SharedApplicationContractsTest extends TestCase
 
         self::assertFalse($preview->canExecute());
         self::assertSame('identity.users', $preview->impacts[0]->dataSet);
+        self::assertSame('01J00000000000000000000001', $preview->impacts[0]->details[0]['public_id']);
         self::assertTrue($result->completed());
         self::assertTrue($result->steps[0]->idempotent);
     }

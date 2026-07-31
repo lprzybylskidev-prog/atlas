@@ -6,6 +6,7 @@ namespace App\Modules\Core\Files\Presentation\Providers;
 
 use App\Modules\Core\Files\Application\Contracts\MalwareScanner;
 use App\Modules\Core\Files\Application\Exports\AdminFilesDataTableExportProvider;
+use App\Modules\Core\Files\Application\Lifecycle\FileDataLifecycleParticipant;
 use App\Modules\Core\Files\Application\Permissions\FilesPermissionCatalog;
 use App\Modules\Core\Files\Application\Public\Contracts\FileLifecycle;
 use App\Modules\Core\Files\Application\Public\Contracts\FileMaintenance;
@@ -47,5 +48,6 @@ final class FilesServiceProvider extends ServiceProvider
         });
         $this->app->tag([FilesPermissionCatalog::class], 'atlas.permission_catalogs');
         $this->app->tag([AdminFilesDataTableExportProvider::class], 'atlas.admin_data_table_export_providers');
+        $this->app->tag([FileDataLifecycleParticipant::class], 'atlas.data_lifecycle_participants');
     }
 }

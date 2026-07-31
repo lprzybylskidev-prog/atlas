@@ -48,6 +48,7 @@ import SurfaceCard from '../../Components/SurfaceCard.vue';
 import AppLayout from '../../Layouts/AppLayout.vue';
 import { useTranslator } from '../../Localization/translator';
 import { formatDateTime, formatNumber } from '../../Utils/formatters';
+import { moduleLabel } from '../../Utils/moduleLabels';
 
 type DashboardStatus = 'healthy' | 'degraded' | 'unhealthy' | 'inactive' | 'unavailable' | 'info' | string;
 
@@ -178,29 +179,6 @@ function mechanismLabel(key: string): string {
     return supported.includes(key) ? t(`pages.admin.dashboard.external.${key.replaceAll('-', '_')}`) : key;
 }
 
-function moduleLabel(key: string): string {
-    const supported = [
-        'audit',
-        'authorization',
-        'exports',
-        'feature_flags',
-        'files',
-        'health',
-        'identity',
-        'imports',
-        'integrations',
-        'managed_processes',
-        'notifications',
-        'reports',
-        'search',
-        'settings',
-        'teams',
-        'users',
-    ];
-
-    return supported.includes(key) ? t(`pages.admin.dashboard.module.${key}`) : key;
-}
-
 function mechanismIcon(key: string): Component {
     const icons: Record<string, Component> = {
         postgresql: IconDatabase,
@@ -239,6 +217,7 @@ function moduleIcon(key: string): Component {
         integrations: IconPlugConnected,
         managed_processes: IconServerCog,
         notifications: IconBell,
+        privacy: IconShieldCheck,
         reports: IconReportAnalytics,
         search: IconSearch,
         settings: IconSettings,
@@ -329,7 +308,7 @@ function moduleTooltip(module: DashboardModule): string {
                     <ul class="grid gap-3 p-4 sm:grid-cols-2 xl:grid-cols-4">
                         <li v-for="module in moduleRows" :key="module.key" class="min-w-0">
                             <OperationalTile
-                                :label="moduleLabel(module.key)"
+                                :label="moduleLabel(module.key, t)"
                                 :icon="moduleIcon(module.key)"
                                 :status-label="statusLabel(module.status)"
                                 :status-tone="statusTone(module.status)"

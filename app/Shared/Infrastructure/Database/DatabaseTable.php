@@ -62,6 +62,12 @@ final class DatabaseTable
 
     public const FILE_SCAN_EVIDENCE = DatabaseSchema::CORE_FILES.'.file_scan_evidence';
 
+    public const PRIVACY_OPERATION_REQUESTS = DatabaseSchema::CORE_PRIVACY.'.operation_requests';
+
+    public const PRIVACY_OPERATION_PREVIEWS = DatabaseSchema::CORE_PRIVACY.'.operation_previews';
+
+    public const PRIVACY_LEGAL_HOLDS = DatabaseSchema::CORE_PRIVACY.'.legal_holds';
+
     public const INTEGRATION_CONNECTIONS = DatabaseSchema::OPTIONAL_INTEGRATIONS.'.integration_connections';
 
     public const INTEGRATION_CREDENTIALS = DatabaseSchema::OPTIONAL_INTEGRATIONS.'.integration_credentials';

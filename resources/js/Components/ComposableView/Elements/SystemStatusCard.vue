@@ -3,6 +3,7 @@ import { IconAlertTriangle, IconCircleCheck, IconCircleX } from '@tabler/icons-v
 import { computed } from 'vue';
 
 import { useTranslator } from '../../../Localization/translator';
+import { moduleLabel } from '../../../Utils/moduleLabels';
 
 type SystemStatusCheck = {
     key: string;
@@ -121,7 +122,11 @@ const detailItems = computed(() =>
             value: props.data?.queueCount === undefined || props.data.queueCount === null ? null : String(props.data.queueCount),
             mono: false,
         },
-        { label: 'Latest failed module', value: props.data?.latestFailedModule, mono: false },
+        {
+            label: 'Latest failed module',
+            value: props.data?.latestFailedModule ? moduleLabel(props.data.latestFailedModule, t) : null,
+            mono: false,
+        },
         { label: 'Latest failed at', value: props.data?.latestFailedAt, mono: false },
         { label: 'Latest failure', value: props.data?.latestFailureReason, mono: true },
     ].filter((item): item is { label: string; value: string; mono: boolean } => typeof item.value === 'string' && item.value !== ''),
@@ -187,7 +192,9 @@ const statusIcon = (status: string) => {
                 class="rounded-md border border-zinc-200 p-3 text-xs dark:border-zinc-800"
             >
                 <div class="flex flex-wrap items-center justify-between gap-2">
-                    <span class="font-semibold text-zinc-900 dark:text-zinc-100">{{ item.module ?? 'Module' }}</span>
+                    <span class="font-semibold text-zinc-900 dark:text-zinc-100">{{
+                        item.module ? moduleLabel(item.module, t) : 'Module'
+                    }}</span>
                     <span class="rounded bg-zinc-100 px-2 py-0.5 font-semibold uppercase text-zinc-500 dark:bg-zinc-900 dark:text-zinc-400">
                         {{ item.status ?? 'scheduled' }}
                     </span>

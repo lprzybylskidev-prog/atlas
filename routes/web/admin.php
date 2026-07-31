@@ -24,6 +24,9 @@ use App\Modules\Core\Identity\Presentation\Http\Controllers\AdminModeController;
 use App\Modules\Core\Identity\Presentation\Http\Controllers\ImpersonationController;
 use App\Modules\Core\Identity\Presentation\Http\Controllers\RateLimitAdministrationController;
 use App\Modules\Core\Identity\Presentation\Http\Controllers\ResetRateLimitCounterController;
+use App\Modules\Core\Privacy\Presentation\Http\Controllers\PrivacyLegalHoldController;
+use App\Modules\Core\Privacy\Presentation\Http\Controllers\PrivacyOperationHistoryController;
+use App\Modules\Core\Privacy\Presentation\Http\Controllers\PrivacyRetentionController;
 use App\Modules\Core\Teams\Presentation\Http\Controllers\ManagerHierarchyAdministrationController;
 use App\Modules\Core\Teams\Presentation\Http\Controllers\TeamAdministrationController;
 use App\Modules\Core\Teams\Presentation\Http\Controllers\UserTeamAuthorizationController;
@@ -126,6 +129,23 @@ Route::middleware(['auth', 'admin.mode', 'route.permission'])->group(function ()
     Route::get('/admin/files', [AdminFilesController::class, 'index'])->name('admin.files.index');
     Route::post('/admin/files/acknowledge', [AdminFilesController::class, 'acknowledge'])->name('admin.files.acknowledge');
     Route::post('/admin/files/{file}/rescan', [AdminFilesController::class, 'rescan'])->name('admin.files.rescan');
+    Route::get('/admin/privacy-retention', PrivacyRetentionController::class)->name('admin.privacy-retention.index');
+    Route::post('/admin/privacy-retention/hard-delete/preview', [PrivacyRetentionController::class, 'previewHardDelete'])
+        ->middleware('admin.high-risk:'.HighRiskAdministrativeOperation::HardDelete->value)
+        ->name('admin.privacy-retention.hard-delete.preview');
+    Route::post('/admin/privacy-retention/hard-delete/{operation}/execute', [PrivacyRetentionController::class, 'executeHardDelete'])
+        ->middleware('admin.high-risk:'.HighRiskAdministrativeOperation::HardDelete->value)
+        ->name('admin.privacy-retention.hard-delete.execute');
+    Route::post('/admin/privacy-retention/anonymization/preview', [PrivacyRetentionController::class, 'previewAnonymization'])
+        ->middleware('admin.high-risk:'.HighRiskAdministrativeOperation::IrreversibleAnonymization->value)
+        ->name('admin.privacy-retention.anonymization.preview');
+    Route::post('/admin/privacy-retention/anonymization/{operation}/execute', [PrivacyRetentionController::class, 'executeAnonymization'])
+        ->middleware('admin.high-risk:'.HighRiskAdministrativeOperation::IrreversibleAnonymization->value)
+        ->name('admin.privacy-retention.anonymization.execute');
+    Route::get('/admin/privacy-retention/legal-holds', [PrivacyLegalHoldController::class, 'index'])->name('admin.privacy-retention.legal-holds.index');
+    Route::get('/admin/privacy-retention/legal-holds/create', [PrivacyLegalHoldController::class, 'create'])->name('admin.privacy-retention.legal-holds.create');
+    Route::post('/admin/privacy-retention/legal-holds', [PrivacyLegalHoldController::class, 'store'])->name('admin.privacy-retention.legal-holds.store');
+    Route::get('/admin/privacy-retention/operations', PrivacyOperationHistoryController::class)->name('admin.privacy-retention.operations.index');
     Route::get('/admin/logs', AdminApplicationLogController::class)->name('admin.logs.index');
     Route::get('/admin/feature-flags', [AdminFeatureFlagsController::class, 'index'])->name('admin.feature-flags.index');
     Route::patch('/admin/feature-flags/{flag}/global', [AdminFeatureFlagsController::class, 'updateGlobal'])->name('admin.feature-flags.global.update');

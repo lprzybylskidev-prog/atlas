@@ -19,6 +19,7 @@ import { applyTableFilters, clearTableFilters } from '../../../Composables/useTa
 import { useTranslator } from '../../../Localization/translator';
 import type { DataTableAction, DataTableColumn, DataTableMeta } from '../../../Types/data-table';
 import type { ManagedProcessDefinitionRow, ManagedProcessFilterOptions, ManagedProcessSummary } from '../../../Types/managed-processes';
+import { moduleLabel } from '../../../Utils/moduleLabels';
 
 const props = defineProps<{
     definitions: ManagedProcessDefinitionRow[];
@@ -58,6 +59,12 @@ const runModalOpen = computed({
 const selectedRequiresImportInput = computed(
     () => selectedDefinition.value?.supportsFileUpload === true || selectedDefinition.value?.supportsWatchedDirectory === true,
 );
+const rows = computed<ManagedProcessDefinitionRow[]>(() =>
+    props.definitions.map((definition) => ({
+        ...definition,
+        moduleKey: moduleLabel(definition.moduleKey, t),
+    })),
+);
 
 const columns = computed<DataTableColumn<ManagedProcessDefinitionRow>[]>(() => [
     { key: 'label', label: t('pages.admin.managed_processes.table.definition') },
@@ -85,7 +92,9 @@ const actions = computed<DataTableAction<ManagedProcessDefinitionRow>[]>(() => [
     },
 ]);
 const moduleOptions = computed<FormSelectOption[]>(() =>
-    allOptions(props.filterOptions.modules ?? [], t('pages.admin.managed_processes.filters.any_module')),
+    allOptions(props.filterOptions.modules ?? [], t('pages.admin.managed_processes.filters.any_module'), (module) =>
+        moduleLabel(module, t),
+    ),
 );
 const queueOptions = computed<FormSelectOption[]>(() =>
     allOptions(props.filterOptions.queues ?? [], t('pages.admin.managed_processes.filters.any_queue')),
@@ -200,7 +209,7 @@ function startSelectedDefinition(): void {
 
             <DataTable
                 :title="t('pages.admin.managed_processes.definitions.registered')"
-                :rows="definitions"
+                :rows="rows"
                 :columns="columns"
                 row-key="key"
                 :actions="actions"

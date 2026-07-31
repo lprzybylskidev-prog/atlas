@@ -86,4 +86,8 @@ Presets:
 - assigned permissions remain stored while a module is inactive;
 - effective permission checks include module activation and return `authorization.module_inactive` when the assigned permission belongs to an inactive module in the selected team context.
 
+## Privacy Lifecycle
+
+Authorization registers `UserAuthorizationDataLifecycleParticipant` for `user` subjects. Privacy execution removes the user's team-scoped role assignments, direct permission assignments, and onboarding-package snapshots. It does not delete role definitions, permission definitions, role-permission mappings, onboarding package definitions, or module activation state because those records are system configuration rather than personal controlled copies.
+
 ---

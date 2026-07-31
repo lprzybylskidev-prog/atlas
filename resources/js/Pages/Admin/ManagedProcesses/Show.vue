@@ -25,6 +25,7 @@ import {
 import { applyTableFilters, clearTableFilters } from '../../../Composables/useTableFilterControls';
 import { useTranslator } from '../../../Localization/translator';
 import { formatTimestamp } from '../../../Utils/formatters';
+import { moduleLabel } from '../../../Utils/moduleLabels';
 import type { DataTableColumn, DataTableExportMeta } from '../../../Types/data-table';
 import type { ManagedProcessFilterOptions, ManagedProcessLogRow, ManagedProcessRunRow } from '../../../Types/managed-processes';
 
@@ -223,7 +224,7 @@ onBeforeUnmount(stopRefreshTimer);
                         <dt class="text-xs font-semibold text-zinc-500 dark:text-zinc-400">
                             {{ t('pages.admin.managed_processes.module') }}
                         </dt>
-                        <dd class="mt-1 text-sm font-medium text-zinc-950 dark:text-zinc-50">{{ run.moduleKey }}</dd>
+                        <dd class="mt-1 text-sm font-medium text-zinc-950 dark:text-zinc-50">{{ moduleLabel(run.moduleKey, t) }}</dd>
                     </div>
                     <div>
                         <dt class="text-xs font-semibold text-zinc-500 dark:text-zinc-400">

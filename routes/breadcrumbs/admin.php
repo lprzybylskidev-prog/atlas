@@ -143,6 +143,30 @@ Breadcrumbs::for('admin.files.index', function (Generator $breadcrumbs): void {
     $breadcrumbs->push(__('breadcrumbs.files'));
 });
 
+Breadcrumbs::for('admin.privacy-retention.index', function (Generator $breadcrumbs): void {
+    $breadcrumbs->push(__('breadcrumbs.admin'));
+    $breadcrumbs->push(__('breadcrumbs.privacy_retention'));
+});
+
+Breadcrumbs::for('admin.privacy-retention.legal-holds.index', function (Generator $breadcrumbs): void {
+    $breadcrumbs->push(__('breadcrumbs.admin'));
+    $breadcrumbs->push(__('breadcrumbs.privacy_retention'), route('admin.privacy-retention.index'));
+    $breadcrumbs->push(__('breadcrumbs.privacy_legal_holds'));
+});
+
+Breadcrumbs::for('admin.privacy-retention.legal-holds.create', function (Generator $breadcrumbs): void {
+    $breadcrumbs->push(__('breadcrumbs.admin'));
+    $breadcrumbs->push(__('breadcrumbs.privacy_retention'), route('admin.privacy-retention.index'));
+    $breadcrumbs->push(__('breadcrumbs.privacy_legal_holds'), route('admin.privacy-retention.legal-holds.index'));
+    $breadcrumbs->push(__('breadcrumbs.create'));
+});
+
+Breadcrumbs::for('admin.privacy-retention.operations.index', function (Generator $breadcrumbs): void {
+    $breadcrumbs->push(__('breadcrumbs.admin'));
+    $breadcrumbs->push(__('breadcrumbs.privacy_retention'), route('admin.privacy-retention.index'));
+    $breadcrumbs->push(__('breadcrumbs.privacy_operations'));
+});
+
 Breadcrumbs::for('admin.feature-flags.index', function (Generator $breadcrumbs): void {
     $breadcrumbs->push(__('breadcrumbs.admin'));
     $breadcrumbs->push(__('breadcrumbs.feature_flags'));

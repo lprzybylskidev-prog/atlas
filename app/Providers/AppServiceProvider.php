@@ -19,6 +19,7 @@ use App\Shared\Application\Modules\ModuleRegistry;
 use App\Shared\Application\Outbox\Contracts\OutboxConsumerDeduplicator;
 use App\Shared\Application\Outbox\Contracts\OutboxEventRecorder;
 use App\Shared\Application\Outbox\Contracts\OutboxMaintenance;
+use App\Shared\Infrastructure\DataLifecycle\SharedDerivedDataLifecycleParticipant;
 use App\Shared\Infrastructure\Modules\Activation\DatabaseModuleActivationService;
 use App\Shared\Infrastructure\Modules\RegistryModuleGateStateProvider;
 use App\Shared\Infrastructure\Observability\ObservabilityContext;
@@ -216,6 +217,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(OutboxConsumerDeduplicator::class, function (): DatabaseOutboxConsumerDeduplicator {
             return new DatabaseOutboxConsumerDeduplicator($this->app->make(ConnectionInterface::class));
         });
+        $this->app->tag([SharedDerivedDataLifecycleParticipant::class], 'atlas.data_lifecycle_participants');
     }
 
     private function registerLocalDevelopmentProviders(): void

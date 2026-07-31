@@ -64,6 +64,8 @@ Current operations:
 - `createRetentionCopy` creates a controlled private copy with `retention_purpose` and source-file linkage for legal/retention/export workflows.
 - `createRetentionExport` creates a controlled private export copy under the retention export path and audits the export separately from ordinary retention copies.
 
+Files registers `FileDataLifecycleParticipant` with the shared `atlas.data_lifecycle_participants` tag. Privacy previews for `file` and `file_object` subjects report `files.private_objects` impact for live file public IDs, and privacy execution delegates idempotent delete/anonymize steps back to this module's `FileLifecycle` contract.
+
 The maintenance contract is `App\Modules\Core\Files\Application\Public\Contracts\FileMaintenance`.
 
 Current maintenance:

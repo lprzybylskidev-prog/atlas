@@ -16,6 +16,7 @@ import { applyTableFilters, clearTableFilters } from '../../../Composables/useTa
 import { useTranslator } from '../../../Localization/translator';
 import type { DataTableAction, DataTableColumn, DataTableMeta } from '../../../Types/data-table';
 import type { ManagedProcessFilterOptions, ManagedProcessScheduleRow, ManagedProcessSummary } from '../../../Types/managed-processes';
+import { moduleLabel } from '../../../Utils/moduleLabels';
 
 const props = defineProps<{
     schedules: ManagedProcessScheduleRow[];
@@ -34,6 +35,12 @@ const filterDefaults = {
     to: '',
 };
 const filters = ref({ ...filterDefaults, ...filterValues() });
+const rows = computed<ManagedProcessScheduleRow[]>(() =>
+    props.schedules.map((schedule) => ({
+        ...schedule,
+        moduleKey: moduleLabel(schedule.moduleKey, t),
+    })),
+);
 const columns = computed<DataTableColumn<ManagedProcessScheduleRow>[]>(() => [
     { key: 'publicId', label: t('pages.admin.managed_processes.table.public_id'), hidden: true },
     { key: 'processKey', label: t('pages.admin.managed_processes.process') },
@@ -64,7 +71,9 @@ const processOptions = computed<FormSelectOption[]>(() =>
     allOptions(props.filterOptions.processes ?? [], t('pages.admin.managed_processes.filters.any_process')),
 );
 const moduleOptions = computed<FormSelectOption[]>(() =>
-    allOptions(props.filterOptions.modules ?? [], t('pages.admin.managed_processes.filters.any_module')),
+    allOptions(props.filterOptions.modules ?? [], t('pages.admin.managed_processes.filters.any_module'), (module) =>
+        moduleLabel(module, t),
+    ),
 );
 const enabledOptions = computed<FormSelectOption[]>(() => yesNoOptions(t));
 const tableFilters = computed(() => filterValues());
@@ -139,7 +148,7 @@ function clearFilters(): void {
 
             <DataTable
                 :title="t('pages.admin.managed_processes.schedules.entries')"
-                :rows="schedules"
+                :rows="rows"
                 :columns="columns"
                 row-key="publicId"
                 :actions="actions"

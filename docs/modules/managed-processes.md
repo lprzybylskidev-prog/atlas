@@ -155,3 +155,18 @@ Managed processes participate in module deactivation guards. Unsafe active runs 
 Queued jobs restore correlation, actor, team, module, and process-run context before execution.
 
 Progress and terminal states publish notifications/realtime progress through the Notifications foundation. Terminal managed-process notifications include a deep link to the Admin run detail only when the recipient's current module and permission context allows `admin.managed-processes.show`; otherwise the notification is delivered without a deep link so user notification surfaces do not lead to an avoidable 403.
+
+## Privacy lifecycle
+
+Managed Processes registers `ManagedProcessDataLifecycleParticipant` with the shared `atlas.data_lifecycle_participants` tag.
+
+The participant covers process runs, structured process logs, process schedules, and queued work payloads that contain a lifecycle subject identifier. Privacy previews report matching controlled copies as:
+
+- `managed_processes.process_runs`;
+- `managed_processes.process_logs`;
+- `managed_processes.process_schedules`;
+- `managed_processes.queued_work`.
+
+Active process runs (`draft`, `queued`, `running`, or `waiting`) add the `managed_process_active_run` blocker so destructive privacy execution cannot mutate or remove process context while work is in flight.
+
+For completed records, privacy execution preserves operational history and redacts controlled subject references from process run snapshots/summaries, process log messages/context/entity references, and schedule input/reason fields. Matching queued jobs are removed because they are pending derived work under project control. The participant is idempotent and does not delete completed run or schedule records.

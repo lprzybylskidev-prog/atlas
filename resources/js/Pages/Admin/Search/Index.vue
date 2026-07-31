@@ -26,10 +26,12 @@ import AdminLayout from '../../../Layouts/AdminLayout.vue';
 import { useTranslator } from '../../../Localization/translator';
 import type { DataTableAction, DataTableColumn, DataTableMeta } from '../../../Types/data-table';
 import { formatDateTime } from '../../../Utils/formatters';
+import { moduleLabel } from '../../../Utils/moduleLabels';
 
 interface SearchIndexRow extends Record<string, unknown> {
     key: string;
     moduleKey: string;
+    moduleLabel?: string;
     stableAlias: string;
     searchableFields: string[];
     filterableFields: string[];
@@ -105,7 +107,7 @@ const rebuildForm = useForm<{
 
 const columns = computed<DataTableColumn<SearchIndexRow>[]>(() => [
     { key: 'key', label: t('pages.admin.search.table.index_key') },
-    { key: 'moduleKey', label: t('pages.admin.search.table.module') },
+    { key: 'moduleLabel', label: t('pages.admin.search.table.module') },
     { key: 'stableAlias', label: t('pages.admin.search.table.stable_alias') },
     { key: 'searchableFields', label: t('pages.admin.search.table.searchable'), format: 'list' },
     { key: 'filterableFields', label: t('pages.admin.search.table.filterable'), format: 'list', hidden: true },
@@ -123,7 +125,7 @@ const actions = computed<DataTableAction<SearchIndexRow>[]>(() => [
     },
 ]);
 const moduleOptions = computed<FormSelectOption[]>(() =>
-    allOptions(props.filterOptions.modules, t('pages.admin.search.filters.any_module')),
+    allOptions(props.filterOptions.modules, t('pages.admin.search.filters.any_module'), (module) => moduleLabel(module, t)),
 );
 const sensitivityOptions = computed<FormSelectOption[]>(() => [
     { value: 'all', label: t('pages.admin.search.filters.any_sensitivity') },
@@ -136,6 +138,12 @@ const supportOptions = computed<FormSelectOption[]>(() => [
     { value: 'unsupported', label: t('pages.admin.search.filters.unsupported') },
 ]);
 const tableFilters = computed(() => filterValues());
+const rows = computed<SearchIndexRow[]>(() =>
+    props.indexes.map((index) => ({
+        ...index,
+        moduleLabel: moduleLabel(index.moduleKey, t),
+    })),
+);
 const readinessTone = computed(() => {
     if (props.readiness.status === 'healthy') {
         return 'emerald';
@@ -162,12 +170,12 @@ function filterValues(): Record<string, string> {
     };
 }
 
-function allOptions(values: string[], label: string): FormSelectOption[] {
+function allOptions(values: string[], label: string, valueLabel?: (value: string) => string): FormSelectOption[] {
     return [
         { value: 'all', label },
         ...values.map((value) => ({
             value,
-            label: value,
+            label: valueLabel === undefined ? value : valueLabel(value),
         })),
     ];
 }
@@ -341,7 +349,7 @@ function createdAtLabel(run: RebuildRunRow): string {
 
             <DataTable
                 :title="t('pages.admin.search.indexes.title')"
-                :rows="indexes"
+                :rows="rows"
                 :columns="columns"
                 row-key="key"
                 :actions="actions"

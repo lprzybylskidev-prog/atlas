@@ -120,6 +120,24 @@ return [
             'rp_name' => env('ATLAS_WEBAUTHN_RP_NAME', 'Atlas'),
             'timeout_ms' => (int) env('ATLAS_WEBAUTHN_TIMEOUT_MS', 60000),
         ],
+        'headers' => [
+            'content_security_policy' => env(
+                'ATLAS_SECURITY_CONTENT_SECURITY_POLICY',
+                "default-src 'self'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'; object-src 'none'; img-src 'self' data: blob:; font-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self' ws: wss:",
+            ),
+            'referrer_policy' => env('ATLAS_SECURITY_REFERRER_POLICY', 'strict-origin-when-cross-origin'),
+            'permissions_policy' => env('ATLAS_SECURITY_PERMISSIONS_POLICY', 'camera=(), microphone=(), geolocation=(), payment=(), usb=()'),
+        ],
+        'dependency_audits' => [
+            'composer' => [
+                'lockfile' => 'composer.lock',
+                'command' => 'composer audit --locked',
+            ],
+            'node' => [
+                'lockfile' => 'pnpm-lock.yaml',
+                'command' => 'pnpm audit',
+            ],
+        ],
         'rate_limits' => [
             'policies' => [
                 'auth.login' => [

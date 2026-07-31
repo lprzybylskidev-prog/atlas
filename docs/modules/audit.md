@@ -56,7 +56,9 @@ Audit events store where relevant:
 
 Audit records must not contain passwords, password hashes, MFA secrets, recovery codes, tokens, raw credentials, full sensitive payloads, or unnecessary personal data.
 
-Security audit events must provide an explicit `SecurityAuditCategory` enum value. The stored database value remains the enum's stable string value, such as `authentication`, `password`, `mfa`, `session`, `authorization`, `impersonation`, `administrative_mode`, `rate_limit`, `settings`, `queue_operations`, `files`, or `integrations`. Runtime code must not infer security category from fragments of the action name.
+The database recorder applies Atlas' shared `SensitiveDataRedactor` before persistence. The recorder redacts sensitive values in `reason`, `before`, `after`, and `metadata` while preserving stable non-sensitive operational fields such as public identifiers, action names, result, source, team, and correlation ID. Audit producers must still avoid passing secrets deliberately; recorder sanitization is a final persistence guard, not a reason to send raw credentials into audit events.
+
+Security audit events must provide an explicit `SecurityAuditCategory` enum value. The stored database value remains the enum's stable string value, such as `authentication`, `password`, `mfa`, `session`, `authorization`, `impersonation`, `administrative_mode`, `rate_limit`, `settings`, `queue_operations`, `files`, `integrations`, or `privacy`. Runtime code must not infer security category from fragments of the action name.
 
 ## Retention And Privacy
 

@@ -6,11 +6,13 @@ namespace App\Modules\Core\Identity\Presentation\Providers;
 
 use App\Modules\Core\Audit\Application\Public\Contracts\AuditActorContextProvider;
 use App\Modules\Core\Audit\Application\Public\Enums\SecurityAuditCategory;
+use App\Modules\Core\Identity\Application\Admin\AdministrativeSessionManager;
 use App\Modules\Core\Identity\Application\Admin\ImpersonationManager;
 use App\Modules\Core\Identity\Application\Contracts\PasswordHistoryRepository;
 use App\Modules\Core\Identity\Application\Contracts\SuspiciousLoginNotifier;
 use App\Modules\Core\Identity\Application\Exports\AdminRateLimitPoliciesDataTableExportProvider;
 use App\Modules\Core\Identity\Application\LoginProtection\LoginAttemptProtection;
+use App\Modules\Core\Identity\Application\Public\Contracts\HighRiskAdministrativeAuthorization;
 use App\Modules\Core\Identity\Application\Public\Contracts\ImpersonationEligibilityChecker;
 use App\Modules\Core\Identity\Application\Public\Contracts\SecurityAuditRecorder;
 use App\Modules\Core\Identity\Application\Public\Contracts\UserCredentialAccountDirectory;
@@ -57,6 +59,7 @@ class FortifyServiceProvider extends ServiceProvider
         $this->app->bind(UserCredentialAccountStatusManager::class, EloquentUserCredentialAccountStatusManager::class);
         $this->app->bind(UserSessionRegistry::class, RedisUserSessionRegistry::class);
         $this->app->bind(ImpersonationEligibilityChecker::class, ImpersonationManager::class);
+        $this->app->bind(HighRiskAdministrativeAuthorization::class, AdministrativeSessionManager::class);
         $this->app->bind(AuditActorContextProvider::class, SessionAuditActorContextProvider::class);
         $this->app->tag([AdminRateLimitPoliciesDataTableExportProvider::class], 'atlas.admin_data_table_export_providers');
     }

@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { IconX } from '@tabler/icons-vue';
-import { onBeforeUnmount, ref, watch } from 'vue';
+import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import type { Component } from 'vue';
 
+import CardHeader from './CardHeader.vue';
 import IconButton from './IconButton.vue';
-import IconTile from './IconTile.vue';
 
 const props = withDefaults(
     defineProps<{
@@ -12,11 +12,13 @@ const props = withDefaults(
         title: string;
         icon: Component;
         tone?: 'teal' | 'sky' | 'emerald' | 'amber' | 'rose' | 'zinc';
+        size?: 'md' | 'lg' | 'xl' | '2xl' | '3xl' | '4xl';
         closeLabel?: string;
         labelledBy?: string;
     }>(),
     {
         tone: 'teal',
+        size: 'xl',
         closeLabel: 'Close dialog',
         labelledBy: undefined,
     },
@@ -30,6 +32,18 @@ const emit = defineEmits<{
 const dialog = ref<HTMLElement | null>(null);
 const previousFocus = ref<HTMLElement | null>(null);
 const titleId = `dialog-panel-${Math.random().toString(36).slice(2)}`;
+const sizeClass = computed(() => {
+    const classes = {
+        md: 'max-w-md',
+        lg: 'max-w-lg',
+        xl: 'max-w-xl',
+        '2xl': 'max-w-2xl',
+        '3xl': 'max-w-3xl',
+        '4xl': 'max-w-4xl',
+    };
+
+    return classes[props.size];
+});
 
 function close(): void {
     emit('update:open', false);
@@ -116,22 +130,24 @@ onBeforeUnmount(() => {
                 aria-modal="true"
                 :aria-labelledby="labelledBy ?? titleId"
                 tabindex="-1"
-                class="relative w-full max-w-xl rounded-lg border border-zinc-200 bg-white p-5 shadow-xl outline-none dark:border-zinc-800 dark:bg-zinc-950"
+                :class="[
+                    'relative w-full overflow-hidden rounded-lg border border-zinc-200 bg-white shadow-xl outline-none dark:border-zinc-800 dark:bg-zinc-950',
+                    sizeClass,
+                ]"
             >
-                <div class="flex items-start gap-3">
-                    <IconTile :icon="icon" :tone="tone" size="sm" />
-                    <div class="min-w-0 flex-1">
-                        <h2 :id="labelledBy ?? titleId" class="text-base font-semibold text-zinc-950 dark:text-zinc-50">
-                            {{ title }}
-                        </h2>
-                        <div class="mt-3 text-sm text-zinc-600 dark:text-zinc-300">
-                            <slot />
-                        </div>
-                        <div v-if="$slots.actions" class="mt-5 flex flex-wrap justify-end gap-2">
-                            <slot name="actions" />
-                        </div>
-                    </div>
+                <div
+                    class="flex min-w-0 items-center justify-between gap-3 border-b border-zinc-200 bg-zinc-50 px-4 py-3 dark:border-zinc-800 dark:bg-zinc-900/60"
+                >
+                    <CardHeader :title="title" :title-id="labelledBy ?? titleId" :icon="icon" :tone="tone" icon-variant="secondary" />
                     <IconButton :label="closeLabel" :icon="IconX" class="h-8 w-8 shrink-0" @click="close" />
+                </div>
+                <div class="p-4 text-sm text-zinc-600 dark:text-zinc-300">
+                    <slot />
+                </div>
+                <div v-if="$slots.actions" class="border-t border-zinc-200 px-4 py-3 dark:border-zinc-800">
+                    <div class="flex flex-wrap justify-end gap-2">
+                        <slot name="actions" />
+                    </div>
                 </div>
             </section>
         </div>

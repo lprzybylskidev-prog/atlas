@@ -9,6 +9,7 @@ use App\Modules\Core\Audit\Application\Public\DTOs\AuditEvent;
 use App\Modules\Core\Audit\Application\Public\Enums\SecurityAuditCategory;
 use App\Modules\Core\Authorization\Application\Public\Contracts\EffectivePermissionChecker;
 use App\Modules\Core\Authorization\Application\Public\DTOs\EffectivePermissionRequest;
+use App\Modules\Core\Identity\Application\Public\Contracts\HighRiskAdministrativeAuthorization;
 use App\Modules\Core\Identity\Infrastructure\Persistence\User;
 use App\Modules\Core\Settings\Application\Public\Contracts\AdministrativeSecuritySettings;
 use Illuminate\Contracts\Session\Session;
@@ -18,7 +19,7 @@ use Illuminate\Support\Facades\Hash;
 use Laravel\Fortify\Contracts\TwoFactorAuthenticationProvider;
 use Laravel\Fortify\Fortify;
 
-final readonly class AdministrativeSessionManager
+final readonly class AdministrativeSessionManager implements HighRiskAdministrativeAuthorization
 {
     private const ADMIN_MODE_ENTER_PERMISSION = 'admin-mode.enter';
 

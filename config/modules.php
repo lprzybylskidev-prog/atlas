@@ -9,6 +9,7 @@ use App\Modules\Core\Files\FilesModule;
 use App\Modules\Core\Health\HealthModule;
 use App\Modules\Core\Identity\IdentityModule;
 use App\Modules\Core\Notifications\NotificationsModule;
+use App\Modules\Core\Privacy\PrivacyModule;
 use App\Modules\Core\Settings\SettingsModule;
 use App\Modules\Core\Teams\TeamsModule;
 use App\Modules\Core\Users\UsersModule;
@@ -34,6 +35,7 @@ return [
         IntegrationsModule::class,
         ManagedProcessesModule::class,
         ExportsModule::class,
+        PrivacyModule::class,
         ImportsModule::class,
         SearchModule::class,
         ReportsModule::class,

@@ -8,6 +8,7 @@ use App\Modules\Core\Audit\Application\Public\Contracts\AuditActorContextProvide
 use App\Modules\Core\Audit\Application\Public\Contracts\AuditRecorder;
 use App\Modules\Core\Audit\Application\Public\DTOs\AuditEvent;
 use App\Shared\Infrastructure\Database\DatabaseTable;
+use App\Shared\Infrastructure\Observability\SensitiveDataRedactor;
 use Illuminate\Database\ConnectionInterface;
 use Illuminate\Support\Str;
 
@@ -16,6 +17,7 @@ final readonly class DatabaseAuditRecorder implements AuditRecorder
     public function __construct(
         private ConnectionInterface $db,
         private AuditActorContextProvider $actorContext,
+        private SensitiveDataRedactor $redactor = new SensitiveDataRedactor,
     ) {}
 
     public function record(AuditEvent $event): void
@@ -49,10 +51,10 @@ final readonly class DatabaseAuditRecorder implements AuditRecorder
             'aggregate_public_id' => $event->aggregatePublicId,
             'team_public_id' => $event->teamPublicId,
             'correlation_id' => $correlationId,
-            'reason' => $event->reason,
-            'before_values' => $this->json($event->before),
-            'after_values' => $this->json($event->after),
-            'metadata' => $this->json($event->metadata),
+            'reason' => $event->reason === null ? null : $this->redactor->redactText($event->reason),
+            'before_values' => $this->json($this->redactor->redactStringKeyedArray($event->before)),
+            'after_values' => $this->json($this->redactor->redactStringKeyedArray($event->after)),
+            'metadata' => $this->json($this->redactor->redactStringKeyedArray($event->metadata)),
             'is_security' => $event->security,
         ]);
 

@@ -37,8 +37,8 @@ Do not replace this index after the initial technical foundation is completed. C
 
 ## Current phase
 
-- Phase: [Phase 25 — Admin panel rebuild and operational UX repair](docs/roadmap/phase-25-admin-panel-rebuild-operational-ux.md)
-- Status: `complete`
+- Phase: [Phase 26 — Security, privacy, deletion, and anonymization](docs/roadmap/phase-26-security-privacy.md)
+- Status: `in progress`
 
 ## Roadmap dependency repair note
 
@@ -290,7 +290,7 @@ Extract reusable export, PDF, print, artifact, and render lifecycle ownership in
 
 ### Phase 25 — Admin panel rebuild and operational UX repair
 
-**Status:** `not started`
+**Status:** `complete`
 
 Rebuild Admin panel views from the existing backend foundations and shared frontend primitives, fixing partial localization, duplicated operational surfaces, dashboard signal ownership, toast storms, bounded-view disclaimers, and operational incident lifecycle.
 
@@ -298,7 +298,7 @@ Rebuild Admin panel views from the existing backend foundations and shared front
 
 ### Phase 26 — Security, privacy, deletion, and anonymization
 
-**Status:** `not started`
+**Status:** `in progress`
 
 Implement privacy, retention, hard deletion, anonymization orchestration, legal holds, previews, approvals, and evidence after controlled copy owners exist.
 
