@@ -10,6 +10,7 @@ use App\Modules\Core\Identity\Application\RateLimiting\RateLimitRejectionRecorde
 use App\Modules\Core\Identity\Infrastructure\Persistence\User;
 use App\Modules\Core\Teams\Infrastructure\Persistence\Team;
 use App\Shared\Infrastructure\Database\DatabaseTable;
+use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\RateLimiter;
@@ -42,12 +43,22 @@ final class RateLimitAdministrationTest extends TestCase
             ->assertOk()
             ->assertInertia(fn (AssertableInertia $page) => $page
                 ->component('Admin/RateLimits/Index')
+                ->where('auth.availableAdminRoutes', fn ($routes): bool => self::stringListContains($routes, 'admin.rate-limits.index'))
+                ->where('summary.registered', 8)
+                ->where('summary.visible', 1)
+                ->where('summary.rejections', 2)
+                ->where('summary.distinctKeys', 1)
                 ->where('table.key', 'admin.rate-limits')
                 ->where('table.pagination.total', 1)
+                ->where('table.state.filters.family', 'all')
+                ->where('table.state.filters.activity', 'all')
+                ->where('table.exports.endpoint', route('admin.exports.data-table'))
                 ->where('policies.0.policy', 'auth.login')
+                ->where('policies.0.policyFamily', 'auth')
                 ->where('policies.0.maxAttempts', 5)
                 ->where('policies.0.rejections', 2)
                 ->where('policies.0.distinctKeys', 1)
+                ->where('filterOptions.families.0', 'admin')
                 ->where('policyOptions.0.value', 'auth.login')
             );
     }
@@ -142,5 +153,28 @@ final class RateLimitAdministrationTest extends TestCase
         ]);
 
         return [$user, $team];
+    }
+
+    private static function stringListContains(mixed $values, string $value): bool
+    {
+        if ($values instanceof Arrayable) {
+            $values = $values->toArray();
+        }
+
+        if ($values instanceof \Traversable) {
+            $values = iterator_to_array($values);
+        }
+
+        if (! is_array($values)) {
+            return false;
+        }
+
+        foreach ($values as $key => $item) {
+            if ($key === $value || $item === $value) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

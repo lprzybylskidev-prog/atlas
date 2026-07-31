@@ -78,6 +78,8 @@ final class DatabaseTable
 
     public const MANAGED_PROCESS_RUNS = DatabaseSchema::OPTIONAL_MANAGED_PROCESSES.'.process_runs';
 
+    public const MANAGED_PROCESS_RUN_ACKNOWLEDGEMENTS = DatabaseSchema::OPTIONAL_MANAGED_PROCESSES.'.process_run_acknowledgements';
+
     public const MANAGED_PROCESS_LOG_EVENTS = DatabaseSchema::OPTIONAL_MANAGED_PROCESSES.'.process_log_events';
 
     public const MANAGED_PROCESS_SCHEDULES = DatabaseSchema::OPTIONAL_MANAGED_PROCESSES.'.process_schedules';
@@ -109,6 +111,8 @@ final class DatabaseTable
     public const JOB_BATCHES = DatabaseSchema::SHARED.'.job_batches';
 
     public const FAILED_JOBS = DatabaseSchema::SHARED.'.failed_jobs';
+
+    public const FAILED_JOB_ACKNOWLEDGEMENTS = DatabaseSchema::SHARED.'.failed_job_acknowledgements';
 
     public const OUTBOX_EVENTS = DatabaseSchema::SHARED.'.outbox_events';
 

@@ -37,8 +37,17 @@ final class FeatureFlagsAdminTest extends TestCase
             ->assertInertia(fn (AssertableInertia $page) => $page
                 ->component('Admin/FeatureFlags/Index')
                 ->where('auth.availableAdminRoutes', fn (Collection $routes): bool => $routes->contains('admin.feature-flags.index'))
-                ->where('flags.0.key', FeatureFlagKey::ReportsPreview->value)
-                ->where('flags.0.effectiveEnabled', false));
+                ->where('summary.registered', 3)
+                ->where('summary.visible', 3)
+                ->where('summary.historyRows', 0)
+                ->has('flags', 3)
+                ->where('flags.0.key', FeatureFlagKey::PrivacyWorkflowPreview->value)
+                ->where('flags.0.effectiveEnabled', false)
+                ->where('table.key', 'admin.feature-flags.flags')
+                ->where('table.state.filters.team', (string) $team->public_id)
+                ->where('table.state.filters.status', 'all')
+                ->where('table.state.filters.source', 'all')
+                ->where('table.exports.endpoint', route('admin.exports.data-table')));
 
     }
 

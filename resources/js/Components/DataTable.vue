@@ -18,10 +18,13 @@ import {
     IconChevronRight,
     IconChevronUp,
     IconCircleCheck,
+    IconCircleOff,
     IconCopy,
     IconDeviceFloppy,
+    IconDots,
     IconEraser,
     IconExternalLink,
+    IconEye,
     IconKey,
     IconLockOpen,
     IconLogout,
@@ -772,8 +775,10 @@ function localizedStatus(value: string): string {
         error: 'datatable.status.error',
         failed: 'datatable.status.failed',
         failure: 'datatable.status.failed',
+        handled: 'datatable.status.handled',
         info: 'datatable.status.info',
         inactive: 'datatable.status.inactive',
+        needs_attention: 'datatable.status.needs_attention',
         ok: 'datatable.status.ok',
         pending: 'datatable.status.pending',
         resolved: 'datatable.status.resolved',
@@ -816,9 +821,15 @@ function actionIcon(action: DataTableAction<TRow>): Component {
         activate: IconUserCheck,
         deactivate: IconUserOff,
         delete: IconTrash,
+        details: IconEye,
+        disable: IconCircleOff,
         edit: IconPencil,
         open: IconExternalLink,
+        show: IconEye,
+        view: IconEye,
+        retry: IconPlayerPlay,
         run: IconPlayerPlay,
+        acknowledge: IconCircleCheck,
         read: IconCircleCheck,
         'mark-read': IconCircleCheck,
         verify: IconMailCheck,
@@ -827,9 +838,11 @@ function actionIcon(action: DataTableAction<TRow>): Component {
         'reset-mfa': IconRefresh,
         'invalidate-sessions': IconLogout,
         impersonate: IconUserScan,
+        configure: IconSettings,
+        settings: IconSettings,
     };
 
-    return icons[action.key] ?? IconSettings;
+    return icons[action.key] ?? IconDots;
 }
 
 function actionTone(action: DataTableAction<TRow>): DataTableAction<TRow>['tone'] {
@@ -879,8 +892,25 @@ function visibleActions(row: TRow): DataTableAction<TRow>[] {
     return props.actions.filter((action) => action.visible?.(row) ?? true);
 }
 
+function actionDisabled(action: DataTableAction<TRow>, row: TRow): boolean {
+    return action.disabled?.(row) ?? false;
+}
+
+function actionTooltip(action: DataTableAction<TRow>, row: TRow): string {
+    if (!actionDisabled(action, row)) {
+        return action.label;
+    }
+
+    const reason = typeof action.disabledReason === 'function' ? action.disabledReason(row) : action.disabledReason;
+
+    return reason === undefined || reason.trim() === '' ? action.label : `${action.label}: ${reason}`;
+}
+
 async function runRowAction(action: DataTableAction<TRow>, row: TRow): Promise<void> {
-    const href = action.href(row);
+    if (actionDisabled(action, row)) {
+        return;
+    }
+
     const confirmationSubject = typeof action.confirm === 'function' ? action.confirm(row) : action.confirm;
 
     if (
@@ -897,6 +927,18 @@ async function runRowAction(action: DataTableAction<TRow>, row: TRow): Promise<v
         return;
     }
 
+    if (action.onAction !== undefined) {
+        await action.onAction(row);
+
+        return;
+    }
+
+    const href = action.href?.(row);
+
+    if (href === undefined) {
+        return;
+    }
+
     if (action.nativeNavigation === true) {
         window.location.assign(href);
 
@@ -910,8 +952,20 @@ async function runRowAction(action: DataTableAction<TRow>, row: TRow): Promise<v
 }
 
 function bulkActionIcon(action: DataTableBulkAction): Component {
+    if (action.key.includes('retry')) {
+        return IconPlayerPlay;
+    }
+
+    if (action.key.includes('acknowledge') || action.key.includes('handled')) {
+        return IconCircleCheck;
+    }
+
     if (action.key.includes('deactivate')) {
         return IconUserOff;
+    }
+
+    if (action.key.includes('disable')) {
+        return IconCircleOff;
     }
 
     if (action.key.includes('activate')) {
@@ -942,7 +996,7 @@ function bulkActionIcon(action: DataTableBulkAction): Component {
         return IconTrash;
     }
 
-    return IconSettings;
+    return IconDots;
 }
 
 function bulkActionClass(action: DataTableBulkAction): string {
@@ -1359,15 +1413,20 @@ onBeforeUnmount(() => {
                                         <Tooltip
                                             v-for="action in visibleActions(row.original)"
                                             :key="action.key"
-                                            :text="action.label"
+                                            :text="actionTooltip(action, row.original)"
                                             align="end"
                                             placement="top"
                                         >
                                             <button
                                                 type="button"
                                                 class="inline-flex h-8 w-8 items-center justify-center rounded-md border transition"
-                                                :class="actionClass(action)"
+                                                :class="[
+                                                    actionClass(action),
+                                                    actionDisabled(action, row.original) ? 'cursor-not-allowed opacity-40' : '',
+                                                ]"
                                                 :aria-label="action.label"
+                                                :aria-disabled="actionDisabled(action, row.original)"
+                                                :disabled="actionDisabled(action, row.original)"
                                                 @click="runRowAction(action, row.original)"
                                             >
                                                 <component

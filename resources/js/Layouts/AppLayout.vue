@@ -10,10 +10,11 @@ import ModalHost from '../Components/ModalHost.vue';
 import Sidebar from '../Components/Sidebar.vue';
 import TopBar from '../Components/TopBar.vue';
 import ToastViewport from '../Components/ToastViewport.vue';
+import { useTranslator } from '../Localization/translator';
 import type { AtlasPageProps } from '../Types/inertia';
 import type { ShellSubnavigationItem } from '../Types/navigation';
 
-withDefaults(
+const props = withDefaults(
     defineProps<{
         title: string;
         titleIcon?: Component;
@@ -34,8 +35,16 @@ withDefaults(
 );
 
 const page = usePage<AtlasPageProps>();
+const { t } = useTranslator(props.uiLocale);
 const mobileMenuOpen = ref(false);
 const impersonation = computed(() => page.props.auth?.impersonation);
+const impersonationBannerText = computed(() =>
+    t('pages.admin.impersonation.banner.text', {
+        user: impersonation.value?.userName ?? t('pages.admin.impersonation.banner.unknown_user'),
+        team: impersonation.value?.teamName ?? t('pages.admin.impersonation.banner.unknown_team'),
+        reason: impersonation.value?.reason ?? t('pages.admin.impersonation.banner.no_reason'),
+    }),
+);
 </script>
 
 <template>
@@ -48,14 +57,7 @@ const impersonation = computed(() => page.props.auth?.impersonation);
                     class="border-b border-amber-300 bg-amber-100 px-4 py-2 text-sm text-amber-950 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-100 sm:px-6 lg:px-8"
                 >
                     <div class="flex flex-wrap items-center justify-between gap-3">
-                        <p>
-                            Impersonating
-                            <span class="font-semibold">{{ impersonation.userName }}</span>
-                            in
-                            <span class="font-semibold">{{ impersonation.teamName }}</span>
-                            for
-                            <span class="font-semibold">{{ impersonation.reason }}</span>
-                        </p>
+                        <p>{{ impersonationBannerText }}</p>
                         <Link
                             href="/impersonation"
                             method="delete"
@@ -63,7 +65,7 @@ const impersonation = computed(() => page.props.auth?.impersonation);
                             class="inline-flex h-8 items-center gap-2 rounded-md bg-amber-900 px-3 text-sm font-medium text-white transition hover:bg-amber-950 dark:bg-amber-200 dark:text-amber-950 dark:hover:bg-amber-100"
                         >
                             <IconLogout aria-hidden="true" class="h-4 w-4" :stroke-width="1.8" />
-                            Exit impersonation
+                            {{ t('pages.admin.impersonation.banner.exit') }}
                         </Link>
                     </div>
                 </div>

@@ -42,21 +42,22 @@ final readonly class AuditBrowserController
         $result = $this->tables->process($rows, $definition, $state)
             ->withSavedViews($this->views->listFor(AdminTableDefinitions::AUDIT, $userId, $teamId));
         $table = $result->tableMeta(AdminTableDefinitions::AUDIT, AdminDataTableExportMeta::defaults());
-        $tableState = $table['state'] ?? [];
-        $table['state'] = is_array($tableState)
-            ? [...$tableState, 'filters' => $this->viewFilters($filters)]
-            : ['filters' => $this->viewFilters($filters)];
+        $table['state']['filters'] = $this->viewFilters($filters);
 
         return Inertia::render('Admin/Audit/Index', [
             'events' => $result->rows,
+            'summary' => $this->summary($rows),
             'table' => $table,
             'filters' => $filters,
             'filterOptions' => $this->filterOptions(),
         ]);
     }
 
-    public function impersonationSession(string $session): Response
+    public function impersonationSession(Request $request, string $session): Response
     {
+        $definition = AdminTableDefinitions::get(AdminTableDefinitions::IMPERSONATION_SESSION_EVENTS);
+        $state = TableState::fromRequest($request, $definition);
+        [$userId, $teamId] = $this->context->userTeam($request);
         $events = array_values(DB::table(DatabaseTable::AUDIT_EVENTS)
             ->where('impersonation_session_id', $session)
             ->orderBy('occurred_at')
@@ -68,6 +69,10 @@ final readonly class AuditBrowserController
 
         $start = $events[0];
         $end = $events[array_key_last($events)] ?? $start;
+        $result = $this->tables->process($events, $definition, $state)
+            ->withSavedViews($this->views->listFor($definition->key, $userId, $teamId));
+        $table = $result->tableMeta($definition->key, AdminDataTableExportMeta::defaults());
+        $table['state']['filters'] = ['session' => $session];
 
         return Inertia::render('Admin/Audit/ImpersonationSession', [
             'session' => [
@@ -80,9 +85,10 @@ final readonly class AuditBrowserController
                 'reason' => $start['reason'] ?? '',
                 'operationCount' => count($events),
                 'rejectedCount' => count(array_filter($events, static fn (array $event): bool => ($event['result'] ?? '') === 'rejected')),
+                'securityCount' => count(array_filter($events, static fn (array $event): bool => ($event['security'] ?? false) === true)),
             ],
-            'events' => $events,
-            'exports' => AdminDataTableExportMeta::defaults(),
+            'events' => $result->rows,
+            'table' => $table,
         ]);
     }
 
@@ -155,7 +161,7 @@ final readonly class AuditBrowserController
 
     private function whereExact(Builder $query, string $column, string $value): void
     {
-        if ($value === '') {
+        if ($value === '' || $value === 'all') {
             return;
         }
 
@@ -164,7 +170,7 @@ final readonly class AuditBrowserController
 
     private function whereLike(Builder $query, string $column, string $value): void
     {
-        if ($value === '') {
+        if ($value === '' || $value === 'all') {
             return;
         }
 
@@ -174,6 +180,22 @@ final readonly class AuditBrowserController
     private function isDate(string $value): bool
     {
         return preg_match('/^\d{4}-\d{2}-\d{2}$/', $value) === 1;
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $rows
+     * @return array{visible: int, security: int, rejected: int, failed: int, impersonated: int, withReason: int}
+     */
+    private function summary(array $rows): array
+    {
+        return [
+            'visible' => count($rows),
+            'security' => count(array_filter($rows, static fn (array $row): bool => ($row['security'] ?? false) === true)),
+            'rejected' => count(array_filter($rows, static fn (array $row): bool => ($row['result'] ?? '') === 'rejected')),
+            'failed' => count(array_filter($rows, static fn (array $row): bool => ($row['result'] ?? '') === 'failed')),
+            'impersonated' => count(array_filter($rows, static fn (array $row): bool => ($row['impersonationSessionId'] ?? '') !== '')),
+            'withReason' => count(array_filter($rows, fn (array $row): bool => trim($this->stringValue($row['reason'] ?? '')) !== '')),
+        ];
     }
 
     /**
@@ -254,8 +276,9 @@ final readonly class AuditBrowserController
             ->leftJoin(DatabaseTable::TEAMS, 'audit_events.team_public_id', '=', 'teams.public_id')
             ->whereNotNull('audit_events.team_public_id')
             ->where('audit_events.team_public_id', '<>', '')
-            ->select('audit_events.team_public_id', 'teams.name')
+            ->select('audit_events.team_public_id', 'teams.name', 'teams.display_name')
             ->distinct()
+            ->orderBy('teams.display_name')
             ->orderBy('teams.name')
             ->orderBy('audit_events.team_public_id')
             ->get() as $row) {
@@ -266,7 +289,7 @@ final readonly class AuditBrowserController
                 continue;
             }
 
-            $name = $this->stringValue($values['name'] ?? '');
+            $name = $this->teamDisplayName($values);
             $options[] = [
                 'value' => $publicId,
                 'label' => $name === '' ? $publicId : sprintf('%s (%s)', $name, $publicId),
@@ -320,6 +343,16 @@ final readonly class AuditBrowserController
         }
 
         return implode(', ', array_slice(array_keys($decoded), 0, 8));
+    }
+
+    /**
+     * @param  array<mixed>  $values
+     */
+    private function teamDisplayName(array $values): string
+    {
+        $displayName = $this->stringValue($values['display_name'] ?? '');
+
+        return $displayName !== '' ? $displayName : $this->stringValue($values['name'] ?? '');
     }
 
     private function stringValue(mixed $value): string

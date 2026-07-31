@@ -67,6 +67,6 @@ final class ImportsModule implements ModuleDefinition
 
     public function frontendEntrypoints(): array
     {
-        return ['admin.imports.index'];
+        return [];
     }
 }

@@ -89,14 +89,6 @@ function handleRealtimeEvents(events: RealtimeEvent[]): void {
             });
         }
 
-        if (event.eventType === 'operation.progress') {
-            toast.push({
-                type: event.payload.status === 'failed' ? 'error' : 'info',
-                message: stringPayload(event.payload.message, 'Operation progress updated.'),
-                description: stringPayload(event.payload.operation_type),
-            });
-        }
-
         if (event.eventType === 'session.invalidated') {
             reloadPage = true;
         }

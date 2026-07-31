@@ -32,9 +32,11 @@ final readonly class ImpersonationController
         }
 
         return Inertia::render('Admin/Impersonation/Start', [
-            'target' => User::query()
-                ->where('public_id', $user)
-                ->firstOrFail(['public_id', 'name', 'email', 'account_sensitivity']),
+            'target' => $this->target(
+                User::query()
+                    ->where('public_id', $user)
+                    ->firstOrFail(['public_id', 'name', 'email', 'account_sensitivity']),
+            ),
             'teams' => $this->teams($user),
             'requiresSensitiveOverride' => $eligibility->requiresSensitiveOverride,
         ]);
@@ -95,16 +97,37 @@ final readonly class ImpersonationController
             ->where(static function (Builder $query): void {
                 $query->whereNull('team_user_assignments.valid_to')->orWhere('team_user_assignments.valid_to', '>', now());
             })
+            ->orderBy('teams.display_name')
             ->orderBy('teams.name')
-            ->get(['teams.public_id', 'teams.name'])
+            ->get(['teams.public_id', 'teams.name', 'teams.display_name'])
             ->all() as $team) {
             $teams[] = [
                 'value' => $this->scalarString($team->public_id ?? ''),
-                'label' => $this->scalarString($team->name ?? ''),
+                'label' => $this->teamDisplayName($team),
             ];
         }
 
         return $teams;
+    }
+
+    private function teamDisplayName(object $record): string
+    {
+        $displayName = $this->scalarString($record->display_name ?? '');
+
+        return $displayName !== '' ? $displayName : $this->scalarString($record->name ?? '');
+    }
+
+    /**
+     * @return array{publicId: string, name: string, email: string, accountSensitivity: string}
+     */
+    private function target(User $user): array
+    {
+        return [
+            'publicId' => (string) $user->public_id,
+            'name' => (string) $user->name,
+            'email' => (string) $user->email,
+            'accountSensitivity' => (string) $user->account_sensitivity,
+        ];
     }
 
     private function scalarString(mixed $value): string

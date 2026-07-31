@@ -1,192 +1,256 @@
 <script setup lang="ts">
-import { Head } from '@inertiajs/vue3';
-import { IconAlertTriangle, IconRotateClockwise, IconSettingsAutomation } from '@tabler/icons-vue';
-import type { Component } from 'vue';
-import { computed, ref } from 'vue';
+import { Head, router } from '@inertiajs/vue3';
+import { IconAlertTriangle, IconCircleCheck, IconDatabaseImport, IconProgress } from '@tabler/icons-vue';
+import { computed, ref, watch } from 'vue';
 
-import FilterPanel from '../../../Components/FilterPanel.vue';
 import DataTable from '../../../Components/DataTable.vue';
+import FilterPanel from '../../../Components/FilterPanel.vue';
 import FormDateInput from '../../../Components/Form/FormDateInput.vue';
-import FormSelect from '../../../Components/Form/FormSelect.vue';
-import MetricGrid from '../../../Components/MetricGrid.vue';
-import NoticeBanner from '../../../Components/NoticeBanner.vue';
+import FormSelect, { type FormSelectOption } from '../../../Components/Form/FormSelect.vue';
+import ManagedProcessArea from '../../../Components/ManagedProcesses/ManagedProcessArea.vue';
+import OperationalMetricTile from '../../../Components/OperationalMetricTile.vue';
 import PageStack from '../../../Components/PageStack.vue';
-import AdminLayout from '../../../Layouts/AdminLayout.vue';
+import { allOptions, processSourceLabel, processStatusLabel } from '../../../Composables/useManagedProcessUi';
+import { applyTableFilters, clearTableFilters } from '../../../Composables/useTableFilterControls';
 import { useTranslator } from '../../../Localization/translator';
-import type { DataTableAction, DataTableColumn, DataTableExportMeta } from '../../../Types/data-table';
-import { managedProcessSubnavigation } from './navigation';
-
-interface Run extends Record<string, unknown> {
-    publicId: string;
-    processKey: string;
-    moduleKey: string;
-    status: string;
-    sourceType: string;
-    progressCurrent: number;
-    progressTotal: number | null;
-    progressLabel: string | null;
-    actor: string | null;
-    team: string | null;
-    createdAt: string | null;
-    startedAt: string | null;
-    finishedAt: string | null;
-}
+import type { DataTableAction, DataTableBulkAction, DataTableColumn, DataTableMeta } from '../../../Types/data-table';
+import type { ManagedProcessFilterOptions, ManagedProcessRunRow, ManagedProcessSummary } from '../../../Types/managed-processes';
 
 const props = defineProps<{
-    runs: Run[];
-    summary: { active: number; failed24h: number; warnings24h: number; imports: number };
-    exports: DataTableExportMeta;
+    runs: ManagedProcessRunRow[];
+    summary: ManagedProcessSummary;
+    filterOptions: ManagedProcessFilterOptions;
+    table: DataTableMeta;
 }>();
 
-const { t } = useTranslator();
-const processFilter = ref('');
-const statusFilter = ref('');
-const sourceFilter = ref('');
-const moduleFilter = ref('');
-const fromFilter = ref('');
-const toFilter = ref('');
+const { locale, t } = useTranslator();
+const filterKeys = ['process', 'status', 'source', 'module', 'import', 'idempotency', 'handling', 'from', 'to'];
+const filterDefaults = {
+    process: 'all',
+    status: 'all',
+    source: 'all',
+    module: 'all',
+    import: 'all',
+    idempotency: 'all',
+    handling: 'all',
+    from: '',
+    to: '',
+};
+const filters = ref({ ...filterDefaults, ...filterValues() });
 
-const summaryItems = computed<{ label: string; value: string; icon: Component; tone: string }[]>(() => [
-    {
-        label: t('pages.admin.managed_processes.runs.metric.active'),
-        value: String(props.summary.active),
-        icon: IconRotateClockwise,
-        tone: 'sky',
-    },
-    {
-        label: t('pages.admin.managed_processes.runs.metric.failed_24h'),
-        value: String(props.summary.failed24h),
-        icon: IconAlertTriangle,
-        tone: props.summary.failed24h > 0 ? 'rose' : 'emerald',
-    },
-    {
-        label: t('pages.admin.managed_processes.runs.metric.warnings_24h'),
-        value: String(props.summary.warnings24h),
-        icon: IconAlertTriangle,
-        tone: props.summary.warnings24h > 0 ? 'amber' : 'emerald',
-    },
-]);
-
-const processOptions = computed(() => optionList(props.runs.map((run) => run.processKey)));
-const statusOptions = computed(() => optionList(props.runs.map((run) => run.status)));
-const sourceOptions = computed(() => optionList(props.runs.map((run) => run.sourceType)));
-const moduleOptions = computed(() => optionList(props.runs.map((run) => run.moduleKey)));
-const filteredRuns = computed(() =>
-    props.runs.filter(
-        (run) =>
-            matches(run.processKey, processFilter.value) &&
-            matches(run.status, statusFilter.value) &&
-            matches(run.sourceType, sourceFilter.value) &&
-            matches(run.moduleKey, moduleFilter.value) &&
-            matchesDateRange(run.startedAt ?? run.createdAt, fromFilter.value, toFilter.value),
-    ),
+const rows = computed<ManagedProcessRunRow[]>(() =>
+    props.runs.map((run) => ({
+        ...run,
+        status: processStatusLabel(run.status, t),
+        sourceType: processSourceLabel(run.sourceType, t),
+        importSourceType: run.importSourceType === null ? '' : processSourceLabel(run.importSourceType, t),
+        progressLabel: progressLabel(run),
+    })),
 );
-
-const columns: DataTableColumn<Run>[] = [
+const columns = computed<DataTableColumn<ManagedProcessRunRow>[]>(() => [
+    { key: 'publicId', label: t('pages.admin.managed_processes.table.public_id'), hidden: true },
     { key: 'processKey', label: t('pages.admin.managed_processes.process') },
-    { key: 'status', label: t('pages.admin.managed_processes.status'), format: 'severity' },
+    { key: 'status', label: t('pages.admin.managed_processes.status') },
     { key: 'sourceType', label: t('pages.admin.managed_processes.source') },
     { key: 'moduleKey', label: t('pages.admin.managed_processes.module') },
+    { key: 'importKey', label: t('pages.admin.managed_processes.import') },
+    { key: 'importSourceType', label: t('pages.admin.managed_processes.import_source'), hidden: true },
+    { key: 'importFile', label: t('pages.admin.managed_processes.import_file'), hidden: true },
+    { key: 'idempotencyKey', label: t('pages.admin.managed_processes.idempotency_key') },
+    { key: 'idempotencyState', label: t('pages.admin.managed_processes.idempotency_state') },
+    { key: 'handlingStatus', label: t('pages.admin.managed_processes.handling_status'), format: 'status' },
+    { key: 'acknowledgedAt', label: t('pages.admin.managed_processes.handled_at'), format: 'datetime', hidden: true },
+    { key: 'acknowledgedBy', label: t('pages.admin.managed_processes.handled_by'), hidden: true },
     { key: 'progressLabel', label: t('pages.admin.managed_processes.progress') },
-    { key: 'progressCurrent', label: t('pages.admin.managed_processes.done'), format: 'number' },
-    { key: 'progressTotal', label: t('pages.admin.managed_processes.total'), format: 'number' },
+    { key: 'progressCurrent', label: t('pages.admin.managed_processes.done'), format: 'number', hidden: true },
+    { key: 'progressTotal', label: t('pages.admin.managed_processes.total'), format: 'number', hidden: true },
     { key: 'actor', label: t('pages.admin.managed_processes.actor') },
     { key: 'team', label: t('pages.admin.managed_processes.team') },
     { key: 'startedAt', label: t('pages.admin.managed_processes.started'), format: 'datetime' },
     { key: 'finishedAt', label: t('pages.admin.managed_processes.finished'), format: 'datetime' },
     { key: 'createdAt', label: t('pages.admin.managed_processes.created'), format: 'datetime', hidden: true },
-];
-const actions: DataTableAction<Run>[] = [
+    { key: 'queueName', label: t('pages.admin.managed_processes.queue'), hidden: true },
+    { key: 'correlationId', label: t('pages.admin.managed_processes.table.correlation_id'), hidden: true },
+    { key: 'safeErrorSummary', label: t('pages.admin.managed_processes.table.safe_error_summary'), hidden: true },
+]);
+const actions = computed<DataTableAction<ManagedProcessRunRow>[]>(() => [
     {
-        key: 'open',
-        label: t('pages.admin.managed_processes.open_logs'),
-        href: (run) => `/admin/managed-processes/${run.publicId}`,
-        tone: 'info',
+        key: 'show',
+        label: t('pages.admin.managed_processes.open_details'),
+        href: (run) => `/admin/managed-processes/${encodeURIComponent(run.publicId)}`,
     },
-];
+    {
+        key: 'acknowledge',
+        label: t('pages.admin.managed_processes.acknowledge'),
+        method: 'post',
+        href: (run) => `/admin/managed-processes/acknowledge?runs[]=${encodeURIComponent(run.publicId)}`,
+        confirm: (run) => run.processKey,
+        tone: 'success',
+        visible: (run) => run.canAcknowledge,
+    },
+]);
+const bulkActions = computed<DataTableBulkAction[]>(() => [
+    { key: 'acknowledge', label: t('pages.admin.managed_processes.acknowledge_selected'), tone: 'success' },
+]);
+const processOptions = computed<FormSelectOption[]>(() =>
+    allOptions(props.filterOptions.processes ?? [], t('pages.admin.managed_processes.filters.any_process')),
+);
+const statusOptions = computed<FormSelectOption[]>(() =>
+    allOptions(props.filterOptions.statuses ?? [], t('pages.admin.managed_processes.filters.any_status'), (status) =>
+        processStatusLabel(status, t),
+    ),
+);
+const sourceOptions = computed<FormSelectOption[]>(() =>
+    allOptions(props.filterOptions.sources ?? [], t('pages.admin.managed_processes.filters.any_source'), (source) =>
+        processSourceLabel(source, t),
+    ),
+);
+const moduleOptions = computed<FormSelectOption[]>(() =>
+    allOptions(props.filterOptions.modules ?? [], t('pages.admin.managed_processes.filters.any_module')),
+);
+const importOptions = computed<FormSelectOption[]>(() =>
+    allOptions(props.filterOptions.imports ?? [], t('pages.admin.managed_processes.filters.any_import')),
+);
+const idempotencyOptions = computed<FormSelectOption[]>(() =>
+    allOptions(props.filterOptions.idempotencyStates ?? [], t('pages.admin.managed_processes.filters.any_idempotency')),
+);
+const handlingOptions = computed<FormSelectOption[]>(() => [
+    { value: 'all', label: t('pages.admin.managed_processes.filters.any_handling') },
+    { value: 'needs_attention', label: t('pages.admin.managed_processes.filters.needs_attention') },
+    { value: 'handled', label: t('pages.admin.managed_processes.filters.handled') },
+]);
+const tableFilters = computed(() => filterValues());
 
-function optionList(values: string[]): { value: string; label: string }[] {
-    return [
-        { value: '', label: t('pages.admin.managed_processes.all') },
-        ...Array.from(new Set(values))
-            .sort()
-            .map((value) => ({ value, label: value })),
-    ];
+watch(
+    () => props.table.state.filters,
+    () => {
+        filters.value = { ...filterDefaults, ...filterValues() };
+    },
+);
+
+function filterValues(): Record<string, string> {
+    return {
+        process: String(props.table.state.filters?.process ?? 'all'),
+        status: String(props.table.state.filters?.status ?? 'all'),
+        source: String(props.table.state.filters?.source ?? 'all'),
+        module: String(props.table.state.filters?.module ?? 'all'),
+        import: String(props.table.state.filters?.import ?? 'all'),
+        idempotency: String(props.table.state.filters?.idempotency ?? 'all'),
+        handling: String(props.table.state.filters?.handling ?? 'all'),
+        from: String(props.table.state.filters?.from ?? ''),
+        to: String(props.table.state.filters?.to ?? ''),
+    };
 }
 
-function matches(value: string, filter: string): boolean {
-    return filter === '' || value === filter;
-}
-
-function matchesDateRange(value: string | null, from: string, to: string): boolean {
-    if (value === null) {
-        return from === '' && to === '';
+function progressLabel(run: ManagedProcessRunRow): string {
+    if (run.progressTotal !== null && run.progressTotal > 0) {
+        return `${run.progressCurrent}/${run.progressTotal}`;
     }
 
-    const timestamp = Date.parse(value.includes('T') ? value : value.replace(' ', 'T'));
-
-    return (from === '' || timestamp >= Date.parse(`${from}T00:00:00`)) && (to === '' || timestamp <= Date.parse(`${to}T23:59:59.999`));
+    return run.progressLabel ?? t('pages.admin.managed_processes.progress_unknown');
 }
 
-function resetFilters(): void {
-    processFilter.value = '';
-    statusFilter.value = '';
-    sourceFilter.value = '';
-    moduleFilter.value = '';
-    fromFilter.value = '';
-    toFilter.value = '';
+function applyFilters(): void {
+    applyTableFilters(filterKeys, filters.value, filterDefaults);
+}
+
+function clearFilters(): void {
+    filters.value = { ...filterDefaults };
+    clearTableFilters(filterKeys);
+}
+
+function handleBulkAction(payload: { action: DataTableBulkAction; rowIds: string[] }): Promise<void> {
+    return new Promise((resolve) => {
+        router.post(
+            '/admin/managed-processes/acknowledge',
+            { runs: payload.rowIds },
+            {
+                preserveScroll: true,
+                onFinish: () => resolve(),
+            },
+        );
+    });
 }
 </script>
 
 <template>
     <Head :title="t('pages.admin.managed_processes.head_title')" />
-    <AdminLayout
-        :title="t('pages.admin.managed_processes.title')"
-        :title-icon="IconSettingsAutomation"
-        :subnavigation="managedProcessSubnavigation('runs', t)"
-        :subnavigation-label="t('pages.admin.managed_processes.nav.label')"
-    >
+    <ManagedProcessArea :title="t('pages.admin.managed_processes.title')" current-path="/admin/managed-processes">
         <PageStack>
-            <MetricGrid :items="summaryItems" columns="grid gap-3 sm:grid-cols-3" />
-            <NoticeBanner :title="t('pages.admin.managed_processes.bounded_title')">
-                {{ t('pages.admin.managed_processes.bounded_runs') }}
-            </NoticeBanner>
+            <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+                <OperationalMetricTile
+                    :label="t('pages.admin.managed_processes.runs.metric.active')"
+                    :value="summary.active ?? 0"
+                    :icon="IconProgress"
+                    tone="sky"
+                />
+                <OperationalMetricTile
+                    :label="t('pages.admin.managed_processes.runs.metric.failed_24h')"
+                    :value="summary.failed24h ?? 0"
+                    :icon="IconAlertTriangle"
+                    tone="rose"
+                />
+                <OperationalMetricTile
+                    :label="t('pages.admin.managed_processes.runs.metric.warnings_24h')"
+                    :value="summary.warnings24h ?? 0"
+                    :icon="IconAlertTriangle"
+                    tone="amber"
+                />
+                <OperationalMetricTile
+                    :label="t('pages.admin.managed_processes.runs.metric.handled')"
+                    :value="summary.handled ?? 0"
+                    :icon="IconCircleCheck"
+                    tone="emerald"
+                />
+                <OperationalMetricTile
+                    :label="t('pages.admin.managed_processes.imports.metric.import_runs')"
+                    :value="summary.imports ?? 0"
+                    :icon="IconDatabaseImport"
+                    tone="teal"
+                />
+            </div>
+
             <FilterPanel
                 :title="t('pages.admin.managed_processes.runs.filters')"
-                :summary="t('pages.admin.managed_processes.runs.summary', { visible: filteredRuns.length, total: props.runs.length })"
-                @apply="() => {}"
-                @clear="resetFilters"
+                :apply-label="t('filters.apply')"
+                :clear-label="t('filters.clear')"
+                @apply="applyFilters"
+                @clear="clearFilters"
             >
-                <div
-                    class="grid gap-4 sm:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_minmax(10rem,0.7fr)_minmax(10rem,0.7fr)_minmax(10rem,0.7fr)_minmax(9rem,0.6fr)_minmax(9rem,0.6fr)]"
-                >
-                    <FormSelect v-model="processFilter" :label="t('pages.admin.managed_processes.process')" :options="processOptions" />
-                    <FormSelect v-model="statusFilter" :label="t('pages.admin.managed_processes.status')" :options="statusOptions" />
-                    <FormSelect v-model="sourceFilter" :label="t('pages.admin.managed_processes.source')" :options="sourceOptions" />
-                    <FormSelect v-model="moduleFilter" :label="t('pages.admin.managed_processes.module')" :options="moduleOptions" />
-                    <FormDateInput v-model="fromFilter" :label="t('pages.admin.managed_processes.started_from')" />
-                    <FormDateInput v-model="toFilter" :label="t('pages.admin.managed_processes.started_to')" />
+                <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                    <FormSelect v-model="filters.process" :label="t('pages.admin.managed_processes.process')" :options="processOptions" />
+                    <FormSelect v-model="filters.status" :label="t('pages.admin.managed_processes.status')" :options="statusOptions" />
+                    <FormSelect v-model="filters.source" :label="t('pages.admin.managed_processes.source')" :options="sourceOptions" />
+                    <FormSelect v-model="filters.module" :label="t('pages.admin.managed_processes.module')" :options="moduleOptions" />
+                    <FormSelect v-model="filters.import" :label="t('pages.admin.managed_processes.import')" :options="importOptions" />
+                    <FormSelect
+                        v-model="filters.idempotency"
+                        :label="t('pages.admin.managed_processes.idempotency_state')"
+                        :options="idempotencyOptions"
+                    />
+                    <FormSelect
+                        v-model="filters.handling"
+                        :label="t('pages.admin.managed_processes.handling_status')"
+                        :options="handlingOptions"
+                    />
+                    <FormDateInput v-model="filters.from" :label="t('pages.admin.managed_processes.started_from')" :ui-locale="locale" />
+                    <FormDateInput v-model="filters.to" :label="t('pages.admin.managed_processes.started_to')" :ui-locale="locale" />
                 </div>
             </FilterPanel>
+
             <DataTable
                 :title="t('pages.admin.managed_processes.runs.title')"
-                :rows="filteredRuns"
+                :rows="rows"
                 :columns="columns"
                 row-key="publicId"
                 :actions="actions"
-                state-key="admin.managed-processes.runs"
-                export-key="admin.managed-processes.runs"
-                :exports="exports"
-                :filters="{
-                    process: processFilter,
-                    status: statusFilter,
-                    source: sourceFilter,
-                    module: moduleFilter,
-                    from: fromFilter,
-                    to: toFilter,
-                }"
+                :bulk-actions="bulkActions"
+                :bulk-action-handler="handleBulkAction"
+                :table="table"
+                :filters="tableFilters"
+                :ui-locale="locale"
                 :empty-label="t('pages.admin.managed_processes.runs.empty')"
             />
         </PageStack>
-    </AdminLayout>
+    </ManagedProcessArea>
 </template>

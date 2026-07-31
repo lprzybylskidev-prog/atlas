@@ -33,6 +33,7 @@ final class DatabaseOnboardingPackageStore implements OnboardingPackageStore
                 'authorization_onboarding_packages.template_permission_names',
                 'teams.public_id as team_public_id',
                 'teams.name as team_name',
+                'teams.display_name as team_display_name',
             ])
             ->all() as $row) {
             $packages[] = $this->definitionFromRow($row);
@@ -55,6 +56,7 @@ final class DatabaseOnboardingPackageStore implements OnboardingPackageStore
                 'authorization_onboarding_packages.template_permission_names',
                 'teams.public_id as team_public_id',
                 'teams.name as team_name',
+                'teams.display_name as team_display_name',
             ]);
 
         return is_object($row) ? $this->definitionFromRow($row) : null;
@@ -76,6 +78,7 @@ final class DatabaseOnboardingPackageStore implements OnboardingPackageStore
                 'authorization_onboarding_packages.template_permission_names',
                 'teams.public_id as team_public_id',
                 'teams.name as team_name',
+                'teams.display_name as team_display_name',
             ]);
 
         return is_object($row) ? $this->definitionFromRow($row) : null;
@@ -138,7 +141,7 @@ final class DatabaseOnboardingPackageStore implements OnboardingPackageStore
         return new OnboardingPackageDefinition(
             publicId: $this->stringValue($values, 'public_id'),
             teamPublicId: $this->stringValue($values, 'team_public_id'),
-            teamName: $this->stringValue($values, 'team_name'),
+            teamName: $this->displayName($values, 'team_display_name', 'team_name'),
             name: $this->stringValue($values, 'name'),
             label: $this->stringValue($values, 'label'),
             initialRoleNames: $this->stringList($values, 'initial_role_names'),
@@ -155,6 +158,16 @@ final class DatabaseOnboardingPackageStore implements OnboardingPackageStore
         $value = $values[$key] ?? '';
 
         return is_string($value) ? $value : '';
+    }
+
+    /**
+     * @param  array<mixed>  $values
+     */
+    private function displayName(array $values, string $displayKey, string $fallbackKey): string
+    {
+        $displayName = $this->stringValue($values, $displayKey);
+
+        return $displayName !== '' ? $displayName : $this->stringValue($values, $fallbackKey);
     }
 
     /**

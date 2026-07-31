@@ -1,23 +1,29 @@
 <script setup lang="ts">
 import { Head, router, useForm } from '@inertiajs/vue3';
-import { IconArrowLeft, IconTrash, IconUserEdit, IconUsersGroup } from '@tabler/icons-vue';
+import { IconArrowLeft, IconDeviceFloppy, IconUserEdit } from '@tabler/icons-vue';
 import { reactive } from 'vue';
 
 import ActionLink from '../../../Components/ActionLink.vue';
-import CheckboxList from '../../../Components/CheckboxList.vue';
-import FormActions from '../../../Components/FormActions.vue';
-import RecordActions from '../../../Components/RecordActions.vue';
 import AtlasForm from '../../../Components/Form/AtlasForm.vue';
 import FormButton from '../../../Components/Form/FormButton.vue';
 import FormInput from '../../../Components/Form/FormInput.vue';
-import FormSelect from '../../../Components/Form/FormSelect.vue';
+import FormSelect, { type FormSelectOption } from '../../../Components/Form/FormSelect.vue';
+import FormActions from '../../../Components/FormActions.vue';
 import PageStack from '../../../Components/PageStack.vue';
+import RecordActions from '../../../Components/RecordActions.vue';
 import StatusBadge from '../../../Components/StatusBadge.vue';
 import SurfaceCard from '../../../Components/SurfaceCard.vue';
-import UiState from '../../../Components/UiState.vue';
+import UserTeamAccessWorkflow from '../../../Components/Users/UserTeamAccessWorkflow.vue';
+import { useAccountSensitivityOptions } from '../../../Composables/useAccountSensitivityOptions';
+import { useAdminUserAccountActions } from '../../../Composables/useAdminUserAccountActions';
 import AdminLayout from '../../../Layouts/AdminLayout.vue';
 import { useTranslator } from '../../../Localization/translator';
-import type { FormSelectOption } from '../../../Components/Form/FormSelect.vue';
+import type {
+    AuthorizationAssignmentOption,
+    UserTeamAccessAssignment,
+    UserTeamAccessCopySource,
+    UserTeamAccessPackage,
+} from '../../../Types/user-team-access';
 
 interface UserFormData {
     publicId: string;
@@ -47,8 +53,11 @@ const props = defineProps<{
     user: UserFormData;
     teamMemberships: TeamMembership[];
     assignableTeams: FormSelectOption[];
-    roleOptions: string[];
-    permissionOptions: string[];
+    packages: UserTeamAccessPackage[];
+    copySources: UserTeamAccessCopySource[];
+    roleOptions: AuthorizationAssignmentOption[];
+    permissionOptions: AuthorizationAssignmentOption[];
+    rolePermissionMap: Record<string, string[]>;
 }>();
 
 const { t } = useTranslator();
@@ -60,47 +69,23 @@ const form = useForm({
 const teamForm = useForm({
     team_public_id: '',
 });
-const removalReasons = reactive<Record<string, string>>({});
-const authorizationForms = reactive<Record<string, { role_names: string[]; direct_permission_names: string[]; reason: string }>>(
-    Object.fromEntries(
-        props.teamMemberships.map((membership) => [
-            membership.teamPublicId,
-            {
-                role_names: [...membership.roleNames],
-                direct_permission_names: [...membership.directPermissionNames],
-                reason: '',
-            },
-        ]),
-    ),
+const teamAccessAssignments = reactive<UserTeamAccessAssignment[]>(
+    props.teamMemberships.map((membership) => ({
+        team_public_id: membership.teamPublicId,
+        teamName: membership.teamName,
+        source: 'manual',
+        onboarding_package: '',
+        copy_authorization_from_user: '',
+        role_names: [...membership.roleNames],
+        direct_permission_names: [...membership.directPermissionNames],
+        reason: '',
+        removal_reason: '',
+    })),
 );
-const recordActions = [
-    { key: 'activate', label: 'Activate', method: 'post' as const, href: `/admin/users/${props.user.publicId}/activate` },
-    { key: 'deactivate', label: 'Deactivate', method: 'post' as const, href: `/admin/users/${props.user.publicId}/deactivate` },
-    { key: 'verify', label: 'Verify email', method: 'post' as const, href: `/admin/users/${props.user.publicId}/verify-email` },
-    {
-        key: 'require-email-verification',
-        label: 'Require re-verification',
-        method: 'post' as const,
-        href: `/admin/users/${props.user.publicId}/require-email-verification`,
-        tone: 'warning' as const,
-    },
-    {
-        key: 'first-password',
-        label: 'Send link',
-        method: 'post' as const,
-        href: `/admin/users/${props.user.publicId}/resend-first-password`,
-    },
-    { key: 'unlock', label: 'Unlock', method: 'post' as const, href: `/admin/users/${props.user.publicId}/unlock` },
-    { key: 'reset-mfa', label: 'Reset MFA', method: 'post' as const, href: `/admin/users/${props.user.publicId}/reset-mfa` },
-    { key: 'impersonate', label: 'Impersonate', method: 'get' as const, href: `/admin/users/${props.user.publicId}/impersonate` },
-].filter((action) => action.key !== 'impersonate' || props.user.canImpersonate);
-const sensitivityOptions = [
-    { value: 'normal', label: 'Normal human account' },
-    { value: 'sensitive', label: 'Sensitive human account' },
-    { value: 'technical', label: 'Technical account' },
-    { value: 'service', label: 'Service account' },
-    { value: 'integration', label: 'Integration account' },
-];
+const accountSensitivity = useAccountSensitivityOptions();
+const userAccountActions = useAdminUserAccountActions();
+const sensitivityOptions = accountSensitivity.options;
+const recordActions = userAccountActions.recordActions(props.user);
 
 function submit(): void {
     form.patch(`/admin/users/${props.user.publicId}`, { preserveScroll: true });
@@ -113,34 +98,27 @@ function addTeamAccess(): void {
     });
 }
 
-function removeTeamAccess(teamPublicId: string): void {
-    router.delete(`/admin/users/${props.user.publicId}/teams/${teamPublicId}`, {
+function addTeamAccessFromWorkflow(teamPublicId: string): void {
+    teamForm.team_public_id = teamPublicId;
+    addTeamAccess();
+}
+
+function removeTeamAccess(assignment: UserTeamAccessAssignment): void {
+    router.delete(`/admin/users/${props.user.publicId}/teams/${assignment.team_public_id}`, {
         data: {
-            reason: removalReasons[teamPublicId] ?? '',
+            reason: assignment.removal_reason ?? '',
         },
         preserveScroll: true,
     });
 }
 
-function authorizationForm(teamPublicId: string): { role_names: string[]; direct_permission_names: string[]; reason: string } {
-    authorizationForms[teamPublicId] ??= {
-        role_names: [],
-        direct_permission_names: [],
-        reason: '',
-    };
-
-    return authorizationForms[teamPublicId];
-}
-
-function updateTeamAuthorization(teamPublicId: string): void {
-    const values = authorizationForm(teamPublicId);
-
+function updateTeamAuthorization(assignment: UserTeamAccessAssignment): void {
     router.patch(
-        `/admin/users/${props.user.publicId}/teams/${teamPublicId}/authorization`,
+        `/admin/users/${props.user.publicId}/teams/${assignment.team_public_id}/authorization`,
         {
-            role_names: values.role_names,
-            direct_permission_names: values.direct_permission_names,
-            reason: values.reason,
+            role_names: assignment.role_names,
+            direct_permission_names: assignment.direct_permission_names,
+            reason: assignment.reason ?? '',
         },
         { preserveScroll: true },
     );
@@ -151,146 +129,126 @@ function updateTeamAuthorization(teamPublicId: string): void {
     <Head :title="t('pages.admin.users.edit.head_title')" />
     <AdminLayout :title="t('pages.admin.users.edit.title')" :title-icon="IconUserEdit">
         <PageStack>
-            <SurfaceCard title="Actions" :icon="IconUserEdit">
+            <SurfaceCard :title="t('pages.admin.users.status.title')" :icon="IconUserEdit" tone="emerald">
+                <dl class="grid gap-3 text-sm sm:grid-cols-2 xl:grid-cols-5">
+                    <div
+                        class="flex items-center justify-between gap-3 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 dark:border-zinc-800 dark:bg-zinc-900/50"
+                    >
+                        <dt class="text-zinc-500 dark:text-zinc-400">{{ t('pages.admin.users.status.active') }}</dt>
+                        <dd>
+                            <StatusBadge
+                                :value="user.isActive"
+                                :true-label="t('datatable.boolean.yes')"
+                                :false-label="t('datatable.boolean.no')"
+                            />
+                        </dd>
+                    </div>
+                    <div
+                        class="flex items-center justify-between gap-3 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 dark:border-zinc-800 dark:bg-zinc-900/50"
+                    >
+                        <dt class="text-zinc-500 dark:text-zinc-400">{{ t('pages.admin.users.status.email_verified') }}</dt>
+                        <dd>
+                            <StatusBadge
+                                :value="user.emailVerified"
+                                :true-label="t('datatable.boolean.yes')"
+                                :false-label="t('datatable.boolean.no')"
+                            />
+                        </dd>
+                    </div>
+                    <div
+                        class="flex items-center justify-between gap-3 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 dark:border-zinc-800 dark:bg-zinc-900/50"
+                    >
+                        <dt class="text-zinc-500 dark:text-zinc-400">{{ t('pages.admin.users.status.first_password_set') }}</dt>
+                        <dd>
+                            <StatusBadge
+                                :value="user.firstPasswordSet"
+                                :true-label="t('datatable.boolean.yes')"
+                                :false-label="t('datatable.boolean.no')"
+                            />
+                        </dd>
+                    </div>
+                    <div
+                        class="flex items-center justify-between gap-3 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 dark:border-zinc-800 dark:bg-zinc-900/50"
+                    >
+                        <dt class="text-zinc-500 dark:text-zinc-400">{{ t('pages.admin.users.status.login_locked') }}</dt>
+                        <dd>
+                            <StatusBadge
+                                :value="user.loginLocked"
+                                :true-label="t('datatable.boolean.yes')"
+                                :false-label="t('datatable.boolean.no')"
+                            />
+                        </dd>
+                    </div>
+                    <div
+                        class="flex items-center justify-between gap-3 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 dark:border-zinc-800 dark:bg-zinc-900/50"
+                    >
+                        <dt class="text-zinc-500 dark:text-zinc-400">{{ t('pages.admin.users.status.mfa_enabled') }}</dt>
+                        <dd>
+                            <StatusBadge
+                                :value="user.mfaEnabled"
+                                :true-label="t('datatable.boolean.yes')"
+                                :false-label="t('datatable.boolean.no')"
+                            />
+                        </dd>
+                    </div>
+                </dl>
+            </SurfaceCard>
+
+            <SurfaceCard :title="t('pages.admin.users.actions.title')" :icon="IconUserEdit" tone="amber">
                 <RecordActions :actions="recordActions" />
             </SurfaceCard>
 
-            <div class="grid gap-5 xl:grid-cols-[minmax(0,1fr)_24rem]">
-                <div class="space-y-5">
-                    <SurfaceCard title="Account identity" :icon="IconUserEdit">
-                        <AtlasForm :processing="form.processing" @submit="submit">
-                            <div class="grid gap-4 sm:grid-cols-2">
-                                <FormInput v-model="form.name" label="Name" :error="form.errors.name" />
-                                <FormInput v-model="form.email" label="Email" type="email" :error="form.errors.email" />
-                                <FormSelect
-                                    v-model="form.account_sensitivity"
-                                    label="Account sensitivity"
-                                    :options="sensitivityOptions"
-                                    :error="form.errors.account_sensitivity"
-                                />
-                            </div>
-
-                            <FormActions class="mt-5">
-                                <FormButton type="submit" :loading="form.processing">
-                                    {{ form.processing ? 'Saving...' : 'Save changes' }}
-                                </FormButton>
-                                <ActionLink href="/admin/users" :icon="IconArrowLeft"> Back to users </ActionLink>
-                            </FormActions>
-                        </AtlasForm>
-                    </SurfaceCard>
-
-                    <SurfaceCard title="Team access" :icon="IconUsersGroup">
-                        <AtlasForm
-                            class="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto]"
-                            :processing="teamForm.processing"
-                            @submit="addTeamAccess"
-                        >
-                            <FormSelect
-                                v-model="teamForm.team_public_id"
-                                label="Add team"
-                                :options="assignableTeams"
-                                placeholder="Select team"
-                                :error="teamForm.errors.team_public_id"
+            <div class="space-y-5">
+                <SurfaceCard :title="t('pages.admin.users.identity.title')" :icon="IconUserEdit" tone="teal">
+                    <AtlasForm :processing="form.processing" @submit="submit">
+                        <div class="grid gap-4 sm:grid-cols-2">
+                            <FormInput
+                                v-model="form.name"
+                                :label="t('pages.admin.users.fields.name')"
+                                autocomplete="name"
+                                :error="form.errors.name"
                             />
-                            <FormButton
-                                type="submit"
-                                class="mt-0 md:mt-6"
-                                :loading="teamForm.processing"
-                                :disabled="assignableTeams.length === 0 || teamForm.team_public_id === ''"
-                            >
-                                Add access
+                            <FormInput
+                                v-model="form.email"
+                                :label="t('pages.admin.users.fields.email')"
+                                type="email"
+                                autocomplete="email"
+                                :error="form.errors.email"
+                            />
+                            <FormSelect
+                                v-model="form.account_sensitivity"
+                                :label="t('pages.admin.users.fields.account_sensitivity')"
+                                :options="sensitivityOptions"
+                                :error="form.errors.account_sensitivity"
+                            />
+                        </div>
+
+                        <FormActions class="mt-5">
+                            <FormButton type="submit" :icon="IconDeviceFloppy" :loading="form.processing">
+                                {{ form.processing ? t('pages.admin.users.actions.saving') : t('pages.admin.users.actions.save') }}
                             </FormButton>
-                        </AtlasForm>
-
-                        <div
-                            class="mt-5 divide-y divide-zinc-200 rounded-lg border border-zinc-200 dark:divide-zinc-800 dark:border-zinc-800"
-                        >
-                            <UiState v-if="teamMemberships.length === 0" variant="empty" title="No active team access." size="compact" />
-                            <div v-for="membership in teamMemberships" :key="membership.teamPublicId" class="space-y-4 p-4">
-                                <div>
-                                    <div class="flex flex-wrap items-center gap-2">
-                                        <p class="font-medium text-zinc-950 dark:text-zinc-50">{{ membership.teamName }}</p>
-                                        <StatusBadge :value="membership.teamActive" true-label="Active team" false-label="Inactive team" />
-                                    </div>
-                                    <p class="mt-1 break-all font-mono text-xs text-zinc-500 dark:text-zinc-400">
-                                        {{ membership.teamPublicId }}
-                                    </p>
-                                </div>
-
-                                <div class="grid gap-4 xl:grid-cols-2">
-                                    <CheckboxList
-                                        v-model="authorizationForm(membership.teamPublicId).role_names"
-                                        label="Roles"
-                                        :options="roleOptions"
-                                    />
-                                    <CheckboxList
-                                        v-model="authorizationForm(membership.teamPublicId).direct_permission_names"
-                                        label="Direct permissions"
-                                        :options="permissionOptions"
-                                    />
-                                </div>
-
-                                <div class="grid gap-3 xl:grid-cols-[minmax(0,1fr)_auto]">
-                                    <FormInput
-                                        v-model="authorizationForm(membership.teamPublicId).reason"
-                                        label="Authorization change reason"
-                                        placeholder="Optional but recommended"
-                                    />
-                                    <FormButton
-                                        type="button"
-                                        class="mt-0 xl:mt-6"
-                                        @click="updateTeamAuthorization(membership.teamPublicId)"
-                                    >
-                                        Save assignments
-                                    </FormButton>
-                                </div>
-
-                                <div class="grid gap-3 xl:grid-cols-[minmax(0,1fr)_auto]">
-                                    <FormInput
-                                        v-model="removalReasons[membership.teamPublicId]"
-                                        label="Removal reason"
-                                        placeholder="Required before removal"
-                                    />
-                                    <FormButton
-                                        type="button"
-                                        tone="danger"
-                                        class="mt-0 xl:mt-6"
-                                        :icon="IconTrash"
-                                        :disabled="!(removalReasons[membership.teamPublicId] ?? '').trim()"
-                                        @click="removeTeamAccess(membership.teamPublicId)"
-                                    >
-                                        Remove access
-                                    </FormButton>
-                                </div>
-                            </div>
-                        </div>
-                    </SurfaceCard>
-                </div>
-
-                <SurfaceCard title="Account status" :icon="IconUserEdit">
-                    <dl class="space-y-3 text-sm">
-                        <div class="flex items-center justify-between gap-3">
-                            <dt class="text-zinc-500 dark:text-zinc-400">Active</dt>
-                            <dd><StatusBadge :value="user.isActive" /></dd>
-                        </div>
-                        <div class="flex items-center justify-between gap-3">
-                            <dt class="text-zinc-500 dark:text-zinc-400">Email verified</dt>
-                            <dd><StatusBadge :value="user.emailVerified" /></dd>
-                        </div>
-                        <div class="flex items-center justify-between gap-3">
-                            <dt class="text-zinc-500 dark:text-zinc-400">Password set</dt>
-                            <dd><StatusBadge :value="user.firstPasswordSet" /></dd>
-                        </div>
-                        <div class="flex items-center justify-between gap-3">
-                            <dt class="text-zinc-500 dark:text-zinc-400">Locked</dt>
-                            <dd><StatusBadge :value="user.loginLocked" /></dd>
-                        </div>
-                        <div class="flex items-center justify-between gap-3">
-                            <dt class="text-zinc-500 dark:text-zinc-400">MFA</dt>
-                            <dd><StatusBadge :value="user.mfaEnabled" /></dd>
-                        </div>
-                    </dl>
+                            <ActionLink href="/admin/users" :icon="IconArrowLeft">
+                                {{ t('pages.admin.users.actions.back_to_users') }}
+                            </ActionLink>
+                        </FormActions>
+                    </AtlasForm>
                 </SurfaceCard>
+
+                <UserTeamAccessWorkflow
+                    mode="edit"
+                    :assignments="teamAccessAssignments"
+                    :team-options="assignableTeams"
+                    :packages="packages"
+                    :copy-sources="copySources"
+                    :role-options="roleOptions"
+                    :permission-options="permissionOptions"
+                    :role-permission-map="rolePermissionMap"
+                    :processing="teamForm.processing"
+                    :root-error="teamForm.errors.team_public_id"
+                    @add-team="addTeamAccessFromWorkflow"
+                    @save="updateTeamAuthorization($event.assignment)"
+                    @remove="removeTeamAccess($event.assignment)"
+                />
             </div>
         </PageStack>
     </AdminLayout>

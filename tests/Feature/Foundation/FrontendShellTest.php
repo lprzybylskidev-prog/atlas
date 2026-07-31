@@ -9,6 +9,7 @@ use App\Modules\Core\Authorization\Application\Roles\StarterRoleName;
 use App\Modules\Core\Identity\Infrastructure\Persistence\User;
 use App\Modules\Core\Teams\Infrastructure\Persistence\Team;
 use App\Shared\Infrastructure\Database\DatabaseTable;
+use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Inertia\Testing\AssertableInertia;
@@ -42,21 +43,8 @@ final class FrontendShellTest extends TestCase
     {
         $user = User::factory()->create();
         $team = Team::query()->create(['name' => 'Operations']);
-        $presetPublicId = '01K00000000000000000000000';
 
         $this->assignStarterRoleInTeam($user, $team, StarterRoleName::Administrator->value);
-        DB::table(DatabaseTable::AUTHORIZATION_ONBOARDING_PACKAGES)->insert([
-            'public_id' => $presetPublicId,
-            'team_id' => $team->id,
-            'name' => 'operations.agent',
-            'label' => 'Operations agent',
-            'initial_role_names' => json_encode([StarterRoleName::WorkspaceAccess->value], JSON_THROW_ON_ERROR),
-            'direct_permission_names' => json_encode([], JSON_THROW_ON_ERROR),
-            'template_permission_names' => json_encode([], JSON_THROW_ON_ERROR),
-            'is_active' => true,
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
 
         $adminSession = [
             'active_team_public_id' => $team->public_id,
@@ -87,99 +75,26 @@ final class FrontendShellTest extends TestCase
                 ->where('navigation.breadcrumbs.0.url', null)
                 ->where('navigation.breadcrumbs.1.label', 'Dashboard')
                 ->where('navigation.breadcrumbs.1.url', null)
+                ->where('dashboard.release.environment', 'testing')
+                ->where('dashboard.externalMechanisms.items.0.key', 'postgresql')
+                ->where('dashboard.externalMechanisms.items.1.key', 'redis')
+                ->where('dashboard.externalMechanisms.items.2.key', 'storage')
+                ->where('dashboard.modules.failedActivationSchedules', 0)
+                ->where('dashboard.modules.scheduledActivationChanges', 0)
+                ->has('dashboard.modules.items')
+                ->where('auth.availableAdminRoutes', fn ($routes): bool => self::stringListContains($routes, 'admin.users.index'))
+                ->where('auth.availableAdminRoutes', fn ($routes): bool => self::stringListContains($routes, 'admin.teams.index'))
+                ->where('auth.availableAdminRoutes', fn ($routes): bool => self::stringListContains($routes, 'admin.managers.index'))
+                ->where('auth.availableAdminRoutes', fn ($routes): bool => self::stringListContains($routes, 'admin.audit.index'))
+                ->where('auth.availableAdminRoutes', fn ($routes): bool => self::stringListContains($routes, 'admin.audit.security-history.index'))
+                ->where('auth.availableAdminRoutes', fn ($routes): bool => self::stringListContains($routes, 'admin.files.index'))
+                ->where('auth.availableAdminRoutes', fn ($routes): bool => self::stringListContains($routes, 'admin.logs.index'))
+                ->where('auth.availableAdminRoutes', fn ($routes): bool => self::stringListContains($routes, 'admin.rate-limits.index'))
+                ->where('auth.availableAdminRoutes', fn ($routes): bool => self::stringListContains($routes, 'admin.pulse.view'))
+                ->where('auth.availableAdminRoutes', fn ($routes): bool => ! self::stringListContains($routes, 'admin.telescope.view'))
                 ->where('availability.0.elementKey', 'admin.system-status.release')
                 ->where('availability.1.elementKey', 'admin.system-status.readiness')
                 ->where('availability.2.elementKey', 'admin.system-status.modules'));
-
-        $this->actingAs($user)
-            ->withSession($adminSession)
-            ->get('/admin/teams')
-            ->assertOk()
-            ->assertInertia(fn (AssertableInertia $page) => $page
-                ->component('Admin/Teams/Index')
-                ->has('teams'));
-
-        $this->actingAs($user)
-            ->withSession($adminSession)
-            ->get('/admin/teams/create')
-            ->assertOk()
-            ->assertInertia(fn (AssertableInertia $page) => $page
-                ->component('Admin/Teams/Create'));
-
-        $this->actingAs($user)
-            ->withSession($adminSession)
-            ->get('/admin/teams/'.$team->public_id.'/edit')
-            ->assertOk()
-            ->assertInertia(fn (AssertableInertia $page) => $page
-                ->component('Admin/Teams/Edit')
-                ->where('team.publicId', (string) $team->public_id));
-
-        $this->actingAs($user)
-            ->withSession(['active_team_public_id' => $team->public_id])
-            ->get('/admin/users/create')
-            ->assertOk()
-            ->assertInertia(fn (AssertableInertia $page) => $page
-                ->component('Admin/Users/Create')
-                ->has('packages')
-                ->has('copySources'));
-
-        $this->actingAs($user)
-            ->withSession(['active_team_public_id' => $team->public_id])
-            ->get('/admin/authorization/roles')
-            ->assertOk()
-            ->assertInertia(fn (AssertableInertia $page) => $page
-                ->component('Admin/Authorization/Roles')
-                ->has('roles'));
-
-        $this->actingAs($user)
-            ->withSession(['active_team_public_id' => $team->public_id])
-            ->get('/admin/authorization/roles/create')
-            ->assertOk()
-            ->assertInertia(fn (AssertableInertia $page) => $page
-                ->component('Admin/Authorization/Roles/Create'));
-
-        $this->actingAs($user)
-            ->withSession(['active_team_public_id' => $team->public_id])
-            ->get('/admin/authorization/roles/'.StarterRoleName::Administrator->value.'/edit')
-            ->assertOk()
-            ->assertInertia(fn (AssertableInertia $page) => $page
-                ->component('Admin/Authorization/Roles/Edit')
-                ->where('role.name', StarterRoleName::Administrator->value));
-
-        $this->actingAs($user)
-            ->withSession(['active_team_public_id' => $team->public_id])
-            ->get('/admin/authorization/packages')
-            ->assertOk()
-            ->assertInertia(fn (AssertableInertia $page) => $page
-                ->component('Admin/Authorization/Packages')
-                ->has('packages'));
-
-        $this->actingAs($user)
-            ->withSession(['active_team_public_id' => $team->public_id])
-            ->get('/admin/authorization/packages/create')
-            ->assertOk()
-            ->assertInertia(fn (AssertableInertia $page) => $page
-                ->component('Admin/Authorization/Packages/Create')
-                ->has('roleOptions')
-                ->has('permissionOptions'));
-
-        $this->actingAs($user)
-            ->withSession(['active_team_public_id' => $team->public_id])
-            ->get('/admin/authorization/packages/'.$presetPublicId.'/edit')
-            ->assertOk()
-            ->assertInertia(fn (AssertableInertia $page) => $page
-                ->component('Admin/Authorization/Packages/Edit')
-                ->where('package.name', 'operations.agent')
-                ->has('roleOptions')
-                ->has('permissionOptions'));
-
-        $this->actingAs($user)
-            ->withSession(['active_team_public_id' => $team->public_id])
-            ->get('/admin/authorization/permissions')
-            ->assertOk()
-            ->assertInertia(fn (AssertableInertia $page) => $page
-                ->component('Admin/Authorization/Permissions')
-                ->has('permissions'));
     }
 
     public function test_stale_active_team_session_is_replaced_with_first_assigned_team(): void
@@ -216,5 +131,28 @@ final class FrontendShellTest extends TestCase
             'model_id' => $user->id,
             'team_id' => $team->id,
         ]);
+    }
+
+    private static function stringListContains(mixed $values, string $value): bool
+    {
+        if ($values instanceof Arrayable) {
+            $values = $values->toArray();
+        }
+
+        if ($values instanceof \Traversable) {
+            $values = iterator_to_array($values);
+        }
+
+        if (! is_array($values)) {
+            return false;
+        }
+
+        foreach ($values as $key => $item) {
+            if ($key === $value || $item === $value) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

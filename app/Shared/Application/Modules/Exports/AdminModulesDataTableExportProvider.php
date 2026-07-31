@@ -8,6 +8,7 @@ use App\Modules\Core\Exports\Application\Public\AbstractAdminDataTableExportProv
 use App\Modules\Core\Exports\Application\Public\DTOs\ReportExportGenerationRequest;
 use App\Modules\Core\Exports\Application\Public\Permissions\ReportsPermissionCatalog;
 use App\Shared\Application\Modules\Activation\Contracts\ModuleActivationService;
+use App\Shared\Application\Modules\Activation\ModuleActivationScheduleStatus;
 use App\Shared\Application\Modules\Contracts\ModuleDefinition;
 use App\Shared\Application\Modules\ModuleKey;
 use App\Shared\Application\Modules\ModuleRegistry;
@@ -55,10 +56,11 @@ final readonly class AdminModulesDataTableExportProvider extends AbstractAdminDa
             'technicallyAvailable' => 'Available',
             'globallyEnabled' => 'Global',
             'teamEnabled' => 'Active team',
-            'effectiveEnabled' => 'Effective',
-            'teamStateSource' => 'Team source',
+            'effectiveEnabled' => 'Active',
+            'teamStateSource' => 'Configuration source',
             'supportsGlobalActivation' => 'Global support',
             'supportsTeamActivation' => 'Team support',
+            'scheduledChangesCount' => 'Scheduled changes',
             'requiredDependencies' => 'Required dependencies',
             'optionalDependencies' => 'Optional dependencies',
         ];
@@ -80,6 +82,10 @@ final readonly class AdminModulesDataTableExportProvider extends AbstractAdminDa
     private function moduleRow(ModuleDefinition $module, ?int $teamId): array
     {
         $effective = $this->activation->effectiveState($module->key()->value, $teamId);
+        $scheduledChangesCount = DB::table(DatabaseTable::MODULE_ACTIVATION_SCHEDULES)
+            ->where('module_key', $module->key()->value)
+            ->where('status', ModuleActivationScheduleStatus::Scheduled->value)
+            ->count();
 
         return [
             'moduleKey' => $module->key()->value,
@@ -91,6 +97,7 @@ final readonly class AdminModulesDataTableExportProvider extends AbstractAdminDa
             'teamStateSource' => $effective->source,
             'supportsGlobalActivation' => $module->supportsGlobalActivation(),
             'supportsTeamActivation' => $module->supportsTeamActivation(),
+            'scheduledChangesCount' => $scheduledChangesCount,
             'requiredDependencies' => implode(', ', array_map(static fn (ModuleKey $key): string => $key->value, $module->requiredDependencies())),
             'optionalDependencies' => implode(', ', array_map(static fn (ModuleKey $key): string => $key->value, $module->optionalDependencies())),
         ];
@@ -115,7 +122,35 @@ final readonly class AdminModulesDataTableExportProvider extends AbstractAdminDa
                 return false;
             }
 
-            return self::filterValue($request, 'effective') === 'all' || $row['effectiveEnabled'] === (self::filterValue($request, 'effective') === 'yes');
+            if (self::filterValue($request, 'effective') !== 'all' && $row['effectiveEnabled'] !== (self::filterValue($request, 'effective') === 'yes')) {
+                return false;
+            }
+
+            if (self::filterValue($request, 'global') !== 'all' && $row['globallyEnabled'] !== (self::filterValue($request, 'global') === 'yes')) {
+                return false;
+            }
+
+            if (self::filterValue($request, 'team') !== 'all' && $row['teamEnabled'] !== (self::filterValue($request, 'team') === 'yes')) {
+                return false;
+            }
+
+            if (self::filterValue($request, 'globalSupport') !== 'all' && $row['supportsGlobalActivation'] !== (self::filterValue($request, 'globalSupport') === 'yes')) {
+                return false;
+            }
+
+            if (self::filterValue($request, 'teamSupport') !== 'all' && $row['supportsTeamActivation'] !== (self::filterValue($request, 'teamSupport') === 'yes')) {
+                return false;
+            }
+
+            if (self::filterValue($request, 'scheduled') === 'yes' && self::intValue($row['scheduledChangesCount'] ?? 0) <= 0) {
+                return false;
+            }
+
+            if (self::filterValue($request, 'scheduled') === 'no' && self::intValue($row['scheduledChangesCount'] ?? 0) > 0) {
+                return false;
+            }
+
+            return true;
         }));
     }
 
@@ -124,5 +159,10 @@ final readonly class AdminModulesDataTableExportProvider extends AbstractAdminDa
         $teamId = DB::table(DatabaseTable::TEAMS)->where('public_id', $teamPublicId)->value('id');
 
         return is_numeric($teamId) ? (int) $teamId : null;
+    }
+
+    private static function intValue(mixed $value): int
+    {
+        return is_numeric($value) ? (int) $value : 0;
     }
 }

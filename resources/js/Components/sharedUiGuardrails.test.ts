@@ -55,6 +55,24 @@ describe('shared UI guardrails', () => {
         expect(adminLayout).toContain(':show-locale-switcher="true"');
     });
 
+    it('keeps the global impersonation banner localized', () => {
+        const appLayout = Object.entries(vueFiles).find(([file]) => file.endsWith('/Layouts/AppLayout.vue'))?.[1];
+
+        expect(appLayout).toBeDefined();
+        expect(appLayout).toContain("t('pages.admin.impersonation.banner.text'");
+        expect(appLayout).toContain("t('pages.admin.impersonation.banner.exit')");
+        expect(appLayout).not.toContain('Impersonating');
+        expect(appLayout).not.toContain('Exit impersonation');
+    });
+
+    it('does not turn managed-process progress events into toast storms', () => {
+        const realtimeEvents = Object.entries(tsFiles).find(([file]) => file.endsWith('/Services/realtimeEvents.ts'))?.[1];
+
+        expect(realtimeEvents).toBeDefined();
+        expect(realtimeEvents).toContain("event.eventType === 'notification.created'");
+        expect(realtimeEvents).not.toMatch(/event\.eventType === 'operation\.progress'[\s\S]{0,260}toast\.push/);
+    });
+
     it('keeps admin page content on the shared page width primitive', () => {
         const pageStack = Object.entries(vueFiles).find(([file]) => file.endsWith('/PageStack.vue'))?.[1];
 
@@ -74,14 +92,14 @@ describe('shared UI guardrails', () => {
         }
 
         for (const [file, contents] of Object.entries(vueFiles)) {
-            if (!file.includes('/Pages/Admin/') || !contents.includes('<AdminLayout')) {
+            if (!file.includes('/Pages/Admin/')) {
                 continue;
             }
 
             expect(contents, `${file}: Admin pages must use PageStack for canonical content width and vertical rhythm.`).toContain(
                 '<PageStack',
             );
-            expect(contents, `${file}: Admin pages must import PageStack when rendered through AdminLayout.`).toContain('PageStack.vue');
+            expect(contents, `${file}: Admin pages must import PageStack.`).toContain('PageStack.vue');
         }
     });
 
@@ -129,6 +147,8 @@ describe('shared UI guardrails', () => {
         const noticeBanner = Object.entries(vueFiles).find(([file]) => file.endsWith('/NoticeBanner.vue'))?.[1];
         const textBadge = Object.entries(vueFiles).find(([file]) => file.endsWith('/TextBadge.vue'))?.[1];
         const iconTile = Object.entries(vueFiles).find(([file]) => file.endsWith('/IconTile.vue'))?.[1];
+        const operationalTile = Object.entries(vueFiles).find(([file]) => file.endsWith('/OperationalTile.vue'))?.[1];
+        const operationalMetricTile = Object.entries(vueFiles).find(([file]) => file.endsWith('/OperationalMetricTile.vue'))?.[1];
         const dialogPanel = Object.entries(vueFiles).find(([file]) => file.endsWith('/DialogPanel.vue'))?.[1];
 
         expect(shellNamedCard).toBeUndefined();
@@ -149,6 +169,8 @@ describe('shared UI guardrails', () => {
         expect(codeViewer).toBeDefined();
         expect(codeViewer).toContain("language?: 'json' | 'log' | 'stack' | 'text' | 'toml'");
         expect(codeViewer).toContain('font-mono text-xs leading-5');
+        expect(codeViewer).toContain("wrapLines ? 'w-full min-w-0' : 'min-w-max'");
+        expect(codeViewer).toContain("wrapLines ? 'whitespace-pre-wrap break-words' : 'whitespace-pre'");
         expect(uiState).toBeDefined();
         expect(uiState).toContain("size?: 'default' | 'compact'");
         expect(uiState).toContain("variant: 'loading' | 'empty' | 'error' | 'no-results'");
@@ -160,6 +182,10 @@ describe('shared UI guardrails', () => {
         expect(iconTile).toBeDefined();
         expect(iconTile).toContain("type IconTileTone = 'teal' | 'sky' | 'emerald' | 'amber' | 'rose' | 'zinc'");
         expect(iconTile).toContain("type IconTileSize = 'sm' | 'md'");
+        expect(operationalTile).toBeDefined();
+        expect(operationalTile).toContain('TextBadge');
+        expect(operationalTile).toContain('Tooltip');
+        expect(operationalMetricTile).toBeDefined();
         expect(dialogPanel).toBeDefined();
         expect(dialogPanel).toContain('aria-modal="true"');
         expect(dialogPanel).toContain('IconTile');
@@ -242,31 +268,139 @@ describe('shared UI guardrails', () => {
         }
     });
 
-    it('opens package-owned Pulse navigation outside the Inertia shell', () => {
+    it('keeps phase 25 admin navigation limited to accepted rebuild entry points', () => {
         const sidebar = Object.entries(vueFiles).find(([file]) => file.endsWith('/Sidebar.vue'))?.[1];
-        const sidebarNode = Object.entries(vueFiles).find(([file]) => file.endsWith('/SidebarNavNode.vue'))?.[1];
         const mobileNavigation = Object.entries(vueFiles).find(([file]) => file.endsWith('/MobileNavigation.vue'))?.[1];
 
         expect(sidebar).toBeDefined();
-        expect(sidebar).toContain("key: 'oversight.pulse'");
-        expect(sidebar).toContain('external: true');
-        expect(sidebarNode).toContain(':target="node.external ? \'_blank\' : undefined"');
-        expect(sidebarNode).toContain(':rel="node.external ? \'noopener noreferrer\' : undefined"');
-        expect(mobileNavigation).toContain("t('navigation.pulse')");
-        expect(mobileNavigation).toContain('external: true');
-        expect(mobileNavigation).toContain(':target="item.external ? \'_blank\' : undefined"');
-        expect(mobileNavigation).toContain(':rel="item.external ? \'noopener noreferrer\' : undefined"');
+        expect(mobileNavigation).toBeDefined();
+
+        for (const contents of [sidebar, mobileNavigation]) {
+            expect(contents).toContain("canSeeAdminRoute('admin.system-status')");
+            expect(contents).toContain("canSeeAdminRoute('admin.users.index')");
+            expect(contents).toContain("canSeeAdminRoute('admin.teams.index')");
+            expect(contents).toContain("canSeeAdminRoute('admin.managed-processes.index')");
+            expect(contents).toContain("canSeeAdminRoute('admin.queues.index')");
+            expect(contents).toContain("canSeeAdminRoute('admin.files.index')");
+            expect(contents).toContain("canSeeAdminRoute('admin.logs.index')");
+            expect(contents).toContain("canSeeAdminRoute('admin.feature-flags.index')");
+            expect(contents).toContain("canSeeAdminRoute('admin.rate-limits.index')");
+            expect(contents).toContain("canSeeAdminRoute('admin.pulse.view')");
+            expect(contents).toContain("canSeeAdminRoute('admin.telescope.view')");
+            expect(contents).toContain("t('navigation.group.identity_access')");
+            expect(contents).toContain("t('navigation.group.diagnostics')");
+            expect(contents).toContain("t('navigation.group.system_configuration')");
+            expect(contents).not.toContain("t('navigation.group.operations')");
+            expect(contents).toContain("t('navigation.pulse')");
+            expect(contents).toContain("t('navigation.telescope')");
+            expect(contents).toContain('external: true');
+        }
     });
 
-    it('opens local Telescope navigation outside the Inertia shell', () => {
-        const sidebar = Object.entries(vueFiles).find(([file]) => file.endsWith('/Sidebar.vue'))?.[1];
-        const mobileNavigation = Object.entries(vueFiles).find(([file]) => file.endsWith('/MobileNavigation.vue'))?.[1];
+    it('does not use settings icons as generic table action fallbacks', () => {
+        const dataTable = Object.entries(vueFiles).find(([file]) => file.endsWith('/DataTable.vue'))?.[1];
 
-        expect(sidebar).toBeDefined();
-        expect(sidebar).toContain("key: 'oversight.telescope'");
-        expect(sidebar).toContain("visible: canSeeAdminRoute('admin.telescope.view')");
-        expect(sidebar).toContain('external: true');
-        expect(mobileNavigation).toContain("t('navigation.telescope')");
-        expect(mobileNavigation).toContain('external: true');
+        expect(dataTable).toBeDefined();
+        expect(dataTable).not.toContain('?? IconSettings');
+        expect(dataTable).not.toContain('return IconSettings;');
+        expect(dataTable).toContain('configure: IconSettings');
+        expect(dataTable).toContain('settings: IconSettings');
+    });
+
+    it('keeps rebuilt Users workflow form buttons icon-led', () => {
+        const userWorkflowSurfaces = Object.entries(vueFiles).filter(
+            ([file]) => file.includes('/Pages/Admin/Users/') || file.endsWith('/Components/Users/UserTeamAccessWorkflow.vue'),
+        );
+
+        for (const [file, contents] of userWorkflowSurfaces) {
+            const buttonsWithoutIcons = Array.from(contents.matchAll(/<FormButton\b([^>]*)>/g))
+                .map((match) => match[0])
+                .filter((button) => !/\s:?icon=/.test(button));
+
+            expect(buttonsWithoutIcons, file).toEqual([]);
+        }
+    });
+
+    it('keeps rebuilt Users team access in one workflow module', () => {
+        const create = Object.entries(vueFiles).find(([file]) => file.endsWith('/Pages/Admin/Users/Create.vue'))?.[1];
+        const edit = Object.entries(vueFiles).find(([file]) => file.endsWith('/Pages/Admin/Users/Edit.vue'))?.[1];
+        const workflow = Object.entries(vueFiles).find(([file]) => file.endsWith('/Users/UserTeamAccessWorkflow.vue'))?.[1];
+
+        expect(create).toBeDefined();
+        expect(edit).toBeDefined();
+        expect(workflow).toBeDefined();
+
+        expect(create).toContain('UserTeamAccessWorkflow');
+        expect(edit).toContain('UserTeamAccessWorkflow');
+        expect(create).not.toContain('sourceOptions');
+        expect(edit).not.toContain('sourceOptions');
+        expect(workflow).toContain('const sourceOptions = computed');
+        expect(workflow).toContain('packageOptionsForAssignment');
+        expect(workflow).toContain('copySourceOptionsForAssignment');
+        expect(workflow).toContain("mode: 'create' | 'edit'");
+    });
+
+    it('keeps rebuilt Users actions and sensitivity options shared', () => {
+        const index = Object.entries(vueFiles).find(([file]) => file.endsWith('/Pages/Admin/Users/Index.vue'))?.[1];
+        const edit = Object.entries(vueFiles).find(([file]) => file.endsWith('/Pages/Admin/Users/Edit.vue'))?.[1];
+        const actions = Object.entries(tsFiles).find(([file]) => file.endsWith('/Composables/useAdminUserAccountActions.ts'))?.[1];
+        const sensitivity = Object.entries(tsFiles).find(([file]) => file.endsWith('/Composables/useAccountSensitivityOptions.ts'))?.[1];
+
+        expect(index).toBeDefined();
+        expect(edit).toBeDefined();
+        expect(actions).toBeDefined();
+        expect(sensitivity).toBeDefined();
+
+        expect(index).toContain('useAdminUserAccountActions');
+        expect(edit).toContain('useAdminUserAccountActions');
+        expect(index).toContain('useAccountSensitivityOptions');
+        expect(edit).toContain('useAccountSensitivityOptions');
+        expect(actions).toContain('accountActionDefinitions');
+        expect(sensitivity).toContain('accountSensitivityValues');
+    });
+
+    it('keeps phase 25 admin presentation limited to accepted sidebar workflow rebuilds', () => {
+        const adminPages = Object.keys(vueFiles)
+            .filter((file) => file.includes('/Pages/Admin/'))
+            .sort();
+
+        expect(adminPages).toEqual([
+            '../Pages/Admin/Audit/ImpersonationSession.vue',
+            '../Pages/Admin/Audit/Index.vue',
+            '../Pages/Admin/Audit/SecurityHistory.vue',
+            '../Pages/Admin/Authorization/Packages.vue',
+            '../Pages/Admin/Authorization/Packages/Create.vue',
+            '../Pages/Admin/Authorization/Packages/Edit.vue',
+            '../Pages/Admin/Authorization/Permissions.vue',
+            '../Pages/Admin/Authorization/Roles.vue',
+            '../Pages/Admin/Authorization/Roles/Create.vue',
+            '../Pages/Admin/Authorization/Roles/Edit.vue',
+            '../Pages/Admin/FeatureFlags/Index.vue',
+            '../Pages/Admin/Files/Index.vue',
+            '../Pages/Admin/Impersonation/Start.vue',
+            '../Pages/Admin/Integrations/Index.vue',
+            '../Pages/Admin/Logs/Index.vue',
+            '../Pages/Admin/ManagedProcesses/Definitions.vue',
+            '../Pages/Admin/ManagedProcesses/Runs.vue',
+            '../Pages/Admin/ManagedProcesses/Schedules.vue',
+            '../Pages/Admin/ManagedProcesses/Schedules/Create.vue',
+            '../Pages/Admin/ManagedProcesses/Show.vue',
+            '../Pages/Admin/Managers/Create.vue',
+            '../Pages/Admin/Managers/Edit.vue',
+            '../Pages/Admin/Managers/Index.vue',
+            '../Pages/Admin/Modules/Index.vue',
+            '../Pages/Admin/Modules/Show.vue',
+            '../Pages/Admin/Modules/TeamConfiguration.vue',
+            '../Pages/Admin/Queues/Index.vue',
+            '../Pages/Admin/RateLimits/Index.vue',
+            '../Pages/Admin/Search/Index.vue',
+            '../Pages/Admin/SystemStatus.vue',
+            '../Pages/Admin/Teams/Create.vue',
+            '../Pages/Admin/Teams/Edit.vue',
+            '../Pages/Admin/Teams/Index.vue',
+            '../Pages/Admin/Users/Create.vue',
+            '../Pages/Admin/Users/Edit.vue',
+            '../Pages/Admin/Users/Index.vue',
+        ]);
     });
 });

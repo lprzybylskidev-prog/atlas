@@ -106,9 +106,11 @@ final class ObservabilityFoundationTest extends TestCase
             ]).PHP_EOL);
 
             $result = (new ApplicationLogReader(new SensitiveDataRedactor, $path))->latest();
+            $files = (new ApplicationLogReader(new SensitiveDataRedactor, $path))->logFiles();
 
             self::assertSame(2, $result['summary']['rows']);
             self::assertSame(basename($path), $result['summary']['pathLabel']);
+            self::assertSame(basename($path), $files[0]['name']);
             self::assertCount(2, $result['entries']);
 
             self::assertSame('error', $result['entries'][0]['level']);

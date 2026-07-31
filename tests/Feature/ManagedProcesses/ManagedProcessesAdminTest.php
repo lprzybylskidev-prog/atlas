@@ -23,9 +23,12 @@ use App\Shared\Application\Modules\Activation\ModuleActivationChange;
 use App\Shared\Application\Modules\Activation\ModuleActivationScope;
 use App\Shared\Application\Modules\Activation\ModuleActivationSource;
 use App\Shared\Infrastructure\Database\DatabaseTable;
+use Carbon\CarbonImmutable;
+use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
 use Inertia\Testing\AssertableInertia;
 use Spatie\Permission\Models\Role;
@@ -46,6 +49,12 @@ final class ManagedProcessesAdminTest extends TestCase
             ->assertOk()
             ->assertInertia(fn (AssertableInertia $page) => $page
                 ->component('Admin/ManagedProcesses/Runs')
+                ->has('navigation.breadcrumbs', 3)
+                ->where('navigation.breadcrumbs.0.label', 'Admin')
+                ->where('navigation.breadcrumbs.1.label', 'Procesy')
+                ->where('navigation.breadcrumbs.2.label', 'Uruchomienia')
+                ->where('table.key', 'admin.managed-processes.runs')
+                ->where('table.state.filters.status', 'all')
                 ->where('auth.availableAdminRoutes', function (Collection $routes): bool {
                     return $routes->contains('admin.managed-processes.index');
                 })
@@ -84,9 +93,80 @@ final class ManagedProcessesAdminTest extends TestCase
             ->assertOk()
             ->assertInertia(fn (AssertableInertia $page) => $page
                 ->component('Admin/ManagedProcesses/Show')
+                ->has('navigation.breadcrumbs', 4)
+                ->where('navigation.breadcrumbs.0.label', 'Admin')
+                ->where('navigation.breadcrumbs.1.label', 'Procesy')
+                ->where('navigation.breadcrumbs.2.label', 'Uruchomienia')
+                ->where('navigation.breadcrumbs.3.label', 'Szczegóły uruchomienia')
                 ->where('run.publicId', $runPublicId)
                 ->where('run.canRetry', true)
+                ->where('filterOptions.severities', fn (Collection $severities): bool => $severities->contains('info'))
                 ->has('logs', 7));
+
+        $this->actingAs($admin)
+            ->withSession($this->adminSession($team))
+            ->get('/admin/managed-processes?status=failed')
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->component('Admin/ManagedProcesses/Runs')
+                ->where('table.state.filters.status', 'failed')
+                ->has('runs', 0));
+
+        $this->actingAs($admin)
+            ->withSession($this->adminSession($team))
+            ->get('/admin/managed-processes?status=succeeded_with_warnings&handling=needs_attention')
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->component('Admin/ManagedProcesses/Runs')
+                ->where('table.state.filters.handling', 'needs_attention')
+                ->where('runs.0.publicId', $runPublicId)
+                ->where('runs.0.handlingStatus', 'needs_attention')
+                ->where('runs.0.canAcknowledge', true)
+                ->where('summary.warnings24h', 1));
+
+        $this->actingAs($admin)
+            ->withSession($this->adminSession($team))
+            ->post('/admin/managed-processes/acknowledge', [
+                'runs' => [$runPublicId],
+                'reason' => 'Reviewed warning output.',
+            ])
+            ->assertRedirect(route('admin.managed-processes.index'))
+            ->assertSessionHas('flash.messages.0.key', 'flash.managed_processes.acknowledge_single');
+
+        $runId = DB::table(DatabaseTable::MANAGED_PROCESS_RUNS)->where('public_id', $runPublicId)->value('id');
+
+        $this->assertDatabaseHas(DatabaseTable::MANAGED_PROCESS_RUN_ACKNOWLEDGEMENTS, [
+            'process_run_id' => $runId,
+            'acknowledged_by_user_id' => $admin->id,
+            'reason' => 'Reviewed warning output.',
+        ]);
+        $this->assertDatabaseHas(DatabaseTable::AUDIT_EVENTS, [
+            'module' => 'managed_processes',
+            'action' => 'managed_process.run_acknowledge',
+            'target_public_id' => $runPublicId,
+            'result' => 'succeeded',
+        ]);
+
+        $this->actingAs($admin)
+            ->withSession($this->adminSession($team))
+            ->get('/admin/managed-processes?status=succeeded_with_warnings&handling=needs_attention')
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->component('Admin/ManagedProcesses/Runs')
+                ->where('summary.warnings24h', 0)
+                ->has('runs', 0));
+
+        $this->actingAs($admin)
+            ->withSession($this->adminSession($team))
+            ->get('/admin/managed-processes?status=succeeded_with_warnings&handling=handled')
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->component('Admin/ManagedProcesses/Runs')
+                ->where('table.state.filters.handling', 'handled')
+                ->where('runs.0.publicId', $runPublicId)
+                ->where('runs.0.handlingStatus', 'handled')
+                ->where('runs.0.canAcknowledge', false)
+                ->where('summary.handled', 1));
 
         $retryResponse = $this->actingAs($admin)
             ->withSession($this->adminSession($team))
@@ -141,21 +221,12 @@ final class ManagedProcessesAdminTest extends TestCase
             ->assertOk()
             ->assertInertia(fn (AssertableInertia $page) => $page
                 ->component('Admin/ManagedProcesses/Runs')
-                ->where('runs.0.publicId', $runPublicId));
+                ->where('runs.0.publicId', $runPublicId)
+                ->where('runs.0.importKey', 'debtor-ledger-test')
+                ->where('runs.0.idempotencyKey', 'test-import-csv'));
 
-        $this->actingAs($admin)
-            ->withSession($this->adminSession($team))
-            ->get('/admin/managed-processes/imports')
-            ->assertOk()
-            ->assertInertia(fn (AssertableInertia $page) => $page
-                ->component('Admin/ManagedProcesses/Imports')
-                ->where('importExecutions.0.runPublicId', $runPublicId)
-                ->where('importExecutions.0.idempotencyKey', 'test-import-csv'));
-
-        $this->actingAs($admin)
-            ->withSession($this->adminSession($team))
-            ->get('/admin/imports')
-            ->assertRedirect(route('admin.managed-processes.imports.index'));
+        $this->assertFalse(Route::has('admin.imports.index'));
+        $this->assertFalse(Route::has('admin.managed-processes.imports.index'));
 
         $this->actingAs($admin)
             ->withSession($this->adminSession($team))
@@ -186,15 +257,47 @@ final class ManagedProcessesAdminTest extends TestCase
         ]);
         $this->assertDatabaseHas(DatabaseTable::NOTIFICATIONS, [
             'type' => 'managed_process.terminal',
-            'title' => 'Managed process finished',
+            'title' => 'notifications.managed_process.succeeded.title',
+            'body' => 'notifications.managed_process.succeeded.body',
             'deep_link_url' => null,
         ]);
+
+        $notification = DB::table(DatabaseTable::NOTIFICATIONS)
+            ->where('type', 'managed_process.terminal')
+            ->first(['data']);
+
+        self::assertNotNull($notification);
+        $data = json_decode($this->recordString($notification, 'data') ?: '{}', true, 512, JSON_THROW_ON_ERROR);
+        self::assertIsArray($data);
+        self::assertSame('Test export generation', $data['process_name'] ?? null);
+        self::assertSame('notifications.managed_process.succeeded.title', $data['title_key'] ?? null);
+        self::assertSame('notifications.managed_process.succeeded.body', $data['body_key'] ?? null);
+        self::assertArrayNotHasKey('status', $data);
     }
 
     public function test_admin_can_create_and_disable_managed_process_schedule(): void
     {
         [$admin, $team] = $this->adminWithTeam();
         $this->activateModules($team, ['managed_processes']);
+
+        $response = $this->actingAs($admin)
+            ->withSession($this->adminSession($team))
+            ->get('/admin/managed-processes/schedules/create');
+
+        $response
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->component('Admin/ManagedProcesses/Schedules/Create')
+                ->has('navigation.breadcrumbs', 4)
+                ->where('navigation.breadcrumbs.0.label', 'Admin')
+                ->where('navigation.breadcrumbs.1.label', 'Procesy')
+                ->where('navigation.breadcrumbs.2.label', 'Harmonogramy')
+                ->where('navigation.breadcrumbs.3.label', 'Utwórz'));
+
+        $this->assertTrue($this->containsRow(
+            $response->inertiaProps('definitions'),
+            static fn (array $definition): bool => ($definition['key'] ?? null) === 'test.maintenance.rebuild-risk-cache',
+        ));
 
         $this->actingAs($admin)
             ->withSession($this->adminSession($team))
@@ -228,6 +331,12 @@ final class ManagedProcessesAdminTest extends TestCase
             ->assertOk()
             ->assertInertia(fn (AssertableInertia $page) => $page
                 ->component('Admin/ManagedProcesses/Schedules')
+                ->has('navigation.breadcrumbs', 3)
+                ->where('navigation.breadcrumbs.0.label', 'Admin')
+                ->where('navigation.breadcrumbs.1.label', 'Procesy')
+                ->where('navigation.breadcrumbs.2.label', 'Harmonogramy')
+                ->where('table.key', 'admin.managed-processes.schedules')
+                ->where('table.state.filters.enabled', 'all')
                 ->where('schedules.0.publicId', $schedulePublicId));
 
         $this->actingAs($admin)
@@ -236,6 +345,12 @@ final class ManagedProcessesAdminTest extends TestCase
             ->assertOk()
             ->assertInertia(fn (AssertableInertia $page) => $page
                 ->component('Admin/ManagedProcesses/Definitions')
+                ->has('navigation.breadcrumbs', 3)
+                ->where('navigation.breadcrumbs.0.label', 'Admin')
+                ->where('navigation.breadcrumbs.1.label', 'Procesy')
+                ->where('navigation.breadcrumbs.2.label', 'Definicje')
+                ->where('table.key', 'admin.managed-processes.definitions')
+                ->where('table.state.filters.manual', 'all')
                 ->where('definitions', function (mixed $definitions): bool {
                     if (! is_iterable($definitions)) {
                         return false;
@@ -249,6 +364,59 @@ final class ManagedProcessesAdminTest extends TestCase
 
                     return false;
                 }));
+    }
+
+    public function test_running_progress_preserves_original_started_timestamp(): void
+    {
+        [$admin, $team] = $this->adminWithTeam();
+        $runPublicId = (string) Str::ulid();
+
+        DB::table(DatabaseTable::MANAGED_PROCESS_RUNS)->insert([
+            'public_id' => $runPublicId,
+            'process_key' => 'test.maintenance.rebuild-risk-cache',
+            'module_key' => 'managed_processes',
+            'scope' => 'team',
+            'team_id' => $team->id,
+            'actor_user_id' => $admin->id,
+            'source_type' => 'manual',
+            'input_snapshot' => json_encode(['_input' => 'none'], JSON_THROW_ON_ERROR),
+            'queue_connection' => 'redis',
+            'queue_name' => 'managed-processes',
+            'status' => ProcessRunStatus::Queued->value,
+            'current_stage' => 'queued',
+            'progress_current' => 0,
+            'progress_total' => null,
+            'progress_label' => 'Queued',
+            'counters' => json_encode(['processed' => 0], JSON_THROW_ON_ERROR),
+            'correlation_id' => (string) Str::uuid(),
+            'queued_at' => now(),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $runner = $this->app->make(ManagedProcessRunner::class);
+
+        try {
+            CarbonImmutable::setTestNow(CarbonImmutable::parse('2026-07-30 10:00:00'));
+            $runner->updateProgress($runPublicId, ProcessRunStatus::Running, 'started', 0, 4, 'Running');
+
+            CarbonImmutable::setTestNow(CarbonImmutable::parse('2026-07-30 10:05:00'));
+            $runner->updateProgress($runPublicId, ProcessRunStatus::Running, 'verify', 3, 4, 'Verifying');
+        } finally {
+            CarbonImmutable::setTestNow();
+        }
+
+        $run = DB::table(DatabaseTable::MANAGED_PROCESS_RUNS)
+            ->where('public_id', $runPublicId)
+            ->first(['started_at', 'current_stage', 'progress_current']);
+
+        $this->assertNotNull($run);
+        $this->assertSame('verify', $this->recordString($run, 'current_stage'));
+        $this->assertSame(3, $this->recordInt($run, 'progress_current'));
+        $this->assertSame(
+            '2026-07-30 10:00:00',
+            CarbonImmutable::parse($this->recordString($run, 'started_at'))->format('Y-m-d H:i:s'),
+        );
     }
 
     /**
@@ -385,6 +553,65 @@ final class ManagedProcessesAdminTest extends TestCase
             'atlas_admin_mode_last_activity_at' => now()->toIso8601String(),
             'atlas_admin_high_risk_confirmed_at' => now()->toIso8601String(),
         ];
+    }
+
+    private function recordString(object $record, string $property): string
+    {
+        $values = get_object_vars($record);
+        $value = $values[$property] ?? '';
+
+        return is_scalar($value) ? (string) $value : '';
+    }
+
+    private function recordInt(object $record, string $property): int
+    {
+        $values = get_object_vars($record);
+        $value = $values[$property] ?? null;
+
+        return is_numeric($value) ? (int) $value : 0;
+    }
+
+    /**
+     * @param  callable(array<string, mixed>): bool  $predicate
+     */
+    private function containsRow(mixed $rows, callable $predicate): bool
+    {
+        if ($rows instanceof Arrayable) {
+            $rows = $rows->toArray();
+        }
+
+        if ($rows instanceof \Traversable) {
+            $rows = iterator_to_array($rows, false);
+        }
+
+        if (! is_array($rows)) {
+            return false;
+        }
+
+        foreach ($rows as $row) {
+            if (is_array($row) && $predicate(self::stringKeyedArray($row))) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @param  array<mixed>  $value
+     * @return array<string, mixed>
+     */
+    private static function stringKeyedArray(array $value): array
+    {
+        $result = [];
+
+        foreach ($value as $key => $item) {
+            if (is_string($key)) {
+                $result[$key] = $item;
+            }
+        }
+
+        return $result;
     }
 }
 

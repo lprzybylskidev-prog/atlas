@@ -15,6 +15,11 @@ use Illuminate\Support\Str;
 
 final readonly class CreateUserAccount
 {
+    /**
+     * @var list<string>
+     */
+    private const ACCOUNT_SENSITIVITIES = ['normal', 'sensitive', 'technical', 'service', 'integration'];
+
     public function __construct(
         private UserAccountRepository $accounts,
         private FirstPasswordLinkIssuer $firstPasswordLinks,
@@ -31,6 +36,7 @@ final readonly class CreateUserAccount
             teamPublicId: $command->teamPublicId === null ? null : trim($command->teamPublicId),
             actorPublicId: $command->actorPublicId === null ? null : trim($command->actorPublicId),
             copyAuthorizationFromUserPublicId: $command->copyAuthorizationFromUserPublicId === null ? null : trim($command->copyAuthorizationFromUserPublicId),
+            accountSensitivity: $this->accountSensitivity($command->accountSensitivity),
         );
 
         if ($normalized->name === '') {
@@ -95,5 +101,12 @@ final readonly class CreateUserAccount
             email: $account->email,
             firstPasswordLinkIssued: true,
         );
+    }
+
+    private function accountSensitivity(string $value): string
+    {
+        $value = trim($value);
+
+        return in_array($value, self::ACCOUNT_SENSITIVITIES, true) ? $value : 'normal';
     }
 }

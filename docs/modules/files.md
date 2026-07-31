@@ -31,7 +31,7 @@ Rules:
 
 Persistence is owned by the `core_files` PostgreSQL schema:
 
-- `file_objects` stores private file metadata, generated storage path, original filename, MIME type, extension, size, checksum, scan state, quarantine timestamps, and availability timestamps;
+- `file_objects` stores private file metadata, generated storage path, original filename, MIME type, extension, size, checksum, scan state, quarantine timestamps, availability timestamps, and Admin handling acknowledgement metadata for problematic scan states;
 - `file_scan_evidence` stores one evidence record per scan attempt with provider, engine/signature version when available, scan timestamp, result, threat name, and the exact checksum that was scanned.
 
 The public storage contract is `App\Modules\Core\Files\Application\Public\Contracts\FileStorage`.
@@ -50,7 +50,7 @@ Current rules:
 - scanner retry exhaustion leaves the file in `failed`;
 - uploads above `ATLAS_FILES_LARGE_UPLOAD_SCAN_THRESHOLD_BYTES` route their scan work to `ATLAS_FILES_LARGE_SCAN_QUEUE`;
 - expired temporary scan files are pruned by `files:prune-temporary`;
-- upload, scan start/completion, blocked download, successful download, rescan, replacement, deletion, anonymization, retention copy, and temporary cleanup actions are written to the Audit module.
+- upload, scan start/completion, blocked download, successful download, rescan, Admin handling acknowledgement, replacement, deletion, anonymization, retention copy, and temporary cleanup actions are written to the Audit module.
 
 ## Lifecycle and retention
 
@@ -107,12 +107,13 @@ When Files are deployed in production, ClamAV readiness is blocking if no daemon
 
 The Admin file browser is available at `/admin/files`.
 
-It is metadata/status oriented only. It exposes file metadata, scan states, latest scan evidence, blocked/infected/failure visibility, and a rescan action. It does not expose arbitrary server filesystem browsing and does not provide any manual override to mark a file as `clean`.
+It is metadata/status oriented only. It exposes file metadata, scan states, latest scan evidence, blocked/infected/failure visibility, handling status, row/bulk mark-as-handled actions for non-clean scan states, and a rescan action. It uses the shared Admin DataTable contract with backend-applied scan-state, extension, provider, availability, handling-status, and created-date filters, saved views, pagination, exports, and a separate scan-evidence panel for the currently visible rows. Handled problematic files are hidden by default, remain available through the handling filter, and stop contributing to Admin file-blocker dashboard signals. A requested rescan clears the handling acknowledgement and returns the file to active review. The screen does not expose arbitrary server filesystem browsing and does not provide any manual override to mark a file as `clean`.
 
 Permissions:
 
 - `admin.files.index`;
 - `admin.files.rescan`;
+- `admin.files.acknowledge`;
 - `files.download`.
 
 ## Remaining phase work

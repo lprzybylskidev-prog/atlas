@@ -43,10 +43,11 @@ final readonly class AdminRolesDataTableExportProvider extends AbstractAdminData
         return [
             'publicId' => 'Public ID',
             'id' => 'Internal ID',
-            'teamId' => 'Team ID',
-            'name' => 'Role',
+            'displayName' => 'Display name',
+            'name' => 'Technical name',
             'guard' => 'Guard',
             'permissionsCount' => 'Permissions',
+            'assignedUsersCount' => 'Assigned users',
             'createdAt' => 'Created at',
             'updatedAt' => 'Updated at',
         ];
@@ -59,14 +60,15 @@ final readonly class AdminRolesDataTableExportProvider extends AbstractAdminData
             ->select(
                 'roles.id',
                 'roles.public_id',
-                'roles.team_id',
                 'roles.name',
+                'roles.display_name',
                 'roles.guard_name',
                 'roles.created_at',
                 'roles.updated_at',
                 DB::raw('count(role_has_permissions.permission_id) as permissions_count'),
+                DB::raw('(select count(*) from '.DatabaseTable::MODEL_HAS_ROLES.' where model_has_roles.role_id = roles.id) as assigned_users_count'),
             )
-            ->groupBy('roles.id', 'roles.public_id', 'roles.team_id', 'roles.name', 'roles.guard_name', 'roles.created_at', 'roles.updated_at')
+            ->groupBy('roles.id', 'roles.public_id', 'roles.name', 'roles.display_name', 'roles.guard_name', 'roles.created_at', 'roles.updated_at')
             ->get()
             ->map(static fn (object $role): array => self::roleRow($role))
             ->all());
@@ -77,54 +79,76 @@ final readonly class AdminRolesDataTableExportProvider extends AbstractAdminData
     }
 
     /**
-     * @return array{id: int|null, publicId: string, teamId: int|null, name: string, guard: string, permissionsCount: int, createdAt: string, updatedAt: string}
-     */
-    private static function roleRow(object $role): array
-    {
-        $values = get_object_vars($role);
-        $id = $values['id'] ?? null;
-        $publicId = $values['public_id'] ?? '';
-        $teamId = $values['team_id'] ?? null;
-        $name = $values['name'] ?? '';
-        $guard = $values['guard_name'] ?? '';
-        $createdAt = $values['created_at'] ?? '';
-        $updatedAt = $values['updated_at'] ?? '';
-        $count = $values['permissions_count'] ?? 0;
-
-        return [
-            'id' => is_numeric($id) ? (int) $id : null,
-            'publicId' => is_string($publicId) ? $publicId : '',
-            'teamId' => is_numeric($teamId) ? (int) $teamId : null,
-            'name' => is_string($name) ? $name : '',
-            'guard' => is_string($guard) ? $guard : '',
-            'permissionsCount' => is_numeric($count) ? (int) $count : 0,
-            'createdAt' => is_string($createdAt) ? $createdAt : '',
-            'updatedAt' => is_string($updatedAt) ? $updatedAt : '',
-        ];
-    }
-
-    /**
      * @param  list<array<string, scalar|\Stringable|null>>  $rows
      * @return list<array<string, scalar|\Stringable|null>>
      */
     private function filteredByControls(array $rows, ReportExportGenerationRequest $request): array
     {
         return array_values(array_filter($rows, static function (array $row) use ($request): bool {
-            $guard = self::filterValue($request, 'guard');
+            $assignment = self::filterValue($request, 'assignment');
 
-            if ($guard !== 'all' && $row['guard'] !== $guard) {
+            if ($assignment === 'assigned' && self::intValue($row['assignedUsersCount'] ?? 0) <= 0) {
                 return false;
             }
 
-            if (self::filterValue($request, 'scope') === 'global') {
-                return $row['teamId'] === null;
+            if ($assignment === 'unassigned' && self::intValue($row['assignedUsersCount'] ?? 0) > 0) {
+                return false;
             }
 
-            if (self::filterValue($request, 'scope') === 'team') {
-                return $row['teamId'] !== null;
+            $permissions = self::filterValue($request, 'permissions');
+
+            if ($permissions === 'with' && self::intValue($row['permissionsCount'] ?? 0) <= 0) {
+                return false;
+            }
+
+            if ($permissions === 'without' && self::intValue($row['permissionsCount'] ?? 0) > 0) {
+                return false;
             }
 
             return true;
         }));
+    }
+
+    /**
+     * @return array{id: int|null, publicId: string, name: string, displayName: string, guard: string, permissionsCount: int, assignedUsersCount: int, createdAt: string, updatedAt: string}
+     */
+    private static function roleRow(object $role): array
+    {
+        $values = get_object_vars($role);
+        $id = $values['id'] ?? null;
+        $publicId = $values['public_id'] ?? '';
+        $name = $values['name'] ?? '';
+        $displayName = $values['display_name'] ?? '';
+        $guard = $values['guard_name'] ?? '';
+        $createdAt = $values['created_at'] ?? '';
+        $updatedAt = $values['updated_at'] ?? '';
+        $count = $values['permissions_count'] ?? 0;
+        $assignedUsersCount = $values['assigned_users_count'] ?? 0;
+
+        return [
+            'id' => is_numeric($id) ? (int) $id : null,
+            'publicId' => is_string($publicId) ? $publicId : '',
+            'name' => is_string($name) ? $name : '',
+            'displayName' => self::displayName($displayName, $name),
+            'guard' => is_string($guard) ? $guard : '',
+            'permissionsCount' => is_numeric($count) ? (int) $count : 0,
+            'assignedUsersCount' => is_numeric($assignedUsersCount) ? (int) $assignedUsersCount : 0,
+            'createdAt' => is_string($createdAt) ? $createdAt : '',
+            'updatedAt' => is_string($updatedAt) ? $updatedAt : '',
+        ];
+    }
+
+    private static function intValue(mixed $value): int
+    {
+        return is_numeric($value) ? (int) $value : 0;
+    }
+
+    private static function displayName(mixed $displayName, mixed $name): string
+    {
+        $technicalName = is_string($name) ? $name : '';
+
+        return is_string($displayName) && $displayName !== '' && $displayName !== $technicalName
+            ? $displayName
+            : str($technicalName)->replace(['.', '-', '_'], ' ')->headline()->toString();
     }
 }

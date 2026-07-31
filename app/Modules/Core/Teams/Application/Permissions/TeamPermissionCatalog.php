@@ -28,6 +28,12 @@ final class TeamPermissionCatalog implements ModulePermissionContribution
 
     public const ADMIN_TEAMS_DELETE = 'admin.teams.destroy';
 
+    public const ADMIN_TEAMS_USERS_STORE = 'admin.teams.users.store';
+
+    public const ADMIN_TEAMS_USERS_DESTROY = 'admin.teams.users.destroy';
+
+    public const ADMIN_TEAMS_USERS_AUTHORIZATION_UPDATE = 'admin.teams.users.authorization.update';
+
     public const TEAMS_CREATE = TeamPermissionNames::TEAMS_CREATE;
 
     public const TEAMS_UPDATE = TeamPermissionNames::TEAMS_UPDATE;
@@ -37,6 +43,10 @@ final class TeamPermissionCatalog implements ModulePermissionContribution
     public const MANAGERS_VIEW = TeamPermissionNames::MANAGERS_VIEW;
 
     public const ADMIN_MANAGERS_INDEX = 'admin.managers.index';
+
+    public const ADMIN_MANAGERS_CREATE = 'admin.managers.create';
+
+    public const ADMIN_MANAGERS_EDIT = 'admin.managers.edit';
 
     public const ADMIN_MANAGERS_STORE = 'admin.managers.store';
 
@@ -68,11 +78,16 @@ final class TeamPermissionCatalog implements ModulePermissionContribution
             new ModulePermissionDefinition(self::ADMIN_TEAMS_ACTIVATE, 'Activate teams through Admin UI.'),
             new ModulePermissionDefinition(self::ADMIN_TEAMS_DEACTIVATE, 'Deactivate teams through Admin UI.'),
             new ModulePermissionDefinition(self::ADMIN_TEAMS_DELETE, 'Delete teams through Admin UI.'),
+            new ModulePermissionDefinition(self::ADMIN_TEAMS_USERS_STORE, 'Add users to teams through Admin UI.'),
+            new ModulePermissionDefinition(self::ADMIN_TEAMS_USERS_DESTROY, 'Remove users from teams through Admin UI.'),
+            new ModulePermissionDefinition(self::ADMIN_TEAMS_USERS_AUTHORIZATION_UPDATE, 'Update user authorization from team administration.'),
             new ModulePermissionDefinition(self::TEAMS_CREATE, 'Create teams.'),
             new ModulePermissionDefinition(self::TEAMS_UPDATE, 'Update teams.'),
             new ModulePermissionDefinition(self::TEAMS_DELETE, 'Delete teams.'),
             new ModulePermissionDefinition(self::MANAGERS_VIEW, 'View manager hierarchy.'),
             new ModulePermissionDefinition(self::ADMIN_MANAGERS_INDEX, 'View manager administration.'),
+            new ModulePermissionDefinition(self::ADMIN_MANAGERS_CREATE, 'Open manager relationship creation.'),
+            new ModulePermissionDefinition(self::ADMIN_MANAGERS_EDIT, 'Open manager hierarchy details.'),
             new ModulePermissionDefinition(self::ADMIN_MANAGERS_STORE, 'Create manager relationships through Admin UI.'),
             new ModulePermissionDefinition(self::ADMIN_MANAGERS_END, 'End manager relationships through Admin UI.'),
             new ModulePermissionDefinition(self::ADMIN_MANAGERS_HEAD_UPDATE, 'Update head manager status through Admin UI.'),

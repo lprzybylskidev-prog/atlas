@@ -39,8 +39,15 @@ final class SearchAdminTest extends TestCase
                 ->component('Admin/Search/Index')
                 ->where('auth.availableAdminRoutes', fn (Collection $routes): bool => $routes->contains('admin.search.index'))
                 ->where('summary.indexes', 0)
+                ->where('summary.sensitive', 0)
+                ->where('summary.visibleIndexes', 0)
+                ->has('indexes', 0)
                 ->where('readiness.status', 'degraded')
-                ->where('rebuildConfirmation', 'REBUILD SEARCH'));
+                ->where('rebuildConfirmation', 'REBUILD SEARCH')
+                ->where('table.key', 'admin.search.indexes')
+                ->where('table.state.filters.module', 'all')
+                ->where('table.state.filters.sensitivity', 'all')
+                ->where('table.exports.endpoint', route('admin.exports.data-table')));
 
         $response = $this->actingAs($admin)
             ->withSession($this->adminSession($team))

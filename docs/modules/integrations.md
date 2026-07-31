@@ -92,7 +92,7 @@ Permissions:
 - `admin.integrations.index`;
 - `admin.integrations.test`.
 
-The Admin screen shows registered adapters, source-of-truth notes, last success, last error, circuit state, recent synchronization runs, and global external API boundary status.
+The Admin screen shows registered adapters, source-of-truth notes, last success, last error, circuit state, recent synchronization runs, and global external API boundary status. Adapter status uses the shared Admin DataTable with backend-applied status, circuit, external-API, and scope filters, saved views, pagination, and exports. The recent synchronization panel is a compact operational signal; full synchronization history remains exportable through the `admin.integrations.runs` table key.
 
 Test connection actions are permission-protected and use the adapter's typed `testConnection` method. Admin never displays secrets.
 

@@ -2,6 +2,8 @@
 import { IconAlertTriangle, IconCircleCheck, IconCircleX } from '@tabler/icons-vue';
 import { computed } from 'vue';
 
+import { useTranslator } from '../../../Localization/translator';
+
 type SystemStatusCheck = {
     key: string;
     label: string;
@@ -55,6 +57,7 @@ const props = defineProps<{
     } | null;
 }>();
 
+const { t } = useTranslator();
 const normalizedStatus = computed(() => props.data?.status ?? 'healthy');
 const detailItems = computed(() =>
     [
@@ -70,19 +73,25 @@ const detailItems = computed(() =>
         { label: 'Deploy source', value: props.data?.deploySource, mono: true },
         { label: 'Checked at', value: props.data?.checkedAt, mono: false },
         {
-            label: 'Blocking checks',
+            label: t('pages.admin.dashboard.readiness.blocking_checks'),
             value:
                 props.data?.blockingTotal === undefined || props.data.blockingTotal === null
                     ? null
-                    : `${props.data.blockingFailed ?? 0} failed / ${props.data.blockingTotal} total`,
+                    : t('pages.admin.dashboard.readiness.failed_out_of_total', {
+                          failed: props.data.blockingFailed ?? 0,
+                          total: props.data.blockingTotal,
+                      }),
             mono: false,
         },
         {
-            label: 'Degraded checks',
+            label: t('pages.admin.dashboard.readiness.warning_checks'),
             value:
                 props.data?.degradedTotal === undefined || props.data.degradedTotal === null
                     ? null
-                    : `${props.data.degradedFailed ?? 0} failing / ${props.data.degradedTotal} total`,
+                    : t('pages.admin.dashboard.readiness.warning_out_of_total', {
+                          failed: props.data.degradedFailed ?? 0,
+                          total: props.data.degradedTotal,
+                      }),
             mono: false,
         },
         { label: 'Last success', value: props.data?.lastSuccessAt, mono: false },
@@ -210,7 +219,11 @@ const statusIcon = (status: string) => {
                     <span class="flex flex-wrap items-center gap-2">
                         <span class="font-semibold text-zinc-900 dark:text-zinc-100">{{ check.label }}</span>
                         <span class="text-xs uppercase text-zinc-500 dark:text-zinc-400">
-                            {{ check.blocking ? 'Blocking' : 'Degraded' }}
+                            {{
+                                check.blocking
+                                    ? t('pages.admin.dashboard.readiness.check_type_blocking')
+                                    : t('pages.admin.dashboard.status.degraded')
+                            }}
                         </span>
                     </span>
                     <span class="mt-1 block text-xs leading-5 text-zinc-500 dark:text-zinc-400">{{ check.description }}</span>

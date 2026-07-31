@@ -15,6 +15,7 @@ use App\Shared\Application\Modules\ModuleRegistry;
 use App\Shared\Infrastructure\Database\DatabaseTable;
 use App\Shared\Infrastructure\Observability\ModuleActivationScheduleDiagnostics;
 use App\Shared\Infrastructure\Observability\SchedulerHeartbeatMonitor;
+use Illuminate\Database\Query\Builder;
 use Illuminate\Foundation\Application;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -41,6 +42,7 @@ final readonly class AdminSystemStatusController
         $teamPublicId = is_string($teamPublicId) ? $teamPublicId : null;
 
         return Inertia::render('Admin/SystemStatus', [
+            'dashboard' => $this->dashboardPayload($request),
             'availability' => [
                 $this->availabilityEntry(
                     elementKey: 'admin.system-status.release',
@@ -176,10 +178,12 @@ final readonly class AdminSystemStatusController
 
     public function failedJobs(): JsonResponse
     {
-        $aggregate = DB::table(DatabaseTable::FAILED_JOBS)
+        $aggregate = DB::table(DatabaseTable::FAILED_JOBS.' as failed_jobs')
+            ->leftJoin(DatabaseTable::FAILED_JOB_ACKNOWLEDGEMENTS.' as acknowledgements', 'acknowledgements.failed_job_uuid', '=', 'failed_jobs.uuid')
+            ->whereNull('acknowledgements.failed_job_uuid')
             ->selectRaw('count(*) as failed_count')
-            ->selectRaw('count(distinct queue) as queues')
-            ->selectRaw('max(failed_at) as latest_failed_at')
+            ->selectRaw('count(distinct failed_jobs.queue) as queues')
+            ->selectRaw('max(failed_jobs.failed_at) as latest_failed_at')
             ->first();
         $failedCount = is_object($aggregate) && is_numeric($aggregate->failed_count ?? null) ? (int) $aggregate->failed_count : 0;
 
@@ -302,7 +306,6 @@ final readonly class AdminSystemStatusController
         $moduleActivation = $this->moduleActivationDiagnostics->status();
         $failedSchedules = is_numeric($moduleActivation['failedCount'] ?? null) ? (int) $moduleActivation['failedCount'] : 0;
         $scheduledChanges = is_numeric($moduleActivation['scheduledCount'] ?? null) ? (int) $moduleActivation['scheduledCount'] : 0;
-        $failedJobs = (int) DB::table(DatabaseTable::FAILED_JOBS)->count();
 
         if ($failedSchedules > 0) {
             $issues[] = [
@@ -310,15 +313,6 @@ final readonly class AdminSystemStatusController
                 'label' => 'Failed activation schedules',
                 'description' => 'Scheduled module activation changes failed and need review.',
                 'value' => $failedSchedules,
-            ];
-        }
-
-        if ($failedJobs > 0) {
-            $issues[] = [
-                'severity' => 'degraded',
-                'label' => 'Failed jobs',
-                'description' => 'Queue failures are waiting for operator review.',
-                'value' => $failedJobs,
             ];
         }
 
@@ -342,6 +336,7 @@ final readonly class AdminSystemStatusController
         $rows = DB::table(DatabaseTable::FILE_OBJECTS)
             ->selectRaw('scan_state, count(*) as total')
             ->whereNull('deleted_at')
+            ->whereNull('acknowledged_at')
             ->groupBy('scan_state')
             ->pluck('total', 'scan_state');
 
@@ -435,8 +430,8 @@ final readonly class AdminSystemStatusController
     private function managedProcessIssues(): array
     {
         $active = (int) DB::table(DatabaseTable::MANAGED_PROCESS_RUNS)->whereIn('status', ['draft', 'queued', 'running', 'waiting'])->count();
-        $failed = (int) DB::table(DatabaseTable::MANAGED_PROCESS_RUNS)->where('status', 'failed')->where('created_at', '>=', now()->subDay())->count();
-        $warnings = (int) DB::table(DatabaseTable::MANAGED_PROCESS_RUNS)->where('status', 'succeeded_with_warnings')->where('created_at', '>=', now()->subDay())->count();
+        $failed = (int) $this->unacknowledgedManagedProcessRunsQuery()->where('process_runs.status', 'failed')->where('process_runs.created_at', '>=', now()->subDay())->count();
+        $warnings = (int) $this->unacknowledgedManagedProcessRunsQuery()->where('process_runs.status', 'succeeded_with_warnings')->where('process_runs.created_at', '>=', now()->subDay())->count();
         $issues = [];
 
         if ($failed > 0) {
@@ -452,6 +447,13 @@ final readonly class AdminSystemStatusController
         }
 
         return $issues;
+    }
+
+    private function unacknowledgedManagedProcessRunsQuery(): Builder
+    {
+        return DB::table(DatabaseTable::MANAGED_PROCESS_RUNS.' as process_runs')
+            ->leftJoin(DatabaseTable::MANAGED_PROCESS_RUN_ACKNOWLEDGEMENTS.' as acknowledgements', 'acknowledgements.process_run_id', '=', 'process_runs.id')
+            ->whereNull('acknowledgements.process_run_id');
     }
 
     /**
@@ -473,6 +475,83 @@ final readonly class AdminSystemStatusController
         return [];
     }
 
+    /**
+     * @return array<string, mixed>
+     */
+    private function dashboardPayload(Request $request): array
+    {
+        $release = $this->releasePayload();
+        $readiness = $this->readiness->check()->toAdminArray();
+        $moduleActivation = $this->moduleActivationDiagnostics->status();
+        $externalMechanismChecks = array_values(array_filter(
+            $readiness['checks'],
+            static fn (array $check): bool => in_array($check['key'], ['postgresql', 'redis', 'storage', 'meilisearch', 'clamav', 'chromium-pdf'], true),
+        ));
+        $teamId = $this->activeTeamId($request);
+        $modules = array_map(fn (ModuleDefinition $module): array => $this->moduleStatusRow($module, $teamId), $this->moduleRegistry->all());
+        $activeModules = count(array_filter($modules, static fn (array $module): bool => $module['effectiveEnabled'] === true));
+        $modulesNeedingAttention = count(array_filter(
+            $modules,
+            static fn (array $module): bool => in_array($module['status'], ['degraded', 'unhealthy', 'unavailable'], true),
+        ));
+        $blockingReadiness = $this->intValue(data_get($readiness, 'blocking.failed'));
+        $degradedReadiness = $this->intValue(data_get($readiness, 'degraded.failed'));
+
+        return [
+            'generatedAt' => now()->toIso8601String(),
+            'release' => $release,
+            'externalMechanisms' => [
+                'status' => $this->aggregateStatus($externalMechanismChecks),
+                'checkedAt' => $readiness['checked_at'],
+                'blockingFailures' => $blockingReadiness,
+                'degradedFailures' => $degradedReadiness,
+                'items' => $externalMechanismChecks,
+            ],
+            'modules' => [
+                'active' => $activeModules,
+                'total' => count($modules),
+                'needingAttention' => $modulesNeedingAttention,
+                'failedActivationSchedules' => $this->intValue($moduleActivation['failedCount'] ?? null),
+                'scheduledActivationChanges' => $this->intValue($moduleActivation['scheduledCount'] ?? null),
+                'items' => array_map(
+                    static fn (array $module): array => [
+                        'key' => $module['key'],
+                        'category' => $module['category'],
+                        'status' => $module['status'],
+                        'effectiveEnabled' => $module['effectiveEnabled'],
+                        'technicallyAvailable' => $module['technicallyAvailable'],
+                        'issueCount' => self::issueCount($module['issues'] ?? null),
+                        'issue' => self::firstIssue($module['issues'] ?? null),
+                    ],
+                    $modules,
+                ),
+            ],
+        ];
+    }
+
+    /**
+     * @return array<string, string|null>
+     */
+    private function releasePayload(): array
+    {
+        $deployedAt = config('atlas.release.deployed_at');
+        $deployedBy = config('atlas.release.deployed_by');
+        $source = config('atlas.release.source');
+
+        return [
+            'version' => config()->string('atlas.release.version'),
+            'id' => config()->string('atlas.release.id'),
+            'environment' => config()->string('app.env'),
+            'laravelVersion' => Application::VERSION,
+            'phpVersion' => PHP_VERSION,
+            'timezone' => config()->string('app.timezone'),
+            'runtime' => PHP_SAPI,
+            'deployedAt' => is_scalar($deployedAt) ? (string) $deployedAt : null,
+            'deployedBy' => is_scalar($deployedBy) ? (string) $deployedBy : null,
+            'source' => is_scalar($source) ? (string) $source : null,
+        ];
+    }
+
     private function activeTeamId(Request $request): ?int
     {
         $teamPublicId = $request->hasSession() ? $request->session()->get('active_team_public_id') : null;
@@ -489,6 +568,34 @@ final readonly class AdminSystemStatusController
     private function intValue(mixed $value): int
     {
         return is_numeric($value) ? (int) $value : 0;
+    }
+
+    private static function issueCount(mixed $issues): int
+    {
+        return is_array($issues) ? count($issues) : 0;
+    }
+
+    private static function firstIssue(mixed $issues): mixed
+    {
+        return is_array($issues) ? ($issues[0] ?? null) : null;
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $checks
+     */
+    private function aggregateStatus(array $checks): string
+    {
+        $statuses = array_map(static fn (array $check): string => is_string($check['status'] ?? null) ? $check['status'] : 'unknown', $checks);
+
+        if (in_array('unhealthy', $statuses, true) || in_array('unavailable', $statuses, true) || in_array('failed', $statuses, true)) {
+            return 'unhealthy';
+        }
+
+        if (in_array('degraded', $statuses, true)) {
+            return 'degraded';
+        }
+
+        return 'healthy';
     }
 
     /**

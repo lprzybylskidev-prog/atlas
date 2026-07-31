@@ -46,6 +46,14 @@ final readonly class AdminManagedProcessRunsDataTableExportProvider extends Abst
             'status' => 'Status',
             'sourceType' => 'Source',
             'moduleKey' => 'Module',
+            'importKey' => 'Import',
+            'importSourceType' => 'Import source',
+            'importFile' => 'Import file',
+            'idempotencyKey' => 'Idempotency key',
+            'idempotencyState' => 'Idempotency state',
+            'handlingStatus' => 'Handling status',
+            'acknowledgedAt' => 'Handled at',
+            'acknowledgedBy' => 'Handled by',
             'progressLabel' => 'Progress',
             'progressCurrent' => 'Done',
             'progressTotal' => 'Total',
@@ -62,30 +70,58 @@ final readonly class AdminManagedProcessRunsDataTableExportProvider extends Abst
 
     public function rows(ReportExportGenerationRequest $request): iterable
     {
-        $rows = array_values(DB::table(DatabaseTable::MANAGED_PROCESS_RUNS)
+        $rows = array_values(DB::table(DatabaseTable::MANAGED_PROCESS_RUNS.' as process_runs')
             ->leftJoin(DatabaseTable::USERS, 'process_runs.actor_user_id', '=', 'users.id')
             ->leftJoin(DatabaseTable::TEAMS, 'process_runs.team_id', '=', 'teams.id')
+            ->leftJoin(DatabaseTable::IMPORT_EXECUTIONS, 'import_executions.process_run_id', '=', 'process_runs.id')
+            ->leftJoin(DatabaseTable::FILE_OBJECTS, 'import_executions.file_object_id', '=', 'file_objects.id')
+            ->leftJoin(DatabaseTable::MANAGED_PROCESS_RUN_ACKNOWLEDGEMENTS.' as acknowledgements', 'acknowledgements.process_run_id', '=', 'process_runs.id')
+            ->leftJoin(DatabaseTable::USERS.' as acknowledged_users', 'acknowledged_users.id', '=', 'acknowledgements.acknowledged_by_user_id')
             ->orderByDesc('process_runs.created_at')
             ->limit(80)
-            ->get(['process_runs.*', 'users.email as actor_email', 'teams.name as team_name'])
-            ->map(static fn (object $run): array => [
-                'publicId' => self::stringValue($run->public_id ?? null),
-                'processKey' => self::stringValue($run->process_key ?? null),
-                'moduleKey' => self::stringValue($run->module_key ?? null),
-                'status' => self::stringValue($run->status ?? null),
-                'sourceType' => self::stringValue($run->source_type ?? null),
-                'progressCurrent' => is_numeric($run->progress_current ?? null) ? (int) $run->progress_current : 0,
-                'progressTotal' => is_numeric($run->progress_total ?? null) ? (int) $run->progress_total : null,
-                'progressLabel' => self::stringValue($run->progress_label ?? null),
-                'safeErrorSummary' => self::stringValue($run->safe_error_summary ?? null),
-                'queueName' => self::stringValue($run->queue_name ?? null),
-                'correlationId' => self::stringValue($run->correlation_id ?? null),
-                'actor' => self::stringValue($run->actor_email ?? null),
-                'team' => self::stringValue($run->team_name ?? null),
-                'createdAt' => self::stringValue($run->created_at ?? null),
-                'startedAt' => self::stringValue($run->started_at ?? null),
-                'finishedAt' => self::stringValue($run->finished_at ?? null),
+            ->get([
+                'process_runs.*',
+                'users.email as actor_email',
+                'teams.name as team_name',
+                'acknowledgements.acknowledged_at',
+                'acknowledged_users.email as acknowledged_by',
+                'import_executions.import_key',
+                'import_executions.source_type as import_source_type',
+                'import_executions.idempotency_key',
+                'import_executions.idempotency_state',
+                'file_objects.original_name as import_file',
             ])
+            ->map(static function (object $run): array {
+                $status = self::stringValue($run->status ?? null);
+                $acknowledgedAt = self::stringValue($run->acknowledged_at ?? null);
+
+                return [
+                    'publicId' => self::stringValue($run->public_id ?? null),
+                    'processKey' => self::stringValue($run->process_key ?? null),
+                    'moduleKey' => self::stringValue($run->module_key ?? null),
+                    'importKey' => self::stringValue($run->import_key ?? null),
+                    'importSourceType' => self::stringValue($run->import_source_type ?? null),
+                    'importFile' => self::stringValue($run->import_file ?? null),
+                    'idempotencyKey' => self::stringValue($run->idempotency_key ?? null),
+                    'idempotencyState' => self::stringValue($run->idempotency_state ?? null),
+                    'status' => $status,
+                    'handlingStatus' => $acknowledgedAt !== '' ? 'handled' : (in_array($status, ['failed', 'succeeded_with_warnings', 'cancelled', 'expired'], true) ? 'needs_attention' : 'ok'),
+                    'acknowledgedAt' => $acknowledgedAt,
+                    'acknowledgedBy' => self::stringValue($run->acknowledged_by ?? null),
+                    'sourceType' => self::stringValue($run->source_type ?? null),
+                    'progressCurrent' => is_numeric($run->progress_current ?? null) ? (int) $run->progress_current : 0,
+                    'progressTotal' => is_numeric($run->progress_total ?? null) ? (int) $run->progress_total : null,
+                    'progressLabel' => self::stringValue($run->progress_label ?? null),
+                    'safeErrorSummary' => self::stringValue($run->safe_error_summary ?? null),
+                    'queueName' => self::stringValue($run->queue_name ?? null),
+                    'correlationId' => self::stringValue($run->correlation_id ?? null),
+                    'actor' => self::stringValue($run->actor_email ?? null),
+                    'team' => self::stringValue($run->team_name ?? null),
+                    'createdAt' => self::stringValue($run->created_at ?? null),
+                    'startedAt' => self::stringValue($run->started_at ?? null),
+                    'finishedAt' => self::stringValue($run->finished_at ?? null),
+                ];
+            })
             ->all());
 
         foreach ($this->sorted($this->filtered($this->filteredByControls($rows, $request), $request), $request) as $row) {
@@ -100,7 +136,7 @@ final readonly class AdminManagedProcessRunsDataTableExportProvider extends Abst
     private function filteredByControls(array $rows, ReportExportGenerationRequest $request): array
     {
         return array_values(array_filter($rows, static function (array $row) use ($request): bool {
-            foreach (['processKey' => 'process', 'status' => 'status', 'sourceType' => 'source', 'moduleKey' => 'module'] as $column => $filter) {
+            foreach (['processKey' => 'process', 'status' => 'status', 'sourceType' => 'source', 'moduleKey' => 'module', 'importKey' => 'import', 'idempotencyState' => 'idempotency'] as $column => $filter) {
                 $value = self::filterValue($request, $filter);
 
                 if ($value !== '' && $value !== 'all' && $row[$column] !== $value) {

@@ -45,11 +45,14 @@ final readonly class AdminRateLimitPoliciesDataTableExportProvider extends Abstr
         return [
             'publicId' => 'Public ID',
             'policy' => 'Policy',
+            'policyFamily' => 'Policy family',
             'maxAttempts' => 'Max attempts',
             'decaySeconds' => 'Decay seconds',
             'keyParts' => 'Key parts',
             'progressiveDelays' => 'Progressive delays',
             'temporaryLockSeconds' => 'Temporary lock seconds',
+            'hasProgressiveDelay' => 'Has progressive delay',
+            'hasTemporaryLock' => 'Has temporary lock',
             'rejections' => 'Rejections',
             'distinctKeys' => 'Distinct keys',
             'lastRejectedAt' => 'Last rejected at',
@@ -61,7 +64,7 @@ final readonly class AdminRateLimitPoliciesDataTableExportProvider extends Abstr
         $stats = $this->stats();
         $rows = array_map(fn (RateLimitPolicy $policy): array => $this->row($policy, $stats[$policy->name] ?? null), $this->catalog()->all());
 
-        foreach ($this->sorted($this->filtered($rows, $request), $request) as $row) {
+        foreach ($this->sorted($this->filtered($this->filteredByControls($rows, $request), $request), $request) as $row) {
             yield $row;
         }
     }
@@ -108,14 +111,78 @@ final readonly class AdminRateLimitPoliciesDataTableExportProvider extends Abstr
         return [
             'publicId' => $policy->name,
             'policy' => $policy->name,
+            'policyFamily' => $this->policyFamily($policy->name),
             'maxAttempts' => $policy->maxAttempts,
             'decaySeconds' => $policy->decaySeconds,
             'keyParts' => implode(', ', array_map(static fn ($part): string => $part->value, $policy->keyParts)),
             'progressiveDelays' => implode(', ', $policy->progressiveDelaySeconds),
             'temporaryLockSeconds' => $policy->temporaryLockSeconds,
+            'hasProgressiveDelay' => $policy->supportsProgressiveDelay(),
+            'hasTemporaryLock' => $policy->supportsTemporaryLock(),
             'rejections' => $stats['rejections'] ?? 0,
             'distinctKeys' => $stats['distinctKeys'] ?? 0,
             'lastRejectedAt' => $stats['lastRejectedAt'] ?? null,
         ];
+    }
+
+    /**
+     * @param  list<array<string, scalar|\Stringable|null>>  $rows
+     * @return list<array<string, scalar|\Stringable|null>>
+     */
+    private function filteredByControls(array $rows, ReportExportGenerationRequest $request): array
+    {
+        return array_values(array_filter($rows, static function (array $row) use ($request): bool {
+            $family = self::filterValue($request, 'family');
+            $activity = self::filterValue($request, 'activity');
+            $keyPart = self::filterValue($request, 'key_part');
+            $progressiveDelay = self::filterValue($request, 'progressive_delay');
+            $temporaryLock = self::filterValue($request, 'temporary_lock');
+
+            if ($family !== 'all' && $row['policyFamily'] !== $family) {
+                return false;
+            }
+
+            if ($activity === 'with_rejections' && self::intValue($row['rejections'] ?? 0) <= 0) {
+                return false;
+            }
+
+            if ($activity === 'without_rejections' && self::intValue($row['rejections'] ?? 0) > 0) {
+                return false;
+            }
+
+            if ($keyPart !== 'all' && ! str_contains((string) ($row['keyParts'] ?? ''), $keyPart)) {
+                return false;
+            }
+
+            if ($progressiveDelay === 'enabled' && $row['hasProgressiveDelay'] !== true) {
+                return false;
+            }
+
+            if ($progressiveDelay === 'disabled' && $row['hasProgressiveDelay'] !== false) {
+                return false;
+            }
+
+            if ($temporaryLock === 'enabled' && $row['hasTemporaryLock'] !== true) {
+                return false;
+            }
+
+            if ($temporaryLock === 'disabled' && $row['hasTemporaryLock'] !== false) {
+                return false;
+            }
+
+            return true;
+        }));
+    }
+
+    private function policyFamily(string $policy): string
+    {
+        $position = strpos($policy, '.');
+
+        return $position === false ? $policy : substr($policy, 0, $position);
+    }
+
+    private static function intValue(mixed $value): int
+    {
+        return is_numeric($value) ? (int) $value : 0;
     }
 }

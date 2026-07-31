@@ -48,7 +48,7 @@ The public evaluator is `App\Modules\Optional\FeatureFlags\Application\Public\Co
 
 Admin management is available at `/admin/feature-flags`.
 
-The screen shows registered definitions, selected-team effective values, global/team sources, and recent history. Administrators may update global values, update selected-team overrides, and clear selected-team overrides. Every mutation requires a reason.
+The screen shows registered definitions in the shared Admin DataTable with selected-team effective values, global/team sources, owner, lifecycle, filters, saved views, pagination, and export support. It also shows compact recent history. Administrators may update global values, update selected-team overrides, and clear selected-team overrides from row actions. Every mutation requires a reason.
 
 Permissions:
 

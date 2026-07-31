@@ -1,79 +1,142 @@
 <script setup lang="ts">
 import { Head, useForm } from '@inertiajs/vue3';
-import { IconArrowLeft, IconUserScan } from '@tabler/icons-vue';
+import { IconArrowLeft, IconShieldCheck, IconUserScan } from '@tabler/icons-vue';
+import { computed } from 'vue';
 
 import ActionLink from '../../../Components/ActionLink.vue';
-import FormActions from '../../../Components/FormActions.vue';
 import AtlasForm from '../../../Components/Form/AtlasForm.vue';
 import FormButton from '../../../Components/Form/FormButton.vue';
 import FormCheckbox from '../../../Components/Form/FormCheckbox.vue';
-import FormSelect from '../../../Components/Form/FormSelect.vue';
+import FormSelect, { type FormSelectOption } from '../../../Components/Form/FormSelect.vue';
 import FormTextarea from '../../../Components/Form/FormTextarea.vue';
 import NoticeBanner from '../../../Components/NoticeBanner.vue';
 import PageStack from '../../../Components/PageStack.vue';
 import SurfaceCard from '../../../Components/SurfaceCard.vue';
 import AdminLayout from '../../../Layouts/AdminLayout.vue';
-import type { FormSelectOption } from '../../../Components/Form/FormSelect.vue';
+import { useTranslator } from '../../../Localization/translator';
+import { formatEmpty } from '../../../Utils/formatters';
+
+interface TargetUser {
+    publicId: string;
+    name: string;
+    email: string;
+    accountSensitivity: string;
+}
 
 const props = defineProps<{
-    target: {
-        public_id: string;
-        name: string;
-        email: string;
-        account_sensitivity: string;
-    };
+    target: TargetUser;
     teams: FormSelectOption[];
     requiresSensitiveOverride: boolean;
 }>();
 
-const form = useForm({
-    team_public_id: props.teams.length === 1 ? props.teams[0].value : '',
+const { t } = useTranslator();
+const form = useForm<{
+    team_public_id: string;
+    reason: string;
+    override_sensitive: boolean;
+}>({
+    team_public_id: String(props.teams[0]?.value ?? ''),
     reason: '',
-    override_sensitive: props.requiresSensitiveOverride,
+    override_sensitive: false,
+});
+
+const sensitivityLabel = computed(() => {
+    const keys: Record<string, string> = {
+        integration: 'pages.admin.impersonation.sensitivity.integration',
+        normal: 'pages.admin.impersonation.sensitivity.normal',
+        sensitive: 'pages.admin.impersonation.sensitivity.sensitive',
+        service: 'pages.admin.impersonation.sensitivity.service',
+        technical: 'pages.admin.impersonation.sensitivity.technical',
+    };
+
+    return keys[props.target.accountSensitivity] === undefined ? props.target.accountSensitivity : t(keys[props.target.accountSensitivity]);
 });
 
 function submit(): void {
-    form.post(`/admin/users/${props.target.public_id}/impersonate`, { preserveScroll: true });
+    form.post(`/admin/users/${encodeURIComponent(props.target.publicId)}/impersonate`, {
+        preserveScroll: true,
+    });
 }
 </script>
 
 <template>
-    <Head title="Start impersonation" />
-    <AdminLayout title="Start impersonation" :title-icon="IconUserScan">
+    <Head :title="t('pages.admin.impersonation.head_title')" />
+    <AdminLayout :title="t('pages.admin.impersonation.title')" :title-icon="IconUserScan">
         <PageStack>
-            <NoticeBanner tone="warning"> Business actions during impersonation are real production actions. </NoticeBanner>
+            <div class="flex flex-wrap items-center justify-between gap-3">
+                <ActionLink href="/admin/users" tone="neutral" :icon="IconArrowLeft">
+                    {{ t('actions.back') }}
+                </ActionLink>
+            </div>
 
-            <SurfaceCard title="Impersonation request" :icon="IconUserScan">
+            <NoticeBanner :title="t('pages.admin.impersonation.notice.title')" tone="warning">
+                {{ t('pages.admin.impersonation.notice.body') }}
+            </NoticeBanner>
+
+            <SurfaceCard :title="t('pages.admin.impersonation.target.title')" :icon="IconUserScan" tone="sky">
+                <dl class="grid gap-4 text-sm md:grid-cols-2 xl:grid-cols-4">
+                    <div>
+                        <dt class="font-medium text-zinc-500 dark:text-zinc-400">{{ t('pages.admin.impersonation.target.name') }}</dt>
+                        <dd class="mt-1 text-zinc-950 dark:text-zinc-50">{{ formatEmpty(target.name) }}</dd>
+                    </div>
+                    <div>
+                        <dt class="font-medium text-zinc-500 dark:text-zinc-400">{{ t('pages.admin.impersonation.target.email') }}</dt>
+                        <dd class="mt-1 break-all text-zinc-950 dark:text-zinc-50">{{ formatEmpty(target.email) }}</dd>
+                    </div>
+                    <div>
+                        <dt class="font-medium text-zinc-500 dark:text-zinc-400">
+                            {{ t('pages.admin.impersonation.target.sensitivity') }}
+                        </dt>
+                        <dd class="mt-1 text-zinc-950 dark:text-zinc-50">{{ sensitivityLabel }}</dd>
+                    </div>
+                    <div>
+                        <dt class="font-medium text-zinc-500 dark:text-zinc-400">{{ t('pages.admin.impersonation.target.public_id') }}</dt>
+                        <dd class="mt-1 break-all text-zinc-950 dark:text-zinc-50">{{ target.publicId }}</dd>
+                    </div>
+                </dl>
+            </SurfaceCard>
+
+            <SurfaceCard :title="t('pages.admin.impersonation.form.title')" :icon="IconShieldCheck" tone="amber">
                 <AtlasForm :processing="form.processing" @submit="submit">
                     <div class="space-y-4">
-                        <div>
-                            <p class="text-sm font-medium text-zinc-950 dark:text-zinc-50">{{ target.name }}</p>
-                            <p class="break-all text-sm text-zinc-500 dark:text-zinc-400">{{ target.email }}</p>
-                            <p class="mt-1 text-xs uppercase text-zinc-500 dark:text-zinc-400">{{ target.account_sensitivity }}</p>
-                        </div>
-
                         <FormSelect
                             v-model="form.team_public_id"
-                            label="Active team"
+                            :label="t('pages.admin.impersonation.form.team')"
                             :options="teams"
-                            placeholder="Select team"
                             :error="form.errors.team_public_id"
                         />
-                        <FormTextarea v-model="form.reason" label="Reason" :rows="4" :error="form.errors.reason" />
-                        <FormCheckbox
-                            v-if="requiresSensitiveOverride"
-                            v-model="form.override_sensitive"
-                            label="Override sensitive-account block"
-                            :error="form.errors.override_sensitive"
+                        <FormTextarea
+                            v-model="form.reason"
+                            :label="t('pages.admin.impersonation.form.reason')"
+                            :placeholder="t('pages.admin.impersonation.form.reason_placeholder')"
+                            :error="form.errors.reason"
                         />
+                        <NoticeBanner
+                            v-if="requiresSensitiveOverride"
+                            :title="t('pages.admin.impersonation.sensitive.title')"
+                            tone="danger"
+                        >
+                            <div class="space-y-3">
+                                <p>{{ t('pages.admin.impersonation.sensitive.body') }}</p>
+                                <FormCheckbox
+                                    v-model="form.override_sensitive"
+                                    :label="t('pages.admin.impersonation.form.override_sensitive')"
+                                />
+                                <p v-if="form.errors.override_sensitive" class="text-sm font-medium text-rose-700 dark:text-rose-200">
+                                    {{ form.errors.override_sensitive }}
+                                </p>
+                            </div>
+                        </NoticeBanner>
                     </div>
 
-                    <FormActions class="mt-5">
-                        <FormButton type="submit" :loading="form.processing" :disabled="teams.length === 0">
-                            Start impersonation
+                    <div class="mt-5 flex flex-wrap justify-end gap-2">
+                        <ActionLink href="/admin/users" tone="neutral">
+                            {{ t('modal.cancel') }}
+                        </ActionLink>
+                        <FormButton type="submit" tone="danger" :icon="IconUserScan" :loading="form.processing">
+                            {{ t('pages.admin.impersonation.actions.start') }}
                         </FormButton>
-                        <ActionLink :href="`/admin/users/${target.public_id}/edit`" :icon="IconArrowLeft"> Back </ActionLink>
-                    </FormActions>
+                    </div>
                 </AtlasForm>
             </SurfaceCard>
         </PageStack>

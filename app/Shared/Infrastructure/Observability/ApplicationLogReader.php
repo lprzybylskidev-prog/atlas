@@ -11,6 +11,8 @@ final readonly class ApplicationLogReader
 {
     private const MAX_LINE_LENGTH = 4_000;
 
+    private const DEFAULT_LOG_FILE = 'laravel.log';
+
     public function __construct(
         private SensitiveDataRedactor $redactor,
         private ?string $path = null,
@@ -19,10 +21,10 @@ final readonly class ApplicationLogReader
     /**
      * @return array{entries: list<array<string, string>>, summary: array<string, int|string|null>}
      */
-    public function latest(int $limit = 1_000): array
+    public function latest(int $limit = 1_000, ?string $fileName = null): array
     {
         $limit = min(max($limit, 1), 2_000);
-        $path = $this->path ?? storage_path('logs/laravel.log');
+        $path = $this->path ?? $this->pathForFileName($fileName);
 
         if (! is_file($path) || ! is_readable($path)) {
             return [
@@ -51,6 +53,39 @@ final readonly class ApplicationLogReader
     }
 
     /**
+     * @return list<array{name: string, size: int, latestModifiedAt: string|null}>
+     */
+    public function logFiles(): array
+    {
+        if ($this->path !== null) {
+            return [$this->fileSummary($this->path)];
+        }
+
+        $paths = glob($this->logDirectory().DIRECTORY_SEPARATOR.'*.log') ?: [];
+        $files = [];
+
+        foreach ($paths as $path) {
+            if (is_file($path) && is_readable($path)) {
+                $files[] = $this->fileSummary($path);
+            }
+        }
+
+        usort($files, static function (array $left, array $right): int {
+            if ($left['name'] === self::DEFAULT_LOG_FILE) {
+                return -1;
+            }
+
+            if ($right['name'] === self::DEFAULT_LOG_FILE) {
+                return 1;
+            }
+
+            return $left['name'] <=> $right['name'];
+        });
+
+        return $files;
+    }
+
+    /**
      * @return array<int, string>
      */
     private function tail(string $path, int $limit): array
@@ -71,6 +106,47 @@ final readonly class ApplicationLogReader
         }
 
         return $lines;
+    }
+
+    private function pathForFileName(?string $fileName): string
+    {
+        $files = $this->logFiles();
+        $requested = is_string($fileName) && $fileName === basename($fileName) ? $fileName : '';
+
+        foreach ($files as $file) {
+            if ($file['name'] === $requested) {
+                return $this->logDirectory().DIRECTORY_SEPARATOR.$file['name'];
+            }
+        }
+
+        foreach ($files as $file) {
+            if ($file['name'] === self::DEFAULT_LOG_FILE) {
+                return $this->logDirectory().DIRECTORY_SEPARATOR.$file['name'];
+            }
+        }
+
+        if ($files !== []) {
+            return $this->logDirectory().DIRECTORY_SEPARATOR.$files[0]['name'];
+        }
+
+        return $this->logDirectory().DIRECTORY_SEPARATOR.self::DEFAULT_LOG_FILE;
+    }
+
+    /**
+     * @return array{name: string, size: int, latestModifiedAt: string|null}
+     */
+    private function fileSummary(string $path): array
+    {
+        return [
+            'name' => basename($path),
+            'size' => is_file($path) ? (int) filesize($path) : 0,
+            'latestModifiedAt' => is_file($path) && filemtime($path) !== false ? date(DATE_ATOM, (int) filemtime($path)) : null,
+        ];
+    }
+
+    private function logDirectory(): string
+    {
+        return storage_path('logs');
     }
 
     /**

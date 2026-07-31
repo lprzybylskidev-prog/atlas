@@ -8,6 +8,7 @@ use App\Modules\Core\Authorization\Application\Roles\InstallStarterRoles;
 use App\Modules\Core\Authorization\Application\Roles\StarterRoleName;
 use App\Modules\Core\Identity\Infrastructure\Persistence\User;
 use App\Modules\Core\Teams\Infrastructure\Persistence\Team;
+use App\Shared\Application\Tables\AdminTableDefinitions;
 use App\Shared\Infrastructure\Database\DatabaseTable;
 use App\Shared\Infrastructure\Observability\ApplicationLogReader;
 use App\Shared\Infrastructure\Observability\SensitiveDataRedactor;
@@ -62,9 +63,62 @@ final class AdminApplicationLogBrowserTest extends TestCase
                     })
                     ->where('summary.pathLabel', basename($path))
                     ->where('summary.rows', 1)
+                    ->where('summary.visible', 1)
+                    ->where('summary.files', 1)
+                    ->where('summary.errors', 0)
+                    ->where('summary.warnings', 0)
+                    ->where('summary.withDetails', 1)
+                    ->where('filters.file', basename($path))
+                    ->where('filters.search', 'identity')
+                    ->where('filters.source', 'all')
+                    ->where('filterOptions.files.0.name', basename($path))
+                    ->where('filterOptions.sources.0', 'http')
+                    ->where('tableKey', AdminTableDefinitions::APPLICATION_LOGS)
+                    ->where('exports.endpoint', route('admin.exports.data-table'))
                     ->where('logs.0.module', 'identity')
+                    ->where('logs.0.source', 'http')
                     ->where('logs.0.message', 'Identity operation for [redacted]')
                     ->where('logs.0.correlationId', 'request-log-1')
+                );
+        } finally {
+            @unlink($path);
+        }
+    }
+
+    public function test_admin_can_select_a_discovered_storage_log_file(): void
+    {
+        [$admin, $team] = $this->adminWithTeam();
+        $logDirectory = storage_path('logs');
+        $fileName = 'atlas-admin-log-browser-test.log';
+        $path = $logDirectory.DIRECTORY_SEPARATOR.$fileName;
+
+        if (! is_dir($logDirectory)) {
+            mkdir($logDirectory, 0775, true);
+        }
+
+        try {
+            file_put_contents($path, '[2026-07-17 12:05:00] local.ERROR: Browser test storage log entry'.PHP_EOL);
+
+            $this->actingAs($admin)
+                ->withSession([
+                    'active_team_public_id' => $team->public_id,
+                    'auth.password_confirmed_at' => now()->unix(),
+                    'atlas_admin_mode_entered_at' => now()->toIso8601String(),
+                    'atlas_admin_mode_last_activity_at' => now()->toIso8601String(),
+                    'atlas_admin_high_risk_confirmed_at' => now()->toIso8601String(),
+                ])
+                ->get('/admin/logs?file='.$fileName.'&search=storage')
+                ->assertOk()
+                ->assertInertia(fn (AssertableInertia $page) => $page
+                    ->component('Admin/Logs/Index')
+                    ->where('summary.pathLabel', $fileName)
+                    ->where('summary.rows', 1)
+                    ->where('filters.file', $fileName)
+                    ->where('filterOptions.files', function (Collection $files) use ($fileName): bool {
+                        return $files->contains(fn (array $file): bool => ($file['name'] ?? '') === $fileName);
+                    })
+                    ->where('logs.0.level', 'error')
+                    ->where('logs.0.message', 'Browser test storage log entry')
                 );
         } finally {
             @unlink($path);

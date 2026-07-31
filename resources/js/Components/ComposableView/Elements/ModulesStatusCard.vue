@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { IconAlertTriangle, IconCircleCheck, IconCircleDashed, IconCircleX, IconInfoCircle } from '@tabler/icons-vue';
 
+import { useTranslator } from '../../../Localization/translator';
+
 type ModuleIssue = {
     severity: 'healthy' | 'degraded' | 'unhealthy' | 'info' | string;
     label: string;
@@ -34,6 +36,8 @@ defineProps<{
         modules?: ModuleStatusRow[];
     } | null;
 }>();
+
+const { t } = useTranslator();
 
 const statusClass = (status: string): string => {
     if (status === 'healthy') {
@@ -146,16 +150,19 @@ const moduleLabel = (key: string): string =>
                 <div class="min-w-0">
                     <div class="flex flex-wrap gap-2 text-xs">
                         <span class="rounded bg-zinc-100 px-2 py-1 text-zinc-600 dark:bg-zinc-900 dark:text-zinc-300">
-                            Effective: {{ module.effectiveEnabled ? 'enabled' : 'disabled' }}
+                            {{ t('pages.admin.modules.effective') }}:
+                            {{ module.effectiveEnabled ? t('datatable.boolean.yes') : t('datatable.boolean.no') }}
                         </span>
                         <span class="rounded bg-zinc-100 px-2 py-1 text-zinc-600 dark:bg-zinc-900 dark:text-zinc-300">
-                            Global: {{ module.globallyEnabled ? 'enabled' : 'disabled' }}
+                            {{ t('pages.admin.modules.global') }}:
+                            {{ module.globallyEnabled ? t('pages.admin.modules.enabled') : t('pages.admin.modules.disabled') }}
                         </span>
                         <span class="rounded bg-zinc-100 px-2 py-1 text-zinc-600 dark:bg-zinc-900 dark:text-zinc-300">
-                            Team: {{ module.teamEnabled ? 'enabled' : 'disabled' }}
+                            {{ t('pages.admin.modules.team') }}:
+                            {{ module.teamEnabled ? t('pages.admin.modules.enabled') : t('pages.admin.modules.disabled') }}
                         </span>
                         <span class="rounded bg-zinc-100 px-2 py-1 text-zinc-600 dark:bg-zinc-900 dark:text-zinc-300">
-                            Source: {{ module.source }}
+                            {{ t('pages.admin.modules.team_source') }}: {{ module.source }}
                         </span>
                     </div>
 

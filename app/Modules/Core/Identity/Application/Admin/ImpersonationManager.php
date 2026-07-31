@@ -155,7 +155,10 @@ final readonly class ImpersonationManager implements ImpersonationEligibilityChe
             ]);
         }
 
-        $teamName = DB::table(DatabaseTable::TEAMS)->where('public_id', $teamPublicId)->value('name');
+        $team = DB::table(DatabaseTable::TEAMS)
+            ->where('public_id', $teamPublicId)
+            ->first(['name', 'display_name']);
+        $teamName = $this->teamDisplayName($team);
         $sessionId = (string) Str::ulid();
 
         $request->session()->put(self::SESSION_ID, $sessionId);
@@ -164,7 +167,7 @@ final readonly class ImpersonationManager implements ImpersonationEligibilityChe
         $request->session()->put(self::USER_PUBLIC_ID, (string) $target->public_id);
         $request->session()->put(self::USER_NAME, (string) $target->name);
         $request->session()->put(self::TEAM_PUBLIC_ID, $teamPublicId);
-        $request->session()->put(self::TEAM_NAME, is_string($teamName) ? $teamName : '');
+        $request->session()->put(self::TEAM_NAME, $teamName);
         $request->session()->put(self::REASON, $reason);
         $request->session()->put(self::STARTED_AT, now()->toIso8601String());
         $request->session()->put('active_team_public_id', $teamPublicId);
@@ -271,17 +274,29 @@ final readonly class ImpersonationManager implements ImpersonationEligibilityChe
     public function sharedState(Request $request): array
     {
         $session = $request->hasSession() ? $request->session() : null;
+        $sessionId = $session?->get(self::SESSION_ID);
+        $actorPublicId = $session?->get(self::ACTOR_PUBLIC_ID);
+        $userPublicId = $session?->get(self::USER_PUBLIC_ID);
+        $userName = $session?->get(self::USER_NAME);
+        $teamPublicIdValue = $session?->get(self::TEAM_PUBLIC_ID);
+        $sessionTeamName = $session?->get(self::TEAM_NAME);
+        $reason = $session?->get(self::REASON);
+        $startedAt = $session?->get(self::STARTED_AT);
+        $active = is_string($sessionId);
+        $teamPublicId = $active && is_string($teamPublicIdValue) ? $teamPublicIdValue : null;
+        $sessionTeamName = $active && is_string($sessionTeamName) ? $sessionTeamName : null;
+        $teamName = $teamPublicId === null ? $sessionTeamName : ($this->teamDisplayNameForPublicId($teamPublicId) ?: $sessionTeamName);
 
         return [
-            'active' => $session !== null && is_string($session->get(self::SESSION_ID)),
-            'sessionId' => $session !== null && is_string($session->get(self::SESSION_ID)) ? $session->get(self::SESSION_ID) : null,
-            'actorPublicId' => $session !== null && is_string($session->get(self::ACTOR_PUBLIC_ID)) ? $session->get(self::ACTOR_PUBLIC_ID) : null,
-            'userPublicId' => $session !== null && is_string($session->get(self::USER_PUBLIC_ID)) ? $session->get(self::USER_PUBLIC_ID) : null,
-            'userName' => $session !== null && is_string($session->get(self::USER_NAME)) ? $session->get(self::USER_NAME) : null,
-            'teamPublicId' => $session !== null && is_string($session->get(self::TEAM_PUBLIC_ID)) ? $session->get(self::TEAM_PUBLIC_ID) : null,
-            'teamName' => $session !== null && is_string($session->get(self::TEAM_NAME)) ? $session->get(self::TEAM_NAME) : null,
-            'reason' => $session !== null && is_string($session->get(self::REASON)) ? $session->get(self::REASON) : null,
-            'startedAt' => $session !== null && is_string($session->get(self::STARTED_AT)) ? $session->get(self::STARTED_AT) : null,
+            'active' => $active,
+            'sessionId' => $active ? $sessionId : null,
+            'actorPublicId' => $active && is_string($actorPublicId) ? $actorPublicId : null,
+            'userPublicId' => $active && is_string($userPublicId) ? $userPublicId : null,
+            'userName' => $active && is_string($userName) ? $userName : null,
+            'teamPublicId' => $teamPublicId,
+            'teamName' => $teamName,
+            'reason' => $active && is_string($reason) ? $reason : null,
+            'startedAt' => $active && is_string($startedAt) ? $startedAt : null,
         ];
     }
 
@@ -354,6 +369,27 @@ final readonly class ImpersonationManager implements ImpersonationEligibilityChe
                 $query->whereNull('team_user_assignments.valid_to')->orWhere('team_user_assignments.valid_to', '>', now());
             })
             ->exists();
+    }
+
+    private function teamDisplayName(mixed $team): string
+    {
+        if (! is_object($team)) {
+            return '';
+        }
+
+        $displayName = $team->display_name ?? null;
+        $name = $team->name ?? null;
+
+        return is_string($displayName) && $displayName !== ''
+            ? $displayName
+            : (is_string($name) ? $name : '');
+    }
+
+    private function teamDisplayNameForPublicId(string $teamPublicId): string
+    {
+        return $this->teamDisplayName(DB::table(DatabaseTable::TEAMS)
+            ->where('public_id', $teamPublicId)
+            ->first(['name', 'display_name']));
     }
 
     /**

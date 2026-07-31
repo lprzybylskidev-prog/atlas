@@ -25,6 +25,7 @@ use App\Shared\Application\Tables\TableState;
 use App\Shared\Infrastructure\Database\DatabaseTable;
 use App\Shared\Presentation\Support\AdminDataTableExportMeta;
 use App\Shared\Presentation\Support\FlashMessage;
+use Illuminate\Database\Query\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -51,25 +52,94 @@ final class TeamAdministrationController
     {
         $definition = AdminTableDefinitions::get(AdminTableDefinitions::TEAMS);
         $state = TableState::fromRequest($request, $definition);
+        $filters = $this->filters($request);
         [$userId, $teamId] = $this->context->userTeam($request);
         $rows = array_values(Team::query()
-            ->get(['id', 'public_id', 'name', 'is_active', 'created_at', 'updated_at'])
+            ->from(DatabaseTable::TEAMS.' as teams')
+            ->select([
+                'teams.id',
+                'teams.public_id',
+                'teams.name',
+                'teams.display_name',
+                'teams.is_active',
+                'teams.created_at',
+                'teams.updated_at',
+            ])
+            ->selectSub(
+                DB::table(DatabaseTable::TEAM_USER_ASSIGNMENTS)
+                    ->selectRaw('count(*)')
+                    ->whereColumn('team_user_assignments.team_id', 'teams.id')
+                    ->where(static function (Builder $query): void {
+                        $query->whereNull('team_user_assignments.valid_from')->orWhere('team_user_assignments.valid_from', '<=', now());
+                    })
+                    ->where(static function (Builder $query): void {
+                        $query->whereNull('team_user_assignments.valid_to')->orWhere('team_user_assignments.valid_to', '>', now());
+                    }),
+                'members_count',
+            )
+            ->get()
             ->map(static fn (Team $team): array => [
                 'id' => $team->id,
                 'publicId' => (string) $team->public_id,
                 'name' => $team->name,
+                'displayName' => is_string($team->display_name) && $team->display_name !== '' ? $team->display_name : $team->name,
                 'isActive' => $team->is_active,
+                'membersCount' => self::intValue($team->getAttribute('members_count')),
                 'createdAt' => $team->created_at?->toISOString() ?? '',
                 'updatedAt' => $team->updated_at?->toISOString() ?? '',
             ])
             ->all());
-        $result = $this->tables->process($rows, $definition, $state)
+        $result = $this->tables->process($this->filteredRows($rows, $filters), $definition, $state)
             ->withSavedViews($this->views->listFor($definition->key, $userId, $teamId));
+        $table = $result->tableMeta($definition->key, AdminDataTableExportMeta::defaults());
+        $table['state']['filters'] = $filters;
 
         return Inertia::render('Admin/Teams/Index', [
             'teams' => $result->rows,
-            'table' => $result->tableMeta($definition->key, AdminDataTableExportMeta::defaults()),
+            'table' => $table,
         ]);
+    }
+
+    /**
+     * @return array{status: string, members: string}
+     */
+    private function filters(Request $request): array
+    {
+        $status = $request->query('status');
+        $members = $request->query('members');
+
+        return [
+            'status' => in_array($status, ['active', 'inactive'], true) ? $status : 'all',
+            'members' => in_array($members, ['with', 'without'], true) ? $members : 'all',
+        ];
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $rows
+     * @param  array{status: string, members: string}  $filters
+     * @return list<array<string, mixed>>
+     */
+    private function filteredRows(array $rows, array $filters): array
+    {
+        return array_values(array_filter($rows, static function (array $row) use ($filters): bool {
+            if ($filters['status'] === 'active' && ($row['isActive'] ?? false) !== true) {
+                return false;
+            }
+
+            if ($filters['status'] === 'inactive' && ($row['isActive'] ?? false) === true) {
+                return false;
+            }
+
+            if ($filters['members'] === 'with' && self::intValue($row['membersCount'] ?? 0) <= 0) {
+                return false;
+            }
+
+            if ($filters['members'] === 'without' && self::intValue($row['membersCount'] ?? 0) > 0) {
+                return false;
+            }
+
+            return true;
+        }));
     }
 
     public function create(): Response
@@ -78,6 +148,7 @@ final class TeamAdministrationController
             'userOptions' => $this->userOptions(),
             'roleOptions' => $this->authorization->roleOptions(),
             'permissionOptions' => $this->authorization->permissionOptions(),
+            'rolePermissionMap' => $this->authorization->rolePermissionMap(),
             'moduleOptions' => $this->moduleOptions(),
         ]);
     }
@@ -94,6 +165,7 @@ final class TeamAdministrationController
             'team' => [
                 'publicId' => (string) $record->public_id,
                 'name' => $record->name,
+                'displayName' => is_string($record->display_name) && $record->display_name !== '' ? $record->display_name : $record->name,
                 'isActive' => $record->is_active,
             ],
             'memberships' => array_map(function ($membership) use ($record): array {
@@ -112,6 +184,7 @@ final class TeamAdministrationController
             'assignableUsers' => $this->memberships->assignableUsersForTeam((string) $record->public_id),
             'roleOptions' => $this->authorization->roleOptions(),
             'permissionOptions' => $this->authorization->permissionOptions(),
+            'rolePermissionMap' => $this->authorization->rolePermissionMap(),
             'moduleStates' => $this->teamModuleStates($record->id),
         ]);
     }
@@ -120,6 +193,7 @@ final class TeamAdministrationController
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255', Rule::unique(Team::class, 'name')],
+            'display_name' => ['required', 'string', 'max:255'],
             'user_assignments' => ['array'],
             'user_assignments.*.user_public_id' => ['nullable', 'string'],
             'user_assignments.*.role_names' => ['array'],
@@ -137,10 +211,12 @@ final class TeamAdministrationController
 
         $record = Team::query()->create([
             'name' => is_array($validated) && is_string($validated['name'] ?? null) ? $validated['name'] : '',
+            'display_name' => is_array($validated) && is_string($validated['display_name'] ?? null) ? $validated['display_name'] : '',
         ]);
 
         $this->recordAudit($request, 'team.created', 'succeeded', 'team', (string) $record->public_id, [], [
             'name' => $record->name,
+            'display_name' => $record->display_name,
             'isActive' => $record->is_active,
         ]);
 
@@ -195,18 +271,22 @@ final class TeamAdministrationController
                 'max:255',
                 Rule::unique(Team::class, 'name')->ignore($record->id),
             ],
+            'display_name' => ['required', 'string', 'max:255'],
         ]);
 
         $before = [
             'name' => $record->name,
+            'display_name' => $record->display_name,
             'isActive' => $record->is_active,
         ];
         $record->forceFill([
             'name' => is_array($validated) && is_string($validated['name'] ?? null) ? $validated['name'] : '',
+            'display_name' => is_array($validated) && is_string($validated['display_name'] ?? null) ? $validated['display_name'] : '',
         ])->save();
 
         $this->recordAudit($request, 'team.updated', 'succeeded', 'team', (string) $record->public_id, $before, [
             'name' => $record->name,
+            'display_name' => $record->display_name,
             'isActive' => $record->is_active,
         ]);
 
@@ -256,6 +336,95 @@ final class TeamAdministrationController
 
         return redirect()->route('admin.teams.index')->with('flash.messages', [
             FlashMessage::success('flash.teams.delete_attempted'),
+        ]);
+    }
+
+    public function addUser(Request $request, string $team): RedirectResponse
+    {
+        $record = Team::query()->where('public_id', $team)->first();
+
+        if (! $record instanceof Team) {
+            abort(404);
+        }
+
+        $validated = $request->validate([
+            'user_public_id' => ['required', 'string'],
+        ]);
+
+        $userPublicId = is_array($validated) && is_string($validated['user_public_id'] ?? null) ? $validated['user_public_id'] : '';
+
+        if (! $this->accounts->publicIdExists($userPublicId)) {
+            throw ValidationException::withMessages([
+                'user_public_id' => __('validation.exists', ['attribute' => __('validation.attributes.user')]),
+            ]);
+        }
+
+        $actorPublicId = data_get($request->user(), 'public_id');
+
+        if (is_string($actorPublicId)) {
+            $this->memberships->addAccess($actorPublicId, $userPublicId, (string) $record->public_id);
+        }
+
+        return redirect()->route('admin.teams.edit', ['team' => $team])->with('flash.messages', [
+            FlashMessage::success('flash.teams.access_added'),
+        ]);
+    }
+
+    public function removeUser(Request $request, string $team, string $user): RedirectResponse
+    {
+        $record = Team::query()->where('public_id', $team)->first();
+
+        if (! $record instanceof Team) {
+            abort(404);
+        }
+
+        $validated = $request->validate([
+            'reason' => ['required', 'string', 'max:500'],
+        ]);
+
+        $reason = is_array($validated) && is_string($validated['reason'] ?? null) ? $validated['reason'] : '';
+        $actorPublicId = data_get($request->user(), 'public_id');
+
+        if (is_string($actorPublicId)) {
+            $this->memberships->removeAccess($actorPublicId, $user, (string) $record->public_id, $reason);
+        }
+
+        return redirect()->route('admin.teams.edit', ['team' => $team])->with('flash.messages', [
+            FlashMessage::success('flash.teams.access_removed'),
+        ]);
+    }
+
+    public function updateUserAuthorization(Request $request, string $team, string $user): RedirectResponse
+    {
+        $record = Team::query()->where('public_id', $team)->first();
+
+        if (! $record instanceof Team) {
+            abort(404);
+        }
+
+        $validated = $request->validate([
+            'role_names' => ['array'],
+            'role_names.*' => ['string'],
+            'direct_permission_names' => ['array'],
+            'direct_permission_names.*' => ['string'],
+            'reason' => ['nullable', 'string', 'max:500'],
+        ]);
+        $validated = is_array($validated) ? $validated : [];
+        $actorPublicId = data_get($request->user(), 'public_id');
+
+        if (is_string($actorPublicId)) {
+            $this->authorization->replaceAssignmentsForUserTeam(
+                actorPublicId: $actorPublicId,
+                userPublicId: $user,
+                teamPublicId: (string) $record->public_id,
+                roleNames: $this->stringList($validated['role_names'] ?? []),
+                directPermissionNames: $this->stringList($validated['direct_permission_names'] ?? []),
+                reason: is_string($validated['reason'] ?? null) ? $validated['reason'] : null,
+            );
+        }
+
+        return redirect()->route('admin.teams.edit', ['team' => $team])->with('flash.messages', [
+            FlashMessage::success('flash.teams.authorization_updated'),
         ]);
     }
 
@@ -437,6 +606,11 @@ final class TeamAdministrationController
         }
 
         return array_values(array_filter($values, 'is_string'));
+    }
+
+    private static function intValue(mixed $value): int
+    {
+        return is_numeric($value) ? (int) $value : 0;
     }
 
     /**

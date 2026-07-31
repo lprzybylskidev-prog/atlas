@@ -27,4 +27,14 @@ describe('shared form control guardrails', () => {
             expect(contents, file).not.toMatch(/<button\s+type="submit"/);
         }
     });
+
+    it('uses dedicated date and datetime primitives instead of generic FormInput types', () => {
+        for (const [file, contents] of Object.entries(vueFiles)) {
+            if (file.includes('/Components/Form/FormInput.vue')) {
+                continue;
+            }
+
+            expect(contents, file).not.toMatch(/<FormInput\b[^>]*\btype="(?:date|datetime-local)"/);
+        }
+    });
 });

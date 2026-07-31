@@ -1,21 +1,35 @@
 <script setup lang="ts">
-import { Head, router } from '@inertiajs/vue3';
-import { IconClipboardList } from '@tabler/icons-vue';
-import { reactive, watch } from 'vue';
+import { Head } from '@inertiajs/vue3';
+import {
+    IconAlertTriangle,
+    IconFingerprint,
+    IconHistory,
+    IconListDetails,
+    IconSearch,
+    IconShieldCheck,
+    IconUserScan,
+} from '@tabler/icons-vue';
+import { computed, ref, watch } from 'vue';
 
-import FilterPanel from '../../../Components/FilterPanel.vue';
 import DataTable from '../../../Components/DataTable.vue';
+import FilterPanel from '../../../Components/FilterPanel.vue';
 import FormDateInput from '../../../Components/Form/FormDateInput.vue';
 import FormInput from '../../../Components/Form/FormInput.vue';
-import FormSelect from '../../../Components/Form/FormSelect.vue';
-import NoticeBanner from '../../../Components/NoticeBanner.vue';
+import FormSelect, { type FormSelectOption } from '../../../Components/Form/FormSelect.vue';
+import OperationalMetricTile from '../../../Components/OperationalMetricTile.vue';
 import PageStack from '../../../Components/PageStack.vue';
+import { applyTableFilters, clearTableFilters } from '../../../Composables/useTableFilterControls';
 import AdminLayout from '../../../Layouts/AdminLayout.vue';
 import { useTranslator } from '../../../Localization/translator';
-import type { DataTableColumn, DataTableMeta } from '../../../Types/data-table';
+import type { DataTableAction, DataTableColumn, DataTableMeta } from '../../../Types/data-table';
+import type { ShellSubnavigationItem } from '../../../Types/navigation';
+
+interface FilterOption {
+    value: string;
+    label: string;
+}
 
 interface AuditEventRow extends Record<string, unknown> {
-    id: number | null;
     publicId: string;
     occurredAt: string;
     module: string;
@@ -37,211 +51,268 @@ interface AuditEventRow extends Record<string, unknown> {
     metadata: string;
 }
 
-interface AuditFilters {
-    actor: string;
-    actualActor: string;
-    impersonatedUser: string;
-    impersonationSession: string;
-    target: string;
-    targetType: string;
-    action: string;
-    team: string;
-    module: string;
-    source: string;
-    correlation: string;
-    result: string;
-    security: string;
-    dateFrom: string;
-    dateTo: string;
-}
-
-interface AuditFilterOption {
-    value: string;
-    label: string;
-}
-
-interface AuditFilterOptions {
-    modules: AuditFilterOption[];
-    actions: AuditFilterOption[];
-    sources: AuditFilterOption[];
-    targetTypes: AuditFilterOption[];
-    teams: AuditFilterOption[];
+interface AuditSummary {
+    visible: number;
+    security: number;
+    rejected: number;
+    failed: number;
+    impersonated: number;
+    withReason: number;
 }
 
 const props = defineProps<{
     events: AuditEventRow[];
+    summary: AuditSummary;
     table: DataTableMeta;
-    filters: AuditFilters;
-    filterOptions: AuditFilterOptions;
+    filterOptions: {
+        modules: FilterOption[];
+        actions: FilterOption[];
+        sources: FilterOption[];
+        targetTypes: FilterOption[];
+        teams: FilterOption[];
+    };
 }>();
 
-const { t } = useTranslator();
-const filters = reactive<AuditFilters>({ ...props.filters });
-const resultOptions = [
-    { value: '', label: 'Any result' },
-    { value: 'succeeded', label: 'Succeeded' },
-    { value: 'rejected', label: 'Rejected' },
-    { value: 'failed', label: 'Failed' },
+const { locale, t } = useTranslator();
+const filterKeys = [
+    'actor',
+    'actual_actor',
+    'impersonated_user',
+    'impersonation_session',
+    'target',
+    'target_type',
+    'action',
+    'team',
+    'module',
+    'source',
+    'correlation',
+    'result',
+    'security',
+    'date_from',
+    'date_to',
 ];
-const securityOptions = [
-    { value: '', label: 'Any audit type' },
-    { value: 'yes', label: 'Security only' },
-    { value: 'no', label: 'Application only' },
-];
-const anyOption = (label: string): AuditFilterOption => ({ value: '', label });
-const moduleOptions = [anyOption('Any module'), ...props.filterOptions.modules];
-const actionOptions = [anyOption('Any action'), ...props.filterOptions.actions];
-const sourceOptions = [anyOption('Any source'), ...props.filterOptions.sources];
-const targetTypeOptions = [anyOption('Any target type'), ...props.filterOptions.targetTypes];
-const teamOptions = [anyOption('Any team'), ...props.filterOptions.teams];
-const tableQueryKeys = ['per_page', 'sort', 'direction', 'search', 'columns', 'column_order', 'view'] as const;
-const selectedViewStorageKey = `atlas.table.${props.table.key}.selectedView`;
+const filterDefaults = {
+    actor: '',
+    actual_actor: '',
+    impersonated_user: '',
+    impersonation_session: '',
+    target: '',
+    target_type: 'all',
+    action: 'all',
+    team: 'all',
+    module: 'all',
+    source: 'all',
+    correlation: '',
+    result: 'all',
+    security: 'all',
+    date_from: '',
+    date_to: '',
+};
+const filters = ref({ ...filterDefaults, ...filterValues() });
 
-const columns: DataTableColumn<AuditEventRow>[] = [
-    { key: 'publicId', label: 'Public ID', hidden: true },
-    { key: 'id', label: 'ID', hidden: true },
-    { key: 'occurredAt', label: 'Occurred at', format: 'datetime' },
-    { key: 'module', label: 'Module' },
-    { key: 'action', label: 'Action' },
-    { key: 'result', label: 'Result', format: 'status' },
-    { key: 'source', label: 'Source' },
-    { key: 'actorPublicId', label: 'Actor' },
-    { key: 'actualActorPublicId', label: 'Actual actor', hidden: true },
-    { key: 'impersonatedUserPublicId', label: 'Impersonated user', hidden: true },
-    { key: 'impersonationSessionId', label: 'Impersonation session', hidden: true },
-    { key: 'targetType', label: 'Target type' },
-    { key: 'targetPublicId', label: 'Target' },
-    { key: 'aggregateType', label: 'Aggregate type', hidden: true },
-    { key: 'aggregatePublicId', label: 'Aggregate', hidden: true },
-    { key: 'teamPublicId', label: 'Team' },
-    { key: 'correlationId', label: 'Correlation ID' },
-    { key: 'reason', label: 'Reason', hidden: true },
-    { key: 'security', label: 'Security', format: 'boolean' },
-    { key: 'metadata', label: 'Metadata keys', hidden: true },
-];
+const subnavigation = computed<ShellSubnavigationItem[]>(() => [
+    {
+        key: 'audit.events',
+        label: t('pages.admin.audit.nav.events'),
+        href: '/admin/audit',
+        icon: IconHistory,
+        active: true,
+    },
+    {
+        key: 'audit.security',
+        label: t('pages.admin.audit.nav.security_history'),
+        href: '/admin/audit/security-history',
+        icon: IconShieldCheck,
+        active: false,
+    },
+]);
+const columns = computed<DataTableColumn<AuditEventRow>[]>(() => [
+    { key: 'occurredAt', label: t('pages.admin.audit.table.occurred_at'), format: 'datetime' },
+    { key: 'module', label: t('pages.admin.audit.table.module'), format: 'status' },
+    { key: 'action', label: t('pages.admin.audit.table.action') },
+    { key: 'result', label: t('pages.admin.audit.table.result'), format: 'status' },
+    { key: 'source', label: t('pages.admin.audit.table.source'), format: 'status' },
+    { key: 'actorPublicId', label: t('pages.admin.audit.table.actor') },
+    { key: 'targetType', label: t('pages.admin.audit.table.target_type'), format: 'status' },
+    { key: 'targetPublicId', label: t('pages.admin.audit.table.target') },
+    { key: 'teamPublicId', label: t('pages.admin.audit.table.team') },
+    { key: 'correlationId', label: t('pages.admin.audit.table.correlation') },
+    { key: 'security', label: t('pages.admin.audit.table.security'), format: 'boolean' },
+    { key: 'actualActorPublicId', label: t('pages.admin.audit.table.actual_actor'), hidden: true },
+    { key: 'impersonatedUserPublicId', label: t('pages.admin.audit.table.impersonated_user'), hidden: true },
+    { key: 'impersonationSessionId', label: t('pages.admin.audit.table.impersonation_session'), hidden: true },
+    { key: 'aggregateType', label: t('pages.admin.audit.table.aggregate_type'), hidden: true },
+    { key: 'aggregatePublicId', label: t('pages.admin.audit.table.aggregate'), hidden: true },
+    { key: 'reason', label: t('pages.admin.audit.table.reason'), hidden: true },
+    { key: 'metadata', label: t('pages.admin.audit.table.metadata'), hidden: true },
+    { key: 'publicId', label: t('pages.admin.audit.table.public_id'), hidden: true },
+]);
+const actions = computed<DataTableAction<AuditEventRow>[]>(() => [
+    {
+        key: 'open',
+        label: t('pages.admin.audit.actions.open_impersonation_session'),
+        href: (row) => `/admin/audit/impersonation/${encodeURIComponent(row.impersonationSessionId)}`,
+        method: 'get',
+        visible: (row) => row.impersonationSessionId !== '',
+        tone: 'info',
+    },
+]);
+const moduleOptions = computed<FormSelectOption[]>(() =>
+    allOptions(props.filterOptions.modules, t('pages.admin.audit.filters.any_module')),
+);
+const actionOptions = computed<FormSelectOption[]>(() =>
+    allOptions(props.filterOptions.actions, t('pages.admin.audit.filters.any_action')),
+);
+const sourceOptions = computed<FormSelectOption[]>(() =>
+    allOptions(props.filterOptions.sources, t('pages.admin.audit.filters.any_source')),
+);
+const targetTypeOptions = computed<FormSelectOption[]>(() =>
+    allOptions(props.filterOptions.targetTypes, t('pages.admin.audit.filters.any_target_type')),
+);
+const teamOptions = computed<FormSelectOption[]>(() => allOptions(props.filterOptions.teams, t('pages.admin.audit.filters.any_team')));
+const resultOptions = computed<FormSelectOption[]>(() => [
+    { value: 'all', label: t('pages.admin.audit.filters.any_result') },
+    { value: 'succeeded', label: t('pages.admin.audit.result.succeeded') },
+    { value: 'rejected', label: t('pages.admin.audit.result.rejected') },
+    { value: 'failed', label: t('pages.admin.audit.result.failed') },
+]);
+const securityOptions = computed<FormSelectOption[]>(() => [
+    { value: 'all', label: t('pages.admin.audit.filters.any_security') },
+    { value: 'yes', label: t('pages.admin.audit.filters.security_only') },
+    { value: 'no', label: t('pages.admin.audit.filters.non_security') },
+]);
+const tableFilters = computed(() => filterValues());
 
-function applyFilters(): void {
-    const tableState = currentTableQuery();
+watch(
+    () => props.table.state.filters,
+    () => {
+        filters.value = { ...filterDefaults, ...filterValues() };
+    },
+);
 
-    router.get(
-        '/admin/audit',
-        {
-            ...tableState,
-            page: 1,
-            actor: filters.actor,
-            actual_actor: filters.actualActor,
-            impersonated_user: filters.impersonatedUser,
-            impersonation_session: filters.impersonationSession,
-            target: filters.target,
-            target_type: filters.targetType,
-            action: filters.action,
-            team: filters.team,
-            module: filters.module,
-            source: filters.source,
-            correlation: filters.correlation,
-            result: filters.result,
-            security: filters.security,
-            date_from: filters.dateFrom,
-            date_to: filters.dateTo,
-        },
-        { preserveScroll: true, preserveState: false, replace: true },
-    );
+function filterValues(): Record<string, string> {
+    return {
+        actor: String(props.table.state.filters?.actor ?? ''),
+        actual_actor: String(props.table.state.filters?.actual_actor ?? ''),
+        impersonated_user: String(props.table.state.filters?.impersonated_user ?? ''),
+        impersonation_session: String(props.table.state.filters?.impersonation_session ?? ''),
+        target: String(props.table.state.filters?.target ?? ''),
+        target_type: String(props.table.state.filters?.target_type ?? 'all'),
+        action: String(props.table.state.filters?.action ?? 'all'),
+        team: String(props.table.state.filters?.team ?? 'all'),
+        module: String(props.table.state.filters?.module ?? 'all'),
+        source: String(props.table.state.filters?.source ?? 'all'),
+        correlation: String(props.table.state.filters?.correlation ?? ''),
+        result: String(props.table.state.filters?.result ?? 'all'),
+        security: String(props.table.state.filters?.security ?? 'all'),
+        date_from: String(props.table.state.filters?.date_from ?? ''),
+        date_to: String(props.table.state.filters?.date_to ?? ''),
+    };
 }
 
-function currentTableQuery(): Record<string, string> {
-    if (typeof window === 'undefined') {
-        return props.table.state.view === null ? {} : { view: props.table.state.view };
-    }
+function allOptions(values: FilterOption[], label: string): FormSelectOption[] {
+    return [{ value: 'all', label }, ...values];
+}
 
-    const params = new URLSearchParams(window.location.search);
-    const state: Record<string, string> = {};
-
-    for (const key of tableQueryKeys) {
-        const value = params.get(key);
-
-        if (value !== null && value !== '') {
-            state[key] = value;
-        }
-    }
-
-    if (state.view === undefined && props.table.state.view !== null) {
-        state.view = props.table.state.view;
-    }
-
-    if (state.view === undefined) {
-        const storedView = window.sessionStorage.getItem(selectedViewStorageKey);
-
-        if (storedView !== null && storedView !== '') {
-            state.view = storedView;
-        }
-    }
-
-    return state;
+function applyFilters(): void {
+    applyTableFilters(filterKeys, filters.value, filterDefaults);
 }
 
 function clearFilters(): void {
-    filters.actor = '';
-    filters.actualActor = '';
-    filters.impersonatedUser = '';
-    filters.impersonationSession = '';
-    filters.target = '';
-    filters.targetType = '';
-    filters.action = '';
-    filters.team = '';
-    filters.module = '';
-    filters.source = '';
-    filters.correlation = '';
-    filters.result = '';
-    filters.security = '';
-    filters.dateFrom = '';
-    filters.dateTo = '';
-    applyFilters();
+    filters.value = { ...filterDefaults };
+    clearTableFilters(filterKeys);
 }
-
-watch(
-    () => props.filters,
-    (nextFilters) => {
-        Object.assign(filters, nextFilters);
-    },
-    { deep: true },
-);
 </script>
 
 <template>
-    <Head title="Audit" />
-    <AdminLayout :title="t('pages.admin.audit.title')" :title-icon="IconClipboardList">
+    <Head :title="t('pages.admin.audit.head_title')" />
+    <AdminLayout
+        :title="t('pages.admin.audit.title')"
+        :title-icon="IconFingerprint"
+        :subnavigation="subnavigation"
+        :subnavigation-label="t('pages.admin.audit.nav.label')"
+    >
         <PageStack>
-            <NoticeBanner :title="t('pages.admin.audit.bounded_title')">
-                {{ t('pages.admin.audit.bounded') }}
-            </NoticeBanner>
-            <FilterPanel @apply="applyFilters" @clear="clearFilters">
-                <div class="grid gap-3 md:grid-cols-3 xl:grid-cols-6">
-                    <FormSelect v-model="filters.module" class="mt-1" aria-label="Module" :options="moduleOptions" />
-                    <FormSelect v-model="filters.action" class="mt-1" aria-label="Action" :options="actionOptions" />
-                    <FormSelect v-model="filters.source" class="mt-1" aria-label="Source" :options="sourceOptions" />
-                    <FormSelect v-model="filters.targetType" class="mt-1" aria-label="Target type" :options="targetTypeOptions" />
-                    <FormSelect v-model="filters.team" class="mt-1" aria-label="Team" :options="teamOptions" />
-                    <FormSelect v-model="filters.result" class="mt-1" aria-label="Result" :options="resultOptions" />
-                    <FormSelect v-model="filters.security" class="mt-1" aria-label="Security filter" :options="securityOptions" />
-                    <FormInput v-model="filters.actor" aria-label="Actor public ID" placeholder="Actor" />
-                    <FormInput v-model="filters.actualActor" aria-label="Actual actor public ID" placeholder="Actual actor" />
-                    <FormInput
-                        v-model="filters.impersonatedUser"
-                        aria-label="Impersonated user public ID"
-                        placeholder="Impersonated user"
+            <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-6">
+                <OperationalMetricTile
+                    :label="t('pages.admin.audit.metric.visible')"
+                    :value="summary.visible"
+                    :icon="IconListDetails"
+                    tone="teal"
+                />
+                <OperationalMetricTile
+                    :label="t('pages.admin.audit.metric.security')"
+                    :value="summary.security"
+                    :icon="IconShieldCheck"
+                    :tone="summary.security > 0 ? 'amber' : 'zinc'"
+                />
+                <OperationalMetricTile
+                    :label="t('pages.admin.audit.metric.rejected')"
+                    :value="summary.rejected"
+                    :icon="IconAlertTriangle"
+                    :tone="summary.rejected > 0 ? 'rose' : 'zinc'"
+                />
+                <OperationalMetricTile
+                    :label="t('pages.admin.audit.metric.failed')"
+                    :value="summary.failed"
+                    :icon="IconAlertTriangle"
+                    :tone="summary.failed > 0 ? 'rose' : 'zinc'"
+                />
+                <OperationalMetricTile
+                    :label="t('pages.admin.audit.metric.impersonated')"
+                    :value="summary.impersonated"
+                    :icon="IconUserScan"
+                    tone="sky"
+                />
+                <OperationalMetricTile
+                    :label="t('pages.admin.audit.metric.with_reason')"
+                    :value="summary.withReason"
+                    :icon="IconSearch"
+                    tone="zinc"
+                />
+            </div>
+
+            <FilterPanel
+                :title="t('pages.admin.audit.filters.title')"
+                :apply-label="t('filters.apply')"
+                :clear-label="t('filters.clear')"
+                @apply="applyFilters"
+                @clear="clearFilters"
+            >
+                <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+                    <FormSelect v-model="filters.module" :label="t('pages.admin.audit.filters.module')" :options="moduleOptions" />
+                    <FormSelect v-model="filters.action" :label="t('pages.admin.audit.filters.action')" :options="actionOptions" />
+                    <FormSelect v-model="filters.result" :label="t('pages.admin.audit.filters.result')" :options="resultOptions" />
+                    <FormSelect v-model="filters.source" :label="t('pages.admin.audit.filters.source')" :options="sourceOptions" />
+                    <FormSelect v-model="filters.security" :label="t('pages.admin.audit.filters.security')" :options="securityOptions" />
+                    <FormSelect
+                        v-model="filters.target_type"
+                        :label="t('pages.admin.audit.filters.target_type')"
+                        :options="targetTypeOptions"
                     />
-                    <FormInput
-                        v-model="filters.impersonationSession"
-                        aria-label="Impersonation session ID"
-                        placeholder="Impersonation session"
-                    />
-                    <FormInput v-model="filters.target" aria-label="Target public ID" placeholder="Target" />
-                    <FormInput v-model="filters.correlation" aria-label="Correlation ID" placeholder="Correlation ID" />
-                    <FormDateInput v-model="filters.dateFrom" aria-label="Date from" />
-                    <FormDateInput v-model="filters.dateTo" aria-label="Date to" />
+                    <FormSelect v-model="filters.team" :label="t('pages.admin.audit.filters.team')" :options="teamOptions" />
+                    <FormDateInput v-model="filters.date_from" :label="t('pages.admin.audit.filters.date_from')" />
+                    <FormDateInput v-model="filters.date_to" :label="t('pages.admin.audit.filters.date_to')" />
+                    <FormInput v-model="filters.actor" :label="t('pages.admin.audit.filters.actor')" />
+                    <FormInput v-model="filters.target" :label="t('pages.admin.audit.filters.target')" />
+                    <FormInput v-model="filters.correlation" :label="t('pages.admin.audit.filters.correlation')" />
+                    <FormInput v-model="filters.actual_actor" :label="t('pages.admin.audit.filters.actual_actor')" />
+                    <FormInput v-model="filters.impersonated_user" :label="t('pages.admin.audit.filters.impersonated_user')" />
+                    <FormInput v-model="filters.impersonation_session" :label="t('pages.admin.audit.filters.impersonation_session')" />
                 </div>
             </FilterPanel>
-            <DataTable title="Audit events" :rows="events" :columns="columns" row-key="publicId" :table="table" />
+
+            <DataTable
+                :title="t('pages.admin.audit.events.title')"
+                :rows="events"
+                :columns="columns"
+                row-key="publicId"
+                :actions="actions"
+                :table="table"
+                :filters="tableFilters"
+                :ui-locale="locale"
+                :empty-label="t('pages.admin.audit.events.empty')"
+            />
         </PageStack>
     </AdminLayout>
 </template>

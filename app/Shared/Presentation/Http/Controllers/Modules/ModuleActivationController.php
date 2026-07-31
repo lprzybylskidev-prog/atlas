@@ -10,6 +10,7 @@ use App\Modules\Core\Audit\Application\Public\Enums\SecurityAuditCategory;
 use App\Shared\Application\Modules\Activation\Contracts\ModuleActivationService;
 use App\Shared\Application\Modules\Activation\ModuleActivationChange;
 use App\Shared\Application\Modules\Activation\ModuleActivationException;
+use App\Shared\Application\Modules\Activation\ModuleActivationScheduleStatus;
 use App\Shared\Application\Modules\Activation\ModuleActivationScope;
 use App\Shared\Application\Modules\Contracts\ModuleDefinition;
 use App\Shared\Application\Modules\ModuleCategory;
@@ -46,15 +47,22 @@ final readonly class ModuleActivationController
     {
         $definition = AdminTableDefinitions::get(AdminTableDefinitions::MODULES);
         $state = TableState::fromRequest($request, $definition);
+        $filters = $this->filters($request);
         [$userId, $teamId] = $this->context->userTeam($request);
         $activeTeamId = $this->activeTeamId($request);
         $rows = array_map(fn (ModuleDefinition $module): array => $this->moduleRow($module, $activeTeamId), $this->registry->all());
-        $result = $this->tables->process($rows, $definition, $state)
+        $result = $this->tables->process($this->filteredRows($rows, $filters), $definition, $state)
             ->withSavedViews($this->views->listFor($definition->key, $userId, $teamId));
+        $table = $result->tableMeta($definition->key, AdminDataTableExportMeta::defaults());
+        $table['state']['filters'] = $filters;
 
         return Inertia::render('Admin/Modules/Index', [
             'modules' => $result->rows,
-            'table' => $result->tableMeta($definition->key, AdminDataTableExportMeta::defaults()),
+            'filterOptions' => [
+                'categories' => array_map(static fn (ModuleCategory $category): string => $category->value, ModuleCategory::cases()),
+                'sources' => $this->teamStateSources($rows),
+            ],
+            'table' => $table,
         ]);
     }
 
@@ -72,6 +80,35 @@ final readonly class ModuleActivationController
             'history' => $this->historyRows($module),
             'schedules' => $this->scheduleRows($module),
             'exports' => AdminDataTableExportMeta::defaults(),
+        ]);
+    }
+
+    public function createTeamConfiguration(Request $request, string $module): Response
+    {
+        if (! $this->registry->has(new ModuleKey($module))) {
+            abort(404);
+        }
+
+        $definition = $this->registry->get(new ModuleKey($module));
+
+        if ($definition->category() === ModuleCategory::Core || ! $definition->supportsTeamActivation()) {
+            abort(404);
+        }
+
+        $teams = $this->teamRows($module);
+        $requestedTeam = $request->query('team');
+        $selectedTeamPublicId = is_string($requestedTeam) && $requestedTeam !== ''
+            ? $requestedTeam
+            : $this->activeTeamPublicId($request);
+        $selectedTeam = $this->selectedTeamRow($teams, $selectedTeamPublicId);
+        $selectedTeamId = is_array($selectedTeam) ? $this->teamId($this->scalarString($selectedTeam['publicId'] ?? '')) : null;
+
+        return Inertia::render('Admin/Modules/TeamConfiguration', [
+            'module' => $this->moduleRow($definition, $selectedTeamId),
+            'selectedTeamPublicId' => is_array($selectedTeam) ? $this->scalarString($selectedTeam['publicId'] ?? '') : null,
+            'teams' => $teams,
+            'history' => $this->historyRows($module),
+            'schedules' => $this->scheduleRows($module),
         ]);
     }
 
@@ -260,6 +297,10 @@ final readonly class ModuleActivationController
     private function moduleRow(ModuleDefinition $module, ?int $teamId): array
     {
         $effective = $this->activation->effectiveState($module->key()->value, $teamId);
+        $scheduledChangesCount = DB::table(DatabaseTable::MODULE_ACTIVATION_SCHEDULES)
+            ->where('module_key', $module->key()->value)
+            ->where('status', ModuleActivationScheduleStatus::Scheduled->value)
+            ->count();
 
         return [
             'moduleKey' => $module->key()->value,
@@ -273,10 +314,116 @@ final readonly class ModuleActivationController
             'teamVersion' => $effective->teamVersion,
             'supportsGlobalActivation' => $module->supportsGlobalActivation(),
             'supportsTeamActivation' => $module->supportsTeamActivation(),
+            'scheduledChangesCount' => $scheduledChangesCount,
             'requiredDependencies' => implode(', ', array_map(static fn (ModuleKey $key): string => $key->value, $module->requiredDependencies())),
             'optionalDependencies' => implode(', ', array_map(static fn (ModuleKey $key): string => $key->value, $module->optionalDependencies())),
             'readOnly' => $module->category() === ModuleCategory::Core,
         ];
+    }
+
+    /**
+     * @return array{category: string, source: string, availability: string, global: string, team: string, effective: string, globalSupport: string, teamSupport: string, scheduled: string}
+     */
+    private function filters(Request $request): array
+    {
+        $category = $request->query('category');
+        $source = $request->query('source');
+
+        return [
+            'category' => is_string($category) && in_array($category, array_map(static fn (ModuleCategory $case): string => $case->value, ModuleCategory::cases()), true) ? $category : 'all',
+            'source' => is_string($source) && in_array($source, ['global', 'team'], true) ? $source : 'all',
+            'availability' => $this->yesNoFilter($request, 'availability'),
+            'global' => $this->yesNoFilter($request, 'global'),
+            'team' => $this->yesNoFilter($request, 'team'),
+            'effective' => $this->yesNoFilter($request, 'effective'),
+            'globalSupport' => $this->yesNoFilter($request, 'globalSupport'),
+            'teamSupport' => $this->yesNoFilter($request, 'teamSupport'),
+            'scheduled' => $this->yesNoFilter($request, 'scheduled'),
+        ];
+    }
+
+    private function yesNoFilter(Request $request, string $key): string
+    {
+        $value = $request->query($key);
+
+        return in_array($value, ['yes', 'no'], true) ? $value : 'all';
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $rows
+     * @param  array{category: string, source: string, availability: string, global: string, team: string, effective: string, globalSupport: string, teamSupport: string, scheduled: string}  $filters
+     * @return list<array<string, mixed>>
+     */
+    private function filteredRows(array $rows, array $filters): array
+    {
+        return array_values(array_filter($rows, static function (array $row) use ($filters): bool {
+            if ($filters['category'] !== 'all' && ($row['category'] ?? null) !== $filters['category']) {
+                return false;
+            }
+
+            if ($filters['source'] !== 'all' && ($row['teamStateSource'] ?? null) !== $filters['source']) {
+                return false;
+            }
+
+            foreach ([
+                'availability' => 'technicallyAvailable',
+                'global' => 'globallyEnabled',
+                'team' => 'teamEnabled',
+                'effective' => 'effectiveEnabled',
+                'globalSupport' => 'supportsGlobalActivation',
+                'teamSupport' => 'supportsTeamActivation',
+            ] as $filterKey => $rowKey) {
+                if ($filters[$filterKey] !== 'all' && ($row[$rowKey] ?? false) !== ($filters[$filterKey] === 'yes')) {
+                    return false;
+                }
+            }
+
+            if ($filters['scheduled'] === 'yes' && self::scalarIntValue($row['scheduledChangesCount'] ?? 0) <= 0) {
+                return false;
+            }
+
+            if ($filters['scheduled'] === 'no' && self::scalarIntValue($row['scheduledChangesCount'] ?? 0) > 0) {
+                return false;
+            }
+
+            return true;
+        }));
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $rows
+     * @return list<string>
+     */
+    private function teamStateSources(array $rows): array
+    {
+        $sources = [];
+
+        foreach ($rows as $row) {
+            $source = $row['teamStateSource'] ?? null;
+
+            if (is_string($source) && $source !== '') {
+                $sources[$source] = $source;
+            }
+        }
+
+        sort($sources);
+
+        return $sources;
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $teams
+     * @return array<string, mixed>|null
+     */
+    private function selectedTeamRow(array $teams, ?string $teamPublicId): ?array
+    {
+        foreach ($teams as $team) {
+            if (($team['publicId'] ?? null) === $teamPublicId) {
+                return $team;
+            }
+        }
+
+        return $teams[0] ?? null;
     }
 
     /**
@@ -286,7 +433,7 @@ final readonly class ModuleActivationController
     {
         $rows = [];
 
-        foreach (DB::table(DatabaseTable::TEAMS)->orderBy('name')->get(['id', 'public_id', 'name', 'is_active']) as $team) {
+        foreach (DB::table(DatabaseTable::TEAMS)->orderBy('display_name')->orderBy('name')->get(['id', 'public_id', 'name', 'display_name', 'is_active']) as $team) {
             $values = get_object_vars($team);
             $teamId = is_numeric($values['id'] ?? null) ? (int) $values['id'] : null;
 
@@ -297,7 +444,7 @@ final readonly class ModuleActivationController
             $effective = $this->activation->effectiveState($module, $teamId);
             $rows[] = [
                 'publicId' => $this->scalarString($values['public_id'] ?? ''),
-                'name' => $this->scalarString($values['name'] ?? ''),
+                'name' => $this->teamDisplayName($team),
                 'isActive' => (bool) $values['is_active'],
                 'teamEnabled' => $effective->teamEnabled,
                 'effectiveEnabled' => $effective->effectiveEnabled,
@@ -383,9 +530,16 @@ final readonly class ModuleActivationController
 
     private function activeTeamId(Request $request): ?int
     {
-        $teamPublicId = $request->hasSession() ? $request->session()->get('active_team_public_id') : null;
+        $teamPublicId = $this->activeTeamPublicId($request);
 
         return is_string($teamPublicId) ? $this->teamId($teamPublicId) : null;
+    }
+
+    private function activeTeamPublicId(Request $request): ?string
+    {
+        $teamPublicId = $request->hasSession() ? $request->session()->get('active_team_public_id') : null;
+
+        return is_string($teamPublicId) && $teamPublicId !== '' ? $teamPublicId : null;
     }
 
     private function teamId(string $teamPublicId): ?int
@@ -434,6 +588,11 @@ final readonly class ModuleActivationController
         return is_numeric($value) ? (int) $value : null;
     }
 
+    private static function scalarIntValue(mixed $value): int
+    {
+        return is_numeric($value) ? (int) $value : 0;
+    }
+
     private function actorUserId(Request $request): ?int
     {
         $id = $request->user()?->getAuthIdentifier();
@@ -444,6 +603,13 @@ final readonly class ModuleActivationController
     private function scalarString(mixed $value): string
     {
         return is_scalar($value) ? (string) $value : '';
+    }
+
+    private function teamDisplayName(object $team): string
+    {
+        $displayName = $this->scalarString($team->display_name ?? '');
+
+        return $displayName === '' ? $this->scalarString($team->name ?? '') : $displayName;
     }
 
     private static function rowString(object $row, string $property): string

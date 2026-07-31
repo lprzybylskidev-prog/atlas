@@ -45,6 +45,7 @@ final class DatabaseUserTeamMembershipManager implements UserTeamMembershipManag
             ->get([
                 'teams.public_id',
                 'teams.name',
+                'teams.display_name',
                 'teams.is_active',
                 'team_user_assignments.valid_from',
                 'team_user_assignments.valid_to',
@@ -52,7 +53,7 @@ final class DatabaseUserTeamMembershipManager implements UserTeamMembershipManag
             $values = get_object_vars($row);
             $memberships[] = new AdminUserTeamMembership(
                 teamPublicId: $this->scalarString($values['public_id'] ?? ''),
-                teamName: $this->scalarString($values['name'] ?? ''),
+                teamName: $this->displayName($values),
                 teamActive: (bool) ($values['is_active'] ?? false),
                 validFrom: $this->nullableString($values['valid_from'] ?? null),
                 validTo: $this->nullableString($values['valid_to'] ?? null),
@@ -187,11 +188,11 @@ final class DatabaseUserTeamMembershipManager implements UserTeamMembershipManag
                 $query->whereNotIn('id', $activeTeamIds);
             })
             ->orderBy('name')
-            ->get(['public_id', 'name']) as $row) {
+            ->get(['public_id', 'name', 'display_name']) as $row) {
             $values = get_object_vars($row);
             $teams[] = new TeamOption(
                 publicId: $this->scalarString($values['public_id'] ?? ''),
-                name: $this->scalarString($values['name'] ?? ''),
+                name: $this->displayName($values),
             );
         }
 
@@ -205,11 +206,11 @@ final class DatabaseUserTeamMembershipManager implements UserTeamMembershipManag
         foreach (DB::table(DatabaseTable::TEAMS)
             ->where('is_active', true)
             ->orderBy('name')
-            ->get(['public_id', 'name']) as $row) {
+            ->get(['public_id', 'name', 'display_name']) as $row) {
             $values = get_object_vars($row);
             $teams[] = new TeamOption(
                 publicId: $this->scalarString($values['public_id'] ?? ''),
-                name: $this->scalarString($values['name'] ?? ''),
+                name: $this->displayName($values),
             );
         }
 
@@ -324,6 +325,16 @@ final class DatabaseUserTeamMembershipManager implements UserTeamMembershipManag
     private function scalarString(mixed $value): string
     {
         return is_scalar($value) ? (string) $value : '';
+    }
+
+    /**
+     * @param  array<mixed>  $values
+     */
+    private function displayName(array $values): string
+    {
+        $displayName = $this->scalarString($values['display_name'] ?? '');
+
+        return $displayName !== '' ? $displayName : $this->scalarString($values['name'] ?? '');
     }
 
     /**

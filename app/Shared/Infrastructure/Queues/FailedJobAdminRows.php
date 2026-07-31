@@ -10,27 +10,40 @@ use Illuminate\Support\Facades\DB;
 final readonly class FailedJobAdminRows
 {
     /**
-     * @return list<array{uuid: string, connection: string, queue: string, failedAt: string, displayName: string, jobClass: string, exceptionType: string, exceptionMessage: string, payload: string, exception: string}>
+     * @return list<array{uuid: string, connection: string, queue: string, failedAt: string, displayName: string, jobClass: string, exceptionType: string, exceptionMessage: string, payload: string, exception: string, acknowledged: bool, handlingStatus: string, acknowledgedAt: string|null, acknowledgedBy: string|null}>
      */
     public function rows(int $limit = 200): array
     {
-        return array_values(DB::table(DatabaseTable::FAILED_JOBS)
-            ->orderByDesc('failed_at')
+        return array_values(DB::table(DatabaseTable::FAILED_JOBS.' as failed_jobs')
+            ->leftJoin(DatabaseTable::FAILED_JOB_ACKNOWLEDGEMENTS.' as acknowledgements', 'acknowledgements.failed_job_uuid', '=', 'failed_jobs.uuid')
+            ->leftJoin(DatabaseTable::USERS.' as acknowledged_users', 'acknowledged_users.id', '=', 'acknowledgements.acknowledged_by_user_id')
+            ->orderByDesc('failed_jobs.failed_at')
             ->limit($limit)
-            ->get(['id', 'uuid', 'connection', 'queue', 'payload', 'exception', 'failed_at'])
+            ->get([
+                'failed_jobs.id',
+                'failed_jobs.uuid',
+                'failed_jobs.connection',
+                'failed_jobs.queue',
+                'failed_jobs.payload',
+                'failed_jobs.exception',
+                'failed_jobs.failed_at',
+                'acknowledgements.acknowledged_at',
+                'acknowledged_users.name as acknowledged_by',
+            ])
             ->map(fn (object $row): array => $this->jobRow($row))
             ->values()
             ->all());
     }
 
     /**
-     * @return array{uuid: string, connection: string, queue: string, failedAt: string, displayName: string, jobClass: string, exceptionType: string, exceptionMessage: string, payload: string, exception: string}
+     * @return array{uuid: string, connection: string, queue: string, failedAt: string, displayName: string, jobClass: string, exceptionType: string, exceptionMessage: string, payload: string, exception: string, acknowledged: bool, handlingStatus: string, acknowledgedAt: string|null, acknowledgedBy: string|null}
      */
     public function jobRow(object $row): array
     {
         $payload = $this->scalarString($row->payload ?? '');
         $exception = $this->scalarString($row->exception ?? '');
         $payloadData = $this->jsonPayload($payload);
+        $acknowledgedAt = $this->nullableScalarString($row->acknowledged_at ?? null);
 
         return [
             'uuid' => $this->scalarString($row->uuid ?? ''),
@@ -43,6 +56,10 @@ final readonly class FailedJobAdminRows
             'exceptionMessage' => $this->exceptionMessage($exception),
             'payload' => $this->prettyJson($payload),
             'exception' => $exception,
+            'acknowledged' => $acknowledgedAt !== null,
+            'handlingStatus' => $acknowledgedAt === null ? 'needs_attention' : 'handled',
+            'acknowledgedAt' => $acknowledgedAt,
+            'acknowledgedBy' => $this->nullableScalarString($row->acknowledged_by ?? null),
         ];
     }
 
@@ -119,6 +136,11 @@ final readonly class FailedJobAdminRows
     private function scalarString(mixed $value): string
     {
         return is_scalar($value) ? (string) $value : '';
+    }
+
+    private function nullableScalarString(mixed $value): ?string
+    {
+        return is_scalar($value) && (string) $value !== '' ? (string) $value : null;
     }
 
     /**

@@ -10,5 +10,6 @@ final readonly class CreateUserCredentialAccount
         public string $name,
         public string $email,
         public string $internalPassword,
+        public string $accountSensitivity = 'normal',
     ) {}
 }

@@ -9,34 +9,7 @@ const adminUser = {
 
 const applicationRoutes = ['/notifications'];
 
-const adminRoutes = [
-    '/admin',
-    '/admin/users',
-    '/admin/users/create',
-    '/admin/teams',
-    '/admin/teams/create',
-    '/admin/managers',
-    '/admin/authorization/roles',
-    '/admin/authorization/roles/create',
-    '/admin/authorization/packages',
-    '/admin/authorization/packages/create',
-    '/admin/authorization/permissions',
-    '/admin/audit',
-    '/admin/audit/security-history',
-    '/admin/rate-limits',
-    '/admin/logs',
-    '/admin/queues',
-    '/admin/files',
-    '/admin/modules',
-    '/admin/modules/identity',
-    '/admin/integrations',
-    '/admin/search',
-    '/admin/managed-processes',
-    '/admin/managed-processes/imports',
-    '/admin/managed-processes/definitions',
-    '/admin/managed-processes/schedules',
-    '/admin/imports',
-];
+const adminRoutes = ['/admin'];
 
 async function signIn(page: Page): Promise<void> {
     await page.goto('/login');

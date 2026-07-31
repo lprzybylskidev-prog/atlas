@@ -35,13 +35,92 @@ final readonly class UserAdministrationController
         [$userId, $teamId] = $this->context->userTeam($request);
         $actorPublicId = $this->actorPublicId($request);
 
-        $result = $this->tables->process(array_map(fn (AdminUserCredentialAccount $user): array => $this->row($request, $user, $actorPublicId), $this->accounts->allAdminRows()), $definition, $state)
+        $filters = $this->filters($request);
+        $rows = array_map(fn (AdminUserCredentialAccount $user): array => $this->row($request, $user, $actorPublicId), $this->accounts->allAdminRows());
+        $result = $this->tables->process($this->applyFilters($rows, $filters), $definition, $state)
             ->withSavedViews($this->views->listFor($definition->key, $userId, $teamId));
+        $table = $result->tableMeta($definition->key, AdminDataTableExportMeta::defaults());
+        $table['state']['filters'] = $filters;
 
         return Inertia::render('Admin/Users/Index', [
             'users' => $result->rows,
-            'table' => $result->tableMeta($definition->key, AdminDataTableExportMeta::defaults()),
+            'table' => $table,
         ]);
+    }
+
+    /**
+     * @return array{status: string, email: string, password: string, mfa: string, lock: string, sensitivity: string}
+     */
+    private function filters(Request $request): array
+    {
+        return [
+            'status' => $this->oneOf($request->query('status'), ['all', 'active', 'inactive']),
+            'email' => $this->oneOf($request->query('email'), ['all', 'verified', 'unverified']),
+            'password' => $this->oneOf($request->query('password'), ['all', 'set', 'pending']),
+            'mfa' => $this->oneOf($request->query('mfa'), ['all', 'enabled', 'disabled']),
+            'lock' => $this->oneOf($request->query('lock'), ['all', 'locked', 'unlocked']),
+            'sensitivity' => $this->oneOf($request->query('sensitivity'), ['all', 'normal', 'sensitive', 'technical', 'service', 'integration']),
+        ];
+    }
+
+    /**
+     * @param  list<string>  $allowed
+     */
+    private function oneOf(mixed $value, array $allowed): string
+    {
+        return is_string($value) && in_array($value, $allowed, true) ? $value : 'all';
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $rows
+     * @param  array{status: string, email: string, password: string, mfa: string, lock: string, sensitivity: string}  $filters
+     * @return list<array<string, mixed>>
+     */
+    private function applyFilters(array $rows, array $filters): array
+    {
+        return array_values(array_filter($rows, static function (array $row) use ($filters): bool {
+            if ($filters['status'] === 'active' && $row['isActive'] !== true) {
+                return false;
+            }
+
+            if ($filters['status'] === 'inactive' && $row['isActive'] === true) {
+                return false;
+            }
+
+            if ($filters['email'] === 'verified' && $row['emailVerified'] !== true) {
+                return false;
+            }
+
+            if ($filters['email'] === 'unverified' && $row['emailVerified'] === true) {
+                return false;
+            }
+
+            if ($filters['password'] === 'set' && $row['firstPasswordSet'] !== true) {
+                return false;
+            }
+
+            if ($filters['password'] === 'pending' && $row['firstPasswordSet'] === true) {
+                return false;
+            }
+
+            if ($filters['mfa'] === 'enabled' && $row['mfaEnabled'] !== true) {
+                return false;
+            }
+
+            if ($filters['mfa'] === 'disabled' && $row['mfaEnabled'] === true) {
+                return false;
+            }
+
+            if ($filters['lock'] === 'locked' && $row['loginLocked'] !== true) {
+                return false;
+            }
+
+            if ($filters['lock'] === 'unlocked' && $row['loginLocked'] === true) {
+                return false;
+            }
+
+            return $filters['sensitivity'] === 'all' || $row['accountSensitivity'] === $filters['sensitivity'];
+        }));
     }
 
     /**

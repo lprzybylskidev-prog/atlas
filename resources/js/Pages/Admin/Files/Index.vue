@@ -1,39 +1,56 @@
 <script setup lang="ts">
-import { Head } from '@inertiajs/vue3';
-import { IconFileAlert, IconFiles, IconRotateClockwise } from '@tabler/icons-vue';
-import type { Component } from 'vue';
-import { computed, ref } from 'vue';
+import { Head, router } from '@inertiajs/vue3';
+import {
+    IconAlertTriangle,
+    IconCircleCheck,
+    IconClipboardCheck,
+    IconFiles,
+    IconProgress,
+    IconShieldCheck,
+    IconShieldSearch,
+} from '@tabler/icons-vue';
+import { computed, ref, watch } from 'vue';
 
 import DataTable from '../../../Components/DataTable.vue';
 import FilterPanel from '../../../Components/FilterPanel.vue';
-import FormInput from '../../../Components/Form/FormInput.vue';
-import FormSelect from '../../../Components/Form/FormSelect.vue';
-import MetricGrid from '../../../Components/MetricGrid.vue';
-import NoticeBanner from '../../../Components/NoticeBanner.vue';
+import FormDateInput from '../../../Components/Form/FormDateInput.vue';
+import FormSelect, { type FormSelectOption } from '../../../Components/Form/FormSelect.vue';
+import OperationalMetricTile from '../../../Components/OperationalMetricTile.vue';
 import PageStack from '../../../Components/PageStack.vue';
+import SurfaceCard from '../../../Components/SurfaceCard.vue';
+import TruncatedText from '../../../Components/TruncatedText.vue';
+import { applyTableFilters, clearTableFilters } from '../../../Composables/useTableFilterControls';
 import AdminLayout from '../../../Layouts/AdminLayout.vue';
 import { useTranslator } from '../../../Localization/translator';
-import type { DataTableAction, DataTableColumn, DataTableExportMeta } from '../../../Types/data-table';
+import type { DataTableAction, DataTableBulkAction, DataTableColumn, DataTableMeta } from '../../../Types/data-table';
 
-interface FileRecord extends Record<string, unknown> {
+interface FileRow extends Record<string, unknown> {
     publicId: string;
     originalName: string;
-    extension: string;
-    mimeType: string;
+    extension: string | null;
+    mimeType: string | null;
     sizeBytes: number;
-    checksumSha256: string;
-    scanState: string;
+    checksumSha256: string | null;
+    scanState: string | null;
+    handlingStatus: string;
+    canAcknowledge: boolean;
+    acknowledgedAt: string | null;
+    acknowledgedBy: string | null;
+    acknowledgementReason: string | null;
     scanAttempts: number;
     quarantinedAt: string | null;
     availableAt: string | null;
+    createdAt: string | null;
     provider: string | null;
     engineVersion: string | null;
     signatureVersion: string | null;
     scannedAt: string | null;
+    result: string | null;
+    resultLabel?: string;
     threatName: string | null;
 }
 
-interface FileSummary {
+interface FilesSummary {
     total: number;
     pending: number;
     scanning: number;
@@ -41,103 +58,207 @@ interface FileSummary {
     infected: number;
     failed: number;
     unsupported: number;
+    blocked: number;
+    handled: number;
+    queued: number;
+    visible: number;
 }
 
-const props = defineProps<{ files: FileRecord[]; summary: FileSummary; exports: DataTableExportMeta }>();
-const { t } = useTranslator();
-const draftSearch = ref('');
-const draftState = ref('all');
-const search = ref('');
-const state = ref('all');
+const props = defineProps<{
+    files: FileRow[];
+    scanEvidence: FileRow[];
+    summary: FilesSummary;
+    filterOptions: {
+        extensions: string[];
+        providers: string[];
+    };
+    table: DataTableMeta;
+}>();
 
-const states = computed(() => [
-    { value: 'all', label: t('pages.admin.files.all') },
-    { value: 'pending', label: t('pages.admin.files.state.pending') },
-    { value: 'scanning', label: t('pages.admin.files.state.scanning') },
-    { value: 'clean', label: t('pages.admin.files.state.clean') },
-    { value: 'infected', label: t('pages.admin.files.state.infected') },
-    { value: 'failed', label: t('pages.admin.files.state.failed') },
-    { value: 'unsupported', label: t('pages.admin.files.state.unsupported') },
+const { locale, t } = useTranslator();
+const filterKeys = ['state', 'extension', 'provider', 'availability', 'handling', 'from', 'to'];
+const filterDefaults = {
+    state: 'all',
+    extension: 'all',
+    provider: 'all',
+    availability: 'all',
+    handling: 'needs_attention',
+    from: '',
+    to: '',
+};
+const filters = ref({ ...filterDefaults, ...filterValues() });
+
+const rows = computed<FileRow[]>(() =>
+    props.files.map((file) => ({
+        ...file,
+        scanState: scanStateLabel(file.scanState),
+        handlingStatus: handlingStatusLabel(file.handlingStatus),
+        resultLabel: scanStateLabel(file.result),
+    })),
+);
+const evidenceRows = computed<FileRow[]>(() =>
+    props.scanEvidence.map((file) => ({
+        ...file,
+        scanState: scanStateLabel(file.scanState),
+        handlingStatus: handlingStatusLabel(file.handlingStatus),
+        resultLabel: scanStateLabel(file.result),
+    })),
+);
+const columns = computed<DataTableColumn<FileRow>[]>(() => [
+    { key: 'publicId', label: t('pages.admin.files.table.public_id'), hidden: true },
+    { key: 'originalName', label: t('pages.admin.files.table.file') },
+    { key: 'extension', label: t('pages.admin.files.table.extension') },
+    { key: 'mimeType', label: t('pages.admin.files.table.mime_type') },
+    { key: 'scanState', label: t('pages.admin.files.table.scan_state'), format: 'status' },
+    { key: 'handlingStatus', label: t('pages.admin.files.table.handling_status'), format: 'status' },
+    { key: 'sizeBytes', label: t('pages.admin.files.table.size'), format: 'file-size' },
+    { key: 'checksumSha256', label: t('pages.admin.files.table.checksum') },
+    { key: 'scannedAt', label: t('pages.admin.files.table.scanned_at'), format: 'datetime' },
+    { key: 'acknowledgedAt', label: t('pages.admin.files.table.handled_at'), format: 'datetime', hidden: true },
+    { key: 'acknowledgedBy', label: t('pages.admin.files.table.handled_by'), hidden: true },
+    { key: 'acknowledgementReason', label: t('pages.admin.files.table.handling_reason'), hidden: true },
+    { key: 'provider', label: t('pages.admin.files.table.provider'), hidden: true },
+    { key: 'engineVersion', label: t('pages.admin.files.table.engine'), hidden: true },
+    { key: 'signatureVersion', label: t('pages.admin.files.table.signatures'), hidden: true },
+    { key: 'scanAttempts', label: t('pages.admin.files.table.attempts'), format: 'number', hidden: true },
+    { key: 'quarantinedAt', label: t('pages.admin.files.table.quarantined_at'), format: 'datetime', hidden: true },
+    { key: 'availableAt', label: t('pages.admin.files.table.available_at'), format: 'datetime', hidden: true },
+    { key: 'threatName', label: t('pages.admin.files.table.threat'), hidden: true },
+    { key: 'createdAt', label: t('pages.admin.files.table.created_at'), format: 'datetime', hidden: true },
 ]);
-
-const filteredFiles = computed(() => {
-    const query = search.value.trim().toLowerCase();
-
-    return props.files.filter((file) => {
-        if (state.value !== 'all' && file.scanState !== state.value) {
-            return false;
-        }
-
-        return (
-            query === '' ||
-            [
-                file.publicId,
-                file.originalName,
-                file.mimeType,
-                file.checksumSha256,
-                file.scanState,
-                file.provider ?? '',
-                file.threatName ?? '',
-            ]
-                .join(' ')
-                .toLowerCase()
-                .includes(query)
-        );
-    });
-});
-
-const summaryItems = computed<{ label: string; value: string; icon: Component }[]>(() => [
-    { label: t('pages.admin.files.metric.total'), value: String(props.summary.total), icon: IconFiles },
-    { label: t('pages.admin.files.metric.clean'), value: String(props.summary.clean), icon: IconFiles },
-    {
-        label: t('pages.admin.files.metric.blocked'),
-        value: String(props.summary.infected + props.summary.failed + props.summary.unsupported),
-        icon: IconFileAlert,
-    },
-    {
-        label: t('pages.admin.files.metric.queued'),
-        value: String(props.summary.pending + props.summary.scanning),
-        icon: IconRotateClockwise,
-    },
-]);
-
-const columns: DataTableColumn<FileRecord>[] = [
-    { key: 'publicId', label: t('pages.admin.files.public_id'), hidden: true },
-    { key: 'originalName', label: t('pages.admin.files.file') },
-    { key: 'mimeType', label: t('pages.admin.files.mime_type') },
-    { key: 'scanState', label: t('pages.admin.files.state'), format: 'severity' },
-    { key: 'sizeBytes', label: t('pages.admin.files.size'), format: 'file-size' },
-    { key: 'checksumSha256', label: t('pages.admin.files.checksum') },
-    { key: 'scannedAt', label: t('pages.admin.files.scanned'), format: 'datetime' },
-    { key: 'provider', label: t('pages.admin.files.provider'), hidden: true },
-    { key: 'engineVersion', label: t('pages.admin.files.engine'), hidden: true },
-    { key: 'signatureVersion', label: t('pages.admin.files.signatures'), hidden: true },
-    { key: 'scanAttempts', label: t('pages.admin.files.attempts'), format: 'number', hidden: true },
-    { key: 'quarantinedAt', label: t('pages.admin.files.quarantined'), format: 'datetime', hidden: true },
-    { key: 'availableAt', label: t('pages.admin.files.available'), format: 'datetime', hidden: true },
-    { key: 'threatName', label: t('pages.admin.files.threat'), hidden: true },
-];
-
-const actions: DataTableAction<FileRecord>[] = [
+const actions = computed<DataTableAction<FileRow>[]>(() => [
     {
         key: 'rescan',
-        label: t('pages.admin.files.queue_rescan'),
+        label: t('pages.admin.files.actions.rescan'),
         method: 'post',
-        href: (file) => `/admin/files/${file.publicId}/rescan`,
-        confirm: (file) => t('pages.admin.files.queue_rescan_confirm', { file: file.originalName }),
+        href: (file) => `/admin/files/${encodeURIComponent(file.publicId)}/rescan`,
+        confirm: (file) => t('pages.admin.files.actions.rescan_confirm', { file: file.originalName }),
         tone: 'warning',
     },
-];
+    {
+        key: 'acknowledge',
+        label: t('pages.admin.files.actions.acknowledge'),
+        method: 'post',
+        href: (file) => `/admin/files/acknowledge?files[]=${encodeURIComponent(file.publicId)}`,
+        confirm: (file) => t('pages.admin.files.actions.acknowledge_confirm', { file: file.originalName }),
+        tone: 'success',
+        visible: (file) => file.canAcknowledge,
+    },
+]);
+const bulkActions = computed<DataTableBulkAction[]>(() => [
+    { key: 'acknowledge', label: t('pages.admin.files.actions.acknowledge_selected'), tone: 'success' },
+]);
+const stateOptions = computed<FormSelectOption[]>(() => [
+    { value: 'all', label: t('pages.admin.files.filters.any_state') },
+    ...['pending', 'scanning', 'clean', 'infected', 'failed', 'unsupported'].map((state) => ({
+        value: state,
+        label: scanStateLabel(state),
+    })),
+]);
+const extensionOptions = computed<FormSelectOption[]>(() =>
+    allOptions(props.filterOptions.extensions, t('pages.admin.files.filters.any_extension')),
+);
+const providerOptions = computed<FormSelectOption[]>(() =>
+    allOptions(props.filterOptions.providers, t('pages.admin.files.filters.any_provider')),
+);
+const availabilityOptions = computed<FormSelectOption[]>(() => [
+    { value: 'all', label: t('pages.admin.files.filters.any_availability') },
+    { value: 'available', label: t('pages.admin.files.filters.available') },
+    { value: 'blocked', label: t('pages.admin.files.filters.blocked') },
+]);
+const handlingOptions = computed<FormSelectOption[]>(() => [
+    { value: 'needs_attention', label: t('pages.admin.files.filters.needs_attention') },
+    { value: 'handled', label: t('pages.admin.files.filters.handled') },
+    { value: 'all', label: t('pages.admin.files.filters.any_handling') },
+]);
+const tableFilters = computed(() => filterValues());
+const hasBlockedFiles = computed(() => props.summary.blocked > 0);
+
+watch(
+    () => props.table.state.filters,
+    () => {
+        filters.value = { ...filterDefaults, ...filterValues() };
+    },
+);
+
+function filterValues(): Record<string, string> {
+    return {
+        state: String(props.table.state.filters?.state ?? 'all'),
+        extension: String(props.table.state.filters?.extension ?? 'all'),
+        provider: String(props.table.state.filters?.provider ?? 'all'),
+        availability: String(props.table.state.filters?.availability ?? 'all'),
+        handling: String(props.table.state.filters?.handling ?? 'needs_attention'),
+        from: String(props.table.state.filters?.from ?? ''),
+        to: String(props.table.state.filters?.to ?? ''),
+    };
+}
+
+function allOptions(values: string[], label: string): FormSelectOption[] {
+    return [
+        { value: 'all', label },
+        ...values.map((value) => ({
+            value,
+            label: value,
+        })),
+    ];
+}
+
+function scanStateLabel(value: string | null): string {
+    if (value === null || value === '') {
+        return '';
+    }
+
+    const keys: Record<string, string> = {
+        clean: 'pages.admin.files.states.clean',
+        failed: 'pages.admin.files.states.failed',
+        infected: 'pages.admin.files.states.infected',
+        pending: 'pages.admin.files.states.pending',
+        scanning: 'pages.admin.files.states.scanning',
+        unsupported: 'pages.admin.files.states.unsupported',
+    };
+
+    return keys[value] === undefined ? value : t(keys[value]);
+}
+
+function handlingStatusLabel(value: string | null): string {
+    if (value === null || value === '') {
+        return '';
+    }
+
+    const keys: Record<string, string> = {
+        handled: 'pages.admin.files.handling.handled',
+        needs_attention: 'pages.admin.files.handling.needs_attention',
+        not_applicable: 'pages.admin.files.handling.not_applicable',
+    };
+
+    return keys[value] === undefined ? value : t(keys[value]);
+}
 
 function applyFilters(): void {
-    search.value = draftSearch.value;
-    state.value = draftState.value;
+    applyTableFilters(filterKeys, filters.value, filterDefaults);
 }
 
 function clearFilters(): void {
-    draftSearch.value = '';
-    draftState.value = 'all';
-    applyFilters();
+    filters.value = { ...filterDefaults };
+    clearTableFilters(filterKeys);
+}
+
+function handleBulkAction(payload: { action: DataTableBulkAction; rowIds: string[] }): Promise<void> {
+    if (payload.action.key !== 'acknowledge') {
+        return Promise.resolve();
+    }
+
+    return new Promise((resolve, reject) => {
+        router.post(
+            '/admin/files/acknowledge',
+            { files: payload.rowIds },
+            {
+                preserveScroll: true,
+                onSuccess: () => resolve(),
+                onError: () => reject(),
+            },
+        );
+    });
 }
 </script>
 
@@ -145,34 +266,137 @@ function clearFilters(): void {
     <Head :title="t('pages.admin.files.head_title')" />
     <AdminLayout :title="t('pages.admin.files.title')" :title-icon="IconFiles">
         <PageStack>
-            <MetricGrid :items="summaryItems" />
-            <NoticeBanner :title="t('pages.admin.files.bounded_title')">
-                {{ t('pages.admin.files.bounded') }}
-            </NoticeBanner>
+            <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-6">
+                <OperationalMetricTile :label="t('pages.admin.files.metric.total')" :value="summary.total" :icon="IconFiles" tone="sky" />
+                <OperationalMetricTile
+                    :label="t('pages.admin.files.metric.queued')"
+                    :value="summary.queued"
+                    :icon="IconProgress"
+                    tone="amber"
+                />
+                <OperationalMetricTile
+                    :label="t('pages.admin.files.metric.clean')"
+                    :value="summary.clean"
+                    :icon="IconCircleCheck"
+                    tone="emerald"
+                />
+                <OperationalMetricTile
+                    :label="t('pages.admin.files.metric.blocked')"
+                    :value="summary.blocked"
+                    :icon="IconAlertTriangle"
+                    :tone="hasBlockedFiles ? 'rose' : 'zinc'"
+                />
+                <OperationalMetricTile
+                    :label="t('pages.admin.files.metric.handled')"
+                    :value="summary.handled"
+                    :icon="IconClipboardCheck"
+                    tone="emerald"
+                />
+                <OperationalMetricTile
+                    :label="t('pages.admin.files.metric.visible')"
+                    :value="summary.visible"
+                    :icon="IconShieldSearch"
+                    tone="teal"
+                />
+            </div>
 
             <FilterPanel
-                :summary="t('pages.admin.files.loaded_summary', { visible: filteredFiles.length, loaded: props.files.length })"
+                :title="t('pages.admin.files.filters.title')"
+                :apply-label="t('filters.apply')"
+                :clear-label="t('filters.clear')"
                 @apply="applyFilters"
                 @clear="clearFilters"
             >
-                <div class="grid gap-3 lg:grid-cols-[minmax(0,1fr)_220px]">
-                    <FormInput v-model="draftSearch" name="search" :label="t('pages.admin.files.search')" type="text" autocomplete="off" />
-                    <FormSelect v-model="draftState" name="state" :label="t('pages.admin.files.scan_state')" :options="states" />
+                <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                    <FormSelect v-model="filters.state" :label="t('pages.admin.files.filters.state')" :options="stateOptions" />
+                    <FormSelect v-model="filters.extension" :label="t('pages.admin.files.filters.extension')" :options="extensionOptions" />
+                    <FormSelect v-model="filters.provider" :label="t('pages.admin.files.filters.provider')" :options="providerOptions" />
+                    <FormSelect
+                        v-model="filters.availability"
+                        :label="t('pages.admin.files.filters.availability')"
+                        :options="availabilityOptions"
+                    />
+                    <FormSelect v-model="filters.handling" :label="t('pages.admin.files.filters.handling')" :options="handlingOptions" />
+                    <FormDateInput v-model="filters.from" :label="t('pages.admin.files.filters.created_from')" :ui-locale="locale" />
+                    <FormDateInput v-model="filters.to" :label="t('pages.admin.files.filters.created_to')" :ui-locale="locale" />
                 </div>
             </FilterPanel>
 
             <DataTable
-                :title="t('pages.admin.files.title')"
-                :rows="filteredFiles"
+                :title="t('pages.admin.files.table.title')"
+                :rows="rows"
                 :columns="columns"
                 row-key="publicId"
                 :actions="actions"
-                state-key="admin.files"
-                export-key="admin.files"
-                :exports="exports"
-                :filters="{ state }"
-                :empty-label="t('pages.admin.files.empty_filtered')"
+                :bulk-actions="bulkActions"
+                :bulk-action-handler="handleBulkAction"
+                :table="table"
+                :filters="tableFilters"
+                :ui-locale="locale"
+                :empty-label="t('pages.admin.files.table.empty')"
             />
+
+            <SurfaceCard :title="t('pages.admin.files.evidence.title')" :icon="IconShieldCheck" tone="zinc">
+                <div v-if="evidenceRows.length === 0" class="text-sm text-zinc-500 dark:text-zinc-400">
+                    {{ t('pages.admin.files.table.empty') }}
+                </div>
+                <div v-else class="divide-y divide-zinc-200 dark:divide-zinc-800">
+                    <details v-for="file in evidenceRows" :key="file.publicId" class="group py-3">
+                        <summary
+                            class="flex cursor-pointer flex-wrap items-center justify-between gap-3 text-sm font-medium text-zinc-950 dark:text-zinc-50"
+                        >
+                            <span class="min-w-0 truncate">{{ file.originalName }} · {{ file.scanState }}</span>
+                            <span class="text-xs font-normal text-zinc-500 dark:text-zinc-400">{{ file.publicId }}</span>
+                        </summary>
+                        <dl class="mt-3 grid gap-3 text-sm md:grid-cols-2 xl:grid-cols-3">
+                            <div>
+                                <dt class="text-xs font-semibold text-zinc-500 uppercase dark:text-zinc-400">
+                                    {{ t('pages.admin.files.table.provider') }}
+                                </dt>
+                                <dd class="mt-1 text-zinc-800 dark:text-zinc-100">{{ file.provider ?? '-' }}</dd>
+                            </div>
+                            <div>
+                                <dt class="text-xs font-semibold text-zinc-500 uppercase dark:text-zinc-400">
+                                    {{ t('pages.admin.files.table.engine') }}
+                                </dt>
+                                <dd class="mt-1 text-zinc-800 dark:text-zinc-100">{{ file.engineVersion ?? '-' }}</dd>
+                            </div>
+                            <div>
+                                <dt class="text-xs font-semibold text-zinc-500 uppercase dark:text-zinc-400">
+                                    {{ t('pages.admin.files.table.signatures') }}
+                                </dt>
+                                <dd class="mt-1 text-zinc-800 dark:text-zinc-100">{{ file.signatureVersion ?? '-' }}</dd>
+                            </div>
+                            <div>
+                                <dt class="text-xs font-semibold text-zinc-500 uppercase dark:text-zinc-400">
+                                    {{ t('pages.admin.files.table.result') }}
+                                </dt>
+                                <dd class="mt-1 text-zinc-800 dark:text-zinc-100">{{ file.resultLabel || '-' }}</dd>
+                            </div>
+                            <div>
+                                <dt class="text-xs font-semibold text-zinc-500 uppercase dark:text-zinc-400">
+                                    {{ t('pages.admin.files.table.threat') }}
+                                </dt>
+                                <dd class="mt-1 text-zinc-800 dark:text-zinc-100">{{ file.threatName ?? '-' }}</dd>
+                            </div>
+                            <div>
+                                <dt class="text-xs font-semibold text-zinc-500 uppercase dark:text-zinc-400">
+                                    {{ t('pages.admin.files.table.attempts') }}
+                                </dt>
+                                <dd class="mt-1 text-zinc-800 dark:text-zinc-100">{{ file.scanAttempts }}</dd>
+                            </div>
+                            <div class="md:col-span-2 xl:col-span-3">
+                                <dt class="text-xs font-semibold text-zinc-500 uppercase dark:text-zinc-400">
+                                    {{ t('pages.admin.files.table.checksum') }}
+                                </dt>
+                                <dd class="mt-1 text-zinc-800 dark:text-zinc-100">
+                                    <TruncatedText :text="file.checksumSha256 ?? '-'" />
+                                </dd>
+                            </div>
+                        </dl>
+                    </details>
+                </div>
+            </SurfaceCard>
         </PageStack>
     </AdminLayout>
 </template>

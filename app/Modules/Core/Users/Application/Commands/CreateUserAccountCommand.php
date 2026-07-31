@@ -13,5 +13,6 @@ final readonly class CreateUserAccountCommand
         public ?string $teamPublicId = null,
         public ?string $actorPublicId = null,
         public ?string $copyAuthorizationFromUserPublicId = null,
+        public string $accountSensitivity = 'normal',
     ) {}
 }

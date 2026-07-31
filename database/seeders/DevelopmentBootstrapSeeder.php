@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Database\Seeders;
 
 use App\Modules\Core\Authorization\Application\Public\Contracts\AdministratorAccessManager;
+use App\Modules\Core\Identity\Domain\AccountSensitivity;
 use App\Modules\Core\Identity\Infrastructure\Persistence\User;
 use App\Modules\Core\Teams\Application\Public\Contracts\BootstrapTeamProvider;
 use Illuminate\Database\Seeder;
@@ -30,6 +31,7 @@ class DevelopmentBootstrapSeeder extends Seeder
             'first_password_set_at' => now(),
             'is_active' => true,
             'deactivated_at' => null,
+            'account_sensitivity' => AccountSensitivity::Sensitive->value,
         ])->save();
 
         app(AdministratorAccessManager::class)->assignAdministrator(

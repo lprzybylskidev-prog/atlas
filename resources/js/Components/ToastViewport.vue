@@ -77,7 +77,7 @@ watch(flashSignature, pushFlashMessages);
 <template>
     <Teleport to="body">
         <div
-            class="fixed right-4 bottom-4 z-[90] flex w-[min(24rem,calc(100vw-2rem))] flex-col gap-3"
+            class="pointer-events-none fixed right-4 bottom-4 z-[90] flex w-[min(24rem,calc(100vw-2rem))] flex-col gap-3"
             role="status"
             aria-live="polite"
             aria-relevant="additions removals"
@@ -85,7 +85,7 @@ watch(flashSignature, pushFlashMessages);
             <article
                 v-for="message in messages"
                 :key="message.id"
-                class="relative overflow-hidden rounded-lg border p-4 shadow-lg"
+                class="pointer-events-none relative overflow-hidden rounded-lg border p-4 shadow-lg"
                 :class="classByType[message.type]"
             >
                 <div class="flex items-start gap-3">
@@ -96,7 +96,7 @@ watch(flashSignature, pushFlashMessages);
                     </div>
                     <button
                         type="button"
-                        class="rounded-md p-1 opacity-70 transition hover:bg-white/40 hover:opacity-100"
+                        class="pointer-events-auto rounded-md p-1 opacity-70 transition hover:bg-white/40 hover:opacity-100"
                         :aria-label="t('toast.close')"
                         @click="dismiss(message.id)"
                     >

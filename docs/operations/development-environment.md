@@ -108,10 +108,12 @@ HTTP traffic goes through the development `nginx` service and the separate `php-
 The `worker` service runs the local Redis queue listener for Atlas runtime queues:
 
 ```text
-exports,search,files,files-large,default
+managed-processes,imports,exports,search,files,files-large,default
 ```
 
 This worker must be running during normal Admin/UI development so queued exports, managed-process runs, search rebuilds, file scans, and default Laravel jobs do not remain stuck in `queued` state. Local development uses `queue:listen` instead of a long-lived `queue:work` process so queued jobs boot the current application code after edits.
+
+The local worker timeout is intentionally long: 43,200 seconds, or 12 hours. Managed-process and import jobs may represent large operational scripts, slow third-party API imports, or high-volume case processing. Atlas keeps those runs as one operational process in Admin; any finer-grained checkpointing, cursoring, or idempotent resume behavior belongs to the process implementation rather than being forced by the worker topology. The Redis queue `retry_after` value must remain greater than the worker timeout so long jobs are not released for duplicate execution while still running.
 
 To apply nginx/php-fpm service changes without rebuilding the Dev Container:
 

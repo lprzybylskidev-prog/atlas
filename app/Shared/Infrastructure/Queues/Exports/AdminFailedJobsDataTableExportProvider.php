@@ -50,6 +50,9 @@ final readonly class AdminFailedJobsDataTableExportProvider extends AbstractAdmi
             'jobClass' => 'Job class',
             'exceptionType' => 'Exception type',
             'exceptionMessage' => 'Exception message',
+            'handlingStatus' => 'Handling status',
+            'acknowledgedAt' => 'Handled at',
+            'acknowledgedBy' => 'Handled by',
         ];
     }
 
@@ -64,6 +67,9 @@ final readonly class AdminFailedJobsDataTableExportProvider extends AbstractAdmi
             'jobClass' => $row['jobClass'],
             'exceptionType' => $row['exceptionType'],
             'exceptionMessage' => $row['exceptionMessage'],
+            'handlingStatus' => $row['handlingStatus'],
+            'acknowledgedAt' => $row['acknowledgedAt'],
+            'acknowledgedBy' => $row['acknowledgedBy'],
         ], $this->rows->rows());
 
         foreach ($this->sorted($this->filtered($this->filteredByControls($rows, $request), $request), $request) as $row) {
@@ -84,6 +90,16 @@ final readonly class AdminFailedJobsDataTableExportProvider extends AbstractAdmi
                 if ($value !== '' && $value !== 'all' && $row[$column] !== $value) {
                     return false;
                 }
+            }
+
+            $handling = self::filterValue($request, 'handling');
+
+            if ($handling === '') {
+                $handling = 'needs_attention';
+            }
+
+            if ($handling !== 'all' && $row['handlingStatus'] !== $handling) {
+                return false;
             }
 
             return self::dateRangeMatches(self::stringValue($row['failedAt'] ?? ''), self::filterValue($request, 'from'), self::filterValue($request, 'to'));

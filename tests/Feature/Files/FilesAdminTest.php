@@ -46,7 +46,61 @@ final class FilesAdminTest extends TestCase
                 ->component('Admin/Files/Index')
                 ->where('files.0.publicId', $stored->publicId)
                 ->where('files.0.originalName', 'evidence.txt')
-                ->where('files.0.scanState', FileScanState::Pending->value));
+                ->where('files.0.scanState', FileScanState::Pending->value)
+                ->where('files.0.handlingStatus', 'needs_attention')
+                ->where('files.0.canAcknowledge', true)
+                ->where('table.key', 'admin.files')
+                ->where('table.state.filters.state', 'all')
+                ->where('table.state.filters.handling', 'needs_attention')
+                ->where('table.exports.endpoint', route('admin.exports.data-table')));
+
+        $this->actingAs($admin)
+            ->withSession($this->adminSession($team))
+            ->get('/admin/files?state=clean')
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->component('Admin/Files/Index')
+                ->where('files', [])
+                ->where('table.state.filters.state', 'clean'));
+
+        $this->actingAs($admin)
+            ->withSession($this->adminSession($team))
+            ->post('/admin/files/acknowledge', [
+                'files' => [$stored->publicId],
+                'reason' => 'Review completed in the admin files panel.',
+            ])
+            ->assertRedirect(route('admin.files.index'))
+            ->assertSessionHas('flash.messages.0.key', 'flash.files.acknowledge_single');
+
+        $this->assertDatabaseHas(DatabaseTable::FILE_OBJECTS, [
+            'public_id' => $stored->publicId,
+            'acknowledged_by_user_id' => $admin->id,
+            'acknowledgement_reason' => 'Review completed in the admin files panel.',
+        ]);
+        $this->assertDatabaseHas(DatabaseTable::AUDIT_EVENTS, [
+            'module' => 'files',
+            'action' => 'file.scan_acknowledge',
+            'target_public_id' => $stored->publicId,
+            'is_security' => true,
+        ]);
+
+        $this->actingAs($admin)
+            ->withSession($this->adminSession($team))
+            ->get('/admin/files?handling=handled')
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->component('Admin/Files/Index')
+                ->where('files.0.publicId', $stored->publicId)
+                ->where('files.0.handlingStatus', 'handled')
+                ->where('files.0.canAcknowledge', false));
+
+        $this->actingAs($admin)
+            ->withSession($this->adminSession($team))
+            ->get('/admin/files')
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->component('Admin/Files/Index')
+                ->where('files', []));
 
         $this->actingAs($admin)
             ->withSession($this->adminSession($team))
@@ -56,6 +110,9 @@ final class FilesAdminTest extends TestCase
         $this->assertDatabaseHas(DatabaseTable::FILE_OBJECTS, [
             'public_id' => $stored->publicId,
             'scan_state' => FileScanState::Pending->value,
+            'acknowledged_by_user_id' => null,
+            'acknowledged_at' => null,
+            'acknowledgement_reason' => null,
         ]);
     }
 

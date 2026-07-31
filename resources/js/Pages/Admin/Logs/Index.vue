@@ -1,27 +1,25 @@
 <script setup lang="ts">
 import { Head } from '@inertiajs/vue3';
-import { IconChevronDown, IconEye, IconFileText, IconListDetails, IconServer } from '@tabler/icons-vue';
-import type { Component } from 'vue';
-import { computed, ref } from 'vue';
+import { IconAlertTriangle, IconBug, IconFileText, IconInfoCircle, IconListDetails } from '@tabler/icons-vue';
+import { computed, ref, watch } from 'vue';
 
 import CodeViewer from '../../../Components/CodeViewer.vue';
 import DataTableExportMenu from '../../../Components/DataTableExportMenu.vue';
 import FilterPanel from '../../../Components/FilterPanel.vue';
 import FormDateInput from '../../../Components/Form/FormDateInput.vue';
 import FormInput from '../../../Components/Form/FormInput.vue';
-import FormSelect from '../../../Components/Form/FormSelect.vue';
-import MetricGrid from '../../../Components/MetricGrid.vue';
-import NoticeBanner from '../../../Components/NoticeBanner.vue';
+import FormSelect, { type FormSelectOption } from '../../../Components/Form/FormSelect.vue';
+import OperationalMetricTile from '../../../Components/OperationalMetricTile.vue';
 import PageStack from '../../../Components/PageStack.vue';
 import SurfaceCard from '../../../Components/SurfaceCard.vue';
 import TextBadge from '../../../Components/TextBadge.vue';
-import Tooltip from '../../../Components/Tooltip.vue';
-import UiState from '../../../Components/UiState.vue';
+import { applyTableFilters, clearTableFilters } from '../../../Composables/useTableFilterControls';
 import AdminLayout from '../../../Layouts/AdminLayout.vue';
 import { useTranslator } from '../../../Localization/translator';
 import type { DataTableExportMeta } from '../../../Types/data-table';
+import { formatDateTime } from '../../../Utils/formatters';
 
-interface LogEntry extends Record<string, unknown> {
+interface LogEntry {
     publicId: string;
     line: string;
     occurredAt: string;
@@ -41,164 +39,167 @@ interface LogSummary {
     source: string;
     pathLabel: string;
     rows: number;
+    visible: number;
+    errors: number;
+    warnings: number;
+    withDetails: number;
+    files: number;
+    latestModifiedAt: string | null;
+}
+
+interface LogFileOption {
+    name: string;
+    size: number;
     latestModifiedAt: string | null;
 }
 
 const props = defineProps<{
     logs: LogEntry[];
     summary: LogSummary;
+    filters: {
+        file: string;
+        level: string;
+        module: string;
+        source: string;
+        from: string;
+        to: string;
+        search: string;
+    };
+    filterOptions: {
+        files: LogFileOption[];
+        levels: string[];
+        modules: string[];
+        sources: string[];
+    };
+    tableKey: string;
     exports: DataTableExportMeta;
 }>();
 
-const { t } = useTranslator();
-const draftSearch = ref('');
-const draftLevel = ref('all');
-const draftModule = ref('all');
-const draftDateFrom = ref('');
-const draftDateTo = ref('');
-const search = ref('');
-const level = ref('all');
-const module = ref('all');
-const dateFrom = ref('');
-const dateTo = ref('');
-const expanded = ref<string | null>(props.logs[0]?.publicId ?? null);
-const logExportColumns = [
+const { locale, t } = useTranslator();
+const filterKeys = ['file', 'level', 'module', 'source', 'from', 'to', 'search'];
+const filterDefaults = computed(() => ({
+    file: props.summary.pathLabel,
+    level: 'all',
+    module: 'all',
+    source: 'all',
+    from: '',
+    to: '',
+    search: '',
+}));
+const filters = ref({ ...filterDefaults.value, ...props.filters });
+const selectedLogId = ref(props.logs[0]?.publicId ?? '');
+const exportColumns = [
     'occurredAt',
     'level',
-    'channel',
     'environment',
     'module',
     'source',
     'eventName',
-    'message',
     'correlationId',
     'requestId',
-] as const;
+    'message',
+    'details',
+];
 
-const levels = computed(() => optionsFrom(props.logs.map((entry) => entry.level).filter(Boolean)));
-const modules = computed(() => optionsFrom(props.logs.map((entry) => entry.module).filter(Boolean)));
+const selectedLog = computed<LogEntry | null>(
+    () => props.logs.find((log) => log.publicId === selectedLogId.value) ?? props.logs[0] ?? null,
+);
+const fileOptions = computed<FormSelectOption[]>(() =>
+    props.filterOptions.files.map((file) => ({
+        value: file.name,
+        label: file.name,
+    })),
+);
+const levelOptions = computed<FormSelectOption[]>(() =>
+    allOptions(props.filterOptions.levels, t('pages.admin.logs.filters.any_level'), levelLabel),
+);
+const moduleOptions = computed<FormSelectOption[]>(() => allOptions(props.filterOptions.modules, t('pages.admin.logs.filters.any_module')));
+const sourceOptions = computed<FormSelectOption[]>(() => allOptions(props.filterOptions.sources, t('pages.admin.logs.filters.any_source')));
+const latestModified = computed(() => formatDateTime(props.summary.latestModifiedAt, locale.value));
 
-const filteredLogs = computed(() => {
-    const query = search.value.trim().toLowerCase();
+watch(
+    () => props.filters,
+    () => {
+        filters.value = { ...filterDefaults.value, ...props.filters };
+    },
+);
 
-    return props.logs.filter((entry) => {
-        if (level.value !== 'all' && entry.level !== level.value) {
-            return false;
+watch(
+    () => props.logs,
+    () => {
+        if (!props.logs.some((log) => log.publicId === selectedLogId.value)) {
+            selectedLogId.value = props.logs[0]?.publicId ?? '';
         }
+    },
+);
 
-        if (module.value !== 'all' && entry.module !== module.value) {
-            return false;
-        }
-
-        if (!isWithinDateRange(entry)) {
-            return false;
-        }
-
-        if (query === '') {
-            return true;
-        }
-
-        return [
-            entry.message,
-            entry.details,
-            entry.module,
-            entry.source,
-            entry.eventName,
-            entry.correlationId,
-            entry.requestId,
-            entry.channel,
-            entry.environment,
-        ]
-            .join(' ')
-            .toLowerCase()
-            .includes(query);
-    });
-});
-
-const summaryItems = computed<{ label: string; value: string; icon: Component }[]>(() => [
-    { label: t('pages.admin.logs.metric.source'), value: props.summary.source, icon: IconServer },
-    { label: t('pages.admin.logs.metric.file'), value: props.summary.pathLabel, icon: IconFileText },
-    { label: t('pages.admin.logs.metric.loaded_entries'), value: String(props.summary.rows), icon: IconListDetails },
-    { label: t('pages.admin.logs.metric.visible_entries'), value: String(filteredLogs.value.length), icon: IconEye },
-]);
-
-function optionsFrom(values: string[]): { value: string; label: string }[] {
-    const unique = [...new Set(values)].sort((a, b) => a.localeCompare(b));
-
-    return [{ value: 'all', label: t('pages.admin.logs.all') }, ...unique.map((value) => ({ value, label: value }))];
+function allOptions(values: string[], label: string, formatter?: (value: string) => string): FormSelectOption[] {
+    return [
+        { value: 'all', label },
+        ...values.map((value) => ({
+            value,
+            label: formatter === undefined ? value : formatter(value),
+        })),
+    ];
 }
 
-function levelTone(value: string): 'danger' | 'info' | 'neutral' | 'warning' {
-    if (['error', 'critical', 'alert', 'emergency'].includes(value)) {
+function applyFilters(): void {
+    applyTableFilters(filterKeys, filters.value, filterDefaults.value);
+}
+
+function clearFilters(): void {
+    filters.value = { ...filterDefaults.value };
+    clearTableFilters(filterKeys);
+}
+
+function levelLabel(level: string): string {
+    const keys: Record<string, string> = {
+        alert: 'pages.admin.logs.level.alert',
+        critical: 'pages.admin.logs.level.critical',
+        debug: 'pages.admin.logs.level.debug',
+        emergency: 'pages.admin.logs.level.emergency',
+        error: 'pages.admin.logs.level.error',
+        info: 'pages.admin.logs.level.info',
+        notice: 'pages.admin.logs.level.notice',
+        unknown: 'pages.admin.logs.level.unknown',
+        warning: 'pages.admin.logs.level.warning',
+    };
+
+    return keys[level] === undefined ? level : t(keys[level]);
+}
+
+function levelTone(level: string): 'danger' | 'info' | 'neutral' | 'success' | 'warning' {
+    if (['alert', 'critical', 'emergency', 'error'].includes(level)) {
         return 'danger';
     }
 
-    if (['warning', 'notice'].includes(value)) {
+    if (level === 'warning') {
         return 'warning';
     }
 
-    if (value === 'info') {
+    if (level === 'info' || level === 'notice') {
         return 'info';
     }
 
     return 'neutral';
 }
 
-function toggle(publicId: string): void {
-    expanded.value = expanded.value === publicId ? null : publicId;
+function occurredAtLabel(log: LogEntry): string {
+    return formatDateTime(log.occurredAt, locale.value);
 }
 
-function applyFilters(): void {
-    search.value = draftSearch.value;
-    level.value = draftLevel.value;
-    module.value = draftModule.value;
-    dateFrom.value = draftDateFrom.value;
-    dateTo.value = draftDateTo.value;
+function compactMeta(log: LogEntry): string {
+    return [log.module, log.source, log.eventName].filter((value) => value !== '').join(' / ');
 }
 
-function clearFilters(): void {
-    draftSearch.value = '';
-    draftLevel.value = 'all';
-    draftModule.value = 'all';
-    draftDateFrom.value = '';
-    draftDateTo.value = '';
-    applyFilters();
-}
-
-function isWithinDateRange(entry: LogEntry): boolean {
-    const timestamp = timestampFor(entry.occurredAt);
-
-    if (timestamp === null) {
-        return dateFrom.value === '' && dateTo.value === '';
+function detailContent(log: LogEntry | null): string {
+    if (log === null) {
+        return '';
     }
 
-    if (dateFrom.value !== '' && timestamp < startOfDay(dateFrom.value)) {
-        return false;
-    }
+    const lines = [`[${occurredAtLabel(log)}] ${levelLabel(log.level)}: ${log.message}`, log.details].filter((value) => value !== '');
 
-    if (dateTo.value !== '' && timestamp > endOfDay(dateTo.value)) {
-        return false;
-    }
-
-    return true;
-}
-
-function timestampFor(value: string): number | null {
-    if (value === '') {
-        return null;
-    }
-
-    const parsed = Date.parse(value.includes('T') ? value : value.replace(' ', 'T'));
-
-    return Number.isNaN(parsed) ? null : parsed;
-}
-
-function startOfDay(value: string): number {
-    return Date.parse(`${value}T00:00:00`);
-}
-
-function endOfDay(value: string): number {
-    return Date.parse(`${value}T23:59:59.999`);
+    return lines.join('\n');
 }
 </script>
 
@@ -206,151 +207,160 @@ function endOfDay(value: string): number {
     <Head :title="t('pages.admin.logs.head_title')" />
     <AdminLayout :title="t('pages.admin.logs.title')" :title-icon="IconFileText">
         <PageStack>
-            <MetricGrid :items="summaryItems" />
-            <NoticeBanner :title="t('pages.admin.logs.bounded_title')">
-                {{ t('pages.admin.logs.bounded') }}
-            </NoticeBanner>
+            <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-6">
+                <OperationalMetricTile
+                    :label="t('pages.admin.logs.metric.files')"
+                    :value="summary.files"
+                    :icon="IconFileText"
+                    tone="zinc"
+                />
+                <OperationalMetricTile
+                    :label="t('pages.admin.logs.metric.loaded')"
+                    :value="summary.rows"
+                    :icon="IconListDetails"
+                    tone="teal"
+                />
+                <OperationalMetricTile
+                    :label="t('pages.admin.logs.metric.visible')"
+                    :value="summary.visible"
+                    :icon="IconListDetails"
+                    tone="sky"
+                />
+                <OperationalMetricTile
+                    :label="t('pages.admin.logs.metric.errors')"
+                    :value="summary.errors"
+                    :icon="IconBug"
+                    :tone="summary.errors > 0 ? 'rose' : 'zinc'"
+                />
+                <OperationalMetricTile
+                    :label="t('pages.admin.logs.metric.warnings')"
+                    :value="summary.warnings"
+                    :icon="IconAlertTriangle"
+                    :tone="summary.warnings > 0 ? 'amber' : 'zinc'"
+                />
+                <OperationalMetricTile
+                    :label="t('pages.admin.logs.metric.with_details')"
+                    :value="summary.withDetails"
+                    :icon="IconInfoCircle"
+                    tone="zinc"
+                />
+            </div>
 
             <FilterPanel
-                :summary="t('pages.admin.logs.loaded_summary', { visible: filteredLogs.length, loaded: props.summary.rows })"
+                :title="t('pages.admin.logs.filters.title')"
+                :apply-label="t('filters.apply')"
+                :clear-label="t('filters.clear')"
                 @apply="applyFilters"
                 @clear="clearFilters"
             >
-                <div
-                    class="grid gap-4 xl:grid-cols-[minmax(0,2fr)_minmax(10rem,0.7fr)_minmax(10rem,0.7fr)_minmax(9rem,0.6fr)_minmax(9rem,0.6fr)]"
-                >
-                    <FormInput
-                        v-model="draftSearch"
-                        :label="t('pages.admin.logs.search')"
-                        :placeholder="t('pages.admin.logs.search_placeholder')"
-                    />
-                    <FormSelect v-model="draftLevel" :label="t('pages.admin.logs.level')" :options="levels" />
-                    <FormSelect v-model="draftModule" :label="t('pages.admin.logs.module')" :options="modules" />
-                    <FormDateInput v-model="draftDateFrom" :label="t('pages.admin.logs.from_date')" />
-                    <FormDateInput v-model="draftDateTo" :label="t('pages.admin.logs.to_date')" />
+                <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-7">
+                    <FormSelect v-model="filters.file" :label="t('pages.admin.logs.filters.file')" :options="fileOptions" />
+                    <FormSelect v-model="filters.level" :label="t('pages.admin.logs.filters.level')" :options="levelOptions" />
+                    <FormSelect v-model="filters.module" :label="t('pages.admin.logs.filters.module')" :options="moduleOptions" />
+                    <FormSelect v-model="filters.source" :label="t('pages.admin.logs.filters.source')" :options="sourceOptions" />
+                    <FormDateInput v-model="filters.from" :label="t('pages.admin.logs.filters.from')" />
+                    <FormDateInput v-model="filters.to" :label="t('pages.admin.logs.filters.to')" />
+                    <FormInput v-model="filters.search" :label="t('pages.admin.logs.filters.search')" />
                 </div>
             </FilterPanel>
 
-            <section class="space-y-3">
-                <div class="flex justify-end">
+            <SurfaceCard :title="t('pages.admin.logs.viewer.title')" :icon="IconFileText" tone="zinc" overflow="hidden">
+                <template #actions>
                     <DataTableExportMenu
-                        table-key="admin.logs"
+                        :table-key="tableKey"
                         :exports="exports"
-                        :columns="[...logExportColumns]"
-                        :column-order="[...logExportColumns]"
-                        :filters="{ level, module, from: dateFrom, to: dateTo }"
-                        :search="search"
+                        :columns="exportColumns"
+                        :column-order="exportColumns"
+                        :filters="filters"
                         sort="occurredAt"
                         direction="desc"
+                        :ui-locale="locale"
                     />
+                </template>
+
+                <div class="mb-4 flex flex-wrap gap-2 text-xs text-zinc-500 dark:text-zinc-400">
+                    <span>{{ t('pages.admin.logs.viewer.file', { file: summary.pathLabel }) }}</span>
+                    <span v-if="summary.latestModifiedAt">{{ t('pages.admin.logs.viewer.modified', { date: latestModified }) }}</span>
                 </div>
 
-                <SurfaceCard
-                    v-for="entry in filteredLogs"
-                    :key="entry.publicId"
-                    :aria-label="t('pages.admin.logs.entry_aria', { publicId: entry.publicId })"
-                    :padded="false"
-                    overflow="hidden"
-                >
-                    <button
-                        type="button"
-                        class="grid w-full grid-cols-[minmax(0,1fr)_auto] gap-4 px-4 py-3 text-left transition hover:bg-zinc-50 dark:hover:bg-zinc-900/70"
-                        :aria-expanded="expanded === entry.publicId"
-                        @click="toggle(entry.publicId)"
-                    >
-                        <span class="min-w-0 space-y-2">
-                            <span class="flex flex-wrap items-center gap-2">
-                                <TextBadge :label="entry.level || t('pages.admin.logs.unknown')" :tone="levelTone(entry.level)" uppercase />
-                                <span class="text-xs text-zinc-500 dark:text-zinc-400">{{
-                                    entry.occurredAt || t('pages.admin.logs.line_value', { line: entry.line })
-                                }}</span>
-                                <span v-if="entry.module" class="text-xs font-medium text-zinc-600 dark:text-zinc-300">{{
-                                    entry.module
-                                }}</span>
-                                <span v-if="entry.source" class="text-xs text-zinc-500 dark:text-zinc-400">{{ entry.source }}</span>
-                                <span v-if="entry.eventName" class="text-xs text-zinc-500 dark:text-zinc-400">{{ entry.eventName }}</span>
-                            </span>
-                            <Tooltip
-                                :text="entry.message || t('pages.admin.logs.no_message')"
-                                placement="top"
-                                align="start"
-                                full-width
-                                wide
-                            >
-                                <span class="block truncate text-sm font-medium text-zinc-950 dark:text-zinc-50">
-                                    {{ entry.message || t('pages.admin.logs.no_message') }}
-                                </span>
-                            </Tooltip>
-                        </span>
-                        <IconChevronDown
-                            aria-hidden="true"
-                            class="mt-1 h-5 w-5 text-zinc-400 transition"
-                            :class="{ 'rotate-180': expanded === entry.publicId }"
-                            :stroke-width="1.8"
-                        />
-                    </button>
+                <div v-if="logs.length === 0" class="py-8 text-center text-sm text-zinc-500 dark:text-zinc-400">
+                    {{ t('pages.admin.logs.viewer.empty') }}
+                </div>
 
-                    <div v-if="expanded === entry.publicId" class="border-t border-zinc-200 px-4 py-4 dark:border-zinc-800">
-                        <dl class="grid gap-3 text-xs sm:grid-cols-2 xl:grid-cols-4">
-                            <div>
-                                <dt class="font-semibold uppercase text-zinc-500 dark:text-zinc-400">{{ t('pages.admin.logs.line') }}</dt>
-                                <dd class="mt-1 font-mono text-zinc-800 dark:text-zinc-200">{{ entry.line }}</dd>
+                <div v-else class="grid min-h-[34rem] gap-4 xl:grid-cols-[minmax(20rem,28rem)_1fr]">
+                    <div class="max-h-[42rem] overflow-auto rounded-lg border border-zinc-200 dark:border-zinc-800">
+                        <button
+                            v-for="log in logs"
+                            :key="log.publicId"
+                            type="button"
+                            class="block w-full border-b border-zinc-200 px-3 py-3 text-left transition last:border-b-0 hover:bg-zinc-50 focus-visible:outline focus-visible:outline-amber-500 dark:border-zinc-800 dark:hover:bg-zinc-900"
+                            :class="{ 'bg-teal-50/70 dark:bg-teal-950/30': selectedLog?.publicId === log.publicId }"
+                            @click="selectedLogId = log.publicId"
+                        >
+                            <div class="flex min-w-0 items-center justify-between gap-2">
+                                <TextBadge :label="levelLabel(log.level)" :tone="levelTone(log.level)" />
+                                <span class="shrink-0 text-xs text-zinc-500 dark:text-zinc-400">{{ occurredAtLabel(log) }}</span>
                             </div>
-                            <div v-if="entry.eventName">
-                                <dt class="font-semibold uppercase text-zinc-500 dark:text-zinc-400">
-                                    {{ t('pages.admin.logs.event_name') }}
-                                </dt>
-                                <dd class="mt-1 break-all text-zinc-800 dark:text-zinc-200">{{ entry.eventName }}</dd>
-                            </div>
-                            <div v-if="entry.source">
-                                <dt class="font-semibold uppercase text-zinc-500 dark:text-zinc-400">{{ t('pages.admin.logs.source') }}</dt>
-                                <dd class="mt-1 text-zinc-800 dark:text-zinc-200">{{ entry.source }}</dd>
-                            </div>
-                            <div v-if="entry.module">
-                                <dt class="font-semibold uppercase text-zinc-500 dark:text-zinc-400">{{ t('pages.admin.logs.module') }}</dt>
-                                <dd class="mt-1 text-zinc-800 dark:text-zinc-200">{{ entry.module }}</dd>
-                            </div>
-                            <div v-if="entry.correlationId">
-                                <dt class="font-semibold uppercase text-zinc-500 dark:text-zinc-400">
-                                    {{ t('pages.admin.logs.correlation_id') }}
-                                </dt>
-                                <dd class="mt-1 break-all font-mono text-zinc-800 dark:text-zinc-200">{{ entry.correlationId }}</dd>
-                            </div>
-                            <div v-if="entry.requestId">
-                                <dt class="font-semibold uppercase text-zinc-500 dark:text-zinc-400">
-                                    {{ t('pages.admin.logs.request_id') }}
-                                </dt>
-                                <dd class="mt-1 break-all font-mono text-zinc-800 dark:text-zinc-200">{{ entry.requestId }}</dd>
-                            </div>
-                            <div v-if="entry.channel">
-                                <dt class="font-semibold uppercase text-zinc-500 dark:text-zinc-400">
-                                    {{ t('pages.admin.logs.channel') }}
-                                </dt>
-                                <dd class="mt-1 text-zinc-800 dark:text-zinc-200">{{ entry.channel }}</dd>
-                            </div>
-                            <div v-if="entry.environment">
-                                <dt class="font-semibold uppercase text-zinc-500 dark:text-zinc-400">
-                                    {{ t('pages.admin.logs.environment') }}
-                                </dt>
-                                <dd class="mt-1 text-zinc-800 dark:text-zinc-200">{{ entry.environment }}</dd>
-                            </div>
-                        </dl>
-
-                        <section class="mt-4 rounded-lg border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-800 dark:bg-zinc-900">
-                            <p class="text-xs font-semibold uppercase text-zinc-500 dark:text-zinc-400">
-                                {{ t('pages.admin.logs.full_message') }}
+                            <p class="mt-2 line-clamp-2 text-sm font-medium text-zinc-950 dark:text-zinc-50">{{ log.message }}</p>
+                            <p v-if="compactMeta(log)" class="mt-1 truncate text-xs text-zinc-500 dark:text-zinc-400">
+                                {{ compactMeta(log) }}
                             </p>
-                            <p class="mt-2 break-words text-sm text-zinc-900 dark:text-zinc-100">
-                                {{ entry.message || t('pages.admin.logs.no_message') }}
-                            </p>
-                        </section>
-
-                        <CodeViewer v-if="entry.details" class="mt-4" :content="entry.details" language="log" max-height="max-h-[28rem]" />
+                        </button>
                     </div>
-                </SurfaceCard>
 
-                <UiState v-if="filteredLogs.length === 0" variant="no-results" :title="t('pages.admin.logs.empty_filtered')" />
-            </section>
+                    <div class="min-w-0 space-y-4">
+                        <div v-if="selectedLog" class="grid gap-2 text-sm md:grid-cols-2 xl:grid-cols-3">
+                            <div>
+                                <p class="text-xs font-semibold text-zinc-500 uppercase dark:text-zinc-400">
+                                    {{ t('pages.admin.logs.details.correlation_id') }}
+                                </p>
+                                <p class="truncate text-zinc-900 dark:text-zinc-100">{{ selectedLog.correlationId || '-' }}</p>
+                            </div>
+                            <div>
+                                <p class="text-xs font-semibold text-zinc-500 uppercase dark:text-zinc-400">
+                                    {{ t('pages.admin.logs.details.request_id') }}
+                                </p>
+                                <p class="truncate text-zinc-900 dark:text-zinc-100">{{ selectedLog.requestId || '-' }}</p>
+                            </div>
+                            <div>
+                                <p class="text-xs font-semibold text-zinc-500 uppercase dark:text-zinc-400">
+                                    {{ t('pages.admin.logs.details.channel') }}
+                                </p>
+                                <p class="truncate text-zinc-900 dark:text-zinc-100">{{ selectedLog.channel || '-' }}</p>
+                            </div>
+                            <div>
+                                <p class="text-xs font-semibold text-zinc-500 uppercase dark:text-zinc-400">
+                                    {{ t('pages.admin.logs.details.environment') }}
+                                </p>
+                                <p class="truncate text-zinc-900 dark:text-zinc-100">{{ selectedLog.environment || '-' }}</p>
+                            </div>
+                            <div>
+                                <p class="text-xs font-semibold text-zinc-500 uppercase dark:text-zinc-400">
+                                    {{ t('pages.admin.logs.details.module') }}
+                                </p>
+                                <p class="truncate text-zinc-900 dark:text-zinc-100">{{ selectedLog.module || '-' }}</p>
+                            </div>
+                            <div>
+                                <p class="text-xs font-semibold text-zinc-500 uppercase dark:text-zinc-400">
+                                    {{ t('pages.admin.logs.details.line') }}
+                                </p>
+                                <p class="truncate text-zinc-900 dark:text-zinc-100">{{ selectedLog.line || '-' }}</p>
+                            </div>
+                        </div>
+
+                        <CodeViewer
+                            :title="t('pages.admin.logs.details.payload')"
+                            :content="detailContent(selectedLog)"
+                            language="log"
+                            max-height="max-h-[34rem]"
+                            :copy-label="t('actions.copy')"
+                            :copied-label="t('actions.copied')"
+                            :wrap-label="t('actions.wrap_lines')"
+                            :unwrap-label="t('actions.unwrap_lines')"
+                        />
+                    </div>
+                </div>
+            </SurfaceCard>
         </PageStack>
     </AdminLayout>
 </template>

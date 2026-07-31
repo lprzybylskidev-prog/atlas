@@ -13,6 +13,7 @@ use App\Shared\Application\Modules\Activation\Contracts\ModuleActivationService;
 use App\Shared\Application\Modules\Activation\ModuleActivationChange;
 use App\Shared\Application\Modules\Activation\ModuleActivationScope;
 use App\Shared\Application\Modules\Activation\ModuleActivationSource;
+use App\Shared\Application\Modules\ModuleCategory;
 use App\Shared\Application\Modules\ModuleRegistry;
 use App\Shared\Infrastructure\Database\DatabaseTable;
 use Illuminate\Database\Seeder;
@@ -58,6 +59,10 @@ class SystemBootstrapSeeder extends Seeder
         $activation = app(ModuleActivationService::class);
 
         foreach (app(ModuleRegistry::class)->all() as $module) {
+            if ($module->category() === ModuleCategory::Application) {
+                continue;
+            }
+
             $moduleKey = $module->key()->value;
 
             if ($module->supportsGlobalActivation() && ! $activation->effectiveState($moduleKey)->globallyEnabled) {

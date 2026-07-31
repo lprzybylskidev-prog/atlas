@@ -32,6 +32,7 @@ final readonly class StoreUserAccountController
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255'],
+            'account_sensitivity' => ['sometimes', 'string', 'in:normal,sensitive,technical,service,integration'],
             'team_assignments' => ['required', 'array', 'min:1'],
             'team_assignments.*.team_public_id' => ['required', 'string'],
             'team_assignments.*.source' => ['required', 'string', 'in:manual,package,copy'],
@@ -58,6 +59,7 @@ final readonly class StoreUserAccountController
             teamPublicId: null,
             actorPublicId: is_string($actorPublicId) ? $actorPublicId : null,
             copyAuthorizationFromUserPublicId: null,
+            accountSensitivity: $this->stringValue($validated, 'account_sensitivity') ?: 'sensitive',
         ));
 
         if (is_string($actorPublicId)) {

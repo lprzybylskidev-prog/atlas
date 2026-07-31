@@ -27,6 +27,7 @@ final readonly class IdentityUserAccountRepository implements UserAccountReposit
             name: $command->name,
             email: $command->email,
             internalPassword: $internalPassword,
+            accountSensitivity: $command->accountSensitivity,
         ));
 
         return new CreatedUserAccount(

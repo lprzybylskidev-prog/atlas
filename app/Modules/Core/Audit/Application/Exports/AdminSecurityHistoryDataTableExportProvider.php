@@ -71,6 +71,21 @@ final readonly class AdminSecurityHistoryDataTableExportProvider extends Abstrac
             });
         }
 
+        $this->whereExact($query, 'action', self::filterValue($request, 'action'));
+        $this->whereExact($query, 'source', self::filterValue($request, 'source'));
+
+        if (in_array(self::filterValue($request, 'result'), ['succeeded', 'rejected', 'failed'], true)) {
+            $query->where('result', self::filterValue($request, 'result'));
+        }
+
+        if ($this->isDate(self::filterValue($request, 'date_from'))) {
+            $query->whereDate('occurred_at', '>=', self::filterValue($request, 'date_from'));
+        }
+
+        if ($this->isDate(self::filterValue($request, 'date_to'))) {
+            $query->whereDate('occurred_at', '<=', self::filterValue($request, 'date_to'));
+        }
+
         $records = array_values($query
             ->orderByDesc('occurred_at')
             ->limit(500)
@@ -184,5 +199,19 @@ final readonly class AdminSecurityHistoryDataTableExportProvider extends Abstrac
             'email' => '',
             'context' => '',
         ];
+    }
+
+    private function whereExact(Builder $query, string $column, string $value): void
+    {
+        if ($value === '' || $value === 'all') {
+            return;
+        }
+
+        $query->where($column, $value);
+    }
+
+    private function isDate(string $value): bool
+    {
+        return preg_match('/^\d{4}-\d{2}-\d{2}$/', $value) === 1;
     }
 }

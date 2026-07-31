@@ -266,7 +266,6 @@ final class ReportsModuleTest extends TestCase
             AdminTableDefinitions::MANAGED_PROCESS_RUNS,
             AdminTableDefinitions::MANAGED_PROCESS_DEFINITIONS,
             AdminTableDefinitions::MANAGED_PROCESS_SCHEDULES,
-            AdminTableDefinitions::IMPORT_EXECUTIONS,
             AdminTableDefinitions::IMPORT_ROW_ERRORS,
         ] as $tableKey) {
             self::assertContains($tableKey, $keys);

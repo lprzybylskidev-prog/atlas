@@ -10,6 +10,7 @@ use App\Modules\Core\Audit\Application\Public\Enums\SecurityAuditCategory;
 use App\Modules\Core\Authorization\Application\Contracts\PermissionRoleStore;
 use App\Modules\Core\Authorization\Application\Public\Contracts\AdministratorAccessManager;
 use App\Modules\Core\Authorization\Application\Roles\StarterRoleName;
+use App\Modules\Core\Identity\Domain\AccountSensitivity;
 use App\Modules\Core\Identity\Infrastructure\Persistence\User;
 use App\Modules\Core\Teams\Application\Public\Contracts\BootstrapTeamProvider;
 use App\Shared\Application\Modules\Activation\Contracts\ModuleActivationService;
@@ -37,7 +38,7 @@ final class E2eVisibilitySeeder extends Seeder
         $this->call(DatabaseSeeder::class);
 
         $team = app(BootstrapTeamProvider::class)->provide(self::TEAM_NAME);
-        $admin = $this->user(self::ADMIN_EMAIL, 'Visibility Admin');
+        $admin = $this->user(self::ADMIN_EMAIL, 'Visibility Admin', AccountSensitivity::Sensitive->value);
         $limited = $this->user(self::LIMITED_EMAIL, 'Visibility User');
 
         app(AdministratorAccessManager::class)->assignAdministrator(
@@ -192,7 +193,7 @@ final class E2eVisibilitySeeder extends Seeder
         }
     }
 
-    private function user(string $email, string $name): User
+    private function user(string $email, string $name, string $accountSensitivity = AccountSensitivity::Normal->value): User
     {
         $user = User::query()->firstOrNew(['email' => $email]);
 
@@ -203,6 +204,7 @@ final class E2eVisibilitySeeder extends Seeder
             'first_password_set_at' => now(),
             'is_active' => true,
             'deactivated_at' => null,
+            'account_sensitivity' => $accountSensitivity,
         ])->save();
 
         return $user;

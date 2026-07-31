@@ -1,24 +1,23 @@
 <script setup lang="ts">
 import { Head, useForm } from '@inertiajs/vue3';
-import { IconArrowLeft, IconPackages } from '@tabler/icons-vue';
+import { IconPackageExport } from '@tabler/icons-vue';
 
-import ActionLink from '../../../../Components/ActionLink.vue';
-import CheckboxList from '../../../../Components/CheckboxList.vue';
-import FormActions from '../../../../Components/FormActions.vue';
-import AtlasForm from '../../../../Components/Form/AtlasForm.vue';
-import FormButton from '../../../../Components/Form/FormButton.vue';
-import FormInput from '../../../../Components/Form/FormInput.vue';
-import FormSelect from '../../../../Components/Form/FormSelect.vue';
+import OnboardingPackageForm from '../../../../Components/Authorization/OnboardingPackageForm.vue';
 import PageStack from '../../../../Components/PageStack.vue';
-import SurfaceCard from '../../../../Components/SurfaceCard.vue';
 import AdminLayout from '../../../../Layouts/AdminLayout.vue';
 import { useTranslator } from '../../../../Localization/translator';
-import type { FormSelectOption } from '../../../../Components/Form/FormSelect.vue';
+import type { AuthorizationAssignmentOption } from '../../../../Types/user-team-access';
+
+interface TeamOption {
+    value: string;
+    label: string;
+}
 
 defineProps<{
-    roleOptions: string[];
-    permissionOptions: string[];
-    teamOptions: FormSelectOption[];
+    roleOptions: AuthorizationAssignmentOption[];
+    permissionOptions: AuthorizationAssignmentOption[];
+    rolePermissionMap: Record<string, string[]>;
+    teamOptions: TeamOption[];
 }>();
 
 const { t } = useTranslator();
@@ -37,54 +36,26 @@ function submit(): void {
 
 <template>
     <Head :title="t('pages.admin.packages.create.head_title')" />
-    <AdminLayout :title="t('pages.admin.packages.create.title')" :title-icon="IconPackages">
+    <AdminLayout :title="t('pages.admin.packages.create.title')" :title-icon="IconPackageExport">
         <PageStack>
-            <AtlasForm class="grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(24rem,32rem)]" :processing="form.processing" @submit="submit">
-                <SurfaceCard title="Preset identity" :icon="IconPackages">
-                    <div class="grid gap-4 sm:grid-cols-2">
-                        <FormSelect
-                            v-model="form.team_public_id"
-                            label="Team"
-                            :options="[{ value: '', label: 'Select team' }, ...teamOptions]"
-                            :error="form.errors.team_public_id"
-                        />
-                        <FormInput
-                            v-model="form.name"
-                            label="Technical name"
-                            placeholder="department.responsibility"
-                            :error="form.errors.name"
-                            monospace
-                        />
-                        <FormInput v-model="form.label" label="Label" :error="form.errors.label" />
-                    </div>
-
-                    <CheckboxList
-                        v-model="form.initial_roles"
-                        class="mt-5"
-                        label="Initial roles"
-                        :options="roleOptions"
-                        :error="form.errors.initial_roles"
-                        max-height="max-h-40"
-                        :item-monospace="false"
-                    />
-                </SurfaceCard>
-
-                <SurfaceCard title="Direct permissions" :icon="IconPackages">
-                    <CheckboxList
-                        v-model="form.direct_permissions"
-                        :options="permissionOptions"
-                        :error="form.errors.direct_permissions"
-                        max-height="max-h-[32rem]"
-                    />
-                </SurfaceCard>
-
-                <FormActions class="xl:col-span-2">
-                    <FormButton type="submit" :loading="form.processing">
-                        {{ form.processing ? 'Saving...' : 'Save preset' }}
-                    </FormButton>
-                    <ActionLink href="/admin/authorization/packages" :icon="IconArrowLeft"> Back to presets </ActionLink>
-                </FormActions>
-            </AtlasForm>
+            <OnboardingPackageForm
+                v-model:team-public-id="form.team_public_id"
+                v-model:name="form.name"
+                v-model:label="form.label"
+                v-model:initial-roles="form.initial_roles"
+                v-model:direct-permissions="form.direct_permissions"
+                mode="create"
+                :team-options="teamOptions"
+                :role-options="roleOptions"
+                :permission-options="permissionOptions"
+                :role-permission-map="rolePermissionMap"
+                :errors="form.errors"
+                :processing="form.processing"
+                :submit-label="t('pages.admin.packages.actions.create')"
+                :processing-label="t('pages.admin.packages.actions.creating')"
+                back-href="/admin/authorization/packages"
+                @submit="submit"
+            />
         </PageStack>
     </AdminLayout>
 </template>

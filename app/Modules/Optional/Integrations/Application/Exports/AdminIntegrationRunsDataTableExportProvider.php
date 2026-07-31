@@ -58,7 +58,6 @@ final readonly class AdminIntegrationRunsDataTableExportProvider extends Abstrac
 
         foreach (DB::table(DatabaseTable::INTEGRATION_SYNC_RUNS)
             ->orderByDesc('started_at')
-            ->limit(20)
             ->get(['integration_key', 'operation', 'correlation_id', 'status', 'started_at', 'finished_at', 'message']) as $index => $row) {
             $integrationKey = self::stringValue($row->integration_key ?? null);
             $correlationId = self::stringValue($row->correlation_id ?? null);

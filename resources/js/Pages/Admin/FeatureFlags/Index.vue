@@ -1,22 +1,27 @@
 <script setup lang="ts">
-import { Head, router, useForm } from '@inertiajs/vue3';
-import { IconFlag3, IconHistory, IconShieldLock, IconUsersGroup } from '@tabler/icons-vue';
-import type { Component } from 'vue';
-import { computed } from 'vue';
+import { Head, useForm } from '@inertiajs/vue3';
+import { IconActivity, IconFlag, IconHistory, IconListDetails, IconPencil, IconRefresh, IconUsersGroup } from '@tabler/icons-vue';
+import { computed, ref, watch } from 'vue';
 
 import DataTable from '../../../Components/DataTable.vue';
+import DialogPanel from '../../../Components/DialogPanel.vue';
+import FilterPanel from '../../../Components/FilterPanel.vue';
 import AtlasForm from '../../../Components/Form/AtlasForm.vue';
 import FormButton from '../../../Components/Form/FormButton.vue';
 import FormCheckbox from '../../../Components/Form/FormCheckbox.vue';
-import FormInput from '../../../Components/Form/FormInput.vue';
-import FormSelect from '../../../Components/Form/FormSelect.vue';
-import MetricGrid from '../../../Components/MetricGrid.vue';
-import NoticeBanner from '../../../Components/NoticeBanner.vue';
+import FormSelect, { type FormSelectOption } from '../../../Components/Form/FormSelect.vue';
+import FormTextarea from '../../../Components/Form/FormTextarea.vue';
+import OperationalMetricTile from '../../../Components/OperationalMetricTile.vue';
 import PageStack from '../../../Components/PageStack.vue';
-import SurfaceCard from '../../../Components/SurfaceCard.vue';
+import { applyTableFilters, clearTableFilters } from '../../../Composables/useTableFilterControls';
 import AdminLayout from '../../../Layouts/AdminLayout.vue';
 import { useTranslator } from '../../../Localization/translator';
-import type { DataTableColumn, DataTableExportMeta } from '../../../Types/data-table';
+import type { DataTableAction, DataTableColumn, DataTableMeta } from '../../../Types/data-table';
+
+interface TeamOption {
+    publicId: string;
+    name: string;
+}
 
 interface FeatureFlagRow extends Record<string, unknown> {
     key: string;
@@ -31,205 +36,406 @@ interface FeatureFlagRow extends Record<string, unknown> {
     teamEnabled: boolean | null;
     effectiveEnabled: boolean;
     source: string;
+    selectedTeamPublicId: string | null;
 }
 
-interface TeamOption {
+interface FeatureFlagHistoryRow extends Record<string, unknown> {
     publicId: string;
-    name: string;
-}
-
-interface HistoryRow extends Record<string, unknown> {
-    publicId: string;
+    createdAt: string | null;
     flagKey: string;
     scope: string;
-    teamPublicId: string | null;
     teamName: string | null;
+    teamPublicId: string | null;
     action: string;
     reason: string;
-    before: { enabled?: boolean } | null;
-    after: { enabled?: boolean } | null;
     actorPublicId: string;
-    createdAt: string;
+    beforeEnabled: boolean | null;
+    afterEnabled: boolean | null;
 }
+
+interface FeatureFlagSummary {
+    registered: number;
+    visible: number;
+    effectiveEnabled: number;
+    globalValues: number;
+    teamOverrides: number;
+    historyRows: number;
+}
+
+type EditMode = 'global' | 'team' | 'clear-team';
 
 const props = defineProps<{
     flags: FeatureFlagRow[];
     teams: TeamOption[];
     selectedTeamPublicId: string | null;
-    history: HistoryRow[];
-    exports: DataTableExportMeta;
+    summary: FeatureFlagSummary;
+    filterOptions: {
+        owners: string[];
+        lifecycles: string[];
+        teams: TeamOption[];
+    };
+    history: FeatureFlagHistoryRow[];
+    table: DataTableMeta;
 }>();
 
-const { t } = useTranslator();
-const form = useForm({
-    flag_key: props.flags[0]?.key ?? '',
-    scope: 'team',
-    team_public_id: props.selectedTeamPublicId ?? props.teams[0]?.publicId ?? '',
+const { locale, t } = useTranslator();
+const filterKeys = ['team', 'status', 'source', 'owner', 'lifecycle'];
+const filterDefaults = {
+    team: props.selectedTeamPublicId ?? 'all',
+    status: 'all',
+    source: 'all',
+    owner: 'all',
+    lifecycle: 'all',
+};
+const filters = ref({ ...filterDefaults, ...filterValues() });
+const selectedFlag = ref<FeatureFlagRow | null>(null);
+const editMode = ref<EditMode>('global');
+const editModalOpen = ref(false);
+const form = useForm<{
+    enabled: boolean;
+    reason: string;
+    team_public_id: string | null;
+}>({
     enabled: false,
     reason: '',
+    team_public_id: props.selectedTeamPublicId,
 });
 
-const flagOptions = computed(() => props.flags.map((flag) => ({ value: flag.key, label: `${flag.name} (${flag.key})` })));
-const teamOptions = computed(() => props.teams.map((team) => ({ value: team.publicId, label: team.name })));
-const selectedFlag = computed(() => props.flags.find((flag) => flag.key === form.flag_key) ?? props.flags[0] ?? null);
-const selectedTeam = computed(() => props.teams.find((team) => team.publicId === form.team_public_id) ?? null);
-const canClearTeam = computed(() => selectedFlag.value?.teamEnabled !== null && form.scope === 'team');
-
-const summaryItems = computed<{ label: string; value: string; icon: Component; tone: string }[]>(() => [
-    { label: t('pages.admin.feature_flags.metric.registered'), value: String(props.flags.length), icon: IconFlag3, tone: 'teal' },
-    {
-        label: t('pages.admin.feature_flags.metric.enabled_effectively'),
-        value: String(props.flags.filter((flag) => flag.effectiveEnabled).length),
-        icon: IconShieldLock,
-        tone: 'emerald',
-    },
-    {
-        label: t('pages.admin.feature_flags.metric.team_overrides'),
-        value: String(props.flags.filter((flag) => flag.teamEnabled !== null).length),
-        icon: IconUsersGroup,
-        tone: 'sky',
-    },
-    { label: t('pages.admin.feature_flags.metric.history_rows'), value: String(props.history.length), icon: IconHistory, tone: 'amber' },
+const flagRows = computed<FeatureFlagRow[]>(() =>
+    props.flags.map((flag) => ({
+        ...flag,
+        source: sourceLabel(flag.source),
+        lifecycle: lifecycleLabel(flag.lifecycle),
+        type: typeLabel(flag.type),
+    })),
+);
+const flagColumns = computed<DataTableColumn<FeatureFlagRow>[]>(() => [
+    { key: 'name', label: t('pages.admin.feature_flags.table.flag') },
+    { key: 'key', label: t('pages.admin.feature_flags.table.key') },
+    { key: 'ownerModule', label: t('pages.admin.feature_flags.table.owner_module') },
+    { key: 'effectiveEnabled', label: t('pages.admin.feature_flags.table.effective'), format: 'boolean' },
+    { key: 'source', label: t('pages.admin.feature_flags.table.source'), format: 'status' },
+    { key: 'globalEnabled', label: t('pages.admin.feature_flags.table.global'), format: 'boolean' },
+    { key: 'teamEnabled', label: t('pages.admin.feature_flags.table.team'), format: 'boolean' },
+    { key: 'defaultEnabled', label: t('pages.admin.feature_flags.table.default'), format: 'boolean', hidden: true },
+    { key: 'type', label: t('pages.admin.feature_flags.table.type'), hidden: true },
+    { key: 'lifecycle', label: t('pages.admin.feature_flags.table.lifecycle') },
+    { key: 'teamScoped', label: t('pages.admin.feature_flags.table.team_scoped'), format: 'boolean', hidden: true },
+    { key: 'description', label: t('pages.admin.feature_flags.table.description'), hidden: true },
 ]);
+const historyColumns = computed<DataTableColumn<FeatureFlagHistoryRow>[]>(() => [
+    { key: 'createdAt', label: t('pages.admin.feature_flags.history.changed'), format: 'datetime' },
+    { key: 'flagKey', label: t('pages.admin.feature_flags.history.flag') },
+    { key: 'scope', label: t('pages.admin.feature_flags.history.scope'), format: 'status' },
+    { key: 'teamName', label: t('pages.admin.feature_flags.history.team') },
+    { key: 'action', label: t('pages.admin.feature_flags.history.action'), format: 'status' },
+    { key: 'afterEnabled', label: t('pages.admin.feature_flags.history.after'), format: 'boolean' },
+    { key: 'reason', label: t('pages.admin.feature_flags.history.reason') },
+    { key: 'actorPublicId', label: t('pages.admin.feature_flags.history.actor'), hidden: true },
+    { key: 'beforeEnabled', label: t('pages.admin.feature_flags.history.before'), format: 'boolean', hidden: true },
+    { key: 'teamPublicId', label: t('pages.admin.feature_flags.history.team_public_id'), hidden: true },
+]);
+const flagActions = computed<DataTableAction<FeatureFlagRow>[]>(() => [
+    {
+        key: 'global',
+        label: t('pages.admin.feature_flags.actions.set_global'),
+        onAction: (flag) => openEdit(flag, 'global'),
+        tone: 'info',
+    },
+    {
+        key: 'team',
+        label: t('pages.admin.feature_flags.actions.set_team'),
+        onAction: (flag) => openEdit(flag, 'team'),
+        tone: 'warning',
+        visible: (flag) => flag.teamScoped && props.selectedTeamPublicId !== null,
+    },
+    {
+        key: 'clear-team',
+        label: t('pages.admin.feature_flags.actions.clear_team'),
+        onAction: (flag) => openEdit(flag, 'clear-team'),
+        tone: 'danger',
+        visible: (flag) => flag.teamScoped && props.selectedTeamPublicId !== null && flag.teamEnabled !== null,
+    },
+]);
+const teamOptions = computed<FormSelectOption[]>(() => [
+    ...props.filterOptions.teams.map((team) => ({ value: team.publicId, label: team.name })),
+]);
+const statusOptions = computed<FormSelectOption[]>(() => [
+    { value: 'all', label: t('pages.admin.feature_flags.filters.any_status') },
+    { value: 'enabled', label: t('pages.admin.feature_flags.filters.enabled') },
+    { value: 'disabled', label: t('pages.admin.feature_flags.filters.disabled') },
+]);
+const sourceOptions = computed<FormSelectOption[]>(() => [
+    { value: 'all', label: t('pages.admin.feature_flags.filters.any_source') },
+    { value: 'default', label: sourceLabel('default') },
+    { value: 'global', label: sourceLabel('global') },
+    { value: 'team', label: sourceLabel('team') },
+]);
+const ownerOptions = computed<FormSelectOption[]>(() =>
+    allOptions(props.filterOptions.owners, t('pages.admin.feature_flags.filters.any_owner')),
+);
+const lifecycleOptions = computed<FormSelectOption[]>(() =>
+    allOptions(props.filterOptions.lifecycles, t('pages.admin.feature_flags.filters.any_lifecycle'), lifecycleLabel),
+);
+const tableFilters = computed(() => filterValues());
+const selectedTeamName = computed(
+    () =>
+        props.teams.find((team) => team.publicId === props.selectedTeamPublicId)?.name ??
+        t('pages.admin.feature_flags.selected_team_fallback'),
+);
+const editTitle = computed(() => {
+    if (editMode.value === 'clear-team') {
+        return t('pages.admin.feature_flags.dialog.clear_title');
+    }
 
-const flagColumns: DataTableColumn<FeatureFlagRow>[] = [
-    { key: 'name', label: t('pages.admin.feature_flags.flag') },
-    { key: 'key', label: t('pages.admin.feature_flags.key') },
-    { key: 'ownerModule', label: t('pages.admin.feature_flags.owner_module') },
-    { key: 'type', label: t('pages.admin.feature_flags.type') },
-    { key: 'defaultEnabled', label: t('pages.admin.feature_flags.default'), format: 'boolean' },
-    { key: 'globalEnabled', label: t('pages.admin.feature_flags.global'), format: 'boolean' },
-    { key: 'teamEnabled', label: t('pages.admin.feature_flags.team'), format: 'boolean' },
-    { key: 'effectiveEnabled', label: t('pages.admin.feature_flags.effective'), format: 'boolean' },
-    { key: 'source', label: t('pages.admin.feature_flags.source'), format: 'status' },
-    { key: 'lifecycle', label: t('pages.admin.feature_flags.lifecycle'), hidden: true },
-    { key: 'description', label: t('pages.admin.feature_flags.description'), hidden: true },
-];
+    return t('pages.admin.feature_flags.dialog.update_title');
+});
+const editTarget = computed(() => {
+    if (editMode.value === 'global') {
+        return t('pages.admin.feature_flags.source.global');
+    }
 
-const historyColumns: DataTableColumn<HistoryRow>[] = [
-    { key: 'createdAt', label: t('pages.admin.feature_flags.changed'), format: 'datetime' },
-    { key: 'flagKey', label: t('pages.admin.feature_flags.flag') },
-    { key: 'scope', label: t('pages.admin.feature_flags.scope'), format: 'status' },
-    { key: 'teamName', label: t('pages.admin.feature_flags.team') },
-    { key: 'action', label: t('pages.admin.feature_flags.action') },
-    { key: 'reason', label: t('pages.admin.feature_flags.reason') },
-    { key: 'actorPublicId', label: t('pages.admin.feature_flags.actor'), hidden: true },
-];
+    return selectedTeamName.value;
+});
 
-function refreshForTeam(): void {
-    router.get('/admin/feature-flags', { team: form.team_public_id }, { preserveScroll: true, preserveState: true });
+watch(
+    () => props.table.state.filters,
+    () => {
+        filters.value = { ...filterDefaults, ...filterValues() };
+    },
+);
+
+function filterValues(): Record<string, string> {
+    return {
+        team: String(props.table.state.filters?.team ?? props.selectedTeamPublicId ?? 'all'),
+        status: String(props.table.state.filters?.status ?? 'all'),
+        source: String(props.table.state.filters?.source ?? 'all'),
+        owner: String(props.table.state.filters?.owner ?? 'all'),
+        lifecycle: String(props.table.state.filters?.lifecycle ?? 'all'),
+    };
 }
 
-function submit(): void {
-    const flag = form.flag_key;
+function allOptions(values: string[], label: string, formatter?: (value: string) => string): FormSelectOption[] {
+    return [
+        { value: 'all', label },
+        ...values.map((value) => ({
+            value,
+            label: formatter === undefined ? value : formatter(value),
+        })),
+    ];
+}
 
-    if (form.scope === 'global') {
-        form.patch(`/admin/feature-flags/${flag}/global`, { preserveScroll: true });
+function applyFilters(): void {
+    applyTableFilters(filterKeys, filters.value, filterDefaults);
+}
+
+function clearFilters(): void {
+    filters.value = { ...filterDefaults, status: 'all', source: 'all', owner: 'all', lifecycle: 'all' };
+    clearTableFilters(['status', 'source', 'owner', 'lifecycle']);
+}
+
+function openEdit(flag: FeatureFlagRow, mode: EditMode): void {
+    selectedFlag.value = flag;
+    editMode.value = mode;
+    form.defaults({
+        enabled: mode === 'team' ? (flag.teamEnabled ?? flag.effectiveEnabled) : (flag.globalEnabled ?? flag.effectiveEnabled),
+        reason: '',
+        team_public_id: props.selectedTeamPublicId,
+    });
+    form.reset();
+    form.clearErrors();
+    editModalOpen.value = true;
+}
+
+function closeEditModal(): void {
+    editModalOpen.value = false;
+    selectedFlag.value = null;
+    form.reset();
+    form.clearErrors();
+}
+
+function submitChange(): void {
+    if (selectedFlag.value === null) {
         return;
     }
 
-    form.patch(`/admin/feature-flags/${flag}/teams`, { preserveScroll: true });
+    const flagKey = encodeURIComponent(selectedFlag.value.key);
+    const options = {
+        preserveScroll: true,
+        onSuccess: closeEditModal,
+    };
+
+    if (editMode.value === 'global') {
+        form.patch(`/admin/feature-flags/${flagKey}/global`, options);
+        return;
+    }
+
+    if (editMode.value === 'team') {
+        form.patch(`/admin/feature-flags/${flagKey}/teams`, options);
+        return;
+    }
+
+    form.delete(`/admin/feature-flags/${flagKey}/teams`, options);
 }
 
-function clearTeam(): void {
-    form.delete(`/admin/feature-flags/${form.flag_key}/teams`, { preserveScroll: true });
+function sourceLabel(value: string): string {
+    const keys: Record<string, string> = {
+        default: 'pages.admin.feature_flags.source.default',
+        global: 'pages.admin.feature_flags.source.global',
+        team: 'pages.admin.feature_flags.source.team',
+    };
+
+    return keys[value] === undefined ? value : t(keys[value]);
+}
+
+function lifecycleLabel(value: string): string {
+    const keys: Record<string, string> = {
+        planned: 'pages.admin.feature_flags.lifecycle.planned',
+    };
+
+    return keys[value] === undefined ? value : t(keys[value]);
+}
+
+function typeLabel(value: string): string {
+    const keys: Record<string, string> = {
+        boolean: 'pages.admin.feature_flags.type.boolean',
+    };
+
+    return keys[value] === undefined ? value : t(keys[value]);
 }
 </script>
 
 <template>
     <Head :title="t('pages.admin.feature_flags.head_title')" />
-    <AdminLayout :title="t('pages.admin.feature_flags.title')" :title-icon="IconFlag3">
+    <AdminLayout :title="t('pages.admin.feature_flags.title')" :title-icon="IconFlag">
         <PageStack>
-            <MetricGrid :items="summaryItems" />
+            <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-6">
+                <OperationalMetricTile
+                    :label="t('pages.admin.feature_flags.metric.registered')"
+                    :value="summary.registered"
+                    :icon="IconFlag"
+                    tone="teal"
+                />
+                <OperationalMetricTile
+                    :label="t('pages.admin.feature_flags.metric.visible')"
+                    :value="summary.visible"
+                    :icon="IconListDetails"
+                    tone="sky"
+                />
+                <OperationalMetricTile
+                    :label="t('pages.admin.feature_flags.metric.enabled_effectively')"
+                    :value="summary.effectiveEnabled"
+                    :icon="IconActivity"
+                    :tone="summary.effectiveEnabled > 0 ? 'emerald' : 'zinc'"
+                />
+                <OperationalMetricTile
+                    :label="t('pages.admin.feature_flags.metric.global_values')"
+                    :value="summary.globalValues"
+                    :icon="IconRefresh"
+                    tone="amber"
+                />
+                <OperationalMetricTile
+                    :label="t('pages.admin.feature_flags.metric.team_overrides')"
+                    :value="summary.teamOverrides"
+                    :icon="IconUsersGroup"
+                    :tone="summary.teamOverrides > 0 ? 'amber' : 'zinc'"
+                />
+                <OperationalMetricTile
+                    :label="t('pages.admin.feature_flags.metric.history_rows')"
+                    :value="summary.historyRows"
+                    :icon="IconHistory"
+                    tone="zinc"
+                />
+            </div>
 
-            <SurfaceCard
-                :title="t('pages.admin.feature_flags.change_value')"
-                :icon="IconFlag3"
-                :subtitle="t('pages.admin.feature_flags.change_value_subtitle')"
+            <FilterPanel
+                :title="t('pages.admin.feature_flags.filters.title')"
+                :apply-label="t('filters.apply')"
+                :clear-label="t('filters.clear')"
+                @apply="applyFilters"
+                @clear="clearFilters"
             >
-                <AtlasForm class="space-y-4" :processing="form.processing" @submit="submit">
-                    <div class="grid gap-4 lg:grid-cols-4">
-                        <FormSelect v-model="form.flag_key" :label="t('pages.admin.feature_flags.flag')" :options="flagOptions" />
-                        <FormSelect
-                            v-model="form.scope"
-                            :label="t('pages.admin.feature_flags.scope')"
-                            :options="[
-                                { value: 'team', label: t('pages.admin.feature_flags.selected_team') },
-                                { value: 'global', label: t('pages.admin.feature_flags.global') },
-                            ]"
-                        />
-                        <FormSelect
-                            v-model="form.team_public_id"
-                            :label="t('pages.admin.feature_flags.team')"
-                            :options="teamOptions"
-                            :button-class="form.scope === 'global' ? 'opacity-60' : ''"
-                            @update:model-value="refreshForTeam"
-                        />
-                        <div class="flex items-end">
-                            <FormCheckbox v-model="form.enabled" :label="t('pages.admin.feature_flags.enabled')" />
-                        </div>
-                    </div>
-                    <FormInput
-                        v-model="form.reason"
-                        :label="t('pages.admin.feature_flags.reason')"
-                        :error="form.errors.reason"
-                        :placeholder="t('pages.admin.feature_flags.reason_placeholder')"
+                <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+                    <FormSelect v-model="filters.team" :label="t('pages.admin.feature_flags.filters.team')" :options="teamOptions" />
+                    <FormSelect v-model="filters.status" :label="t('pages.admin.feature_flags.filters.status')" :options="statusOptions" />
+                    <FormSelect v-model="filters.source" :label="t('pages.admin.feature_flags.filters.source')" :options="sourceOptions" />
+                    <FormSelect v-model="filters.owner" :label="t('pages.admin.feature_flags.filters.owner')" :options="ownerOptions" />
+                    <FormSelect
+                        v-model="filters.lifecycle"
+                        :label="t('pages.admin.feature_flags.filters.lifecycle')"
+                        :options="lifecycleOptions"
                     />
-                    <div class="flex flex-wrap items-center gap-3">
-                        <FormButton type="submit" :icon="IconFlag3" :loading="form.processing">
-                            {{ t('pages.admin.feature_flags.save_value') }}
-                        </FormButton>
-                        <FormButton
-                            v-if="canClearTeam"
-                            type="button"
-                            tone="neutral"
-                            :icon="IconUsersGroup"
-                            :loading="form.processing"
-                            @click="clearTeam"
-                        >
-                            {{ t('pages.admin.feature_flags.clear_team_override') }}
-                        </FormButton>
-                    </div>
-                    <p v-if="selectedFlag" class="text-sm text-zinc-600 dark:text-zinc-300">
-                        {{
-                            t('pages.admin.feature_flags.editing_for', {
-                                flag: selectedFlag.name,
-                                target:
-                                    form.scope === 'global'
-                                        ? t('pages.admin.feature_flags.all_teams')
-                                        : (selectedTeam?.name ?? t('pages.admin.feature_flags.selected_team_fallback')),
-                            })
-                        }}
-                    </p>
-                </AtlasForm>
-            </SurfaceCard>
+                </div>
+            </FilterPanel>
 
             <DataTable
-                :title="t('pages.admin.feature_flags.registered')"
-                :rows="flags"
+                :title="t('pages.admin.feature_flags.flags.title')"
+                :rows="flagRows"
                 :columns="flagColumns"
                 row-key="key"
-                state-key="admin.feature-flags.flags"
-                export-key="admin.feature-flags.flags"
-                :exports="exports"
-                :filters="{ team: form.team_public_id }"
-                :empty-label="t('pages.admin.feature_flags.empty_flags')"
+                :actions="flagActions"
+                :table="table"
+                :filters="tableFilters"
+                :ui-locale="locale"
+                :empty-label="t('pages.admin.feature_flags.flags.empty')"
             />
 
-            <NoticeBanner :title="t('pages.admin.feature_flags.bounded_title')">
-                {{ t('pages.admin.feature_flags.bounded_history') }}
-            </NoticeBanner>
-
             <DataTable
-                :title="t('pages.admin.feature_flags.recent_history')"
+                :title="t('pages.admin.feature_flags.history.title')"
                 :rows="history"
                 :columns="historyColumns"
                 row-key="publicId"
-                state-key="admin.feature-flags.history"
-                export-key="admin.feature-flags.history"
-                :exports="exports"
-                :empty-label="t('pages.admin.feature_flags.empty_history')"
+                :ui-locale="locale"
+                :empty-label="t('pages.admin.feature_flags.history.empty')"
             />
         </PageStack>
+
+        <DialogPanel
+            v-model:open="editModalOpen"
+            :title="editTitle"
+            :icon="IconPencil"
+            :tone="editMode === 'clear-team' ? 'rose' : 'amber'"
+            :close-label="t('modal.cancel')"
+            @close="closeEditModal"
+        >
+            <AtlasForm :processing="form.processing" @submit="submitChange">
+                <div class="space-y-4">
+                    <div class="space-y-1">
+                        <p class="text-sm font-semibold text-zinc-950 dark:text-zinc-50">{{ selectedFlag?.name }}</p>
+                        <p class="text-sm text-zinc-600 dark:text-zinc-300">
+                            {{ t('pages.admin.feature_flags.dialog.target', { target: editTarget }) }}
+                        </p>
+                    </div>
+                    <FormCheckbox
+                        v-if="editMode !== 'clear-team'"
+                        v-model="form.enabled"
+                        :label="t('pages.admin.feature_flags.dialog.enabled')"
+                    />
+                    <FormTextarea
+                        v-model="form.reason"
+                        :label="t('pages.admin.feature_flags.dialog.reason')"
+                        :placeholder="t('pages.admin.feature_flags.dialog.reason_placeholder')"
+                        :error="form.errors.reason"
+                    />
+                </div>
+                <div class="mt-5 flex flex-wrap justify-end gap-2">
+                    <FormButton type="button" tone="neutral" @click="closeEditModal">
+                        {{ t('modal.cancel') }}
+                    </FormButton>
+                    <FormButton
+                        type="submit"
+                        :icon="IconPencil"
+                        :loading="form.processing"
+                        :tone="editMode === 'clear-team' ? 'danger' : 'primary'"
+                    >
+                        {{
+                            editMode === 'clear-team'
+                                ? t('pages.admin.feature_flags.actions.clear_team')
+                                : t('pages.admin.feature_flags.actions.save')
+                        }}
+                    </FormButton>
+                </div>
+            </AtlasForm>
+        </DialogPanel>
     </AdminLayout>
 </template>

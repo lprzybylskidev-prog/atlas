@@ -61,6 +61,7 @@ final class DemoResetTest extends TestCase
             ->firstOrFail();
 
         $this->assertSame('Admin', $user->name);
+        $this->assertSame('sensitive', $user->account_sensitivity);
         $this->assertTrue(Hash::check(DevelopmentBootstrapSeeder::PREVIEW_PASSWORD, $user->password));
         $this->assertNotNull($user->email_verified_at);
         $this->assertDatabaseCount(DatabaseTable::USERS, 1);
@@ -91,109 +92,39 @@ final class DemoResetTest extends TestCase
             ->assertInertia(fn (AssertableInertia $page) => $page->component('Admin/SystemStatus'));
     }
 
-    public function test_development_demo_admin_can_access_current_core_frontend_surfaces(): void
+    public function test_development_demo_seeder_is_noop_after_phase_25_cleanup(): void
     {
         $this->seed(DatabaseSeeder::class);
         $this->seed(DevelopmentBootstrapSeeder::class);
-        $this->seed(DevelopmentDemoSeeder::class);
-
-        $user = User::query()
-            ->where('email', DevelopmentBootstrapSeeder::PREVIEW_EMAIL)
-            ->firstOrFail();
-        $teamPublicId = DB::table(DatabaseTable::TEAMS)
-            ->where('name', SystemBootstrapSeeder::ADMINISTRATION_TEAM_NAME)
-            ->value('public_id');
-
-        self::assertIsString($teamPublicId);
-
-        $this->get('/login')
-            ->assertOk()
-            ->assertInertia(fn (AssertableInertia $page) => $page->component('Auth/Login'));
-
-        foreach ($this->applicationSurfaces() as $path => $component) {
-            $response = $this->actingAs($user)
-                ->withSession(['active_team_public_id' => $teamPublicId])
-                ->get($path);
-
-            self::assertSame(200, $response->getStatusCode(), sprintf('Expected [%s] to render after demo seed.', $path));
-            $response->assertInertia(fn (AssertableInertia $page) => $page->component($component));
-        }
-
-        $this->actingAs($user)
-            ->get('/team/select')
-            ->assertRedirect(route('dashboard'));
-
-        foreach ($this->adminSurfaces((string) $user->public_id, $teamPublicId) as $path => $component) {
-            $response = $this->actingAs($user)
-                ->withSession([
-                    'active_team_public_id' => $teamPublicId,
-                    'auth.password_confirmed_at' => now()->unix(),
-                    'atlas_admin_mode_entered_at' => now()->toIso8601String(),
-                    'atlas_admin_mode_last_activity_at' => now()->toIso8601String(),
-                    'atlas_admin_high_risk_confirmed_at' => now()->toIso8601String(),
-                ])
-                ->get($path);
-
-            self::assertSame(200, $response->getStatusCode(), sprintf('Expected [%s] to render after demo seed.', $path));
-            $response->assertInertia(fn (AssertableInertia $page) => $page->component($component));
-        }
-    }
-
-    public function test_development_demo_seeder_is_currently_no_op(): void
-    {
-        $this->seed(DatabaseSeeder::class);
-
-        $usersBefore = DB::table(DatabaseTable::USERS)->count();
-        $teamsBefore = DB::table(DatabaseTable::TEAMS)->count();
 
         $this->seed(DevelopmentDemoSeeder::class);
+        $this->seed(DevelopmentDemoSeeder::class);
 
-        $this->assertSame($usersBefore, DB::table(DatabaseTable::USERS)->count());
-        $this->assertSame($teamsBefore, DB::table(DatabaseTable::TEAMS)->count());
-        $this->assertDatabaseMissing(DatabaseTable::USERS, [
-            'email' => DevelopmentBootstrapSeeder::PREVIEW_EMAIL,
+        $this->assertDatabaseCount(DatabaseTable::USERS, 1);
+        $this->assertDatabaseCount(DatabaseTable::TEAMS, 1);
+        $this->assertDatabaseCount(DatabaseTable::USER_ONBOARDING_PACKAGES, 0);
+        $this->assertDatabaseCount(DatabaseTable::TEAM_MANAGER_RELATIONSHIPS, 0);
+        $this->assertDatabaseCount(DatabaseTable::FAILED_JOBS, 0);
+        $this->assertDatabaseCount(DatabaseTable::RATE_LIMIT_REJECTIONS, 0);
+        $this->assertDatabaseCount(DatabaseTable::MANAGED_PROCESS_RUNS, 0);
+        $this->assertDatabaseCount(DatabaseTable::IMPORT_EXECUTIONS, 0);
+        $this->assertDatabaseCount(DatabaseTable::IMPORT_ROW_ERRORS, 0);
+        $this->assertDatabaseCount(DatabaseTable::INTEGRATION_CONNECTIONS, 0);
+        $this->assertDatabaseCount(DatabaseTable::INTEGRATION_SYNC_RUNS, 0);
+        $this->assertDatabaseCount(DatabaseTable::INTEGRATION_CIRCUIT_BREAKERS, 0);
+        $this->assertDatabaseCount(DatabaseTable::FEATURE_FLAG_GLOBAL_VALUES, 0);
+        $this->assertDatabaseCount(DatabaseTable::FEATURE_FLAG_TEAM_VALUES, 0);
+        $this->assertDatabaseCount(DatabaseTable::FEATURE_FLAG_HISTORY, 0);
+        $this->assertDatabaseCount(DatabaseTable::NOTIFICATIONS, 0);
+        $this->assertDatabaseCount(DatabaseTable::AUDIT_EVENTS, 0);
+        $this->assertDatabaseCount(DatabaseTable::AUDIT_SECURITY_EVENTS, 0);
+        $this->assertDatabaseCount(DatabaseTable::FILE_OBJECTS, 0);
+        $this->assertDatabaseCount(DatabaseTable::FILE_SCAN_EVIDENCE, 0);
+        $this->assertDatabaseMissing(DatabaseTable::MODULE_GLOBAL_STATES, [
+            'module_key' => 'demo',
         ]);
-    }
-
-    /**
-     * @return array<string, string>
-     */
-    private function applicationSurfaces(): array
-    {
-        return [
-            '/user/confirm-password' => 'Auth/ConfirmPassword',
-            '/' => 'Dashboard',
-            '/notifications' => 'Notifications/Index',
-        ];
-    }
-
-    /**
-     * @return array<string, string>
-     */
-    private function adminSurfaces(string $userPublicId, string $teamPublicId): array
-    {
-        return [
-            '/admin' => 'Admin/SystemStatus',
-            '/admin/users' => 'Admin/Users/Index',
-            '/admin/users/create' => 'Admin/Users/Create',
-            sprintf('/admin/users/%s/edit', $userPublicId) => 'Admin/Users/Edit',
-            '/admin/teams' => 'Admin/Teams/Index',
-            '/admin/teams/create' => 'Admin/Teams/Create',
-            sprintf('/admin/teams/%s/edit', $teamPublicId) => 'Admin/Teams/Edit',
-            '/admin/managers' => 'Admin/Managers/Index',
-            '/admin/authorization/roles' => 'Admin/Authorization/Roles',
-            '/admin/authorization/roles/create' => 'Admin/Authorization/Roles/Create',
-            '/admin/authorization/packages' => 'Admin/Authorization/Packages',
-            '/admin/authorization/packages/create' => 'Admin/Authorization/Packages/Create',
-            '/admin/authorization/permissions' => 'Admin/Authorization/Permissions',
-            '/admin/audit' => 'Admin/Audit/Index',
-            '/admin/audit/security-history' => 'Admin/Audit/SecurityHistory',
-            '/admin/rate-limits' => 'Admin/RateLimits/Index',
-            '/admin/logs' => 'Admin/Logs/Index',
-            '/admin/queues' => 'Admin/Queues/Index',
-            '/admin/files' => 'Admin/Files/Index',
-            '/admin/modules' => 'Admin/Modules/Index',
-            '/admin/modules/identity' => 'Admin/Modules/Show',
-        ];
+        $this->assertDatabaseMissing(DatabaseTable::MODULE_TEAM_STATES, [
+            'module_key' => 'demo',
+        ]);
     }
 }

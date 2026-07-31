@@ -27,7 +27,7 @@ Supported source adapter contracts exist for:
 - internal API;
 - external API.
 
-The current implementation provides the import contracts, persistence, Admin visibility, and managed-process linkage, but does not ship demo import adapters or demo import process definitions. Real adapters and import definitions are registered by owning modules as those workflows are implemented.
+The current implementation provides the import contracts, persistence, Admin visibility, and managed-process linkage. Real adapters and import definitions are registered by owning modules as those workflows are implemented.
 
 An API import must not bypass domain rules.
 
@@ -42,9 +42,11 @@ Import-specific records include:
 - statistics;
 - row and field errors.
 
-Every import execution is linked to a managed process run and is visible in the `/admin/managed-processes/imports` tab and the corresponding `/admin/managed-processes/{run}` detail screen.
+Every import execution is linked to a managed process run and is visible in the combined `/admin/managed-processes` run list and the corresponding `/admin/managed-processes/{run}` detail screen.
 
-Large imports use managed-process queues.
+File-backed import definitions may expose both a watched-directory source and a manual upload start form. Manual uploads must use the Files module first and pass the resulting file public ID into the managed-process input snapshot; directory-backed starts store the directory reference as safe import source metadata.
+
+Large imports use managed-process queues and may run as long single jobs. Import implementations are responsible for idempotency and deduplication so rerunning the same file or API import can recognize work already accepted by the import contract. Atlas does not force large imports to split into multiple visible process runs or multiple technical queue jobs.
 
 Keep original import files according to retention policy.
 

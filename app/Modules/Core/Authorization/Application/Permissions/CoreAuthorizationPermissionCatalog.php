@@ -63,11 +63,15 @@ final class CoreAuthorizationPermissionCatalog implements ModulePermissionContri
 
     public const ADMIN_QUEUES_RETRY = 'admin.queues.retry';
 
+    public const ADMIN_QUEUES_ACKNOWLEDGE = 'admin.queues.acknowledge';
+
     public const ADMIN_PULSE_VIEW = 'admin.pulse.view';
 
     public const ADMIN_TELESCOPE_VIEW = 'admin.telescope.view';
 
     public const ADMIN_MODULES_SHOW = 'admin.modules.show';
+
+    public const ADMIN_MODULES_TEAMS_CREATE = 'admin.modules.teams.create';
 
     public const ADMIN_MODULES_GLOBAL_UPDATE = 'admin.modules.global.update';
 
@@ -171,9 +175,11 @@ final class CoreAuthorizationPermissionCatalog implements ModulePermissionContri
             new ModulePermissionDefinition(self::ADMIN_LOGS_INDEX, 'View curated Admin application logs.'),
             new ModulePermissionDefinition(self::ADMIN_QUEUES_INDEX, 'View Admin queues and failed jobs.'),
             new ModulePermissionDefinition(self::ADMIN_QUEUES_RETRY, 'Retry failed jobs through Admin UI.'),
+            new ModulePermissionDefinition(self::ADMIN_QUEUES_ACKNOWLEDGE, 'Mark failed jobs as handled through Admin UI.'),
             new ModulePermissionDefinition(self::ADMIN_PULSE_VIEW, 'View Laravel Pulse internal performance dashboard.'),
             new ModulePermissionDefinition(self::ADMIN_TELESCOPE_VIEW, 'View Laravel Telescope local diagnostics dashboard.'),
             new ModulePermissionDefinition(self::ADMIN_MODULES_SHOW, 'View module activation details.'),
+            new ModulePermissionDefinition(self::ADMIN_MODULES_TEAMS_CREATE, 'Open team module activation configuration.'),
             new ModulePermissionDefinition(self::ADMIN_MODULES_GLOBAL_UPDATE, 'Update global module activation.'),
             new ModulePermissionDefinition(self::ADMIN_MODULES_TEAM_UPDATE, 'Update team module activation overrides.'),
             new ModulePermissionDefinition(self::ADMIN_MODULES_TEAM_CLEAR, 'Clear team module activation overrides.'),

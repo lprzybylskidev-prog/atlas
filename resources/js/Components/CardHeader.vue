@@ -34,7 +34,7 @@ function iconToneClass(tone: string): string {
 </script>
 
 <template>
-    <div class="flex min-w-0 items-start gap-3">
+    <div class="flex min-w-0 gap-3" :class="subtitle ? 'items-start' : 'items-center'">
         <span
             v-if="icon && iconVariant !== 'none'"
             class="flex shrink-0 items-center justify-center rounded-lg border"

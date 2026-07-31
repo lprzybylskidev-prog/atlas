@@ -8,6 +8,10 @@ function formatRequest(request: Request): string {
 }
 
 function shouldMonitorRequest(request: Request): boolean {
+    if (request.url().includes('/realtime/events') && request.failure()?.errorText === 'NS_BINDING_ABORTED') {
+        return false;
+    }
+
     return monitoredResourceTypes.has(request.resourceType());
 }
 

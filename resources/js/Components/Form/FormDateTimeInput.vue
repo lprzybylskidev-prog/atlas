@@ -4,6 +4,7 @@ import { computed } from 'vue';
 
 import FormDateInput from './FormDateInput.vue';
 import FormInput from './FormInput.vue';
+import { useTranslator } from '../../Localization/translator';
 
 const model = defineModel<string>({ required: true });
 
@@ -14,6 +15,7 @@ defineProps<{
     error?: string;
 }>();
 
+const { t } = useTranslator();
 const dateValue = computed({
     get: () => normalize(model.value).date,
     set: (value: string) => {
@@ -31,11 +33,12 @@ const timeValue = computed({
 
 function normalize(value: string): { date: string; time: string } {
     const normalized = value.replace('T', ' ').trim();
-    const [date = '', time = ''] = normalized.split(' ');
+    const dateMatch = normalized.match(/\b\d{4}-\d{2}-\d{2}\b/);
+    const timeMatch = normalized.match(/\b\d{2}:\d{2}\b/);
 
     return {
-        date,
-        time: time.slice(0, 5) || '09:00',
+        date: dateMatch?.[0] ?? '',
+        time: timeMatch?.[0] ?? '09:00',
     };
 }
 </script>
@@ -43,6 +46,12 @@ function normalize(value: string): { date: string; time: string } {
 <template>
     <div class="grid gap-3 sm:grid-cols-[minmax(0,1fr)_8rem]">
         <FormDateInput :id="id" v-model="dateValue" :label="label" :aria-label="ariaLabel" :error="error" />
-        <FormInput v-model="timeValue" label="Time" placeholder="HH:mm" inputmode="numeric" :leading-icon="IconCalendarTime" />
+        <FormInput
+            v-model="timeValue"
+            :label="t('form.datetime.time')"
+            placeholder="HH:mm"
+            inputmode="numeric"
+            :leading-icon="IconCalendarTime"
+        />
     </div>
 </template>

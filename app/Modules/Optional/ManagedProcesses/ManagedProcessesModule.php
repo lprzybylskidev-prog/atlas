@@ -67,9 +67,9 @@ final class ManagedProcessesModule implements ModuleDefinition
     {
         return [
             'admin.managed-processes.index',
-            'admin.managed-processes.imports.index',
             'admin.managed-processes.definitions.index',
             'admin.managed-processes.schedules.index',
+            'admin.managed-processes.schedules.create',
         ];
     }
 }

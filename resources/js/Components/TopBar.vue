@@ -294,6 +294,14 @@ watch(
                         <TruncatedText :text="title" text-class="text-inherit" />
                     </h1>
                 </div>
+
+                <ShellSubnavigation
+                    v-if="subnavigation.length > 0"
+                    class="hidden min-w-0 shrink lg:flex"
+                    :items="subnavigation"
+                    :label="subnavigationLabel"
+                    variant="inline"
+                />
             </div>
 
             <div class="flex min-w-0 items-center gap-2">
@@ -475,6 +483,5 @@ watch(
                 </div>
             </div>
         </div>
-        <ShellSubnavigation v-if="subnavigation.length > 0" :items="subnavigation" :label="subnavigationLabel" />
     </header>
 </template>

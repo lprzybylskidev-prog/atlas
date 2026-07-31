@@ -19,6 +19,7 @@ const props = withDefaults(
         placeholder?: string;
         error?: string;
         buttonClass?: string;
+        disabled?: boolean;
     }>(),
     {
         label: undefined,
@@ -26,6 +27,7 @@ const props = withDefaults(
         placeholder: 'Select',
         error: undefined,
         buttonClass: '',
+        disabled: false,
     },
 );
 
@@ -36,6 +38,7 @@ const listboxId = `form-select-${crypto.randomUUID()}`;
 const errorId = `${listboxId}-error`;
 
 const selectedOption = computed(() => props.options.find((option) => option.value === model.value) ?? null);
+const isDisabled = computed(() => props.disabled);
 
 function selectOption(option: FormSelectOption): void {
     if (option.value === model.value) {
@@ -59,6 +62,10 @@ function closeOnOutsidePointer(event: PointerEvent): void {
 }
 
 function handleButtonKeydown(event: KeyboardEvent): void {
+    if (isDisabled.value) {
+        return;
+    }
+
     if (event.key === 'ArrowDown' || event.key === 'Enter' || event.key === ' ') {
         event.preventDefault();
         open.value = true;
@@ -99,6 +106,16 @@ onMounted(() => {
 onBeforeUnmount(() => {
     document.removeEventListener('pointerdown', closeOnOutsidePointer);
 });
+
+function toggleOpen(): void {
+    if (isDisabled.value) {
+        open.value = false;
+
+        return;
+    }
+
+    open.value = !open.value;
+}
 </script>
 
 <template>
@@ -108,14 +125,20 @@ onBeforeUnmount(() => {
             ref="button"
             type="button"
             class="inline-flex h-10 w-full items-center justify-between gap-2 rounded-lg border border-zinc-300 bg-white px-3 text-left text-sm leading-5 text-zinc-950 outline-none transition hover:border-zinc-400 hover:bg-zinc-50 focus:border-teal-600 focus:ring-2 focus:ring-teal-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50 dark:hover:border-zinc-600 dark:hover:bg-zinc-800 dark:focus:ring-teal-950"
-            :class="buttonClass"
+            :class="[
+                buttonClass,
+                isDisabled
+                    ? 'cursor-not-allowed opacity-70 hover:border-zinc-300 hover:bg-white dark:hover:border-zinc-700 dark:hover:bg-zinc-900'
+                    : '',
+            ]"
             role="combobox"
+            :disabled="isDisabled"
             :aria-label="ariaLabel ?? label"
             :aria-expanded="open"
             :aria-controls="listboxId"
             :aria-invalid="error ? 'true' : 'false'"
             :aria-describedby="error ? errorId : undefined"
-            @click="open = !open"
+            @click="toggleOpen"
             @keydown="handleButtonKeydown"
         >
             <TruncatedText

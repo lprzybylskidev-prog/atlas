@@ -29,7 +29,7 @@ Known demo credentials are permitted only in local or development environments, 
 
 Module-specific demo seeders are created in the owning module phase, after that module's real tables, contracts, and invariants exist.
 
-The current foundation-level development demo seeder is `Database\Seeders\DevelopmentDemoSeeder`.
+`Database\Seeders\DevelopmentDemoSeeder` is intentionally empty after Phase 25 cleanup. The temporary Phase 25 Admin review dataset and placeholder `demo` Application module were removed on 2026-07-31 so local reset returns Atlas to a clean foundation state instead of seeding permanent showcase records.
 
 `Database\Seeders\DatabaseSeeder` is production-safe, installs starter roles and registered permissions, creates the mandatory `Administration` team, and synchronizes Administration module access. It must not create demo accounts or module demo records.
 
@@ -53,7 +53,7 @@ Automated tests use factories and explicit fixtures. Permission-gated and module
 
 ## Current development bootstrap account
 
-The development demo reset runs production-safe technical seeders first, then creates one local administrator account in the required `Administration` team so the application can be reviewed through the real Fortify login flow without artificial Admin panel records:
+The development demo reset runs production-safe technical seeders first, then creates one local administrator account in the required `Administration` team so the application can be reviewed through the real Fortify login flow:
 
 - email: `admin@example.test`;
 - password: `password`.

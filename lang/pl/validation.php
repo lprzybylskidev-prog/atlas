@@ -157,6 +157,10 @@ return [
     'url' => 'Format pola :attribute jest nieprawidłowy.',
     'uuid' => 'Pole :attribute musi być poprawnym identyfikatorem UUID.',
 
+    'managed_processes' => [
+        'cron_expression' => 'Wpisz poprawne pięciopolowe wyrażenie cron.',
+    ],
+
     'custom' => [
         'team_assignments' => [
             'copy_source_team' => 'Wybrany użytkownik źródłowy musi mieć aktywny dostęp do wskazanego zespołu.',
@@ -169,17 +173,19 @@ return [
 
     'attributes' => [
         'current_password' => 'aktualne hasło',
+        'account_sensitivity' => 'wrażliwość konta',
         'direct_permission_names' => 'bezpośrednie uprawnienia',
         'direct_permission_names.*' => 'bezpośrednie uprawnienie',
         'direct_permissions' => 'bezpośrednie uprawnienia',
         'direct_permissions.*' => 'bezpośrednie uprawnienie',
+        'display_name' => 'nazwa wyświetlana',
         'email' => 'adres e-mail',
         'initial_roles' => 'role początkowe',
         'initial_roles.*' => 'rola początkowa',
         'label' => 'etykieta',
         'locale' => 'język',
         'name' => 'nazwa',
-        'onboarding_package' => 'preset',
+        'onboarding_package' => 'szablon',
         'password' => 'hasło',
         'password_confirmation' => 'potwierdzenie hasła',
         'permissions' => 'uprawnienia',
@@ -219,6 +225,13 @@ return [
     ],
 
     'values' => [
+        'account_sensitivity' => [
+            'integration' => 'konto integracyjne',
+            'normal' => 'konto zwykłe',
+            'sensitive' => 'konto wrażliwe',
+            'service' => 'konto usługowe',
+            'technical' => 'konto techniczne',
+        ],
         'locale' => [
             'en' => 'angielski',
             'pl' => 'polski',

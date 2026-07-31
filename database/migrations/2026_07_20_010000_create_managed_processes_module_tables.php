@@ -94,6 +94,20 @@ return new class extends Migration
             $table->index(['retry_of_run_id']);
         });
 
+        Schema::create(DatabaseTable::MANAGED_PROCESS_RUN_ACKNOWLEDGEMENTS, function (Blueprint $table): void {
+            $table->id();
+            $table->ulid('public_id')->unique();
+            $table->foreignId('process_run_id');
+            $table->foreignId('acknowledged_by_user_id')->nullable()->constrained(DatabaseTable::USERS)->nullOnDelete();
+            $table->text('reason')->nullable();
+            $table->timestampTz('acknowledged_at');
+            $table->timestampsTz();
+
+            $table->unique('process_run_id', 'mp_run_ack_run_id_unique');
+            $table->foreign('process_run_id', 'mp_run_ack_run_id_foreign')->references('id')->on(DatabaseTable::MANAGED_PROCESS_RUNS)->restrictOnDelete();
+            $table->index('acknowledged_at');
+        });
+
         Schema::create(DatabaseTable::MANAGED_PROCESS_LOG_EVENTS, function (Blueprint $table): void {
             $table->id();
             $table->ulid('public_id')->unique();
@@ -156,6 +170,7 @@ return new class extends Migration
     {
         Schema::dropIfExists(DatabaseTable::MANAGED_PROCESS_SCHEDULES);
         Schema::dropIfExists(DatabaseTable::MANAGED_PROCESS_LOG_EVENTS);
+        Schema::dropIfExists(DatabaseTable::MANAGED_PROCESS_RUN_ACKNOWLEDGEMENTS);
         Schema::dropIfExists(DatabaseTable::MANAGED_PROCESS_RUNS);
         Schema::dropIfExists(DatabaseTable::MANAGED_PROCESS_DEFINITIONS);
     }

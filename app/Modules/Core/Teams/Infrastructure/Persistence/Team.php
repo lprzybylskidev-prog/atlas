@@ -16,6 +16,7 @@ final class Team extends Model
     protected $fillable = [
         'public_id',
         'name',
+        'display_name',
         'is_active',
     ];
 

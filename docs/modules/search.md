@@ -35,7 +35,7 @@ Current foundation contracts:
 - Search permissions are registered as `search.query`, `admin.search.index`, and `admin.search.rebuild`.
 - `search.rebuild` is registered as a managed process on the `search` queue. With no registered index descriptors it succeeds as a safe no-op; concrete modules add descriptors before rebuild orchestration can index their documents.
 - `search:rebuild` starts the `search.rebuild` managed process from CLI. It requires `--actor` and `--team` so rebuilds remain authorized and audited, and accepts optional `--module` and `--index` filters.
-- `/admin/search` shows Search readiness, registered index descriptors, recent rebuild managed-process runs, and a confirmed rebuild action. The rebuild action requires the `REBUILD SEARCH` confirmation phrase and redirects to the managed-process run details.
+- `/admin/search` shows Meilisearch readiness, registered index descriptors in the shared Admin DataTable, backend-applied module/sensitivity/deletion/anonymization filters, DataTable exports, recent rebuild managed-process runs, and confirmed global or single-index rebuild actions. Rebuild actions require the `REBUILD SEARCH` confirmation phrase and redirect to the managed-process run details.
 
 ## Full-Text Search
 

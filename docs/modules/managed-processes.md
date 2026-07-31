@@ -62,6 +62,8 @@ A run stores:
 - retry lineage;
 - safe result and error summaries.
 
+Runs that represent completed operational problems (`failed`, `succeeded_with_warnings`, `cancelled`, or `expired`) may be marked as handled by an authorized Admin operator. Handling is stored as a separate acknowledgement record with actor, reason, and timestamp; it does not rewrite the historical process status.
+
 Statuses are stable and include at least:
 
 - `draft`;
@@ -75,6 +77,10 @@ Statuses are stable and include at least:
 - `expired`.
 
 Large and configured processes can run through Redis queues and Horizon via the shared execution job. Synchronous execution is reserved for explicitly short, safe, low-volume processes and isolated automated-test fixtures.
+
+Managed Processes supports long-running single jobs as a normal operational shape. A process may run for many hours when importing high volumes, calling slow external APIs, rebuilding data, or executing module-owned maintenance logic. Atlas does not require those workflows to be split into multiple visible process runs or multiple technical queue jobs. The owning process decides whether to implement internal checkpoints, cursors, batching, or idempotent resume behavior. Admin still shows one process run, one detail screen, one timeline, and one retry/cancel surface for the operator.
+
+Queue worker timeouts for managed-process and import lanes must therefore be long enough for expected operational scripts. Redis `retry_after` must be greater than the worker timeout to avoid duplicate execution of a still-running long job. If a container restart, deployment, infrastructure failure, or external API failure interrupts a long process, retry safety is owned by the process implementation and, for imports, by the import idempotency contract.
 
 Concurrency policies support one active run globally, one active run per team, one active run per actor, configurable parallelism, and no-overlap scheduled runs.
 
@@ -128,15 +134,19 @@ Admin provides:
 - process definition list;
 - process run list with filters;
 - process run detail with progress, counters, timeline/logs, input summary, queue state, retry/cancel actions, and result summary;
-- four Admin tabs for runs, import executions, registered definitions, and schedules;
-- process schedule management in `/admin/managed-processes/schedules` with validated five-field cron expressions;
+- Admin subviews for combined runs, registered definitions, and schedules; imports do not have a separate Admin route;
+- process run list in `/admin/managed-processes`, combining ordinary process runs and import-linked runs with import key, source, file, and idempotency columns where applicable;
+- row and bulk actions for marking failed, warning, cancelled, or expired runs as handled; handled runs remain in history and can be shown through the handling-status filter;
+- process schedule management in `/admin/managed-processes/schedules`, with schedule creation handled by `/admin/managed-processes/schedules/create` and validated five-field cron expressions;
 - dashboard/system-status signals for active runs, failed runs, warnings, queue backlog, schedule failures, and module deactivation blockers.
 
-Run, retry, cancel, and schedule actions require backend authorization, active-team scope, ModuleGate checks, Admin mode, and audit. External-effect or irreversible processes require explicit confirmation and Admin mode/high-risk controls where applicable.
+Run, retry, cancel, acknowledge, and schedule actions require backend authorization, active-team scope, ModuleGate checks, Admin mode, and audit. Manual definition starts are launched from the definitions subview through a modal instead of a separate start page. External-effect or irreversible processes require explicit confirmation and Admin mode/high-risk controls where applicable.
 
-Retry starts a new run with `source_type=retry` and retry lineage. It does not require the process definition to permit manual starts.
+Handled failed and warning runs stop contributing to the Admin dashboard's managed-process warning signals unless a new run fails or completes with warnings.
 
-The development reset does not seed artificial process runs, logs, import executions, or schedules. A clean installation starts with an empty run history until real module-owned work is executed.
+Retry starts a new run with `source_type=retry` and retry lineage. It does not require the process definition to permit manual starts. Long-running processes may retry from the beginning or use module-owned idempotency/checkpoint state; the shared Managed Processes foundation records and displays the retry but does not prescribe the resume strategy.
+
+A clean installation starts with an empty run history until real module-owned work is executed. The foundation does not ship demo no-op process definitions after Phase 25 cleanup.
 
 ## Deactivation and Operations
 

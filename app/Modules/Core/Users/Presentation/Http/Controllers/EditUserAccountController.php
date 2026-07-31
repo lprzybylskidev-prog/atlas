@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace App\Modules\Core\Users\Presentation\Http\Controllers;
 
+use App\Modules\Core\Authorization\Application\Public\Contracts\OnboardingPackageDirectory;
 use App\Modules\Core\Authorization\Application\Public\Contracts\UserTeamAuthorizationManager;
 use App\Modules\Core\Identity\Application\Public\Contracts\ImpersonationEligibilityChecker;
 use App\Modules\Core\Identity\Application\Public\Contracts\UserCredentialAccountDirectory;
+use App\Modules\Core\Identity\Application\Public\DTOs\UserCredentialAccountOption;
 use App\Modules\Core\Teams\Application\Public\Contracts\UserTeamMembershipManager;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
@@ -20,6 +22,7 @@ final readonly class EditUserAccountController
         private UserCredentialAccountDirectory $accounts,
         private UserTeamMembershipManager $memberships,
         private UserTeamAuthorizationManager $authorization,
+        private OnboardingPackageDirectory $packages,
         private ImpersonationEligibilityChecker $impersonation,
     ) {}
 
@@ -65,8 +68,40 @@ final readonly class EditUserAccountController
                 'value' => $team->publicId,
                 'label' => $team->name,
             ], $this->memberships->assignableTeamsForUser($account->publicId)),
+            'packages' => array_map(static fn ($package): array => [
+                'publicId' => $package->publicId,
+                'teamPublicId' => $package->teamPublicId,
+                'teamName' => $package->teamName,
+                'name' => $package->name,
+                'label' => $package->label,
+                'initialRoles' => $package->initialRoleNames,
+                'directPermissions' => $package->directPermissionNames,
+                'templatePermissions' => $package->templatePermissionNames,
+            ], $this->packages->all()),
+            'copySources' => array_map(function (UserCredentialAccountOption $user): array {
+                $assignmentsByTeam = [];
+
+                foreach ($this->memberships->activeMembershipsForUser($user->publicId) as $membership) {
+                    $assignment = $this->authorization->assignmentsForUserTeam($user->publicId, $membership->teamPublicId);
+                    $assignmentsByTeam[$membership->teamPublicId] = [
+                        'roles' => $assignment->roleNames,
+                        'directPermissions' => $assignment->directPermissionNames,
+                    ];
+                }
+
+                return [
+                    'publicId' => $user->publicId,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'assignmentsByTeam' => $assignmentsByTeam,
+                ];
+            }, array_values(array_filter(
+                $this->accounts->allOptions(),
+                static fn (UserCredentialAccountOption $user): bool => $user->publicId !== $account->publicId,
+            ))),
             'roleOptions' => $this->authorization->roleOptions(),
             'permissionOptions' => $this->authorization->permissionOptions(),
+            'rolePermissionMap' => $this->authorization->rolePermissionMap(),
         ]);
     }
 

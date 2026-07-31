@@ -72,8 +72,16 @@ final class NotificationsFoundationTest extends TestCase
             ->assertInertia(fn (AssertableInertia $page) => $page
                 ->component('Notifications/Index')
                 ->where('table.key', 'notifications')
+                ->where('table.state.filters.status', 'all')
+                ->where('summary.total', 1)
+                ->where('summary.visible', 1)
+                ->where('summary.unread', 1)
+                ->where('filterOptions.severities.0', 'info')
+                ->where('filterOptions.types.0', 'test.notification')
                 ->has('notificationRows', 1)
                 ->where('notificationRows.0.title', 'Dropdown notification')
+                ->where('notificationRows.0.scope', 'team')
+                ->where('notificationRows.0.scopeLabel', 'Zespół')
                 ->where('notificationRows.0.read', false)
                 ->where('notificationRows.0.createdAt', fn (string $value): bool => $value !== '')
                 ->where('notifications.unreadCount', 1)
@@ -111,6 +119,44 @@ final class NotificationsFoundationTest extends TestCase
                 ->where('notificationRows.0.body', 'Eksport Użytkownicy jest gotowy do pobrania.')
                 ->where('notifications.latest.0.title', 'Eksport jest gotowy')
                 ->where('notifications.latest.0.body', 'Eksport Użytkownicy jest gotowy do pobrania.'));
+    }
+
+    public function test_notification_center_applies_status_and_severity_filters(): void
+    {
+        Queue::fake();
+
+        [$user, $team] = $this->userWithTeam(StarterRoleName::WorkspaceAccess->value);
+        $publisher = $this->app->make(NotificationPublisher::class);
+        $readId = $publisher->publish(new CreateNotification(
+            type: 'test.notification',
+            title: 'Read warning notification',
+            body: null,
+            recipientUserPublicId: (string) $user->public_id,
+            teamPublicId: (string) $team->public_id,
+            severity: 'warning',
+        ));
+        $publisher->publish(new CreateNotification(
+            type: 'test.notification',
+            title: 'Unread info notification',
+            body: null,
+            recipientUserPublicId: (string) $user->public_id,
+            teamPublicId: (string) $team->public_id,
+            severity: 'info',
+        ));
+        $this->app->make(NotificationInbox::class)->markRead((string) $user->public_id, $readId);
+
+        $this->actingAs($user)
+            ->withSession(['active_team_public_id' => $team->public_id])
+            ->get('/notifications?status=unread&severity=info')
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('summary.total', 2)
+                ->where('summary.visible', 1)
+                ->where('summary.unread', 1)
+                ->where('table.state.filters.status', 'unread')
+                ->where('table.state.filters.severity', 'info')
+                ->has('notificationRows', 1)
+                ->where('notificationRows.0.title', 'Unread info notification'));
     }
 
     public function test_user_can_mark_notifications_read_in_bulk(): void

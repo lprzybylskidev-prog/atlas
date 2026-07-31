@@ -10,6 +10,7 @@ use App\Modules\Core\Identity\Infrastructure\Persistence\User;
 use App\Modules\Core\Teams\Application\Public\Contracts\ManagerHierarchy;
 use App\Modules\Core\Teams\Infrastructure\Persistence\Team;
 use App\Shared\Infrastructure\Database\DatabaseTable;
+use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Inertia\Testing\AssertableInertia;
@@ -27,10 +28,11 @@ final class ManagerHierarchyAdministrationTest extends TestCase
         $secondManager = User::factory()->create(['name' => 'Second Manager']);
         $teamLead = User::factory()->create(['name' => 'Team Lead']);
         $report = User::factory()->create(['name' => 'Report User']);
+        $extraReport = User::factory()->create(['name' => 'Extra Report']);
         $team = Team::query()->create(['name' => 'Collections']);
         $this->assignStarterRoleInTeam($actor, $team, StarterRoleName::Administrator->value);
 
-        foreach ([$firstManager, $secondManager, $teamLead, $report] as $user) {
+        foreach ([$firstManager, $secondManager, $teamLead, $report, $extraReport] as $user) {
             $this->assignMembership($user, $team);
         }
 
@@ -45,9 +47,78 @@ final class ManagerHierarchyAdministrationTest extends TestCase
                 ->where('selectedTeamPublicId', $team->public_id)
             );
 
+        $this->actingAs($actor)
+            ->withSession($session)
+            ->get('/admin/managers/create?team='.$team->public_id)
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->component('Admin/Managers/Create')
+                ->where('selectedTeamPublicId', $team->public_id)
+                ->where('selectedManagerPublicId', '')
+                ->where('manager', null)
+                ->has('teamMembers', 6)
+            );
+
         $this->createRelationship($actor, $session, $team, $firstManager, $teamLead);
         $this->createRelationship($actor, $session, $team, $secondManager, $teamLead);
         $this->createRelationship($actor, $session, $team, $teamLead, $report);
+
+        $this->actingAs($actor)
+            ->withSession($session)
+            ->get('/admin/managers?team='.$team->public_id)
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->component('Admin/Managers/Index')
+                ->where('selectedTeamPublicId', $team->public_id)
+                ->has('managers', 3)
+                ->where('table.key', 'admin.managers')
+                ->where('table.state.filters.team', $team->public_id)
+            );
+
+        $this->actingAs($actor)
+            ->withSession($session)
+            ->get('/admin/managers?team='.$team->public_id.'&type=regular&directReports=with&subtreeReports=with')
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->component('Admin/Managers/Index')
+                ->where('table.state.filters.type', 'regular')
+                ->where('table.state.filters.directReports', 'with')
+                ->where('table.state.filters.subtreeReports', 'with')
+                ->where('managers', fn ($managers): bool => $this->nonEmptyEveryRow($managers,
+                    fn (array $manager): bool => ($manager['managerType'] ?? null) === 'regular'
+                        && ($manager['directReportsCount'] ?? 0) > 0
+                        && ($manager['subtreeReportsCount'] ?? 0) > 0
+                ))
+            );
+
+        $this->actingAs($actor)
+            ->withSession($session)
+            ->get('/admin/managers/create?team='.$team->public_id.'&preview_manager='.$firstManager->public_id.'&preview_reports%5B%5D='.$report->public_id)
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->component('Admin/Managers/Create')
+                ->where('selectedManagerPublicId', $firstManager->public_id)
+                ->where('manager.userPublicId', $firstManager->public_id)
+                ->has('relationships', 1)
+                ->has('tree', 1)
+                ->where('previewReportPublicIds', [$report->public_id])
+                ->has('assignmentPreviews', 1)
+            );
+
+        $this->actingAs($actor)
+            ->withSession($session)
+            ->get('/admin/managers/'.$firstManager->public_id.'/edit?team='.$team->public_id)
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->component('Admin/Managers/Edit')
+                ->where('selectedTeamPublicId', $team->public_id)
+                ->where('manager.userPublicId', $firstManager->public_id)
+                ->where('manager.managerType', 'regular')
+                ->has('relationships', 1)
+                ->has('tree', 1)
+                ->has('previewReportPublicIds', 0)
+                ->has('assignmentPreviews', 0)
+            );
 
         self::assertDatabaseHas(DatabaseTable::TEAM_MANAGER_RELATIONSHIPS, [
             'team_id' => $team->id,
@@ -92,7 +163,7 @@ final class ManagerHierarchyAdministrationTest extends TestCase
                 'head_manager' => true,
                 'reason' => 'Regional lead.',
             ])
-            ->assertRedirect(route('admin.managers.index', ['team' => $team->public_id]));
+            ->assertRedirect(route('admin.managers.edit', ['user' => $firstManager->public_id, 'team' => $team->public_id]));
 
         /** @var ManagerHierarchy $hierarchy */
         $hierarchy = $this->app->make(ManagerHierarchy::class);
@@ -104,6 +175,24 @@ final class ManagerHierarchyAdministrationTest extends TestCase
         self::assertContains((string) $report->public_id, $headScope->visibleUserPublicIds);
         self::assertFalse($normalScope->headManager);
         self::assertSame([(string) $teamLead->public_id], $normalScope->visibleUserPublicIds);
+
+        $this->actingAs($actor)
+            ->withSession($session)
+            ->post('/admin/managers', [
+                'team_public_id' => $team->public_id,
+                'manager_user_public_id' => $secondManager->public_id,
+                'report_user_public_ids' => [$report->public_id, $extraReport->public_id],
+                'valid_from' => now()->toDateString(),
+                'reason' => 'Approved reporting expansion.',
+            ])
+            ->assertRedirect(route('admin.managers.edit', ['user' => $secondManager->public_id, 'team' => $team->public_id]));
+
+        self::assertDatabaseHas(DatabaseTable::TEAM_MANAGER_RELATIONSHIPS, [
+            'team_id' => $team->id,
+            'manager_user_id' => $secondManager->id,
+            'report_user_id' => $extraReport->id,
+            'valid_to' => null,
+        ]);
 
         $relationshipPublicId = DB::table(DatabaseTable::TEAM_MANAGER_RELATIONSHIPS)
             ->where('team_id', $team->id)
@@ -119,7 +208,7 @@ final class ManagerHierarchyAdministrationTest extends TestCase
                 'valid_to' => now()->toDateString(),
                 'reason' => 'Reporting line changed.',
             ])
-            ->assertRedirect(route('admin.managers.index', ['team' => $team->public_id]));
+            ->assertRedirect(route('admin.managers.edit', ['user' => $teamLead->public_id, 'team' => $team->public_id]));
 
         $ended = DB::table(DatabaseTable::TEAM_MANAGER_RELATIONSHIPS)->where('public_id', $relationshipPublicId)->first();
         self::assertIsObject($ended);
@@ -148,7 +237,7 @@ final class ManagerHierarchyAdministrationTest extends TestCase
                 'valid_from' => now()->toDateString(),
                 'reason' => 'Approved reporting line.',
             ])
-            ->assertRedirect(route('admin.managers.index', ['team' => $team->public_id]));
+            ->assertRedirect(route('admin.managers.edit', ['user' => $manager->public_id, 'team' => $team->public_id]));
     }
 
     private function assignStarterRoleInTeam(User $user, Team $team, string $roleName): void
@@ -188,5 +277,58 @@ final class ManagerHierarchyAdministrationTest extends TestCase
             'atlas_admin_mode_last_activity_at' => now()->toIso8601String(),
             'atlas_admin_high_risk_confirmed_at' => now()->toIso8601String(),
         ];
+    }
+
+    /**
+     * @param  callable(array<string, mixed>): bool  $predicate
+     */
+    private function nonEmptyEveryRow(mixed $rows, callable $predicate): bool
+    {
+        $rows = self::listValue($rows);
+
+        if ($rows === []) {
+            return false;
+        }
+
+        foreach ($rows as $row) {
+            if (! is_array($row) || ! $predicate(self::stringKeyedArray($row))) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * @return list<mixed>
+     */
+    private static function listValue(mixed $value): array
+    {
+        if ($value instanceof Arrayable) {
+            $value = $value->toArray();
+        }
+
+        if ($value instanceof \Traversable) {
+            return array_values(iterator_to_array($value));
+        }
+
+        return is_array($value) ? array_values($value) : [];
+    }
+
+    /**
+     * @param  array<mixed>  $value
+     * @return array<string, mixed>
+     */
+    private static function stringKeyedArray(array $value): array
+    {
+        $result = [];
+
+        foreach ($value as $key => $item) {
+            if (is_string($key)) {
+                $result[$key] = $item;
+            }
+        }
+
+        return $result;
     }
 }

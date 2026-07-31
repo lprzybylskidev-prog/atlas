@@ -8,8 +8,5 @@ use Illuminate\Database\Seeder;
 
 class DevelopmentDemoSeeder extends Seeder
 {
-    public function run(): void
-    {
-        // No representative demo business data is needed at this phase.
-    }
+    public function run(): void {}
 }

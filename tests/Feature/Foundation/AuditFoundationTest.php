@@ -296,6 +296,83 @@ final class AuditFoundationTest extends TestCase
             );
     }
 
+    public function test_admin_can_filter_security_history_and_open_impersonation_session_detail(): void
+    {
+        $actor = User::factory()->create();
+        $target = User::factory()->create();
+        $activeTeam = Team::query()->create(['name' => 'Operations']);
+        $this->assignStarterRoleInTeam($actor, $activeTeam);
+        $sessionId = 'test-security-history-session';
+
+        $this->app->make(AuditRecorder::class)->record(new AuditEvent(
+            module: 'identity',
+            action: 'impersonation.start',
+            result: 'succeeded',
+            source: 'admin',
+            actorPublicId: $actor->public_id,
+            actualActorPublicId: $actor->public_id,
+            impersonatedUserPublicId: $target->public_id,
+            impersonationSessionId: $sessionId,
+            targetType: 'user',
+            targetPublicId: $target->public_id,
+            teamPublicId: $activeTeam->public_id,
+            reason: 'Support verified identity.',
+            security: true,
+            securityCategory: SecurityAuditCategory::Impersonation,
+        ));
+        $this->app->make(AuditRecorder::class)->record(new AuditEvent(
+            module: 'identity',
+            action: 'auth.login',
+            result: 'rejected',
+            source: 'web',
+            actorPublicId: $target->public_id,
+            targetType: 'user',
+            targetPublicId: $target->public_id,
+            teamPublicId: $activeTeam->public_id,
+            reason: 'Rate limit blocked login.',
+            security: true,
+            securityCategory: SecurityAuditCategory::Authentication,
+        ));
+
+        $session = [
+            'active_team_public_id' => $activeTeam->public_id,
+            'auth.password_confirmed_at' => now()->unix(),
+            'atlas_admin_mode_entered_at' => now()->toIso8601String(),
+            'atlas_admin_mode_last_activity_at' => now()->toIso8601String(),
+            'atlas_admin_high_risk_confirmed_at' => now()->toIso8601String(),
+        ];
+
+        $this->actingAs($actor)
+            ->withSession($session)
+            ->get(sprintf('/admin/audit/security-history?user=%s&action=impersonation.start&result=succeeded&source=admin', $target->public_id))
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->component('Admin/Audit/SecurityHistory')
+                ->where('table.key', 'admin.audit.security-history')
+                ->where('table.pagination.total', 1)
+                ->where('table.state.filters.user', $target->public_id)
+                ->where('table.state.filters.action', 'impersonation.start')
+                ->where('table.state.filters.result', 'succeeded')
+                ->where('table.state.filters.source', 'admin')
+                ->where('summary.visible', 1)
+                ->where('summary.impersonated', 1)
+                ->where('events.0.impersonationSessionId', $sessionId)
+                ->where('filterOptions.actions.1.value', 'impersonation.start'));
+
+        $this->actingAs($actor)
+            ->withSession($session)
+            ->get('/admin/audit/impersonation/'.$sessionId)
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->component('Admin/Audit/ImpersonationSession')
+                ->where('session.id', $sessionId)
+                ->where('session.operationCount', 1)
+                ->where('session.securityCount', 1)
+                ->where('table.key', 'admin.audit.impersonation-session-events')
+                ->where('table.state.filters.session', $sessionId)
+                ->has('events', 1));
+    }
+
     private function assignStarterRoleInTeam(User $user, Team $team): void
     {
         $this->app->make(InstallStarterRoles::class)->handle();

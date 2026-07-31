@@ -84,7 +84,7 @@ services:
         condition: service_healthy
       meilisearch:
         condition: service_healthy
-    command: ["php", "artisan", "queue:listen", "redis", "--queue=exports,search,files,files-large,default", "--sleep=1", "--tries=1", "--timeout=60"]
+    command: ["php", "artisan", "queue:listen", "redis", "--queue=managed-processes,imports,exports,search,files,files-large,default", "--sleep=1", "--tries=1", "--timeout=43200"]
     networks:
       - atlas-dev
 

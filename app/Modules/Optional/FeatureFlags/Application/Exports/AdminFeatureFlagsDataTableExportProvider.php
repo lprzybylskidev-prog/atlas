@@ -68,7 +68,7 @@ final readonly class AdminFeatureFlagsDataTableExportProvider extends AbstractAd
         $teamPublicId = $teamPublicId === 'all' || $teamPublicId === '' ? null : $teamPublicId;
         $rows = array_map(fn ($definition): array => $this->flagRow($definition->key->value, $teamPublicId), $this->registry->all());
 
-        foreach ($this->sorted($this->filtered($rows, $request), $request) as $row) {
+        foreach ($this->sorted($this->filtered($this->filteredByControls($rows, $request), $request), $request) as $row) {
             yield $row;
         }
     }
@@ -95,5 +95,41 @@ final readonly class AdminFeatureFlagsDataTableExportProvider extends AbstractAd
             'source' => $state->source,
             'selectedTeamPublicId' => $state->teamPublicId,
         ];
+    }
+
+    /**
+     * @param  list<array<string, scalar|\Stringable|null>>  $rows
+     * @return list<array<string, scalar|\Stringable|null>>
+     */
+    private function filteredByControls(array $rows, ReportExportGenerationRequest $request): array
+    {
+        return array_values(array_filter($rows, static function (array $row) use ($request): bool {
+            $status = self::filterValue($request, 'status');
+            $source = self::filterValue($request, 'source');
+            $owner = self::filterValue($request, 'owner');
+            $lifecycle = self::filterValue($request, 'lifecycle');
+
+            if ($status === 'enabled' && $row['effectiveEnabled'] !== true) {
+                return false;
+            }
+
+            if ($status === 'disabled' && $row['effectiveEnabled'] !== false) {
+                return false;
+            }
+
+            if ($source !== 'all' && $row['source'] !== $source) {
+                return false;
+            }
+
+            if ($owner !== 'all' && $row['ownerModule'] !== $owner) {
+                return false;
+            }
+
+            if ($lifecycle !== 'all' && $row['lifecycle'] !== $lifecycle) {
+                return false;
+            }
+
+            return true;
+        }));
     }
 }

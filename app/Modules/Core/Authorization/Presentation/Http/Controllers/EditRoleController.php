@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Core\Authorization\Presentation\Http\Controllers;
 
-use App\Modules\Core\Authorization\Application\Permissions\PermissionCatalogRegistry;
+use App\Modules\Core\Authorization\Application\Public\Contracts\UserTeamAuthorizationManager;
 use App\Shared\Infrastructure\Database\DatabaseTable;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
@@ -13,7 +13,7 @@ use Inertia\Response;
 final readonly class EditRoleController
 {
     public function __construct(
-        private PermissionCatalogRegistry $permissions,
+        private UserTeamAuthorizationManager $authorization,
     ) {}
 
     public function __invoke(string $role): Response
@@ -21,7 +21,7 @@ final readonly class EditRoleController
         $record = DB::table(DatabaseTable::ROLES)
             ->where('name', $role)
             ->where('guard_name', 'web')
-            ->first(['id', 'name', 'guard_name']);
+            ->first(['id', 'name', 'display_name', 'guard_name']);
 
         if (! is_object($record)) {
             abort(404);
@@ -32,10 +32,11 @@ final readonly class EditRoleController
         return Inertia::render('Admin/Authorization/Roles/Edit', [
             'role' => [
                 'name' => is_string($values['name'] ?? null) ? $values['name'] : '',
+                'displayName' => $this->displayName($values['display_name'] ?? null, $values['name'] ?? null),
                 'guard' => is_string($values['guard_name'] ?? null) ? $values['guard_name'] : 'web',
                 'permissions' => $this->rolePermissionNames($values['id'] ?? null),
             ],
-            'permissionOptions' => $this->permissions->names(),
+            'permissionOptions' => $this->authorization->permissionOptions(),
         ]);
     }
 
@@ -55,5 +56,14 @@ final readonly class EditRoleController
             ->pluck('permissions.name')
             ->filter(static fn (mixed $permission): bool => is_string($permission))
             ->all());
+    }
+
+    private function displayName(mixed $displayName, mixed $name): string
+    {
+        $technicalName = is_string($name) ? $name : '';
+
+        return is_string($displayName) && $displayName !== '' && $displayName !== $technicalName
+            ? $displayName
+            : str($technicalName)->replace(['.', '-', '_'], ' ')->headline()->toString();
     }
 }

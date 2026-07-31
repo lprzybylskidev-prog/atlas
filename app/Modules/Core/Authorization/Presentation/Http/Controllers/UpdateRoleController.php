@@ -28,7 +28,7 @@ final readonly class UpdateRoleController
         $record = DB::table(DatabaseTable::ROLES)
             ->where('name', $role)
             ->where('guard_name', 'web')
-            ->first(['id', 'public_id', 'name']);
+            ->first(['id', 'public_id', 'name', 'display_name']);
 
         if (! is_object($record)) {
             abort(404);
@@ -47,17 +47,20 @@ final readonly class UpdateRoleController
                 'regex:/^[a-z0-9_.-]+$/',
                 $this->uniqueRoleNameRule(is_numeric($roleId) ? (int) $roleId : null),
             ],
+            'display_name' => ['required', 'string', 'max:255'],
             'permissions' => ['nullable', 'array'],
             'permissions.*' => ['string', Rule::in($this->permissions->names())],
         ]);
         $validated = is_array($validated) ? $validated : [];
 
         $name = is_string($validated['name'] ?? null) ? $validated['name'] : '';
+        $displayName = is_string($validated['display_name'] ?? null) ? $validated['display_name'] : $name;
         $permissionNames = $this->stringList($validated, 'permissions');
 
-        DB::transaction(function () use ($roleId, $name, $permissionNames): void {
+        DB::transaction(function () use ($roleId, $name, $displayName, $permissionNames): void {
             DB::table(DatabaseTable::ROLES)->where('id', $roleId)->update([
                 'name' => $name,
+                'display_name' => $displayName,
                 'updated_at' => now(),
             ]);
 
@@ -68,9 +71,11 @@ final readonly class UpdateRoleController
 
         $this->recordAudit($request, 'authorization.role_updated', 'succeeded', $rolePublicId, [
             'name' => is_string($values['name'] ?? null) ? $values['name'] : $role,
+            'display_name' => is_string($values['display_name'] ?? null) ? $values['display_name'] : null,
             'permissions' => $beforePermissions,
         ], [
             'name' => $name,
+            'display_name' => $displayName,
             'permissions' => $permissionNames,
         ]);
 

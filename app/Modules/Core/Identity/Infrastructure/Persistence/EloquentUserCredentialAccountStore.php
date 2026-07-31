@@ -29,6 +29,7 @@ final class EloquentUserCredentialAccountStore implements UserCredentialAccountS
             'first_password_set_at' => null,
             'is_active' => true,
             'deactivated_at' => null,
+            'account_sensitivity' => $command->accountSensitivity,
         ]);
 
         return $this->mapper->created($user);

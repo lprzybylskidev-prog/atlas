@@ -2,6 +2,8 @@
 import { IconCalendarEvent, IconChevronLeft, IconChevronRight } from '@tabler/icons-vue';
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 
+import { useTranslator } from '../../Localization/translator';
+
 const model = defineModel<string>({ required: true });
 
 const props = defineProps<{
@@ -16,10 +18,17 @@ const root = ref<HTMLElement | null>(null);
 const monthCursor = ref(firstOfMonth(model.value || todayIso()));
 const inputId = props.id ?? `form-date-${crypto.randomUUID()}`;
 const errorId = `${inputId}-error`;
-const weekdayLabels = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'];
+const { locale, t } = useTranslator();
+const weekdayLabels = computed(() =>
+    Array.from({ length: 7 }, (_, index) => {
+        const date = new Date(Date.UTC(2026, 0, 5 + index));
+
+        return new Intl.DateTimeFormat(locale.value, { weekday: 'short' }).format(date);
+    }),
+);
 
 const monthLabel = computed(() =>
-    new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric' }).format(parseIsoDate(monthCursor.value)),
+    new Intl.DateTimeFormat(locale.value, { month: 'long', year: 'numeric' }).format(parseIsoDate(monthCursor.value)),
 );
 const calendarDays = computed(() => {
     const first = parseIsoDate(monthCursor.value);
@@ -57,7 +66,7 @@ function closeOnEscape(event: KeyboardEvent): void {
 }
 
 function showPicker(): void {
-    monthCursor.value = firstOfMonth(model.value || todayIso());
+    monthCursor.value = firstOfMonth(isIsoDate(model.value) ? model.value : todayIso());
     open.value = true;
 }
 
@@ -84,6 +93,10 @@ function todayIso(): string {
 
 function firstOfMonth(value: string): string {
     return `${value.slice(0, 7)}-01`;
+}
+
+function isIsoDate(value: string): boolean {
+    return /^\d{4}-\d{2}-\d{2}$/.test(value);
 }
 
 function parseIsoDate(value: string): Date {
@@ -145,7 +158,7 @@ onBeforeUnmount(() => {
                 <button
                     type="button"
                     class="inline-flex h-8 w-8 items-center justify-center rounded-md text-zinc-600 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-900"
-                    aria-label="Previous month"
+                    :aria-label="t('form.date.previous_month')"
                     @click="previousMonth"
                 >
                     <IconChevronLeft aria-hidden="true" class="h-4 w-4" :stroke-width="1.8" />
@@ -154,7 +167,7 @@ onBeforeUnmount(() => {
                 <button
                     type="button"
                     class="inline-flex h-8 w-8 items-center justify-center rounded-md text-zinc-600 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-900"
-                    aria-label="Next month"
+                    :aria-label="t('form.date.next_month')"
                     @click="nextMonth"
                 >
                     <IconChevronRight aria-hidden="true" class="h-4 w-4" :stroke-width="1.8" />

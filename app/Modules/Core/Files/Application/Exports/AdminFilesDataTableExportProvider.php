@@ -47,6 +47,7 @@ final readonly class AdminFilesDataTableExportProvider extends AbstractAdminData
             'extension' => 'Extension',
             'mimeType' => 'MIME type',
             'scanState' => 'State',
+            'handlingStatus' => 'Handling',
             'sizeBytes' => 'Size bytes',
             'checksumSha256' => 'Checksum',
             'scannedAt' => 'Scanned',
@@ -56,6 +57,9 @@ final readonly class AdminFilesDataTableExportProvider extends AbstractAdminData
             'scanAttempts' => 'Attempts',
             'quarantinedAt' => 'Quarantined',
             'availableAt' => 'Available',
+            'acknowledgedAt' => 'Handled at',
+            'acknowledgedBy' => 'Handled by',
+            'acknowledgementReason' => 'Handling reason',
             'threatName' => 'Threat',
             'createdAt' => 'Created at',
         ];
@@ -69,8 +73,9 @@ final readonly class AdminFilesDataTableExportProvider extends AbstractAdminData
                     ->on('file_scan_evidence.file_object_id', '=', 'file_objects.id')
                     ->whereRaw('file_scan_evidence.id = (select max(evidence.id) from '.DatabaseTable::FILE_SCAN_EVIDENCE.' evidence where evidence.file_object_id = file_objects.id)');
             })
+            ->leftJoin(DatabaseTable::USERS.' as acknowledged_users', 'acknowledged_users.id', '=', 'file_objects.acknowledged_by_user_id')
+            ->whereNull('file_objects.deleted_at')
             ->orderByDesc('file_objects.created_at')
-            ->limit(200)
             ->get([
                 'file_objects.public_id',
                 'file_objects.original_name',
@@ -82,7 +87,10 @@ final readonly class AdminFilesDataTableExportProvider extends AbstractAdminData
                 'file_objects.scan_attempts',
                 'file_objects.quarantined_at',
                 'file_objects.available_at',
+                'file_objects.acknowledged_at',
+                'file_objects.acknowledgement_reason',
                 'file_objects.created_at',
+                'acknowledged_users.name as acknowledged_by',
                 'file_scan_evidence.provider',
                 'file_scan_evidence.engine_version',
                 'file_scan_evidence.signature_version',
@@ -105,8 +113,40 @@ final readonly class AdminFilesDataTableExportProvider extends AbstractAdminData
     {
         return array_values(array_filter($rows, static function (array $row) use ($request): bool {
             $state = self::filterValue($request, 'state');
+            $extension = self::filterValue($request, 'extension');
+            $provider = self::filterValue($request, 'provider');
+            $availability = self::filterValue($request, 'availability');
+            $handling = self::filterValue($request, 'handling');
 
-            return $state === 'all' || $row['scanState'] === $state;
+            if ($state !== 'all' && $row['scanState'] !== $state) {
+                return false;
+            }
+
+            if ($extension !== 'all' && $row['extension'] !== $extension) {
+                return false;
+            }
+
+            if ($provider !== 'all' && $row['provider'] !== $provider) {
+                return false;
+            }
+
+            if ($availability === 'available' && $row['availableAt'] === null) {
+                return false;
+            }
+
+            if ($availability === 'blocked' && $row['availableAt'] !== null) {
+                return false;
+            }
+
+            if ($handling === 'needs_attention' && $row['handlingStatus'] !== 'needs_attention') {
+                return false;
+            }
+
+            if ($handling === 'handled' && $row['handlingStatus'] !== 'handled') {
+                return false;
+            }
+
+            return self::dateRangeMatches(self::stringValue($row['createdAt'] ?? null), self::filterValue($request, 'from'), self::filterValue($request, 'to'));
         }));
     }
 
@@ -123,9 +163,13 @@ final readonly class AdminFilesDataTableExportProvider extends AbstractAdminData
             'sizeBytes' => is_numeric($row->size_bytes ?? null) ? (int) $row->size_bytes : 0,
             'checksumSha256' => self::stringValue($row->checksum_sha256 ?? null),
             'scanState' => self::stringValue($row->scan_state ?? null),
+            'handlingStatus' => self::fileHandlingStatus($row),
             'scanAttempts' => is_numeric($row->scan_attempts ?? null) ? (int) $row->scan_attempts : 0,
             'quarantinedAt' => self::stringValue($row->quarantined_at ?? null),
             'availableAt' => self::stringValue($row->available_at ?? null),
+            'acknowledgedAt' => self::stringValue($row->acknowledged_at ?? null),
+            'acknowledgedBy' => self::stringValue($row->acknowledged_by ?? null),
+            'acknowledgementReason' => self::stringValue($row->acknowledgement_reason ?? null),
             'createdAt' => self::stringValue($row->created_at ?? null),
             'provider' => self::stringValue($row->provider ?? null),
             'engineVersion' => self::stringValue($row->engine_version ?? null),
@@ -133,5 +177,14 @@ final readonly class AdminFilesDataTableExportProvider extends AbstractAdminData
             'scannedAt' => self::stringValue($row->scanned_at ?? null),
             'threatName' => self::stringValue($row->threat_name ?? null),
         ];
+    }
+
+    private static function fileHandlingStatus(object $row): string
+    {
+        if (self::stringValue($row->acknowledged_at ?? null) !== '') {
+            return 'handled';
+        }
+
+        return self::stringValue($row->scan_state ?? null) === 'clean' ? 'not_applicable' : 'needs_attention';
     }
 }

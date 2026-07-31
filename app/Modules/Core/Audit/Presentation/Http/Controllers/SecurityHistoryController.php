@@ -30,18 +30,33 @@ final readonly class SecurityHistoryController
         $definition = AdminTableDefinitions::get(AdminTableDefinitions::SECURITY_HISTORY);
         $state = TableState::fromRequest($request, $definition);
         [$userId, $teamId] = $this->context->userTeam($request);
-        $userPublicId = $this->filterString($request, 'user');
+        $filters = $this->filters($request);
         $query = DB::table(DatabaseTable::AUDIT_EVENTS)
             ->where('is_security', true);
 
-        if ($userPublicId !== '') {
-            $query->where(static function (Builder $query) use ($userPublicId): void {
+        if ($filters['user'] !== '' && $filters['user'] !== 'all') {
+            $query->where(static function (Builder $query) use ($filters): void {
                 $query
-                    ->where('actor_public_id', $userPublicId)
-                    ->orWhere('actual_actor_public_id', $userPublicId)
-                    ->orWhere('impersonated_user_public_id', $userPublicId)
-                    ->orWhere('target_public_id', $userPublicId);
+                    ->where('actor_public_id', $filters['user'])
+                    ->orWhere('actual_actor_public_id', $filters['user'])
+                    ->orWhere('impersonated_user_public_id', $filters['user'])
+                    ->orWhere('target_public_id', $filters['user']);
             });
+        }
+
+        $this->whereExact($query, 'action', $filters['action']);
+        $this->whereExact($query, 'source', $filters['source']);
+
+        if (in_array($filters['result'], ['succeeded', 'rejected', 'failed'], true)) {
+            $query->where('result', $filters['result']);
+        }
+
+        if ($this->isDate($filters['dateFrom'])) {
+            $query->whereDate('occurred_at', '>=', $filters['dateFrom']);
+        }
+
+        if ($this->isDate($filters['dateTo'])) {
+            $query->whereDate('occurred_at', '<=', $filters['dateTo']);
         }
 
         $records = array_values($query
@@ -84,18 +99,18 @@ final readonly class SecurityHistoryController
         $result = $this->tables->process($rows, $definition, $state)
             ->withSavedViews($this->views->listFor($definition->key, $userId, $teamId));
         $table = $result->tableMeta($definition->key, AdminDataTableExportMeta::defaults());
-        $tableState = $table['state'] ?? [];
-        $table['state'] = is_array($tableState)
-            ? [...$tableState, 'filters' => ['user' => $userPublicId]]
-            : ['filters' => ['user' => $userPublicId]];
+        $table['state']['filters'] = $this->viewFilters($filters);
 
         return Inertia::render('Admin/Audit/SecurityHistory', [
             'events' => $result->rows,
+            'summary' => $this->summary($rows),
             'table' => $table,
-            'filters' => [
-                'userPublicId' => $userPublicId,
+            'filters' => $filters,
+            'filterOptions' => [
+                'users' => $this->userOptions(),
+                'actions' => $this->distinctOptions('action'),
+                'sources' => $this->distinctOptions('source'),
             ],
-            'userOptions' => $this->userOptions(),
         ]);
     }
 
@@ -186,6 +201,66 @@ final readonly class SecurityHistoryController
     }
 
     /**
+     * @return array{user: string, action: string, result: string, source: string, dateFrom: string, dateTo: string}
+     */
+    private function filters(Request $request): array
+    {
+        return [
+            'user' => $this->filterString($request, 'user'),
+            'action' => $this->filterString($request, 'action'),
+            'result' => $this->filterString($request, 'result'),
+            'source' => $this->filterString($request, 'source'),
+            'dateFrom' => $this->filterString($request, 'date_from'),
+            'dateTo' => $this->filterString($request, 'date_to'),
+        ];
+    }
+
+    /**
+     * @param  array{user: string, action: string, result: string, source: string, dateFrom: string, dateTo: string}  $filters
+     * @return array<string, string>
+     */
+    private function viewFilters(array $filters): array
+    {
+        return array_filter([
+            'user' => $filters['user'],
+            'action' => $filters['action'],
+            'result' => $filters['result'],
+            'source' => $filters['source'],
+            'date_from' => $filters['dateFrom'],
+            'date_to' => $filters['dateTo'],
+        ], static fn (string $value): bool => $value !== '');
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $rows
+     * @return array{visible: int, rejected: int, failed: int, impersonated: int, withReason: int}
+     */
+    private function summary(array $rows): array
+    {
+        return [
+            'visible' => count($rows),
+            'rejected' => count(array_filter($rows, static fn (array $row): bool => ($row['result'] ?? '') === 'rejected')),
+            'failed' => count(array_filter($rows, static fn (array $row): bool => ($row['result'] ?? '') === 'failed')),
+            'impersonated' => count(array_filter($rows, static fn (array $row): bool => ($row['impersonationSessionId'] ?? '') !== '')),
+            'withReason' => count(array_filter($rows, static fn (array $row): bool => trim(self::stringFromValue($row['reason'] ?? '')) !== '')),
+        ];
+    }
+
+    private function whereExact(Builder $query, string $column, string $value): void
+    {
+        if ($value === '' || $value === 'all') {
+            return;
+        }
+
+        $query->where($column, $value);
+    }
+
+    private function isDate(string $value): bool
+    {
+        return preg_match('/^\d{4}-\d{2}-\d{2}$/', $value) === 1;
+    }
+
+    /**
      * @return list<array{value: string, label: string}>
      */
     private function userOptions(): array
@@ -220,10 +295,44 @@ final readonly class SecurityHistoryController
         return $options;
     }
 
+    /**
+     * @return list<array{value: string, label: string}>
+     */
+    private function distinctOptions(string $column): array
+    {
+        $options = [];
+
+        foreach (DB::table(DatabaseTable::AUDIT_EVENTS)
+            ->where('is_security', true)
+            ->whereNotNull($column)
+            ->where($column, '<>', '')
+            ->distinct()
+            ->orderBy($column)
+            ->pluck($column)
+            ->all() as $value) {
+            if (! is_scalar($value)) {
+                continue;
+            }
+
+            $text = (string) $value;
+            $options[] = [
+                'value' => $text,
+                'label' => $text,
+            ];
+        }
+
+        return $options;
+    }
+
     private static function stringValue(object $record, string $property): string
     {
         $value = $record->{$property} ?? '';
 
+        return is_scalar($value) ? (string) $value : '';
+    }
+
+    private static function stringFromValue(mixed $value): string
+    {
         return is_scalar($value) ? (string) $value : '';
     }
 }

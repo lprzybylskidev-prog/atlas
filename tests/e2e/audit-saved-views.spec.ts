@@ -38,10 +38,10 @@ async function openAudit(page: Page): Promise<void> {
         await confirmAdministratorAccess(page);
     }
 
-    await expect(page.getByRole('heading', { name: 'Audit' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /Audyt|Audit/ })).toBeVisible();
 }
 
-async function chooseSelect(page: Page, label: string, option: string): Promise<void> {
+async function chooseSelect(page: Page, label: string | RegExp, option: string | RegExp): Promise<void> {
     for (let attempt = 0; attempt < 3; attempt += 1) {
         const combobox = page.getByRole('combobox', { name: label }).filter({ visible: true }).first();
 
@@ -52,11 +52,18 @@ async function chooseSelect(page: Page, label: string, option: string): Promise<
             const listboxId = await combobox.getAttribute('aria-controls');
 
             if (listboxId !== null) {
-                await page.locator(`#${listboxId}`).getByRole('option', { name: option, exact: true }).click();
+                await page
+                    .locator(`#${listboxId}`)
+                    .getByRole('option', { name: option, exact: typeof option === 'string' })
+                    .click();
                 return;
             }
 
-            await page.getByRole('option', { name: option, exact: true }).filter({ visible: true }).first().click();
+            await page
+                .getByRole('option', { name: option, exact: typeof option === 'string' })
+                .filter({ visible: true })
+                .first()
+                .click();
             return;
         } catch (error) {
             if (attempt === 2) {
@@ -95,10 +102,16 @@ async function waitForMutation(page: Page, method: string, predicate: (url: URL)
 async function openViews(page: Page): Promise<void> {
     await dismissToasts(page);
 
-    const savedViewName = page.getByLabel('Saved view name').filter({ visible: true });
+    const savedViewName = page.getByLabel(/Nazwa widoku|Saved view name/).filter({ visible: true });
     const savedTableView = page.getByRole('combobox', { name: 'Saved table view' }).filter({ visible: true });
-    const viewsDetails = page.locator('details').filter({ hasText: 'Views' }).first();
-    const viewsSummary = page.locator('summary').filter({ hasText: 'Views' }).first();
+    const viewsDetails = page
+        .locator('details')
+        .filter({ hasText: /Widoki|Views/ })
+        .first();
+    const viewsSummary = page
+        .locator('summary')
+        .filter({ hasText: /Widoki|Views/ })
+        .first();
 
     for (let attempt = 0; attempt < 5; attempt += 1) {
         if ((await savedViewName.isVisible()) && (await savedTableView.isVisible())) {
@@ -118,15 +131,45 @@ async function openViews(page: Page): Promise<void> {
     await expect(savedTableView).toBeVisible();
 }
 
-async function saveView(page: Page, name: string, type: 'Private' | 'Team shared' = 'Private'): Promise<void> {
+async function fillSavedViewName(page: Page, name: string): Promise<void> {
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+        await openViews(page);
+
+        const input = page
+            .getByLabel(/Nazwa widoku|Saved view name/)
+            .filter({ visible: true })
+            .first();
+
+        try {
+            await expect(input).toBeVisible();
+            await input.fill(name, { timeout: 5000 });
+            await expect(input).toHaveValue(name);
+
+            return;
+        } catch (error) {
+            if (attempt === 4) {
+                throw error;
+            }
+
+            await page.waitForLoadState('networkidle');
+            await page.waitForTimeout(150);
+        }
+    }
+}
+
+async function saveView(page: Page, name: string, type: 'private' | 'team' = 'private'): Promise<void> {
     await openViews(page);
-    await page.getByLabel('Saved view name').filter({ visible: true }).fill(name);
+    await fillSavedViewName(page, name);
     await openViews(page);
-    await chooseSelect(page, 'Saved view type', type);
+    await chooseSelect(
+        page,
+        /Typ widoku|Saved view type/,
+        type === 'private' ? /Prywatny|Private/ : /Współdzielony z zespołem|Team shared/,
+    );
     await openViews(page);
     const reload = waitForAuditReload(page);
     const mutation = waitForMutation(page, 'POST', (url) => url.pathname === '/admin/table-views');
-    await page.getByRole('button', { name: 'Save' }).click();
+    await page.getByRole('button', { name: /Zapisz|Save/ }).click();
     await mutation;
     await reload;
     await expect.poll(async () => savedViewNames(page)).toContain(name);
@@ -155,11 +198,11 @@ async function savedViewId(page: Page, name: string): Promise<string> {
 
 async function updateCurrentView(page: Page): Promise<void> {
     await openViews(page);
-    await expect(page.getByRole('button', { name: 'Update' })).toBeVisible();
+    await expect(page.getByRole('button', { name: /Aktualizuj|Update/ })).toBeVisible();
     await dismissToasts(page);
     const reload = waitForAuditReload(page);
     const mutation = waitForMutation(page, 'PATCH', (url) => url.pathname.startsWith('/admin/table-views/'));
-    await page.getByRole('button', { name: 'Update' }).click();
+    await page.getByRole('button', { name: /Aktualizuj|Update/ }).click();
     await mutation;
     await reload;
     await page.waitForLoadState('networkidle');
@@ -180,15 +223,19 @@ async function applyAuditFilters(
     page: Page,
     filters: { module: string; action: string; source?: string; security?: string },
 ): Promise<void> {
-    await chooseSelect(page, 'Module', filters.module);
-    await chooseSelect(page, 'Action', filters.action);
+    await chooseSelect(page, /Moduł|Module/, filters.module);
+    await chooseSelect(page, /Akcja|Action/, filters.action);
 
     if (filters.source !== undefined) {
-        await chooseSelect(page, 'Source', filters.source);
+        await chooseSelect(page, /Źródło|Source/, filters.source);
     }
 
     if (filters.security !== undefined) {
-        await chooseSelect(page, 'Security filter', filters.security);
+        await chooseSelect(
+            page,
+            /Typ audytu|Audit type|Security filter/,
+            filters.security === 'yes' ? 'Security' : /Operacyjne|Operational/,
+        );
     }
 
     const reload = waitForAuditReload(
@@ -197,9 +244,9 @@ async function applyAuditFilters(
             url.searchParams.get('module') === filters.module &&
             url.searchParams.get('action') === filters.action &&
             (filters.source === undefined || url.searchParams.get('source') === filters.source) &&
-            (filters.security === undefined || url.searchParams.get('security') === (filters.security === 'Security only' ? 'yes' : 'no')),
+            (filters.security === undefined || url.searchParams.get('security') === filters.security),
     );
-    await page.getByRole('button', { name: 'Apply' }).click();
+    await page.getByRole('button', { name: /Zastosuj|Apply/ }).click();
     await reload;
     await page.waitForTimeout(350);
 }
@@ -209,19 +256,21 @@ async function expectAuditFilterState(
     expected: { module?: string; action?: string; source?: string; security?: string },
 ): Promise<void> {
     if (expected.module !== undefined) {
-        await expect(page.getByRole('combobox', { name: 'Module' })).toContainText(expected.module);
+        await expect(page.getByRole('combobox', { name: /Moduł|Module/ })).toContainText(expected.module);
     }
 
     if (expected.action !== undefined) {
-        await expect(page.getByRole('combobox', { name: 'Action' })).toContainText(expected.action);
+        await expect(page.getByRole('combobox', { name: /Akcja|Action/ })).toContainText(expected.action);
     }
 
     if (expected.source !== undefined) {
-        await expect(page.getByRole('combobox', { name: 'Source' })).toContainText(expected.source);
+        await expect(page.getByRole('combobox', { name: /Źródło|Source/ })).toContainText(expected.source);
     }
 
     if (expected.security !== undefined) {
-        await expect(page.getByRole('combobox', { name: 'Security filter' })).toContainText(expected.security);
+        await expect(page.getByRole('combobox', { name: /Typ audytu|Audit type|Security filter/ })).toContainText(
+            expected.security === 'yes' ? 'Security' : /Operacyjne|Operational/,
+        );
     }
 }
 
@@ -236,14 +285,14 @@ test.describe('Audit DataTable saved views', () => {
 
         await signIn(page);
         await openAudit(page);
-        await expect(page.getByRole('textbox', { name: 'Date from' })).toHaveAttribute('type', 'text');
-        await expect(page.getByRole('textbox', { name: 'Date to' })).toHaveAttribute('type', 'text');
+        await expect(page.getByRole('textbox', { name: /Data od|From date/ })).toHaveAttribute('type', 'text');
+        await expect(page.getByRole('textbox', { name: /Data do|To date/ })).toHaveAttribute('type', 'text');
 
         await applyAuditFilters(page, {
             module: 'identity',
             action: 'e2e.audit.alpha',
             source: 'e2e',
-            security: 'Security only',
+            security: 'yes',
         });
         await expect(page).toHaveURL(/module=identity/);
         await expect(page).toHaveURL(/action=e2e\.audit\.alpha/);
@@ -251,17 +300,17 @@ test.describe('Audit DataTable saved views', () => {
         await saveView(page, firstView);
 
         const clearReload = waitForAuditReload(page, (url) => !url.searchParams.has('module') || url.searchParams.get('module') === '');
-        await page.getByRole('button', { name: 'Clear', exact: true }).click();
+        await page.getByRole('button', { name: /Wyczyść|Clear/, exact: true }).click();
         await clearReload;
-        await expect.poll(() => new URL(page.url()).searchParams.get('module')).toBe('');
-        await saveView(page, secondView, 'Team shared');
+        await expect.poll(() => new URL(page.url()).searchParams.get('module')).toBeNull();
+        await saveView(page, secondView, 'team');
 
         await selectView(page, firstView);
         await expectAuditFilterState(page, {
             module: 'identity',
             action: 'e2e.audit.alpha',
             source: 'e2e',
-            security: 'Security only',
+            security: 'yes',
         });
         await expect(page).toHaveURL(/module=identity/);
         await expect(page.getByRole('cell', { name: 'e2e.audit.alpha' })).toBeVisible();
@@ -270,7 +319,7 @@ test.describe('Audit DataTable saved views', () => {
             module: 'shared',
             action: 'e2e.audit.beta',
             source: 'admin-ui',
-            security: 'Application only',
+            security: 'no',
         });
         await expect(page).toHaveURL(/view=/);
         await updateCurrentView(page);
@@ -280,14 +329,14 @@ test.describe('Audit DataTable saved views', () => {
         await expect(page.getByRole('cell', { name: 'e2e.audit.beta' })).toBeVisible();
 
         await openViews(page);
-        await page.getByLabel('Saved view name').filter({ visible: true }).fill(copiedView);
+        await fillSavedViewName(page, copiedView);
         const copyReload = waitForAuditReload(page);
         const copyMutation = waitForMutation(
             page,
             'POST',
             (url) => url.pathname.startsWith('/admin/table-views/') && url.pathname.endsWith('/copy'),
         );
-        await page.getByRole('button', { name: 'Copy' }).click();
+        await page.getByRole('button', { name: /Kopiuj|Copy/ }).click();
         await copyMutation;
         await copyReload;
         await expect.poll(async () => savedViewNames(page)).toContain(copiedView);

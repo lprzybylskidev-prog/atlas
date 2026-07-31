@@ -49,8 +49,8 @@ final readonly class AdminModuleDetailTeamsDataTableExportProvider extends Abstr
             'name' => 'Team',
             'isActive' => 'Team active',
             'teamEnabled' => 'Team override',
-            'effectiveEnabled' => 'Effective',
-            'source' => 'Source',
+            'effectiveEnabled' => 'Active',
+            'source' => 'Configuration source',
             'version' => 'Version',
         ];
     }
@@ -65,7 +65,7 @@ final readonly class AdminModuleDetailTeamsDataTableExportProvider extends Abstr
 
         $rows = [];
 
-        foreach (DB::table(DatabaseTable::TEAMS)->orderBy('name')->get(['id', 'public_id', 'name', 'is_active']) as $team) {
+        foreach (DB::table(DatabaseTable::TEAMS)->orderBy('display_name')->orderBy('name')->get(['id', 'public_id', 'name', 'display_name', 'is_active']) as $team) {
             $teamId = is_numeric($team->id ?? null) ? (int) $team->id : null;
 
             if ($teamId === null) {
@@ -76,7 +76,7 @@ final readonly class AdminModuleDetailTeamsDataTableExportProvider extends Abstr
             $rows[] = [
                 'publicId' => self::stringValue($team->public_id ?? ''),
                 'moduleKey' => $module,
-                'name' => self::stringValue($team->name ?? ''),
+                'name' => self::teamDisplayName($team),
                 'isActive' => (bool) ($team->is_active ?? false),
                 'teamEnabled' => $effective->teamEnabled,
                 'effectiveEnabled' => $effective->effectiveEnabled,
@@ -88,5 +88,12 @@ final readonly class AdminModuleDetailTeamsDataTableExportProvider extends Abstr
         foreach ($this->sorted($this->filtered($rows, $request), $request) as $row) {
             yield $row;
         }
+    }
+
+    private static function teamDisplayName(object $team): string
+    {
+        $displayName = self::stringValue($team->display_name ?? '');
+
+        return $displayName === '' ? self::stringValue($team->name ?? '') : $displayName;
     }
 }

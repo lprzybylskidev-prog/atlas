@@ -28,12 +28,17 @@ final class SpatiePermissionRoleStore implements PermissionRoleStore, UserTeamAu
     public function ensurePermissions(array $permissions): void
     {
         foreach ($permissions as $permission) {
-            Permission::query()->firstOrCreate([
+            $record = Permission::query()->firstOrCreate([
                 'name' => $permission->name,
                 'guard_name' => 'web',
             ], [
                 'public_id' => (string) Str::ulid(),
+                'display_name' => $permission->displayName ?? $this->humanizeName($permission->name),
             ]);
+
+            if (! is_string($record->getAttribute('display_name')) || $record->getAttribute('display_name') === '' || $record->getAttribute('display_name') === $permission->name) {
+                $record->forceFill(['display_name' => $permission->displayName ?? $this->humanizeName($permission->name)])->save();
+            }
         }
     }
 
@@ -51,6 +56,7 @@ final class SpatiePermissionRoleStore implements PermissionRoleStore, UserTeamAu
         $role = Role::query()->create([
             'public_id' => (string) Str::ulid(),
             'name' => $roleName,
+            'display_name' => $this->humanizeName($roleName),
             'guard_name' => 'web',
             config()->string('permission.column_names.team_foreign_key') => null,
         ]);
@@ -270,24 +276,50 @@ final class SpatiePermissionRoleStore implements PermissionRoleStore, UserTeamAu
 
     public function roleOptions(): array
     {
-        return array_values(array_filter(Role::query()
+        return array_values(Role::query()
             ->where('guard_name', 'web')
             ->whereNull(config()->string('permission.column_names.team_foreign_key'))
+            ->orderBy('display_name')
             ->orderBy('name')
-            ->pluck('name')
-            ->all(), 'is_string'));
+            ->get(['name', 'display_name'])
+            ->map(static function (Role $role): array {
+                $nameValue = $role->getAttribute('name');
+                $displayNameValue = $role->getAttribute('display_name');
+                $name = is_string($nameValue) ? $nameValue : '';
+                $displayName = is_string($displayNameValue) && $displayNameValue !== '' && $displayNameValue !== $name
+                    ? $displayNameValue
+                    : str($name)->replace(['.', '-', '_'], ' ')->headline()->toString();
+
+                return ['value' => $name, 'label' => $displayName];
+            })
+            ->filter(static fn (array $option): bool => $option['value'] !== '')
+            ->values()
+            ->all());
     }
 
     public function permissionOptions(): array
     {
-        return $this->permissionCatalog->names();
+        $storedLabels = DB::table(DatabaseTable::PERMISSIONS)
+            ->pluck('display_name', 'name')
+            ->filter(static fn (mixed $label, mixed $name): bool => is_string($name) && is_string($label) && $label !== '');
+
+        return array_map(function ($permission) use ($storedLabels): array {
+            $stored = $storedLabels->get($permission->name);
+
+            return [
+                'value' => $permission->name,
+                'label' => is_string($stored) && $stored !== $permission->name
+                    ? $stored
+                    : ($permission->displayName ?? $this->humanizeName($permission->name)),
+            ];
+        }, $this->permissionCatalog->all());
     }
 
     public function rolePermissionMap(): array
     {
         $map = [];
 
-        foreach ($this->roleOptions() as $roleName) {
+        foreach ($this->roleOptionValues() as $roleName) {
             $map[$roleName] = $this->rolePermissionNames($roleName);
         }
 
@@ -404,7 +436,7 @@ final class SpatiePermissionRoleStore implements PermissionRoleStore, UserTeamAu
      */
     private function validRoleNames(array $roleNames): array
     {
-        $available = $this->roleOptions();
+        $available = $this->roleOptionValues();
 
         return array_values(array_intersect(array_values(array_unique($roleNames)), $available));
     }
@@ -415,9 +447,30 @@ final class SpatiePermissionRoleStore implements PermissionRoleStore, UserTeamAu
      */
     private function validPermissionNames(array $permissionNames): array
     {
-        $available = $this->permissionOptions();
+        $available = $this->permissionOptionValues();
 
         return array_values(array_intersect(array_values(array_unique($permissionNames)), $available));
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function roleOptionValues(): array
+    {
+        return array_map(static fn (array $option): string => $option['value'], $this->roleOptions());
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function permissionOptionValues(): array
+    {
+        return array_map(static fn (array $option): string => $option['value'], $this->permissionOptions());
+    }
+
+    private function humanizeName(string $name): string
+    {
+        return str($name)->replace(['.', '-', '_'], ' ')->headline()->toString();
     }
 
     private function userId(string $userPublicId): mixed

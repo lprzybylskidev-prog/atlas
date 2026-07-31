@@ -288,6 +288,9 @@ final readonly class DatabaseFileStorage implements FileLifecycle, FileMaintenan
             'scan_state' => FileScanState::Pending->value,
             'scan_state_changed_at' => now(),
             'available_at' => null,
+            'acknowledged_by_user_id' => null,
+            'acknowledged_at' => null,
+            'acknowledgement_reason' => null,
             'updated_at' => now(),
         ]);
 

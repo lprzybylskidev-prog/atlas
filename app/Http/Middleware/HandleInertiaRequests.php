@@ -15,6 +15,7 @@ use App\Shared\Infrastructure\Database\DatabaseTable;
 use Diglactic\Breadcrumbs\Breadcrumbs;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Route;
 use Inertia\Middleware;
 
 final class HandleInertiaRequests extends Middleware
@@ -81,12 +82,13 @@ final class HandleInertiaRequests extends Middleware
             ->join(DatabaseTable::TEAMS, 'team_user_assignments.team_id', '=', 'teams.id')
             ->where('users.public_id', $userPublicId)
             ->where('teams.is_active', true)
+            ->orderBy('teams.display_name')
             ->orderBy('teams.name')
-            ->get(['teams.public_id', 'teams.name'])
+            ->get(['teams.public_id', 'teams.name', 'teams.display_name'])
             ->all() as $team) {
             $available[] = [
                 'publicId' => self::stringValue($team, 'public_id'),
-                'name' => self::stringValue($team, 'name'),
+                'name' => self::teamDisplayName($team),
             ];
         }
 
@@ -111,6 +113,13 @@ final class HandleInertiaRequests extends Middleware
         $value = $record->{$property} ?? '';
 
         return is_scalar($value) ? (string) $value : '';
+    }
+
+    private static function teamDisplayName(object $record): string
+    {
+        $displayName = self::stringValue($record, 'display_name');
+
+        return $displayName !== '' ? $displayName : self::stringValue($record, 'name');
     }
 
     private function theme(Request $request): string
@@ -179,25 +188,29 @@ final class HandleInertiaRequests extends Middleware
             'admin.authorization.permissions.index',
             'admin.audit.index',
             'admin.audit.security-history.index',
-            'admin.logs.index',
+            'admin.audit.impersonation.show',
+            'admin.modules.index',
             'admin.queues.index',
             'admin.files.index',
+            'admin.logs.index',
+            'admin.pulse.view',
+            'admin.telescope.view',
             'admin.feature-flags.index',
+            'admin.rate-limits.index',
             'admin.integrations.index',
             'admin.search.index',
             'admin.managed-processes.index',
-            'admin.managed-processes.imports.index',
             'admin.managed-processes.definitions.index',
             'admin.managed-processes.schedules.index',
-            'admin.imports.index',
-            'admin.pulse.view',
-            ...($this->localTelescopeAvailable() ? ['admin.telescope.view'] : []),
-            'admin.rate-limits.index',
-            'admin.modules.index',
+            'admin.managed-processes.schedules.create',
         ];
         $available = [];
 
         foreach ($routes as $route) {
+            if (! $this->adminRouteCanBeOffered($route)) {
+                continue;
+            }
+
             $decision = $checker->check(new EffectivePermissionRequest($userPublicId, $route, $teamPublicId));
 
             if ($decision->allowed) {
@@ -208,9 +221,13 @@ final class HandleInertiaRequests extends Middleware
         return $available;
     }
 
-    private function localTelescopeAvailable(): bool
+    private function adminRouteCanBeOffered(string $route): bool
     {
-        return app()->environment(['local', 'development']);
+        return match ($route) {
+            'admin.pulse.view' => Route::has('pulse'),
+            'admin.telescope.view' => app()->environment(['local', 'development']) && Route::has('telescope'),
+            default => true,
+        };
     }
 
     private function firstAssignedTeamPublicId(string $userPublicId): ?string
@@ -220,6 +237,7 @@ final class HandleInertiaRequests extends Middleware
             ->join(DatabaseTable::TEAMS, 'team_user_assignments.team_id', '=', 'teams.id')
             ->where('users.public_id', $userPublicId)
             ->where('teams.is_active', true)
+            ->orderBy('teams.display_name')
             ->orderBy('teams.name')
             ->value('teams.public_id');
 

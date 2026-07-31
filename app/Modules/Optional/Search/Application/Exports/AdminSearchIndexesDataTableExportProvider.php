@@ -69,8 +69,52 @@ final readonly class AdminSearchIndexesDataTableExportProvider extends AbstractA
             'supportsAnonymization' => $descriptor->supportsAnonymization,
         ], $this->indexes->all());
 
-        foreach ($this->sorted($this->filtered($rows, $request), $request) as $row) {
+        foreach ($this->sorted($this->filtered($this->filteredByControls($rows, $request), $request), $request) as $row) {
             yield $row;
         }
+    }
+
+    /**
+     * @param  list<array<string, scalar|\Stringable|null>>  $rows
+     * @return list<array<string, scalar|\Stringable|null>>
+     */
+    private function filteredByControls(array $rows, ReportExportGenerationRequest $request): array
+    {
+        return array_values(array_filter($rows, static function (array $row) use ($request): bool {
+            $module = self::filterValue($request, 'module');
+            $sensitivity = self::filterValue($request, 'sensitivity');
+            $deletion = self::filterValue($request, 'deletion');
+            $anonymization = self::filterValue($request, 'anonymization');
+
+            if ($module !== 'all' && $row['moduleKey'] !== $module) {
+                return false;
+            }
+
+            if ($sensitivity === 'sensitive' && $row['containsSensitiveData'] !== true) {
+                return false;
+            }
+
+            if ($sensitivity === 'non_sensitive' && $row['containsSensitiveData'] !== false) {
+                return false;
+            }
+
+            if ($deletion === 'supported' && $row['supportsDeletion'] !== true) {
+                return false;
+            }
+
+            if ($deletion === 'unsupported' && $row['supportsDeletion'] !== false) {
+                return false;
+            }
+
+            if ($anonymization === 'supported' && $row['supportsAnonymization'] !== true) {
+                return false;
+            }
+
+            if ($anonymization === 'unsupported' && $row['supportsAnonymization'] !== false) {
+                return false;
+            }
+
+            return true;
+        }));
     }
 }

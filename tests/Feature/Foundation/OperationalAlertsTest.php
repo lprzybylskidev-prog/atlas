@@ -16,6 +16,7 @@ use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 final class OperationalAlertsTest extends TestCase
@@ -77,6 +78,42 @@ final class OperationalAlertsTest extends TestCase
                 && is_array($context)
                 && ($context['failed_jobs'] ?? null) === 2;
         });
+    }
+
+    public function test_operational_alert_command_ignores_handled_failed_jobs(): void
+    {
+        Cache::flush();
+        Http::fake();
+        Config::set('atlas.operations.alerts.enabled', true);
+        Config::set('atlas.operations.alerts.email_to', []);
+        Config::set('atlas.operations.alerts.webhook_url', 'https://alerts.example.test/hook');
+        Config::set('atlas.operations.alerts.failed_jobs_threshold', 2);
+        Config::set('cache.default', 'array');
+        Config::set('queue.default', 'sync');
+        Config::set('session.driver', 'array');
+        Config::set('scout.meilisearch.host', '');
+        Config::set('atlas.operations.health.meilisearch_critical', false);
+        Config::set('atlas.operations.health.clamav.critical', false);
+        Config::set('atlas.operations.health.clamav.host', null);
+        Config::set('atlas.operations.health.chromium.critical', false);
+        Config::set('atlas.operations.health.chromium.binary', null);
+        $this->app->make(SchedulerHeartbeatMonitor::class)->markHealthy(10);
+
+        $this->insertFailedJob('77777777-7777-4777-8777-777777777777');
+        $this->insertFailedJob('88888888-8888-4888-8888-888888888888');
+        DB::table(DatabaseTable::FAILED_JOB_ACKNOWLEDGEMENTS)->insert([
+            'public_id' => (string) Str::ulid(),
+            'failed_job_uuid' => '88888888-8888-4888-8888-888888888888',
+            'acknowledged_by_user_id' => null,
+            'reason' => null,
+            'acknowledged_at' => now(),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        self::assertSame(0, Artisan::call('system:operational-alerts'));
+
+        Http::assertNotSent(fn (Request $request): bool => $request['type'] === 'queue.failed_jobs.repeated');
     }
 
     private function insertFailedJob(string $uuid): void

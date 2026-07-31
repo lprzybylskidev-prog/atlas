@@ -55,7 +55,8 @@ final readonly class AdminPermissionsDataTableExportProvider extends AbstractAdm
         return [
             'publicId' => 'Public ID',
             'id' => 'Internal ID',
-            'name' => 'Permission',
+            'displayName' => 'Display name',
+            'name' => 'Technical name',
             'guard' => 'Guard',
             'description' => 'Description',
             'module' => 'Module',
@@ -72,7 +73,7 @@ final readonly class AdminPermissionsDataTableExportProvider extends AbstractAdm
     public function rows(ReportExportGenerationRequest $request): iterable
     {
         $databasePermissions = DB::table(DatabaseTable::PERMISSIONS)
-            ->get(['id', 'public_id', 'name', 'guard_name', 'created_at', 'updated_at'])
+            ->get(['id', 'public_id', 'name', 'display_name', 'guard_name', 'created_at', 'updated_at'])
             ->keyBy('name');
         $teamId = is_string($request->activeTeamPublicId) ? $this->teamId($request->activeTeamPublicId) : null;
 
@@ -85,6 +86,7 @@ final readonly class AdminPermissionsDataTableExportProvider extends AbstractAdm
             $values = is_object($databasePermission) ? get_object_vars($databasePermission) : [];
             $id = $values['id'] ?? null;
             $publicId = $values['public_id'] ?? '';
+            $displayName = $values['display_name'] ?? null;
             $guard = $values['guard_name'] ?? 'web';
             $createdAt = $values['created_at'] ?? '';
             $updatedAt = $values['updated_at'] ?? '';
@@ -95,6 +97,7 @@ final readonly class AdminPermissionsDataTableExportProvider extends AbstractAdm
                 'id' => is_numeric($id) ? (int) $id : null,
                 'publicId' => is_string($publicId) ? $publicId : '',
                 'name' => $permission->name,
+                'displayName' => is_string($displayName) && $displayName !== '' && $displayName !== $permission->name ? $displayName : ($permission->displayName ?? $this->humanizeName($permission->name)),
                 'guard' => is_string($guard) ? $guard : 'web',
                 'description' => $permission->description,
                 'module' => $moduleKey,
@@ -145,5 +148,10 @@ final readonly class AdminPermissionsDataTableExportProvider extends AbstractAdm
         $teamId = DB::table(DatabaseTable::TEAMS)->where('public_id', $teamPublicId)->value('id');
 
         return is_numeric($teamId) ? (int) $teamId : null;
+    }
+
+    private function humanizeName(string $name): string
+    {
+        return str($name)->replace(['.', '-', '_'], ' ')->headline()->toString();
     }
 }

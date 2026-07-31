@@ -37,6 +37,7 @@ final class FirstAdministratorBootstrapTest extends TestCase
         $role = Role::query()->where('name', StarterRoleName::Administrator->value)->firstOrFail();
 
         self::assertFalse($user->hasSetFirstPassword());
+        self::assertSame('sensitive', $user->account_sensitivity);
         self::assertNotNull($teamId);
         self::assertDatabaseHas(DatabaseTable::TEAM_USER_ASSIGNMENTS, [
             'team_id' => $teamId,

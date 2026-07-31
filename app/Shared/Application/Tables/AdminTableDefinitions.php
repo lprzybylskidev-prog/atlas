@@ -10,6 +10,8 @@ final class AdminTableDefinitions
 
     public const TEAMS = 'admin.teams';
 
+    public const MANAGERS = 'admin.managers';
+
     public const MANAGER_RELATIONSHIP_HISTORY = 'admin.managers.relationship-history';
 
     public const ROLES = 'admin.authorization.roles';
@@ -60,8 +62,6 @@ final class AdminTableDefinitions
 
     public const MANAGED_PROCESS_SCHEDULES = 'admin.managed-processes.schedules';
 
-    public const IMPORT_EXECUTIONS = 'admin.managed-processes.imports';
-
     public const IMPORT_ROW_ERRORS = 'admin.managed-processes.import-row-errors';
 
     public static function get(string $key): TableDefinition
@@ -92,10 +92,22 @@ final class AdminTableDefinitions
             self::TEAMS => new TableDefinition($key, [
                 new TableColumn('publicId'),
                 new TableColumn('id', searchable: false, defaultVisible: false),
-                new TableColumn('name'),
+                new TableColumn('displayName'),
+                new TableColumn('name', defaultVisible: false),
                 new TableColumn('isActive', searchable: false),
+                new TableColumn('membersCount', searchable: false),
                 new TableColumn('createdAt', defaultVisible: false),
                 new TableColumn('updatedAt', defaultVisible: false),
+            ], 'name'),
+            self::MANAGERS => new TableDefinition($key, [
+                new TableColumn('userPublicId'),
+                new TableColumn('teamPublicId', defaultVisible: false),
+                new TableColumn('teamName'),
+                new TableColumn('name'),
+                new TableColumn('email', defaultVisible: false),
+                new TableColumn('managerType'),
+                new TableColumn('directReportsCount', searchable: false),
+                new TableColumn('subtreeReportsCount', searchable: false),
             ], 'name'),
             self::MANAGER_RELATIONSHIP_HISTORY => new TableDefinition($key, [
                 new TableColumn('publicId', defaultVisible: false),
@@ -115,10 +127,11 @@ final class AdminTableDefinitions
             self::ROLES => new TableDefinition($key, [
                 new TableColumn('publicId'),
                 new TableColumn('id', searchable: false, defaultVisible: false),
-                new TableColumn('teamId', searchable: false, defaultVisible: false),
-                new TableColumn('name'),
+                new TableColumn('displayName'),
+                new TableColumn('name', defaultVisible: false),
                 new TableColumn('guard'),
                 new TableColumn('permissionsCount', searchable: false),
+                new TableColumn('assignedUsersCount', searchable: false, defaultVisible: false),
                 new TableColumn('createdAt', defaultVisible: false),
                 new TableColumn('updatedAt', defaultVisible: false),
             ], 'name'),
@@ -139,9 +152,10 @@ final class AdminTableDefinitions
             self::PERMISSIONS => new TableDefinition($key, [
                 new TableColumn('publicId'),
                 new TableColumn('id', searchable: false, defaultVisible: false),
-                new TableColumn('name'),
+                new TableColumn('displayName'),
+                new TableColumn('name', defaultVisible: false),
                 new TableColumn('guard', defaultVisible: false),
-                new TableColumn('description'),
+                new TableColumn('description', defaultVisible: false),
                 new TableColumn('module'),
                 new TableColumn('teamScoped', searchable: false),
                 new TableColumn('moduleActivation'),
@@ -206,11 +220,14 @@ final class AdminTableDefinitions
             self::RATE_LIMITS => new TableDefinition($key, [
                 new TableColumn('publicId'),
                 new TableColumn('policy'),
+                new TableColumn('policyFamily', defaultVisible: false),
                 new TableColumn('maxAttempts', searchable: false),
                 new TableColumn('decaySeconds', searchable: false),
                 new TableColumn('keyParts'),
                 new TableColumn('progressiveDelays', defaultVisible: false),
                 new TableColumn('temporaryLockSeconds', searchable: false, defaultVisible: false),
+                new TableColumn('hasProgressiveDelay', searchable: false, defaultVisible: false),
+                new TableColumn('hasTemporaryLock', searchable: false, defaultVisible: false),
                 new TableColumn('rejections', searchable: false),
                 new TableColumn('distinctKeys', searchable: false),
                 new TableColumn('lastRejectedAt', defaultVisible: false),
@@ -225,6 +242,7 @@ final class AdminTableDefinitions
                 new TableColumn('teamStateSource'),
                 new TableColumn('supportsGlobalActivation', searchable: false, defaultVisible: false),
                 new TableColumn('supportsTeamActivation', searchable: false, defaultVisible: false),
+                new TableColumn('scheduledChangesCount', searchable: false),
                 new TableColumn('requiredDependencies', defaultVisible: false),
                 new TableColumn('optionalDependencies', defaultVisible: false),
             ], 'moduleKey'),
@@ -252,6 +270,9 @@ final class AdminTableDefinitions
                 new TableColumn('jobClass', defaultVisible: false),
                 new TableColumn('exceptionType'),
                 new TableColumn('exceptionMessage'),
+                new TableColumn('handlingStatus'),
+                new TableColumn('acknowledgedAt', searchable: false, defaultVisible: false),
+                new TableColumn('acknowledgedBy', defaultVisible: false),
             ], 'failedAt', 'desc'),
             self::MODULE_DETAIL_TEAMS => new TableDefinition($key, [
                 new TableColumn('publicId', defaultVisible: false),
@@ -292,6 +313,8 @@ final class AdminTableDefinitions
                 new TableColumn('title'),
                 new TableColumn('body'),
                 new TableColumn('teamPublicId', defaultVisible: false),
+                new TableColumn('scope', defaultVisible: false),
+                new TableColumn('scopeLabel'),
                 new TableColumn('read', searchable: false),
                 new TableColumn('createdAt'),
                 new TableColumn('readAt', defaultVisible: false),
@@ -303,6 +326,7 @@ final class AdminTableDefinitions
                 new TableColumn('extension'),
                 new TableColumn('mimeType'),
                 new TableColumn('scanState'),
+                new TableColumn('handlingStatus'),
                 new TableColumn('sizeBytes', searchable: false),
                 new TableColumn('checksumSha256'),
                 new TableColumn('scannedAt'),
@@ -312,6 +336,9 @@ final class AdminTableDefinitions
                 new TableColumn('scanAttempts', searchable: false, defaultVisible: false),
                 new TableColumn('quarantinedAt', defaultVisible: false),
                 new TableColumn('availableAt', defaultVisible: false),
+                new TableColumn('acknowledgedAt', defaultVisible: false),
+                new TableColumn('acknowledgedBy', defaultVisible: false),
+                new TableColumn('acknowledgementReason', defaultVisible: false),
                 new TableColumn('threatName', defaultVisible: false),
                 new TableColumn('createdAt', defaultVisible: false),
             ], 'createdAt', 'desc'),
@@ -392,6 +419,14 @@ final class AdminTableDefinitions
                 new TableColumn('status'),
                 new TableColumn('sourceType'),
                 new TableColumn('moduleKey'),
+                new TableColumn('importKey'),
+                new TableColumn('importSourceType', defaultVisible: false),
+                new TableColumn('importFile', defaultVisible: false),
+                new TableColumn('idempotencyKey'),
+                new TableColumn('idempotencyState'),
+                new TableColumn('handlingStatus'),
+                new TableColumn('acknowledgedAt', searchable: false, defaultVisible: false),
+                new TableColumn('acknowledgedBy', defaultVisible: false),
                 new TableColumn('progressLabel'),
                 new TableColumn('progressCurrent', searchable: false),
                 new TableColumn('progressTotal', searchable: false),
@@ -434,17 +469,6 @@ final class AdminTableDefinitions
                 new TableColumn('timezone', defaultVisible: false),
                 new TableColumn('intervalKey', defaultVisible: false),
             ], 'createdAt', 'desc'),
-            self::IMPORT_EXECUTIONS => new TableDefinition($key, [
-                new TableColumn('publicId', defaultVisible: false),
-                new TableColumn('runPublicId', defaultVisible: false),
-                new TableColumn('importKey'),
-                new TableColumn('sourceType'),
-                new TableColumn('status'),
-                new TableColumn('idempotencyKey'),
-                new TableColumn('idempotencyState'),
-                new TableColumn('statistics'),
-                new TableColumn('createdAt'),
-            ], 'createdAt', 'desc'),
             self::IMPORT_ROW_ERRORS => new TableDefinition($key, [
                 new TableColumn('publicId', defaultVisible: false),
                 new TableColumn('runPublicId', defaultVisible: false),
@@ -467,6 +491,7 @@ final class AdminTableDefinitions
         return [
             self::USERS,
             self::TEAMS,
+            self::MANAGERS,
             self::MANAGER_RELATIONSHIP_HISTORY,
             self::ROLES,
             self::PACKAGES,
@@ -492,7 +517,6 @@ final class AdminTableDefinitions
             self::MANAGED_PROCESS_RUNS,
             self::MANAGED_PROCESS_DEFINITIONS,
             self::MANAGED_PROCESS_SCHEDULES,
-            self::IMPORT_EXECUTIONS,
             self::IMPORT_ROW_ERRORS,
         ];
     }

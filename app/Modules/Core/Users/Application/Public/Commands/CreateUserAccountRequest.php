@@ -9,5 +9,6 @@ final readonly class CreateUserAccountRequest
     public function __construct(
         public string $name,
         public string $email,
+        public string $accountSensitivity = 'normal',
     ) {}
 }

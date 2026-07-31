@@ -11,11 +11,14 @@ export interface DataTableAction<TRow extends Record<string, unknown>> {
     key: string;
     label: string;
     method?: 'get' | 'post' | 'patch' | 'delete';
-    href: (row: TRow) => string;
+    href?: (row: TRow) => string;
+    onAction?: (row: TRow) => void | Promise<void>;
     confirm?: string | ((row: TRow) => string);
     nativeNavigation?: boolean;
     tone?: 'neutral' | 'info' | 'success' | 'warning' | 'danger';
     visible?: (row: TRow) => boolean;
+    disabled?: (row: TRow) => boolean;
+    disabledReason?: string | ((row: TRow) => string);
 }
 
 export interface DataTableBulkAction {

@@ -112,7 +112,7 @@ test.describe('frontend theme coverage', () => {
         await stabilizeVisuals(page);
         await ensureLightTheme(page);
 
-        await expect(page.getByRole('main').getByRole('heading', { name: 'Admin dashboard' })).toBeVisible();
+        await expect(page.getByRole('banner').getByRole('heading', { name: /Pulpit administratora|Admin dashboard/ })).toBeVisible();
         await expectShellScreenshot(page, 'admin-shell-light.png');
 
         await ensureDarkTheme(page);

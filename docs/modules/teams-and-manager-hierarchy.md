@@ -47,14 +47,14 @@ A normal manager sees direct reports only.
 
 A head manager sees the entire subtree under them, still constrained by permissions.
 
-Admin manager administration is available at `/admin/managers` and supports:
+Admin manager administration starts at `/admin/managers`. The index lists users who are managers in the selected team, exposes filters for manager type and direct/subtree report presence, and links to `/admin/managers/create?team={team}` for adding a new manager relationship. Manager create and detail pages at `/admin/managers/create?team={team}` and `/admin/managers/{user}/edit?team={team}` support:
 
-- assigning managers;
+- selecting a manager context and adding multiple direct-report relationships with one effective date and reason;
 - ending manager relationships;
 - assigning head managers;
-- viewing hierarchy trees;
+- viewing the hierarchy tree below one manager;
+- seeing active direct-report relationship start dates and creation reasons;
 - filtering by team;
-- history;
 - validity periods;
 - cycle validation;
 - impact preview;
@@ -63,8 +63,8 @@ Admin manager administration is available at `/admin/managers` and supports:
 
 Audited manager hierarchy actions include `team.manager_relationship.created`, `team.manager_relationship.ended`, and `team.head_manager.updated`.
 
-Granular permissions include `admin.managers.index`, `admin.managers.store`, `admin.managers.end`, `admin.managers.head.update`, `teams.managers.view`, `teams.managers.create`, `teams.managers.update`, `teams.managers.terminate`, `teams.managers.tree`, `teams.managers.history`, and `teams.managers.head.update`.
+Granular permissions include `admin.managers.index`, `admin.managers.create`, `admin.managers.edit`, `admin.managers.store`, `admin.managers.end`, `admin.managers.head.update`, `teams.managers.view`, `teams.managers.create`, `teams.managers.update`, `teams.managers.terminate`, `teams.managers.tree`, `teams.managers.history`, and `teams.managers.head.update`.
 
-Development reset does not seed representative manager relationships, extra users, direct reports, or head-manager flags. Those records are created only by real administrator actions or explicit automated-test fixtures.
+Development reset does not seed representative manager hierarchies after Phase 25 cleanup. Tests and future business modules must create their own explicit manager fixtures.
 
 ---

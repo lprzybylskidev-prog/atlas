@@ -20,6 +20,7 @@ final readonly class PublicUserAccountCreator implements UserAccountCreator
         return $this->users->handle(new CreateUserAccountCommand(
             name: $request->name,
             email: $request->email,
+            accountSensitivity: $request->accountSensitivity,
         ));
     }
 }

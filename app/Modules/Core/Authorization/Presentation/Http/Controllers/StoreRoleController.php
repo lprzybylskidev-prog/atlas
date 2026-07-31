@@ -28,19 +28,22 @@ final readonly class StoreRoleController
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:120', 'regex:/^[a-z0-9_.-]+$/', $this->uniqueRoleNameRule()],
+            'display_name' => ['required', 'string', 'max:255'],
             'permissions' => ['nullable', 'array'],
             'permissions.*' => ['string', Rule::in($this->permissions->names())],
         ]);
         $validated = is_array($validated) ? $validated : [];
         $name = is_string($validated['name'] ?? null) ? $validated['name'] : '';
+        $displayName = is_string($validated['display_name'] ?? null) ? $validated['display_name'] : $name;
 
         $rolePublicId = (string) Str::ulid();
         $permissionNames = $this->stringList($validated, 'permissions');
 
-        DB::transaction(function () use ($name, $rolePublicId, $permissionNames): void {
+        DB::transaction(function () use ($name, $displayName, $rolePublicId, $permissionNames): void {
             $roleId = DB::table(DatabaseTable::ROLES)->insertGetId([
                 'public_id' => $rolePublicId,
                 'name' => $name,
+                'display_name' => $displayName,
                 'guard_name' => 'web',
                 config()->string('permission.column_names.team_foreign_key') => null,
                 'created_at' => now(),
@@ -52,6 +55,7 @@ final readonly class StoreRoleController
 
         $this->recordAudit($request, 'authorization.role_created', 'succeeded', $rolePublicId, [], [
             'name' => $name,
+            'display_name' => $displayName,
             'permissions' => $permissionNames,
         ]);
 

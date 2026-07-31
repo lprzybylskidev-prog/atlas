@@ -33,7 +33,8 @@ Application UI:
 - the avatar shows an unread-count badge;
 - a notification sound is available at `/sounds/notification.wav` and is played when the browser receives a higher unread count after user interaction allows audio playback;
 - the dropdown links to the full notification center;
-- the full notification center uses the shared datatable foundation.
+- the full notification center uses the shared datatable foundation with page metrics, backend-applied status/severity/scope/type/link/date filters, saved views, row and bulk mark-as-read actions, and deep-link opening for notifications that carry a link;
+- notification-center exports are intentionally not exposed through the Admin DataTable export endpoint because `/notifications` is a regular application surface for the current user's inbox rather than an Admin diagnostics table.
 
 Operational command:
 
@@ -55,6 +56,7 @@ Realtime foundation:
 
 - `/realtime/events` exposes an authorized, active-team-aware event feed for the current user;
 - the browser polls the feed and refreshes notification props when `notification.created` is received;
+- operation progress events may refresh or update owning workflow state, but must not create visible toast stacks;
 - `realtime:publish` can publish `sessions`, `system-alerts`, `operation-progress`, or documented custom topics;
 - session invalidation, system alerts, and operation progress events share the same `core_notifications.realtime_events` buffer;
 - WebSocket channel wiring remains reserved for workflows that genuinely require server push beyond the current minimal feed.

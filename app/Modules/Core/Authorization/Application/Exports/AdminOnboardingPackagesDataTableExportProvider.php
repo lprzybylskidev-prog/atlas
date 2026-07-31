@@ -110,7 +110,44 @@ final readonly class AdminOnboardingPackagesDataTableExportProvider extends Abst
 
             $team = self::filterValue($request, 'team');
 
-            return $team === 'all' || $row['teamPublicId'] === $team;
+            if ($team !== 'all' && $row['teamPublicId'] !== $team) {
+                return false;
+            }
+
+            if (self::filterValue($request, 'roles') === 'with' && self::listCount($row['initialRoles'] ?? '') <= 0) {
+                return false;
+            }
+
+            if (self::filterValue($request, 'roles') === 'without' && self::listCount($row['initialRoles'] ?? '') > 0) {
+                return false;
+            }
+
+            if (self::filterValue($request, 'directPermissions') === 'with' && self::listCount($row['directPermissions'] ?? '') <= 0) {
+                return false;
+            }
+
+            if (self::filterValue($request, 'directPermissions') === 'without' && self::listCount($row['directPermissions'] ?? '') > 0) {
+                return false;
+            }
+
+            if (self::filterValue($request, 'templatePermissions') === 'with' && self::listCount($row['templatePermissions'] ?? '') <= 0) {
+                return false;
+            }
+
+            if (self::filterValue($request, 'templatePermissions') === 'without' && self::listCount($row['templatePermissions'] ?? '') > 0) {
+                return false;
+            }
+
+            return true;
         }));
+    }
+
+    private static function listCount(mixed $value): int
+    {
+        if (! is_string($value) || trim($value) === '') {
+            return 0;
+        }
+
+        return count(array_filter(array_map('trim', explode(',', $value)), static fn (string $item): bool => $item !== ''));
     }
 }

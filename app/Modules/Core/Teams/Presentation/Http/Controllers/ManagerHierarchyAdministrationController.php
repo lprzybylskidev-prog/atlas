@@ -4,15 +4,18 @@ declare(strict_types=1);
 
 namespace App\Modules\Core\Teams\Presentation\Http\Controllers;
 
-use App\Modules\Core\Identity\Application\Public\Contracts\UserCredentialAccountDirectory;
 use App\Modules\Core\Teams\Application\Exceptions\ManagerHierarchyViolation;
 use App\Modules\Core\Teams\Application\Public\Contracts\ManagerHierarchy;
 use App\Modules\Core\Teams\Application\Public\Contracts\UserTeamMembershipManager;
 use App\Modules\Core\Teams\Application\Public\DTOs\ManagerHierarchyNode;
 use App\Modules\Core\Teams\Application\Public\DTOs\ManagerImpactPreview;
 use App\Modules\Core\Teams\Application\Public\DTOs\ManagerRelationshipSummary;
+use App\Shared\Application\Tables\AdminTableDefinitions;
+use App\Shared\Application\Tables\ArrayTableProcessor;
+use App\Shared\Application\Tables\TableRequestContext;
+use App\Shared\Application\Tables\TableSavedViewService;
+use App\Shared\Application\Tables\TableState;
 use App\Shared\Infrastructure\Database\DatabaseTable;
-use App\Shared\Presentation\Support\AdminDataTableExportMeta;
 use App\Shared\Presentation\Support\FlashMessage;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Http\RedirectResponse;
@@ -27,19 +30,22 @@ final class ManagerHierarchyAdministrationController
     public function __construct(
         private readonly ManagerHierarchy $hierarchy,
         private readonly UserTeamMembershipManager $memberships,
-        private readonly UserCredentialAccountDirectory $accounts,
+        private readonly ArrayTableProcessor $tables,
+        private readonly TableSavedViewService $views,
+        private readonly TableRequestContext $context,
     ) {}
 
     public function index(Request $request): Response
     {
         $teamPublicId = $this->selectedTeamPublicId($request);
-        $preview = null;
-        $previewManager = $request->query('preview_manager');
-        $previewReport = $request->query('preview_report');
-
-        if ($teamPublicId !== '' && is_string($previewManager) && is_string($previewReport) && $previewManager !== '' && $previewReport !== '') {
-            $preview = $this->preview($this->hierarchy->previewAssign($teamPublicId, $previewManager, $previewReport));
-        }
+        $filters = $this->managerFilters($request, $teamPublicId);
+        $definition = AdminTableDefinitions::get(AdminTableDefinitions::MANAGERS);
+        $state = TableState::fromRequest($request, $definition);
+        [$userId, $activeTeamId] = $this->context->userTeam($request);
+        $result = $this->tables->process($teamPublicId === '' ? [] : $this->filteredManagerRows($this->managerRows($teamPublicId), $filters), $definition, $state)
+            ->withSavedViews($this->views->listFor($definition->key, $userId, $activeTeamId));
+        $table = $result->tableMeta($definition->key);
+        $table['state']['filters'] = $filters;
 
         return Inertia::render('Admin/Managers/Index', [
             'selectedTeamPublicId' => $teamPublicId,
@@ -47,13 +53,117 @@ final class ManagerHierarchyAdministrationController
                 'value' => $team->publicId,
                 'label' => $team->name,
             ], $this->memberships->activeTeamOptions()),
-            'userOptions' => $this->userOptions(),
+            'managers' => $result->rows,
+            'table' => $table,
+        ]);
+    }
+
+    /**
+     * @return array{team: string, type: string, directReports: string, subtreeReports: string}
+     */
+    private function managerFilters(Request $request, string $teamPublicId): array
+    {
+        $type = $request->query('type');
+        $directReports = $request->query('directReports');
+        $subtreeReports = $request->query('subtreeReports');
+
+        return [
+            'team' => $teamPublicId,
+            'type' => in_array($type, ['head', 'regular'], true) ? $type : 'all',
+            'directReports' => in_array($directReports, ['with', 'without'], true) ? $directReports : 'all',
+            'subtreeReports' => in_array($subtreeReports, ['with', 'without'], true) ? $subtreeReports : 'all',
+        ];
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $rows
+     * @param  array{team: string, type: string, directReports: string, subtreeReports: string}  $filters
+     * @return list<array<string, mixed>>
+     */
+    private function filteredManagerRows(array $rows, array $filters): array
+    {
+        return array_values(array_filter($rows, static function (array $row) use ($filters): bool {
+            if ($filters['type'] !== 'all' && ($row['managerType'] ?? null) !== $filters['type']) {
+                return false;
+            }
+
+            if ($filters['directReports'] === 'with' && self::intValue($row['directReportsCount'] ?? 0) <= 0) {
+                return false;
+            }
+
+            if ($filters['directReports'] === 'without' && self::intValue($row['directReportsCount'] ?? 0) > 0) {
+                return false;
+            }
+
+            if ($filters['subtreeReports'] === 'with' && self::intValue($row['subtreeReportsCount'] ?? 0) <= 0) {
+                return false;
+            }
+
+            if ($filters['subtreeReports'] === 'without' && self::intValue($row['subtreeReportsCount'] ?? 0) > 0) {
+                return false;
+            }
+
+            return true;
+        }));
+    }
+
+    public function create(Request $request): Response
+    {
+        $teamPublicId = $this->selectedTeamPublicId($request);
+        $previewManager = $request->query('preview_manager');
+        $selectedManagerPublicId = is_string($previewManager) && $previewManager !== '' ? $previewManager : '';
+        $previewReportPublicIds = $this->previewReportPublicIds($request);
+        $manager = $teamPublicId === '' || $selectedManagerPublicId === ''
+            ? null
+            : $this->managerCandidate($teamPublicId, $selectedManagerPublicId);
+
+        return Inertia::render('Admin/Managers/Create', [
+            'selectedTeamPublicId' => $teamPublicId,
+            'selectedManagerPublicId' => $selectedManagerPublicId,
+            'teamOptions' => array_map(static fn ($team): array => [
+                'value' => $team->publicId,
+                'label' => $team->name,
+            ], $this->memberships->activeTeamOptions()),
             'teamMembers' => $teamPublicId === '' ? [] : $this->teamMembers($teamPublicId),
-            'relationships' => array_map($this->relationship(...), $teamPublicId === '' ? [] : $this->hierarchy->activeRelationships($teamPublicId)),
-            'history' => array_map($this->relationship(...), $teamPublicId === '' ? [] : $this->hierarchy->relationshipHistory($teamPublicId)),
-            'tree' => array_map($this->node(...), $teamPublicId === '' ? [] : $this->hierarchy->tree($teamPublicId)),
-            'preview' => $preview,
-            'exports' => AdminDataTableExportMeta::defaults(),
+            'manager' => $manager,
+            'relationships' => $teamPublicId === '' || $selectedManagerPublicId === '' ? [] : array_values(array_filter(
+                array_map($this->relationship(...), $this->hierarchy->activeRelationships($teamPublicId)),
+                static fn (array $relationship): bool => ($relationship['managerUserPublicId'] ?? '') === $selectedManagerPublicId,
+            )),
+            'tree' => $teamPublicId === '' || $selectedManagerPublicId === '' ? [] : $this->managerTree($teamPublicId, $selectedManagerPublicId),
+            'previewReportPublicIds' => $previewReportPublicIds,
+            'assignmentPreviews' => $teamPublicId === '' || $selectedManagerPublicId === ''
+                ? []
+                : $this->assignmentPreviews($teamPublicId, $selectedManagerPublicId, $previewReportPublicIds),
+        ]);
+    }
+
+    public function edit(Request $request, string $user): Response
+    {
+        $teamPublicId = $this->selectedTeamPublicId($request);
+        $previewReportPublicIds = $this->previewReportPublicIds($request);
+
+        $manager = $this->managerRow($teamPublicId, $user);
+
+        if ($teamPublicId === '' || $manager === null) {
+            abort(404);
+        }
+
+        return Inertia::render('Admin/Managers/Edit', [
+            'selectedTeamPublicId' => $teamPublicId,
+            'teamOptions' => array_map(static fn ($team): array => [
+                'value' => $team->publicId,
+                'label' => $team->name,
+            ], $this->memberships->activeTeamOptions()),
+            'manager' => $manager,
+            'teamMembers' => $this->teamMembers($teamPublicId),
+            'relationships' => array_values(array_filter(
+                array_map($this->relationship(...), $this->hierarchy->activeRelationships($teamPublicId)),
+                static fn (array $relationship): bool => ($relationship['managerUserPublicId'] ?? '') === $user,
+            )),
+            'tree' => $this->managerTree($teamPublicId, $user),
+            'previewReportPublicIds' => $previewReportPublicIds,
+            'assignmentPreviews' => $this->assignmentPreviews($teamPublicId, $user, $previewReportPublicIds),
         ]);
     }
 
@@ -62,27 +172,41 @@ final class ManagerHierarchyAdministrationController
         $validated = $request->validate([
             'team_public_id' => ['required', 'string'],
             'manager_user_public_id' => ['required', 'string'],
-            'report_user_public_id' => ['required', 'string'],
+            'report_user_public_id' => ['nullable', 'string', 'required_without:report_user_public_ids'],
+            'report_user_public_ids' => ['nullable', 'array', 'required_without:report_user_public_id'],
+            'report_user_public_ids.*' => ['string'],
             'valid_from' => ['required', 'date'],
             'reason' => ['required', 'string', 'min:3', 'max:2000'],
         ]);
         $values = is_array($validated) ? $validated : [];
+        $reportUserPublicIds = $this->reportUserPublicIds($values);
+
+        if ($reportUserPublicIds === []) {
+            throw ValidationException::withMessages(['report_user_public_ids' => __('validation.required', ['attribute' => __('pages.admin.managers.forms.reports')])]);
+        }
 
         try {
-            $this->hierarchy->assign(
-                actorUserPublicId: $this->actorPublicId($request),
-                teamPublicId: $this->string($values['team_public_id'] ?? ''),
-                managerUserPublicId: $this->string($values['manager_user_public_id'] ?? ''),
-                reportUserPublicId: $this->string($values['report_user_public_id'] ?? ''),
-                validFrom: $this->string($values['valid_from'] ?? ''),
-                reason: $this->string($values['reason'] ?? ''),
-            );
+            foreach ($reportUserPublicIds as $reportUserPublicId) {
+                $this->hierarchy->assign(
+                    actorUserPublicId: $this->actorPublicId($request),
+                    teamPublicId: $this->string($values['team_public_id'] ?? ''),
+                    managerUserPublicId: $this->string($values['manager_user_public_id'] ?? ''),
+                    reportUserPublicId: $reportUserPublicId,
+                    validFrom: $this->string($values['valid_from'] ?? ''),
+                    reason: $this->string($values['reason'] ?? ''),
+                );
+            }
         } catch (ManagerHierarchyViolation $exception) {
-            throw ValidationException::withMessages(['manager_user_public_id' => $exception->getMessage()]);
+            $errorKey = array_key_exists('report_user_public_ids', $values) ? 'report_user_public_ids' : 'manager_user_public_id';
+
+            throw ValidationException::withMessages([$errorKey => $exception->getMessage()]);
         }
 
         return redirect()
-            ->route('admin.managers.index', ['team' => $this->string($values['team_public_id'] ?? '')])
+            ->route('admin.managers.edit', [
+                'user' => $this->string($values['manager_user_public_id'] ?? ''),
+                'team' => $this->string($values['team_public_id'] ?? ''),
+            ])
             ->with('flash.messages', [
                 FlashMessage::success('flash.teams.manager_relationship_created'),
             ]);
@@ -96,6 +220,7 @@ final class ManagerHierarchyAdministrationController
             'team_public_id' => ['required', 'string'],
         ]);
         $values = is_array($validated) ? $validated : [];
+        $managerUserPublicId = $this->managerPublicIdForRelationship($this->string($values['team_public_id'] ?? ''), $relationship);
 
         try {
             $this->hierarchy->end(
@@ -108,8 +233,14 @@ final class ManagerHierarchyAdministrationController
             throw ValidationException::withMessages(['relationship' => $exception->getMessage()]);
         }
 
-        return redirect()
-            ->route('admin.managers.index', ['team' => $this->string($values['team_public_id'] ?? '')])
+        $redirect = $managerUserPublicId === ''
+            ? redirect()->route('admin.managers.index', ['team' => $this->string($values['team_public_id'] ?? '')])
+            : redirect()->route('admin.managers.edit', [
+                'user' => $managerUserPublicId,
+                'team' => $this->string($values['team_public_id'] ?? ''),
+            ]);
+
+        return $redirect
             ->with('flash.messages', [
                 FlashMessage::success('flash.teams.manager_relationship_ended'),
             ]);
@@ -138,7 +269,10 @@ final class ManagerHierarchyAdministrationController
         }
 
         return redirect()
-            ->route('admin.managers.index', ['team' => $this->string($values['team_public_id'] ?? '')])
+            ->route('admin.managers.edit', [
+                'user' => $this->string($values['user_public_id'] ?? ''),
+                'team' => $this->string($values['team_public_id'] ?? ''),
+            ])
             ->with('flash.messages', [
                 FlashMessage::success('flash.teams.head_manager_updated'),
             ]);
@@ -158,20 +292,245 @@ final class ManagerHierarchyAdministrationController
     }
 
     /**
-     * @return list<array{value: string, label: string}>
+     * @return list<array<string, mixed>>
      */
-    private function userOptions(): array
+    private function managerRows(string $teamPublicId): array
     {
-        $users = [];
+        $members = $this->teamMembers($teamPublicId);
+        $relationships = array_map($this->relationship(...), $this->hierarchy->activeRelationships($teamPublicId));
+        $tree = array_map($this->node(...), $this->hierarchy->tree($teamPublicId));
+        $directCounts = [];
 
-        foreach ($this->accounts->allOptions() as $user) {
-            $users[] = [
-                'value' => $user->publicId,
-                'label' => trim($user->name.' · '.$user->email),
+        foreach ($relationships as $relationship) {
+            $managerUserPublicId = $this->string($relationship['managerUserPublicId'] ?? '');
+            $directCounts[$managerUserPublicId] = ($directCounts[$managerUserPublicId] ?? 0) + 1;
+        }
+
+        $rows = [];
+
+        foreach ($members as $member) {
+            $userPublicId = $member['value'];
+            $directReportsCount = $directCounts[$userPublicId] ?? 0;
+
+            if ($directReportsCount === 0 && $member['headManager'] !== true) {
+                continue;
+            }
+
+            $subtreeReportsCount = $this->subtreeReportsCount($tree, $userPublicId);
+            $rows[] = [
+                'userPublicId' => $userPublicId,
+                'teamPublicId' => $teamPublicId,
+                'teamName' => $this->teamName($teamPublicId),
+                'name' => $member['name'],
+                'email' => $member['email'],
+                'managerType' => $member['headManager'] === true ? 'head' : 'regular',
+                'directReportsCount' => $directReportsCount,
+                'subtreeReportsCount' => $subtreeReportsCount,
             ];
         }
 
-        return $users;
+        return $rows;
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function managerRow(string $teamPublicId, string $userPublicId): ?array
+    {
+        foreach ($this->managerRows($teamPublicId) as $row) {
+            if (($row['userPublicId'] ?? '') === $userPublicId) {
+                return $row;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function managerCandidate(string $teamPublicId, string $userPublicId): ?array
+    {
+        $row = $this->managerRow($teamPublicId, $userPublicId);
+
+        if ($row !== null) {
+            return $row;
+        }
+
+        foreach ($this->teamMembers($teamPublicId) as $member) {
+            if ($member['value'] !== $userPublicId) {
+                continue;
+            }
+
+            return [
+                'userPublicId' => $userPublicId,
+                'teamPublicId' => $teamPublicId,
+                'teamName' => $this->teamName($teamPublicId),
+                'name' => $member['name'],
+                'email' => $member['email'],
+                'managerType' => $member['headManager'] === true ? 'head' : 'regular',
+                'directReportsCount' => 0,
+                'subtreeReportsCount' => 0,
+            ];
+        }
+
+        return null;
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private function managerTree(string $teamPublicId, string $userPublicId): array
+    {
+        $tree = array_map($this->node(...), $this->hierarchy->tree($teamPublicId));
+        $node = $this->findNode($tree, $userPublicId);
+
+        return $node === null ? [] : [$node];
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $nodes
+     * @return array<string, mixed>|null
+     */
+    private function findNode(array $nodes, string $userPublicId): ?array
+    {
+        foreach ($nodes as $node) {
+            if (($node['userPublicId'] ?? '') === $userPublicId) {
+                return $node;
+            }
+
+            $reports = self::childNodes($node['reports'] ?? []);
+
+            if ($reports !== []) {
+                $found = $this->findNode($reports, $userPublicId);
+
+                if ($found !== null) {
+                    return $found;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $nodes
+     */
+    private function subtreeReportsCount(array $nodes, string $userPublicId): int
+    {
+        $node = $this->findNode($nodes, $userPublicId);
+
+        if ($node === null) {
+            return 0;
+        }
+
+        return $this->nodeReportCount(self::childNodes($node['reports'] ?? []));
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $nodes
+     */
+    private function nodeReportCount(array $nodes): int
+    {
+        $count = count($nodes);
+
+        foreach ($nodes as $node) {
+            $count += $this->nodeReportCount(self::childNodes($node['reports'] ?? []));
+        }
+
+        return $count;
+    }
+
+    private function managerPublicIdForRelationship(string $teamPublicId, string $relationshipPublicId): string
+    {
+        foreach (array_map($this->relationship(...), $this->hierarchy->activeRelationships($teamPublicId)) as $relationship) {
+            if (($relationship['publicId'] ?? '') === $relationshipPublicId) {
+                return $this->string($relationship['managerUserPublicId'] ?? '');
+            }
+        }
+
+        return '';
+    }
+
+    private function teamName(string $teamPublicId): string
+    {
+        foreach ($this->memberships->activeTeamOptions() as $team) {
+            if ($team->publicId === $teamPublicId) {
+                return $team->name;
+            }
+        }
+
+        return '';
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function previewReportPublicIds(Request $request): array
+    {
+        $reports = $request->query('preview_reports');
+
+        if (is_array($reports)) {
+            return array_values(array_unique(array_filter(
+                array_map($this->string(...), $reports),
+                static fn (string $value): bool => $value !== '',
+            )));
+        }
+
+        $report = $request->query('preview_report');
+
+        return is_string($report) && $report !== '' ? [$report] : [];
+    }
+
+    /**
+     * @param  list<string>  $reportUserPublicIds
+     * @return list<array<string, mixed>>
+     */
+    private function assignmentPreviews(string $teamPublicId, string $managerUserPublicId, array $reportUserPublicIds): array
+    {
+        $members = [];
+
+        foreach ($this->teamMembers($teamPublicId) as $member) {
+            $members[$member['value']] = $member;
+        }
+
+        $previews = [];
+
+        foreach ($reportUserPublicIds as $reportUserPublicId) {
+            $member = $members[$reportUserPublicId] ?? null;
+            $preview = $this->hierarchy->previewAssign($teamPublicId, $managerUserPublicId, $reportUserPublicId);
+
+            $previews[] = [
+                'reportUserPublicId' => $reportUserPublicId,
+                'reportName' => is_array($member) ? $this->string($member['name']) : $reportUserPublicId,
+                'reportEmail' => is_array($member) ? $this->string($member['email']) : '',
+                'allowed' => $preview->allowed,
+                'affectedReportPublicIds' => $preview->affectedReportPublicIds,
+                'warnings' => $preview->warnings,
+            ];
+        }
+
+        return $previews;
+    }
+
+    /**
+     * @param  array<mixed>  $values
+     * @return list<string>
+     */
+    private function reportUserPublicIds(array $values): array
+    {
+        $many = $values['report_user_public_ids'] ?? null;
+
+        if (is_array($many)) {
+            return array_values(array_unique(array_filter(
+                array_map($this->string(...), $many),
+                static fn (string $value): bool => $value !== '',
+            )));
+        }
+
+        $single = $this->string($values['report_user_public_id'] ?? '');
+
+        return $single === '' ? [] : [$single];
     }
 
     /**
@@ -268,5 +627,40 @@ final class ManagerHierarchyAdministrationController
     private function string(mixed $value): string
     {
         return is_scalar($value) ? (string) $value : '';
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private static function childNodes(mixed $reports): array
+    {
+        if (! is_array($reports)) {
+            return [];
+        }
+
+        $nodes = [];
+
+        foreach ($reports as $report) {
+            if (! is_array($report)) {
+                continue;
+            }
+
+            $node = [];
+
+            foreach ($report as $key => $value) {
+                if (is_string($key)) {
+                    $node[$key] = $value;
+                }
+            }
+
+            $nodes[] = $node;
+        }
+
+        return $nodes;
+    }
+
+    private static function intValue(mixed $value): int
+    {
+        return is_numeric($value) ? (int) $value : 0;
     }
 }

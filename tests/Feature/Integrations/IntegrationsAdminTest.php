@@ -46,7 +46,13 @@ final class IntegrationsAdminTest extends TestCase
                 })
                 ->where('integrations.0.key', 'crm')
                 ->where('integrations.0.externalApiEnabled', false)
-                ->where('externalApiEnabled', false));
+                ->where('externalApiEnabled', false)
+                ->where('summary.registered', 1)
+                ->where('summary.visible', 1)
+                ->where('table.key', 'admin.integrations.adapters')
+                ->where('table.state.filters.status', 'all')
+                ->where('table.state.filters.circuit', 'all')
+                ->where('table.exports.endpoint', route('admin.exports.data-table')));
 
         $this->actingAs($admin)
             ->withSession($this->adminSession($team))

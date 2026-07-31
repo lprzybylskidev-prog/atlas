@@ -69,12 +69,13 @@ final class EnsureActiveTeamSelected
             ->where(static function (Builder $query): void {
                 $query->whereNull('team_user_assignments.valid_to')->orWhere('team_user_assignments.valid_to', '>', now());
             })
+            ->orderBy('teams.display_name')
             ->orderBy('teams.name')
-            ->get(['teams.public_id', 'teams.name'])
+            ->get(['teams.public_id', 'teams.name', 'teams.display_name'])
             ->all() as $team) {
             $teams[] = [
                 'publicId' => self::stringValue($team, 'public_id'),
-                'name' => self::stringValue($team, 'name'),
+                'name' => self::teamDisplayName($team),
             ];
         }
 
@@ -103,5 +104,12 @@ final class EnsureActiveTeamSelected
         $value = $record->{$property} ?? '';
 
         return is_scalar($value) ? (string) $value : '';
+    }
+
+    private static function teamDisplayName(object $record): string
+    {
+        $displayName = self::stringValue($record, 'display_name');
+
+        return $displayName !== '' ? $displayName : self::stringValue($record, 'name');
     }
 }

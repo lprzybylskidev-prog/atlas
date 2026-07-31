@@ -46,14 +46,17 @@ Implementation order:
 
 Pages must not contain reusable design-system decisions. Pages choose data, labels, route actions, and module-specific composition; shared components, composables, and formatters own visual structure, control styling, common states, formatting, and repeated interaction patterns.
 
+For phase-by-phase view rebuilds, owner review findings are part of the implementation contract. Before starting or accepting a later view in the same phase, review the active phase findings log and apply every accepted Phase-wide or Atlas-wide correction. Repeated defects must become shared primitives, formatters, tests, or canonical documentation before the phase closes.
+
 ### Shell and shared frontend composition
 
 The Atlas shell owns navigation hierarchy:
 
 - `Sidebar` is for modules, Admin operational areas, and other primary work areas.
-- `TopBar` plus `ShellSubnavigation` is for secondary views inside the selected module or operational area.
+- `TopBar` plus inline `ShellSubnavigation` is for secondary views inside the selected module or operational area; it belongs inside the top navbar, not as a second bar below it.
 - Page-local tab cards must not be used for module subsections.
 - Breadcrumbs remain centralized and visible independently of shell subnavigation.
+- Breadcrumbs for pages with top-navbar subsection links must include the active subsection level so the hierarchy matches the visible navigation, for example `Admin / Processes / Runs` and `Admin / Processes / Schedules / Create`.
 
 Use `AdminLayout` or `AppLayout` `subnavigation` props for module subsection links. A page may define module-specific subnavigation items locally, but the rendering, active state treatment, spacing, theme behavior, and responsive overflow belong to `ShellSubnavigation`.
 
@@ -351,7 +354,7 @@ Do not name shared primitives after `Admin` or `App` unless the component is cou
 
 Repeated role, permission, and option checklists use `resources/js/Components/CheckboxList.vue` instead of rebuilding local checkbox grids in pages. Keep one-off binary settings on `FormCheckbox`.
 
-Technical payloads, JSON/TOML snippets, log details, and stack traces use `resources/js/Components/CodeViewer.vue`. Do not hand-build local `<pre>` blocks or one-off stack-trace renderers in pages when this viewer fits.
+Technical payloads, JSON/TOML snippets, log details, code-like details, and stack traces use `resources/js/Components/CodeViewer.vue`. The viewer owns line numbering, wrapping controls, copy-to-clipboard behavior, tooltips for icon-only controls, breathing room around short snippets, and basic code/log line highlighting so pages can focus on selecting the payload and context. Do not hand-build local `<pre>` blocks or one-off stack-trace renderers in pages when this viewer fits. Do not force raw code or log bodies into `DataTable` as the primary reading experience; use tables for selectable records and `CodeViewer` for the focused code/log/payload surface.
 
 The Admin dashboard keeps its three primary operational cards: Release, Readiness, and Modules. Module-owned operational areas contribute status signals into the Modules card instead of adding standalone dashboard cards unless a new dashboard structure is deliberately designed and documented first.
 
@@ -411,7 +414,7 @@ Support:
 
 No native alerts and no local ad hoc toast systems.
 
-The Inertia flash contract accepts queued messages with type, translation key or message text, optional translated description key, configurable timeout, and a critical flag for manual dismissal. Frontend events use `useToast` and render through `ToastViewport`.
+The Inertia flash contract accepts queued messages with type, translation key or message text, optional translated description key, configurable timeout, and a critical flag for manual dismissal. A single user action must produce at most one immediate request-result toast/flash. For asynchronous workflows, progress belongs in the owning detail/list view and the terminal outcome may create one durable notification; realtime progress events must not create toast stacks. Frontend events use `useToast` and render through `ToastViewport`.
 
 ### States and formatters
 

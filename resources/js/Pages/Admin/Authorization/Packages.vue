@@ -1,17 +1,17 @@
 <script setup lang="ts">
 import { Head } from '@inertiajs/vue3';
-import { IconPackages } from '@tabler/icons-vue';
-import { computed, reactive } from 'vue';
+import { IconPackage, IconPackageExport } from '@tabler/icons-vue';
+import { computed, ref, watch } from 'vue';
 
 import ActionLink from '../../../Components/ActionLink.vue';
 import DataTable from '../../../Components/DataTable.vue';
 import FilterPanel from '../../../Components/FilterPanel.vue';
-import FormSelect from '../../../Components/Form/FormSelect.vue';
+import FormSelect, { type FormSelectOption } from '../../../Components/Form/FormSelect.vue';
 import PageStack from '../../../Components/PageStack.vue';
-import { runBulkRecordAction } from '../../../Composables/useBulkRecordActions';
+import { applyTableFilters, clearTableFilters } from '../../../Composables/useTableFilterControls';
 import AdminLayout from '../../../Layouts/AdminLayout.vue';
 import { useTranslator } from '../../../Localization/translator';
-import type { DataTableAction, DataTableBulkAction, DataTableColumn, DataTableMeta } from '../../../Types/data-table';
+import type { DataTableAction, DataTableColumn, DataTableMeta } from '../../../Types/data-table';
 
 interface PackageRow extends Record<string, unknown> {
     id: number | null;
@@ -30,114 +30,142 @@ interface PackageRow extends Record<string, unknown> {
 
 const props = defineProps<{
     packages: PackageRow[];
+    filterOptions: {
+        teams: FormSelectOption[];
+    };
     table: DataTableMeta;
 }>();
 
-const { t } = useTranslator();
-
-const filters = reactive({
+const { locale, t } = useTranslator();
+const filterKeys = ['status', 'team', 'roles', 'directPermissions', 'templatePermissions'];
+const filterDefaults = {
     status: 'all',
     team: 'all',
-});
+    roles: 'all',
+    directPermissions: 'all',
+    templatePermissions: 'all',
+};
+const filters = ref({ ...filterDefaults, ...filterValues() });
 
-const statusOptions = [
-    { value: 'all', label: 'All statuses' },
-    { value: 'active', label: 'Active' },
-    { value: 'inactive', label: 'Inactive' },
-];
-
-const teamOptions = computed(() => [
-    { value: 'all', label: 'All teams' },
-    ...Array.from(new Map(props.packages.map((preset) => [preset.teamPublicId, preset.teamName])).entries())
-        .sort((left, right) => left[1].localeCompare(right[1]))
-        .map(([value, label]) => ({ value, label })),
+const columns = computed<DataTableColumn<PackageRow>[]>(() => [
+    { key: 'publicId', label: t('pages.admin.packages.table.public_id') },
+    { key: 'id', label: t('pages.admin.packages.table.internal_id'), hidden: true },
+    { key: 'teamName', label: t('pages.admin.packages.table.team') },
+    { key: 'teamPublicId', label: t('pages.admin.packages.table.team_public_id'), hidden: true },
+    { key: 'label', label: t('pages.admin.packages.table.display_name') },
+    { key: 'name', label: t('pages.admin.packages.table.technical_name'), hidden: true },
+    { key: 'initialRoles', label: t('pages.admin.packages.table.initial_roles'), format: 'list' },
+    { key: 'directPermissions', label: t('pages.admin.packages.table.direct_permissions'), format: 'list', hidden: true },
+    { key: 'templatePermissions', label: t('pages.admin.packages.table.template_permissions'), format: 'list', hidden: true },
+    { key: 'isActive', label: t('pages.admin.packages.table.active'), format: 'boolean', hidden: true },
+    { key: 'createdAt', label: t('pages.admin.packages.table.created_at'), format: 'datetime', hidden: true },
+    { key: 'updatedAt', label: t('pages.admin.packages.table.updated_at'), format: 'datetime', hidden: true },
+]);
+const statusOptions = computed<FormSelectOption[]>(() => [
+    { value: 'all', label: t('pages.admin.packages.filters.any_status') },
+    { value: 'active', label: t('datatable.status.active') },
+    { value: 'inactive', label: t('datatable.status.inactive') },
+]);
+const teamOptions = computed<FormSelectOption[]>(() => [
+    { value: 'all', label: t('pages.admin.packages.filters.any_team') },
+    ...props.filterOptions.teams,
+]);
+const assignmentOptions = computed<FormSelectOption[]>(() => [
+    { value: 'all', label: t('pages.admin.packages.filters.any_assignment') },
+    { value: 'with', label: t('pages.admin.packages.filters.with_assignment') },
+    { value: 'without', label: t('pages.admin.packages.filters.without_assignment') },
 ]);
 
-const filteredPackages = computed(() =>
-    props.packages.filter((preset) => {
-        if (filters.status === 'active' && !preset.isActive) {
-            return false;
-        }
+const actions = computed<DataTableAction<PackageRow>[]>(() => [
+    {
+        key: 'edit',
+        label: t('pages.admin.packages.actions.edit'),
+        href: (preset) => `/admin/authorization/packages/${encodeURIComponent(preset.publicId)}/edit`,
+    },
+    {
+        key: 'delete',
+        label: t('pages.admin.packages.actions.deactivate'),
+        method: 'delete',
+        href: (preset) => `/admin/authorization/packages/${encodeURIComponent(preset.publicId)}`,
+        confirm: (preset) => t('pages.admin.packages.actions.deactivate_confirm', { preset: preset.label }),
+        disabled: (preset) => !preset.isActive,
+        disabledReason: () => t('pages.admin.packages.actions.deactivate_disabled'),
+        tone: 'danger',
+    },
+]);
+const tableFilters = computed(() => filterValues());
 
-        if (filters.status === 'inactive' && preset.isActive) {
-            return false;
-        }
-
-        return filters.team === 'all' || preset.teamPublicId === filters.team;
-    }),
+watch(
+    () => props.table.state.filters,
+    () => {
+        filters.value = { ...filterDefaults, ...filterValues() };
+    },
 );
 
-function resetFilters(): void {
-    filters.status = 'all';
-    filters.team = 'all';
+function filterValues(): Record<string, string> {
+    return {
+        status: String(props.table.state.filters?.status ?? 'all'),
+        team: String(props.table.state.filters?.team ?? 'all'),
+        roles: String(props.table.state.filters?.roles ?? 'all'),
+        directPermissions: String(props.table.state.filters?.directPermissions ?? 'all'),
+        templatePermissions: String(props.table.state.filters?.templatePermissions ?? 'all'),
+    };
 }
 
-const columns: DataTableColumn<PackageRow>[] = [
-    { key: 'publicId', label: 'Public ID' },
-    { key: 'id', label: 'ID', hidden: true },
-    { key: 'teamName', label: 'Team' },
-    { key: 'teamPublicId', label: 'Team public ID', hidden: true },
-    { key: 'label', label: 'Label' },
-    { key: 'name', label: 'Name' },
-    { key: 'initialRoles', label: 'Initial roles', format: 'list' },
-    { key: 'directPermissions', label: 'Direct permissions', format: 'count', hidden: true },
-    { key: 'templatePermissions', label: 'Template permissions', format: 'count', hidden: true },
-    { key: 'isActive', label: 'Active', format: 'boolean', hidden: true },
-    { key: 'createdAt', label: 'Created at', format: 'datetime', hidden: true },
-    { key: 'updatedAt', label: 'Updated at', format: 'datetime', hidden: true },
-];
+function applyFilters(): void {
+    applyTableFilters(filterKeys, filters.value, filterDefaults);
+}
 
-const actions: DataTableAction<PackageRow>[] = [
-    { key: 'edit', label: 'Edit', href: (row) => `/admin/authorization/packages/${row.publicId}/edit` },
-    { key: 'delete', label: 'Deactivate', method: 'delete', href: (row) => `/admin/authorization/packages/${row.publicId}` },
-];
-const bulkActions: DataTableBulkAction[] = [{ key: 'delete', label: 'Deactivate', tone: 'danger' }];
-
-async function handleBulkAction(payload: { action: DataTableBulkAction; rowIds: string[] }): Promise<void> {
-    if (payload.action.key !== 'delete') {
-        return;
-    }
-
-    await runBulkRecordAction(
-        {
-            method: 'delete',
-            href: (rowId) => `/admin/authorization/packages/${rowId}`,
-        },
-        payload.rowIds,
-    );
+function clearFilters(): void {
+    filters.value = { ...filterDefaults };
+    clearTableFilters(filterKeys);
 }
 </script>
 
 <template>
     <Head :title="t('pages.admin.packages.head_title')" />
-    <AdminLayout :title="t('pages.admin.packages.title')" :title-icon="IconPackages">
+    <AdminLayout :title="t('pages.admin.packages.title')" :title-icon="IconPackage">
         <PageStack>
             <div class="flex justify-end">
-                <ActionLink href="/admin/authorization/packages/create" :icon="IconPackages" tone="primary"> Create preset </ActionLink>
+                <ActionLink href="/admin/authorization/packages/create" :icon="IconPackageExport" tone="primary">
+                    {{ t('pages.admin.packages.actions.create') }}
+                </ActionLink>
             </div>
 
             <FilterPanel
-                title="Preset filters"
-                :summary="`Showing ${filteredPackages.length} of ${packages.length} loaded presets.`"
-                @apply="() => {}"
-                @clear="resetFilters"
+                :title="t('pages.admin.packages.filters.title')"
+                :apply-label="t('filters.apply')"
+                :clear-label="t('filters.clear')"
+                @apply="applyFilters"
+                @clear="clearFilters"
             >
                 <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-                    <FormSelect v-model="filters.status" label="Status" :options="statusOptions" />
-                    <FormSelect v-model="filters.team" label="Team" :options="teamOptions" />
+                    <FormSelect v-model="filters.status" :label="t('pages.admin.packages.filters.status')" :options="statusOptions" />
+                    <FormSelect v-model="filters.team" :label="t('pages.admin.packages.filters.team')" :options="teamOptions" />
+                    <FormSelect v-model="filters.roles" :label="t('pages.admin.packages.filters.roles')" :options="assignmentOptions" />
+                    <FormSelect
+                        v-model="filters.directPermissions"
+                        :label="t('pages.admin.packages.filters.direct_permissions')"
+                        :options="assignmentOptions"
+                    />
+                    <FormSelect
+                        v-model="filters.templatePermissions"
+                        :label="t('pages.admin.packages.filters.template_permissions')"
+                        :options="assignmentOptions"
+                    />
                 </div>
             </FilterPanel>
 
             <DataTable
-                title="Presets"
-                :rows="filteredPackages"
+                :title="t('pages.admin.packages.table.title')"
+                :rows="packages"
                 :columns="columns"
                 row-key="publicId"
                 :actions="actions"
-                :bulk-actions="bulkActions"
-                :bulk-action-handler="handleBulkAction"
                 :table="table"
-                :filters="filters"
+                :filters="tableFilters"
+                :ui-locale="locale"
+                :empty-label="t('pages.admin.packages.empty')"
             />
         </PageStack>
     </AdminLayout>

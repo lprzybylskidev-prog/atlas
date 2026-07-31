@@ -51,11 +51,43 @@ final class AdminUserCreationTest extends TestCase
 
         $created = User::query()->where('email', 'created.admin@example.test')->firstOrFail();
 
+        self::assertSame('sensitive', $created->account_sensitivity);
         self::assertDatabaseHas(DatabaseTable::USER_ONBOARDING_PACKAGES, [
             'user_id' => $created->id,
             'team_id' => $team->id,
             'package_name' => 'collections.agent',
         ]);
+        Notification::assertSentOnDemand(FirstPasswordSetupNotification::class);
+    }
+
+    public function test_admin_user_creation_accepts_selected_account_sensitivity(): void
+    {
+        Notification::fake();
+
+        $actor = User::factory()->create();
+        $team = Team::query()->create(['name' => 'Operations']);
+        $this->assignStarterRoleInTeam($actor, $team, StarterRoleName::Administrator->value);
+
+        $this->actingAs($actor)
+            ->withSession($this->adminSession($team))
+            ->post('/admin/users', [
+                'name' => 'Created Normal Account',
+                'email' => 'created.normal@example.test',
+                'account_sensitivity' => 'normal',
+                'team_assignments' => [
+                    [
+                        'team_public_id' => $team->public_id,
+                        'source' => 'manual',
+                        'role_names' => [StarterRoleName::WorkspaceAccess->value],
+                        'direct_permission_names' => [],
+                    ],
+                ],
+            ])
+            ->assertRedirect(route('admin.users.index'));
+
+        $created = User::query()->where('email', 'created.normal@example.test')->firstOrFail();
+
+        self::assertSame('normal', $created->account_sensitivity);
         Notification::assertSentOnDemand(FirstPasswordSetupNotification::class);
     }
 
@@ -75,6 +107,7 @@ final class AdminUserCreationTest extends TestCase
             ->post('/admin/users', [
                 'name' => 'Copied Permissions',
                 'email' => 'copied.permissions@example.test',
+                'account_sensitivity' => 'sensitive',
                 'team_assignments' => [
                     [
                         'team_public_id' => $team->public_id,
@@ -126,6 +159,7 @@ final class AdminUserCreationTest extends TestCase
             ->post('/admin/users', [
                 'name' => 'Invalid Copy Source',
                 'email' => 'invalid.copy.source@example.test',
+                'account_sensitivity' => 'sensitive',
                 'team_assignments' => [
                     [
                         'team_public_id' => $targetTeam->public_id,
@@ -159,6 +193,7 @@ final class AdminUserCreationTest extends TestCase
             ->post('/admin/users', [
                 'name' => 'Invalid Preset Team',
                 'email' => 'invalid.preset.team@example.test',
+                'account_sensitivity' => 'sensitive',
                 'team_assignments' => [
                     [
                         'team_public_id' => $targetTeam->public_id,
@@ -191,6 +226,7 @@ final class AdminUserCreationTest extends TestCase
             ->post('/admin/users', [
                 'name' => 'Invalid Team Assignment',
                 'email' => 'invalid.team.assignment@example.test',
+                'account_sensitivity' => 'sensitive',
                 'team_assignments' => [
                     [
                         'source' => 'manual',
@@ -219,6 +255,7 @@ final class AdminUserCreationTest extends TestCase
             ->post('/admin/users', [
                 'name' => 'Explicit Assignments',
                 'email' => 'explicit.assignments@example.test',
+                'account_sensitivity' => 'sensitive',
                 'team_assignments' => [
                     [
                         'team_public_id' => $assignedTeam->public_id,

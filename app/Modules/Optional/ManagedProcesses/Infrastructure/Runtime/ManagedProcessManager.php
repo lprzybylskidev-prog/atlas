@@ -218,9 +218,6 @@ final readonly class ManagedProcessManager implements ManagedProcessRunner
             $updates['safe_error_summary'] = mb_substr($safeErrorSummary, 0, 2000);
         }
 
-        if ($status === ProcessRunStatus::Running) {
-            $updates['started_at'] = now();
-        }
         if ($status->terminal()) {
             $updates['finished_at'] = now();
         }
@@ -232,6 +229,16 @@ final readonly class ManagedProcessManager implements ManagedProcessRunner
         }
 
         $this->database->table(DatabaseTable::MANAGED_PROCESS_RUNS)->where('public_id', $runPublicId)->update($updates);
+
+        if ($status === ProcessRunStatus::Running) {
+            $this->database->table(DatabaseTable::MANAGED_PROCESS_RUNS)
+                ->where('public_id', $runPublicId)
+                ->whereNull('started_at')
+                ->update([
+                    'started_at' => now(),
+                    'updated_at' => now(),
+                ]);
+        }
 
         $this->publishRealtimeProgress($runPublicId, $status, $current, $total, $label);
 
@@ -318,15 +325,33 @@ final readonly class ManagedProcessManager implements ManagedProcessRunner
             return;
         }
 
+        $titleKey = match ($status) {
+            ProcessRunStatus::Succeeded => 'notifications.managed_process.succeeded.title',
+            ProcessRunStatus::SucceededWithWarnings => 'notifications.managed_process.warning.title',
+            ProcessRunStatus::Failed, ProcessRunStatus::Cancelled, ProcessRunStatus::Expired => 'notifications.managed_process.failed.title',
+            default => 'notifications.managed_process.finished.title',
+        };
+        $bodyKey = match ($status) {
+            ProcessRunStatus::Succeeded => 'notifications.managed_process.succeeded.body',
+            ProcessRunStatus::SucceededWithWarnings => 'notifications.managed_process.warning.body',
+            ProcessRunStatus::Failed, ProcessRunStatus::Cancelled, ProcessRunStatus::Expired => 'notifications.managed_process.failed.body',
+            default => 'notifications.managed_process.finished.body',
+        };
+
         $this->notifications->publish(new CreateNotification(
             type: 'managed_process.terminal',
-            title: 'Managed process finished',
-            body: sprintf('%s finished with status %s.', $this->requiredString($run, 'process_key'), $status->value),
+            title: $titleKey,
+            body: $bodyKey,
             recipientUserPublicId: $actorPublicId,
             teamPublicId: $this->teamPublicId($this->intValue($run->team_id)),
             severity: in_array($status, [ProcessRunStatus::Failed, ProcessRunStatus::Cancelled], true) ? 'warning' : 'success',
             deepLinkUrl: $this->terminalNotificationDeepLinkUrl($runPublicId, $actorPublicId, $this->teamPublicId($this->intValue($run->team_id))),
-            data: ['run_public_id' => $runPublicId, 'status' => $status->value],
+            data: [
+                'run_public_id' => $runPublicId,
+                'process_name' => $this->processLabel($this->requiredString($run, 'process_key')),
+                'title_key' => $titleKey,
+                'body_key' => $bodyKey,
+            ],
         ));
     }
 
@@ -342,6 +367,15 @@ final readonly class ManagedProcessManager implements ManagedProcessRunner
         }
 
         return null;
+    }
+
+    private function processLabel(string $processKey): string
+    {
+        $label = $this->database->table(DatabaseTable::MANAGED_PROCESS_DEFINITIONS)
+            ->where('process_key', $processKey)
+            ->value('label');
+
+        return is_string($label) && $label !== '' ? $label : 'Process';
     }
 
     private function publishRealtimeProgress(string $runPublicId, ProcessRunStatus $status, ?int $current, ?int $total, ?string $label): void

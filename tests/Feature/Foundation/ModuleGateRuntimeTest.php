@@ -32,6 +32,7 @@ final class ModuleGateRuntimeTest extends TestCase
         self::assertIsString($admin->public_id);
         self::assertIsString($limited->public_id);
         self::assertIsString($team->public_id);
+        self::assertSame('sensitive', $admin->account_sensitivity);
 
         $allowed = $gate->inspect(new ModuleAccessRequest(
             moduleKey: 'identity',

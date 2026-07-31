@@ -38,7 +38,7 @@ Do not replace this index after the initial technical foundation is completed. C
 ## Current phase
 
 - Phase: [Phase 25 — Admin panel rebuild and operational UX repair](docs/roadmap/phase-25-admin-panel-rebuild-operational-ux.md)
-- Status: `not started`
+- Status: `complete`
 
 ## Roadmap dependency repair note
 

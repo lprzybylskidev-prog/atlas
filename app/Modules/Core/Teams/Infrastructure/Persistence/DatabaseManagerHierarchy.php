@@ -259,7 +259,7 @@ final class DatabaseManagerHierarchy implements ManagerHierarchy
             $rows[] = new ManagerRelationshipSummary(
                 publicId: $this->string($values['public_id'] ?? ''),
                 teamPublicId: $this->string($values['team_public_id'] ?? ''),
-                teamName: $this->string($values['team_name'] ?? ''),
+                teamName: $this->displayName($values, 'team_display_name', 'team_name'),
                 managerUserPublicId: $this->string($values['manager_public_id'] ?? ''),
                 managerName: $this->string($values['manager_name'] ?? ''),
                 managerEmail: $this->string($values['manager_email'] ?? ''),
@@ -290,6 +290,7 @@ final class DatabaseManagerHierarchy implements ManagerHierarchy
                 'relationships.end_reason',
                 'teams.public_id as team_public_id',
                 'teams.name as team_name',
+                'teams.display_name as team_display_name',
                 'manager.public_id as manager_public_id',
                 'manager.name as manager_name',
                 'manager.email as manager_email',
@@ -297,6 +298,16 @@ final class DatabaseManagerHierarchy implements ManagerHierarchy
                 'report.name as report_name',
                 'report.email as report_email',
             ]);
+    }
+
+    /**
+     * @param  array<mixed>  $values
+     */
+    private function displayName(array $values, string $displayKey, string $fallbackKey): string
+    {
+        $displayName = $this->string($values[$displayKey] ?? '');
+
+        return $displayName !== '' ? $displayName : $this->string($values[$fallbackKey] ?? '');
     }
 
     /**

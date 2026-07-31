@@ -50,6 +50,7 @@ final class BootstrapFirstAdministrator extends Command
         $created = $users->create(new CreateUserAccountRequest(
             name: $name,
             email: $email,
+            accountSensitivity: 'sensitive',
         ));
 
         $administrators->assignAdministrator($created->publicId, $team->publicId);

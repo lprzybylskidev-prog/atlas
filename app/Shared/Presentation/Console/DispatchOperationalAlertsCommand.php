@@ -49,7 +49,10 @@ final class DispatchOperationalAlertsCommand extends Command
             );
         }
 
-        $failedJobs = DB::table(DatabaseTable::FAILED_JOBS)->count();
+        $failedJobs = DB::table(DatabaseTable::FAILED_JOBS.' as failed_jobs')
+            ->leftJoin(DatabaseTable::FAILED_JOB_ACKNOWLEDGEMENTS.' as acknowledgements', 'acknowledgements.failed_job_uuid', '=', 'failed_jobs.uuid')
+            ->whereNull('acknowledgements.failed_job_uuid')
+            ->count();
         $threshold = max(1, config()->integer('atlas.operations.alerts.failed_jobs_threshold', 3));
 
         if ($failedJobs >= $threshold) {

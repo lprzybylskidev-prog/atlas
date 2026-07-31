@@ -157,6 +157,10 @@ return [
     'url' => 'The :attribute field must be a valid URL.',
     'uuid' => 'The :attribute field must be a valid UUID.',
 
+    'managed_processes' => [
+        'cron_expression' => 'Enter a valid five-field cron expression.',
+    ],
+
     'custom' => [
         'team_assignments' => [
             'copy_source_team' => 'The selected source user must have active access to the selected team.',
@@ -169,10 +173,12 @@ return [
 
     'attributes' => [
         'current_password' => 'current password',
+        'account_sensitivity' => 'account sensitivity',
         'direct_permission_names' => 'direct permissions',
         'direct_permission_names.*' => 'direct permission',
         'direct_permissions' => 'direct permissions',
         'direct_permissions.*' => 'direct permission',
+        'display_name' => 'display name',
         'email' => 'email address',
         'initial_roles' => 'initial roles',
         'initial_roles.*' => 'initial role',
@@ -219,6 +225,13 @@ return [
     ],
 
     'values' => [
+        'account_sensitivity' => [
+            'integration' => 'integration account',
+            'normal' => 'normal account',
+            'sensitive' => 'sensitive account',
+            'service' => 'service account',
+            'technical' => 'technical account',
+        ],
         'locale' => [
             'en' => 'English',
             'pl' => 'Polish',

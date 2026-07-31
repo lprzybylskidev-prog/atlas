@@ -84,16 +84,17 @@ Changing deployment availability requires restart or deploy.
 
 #### Operational activation
 
-For technically available optional modules, administrators may configure:
+For technically available optional and application modules, administrators may configure:
 
 - globally active;
-- globally inactive;
+- globally inactive, including the expected state for newly deployed application modules awaiting business acceptance;
 - active for selected teams;
 - scheduled future activation or deactivation.
 
 Rules:
 
 - Core modules cannot be operationally disabled;
+- system bootstrap may keep Core and accepted foundation modules available, but Application-category modules are not automatically enabled merely because they are deployed;
 - admin UI cannot activate a technically unavailable module;
 - backend must enforce state, not only hide UI;
 - state affects routes, menu, permissions, jobs, schedules, reports, integrations, and listeners;
@@ -112,6 +113,6 @@ All migrations of technically available modules run during deploy, even when ope
 
 Core modules must not hold foreign keys to optional module tables.
 
-Admin module activation screens are available at `/admin/modules`. Administrators can inspect deployed modules, see active-team effective state, manage global state where supported, manage team overrides from the module detail screen, manage the same team overrides from team create/edit workflows, schedule future activation changes, cancel scheduled changes, and inspect recent history.
+Admin module activation screens are available at `/admin/modules`. Administrators can inspect deployed modules, see active-team effective state on the index, manage global state where supported from the module detail screen, manage team overrides from a separate team-configuration screen, manage the same team overrides from team create/edit workflows, schedule future activation changes, cancel scheduled changes, and inspect recent history.
 
 ---

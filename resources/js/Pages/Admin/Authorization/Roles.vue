@@ -1,25 +1,26 @@
 <script setup lang="ts">
 import { Head } from '@inertiajs/vue3';
-import { IconShieldCheck } from '@tabler/icons-vue';
-import { computed, reactive } from 'vue';
+import { IconShieldLock, IconShieldPlus } from '@tabler/icons-vue';
+import { computed, ref, watch } from 'vue';
 
 import ActionLink from '../../../Components/ActionLink.vue';
 import DataTable from '../../../Components/DataTable.vue';
 import FilterPanel from '../../../Components/FilterPanel.vue';
-import FormSelect from '../../../Components/Form/FormSelect.vue';
+import FormSelect, { type FormSelectOption } from '../../../Components/Form/FormSelect.vue';
 import PageStack from '../../../Components/PageStack.vue';
-import { runBulkRecordAction } from '../../../Composables/useBulkRecordActions';
+import { applyTableFilters, clearTableFilters } from '../../../Composables/useTableFilterControls';
 import AdminLayout from '../../../Layouts/AdminLayout.vue';
 import { useTranslator } from '../../../Localization/translator';
-import type { DataTableAction, DataTableBulkAction, DataTableColumn, DataTableMeta } from '../../../Types/data-table';
+import type { DataTableAction, DataTableColumn, DataTableMeta } from '../../../Types/data-table';
 
 interface RoleRow extends Record<string, unknown> {
     id: number | null;
     publicId: string;
-    teamId: number | null;
     name: string;
+    displayName: string;
     guard: string;
     permissionsCount: number;
+    assignedUsersCount: number;
     createdAt: string;
     updatedAt: string;
 }
@@ -29,112 +30,119 @@ const props = defineProps<{
     table: DataTableMeta;
 }>();
 
-const { t } = useTranslator();
+const { locale, t } = useTranslator();
+const filterKeys = ['assignment', 'permissions'];
+const filterDefaults = {
+    assignment: 'all',
+    permissions: 'all',
+};
+const filters = ref({ ...filterDefaults, ...filterValues() });
 
-const filters = reactive({
-    guard: 'all',
-    scope: 'all',
-});
-
-const guardOptions = computed(() => [
-    { value: 'all', label: 'All guards' },
-    ...Array.from(new Set(props.roles.map((role) => role.guard)))
-        .sort((left, right) => left.localeCompare(right))
-        .map((guard) => ({ value: guard, label: guard })),
+const columns = computed<DataTableColumn<RoleRow>[]>(() => [
+    { key: 'publicId', label: t('pages.admin.roles.table.public_id') },
+    { key: 'id', label: t('pages.admin.roles.table.internal_id'), hidden: true },
+    { key: 'displayName', label: t('pages.admin.roles.table.display_name') },
+    { key: 'name', label: t('pages.admin.roles.table.technical_name'), hidden: true },
+    { key: 'guard', label: t('pages.admin.roles.table.guard') },
+    { key: 'permissionsCount', label: t('pages.admin.roles.table.permissions_count'), format: 'number' },
+    { key: 'assignedUsersCount', label: t('pages.admin.roles.table.assigned_users_count'), format: 'number', hidden: true },
+    { key: 'createdAt', label: t('pages.admin.roles.table.created_at'), format: 'datetime', hidden: true },
+    { key: 'updatedAt', label: t('pages.admin.roles.table.updated_at'), format: 'datetime', hidden: true },
 ]);
+const assignmentOptions = computed<FormSelectOption[]>(() => [
+    { value: 'all', label: t('pages.admin.roles.filters.any_assignment') },
+    { value: 'assigned', label: t('pages.admin.roles.filters.assigned') },
+    { value: 'unassigned', label: t('pages.admin.roles.filters.unassigned') },
+]);
+const permissionOptions = computed<FormSelectOption[]>(() => [
+    { value: 'all', label: t('pages.admin.roles.filters.any_permissions') },
+    { value: 'with', label: t('pages.admin.roles.filters.with_permissions') },
+    { value: 'without', label: t('pages.admin.roles.filters.without_permissions') },
+]);
+const actions = computed<DataTableAction<RoleRow>[]>(() => [
+    {
+        key: 'edit',
+        label: t('pages.admin.roles.actions.edit'),
+        href: (role) => `/admin/authorization/roles/${encodeURIComponent(role.name)}/edit`,
+    },
+    {
+        key: 'delete',
+        label: t('pages.admin.roles.actions.delete'),
+        method: 'delete',
+        href: (role) => `/admin/authorization/roles/${encodeURIComponent(role.name)}`,
+        confirm: (role) => t('pages.admin.roles.actions.delete_confirm', { role: role.displayName }),
+        disabled: (role) => role.assignedUsersCount > 0,
+        disabledReason: (role) => t('pages.admin.roles.actions.delete_disabled_assigned', { count: role.assignedUsersCount }),
+        tone: 'danger',
+    },
+]);
+const tableFilters = computed(() => filterValues());
 
-const scopeOptions = [
-    { value: 'all', label: 'All scopes' },
-    { value: 'global', label: 'Global' },
-    { value: 'team', label: 'Team scoped' },
-];
-
-const filteredRoles = computed(() =>
-    props.roles.filter((role) => {
-        if (filters.guard !== 'all' && role.guard !== filters.guard) {
-            return false;
-        }
-
-        if (filters.scope === 'global') {
-            return role.teamId === null;
-        }
-
-        if (filters.scope === 'team') {
-            return role.teamId !== null;
-        }
-
-        return true;
-    }),
+watch(
+    () => props.table.state.filters,
+    () => {
+        filters.value = { ...filterDefaults, ...filterValues() };
+    },
 );
 
-function resetFilters(): void {
-    filters.guard = 'all';
-    filters.scope = 'all';
+function filterValues(): Record<string, string> {
+    return {
+        assignment: String(props.table.state.filters?.assignment ?? 'all'),
+        permissions: String(props.table.state.filters?.permissions ?? 'all'),
+    };
 }
 
-const columns: DataTableColumn<RoleRow>[] = [
-    { key: 'publicId', label: 'Public ID' },
-    { key: 'id', label: 'ID', hidden: true },
-    { key: 'teamId', label: 'Team ID', hidden: true },
-    { key: 'name', label: 'Role' },
-    { key: 'guard', label: 'Guard' },
-    { key: 'permissionsCount', label: 'Permissions' },
-    { key: 'createdAt', label: 'Created at', format: 'datetime', hidden: true },
-    { key: 'updatedAt', label: 'Updated at', format: 'datetime', hidden: true },
-];
+function applyFilters(): void {
+    applyTableFilters(filterKeys, filters.value, filterDefaults);
+}
 
-const actions: DataTableAction<RoleRow>[] = [
-    { key: 'edit', label: 'Edit', href: (row) => `/admin/authorization/roles/${row.name}/edit` },
-    { key: 'delete', label: 'Delete', method: 'delete', href: (row) => `/admin/authorization/roles/${row.name}` },
-];
-const bulkActions: DataTableBulkAction[] = [{ key: 'delete', label: 'Delete', tone: 'danger' }];
-const roleNameByPublicId = new Map(props.roles.map((role) => [role.publicId, role.name]));
-
-async function handleBulkAction(payload: { action: DataTableBulkAction; rowIds: string[] }): Promise<void> {
-    if (payload.action.key !== 'delete') {
-        return;
-    }
-
-    await runBulkRecordAction(
-        {
-            method: 'delete',
-            href: (rowId) => `/admin/authorization/roles/${roleNameByPublicId.get(rowId) ?? rowId}`,
-        },
-        payload.rowIds,
-    );
+function clearFilters(): void {
+    filters.value = { ...filterDefaults };
+    clearTableFilters(filterKeys);
 }
 </script>
 
 <template>
     <Head :title="t('pages.admin.roles.head_title')" />
-    <AdminLayout :title="t('pages.admin.roles.title')" :title-icon="IconShieldCheck">
+    <AdminLayout :title="t('pages.admin.roles.title')" :title-icon="IconShieldLock">
         <PageStack>
             <div class="flex justify-end">
-                <ActionLink href="/admin/authorization/roles/create" :icon="IconShieldCheck" tone="primary"> Create role </ActionLink>
+                <ActionLink href="/admin/authorization/roles/create" :icon="IconShieldPlus" tone="primary">
+                    {{ t('pages.admin.roles.actions.create') }}
+                </ActionLink>
             </div>
 
             <FilterPanel
-                title="Role filters"
-                :summary="`Showing ${filteredRoles.length} of ${roles.length} loaded roles.`"
-                @apply="() => {}"
-                @clear="resetFilters"
+                :title="t('pages.admin.roles.filters.title')"
+                :apply-label="t('filters.apply')"
+                :clear-label="t('filters.clear')"
+                @apply="applyFilters"
+                @clear="clearFilters"
             >
                 <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-                    <FormSelect v-model="filters.guard" label="Guard" :options="guardOptions" />
-                    <FormSelect v-model="filters.scope" label="Scope" :options="scopeOptions" />
+                    <FormSelect
+                        v-model="filters.assignment"
+                        :label="t('pages.admin.roles.filters.assignment')"
+                        :options="assignmentOptions"
+                    />
+                    <FormSelect
+                        v-model="filters.permissions"
+                        :label="t('pages.admin.roles.filters.permissions')"
+                        :options="permissionOptions"
+                    />
                 </div>
             </FilterPanel>
 
             <DataTable
-                title="Roles"
-                :rows="filteredRoles"
+                :title="t('pages.admin.roles.table.title')"
+                :rows="roles"
                 :columns="columns"
                 row-key="publicId"
                 :actions="actions"
-                :bulk-actions="bulkActions"
-                :bulk-action-handler="handleBulkAction"
                 :table="table"
-                :filters="filters"
+                :filters="tableFilters"
+                :ui-locale="locale"
+                :empty-label="t('pages.admin.roles.empty')"
             />
         </PageStack>
     </AdminLayout>

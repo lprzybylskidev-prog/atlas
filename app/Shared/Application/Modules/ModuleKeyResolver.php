@@ -68,7 +68,7 @@ final class ModuleKeyResolver
             return 'managed_processes';
         }
 
-        if (str_starts_with($permission, 'admin.imports.') || str_starts_with($permission, 'imports.')) {
+        if (str_starts_with($permission, 'imports.')) {
             return 'imports';
         }
 

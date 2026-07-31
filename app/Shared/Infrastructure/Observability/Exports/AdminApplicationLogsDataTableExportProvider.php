@@ -60,7 +60,7 @@ final readonly class AdminApplicationLogsDataTableExportProvider extends Abstrac
 
     public function rows(ReportExportGenerationRequest $request): iterable
     {
-        $log = $this->reader->latest();
+        $log = $this->reader->latest(fileName: self::filterValue($request, 'file'));
         $rows = array_map(static fn (array $row): array => [
             'publicId' => self::stringValue($row['publicId'] ?? ''),
             'line' => self::stringValue($row['line'] ?? ''),
@@ -89,7 +89,7 @@ final readonly class AdminApplicationLogsDataTableExportProvider extends Abstrac
     private function filteredByControls(array $rows, ReportExportGenerationRequest $request): array
     {
         return array_values(array_filter($rows, static function (array $row) use ($request): bool {
-            foreach (['level' => 'level', 'module' => 'module'] as $column => $filter) {
+            foreach (['level' => 'level', 'module' => 'module', 'source' => 'source'] as $column => $filter) {
                 $value = self::filterValue($request, $filter);
 
                 if ($value !== '' && $value !== 'all' && $row[$column] !== $value) {

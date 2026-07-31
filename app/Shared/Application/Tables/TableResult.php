@@ -19,7 +19,7 @@ final readonly class TableResult
 
     /**
      * @param  array{endpoint: string, formats: list<string>}|null  $exports
-     * @return array<string, mixed>
+     * @return array{key: string, state: array{page: int, perPage: int, sort: string, direction: string, search: string, columns: list<string>, columnOrder: list<string>, filters: array<string, mixed>, grouping: list<string>, timeRange: array<string, string|null>|null, view: string|null}, pagination: array{total: int, page: int, perPage: int, from: int, to: int}, savedViews: list<array<string, mixed>>, exports?: array{endpoint: string, formats: list<string>}}
      */
     public function tableMeta(string $key, ?array $exports = null): array
     {

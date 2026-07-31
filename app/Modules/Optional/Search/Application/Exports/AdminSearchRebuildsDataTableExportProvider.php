@@ -59,7 +59,6 @@ final readonly class AdminSearchRebuildsDataTableExportProvider extends Abstract
         $rows = array_values(DB::table(DatabaseTable::MANAGED_PROCESS_RUNS)
             ->where('process_key', SearchRebuildProcess::KEY)
             ->orderByDesc('created_at')
-            ->limit(20)
             ->get(['public_id', 'status', 'current_stage', 'progress_current', 'progress_total', 'progress_label', 'created_at', 'started_at', 'finished_at'])
             ->map(static fn (object $row): array => [
                 'publicId' => self::stringValue($row->public_id ?? null),

@@ -63,7 +63,7 @@ test.describe('Admin visibility', () => {
         await expect(page.getByRole('menuitem', { name: /Panel administratora|Admin panel/ })).toHaveCount(0);
     });
 
-    test('shows Admin entry and module-gated system status elements for administrators', async ({ page }) => {
+    test('shows Admin entry and rebuilt dashboard for administrators', async ({ page }) => {
         await signIn(page, users.admin);
         await openUserMenu(page);
 
@@ -77,39 +77,16 @@ test.describe('Admin visibility', () => {
 
         const main = page.getByRole('main');
 
-        await expect(main.getByRole('heading', { name: 'Admin dashboard', exact: true })).toBeVisible();
-        await expect(main.getByRole('heading', { name: 'Release', exact: true })).toBeVisible();
-        await expect(main.getByRole('heading', { name: 'Readiness', exact: true })).toBeVisible();
-        await expect(main.getByRole('heading', { name: 'Modules', exact: true })).toBeVisible();
+        await expect(page.getByRole('heading', { name: /Pulpit administratora|Admin dashboard/, exact: true })).toBeVisible();
+        await expect(main.getByRole('heading', { name: /Wydanie|Release/, exact: true })).toBeVisible();
+        await expect(main.getByRole('heading', { name: /Mechanizmy zewnętrzne|External mechanisms/, exact: true })).toBeVisible();
+        await expect(main.getByRole('heading', { name: /Moduły|Modules/, exact: true })).toBeVisible();
         await expect(main.getByText('Active runs, failures, warnings, schedules, and process backlog.', { exact: true })).toHaveCount(0);
-        await expect(main.getByText('Identity', { exact: true })).toBeVisible();
-        await expect(main.getByText('Search', { exact: true })).toBeVisible();
-    });
+        await expect(main.getByText(/Wymagany|Required|Opcjonalny|Optional|Próg świeżości|Freshness threshold/)).toHaveCount(0);
+        await expect(main.getByText(/Tożsamość|Identity/, { exact: true })).toBeVisible();
+        await expect(main.getByText(/Wyszukiwanie|Search/, { exact: true })).toBeVisible();
 
-    test('keeps module links in the sidebar and managed-process sections in shell subnavigation', async ({ page }) => {
-        await signIn(page, users.admin);
-        await page.goto('/admin/managed-processes/imports');
-
-        if (page.url().includes('/user/confirm-password')) {
-            await confirmAdministratorAccess(page);
-        }
-
-        const sidebar = page.getByRole('navigation', { name: /Główna nawigacja|Main navigation/ });
-
-        await sidebar.getByText('Oversight', { exact: true }).click();
-        await expect(sidebar.getByRole('link', { name: 'Processes' })).toBeVisible();
-        await expect(sidebar.getByRole('link', { name: 'Feature flags' })).toBeVisible();
-        await expect(sidebar.getByRole('link', { name: 'Imports' })).toHaveCount(0);
-        await expect(sidebar.getByRole('link', { name: 'Definitions' })).toHaveCount(0);
-        await expect(sidebar.getByRole('link', { name: 'Schedules' })).toHaveCount(0);
-
-        const subnavigation = page.getByRole('navigation', { name: 'Managed process sections' });
-
-        await expect(subnavigation.getByRole('link', { name: 'Runs' })).toBeVisible();
-        await expect(subnavigation.getByRole('link', { name: 'Imports' })).toHaveAttribute('aria-current', 'page');
-        await expect(subnavigation.getByRole('link', { name: 'Definitions' })).toBeVisible();
-        await expect(subnavigation.getByRole('link', { name: 'Schedules' })).toBeVisible();
-
-        await expect(page.getByRole('heading', { name: 'Import executions', exact: true })).toBeVisible();
+        await main.getByText(/Zdrowie systemu|System health/, { exact: true }).hover();
+        await expect(page.getByRole('tooltip')).toContainText(/Szczegóły będą w widoku modułu|Details belong in the module view/);
     });
 });

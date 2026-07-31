@@ -13,12 +13,16 @@ import {
 } from '@tabler/icons-vue';
 import type { Component } from 'vue';
 
-interface RecordAction {
+import Tooltip from './Tooltip.vue';
+
+export interface RecordAction {
     key: string;
     label: string;
     href: string;
     method?: 'get' | 'post' | 'patch' | 'delete';
     tone?: 'neutral' | 'success' | 'warning' | 'danger';
+    disabled?: boolean;
+    disabledReason?: string;
 }
 
 defineProps<{
@@ -107,23 +111,43 @@ function actionClass(action: RecordAction): string {
 
     return 'border-zinc-300 text-zinc-600 hover:border-zinc-400 hover:bg-zinc-100 hover:text-zinc-950 dark:border-zinc-700 dark:text-zinc-300 dark:hover:border-zinc-600 dark:hover:bg-zinc-900 dark:hover:text-zinc-50';
 }
+
+function actionTooltip(action: RecordAction): string {
+    if (action.disabled !== true || action.disabledReason === undefined || action.disabledReason.trim() === '') {
+        return action.label;
+    }
+
+    return `${action.label}: ${action.disabledReason}`;
+}
 </script>
 
 <template>
     <div class="flex flex-wrap gap-2">
-        <Link
-            v-for="action in actions"
-            :key="action.key"
-            :href="action.href"
-            :method="action.method ?? 'get'"
-            as="button"
-            type="button"
-            class="inline-flex h-10 items-center gap-2 rounded-lg border px-3 text-sm font-medium transition"
-            :class="actionClass(action)"
-            :preserve-scroll="true"
-        >
-            <component :is="actionIcon(action)" aria-hidden="true" class="h-4 w-4" :stroke-width="1.8" />
-            {{ action.label }}
-        </Link>
+        <Tooltip v-for="action in actions" :key="action.key" :text="actionTooltip(action)" placement="top">
+            <button
+                v-if="action.disabled"
+                type="button"
+                class="inline-flex h-10 cursor-not-allowed items-center gap-2 rounded-lg border px-3 text-sm font-medium opacity-40 transition"
+                :class="actionClass(action)"
+                :aria-label="actionTooltip(action)"
+                disabled
+            >
+                <component :is="actionIcon(action)" aria-hidden="true" class="h-4 w-4" :stroke-width="1.8" />
+                {{ action.label }}
+            </button>
+            <Link
+                v-else
+                :href="action.href"
+                :method="action.method ?? 'get'"
+                as="button"
+                type="button"
+                class="inline-flex h-10 items-center gap-2 rounded-lg border px-3 text-sm font-medium transition"
+                :class="actionClass(action)"
+                :preserve-scroll="true"
+            >
+                <component :is="actionIcon(action)" aria-hidden="true" class="h-4 w-4" :stroke-width="1.8" />
+                {{ action.label }}
+            </Link>
+        </Tooltip>
     </div>
 </template>

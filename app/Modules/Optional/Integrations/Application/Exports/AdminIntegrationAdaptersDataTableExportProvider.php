@@ -50,6 +50,8 @@ final readonly class AdminIntegrationAdaptersDataTableExportProvider extends Abs
             'key' => 'Key',
             'sourceOfTruth' => 'Source of truth',
             'adapterClass' => 'Adapter',
+            'providedScopes' => 'Scopes',
+            'enabled' => 'Enabled',
             'circuitState' => 'Circuit',
             'lastSuccessAt' => 'Last success',
             'lastErrorAt' => 'Last error',
@@ -62,7 +64,7 @@ final readonly class AdminIntegrationAdaptersDataTableExportProvider extends Abs
     {
         $rows = array_map(fn (IntegrationDefinition $definition): array => $this->integrationRow($definition), $this->registry->all());
 
-        foreach ($this->sorted($this->filtered($rows, $request), $request) as $row) {
+        foreach ($this->sorted($this->filtered($this->filteredByControls($rows, $request), $request), $request) as $row) {
             yield $row;
         }
     }
@@ -80,11 +82,53 @@ final readonly class AdminIntegrationAdaptersDataTableExportProvider extends Abs
             'name' => $definition->name,
             'adapterClass' => $definition->adapterClass,
             'sourceOfTruth' => $definition->sourceOfTruth,
+            'providedScopes' => self::listValue($definition->providedScopes),
+            'enabled' => (bool) ($connection->enabled ?? false),
             'externalApiEnabled' => Config::boolean('atlas.integrations.external_api_enabled', false) && (bool) ($connection->external_api_enabled ?? $definition->externalApiEnabled),
             'lastSuccessAt' => self::stringValue($connection->last_success_at ?? null),
             'lastErrorAt' => self::stringValue($connection->last_error_at ?? null),
             'lastErrorMessage' => self::stringValue($connection->last_error_message ?? null),
             'circuitState' => self::stringValue($circuit->state ?? 'closed'),
         ];
+    }
+
+    /**
+     * @param  list<array<string, scalar|\Stringable|null>>  $rows
+     * @return list<array<string, scalar|\Stringable|null>>
+     */
+    private function filteredByControls(array $rows, ReportExportGenerationRequest $request): array
+    {
+        return array_values(array_filter($rows, static function (array $row) use ($request): bool {
+            $status = self::filterValue($request, 'status');
+            $circuit = self::filterValue($request, 'circuit');
+            $externalApi = self::filterValue($request, 'external_api');
+            $scope = self::filterValue($request, 'scope');
+
+            if ($status === 'enabled' && $row['enabled'] !== true) {
+                return false;
+            }
+
+            if ($status === 'disabled' && $row['enabled'] !== false) {
+                return false;
+            }
+
+            if ($circuit !== 'all' && $row['circuitState'] !== $circuit) {
+                return false;
+            }
+
+            if ($externalApi === 'enabled' && $row['externalApiEnabled'] !== true) {
+                return false;
+            }
+
+            if ($externalApi === 'disabled' && $row['externalApiEnabled'] !== false) {
+                return false;
+            }
+
+            if ($scope !== 'all' && ! str_contains((string) ($row['providedScopes'] ?? ''), $scope)) {
+                return false;
+            }
+
+            return true;
+        }));
     }
 }
