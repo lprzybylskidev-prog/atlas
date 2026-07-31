@@ -24,7 +24,7 @@ final class EnsureActiveTeamSelected
             return $next($request);
         }
 
-        if (in_array($request->route()?->getName(), ['team.select', 'team.select.store', 'logout'], true)) {
+        if (in_array($request->route()?->getName(), ['team.select', 'team.select.store', 'team.switch', 'logout'], true)) {
             return $next($request);
         }
 

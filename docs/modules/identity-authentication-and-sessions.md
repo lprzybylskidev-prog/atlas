@@ -144,7 +144,7 @@ Current implementation foundation:
 - `App\Modules\Core\Identity\Application\Public\Contracts\UserSessionRegistry` owns the session metadata index used by session administration and online/offline status;
 - session metadata is stored in Redis under Atlas-owned keys and includes the Laravel session ID, user, creation time, last activity time, browser/device summary, approximate IP location, and active team;
 - `App\Http\Middleware\EnforceUserSessionSecurity` enforces inactivity and maximum lifetime without mutating framework session configuration per request;
-- `App\Http\Middleware\EnsureActiveTeamSelected` auto-selects a single available team and redirects multi-team users to explicit team selection;
+- `App\Http\Middleware\EnsureActiveTeamSelected` auto-selects a single available team and redirects multi-team users without a valid active team to the explicit team-selection route before they enter the application shell;
 - second-device logins are stopped after successful password validation and before a new session is established unless the user explicitly confirms that Atlas should terminate the previous active session and continue on the current device.
 
 Support individual:
@@ -182,13 +182,15 @@ Active team is stored in the session.
 On login:
 
 - auto-select when exactly one team is available;
-- otherwise require selection.
+- otherwise require selection on the authenticated team-selection screen before redirecting to `/`.
 
 Team switching:
 
 - is explicit;
+- is an authenticated session action validated against the user's active team assignments rather than the route permission of the previous active team;
 - reloads permissions, menu, and data;
 - clears team-scoped frontend state;
+- shows the same full-screen transition loader used by locale/theme changes;
 - is audited.
 
 The Admin users table includes a default-visible online/offline column. A user is considered online when the Redis session metadata index has recent activity within the current online window.

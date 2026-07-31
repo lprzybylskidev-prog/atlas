@@ -78,6 +78,13 @@ final class SessionsActiveTeamTest extends TestCase
             ->assertRedirect(route('team.select'));
 
         $this->actingAs($user)
+            ->get('/team/select')
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->component('Teams/Select')
+                ->has('teams', 2));
+
+        $this->actingAs($user)
             ->post('/team/select', ['team_public_id' => $second->public_id])
             ->assertRedirect(route('dashboard'));
 
@@ -87,6 +94,21 @@ final class SessionsActiveTeamTest extends TestCase
             'actor_public_id' => $user->public_id,
             'target_public_id' => $second->public_id,
         ]);
+    }
+
+    public function test_team_switch_is_session_scoped_and_does_not_require_current_route_permission(): void
+    {
+        $user = User::factory()->create();
+        $first = Team::query()->create(['name' => 'Alpha']);
+        $second = Team::query()->create(['name' => 'Beta']);
+        $this->assignStarterRoleInTeam($user, $first, StarterRoleName::WorkspaceAccess->value);
+        $this->assignStarterRoleInTeam($user, $second, StarterRoleName::WorkspaceAccess->value);
+
+        $this->actingAs($user)
+            ->from('/admin')
+            ->post('/team/switch', ['team_public_id' => $second->public_id])
+            ->assertRedirect('/admin')
+            ->assertSessionHas('active_team_public_id', $second->public_id);
     }
 
     public function test_inactivity_and_maximum_lifetime_are_enforced_without_mutating_session_config(): void

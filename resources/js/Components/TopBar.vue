@@ -26,6 +26,7 @@ import { useLocaleSwitcher } from '../Composables/useLocaleSwitcher';
 import { useSidebar } from '../Composables/useSidebar';
 import { useTheme } from '../Composables/useTheme';
 import { useTranslator } from '../Localization/translator';
+import { beginFullscreenTransitionLoading } from '../Services/fullscreenTransitionLoading';
 import { clearTeamScopedState } from '../Services/teamScopedState';
 import type { AtlasPageProps } from '../Types/inertia';
 import type { ShellSubnavigationItem } from '../Types/navigation';
@@ -65,6 +66,7 @@ const userMenuButton = ref<HTMLElement | null>(null);
 const userMenuPanel = ref<HTMLElement | null>(null);
 const notificationSoundArmed = ref(false);
 const previousUnreadCount = ref(page.props.notifications.unreadCount);
+const teamSwitching = ref(false);
 
 const userInitials = computed(() => {
     const name = page.props.auth.user?.name ?? t('user.default_name');
@@ -128,6 +130,8 @@ const switchTeam = (teamPublicId: string | number): void => {
     }
 
     clearTeamScopedState();
+    teamSwitching.value = true;
+    const finishLoading = beginFullscreenTransitionLoading();
 
     router.post(
         '/team/switch',
@@ -135,6 +139,10 @@ const switchTeam = (teamPublicId: string | number): void => {
         {
             preserveScroll: false,
             preserveState: false,
+            onFinish: () => {
+                teamSwitching.value = false;
+                finishLoading();
+            },
         },
     );
 };
@@ -320,6 +328,7 @@ watch(
                     :options="availableTeamOptions"
                     :aria-label="t('team.active')"
                     button-class="w-40 sm:w-52"
+                    :disabled="teamSwitching"
                     @update:model-value="switchTeam"
                 />
 

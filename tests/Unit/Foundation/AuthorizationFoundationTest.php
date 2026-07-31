@@ -109,6 +109,7 @@ final class AuthorizationFoundationTest extends TestCase
             'password.reset',
             'team.select',
             'team.select.store',
+            'team.switch',
             'theme.update',
         ];
 

@@ -15,6 +15,7 @@ use Inertia\Inertia;
 Route::middleware('auth')->group(function (): void {
     Route::get('/team/select', [ActiveTeamController::class, 'select'])->name('team.select');
     Route::post('/team/select', [ActiveTeamController::class, 'store'])->name('team.select.store');
+    Route::post('/team/switch', [ActiveTeamController::class, 'switch'])->name('team.switch');
 });
 
 Route::middleware(['auth', 'route.permission'])->group(function (): void {
@@ -25,5 +26,4 @@ Route::middleware(['auth', 'route.permission'])->group(function (): void {
     Route::post('/notifications/read', BulkMarkNotificationReadController::class)->name('notifications.read.bulk');
     Route::post('/notifications/{notification}/read', MarkNotificationReadController::class)->name('notifications.read');
     Route::get('/realtime/events', RealtimeEventsController::class)->name('notifications.realtime.events');
-    Route::post('/team/switch', [ActiveTeamController::class, 'switch'])->name('team.switch');
 });

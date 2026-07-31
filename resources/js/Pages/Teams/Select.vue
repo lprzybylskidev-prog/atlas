@@ -1,14 +1,11 @@
 <script setup lang="ts">
 import { Head, router } from '@inertiajs/vue3';
-import { IconBuildingCommunity } from '@tabler/icons-vue';
 import { ref } from 'vue';
 
-import AppLayout from '../../Layouts/AppLayout.vue';
 import AtlasForm from '../../Components/Form/AtlasForm.vue';
 import FormButton from '../../Components/Form/FormButton.vue';
 import FormSelect from '../../Components/Form/FormSelect.vue';
-import PageStack from '../../Components/PageStack.vue';
-import SurfaceCard from '../../Components/SurfaceCard.vue';
+import AuthLayout from '../../Layouts/AuthLayout.vue';
 import { useTranslator } from '../../Localization/translator';
 import type { AtlasTeam } from '../../Types/inertia';
 
@@ -40,18 +37,16 @@ function submit(): void {
 
 <template>
     <Head :title="t('team.select.head_title')" />
-    <AppLayout :title="t('team.select.title')" :title-icon="IconBuildingCommunity" :show-locale-switcher="false">
-        <PageStack>
-            <SurfaceCard :title="t('team.select.heading')" :icon="IconBuildingCommunity" :subtitle="t('team.select.description')">
-                <AtlasForm class="space-y-4" :processing="submitting" @submit="submit">
-                    <FormSelect
-                        v-model="selectedTeam"
-                        :label="t('team.select.field')"
-                        :options="teams.map((team) => ({ value: team.publicId, label: team.name }))"
-                    />
-                    <FormButton type="submit" :loading="submitting">{{ t('team.select.continue') }}</FormButton>
-                </AtlasForm>
-            </SurfaceCard>
-        </PageStack>
-    </AppLayout>
+    <AuthLayout :title="t('team.select.heading')" :subtitle="t('team.select.description')">
+        <AtlasForm class="space-y-5" :processing="submitting" @submit="submit">
+            <FormSelect
+                v-model="selectedTeam"
+                :label="t('team.select.field')"
+                :options="teams.map((team) => ({ value: team.publicId, label: team.name }))"
+            />
+            <FormButton type="submit" class="h-11 w-full" :loading="submitting">
+                {{ t('team.select.continue') }}
+            </FormButton>
+        </AtlasForm>
+    </AuthLayout>
 </template>

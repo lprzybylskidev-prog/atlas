@@ -158,14 +158,6 @@ final class HandleInertiaRequests extends Middleware
             return [];
         }
 
-        if (! is_string($teamPublicId) && is_string($userPublicId) && $request->hasSession()) {
-            $teamPublicId = $this->firstAssignedTeamPublicId($userPublicId);
-
-            if (is_string($teamPublicId)) {
-                $request->session()->put('active_team_public_id', $teamPublicId);
-            }
-        }
-
         if (! is_string($userPublicId) || ! is_string($teamPublicId)) {
             return [];
         }
@@ -232,20 +224,6 @@ final class HandleInertiaRequests extends Middleware
             'admin.telescope.view' => app()->environment(['local', 'development']) && Route::has('telescope'),
             default => true,
         };
-    }
-
-    private function firstAssignedTeamPublicId(string $userPublicId): ?string
-    {
-        $team = DB::table(DatabaseTable::TEAM_USER_ASSIGNMENTS)
-            ->join(DatabaseTable::USERS, 'team_user_assignments.user_id', '=', 'users.id')
-            ->join(DatabaseTable::TEAMS, 'team_user_assignments.team_id', '=', 'teams.id')
-            ->where('users.public_id', $userPublicId)
-            ->where('teams.is_active', true)
-            ->orderBy('teams.display_name')
-            ->orderBy('teams.name')
-            ->value('teams.public_id');
-
-        return is_string($team) ? $team : null;
     }
 
     /**
