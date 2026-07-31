@@ -20,6 +20,7 @@
 /storage/framework/testing/
 /storage/framework/views/
 /storage/logs/
+/storage/pail/
 /bootstrap/cache/
 
 /.phpunit.cache/
