@@ -37,7 +37,7 @@ Do not replace this index after the initial technical foundation is completed. C
 
 ## Current phase
 
-- Phase: [Phase 26 — Security, privacy, deletion, and anonymization](docs/roadmap/phase-26-security-privacy.md)
+- Phase: [Phase 27 — Optional TimeTracking module](docs/roadmap/phase-27-time-tracking.md)
 - Status: `in progress`
 
 ## Roadmap dependency repair note
@@ -298,7 +298,7 @@ Rebuild Admin panel views from the existing backend foundations and shared front
 
 ### Phase 26 — Security, privacy, deletion, and anonymization
 
-**Status:** `in progress`
+**Status:** `complete`
 
 Implement privacy, retention, hard deletion, anonymization orchestration, legal holds, previews, approvals, and evidence after controlled copy owners exist.
 
@@ -306,7 +306,7 @@ Implement privacy, retention, hard deletion, anonymization orchestration, legal 
 
 ### Phase 27 — Optional TimeTracking module
 
-**Status:** `not started`
+**Status:** `in progress`
 
 Implement optional operational TimeTracking, breaks, other work, inactivity, corrections, settlement, reporting, and analysis-ready data after all known shared dependencies exist.
 

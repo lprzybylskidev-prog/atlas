@@ -1,6 +1,6 @@
 # Phase 26 — Security, privacy, deletion, and anonymization
 
-**Status:** `in progress`
+**Status:** `complete`
 
 ## Objective
 
@@ -57,7 +57,7 @@ Implement the full security, privacy, hard-delete, and anonymization orchestrati
 - [x] Add rate-limit management and visibility.
 - [x] Add secret-safe logs and audit verification.
 - [x] Add authorization regression tests.
-- [ ] Commit security and privacy foundation.
+- [x] Commit security and privacy foundation.
 
 ## Progress log
 
