@@ -12,8 +12,8 @@
         <link rel="alternate icon" href="/favicon.ico">
 
         @fonts
-        @routes
-        <script>
+        @routes(nonce: Vite::cspNonce())
+        <script nonce="{{ Vite::cspNonce() }}">
             (() => {
                 const cookieTheme = document.cookie
                     .split('; ')

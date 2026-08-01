@@ -73,6 +73,14 @@ describe('shared UI guardrails', () => {
         expect(realtimeEvents).not.toMatch(/event\.eventType === 'operation\.progress'[\s\S]{0,260}toast\.push/);
     });
 
+    it('keeps Inertia pages lazy-loaded so admin screens do not inflate the initial bundle', () => {
+        const appEntrypoint = Object.entries(tsFiles).find(([file]) => file.endsWith('/app.ts'))?.[1];
+
+        expect(appEntrypoint).toBeDefined();
+        expect(appEntrypoint).toContain("import.meta.glob<{ default: DefineComponent }>('./Pages/**/*.vue')");
+        expect(appEntrypoint).not.toMatch(/\.\/Pages\/\*\*\/\*\.vue['"`]\s*,\s*\{\s*eager:\s*true/);
+    });
+
     it('keeps admin page content on the shared page width primitive', () => {
         const pageStack = Object.entries(vueFiles).find(([file]) => file.endsWith('/PageStack.vue'))?.[1];
 

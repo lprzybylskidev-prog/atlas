@@ -33,6 +33,31 @@ final class FrontendShellTest extends TestCase
             );
     }
 
+    public function test_frontend_shell_allows_only_nonce_backed_inline_scripts(): void
+    {
+        $response = $this->get('/login')->assertOk();
+
+        $content = $response->getContent();
+
+        $this->assertIsString($content);
+        $nonceMatched = preg_match('/<script nonce="(?<nonce>[^"]+)">/', $content, $matches);
+
+        $this->assertSame(1, $nonceMatched);
+        $this->assertArrayHasKey('nonce', $matches);
+
+        $nonce = $matches['nonce'];
+        $contentSecurityPolicy = $response->headers->get('Content-Security-Policy');
+
+        $this->assertIsString($contentSecurityPolicy);
+        $this->assertStringContainsString("script-src 'self' 'nonce-{$nonce}'", $contentSecurityPolicy);
+        $this->assertStringContainsString("style-src 'self' 'unsafe-inline'", $contentSecurityPolicy);
+        $this->assertMatchesRegularExpression(
+            '/<script type="text\/javascript" nonce="'.preg_quote($nonce, '/').'">(?:const Ziggy=|Object\.assign\(Ziggy\.routes,)/',
+            $content,
+        );
+        $this->assertStringNotContainsString("script-src 'self' 'unsafe-inline'", $contentSecurityPolicy);
+    }
+
     public function test_application_and_admin_previews_require_authentication(): void
     {
         $this->get('/')->assertRedirect('/login');

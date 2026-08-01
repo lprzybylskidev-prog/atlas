@@ -10,14 +10,14 @@ import { registerRealtimeEvents } from './Services/realtimeEvents';
 createInertiaApp({
     title: (title) => (title ? `${title} - Atlas` : 'Atlas'),
     resolve: (name) => {
-        const pages = import.meta.glob<{ default: DefineComponent }>('./Pages/**/*.vue', { eager: true });
+        const pages = import.meta.glob<{ default: DefineComponent }>('./Pages/**/*.vue');
         const page = pages[`./Pages/${name}.vue`];
 
         if (page === undefined) {
             throw new Error(`Page not found: ${name}`);
         }
 
-        return page.default;
+        return page();
     },
     setup({ el, App, props, plugin }) {
         registerNetworkHandling();
