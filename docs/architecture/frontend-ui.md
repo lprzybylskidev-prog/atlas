@@ -4,6 +4,12 @@ Canonical current rules for Atlas frontend UI usage, themes, layout, routing, fr
 
 ## Frontend and UI
 
+Frontend views are product surfaces, not thin delivery wrappers for backend features. A change is not complete merely because routes, props, permissions, tables, and tests exist; the rendered workflow must be understandable, actionable, localized, accessible, and reviewable by the target user.
+
+Do not patch a structurally poor view with more cards, explanatory text, warnings, or page-local styling. If a view needs long copy to explain why it shows partial data, where the real workflow lives, or what an operator should infer, redesign the view contract with proper ownership, navigation, filters, pagination, drill-down, states, and actions.
+
+When an existing view is visibly incoherent, noisy, mixed-language, duplicated, or misleading, do not use it as the design baseline. Inspect it only to recover route contracts, props, permissions, data ownership, actions, edge cases, and regression risks, then rebuild the view around accepted shared primitives and a clear workflow.
+
 ### UI Implementation Hierarchy
 
 When implementing UI:
@@ -32,7 +38,14 @@ Frontend work must be easy to continue safely by an agent that only knows the re
 - active-team behavior;
 - demo and e2e seeder visibility;
 - shared primitives and formatters used;
-- manual review URL and account.
+- manual review URL and account;
+- the user's primary task;
+- secondary actions;
+- data ownership;
+- loading, empty, error, offline, no-results, and permission-denied states;
+- localization source;
+- expected dashboard or notification behavior;
+- exact review data needed to see the workflow honestly.
 
 The view contract prevents a visual rewrite from accidentally disconnecting navigation, authorization, module availability, breadcrumbs, demo visibility, or tests.
 
@@ -46,7 +59,19 @@ Implementation order:
 
 Pages must not contain reusable design-system decisions. Pages choose data, labels, route actions, and module-specific composition; shared components, composables, and formatters own visual structure, control styling, common states, formatting, and repeated interaction patterns.
 
+When one operational workflow appears in multiple contexts, such as create/edit/show, user/team sides of the same relation, or Admin/Application variants, implement it as one coherent workflow component or view module with explicit modes and typed props/events. The page may own routing, data loading, permissions, and submit endpoints, but the shared workflow module owns layout, control order, labels, empty states, previews, action placement, and mode-specific rendering.
+
+Paired workflow surfaces must be compared side by side before editing and before declaring completion. If create and edit expose the same concept, they must keep the same composition, spacing, labels, control sequence, preview placement, and action semantics unless a documented product reason explains the difference. Adding a capability to one side requires updating the shared workflow module or explicitly documenting why the other side cannot support it.
+
 For phase-by-phase view rebuilds, owner review findings are part of the implementation contract. Before starting or accepting a later view in the same phase, review the active phase findings log and apply every accepted Phase-wide or Atlas-wide correction. Repeated defects must become shared primitives, formatters, tests, or canonical documentation before the phase closes.
+
+Existing accepted frontend modules must be used. Rebuilds may clear bad page implementations, but they must preserve and compose accepted shared UI primitives, composables, services, formatters, table/form/dialog/toast infrastructure, layouts, theme system, localization helpers, route helpers, and testing fixtures wherever they fit accepted contracts.
+
+For user-reviewed UI work, prepare deterministic review data that exposes representative records, edge cases, permissions, module states, operational failures, empty states, validation paths, and action paths. Do not ask the user to approve a mostly empty or artificially happy-path screen.
+
+Temporary review-only seeders, fixtures, helper classes, routes, UI controls, and test harnesses may exist only when explicitly tracked by the active phase. They must remain available while owner review is in progress and must be removed before the phase is marked complete unless a permanent demo-data scope is explicitly accepted.
+
+Rendered UI must be manually or browser-automated reviewed in the active locale or locales before declaring localization complete. Backend translation-key parity alone is insufficient.
 
 ### Shell and shared frontend composition
 
@@ -166,6 +191,12 @@ The baseline frontend shell includes:
 Real team switching, profile routes, notification counts, settings, active sessions, and team-scoped state clearing are implemented by the dependency-ordered roadmap phases for settings, sessions/active team, notifications, and module activation. Backend authorization primitives already exist after Phase 7 and are completed for UI visibility coverage in Phase 8.
 
 The authenticated Inertia shell receives `auth.availableAdminRoutes` from the backend. The sidebar and top-bar Admin entry use that list only for visibility; protected Admin routes still require backend middleware authorization and password confirmation.
+
+Operational dashboards show concise actionable state, not sidebar navigation, raw logs, raw queue/process step streams, or architecture explanations. Dashboard signals must be deduplicated and attributed to the correct owner or shown as global when ownership is not module-specific.
+
+When adding or materially changing an Admin operational area, add or update a meaningful Admin dashboard status signal when the area exposes health, queues, failures, approvals, security events, module state, integrations, files, imports, reports, or operator action. The Admin dashboard must not duplicate sidebar navigation; the sidebar owns navigation, and the dashboard owns operational visibility.
+
+For large Admin or operational rebuilds, work sidebar entry by sidebar entry or workflow by workflow. Complete the full workflow for one entry, including index/list, create, edit, show/detail, dialogs, filters, row/bulk actions, exports, breadcrumbs, permissions, module gates, toasts/notifications, and subviews, then pause for browser review before continuing.
 
 ### Breadcrumbs
 
@@ -419,6 +450,10 @@ The Inertia flash contract accepts queued messages with type, translation key or
 ### States and formatters
 
 Use the shared `UiState` component for loading, empty, error, and no-results states.
+
+Loading, empty, error, offline, and permission-denied states are first-class UI states. They must be part of the view contract and verified where they affect the workflow.
+
+Bounded datasets must be represented through real controls such as server-side pagination, filters, date/range controls, counters, saved views, and deep links. Do not use prominent bounded-view notices as the primary mechanism for compensating for incomplete tables or weak operational views.
 
 Use shared frontend formatters from `resources/js/Utils/formatters.ts` for date, time, datetime, money, number, percent, file size, status, and empty values. Money conversion uses integer minor units at component boundaries.
 
