@@ -12,7 +12,7 @@ import { useAccountSensitivityOptions } from '../../../Composables/useAccountSen
 import { useAdminUserAccountActions, type AdminUserActionState } from '../../../Composables/useAdminUserAccountActions';
 import { runBulkRecordAction } from '../../../Composables/useBulkRecordActions';
 import { applyTableFilters, clearTableFilters } from '../../../Composables/useTableFilterControls';
-import AdminLayout from '../../../Layouts/AdminLayout.vue';
+import AppLayout from '../../../Layouts/AppLayout.vue';
 import { useTranslator } from '../../../Localization/translator';
 import type { DataTableBulkAction, DataTableColumn, DataTableMeta } from '../../../Types/data-table';
 import type { FormSelectOption } from '../../../Components/Form/FormSelect.vue';
@@ -158,7 +158,7 @@ function clearFilters(): void {
 
 <template>
     <Head :title="t('pages.admin.users.index.head_title')" />
-    <AdminLayout :title="t('pages.admin.users.index.title')" :title-icon="IconUsers">
+    <AppLayout mode="admin" :title="t('pages.admin.users.index.title')" :title-icon="IconUsers">
         <PageStack>
             <div class="flex justify-end">
                 <ActionLink href="/admin/users/create" :icon="IconUserPlus" tone="primary">
@@ -201,5 +201,5 @@ function clearFilters(): void {
                 :empty-label="t('pages.admin.users.empty')"
             />
         </PageStack>
-    </AdminLayout>
+    </AppLayout>
 </template>

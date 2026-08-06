@@ -7,16 +7,18 @@ import DataTable from '../../../Components/DataTable.vue';
 import DialogPanel from '../../../Components/DialogPanel.vue';
 import FilterPanel from '../../../Components/FilterPanel.vue';
 import AtlasForm from '../../../Components/Form/AtlasForm.vue';
-import FormButton from '../../../Components/Form/FormButton.vue';
+import DialogFormActions from '../../../Components/Form/DialogFormActions.vue';
 import FormCheckbox from '../../../Components/Form/FormCheckbox.vue';
 import FormSelect, { type FormSelectOption } from '../../../Components/Form/FormSelect.vue';
 import FormTextarea from '../../../Components/Form/FormTextarea.vue';
 import OperationalMetricTile from '../../../Components/OperationalMetricTile.vue';
 import PageStack from '../../../Components/PageStack.vue';
 import { applyTableFilters, clearTableFilters } from '../../../Composables/useTableFilterControls';
-import AdminLayout from '../../../Layouts/AdminLayout.vue';
+import AppLayout from '../../../Layouts/AppLayout.vue';
 import { useTranslator } from '../../../Localization/translator';
 import type { DataTableAction, DataTableColumn, DataTableMeta } from '../../../Types/data-table';
+import { optionsWithAll } from '../../../Utils/filterOptions';
+import { formatStatus } from '../../../Utils/formatters';
 import { moduleLabel } from '../../../Utils/moduleLabels';
 
 interface TeamOption {
@@ -174,10 +176,10 @@ const sourceOptions = computed<FormSelectOption[]>(() => [
     { value: 'team', label: sourceLabel('team') },
 ]);
 const ownerOptions = computed<FormSelectOption[]>(() =>
-    allOptions(props.filterOptions.owners, t('pages.admin.feature_flags.filters.any_owner'), (value) => moduleLabel(value, t)),
+    optionsWithAll(props.filterOptions.owners, t('pages.admin.feature_flags.filters.any_owner'), (value) => moduleLabel(value, t)),
 );
 const lifecycleOptions = computed<FormSelectOption[]>(() =>
-    allOptions(props.filterOptions.lifecycles, t('pages.admin.feature_flags.filters.any_lifecycle'), lifecycleLabel),
+    optionsWithAll(props.filterOptions.lifecycles, t('pages.admin.feature_flags.filters.any_lifecycle'), lifecycleLabel),
 );
 const tableFilters = computed(() => filterValues());
 const selectedTeamName = computed(
@@ -215,16 +217,6 @@ function filterValues(): Record<string, string> {
         owner: String(props.table.state.filters?.owner ?? 'all'),
         lifecycle: String(props.table.state.filters?.lifecycle ?? 'all'),
     };
-}
-
-function allOptions(values: string[], label: string, formatter?: (value: string) => string): FormSelectOption[] {
-    return [
-        { value: 'all', label },
-        ...values.map((value) => ({
-            value,
-            label: formatter === undefined ? value : formatter(value),
-        })),
-    ];
 }
 
 function applyFilters(): void {
@@ -287,7 +279,7 @@ function sourceLabel(value: string): string {
         team: 'pages.admin.feature_flags.source.team',
     };
 
-    return keys[value] === undefined ? value : t(keys[value]);
+    return keys[value] === undefined ? formatStatus(value) : t(keys[value]);
 }
 
 function lifecycleLabel(value: string): string {
@@ -295,7 +287,7 @@ function lifecycleLabel(value: string): string {
         planned: 'pages.admin.feature_flags.lifecycle.planned',
     };
 
-    return keys[value] === undefined ? value : t(keys[value]);
+    return keys[value] === undefined ? formatStatus(value) : t(keys[value]);
 }
 
 function typeLabel(value: string): string {
@@ -303,13 +295,13 @@ function typeLabel(value: string): string {
         boolean: 'pages.admin.feature_flags.type.boolean',
     };
 
-    return keys[value] === undefined ? value : t(keys[value]);
+    return keys[value] === undefined ? formatStatus(value) : t(keys[value]);
 }
 </script>
 
 <template>
     <Head :title="t('pages.admin.feature_flags.head_title')" />
-    <AdminLayout :title="t('pages.admin.feature_flags.title')" :title-icon="IconFlag">
+    <AppLayout mode="admin" :title="t('pages.admin.feature_flags.title')" :title-icon="IconFlag">
         <PageStack>
             <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-6">
                 <OperationalMetricTile
@@ -420,24 +412,19 @@ function typeLabel(value: string): string {
                         :error="form.errors.reason"
                     />
                 </div>
-                <div class="mt-5 flex flex-wrap justify-end gap-2">
-                    <FormButton type="button" tone="neutral" @click="closeEditModal">
-                        {{ t('modal.cancel') }}
-                    </FormButton>
-                    <FormButton
-                        type="submit"
-                        :icon="IconPencil"
-                        :loading="form.processing"
-                        :tone="editMode === 'clear-team' ? 'danger' : 'primary'"
-                    >
-                        {{
-                            editMode === 'clear-team'
-                                ? t('pages.admin.feature_flags.actions.clear_team')
-                                : t('pages.admin.feature_flags.actions.save')
-                        }}
-                    </FormButton>
-                </div>
+                <DialogFormActions
+                    :cancel-label="t('modal.cancel')"
+                    :submit-label="
+                        editMode === 'clear-team'
+                            ? t('pages.admin.feature_flags.actions.clear_team')
+                            : t('pages.admin.feature_flags.actions.save')
+                    "
+                    :submit-icon="IconPencil"
+                    :submit-tone="editMode === 'clear-team' ? 'danger' : 'primary'"
+                    :loading="form.processing"
+                    @cancel="closeEditModal"
+                />
             </AtlasForm>
         </DialogPanel>
-    </AdminLayout>
+    </AppLayout>
 </template>

@@ -7,10 +7,12 @@ import DataTable from '../../../Components/DataTable.vue';
 import FilterPanel from '../../../Components/FilterPanel.vue';
 import FormSelect, { type FormSelectOption } from '../../../Components/Form/FormSelect.vue';
 import PageStack from '../../../Components/PageStack.vue';
+import { moduleCategoryLabel as categoryLabel, moduleSourceLabel } from '../../../Composables/useModuleActivationUi';
 import { applyTableFilters, clearTableFilters } from '../../../Composables/useTableFilterControls';
-import AdminLayout from '../../../Layouts/AdminLayout.vue';
+import AppLayout from '../../../Layouts/AppLayout.vue';
 import { useTranslator } from '../../../Localization/translator';
 import type { DataTableAction, DataTableColumn, DataTableMeta } from '../../../Types/data-table';
+import { optionsWithAll, yesNoOptionsWithAll } from '../../../Utils/filterOptions';
 
 interface ModuleRow extends Record<string, unknown> {
     moduleKey: string;
@@ -80,18 +82,14 @@ const actions = computed<DataTableAction<ModuleRow>[]>(() => [
     },
 ]);
 const categoryOptions = computed<FormSelectOption[]>(() => [
-    { value: 'all', label: t('pages.admin.modules.filters.any_category') },
-    ...props.filterOptions.categories.map((category) => ({ value: category, label: moduleCategoryLabel(category) })),
+    ...optionsWithAll(props.filterOptions.categories, t('pages.admin.modules.filters.any_category'), moduleCategoryLabel),
 ]);
 const sourceOptions = computed<FormSelectOption[]>(() => [
-    { value: 'all', label: t('pages.admin.modules.filters.any_source') },
-    ...props.filterOptions.sources.map((source) => ({ value: source, label: sourceLabel(source) })),
+    ...optionsWithAll(props.filterOptions.sources, t('pages.admin.modules.filters.any_source'), sourceLabel),
 ]);
-const booleanOptions = computed<FormSelectOption[]>(() => [
-    { value: 'all', label: t('pages.admin.modules.filters.any_boolean') },
-    { value: 'yes', label: t('datatable.boolean.yes') },
-    { value: 'no', label: t('datatable.boolean.no') },
-]);
+const booleanOptions = computed<FormSelectOption[]>(() =>
+    yesNoOptionsWithAll(t('pages.admin.modules.filters.any_boolean'), t('datatable.boolean.yes'), t('datatable.boolean.no')),
+);
 const tableFilters = computed(() => filterValues());
 
 watch(
@@ -116,22 +114,11 @@ function filterValues(): Record<string, string> {
 }
 
 function moduleCategoryLabel(category: string): string {
-    const keys: Record<string, string> = {
-        application: 'pages.admin.modules.categories.application',
-        core: 'pages.admin.modules.categories.core',
-        optional: 'pages.admin.modules.categories.optional',
-    };
-
-    return keys[category] === undefined ? category : t(keys[category]);
+    return categoryLabel(category, t);
 }
 
 function sourceLabel(source: string): string {
-    const keys: Record<string, string> = {
-        global: 'pages.admin.modules.sources.global',
-        team: 'pages.admin.modules.sources.team',
-    };
-
-    return keys[source] === undefined ? source : t(keys[source]);
+    return moduleSourceLabel(source, t);
 }
 
 function applyFilters(): void {
@@ -146,7 +133,7 @@ function clearFilters(): void {
 
 <template>
     <Head :title="t('pages.admin.modules.head_title')" />
-    <AdminLayout :title="t('pages.admin.modules.title')" :title-icon="IconPuzzle">
+    <AppLayout mode="admin" :title="t('pages.admin.modules.title')" :title-icon="IconPuzzle">
         <PageStack>
             <FilterPanel
                 :title="t('pages.admin.modules.filters.title')"
@@ -192,5 +179,5 @@ function clearFilters(): void {
                 :empty-label="t('pages.admin.modules.empty')"
             />
         </PageStack>
-    </AdminLayout>
+    </AppLayout>
 </template>

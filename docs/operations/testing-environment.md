@@ -55,6 +55,8 @@ Playwright e2e environment values live in `playwright.config.ts`. The Playwright
 
 `tools/testing/ensure-test-databases.sh` creates the local PostgreSQL databases required by PHPUnit and Playwright. Public Composer and pnpm commands call this setup where they need stateful test databases.
 
+For PHPUnit lanes, the same preparation script drops known Atlas-owned PostgreSQL schemas before migrations run. This keeps schema-qualified module tables isolated even when a previous interrupted test run left a non-`public` schema behind.
+
 ## Deterministic Fixtures
 
 Automated tests use factories and explicit deterministic fixtures.
@@ -69,7 +71,7 @@ Test seeders must:
 
 `Database\Seeders\DatabaseSeeder` remains production-safe, installs starter roles and registered permissions, creates mandatory system bootstrap records such as the `Administration` team, synchronizes Administration module access, and does not create demo or e2e-only accounts.
 
-`Database\Seeders\DevelopmentBootstrapSeeder` may be used by local preview only to create the local administrator account. `Database\Seeders\DevelopmentDemoSeeder` is intentionally empty after Phase 25 cleanup. Permission-gated and module-gated Playwright scenarios use explicit e2e fixtures rather than the generic development account.
+`Database\Seeders\DevelopmentBootstrapSeeder` may be used by local preview only to create the local administrator account. `Database\Seeders\DevelopmentDemoSeeder` owns development-only module demo data accepted by active phases, currently the TimeTracking demo scenario, and must stay separate from production-safe technical seeders. Permission-gated and module-gated Playwright scenarios use explicit e2e fixtures rather than the generic development account.
 
 `Database\Seeders\E2eVisibilitySeeder` is the deterministic fixture set for current Admin visibility coverage. It runs the production-safe technical seeders, then creates stable administrator and limited-user accounts, an active team, module states, and the exact records needed by the browser scenarios.
 

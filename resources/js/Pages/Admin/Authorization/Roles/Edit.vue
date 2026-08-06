@@ -4,7 +4,7 @@ import { IconShieldLock } from '@tabler/icons-vue';
 
 import RoleForm from '../../../../Components/Authorization/RoleForm.vue';
 import PageStack from '../../../../Components/PageStack.vue';
-import AdminLayout from '../../../../Layouts/AdminLayout.vue';
+import AppLayout from '../../../../Layouts/AppLayout.vue';
 import { useTranslator } from '../../../../Localization/translator';
 import type { AuthorizationAssignmentOption } from '../../../../Types/user-team-access';
 
@@ -32,7 +32,7 @@ function submit(): void {
 
 <template>
     <Head :title="t('pages.admin.roles.edit.head_title')" />
-    <AdminLayout :title="t('pages.admin.roles.edit.title')" :title-icon="IconShieldLock">
+    <AppLayout mode="admin" :title="t('pages.admin.roles.edit.title')" :title-icon="IconShieldLock">
         <PageStack>
             <RoleForm
                 v-model:name="form.name"
@@ -47,5 +47,5 @@ function submit(): void {
                 @submit="submit"
             />
         </PageStack>
-    </AdminLayout>
+    </AppLayout>
 </template>

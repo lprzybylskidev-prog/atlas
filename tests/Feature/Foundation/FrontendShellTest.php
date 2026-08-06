@@ -86,7 +86,7 @@ final class FrontendShellTest extends TestCase
             ->assertInertia(fn (AssertableInertia $page) => $page
                 ->component('Dashboard')
                 ->has('navigation.breadcrumbs', 1)
-                ->where('navigation.breadcrumbs.0.label', 'Pulpit')
+                ->where('navigation.breadcrumbs.0.label', 'Atlas')
                 ->where('navigation.breadcrumbs.0.url', 'http://localhost:8000'));
 
         $this->actingAs($user)
@@ -95,11 +95,13 @@ final class FrontendShellTest extends TestCase
             ->assertOk()
             ->assertInertia(fn (AssertableInertia $page) => $page
                 ->component('Admin/SystemStatus')
-                ->has('navigation.breadcrumbs', 2)
-                ->where('navigation.breadcrumbs.0.label', 'Admin')
-                ->where('navigation.breadcrumbs.0.url', null)
-                ->where('navigation.breadcrumbs.1.label', 'Dashboard')
-                ->where('navigation.breadcrumbs.1.url', null)
+                ->has('navigation.breadcrumbs', 3)
+                ->where('navigation.breadcrumbs.0.label', 'Atlas')
+                ->where('navigation.breadcrumbs.0.url', 'http://localhost:8000')
+                ->where('navigation.breadcrumbs.1.label', 'Panel administratora')
+                ->where('navigation.breadcrumbs.1.url', 'http://localhost:8000/admin')
+                ->where('navigation.breadcrumbs.2.label', 'Pulpit administratora')
+                ->where('navigation.breadcrumbs.2.url', null)
                 ->where('dashboard.release.environment', 'testing')
                 ->where('dashboard.externalMechanisms.items.0.key', 'postgresql')
                 ->where('dashboard.externalMechanisms.items.1.key', 'redis')

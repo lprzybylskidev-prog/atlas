@@ -1,10 +1,9 @@
 <script setup lang="ts">
 import type { Component } from 'vue';
 
-import TextBadge from './TextBadge.vue';
+import StatusBadge from './StatusBadge.vue';
 import Tooltip from './Tooltip.vue';
-
-type TextBadgeTone = 'neutral' | 'info' | 'success' | 'warning' | 'danger';
+import type { StatusBadgeTone } from '../Utils/statusBadge';
 
 withDefaults(
     defineProps<{
@@ -13,7 +12,7 @@ withDefaults(
         value?: string | number | null;
         mono?: boolean;
         statusLabel?: string;
-        statusTone?: TextBadgeTone;
+        statusTone?: StatusBadgeTone;
         statusIcon?: Component;
         tooltip?: string | null;
     }>(),
@@ -55,7 +54,7 @@ withDefaults(
                 </div>
             </div>
 
-            <TextBadge v-if="statusLabel" class="ml-auto shrink-0" :label="statusLabel" :tone="statusTone" :icon="statusIcon" />
+            <StatusBadge v-if="statusLabel" class="ml-auto shrink-0" :label="statusLabel" :tone="statusTone" :icon="statusIcon" />
         </div>
     </Tooltip>
 </template>

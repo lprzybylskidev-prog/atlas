@@ -37,4 +37,17 @@ describe('shared form control guardrails', () => {
             expect(contents, file).not.toMatch(/<FormInput\b[^>]*\btype="(?:date|datetime-local)"/);
         }
     });
+
+    it('keeps timestamp-like fields on dedicated date or datetime primitives', () => {
+        const timestampFieldPattern =
+            /<FormInput\b(?=[\s\S]*?\bv-model="[^"]*(?:started_at|ended_at|starts_at|ends_at|scheduled_at|effective_at|requested_at|decided_at|timestamp)[^"]*")/;
+
+        for (const [file, contents] of Object.entries(vueFiles)) {
+            if (file.includes('/Components/Form/FormInput.vue')) {
+                continue;
+            }
+
+            expect(contents, file).not.toMatch(timestampFieldPattern);
+        }
+    });
 });

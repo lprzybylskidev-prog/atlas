@@ -20,6 +20,8 @@ return new class extends Migration
             $table->id();
             $table->ulid('public_id')->unique();
             $table->string('name');
+            $table->unsignedSmallInteger('inactivity_timeout_minutes')->nullable();
+            $table->unsignedSmallInteger('session_max_lifetime_minutes')->nullable();
             $table->boolean('is_active')->default(true);
             $table->timestamps();
         });
@@ -29,6 +31,8 @@ return new class extends Migration
             $table->foreignId('team_id')->constrained(DatabaseTable::TEAMS)->restrictOnDelete();
             $table->foreignId('user_id')->constrained(DatabaseTable::USERS)->restrictOnDelete();
             $table->boolean('is_head_manager')->default(false);
+            $table->unsignedSmallInteger('inactivity_timeout_minutes')->nullable();
+            $table->unsignedSmallInteger('session_max_lifetime_minutes')->nullable();
             $table->timestampTz('valid_from')->nullable();
             $table->timestampTz('valid_to')->nullable();
             $table->timestamps();

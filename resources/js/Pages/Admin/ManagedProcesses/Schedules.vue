@@ -11,7 +11,7 @@ import FormSelect, { type FormSelectOption } from '../../../Components/Form/Form
 import ManagedProcessArea from '../../../Components/ManagedProcesses/ManagedProcessArea.vue';
 import OperationalMetricTile from '../../../Components/OperationalMetricTile.vue';
 import PageStack from '../../../Components/PageStack.vue';
-import { allOptions, yesNoOptions } from '../../../Composables/useManagedProcessUi';
+import { managedProcessOptionsWithAll, yesNoOptions } from '../../../Composables/useManagedProcessUi';
 import { applyTableFilters, clearTableFilters } from '../../../Composables/useTableFilterControls';
 import { useTranslator } from '../../../Localization/translator';
 import type { DataTableAction, DataTableColumn, DataTableMeta } from '../../../Types/data-table';
@@ -68,10 +68,10 @@ const actions = computed<DataTableAction<ManagedProcessScheduleRow>[]>(() => [
     },
 ]);
 const processOptions = computed<FormSelectOption[]>(() =>
-    allOptions(props.filterOptions.processes ?? [], t('pages.admin.managed_processes.filters.any_process')),
+    managedProcessOptionsWithAll(props.filterOptions.processes ?? [], t('pages.admin.managed_processes.filters.any_process')),
 );
 const moduleOptions = computed<FormSelectOption[]>(() =>
-    allOptions(props.filterOptions.modules ?? [], t('pages.admin.managed_processes.filters.any_module'), (module) =>
+    managedProcessOptionsWithAll(props.filterOptions.modules ?? [], t('pages.admin.managed_processes.filters.any_module'), (module) =>
         moduleLabel(module, t),
     ),
 );

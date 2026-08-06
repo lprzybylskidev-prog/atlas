@@ -7,6 +7,8 @@ import TruncatedText from '../TruncatedText.vue';
 export interface FormSelectOption {
     value: string | number;
     label: string;
+    description?: string;
+    meta?: string[];
 }
 
 const model = defineModel<string | number>({ required: true });
@@ -124,7 +126,7 @@ function toggleOpen(): void {
         <button
             ref="button"
             type="button"
-            class="inline-flex h-10 w-full items-center justify-between gap-2 rounded-lg border border-zinc-300 bg-white px-3 text-left text-sm leading-5 text-zinc-950 outline-none transition hover:border-zinc-400 hover:bg-zinc-50 focus:border-teal-600 focus:ring-2 focus:ring-teal-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50 dark:hover:border-zinc-600 dark:hover:bg-zinc-800 dark:focus:ring-teal-950"
+            class="inline-flex min-h-10 w-full items-center justify-between gap-2 rounded-lg border border-zinc-300 bg-white px-3 py-2 text-left text-sm leading-5 text-zinc-950 outline-none transition hover:border-zinc-400 hover:bg-zinc-50 focus:border-teal-600 focus:ring-2 focus:ring-teal-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50 dark:hover:border-zinc-600 dark:hover:bg-zinc-800 dark:focus:ring-teal-950"
             :class="[
                 buttonClass,
                 isDisabled
@@ -141,11 +143,18 @@ function toggleOpen(): void {
             @click="toggleOpen"
             @keydown="handleButtonKeydown"
         >
-            <TruncatedText
-                :text="selectedOption?.label ?? placeholder"
-                text-class="min-h-5 text-inherit"
-                :class="{ 'text-zinc-500 dark:text-zinc-400': selectedOption === null }"
-            />
+            <span class="min-w-0">
+                <TruncatedText
+                    :text="selectedOption?.label ?? placeholder"
+                    text-class="min-h-5 text-inherit"
+                    :class="{ 'text-zinc-500 dark:text-zinc-400': selectedOption === null }"
+                />
+                <TruncatedText
+                    v-if="selectedOption?.meta?.length"
+                    :text="selectedOption.meta.join(' · ')"
+                    text-class="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400"
+                />
+            </span>
             <IconChevronDown
                 aria-hidden="true"
                 class="h-4 w-4 shrink-0 text-zinc-400 transition"
@@ -166,7 +175,7 @@ function toggleOpen(): void {
                 data-select-option
                 role="option"
                 :aria-selected="option.value === model"
-                class="flex h-9 w-full items-center justify-between gap-3 rounded-md px-2 text-left text-sm transition outline-none hover:bg-teal-50 hover:text-teal-900 focus:bg-teal-50 focus:text-teal-900 dark:hover:bg-teal-950 dark:hover:text-teal-100 dark:focus:bg-teal-950 dark:focus:text-teal-100"
+                class="flex min-h-9 w-full items-center justify-between gap-3 rounded-md px-2 py-2 text-left text-sm transition outline-none hover:bg-teal-50 hover:text-teal-900 focus:bg-teal-50 focus:text-teal-900 dark:hover:bg-teal-950 dark:hover:text-teal-100 dark:focus:bg-teal-950 dark:focus:text-teal-100"
                 :class="
                     option.value === model
                         ? 'bg-teal-50 text-teal-900 dark:bg-teal-950 dark:text-teal-100'
@@ -175,7 +184,19 @@ function toggleOpen(): void {
                 @click="selectOption(option)"
                 @keydown="handleOptionKeydown($event, index)"
             >
-                <TruncatedText :text="option.label" text-class="text-inherit" />
+                <span class="min-w-0">
+                    <TruncatedText :text="option.label" text-class="text-inherit" />
+                    <TruncatedText
+                        v-if="option.meta?.length"
+                        :text="option.meta.join(' · ')"
+                        text-class="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400"
+                    />
+                    <TruncatedText
+                        v-if="option.description"
+                        :text="option.description"
+                        text-class="mt-1 text-xs text-zinc-500 dark:text-zinc-400"
+                    />
+                </span>
                 <IconCheck v-if="option.value === model" aria-hidden="true" class="h-4 w-4 shrink-0" :stroke-width="1.8" />
             </button>
         </div>

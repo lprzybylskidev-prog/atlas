@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace App\Shared\Infrastructure\Console;
 
+use App\Shared\Infrastructure\Database\DatabaseSchema;
 use Database\Seeders\DatabaseSeeder;
 use Database\Seeders\DevelopmentBootstrapSeeder;
 use Database\Seeders\DevelopmentDemoSeeder;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Redis;
 use Throwable;
@@ -41,6 +43,7 @@ final class ResetDemoEnvironment extends Command
 
         $this->clearRuntimeState();
         $this->clearSessionState();
+        $this->resetAtlasSchemas();
 
         $this->call('migrate:fresh', [
             '--force' => true,
@@ -79,6 +82,18 @@ final class ResetDemoEnvironment extends Command
 
         if ($this->laravel->bound('cache')) {
             $this->laravel->make('cache')->forget(config()->string('permission.cache.key'));
+        }
+    }
+
+    private function resetAtlasSchemas(): void
+    {
+        $this->line('Dropping Atlas-owned PostgreSQL schemas.');
+
+        foreach (DatabaseSchema::all() as $schema) {
+            DB::statement(sprintf(
+                'drop schema if exists %s cascade',
+                DatabaseSchema::quoteIdentifier($schema),
+            ));
         }
     }
 

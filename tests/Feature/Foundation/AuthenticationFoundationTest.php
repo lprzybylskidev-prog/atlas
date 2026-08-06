@@ -9,6 +9,7 @@ use Illuminate\Auth\Passwords\PasswordBroker;
 use Illuminate\Contracts\Auth\CanResetPassword;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Routing\Middleware\ThrottleRequests;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
@@ -44,6 +45,26 @@ final class AuthenticationFoundationTest extends TestCase
         ])->assertRedirect('/');
 
         $this->assertAuthenticatedAs($user);
+    }
+
+    public function test_user_with_expired_password_cannot_authenticate(): void
+    {
+        $this->withoutMiddleware(ThrottleRequests::class);
+        Carbon::setTestNow(Carbon::parse('2026-08-01 12:00:00'));
+
+        User::factory()->create([
+            'email' => 'expired-password@example.test',
+            'password' => Hash::make('CorrectPass12!'),
+            'password_changed_at' => now()->subDays(91),
+        ]);
+
+        $this->post('/login', [
+            'email' => 'expired-password@example.test',
+            'password' => 'CorrectPass12!',
+        ])->assertSessionHasErrors('email');
+
+        $this->assertGuest();
+        Carbon::setTestNow();
     }
 
     public function test_inactive_user_cannot_authenticate_with_valid_credentials(): void

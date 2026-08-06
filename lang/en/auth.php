@@ -6,6 +6,7 @@ return [
     'failed' => 'These credentials do not match our records.',
     'password' => 'The provided password is incorrect.',
     'password_current_mismatch' => 'The provided password does not match your current password.',
+    'mfa_code_invalid' => 'The provided MFA code was invalid.',
     'password_policy' => [
         'no_three_identical_consecutive_characters' => 'The password must not contain three identical consecutive characters.',
         'not_based_on_user_data' => 'The password must not be based on account details.',

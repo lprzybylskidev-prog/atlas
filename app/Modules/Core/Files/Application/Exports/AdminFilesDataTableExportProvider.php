@@ -49,9 +49,9 @@ final readonly class AdminFilesDataTableExportProvider extends AbstractAdminData
             'scanState' => 'State',
             'handlingStatus' => 'Handling',
             'sizeBytes' => 'Size bytes',
-            'checksumSha256' => 'Checksum',
+            'checksumSha256' => 'SHA-256 checksum',
             'scannedAt' => 'Scanned',
-            'provider' => 'Provider',
+            'provider' => 'Scanner',
             'engineVersion' => 'Engine',
             'signatureVersion' => 'Signatures',
             'scanAttempts' => 'Attempts',
@@ -143,6 +143,10 @@ final readonly class AdminFilesDataTableExportProvider extends AbstractAdminData
             }
 
             if ($handling === 'handled' && $row['handlingStatus'] !== 'handled') {
+                return false;
+            }
+
+            if ($handling === 'not_applicable' && $row['handlingStatus'] !== 'not_applicable') {
                 return false;
             }
 

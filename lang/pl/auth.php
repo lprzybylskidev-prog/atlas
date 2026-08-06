@@ -6,6 +6,7 @@ return [
     'failed' => 'Błędny login lub hasło.',
     'password' => 'Hasło jest nieprawidłowe.',
     'password_current_mismatch' => 'Podane hasło nie jest zgodne z aktualnym hasłem.',
+    'mfa_code_invalid' => 'Podany kod MFA jest nieprawidłowy.',
     'password_policy' => [
         'no_three_identical_consecutive_characters' => 'Hasło nie może zawierać trzech takich samych znaków z rzędu.',
         'not_based_on_user_data' => 'Hasło nie może być oparte o dane konta.',

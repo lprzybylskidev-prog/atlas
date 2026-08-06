@@ -419,7 +419,7 @@ final readonly class AdminManagedProcessesController
             'module' => $this->oneOf($request->query('module'), $this->allOr($this->distinctProcessRunValues('module_key'))),
             'import' => $this->oneOf($request->query('import'), $this->allOr($this->distinctImportValues('import_key'))),
             'idempotency' => $this->oneOf($request->query('idempotency'), $this->allOr($this->distinctImportValues('idempotency_state'))),
-            'handling' => $this->oneOf($request->query('handling', 'all'), ['all', 'needs_attention', 'handled']),
+            'handling' => $this->oneOf($request->query('handling', 'all'), ['all', 'needs_attention', 'handled', 'ok']),
             'from' => $this->dateFilter($request->query('from')),
             'to' => $this->dateFilter($request->query('to')),
         ];

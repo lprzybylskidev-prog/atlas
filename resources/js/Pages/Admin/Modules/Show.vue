@@ -30,8 +30,14 @@ import IconTile from '../../../Components/IconTile.vue';
 import OperationalMetricTile from '../../../Components/OperationalMetricTile.vue';
 import PageStack from '../../../Components/PageStack.vue';
 import SurfaceCard from '../../../Components/SurfaceCard.vue';
-import TextBadge from '../../../Components/TextBadge.vue';
-import AdminLayout from '../../../Layouts/AdminLayout.vue';
+import StatusBadge from '../../../Components/StatusBadge.vue';
+import {
+    moduleCategoryLabel as categoryLabel,
+    moduleScheduleStatusLabel,
+    moduleScopeLabel,
+    moduleSourceLabel,
+} from '../../../Composables/useModuleActivationUi';
+import AppLayout from '../../../Layouts/AppLayout.vue';
 import { useTranslator } from '../../../Localization/translator';
 import { formatTimestamp } from '../../../Utils/formatters';
 import type { DataTableAction, DataTableColumn, DataTableExportMeta } from '../../../Types/data-table';
@@ -245,46 +251,19 @@ function cancelSchedule(): void {
 }
 
 function moduleCategoryLabel(category: string): string {
-    const keys: Record<string, string> = {
-        application: 'pages.admin.modules.categories.application',
-        core: 'pages.admin.modules.categories.core',
-        optional: 'pages.admin.modules.categories.optional',
-    };
-
-    return keys[category] === undefined ? category : t(keys[category]);
+    return categoryLabel(category, t);
 }
 
 function scopeLabel(scope: string): string {
-    const keys: Record<string, string> = {
-        global: 'pages.admin.modules.global',
-        team: 'pages.admin.modules.team',
-    };
-
-    return keys[scope] === undefined ? scope : t(keys[scope]);
+    return moduleScopeLabel(scope, t);
 }
 
 function sourceLabel(source: string): string {
-    const keys: Record<string, string> = {
-        global: 'pages.admin.modules.sources.global',
-        manual: 'pages.admin.modules.sources.manual',
-        scheduled: 'pages.admin.modules.sources.scheduled',
-        scheduler: 'pages.admin.modules.sources.scheduler',
-        system: 'pages.admin.modules.sources.system',
-        team: 'pages.admin.modules.sources.team',
-    };
-
-    return keys[source] === undefined ? source : t(keys[source]);
+    return moduleSourceLabel(source, t);
 }
 
 function scheduleStatusLabel(status: string): string {
-    const keys: Record<string, string> = {
-        applied: 'pages.admin.modules.schedule_status.applied',
-        cancelled: 'pages.admin.modules.schedule_status.cancelled',
-        failed: 'pages.admin.modules.schedule_status.failed',
-        scheduled: 'pages.admin.modules.schedule_status.scheduled',
-    };
-
-    return keys[status] === undefined ? status : t(keys[status]);
+    return moduleScheduleStatusLabel(status, t);
 }
 
 function dateLabel(value: string): string {
@@ -302,7 +281,7 @@ function statusTone(value: boolean): MetricTone {
 
 <template>
     <Head :title="t('pages.admin.modules.show_title', { module: module.moduleKey })" />
-    <AdminLayout :title="t('pages.admin.modules.show_title', { module: module.moduleKey })" :title-icon="IconPuzzle">
+    <AppLayout mode="admin" :title="t('pages.admin.modules.show_title', { module: module.moduleKey })" :title-icon="IconPuzzle">
         <PageStack>
             <div class="flex justify-start">
                 <ActionLink href="/admin/modules" :icon="IconArrowLeft">
@@ -312,7 +291,7 @@ function statusTone(value: boolean): MetricTone {
 
             <SurfaceCard :title="module.moduleKey" :subtitle="moduleCategoryLabel(module.category)" :icon="IconPuzzle" tone="teal">
                 <div class="mb-4 flex flex-wrap gap-2">
-                    <TextBadge
+                    <StatusBadge
                         :label="canEditModule ? t('pages.admin.modules.configurable') : t('pages.admin.modules.noneditable')"
                         :tone="canEditModule ? 'info' : 'neutral'"
                     />
@@ -503,5 +482,5 @@ function statusTone(value: boolean): MetricTone {
                 />
             </div>
         </PageStack>
-    </AdminLayout>
+    </AppLayout>
 </template>

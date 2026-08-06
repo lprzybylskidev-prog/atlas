@@ -6,6 +6,7 @@ namespace App\Modules\Core\Settings\Application\Settings;
 
 use App\Modules\Core\Settings\Application\Contracts\SettingsStore;
 use App\Modules\Core\Settings\Application\Enums\GlobalSettingKey;
+use App\Modules\Core\Settings\Application\Enums\SecuritySettingKey;
 use App\Modules\Core\Settings\Application\Enums\TeamSettingKey;
 use App\Modules\Core\Settings\Application\Enums\UserSettingKey;
 
@@ -90,5 +91,12 @@ final readonly class EffectiveSettings
     public function setUserTheme(int $userId, string $theme): void
     {
         $this->store->putUser($userId, UserSettingKey::Theme, $theme);
+    }
+
+    public function security(SecuritySettingKey $key): mixed
+    {
+        $value = $this->store->getSecurity($key);
+
+        return $value ?? $this->defaults->security($key);
     }
 }

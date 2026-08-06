@@ -7,17 +7,19 @@ namespace App\Modules\Core\Identity\Presentation\Fortify\Actions;
 use App\Modules\Core\Audit\Application\Public\Enums\SecurityAuditCategory;
 use App\Modules\Core\Identity\Application\PasswordHistory;
 use App\Modules\Core\Identity\Application\Public\Contracts\SecurityAuditRecorder;
+use App\Modules\Core\Identity\Application\Public\Contracts\UserPasswordUpdater;
 use App\Modules\Core\Identity\Application\Public\Contracts\UserSessionRegistry;
 use App\Modules\Core\Identity\Application\Public\DTOs\SecurityAuditEvent;
 use App\Modules\Core\Identity\Infrastructure\Persistence\User;
 use App\Modules\Core\Identity\Presentation\Fortify\Concerns\PasswordValidationRules;
+use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 use Laravel\Fortify\Contracts\UpdatesUserPasswords;
 
-class UpdateUserPassword implements UpdatesUserPasswords
+class UpdateUserPassword implements UpdatesUserPasswords, UserPasswordUpdater
 {
     use PasswordValidationRules;
 
@@ -50,6 +52,7 @@ class UpdateUserPassword implements UpdatesUserPasswords
 
         $user->forceFill([
             'password' => $passwordHash,
+            'password_changed_at' => now(),
         ])->save();
 
         $this->passwordHistory->recordNewPassword($userId, $previousPasswordHash);
@@ -69,5 +72,16 @@ class UpdateUserPassword implements UpdatesUserPasswords
             reason: null,
             category: SecurityAuditCategory::Password,
         ));
+    }
+
+    public function updateAuthenticatedUserPassword(Authenticatable $user, array $input): void
+    {
+        if (! $user instanceof User) {
+            throw ValidationException::withMessages([
+                'password' => __('auth.failed'),
+            ]);
+        }
+
+        $this->update($user, $input);
     }
 }

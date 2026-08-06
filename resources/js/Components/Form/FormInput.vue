@@ -18,6 +18,8 @@ const props = withDefaults(
         suffix?: string;
         inputmode?: 'decimal' | 'email' | 'numeric' | 'search' | 'tel' | 'text' | 'url';
         step?: string;
+        min?: string;
+        max?: string;
         disabled?: boolean;
     }>(),
     {
@@ -33,6 +35,8 @@ const props = withDefaults(
         suffix: undefined,
         inputmode: undefined,
         step: undefined,
+        min: undefined,
+        max: undefined,
         disabled: false,
     },
 );
@@ -71,6 +75,8 @@ const effectiveInputmode = computed(
                 :placeholder="effectivePlaceholder"
                 :inputmode="effectiveInputmode"
                 :step="step"
+                :min="min"
+                :max="max"
                 :disabled="disabled"
                 :aria-label="ariaLabel"
                 :aria-invalid="error ? 'true' : 'false'"
@@ -88,3 +94,15 @@ const effectiveInputmode = computed(
         <p v-if="error" :id="errorId" class="mt-1 text-xs text-rose-600 dark:text-rose-300">{{ error }}</p>
     </label>
 </template>
+
+<style scoped>
+input[type='number'] {
+    -moz-appearance: textfield;
+}
+
+input[type='number']::-webkit-inner-spin-button,
+input[type='number']::-webkit-outer-spin-button {
+    margin: 0;
+    -webkit-appearance: none;
+}
+</style>

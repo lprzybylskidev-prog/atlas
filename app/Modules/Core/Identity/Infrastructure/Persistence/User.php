@@ -20,6 +20,8 @@ class User extends Authenticatable implements MustVerifyEmailContract
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable, TwoFactorAuthenticatable;
 
+    public const DEFAULT_AVATAR_COLOR = '#0f766e';
+
     protected $table = DatabaseTable::USERS;
 
     /** @var list<string> */
@@ -29,14 +31,15 @@ class User extends Authenticatable implements MustVerifyEmailContract
         'email',
         'password',
         'first_password_set_at',
+        'password_changed_at',
         'is_active',
         'deactivated_at',
         'failed_login_attempts',
         'login_lock_count',
         'login_locked_until',
-        'inactivity_timeout_minutes',
-        'session_max_lifetime_minutes',
         'account_sensitivity',
+        'avatar_color',
+        'avatar_image_file_public_id',
     ];
 
     /** @var list<string> */
@@ -59,6 +62,14 @@ class User extends Authenticatable implements MustVerifyEmailContract
 
             if (! is_string($publicId) || $publicId === '') {
                 $user->public_id = UserPublicId::new()->toString();
+            }
+        });
+
+        self::saving(function (self $user): void {
+            $avatarColor = $user->getAttribute('avatar_color');
+
+            if (! is_string($avatarColor) || $avatarColor === '') {
+                $user->avatar_color = self::DEFAULT_AVATAR_COLOR;
             }
         });
     }
@@ -117,14 +128,13 @@ class User extends Authenticatable implements MustVerifyEmailContract
         return [
             'email_verified_at' => 'datetime',
             'first_password_set_at' => 'datetime',
+            'password_changed_at' => 'datetime',
             'two_factor_confirmed_at' => 'datetime',
             'is_active' => 'boolean',
             'deactivated_at' => 'datetime',
             'failed_login_attempts' => 'integer',
             'login_lock_count' => 'integer',
             'login_locked_until' => 'datetime',
-            'inactivity_timeout_minutes' => 'integer',
-            'session_max_lifetime_minutes' => 'integer',
             'account_sensitivity' => 'string',
             'password' => 'hashed',
         ];

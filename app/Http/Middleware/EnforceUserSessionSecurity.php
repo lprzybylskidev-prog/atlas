@@ -47,13 +47,16 @@ final readonly class EnforceUserSessionSecurity
             $lastActivityAt = $now;
         }
 
-        $limits = $this->limits->limitsFor($user);
+        $teamPublicId = $request->session()->get('active_team_public_id');
+        $limits = $this->limits->limitsFor($user, is_string($teamPublicId) ? $teamPublicId : null);
 
         if ($createdAt->copy()->addMinutes($limits['maximum'])->lte($now)) {
             return $this->expire($request, 'flash.auth.session_expired_lifetime');
         }
 
-        if ($lastActivityAt->copy()->addMinutes($limits['inactivity'])->lte($now)) {
+        if ($request->route()?->getName() !== 'time-tracking.activity.record'
+            && $lastActivityAt->copy()->addMinutes($limits['inactivity'])->lte($now)
+        ) {
             return $this->expire($request, 'flash.auth.session_expired_inactivity');
         }
 

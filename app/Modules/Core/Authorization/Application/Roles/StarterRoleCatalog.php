@@ -7,6 +7,7 @@ namespace App\Modules\Core\Authorization\Application\Roles;
 use App\Modules\Core\Authorization\Application\Permissions\CoreAuthorizationPermissionCatalog;
 use App\Modules\Core\Notifications\Application\Public\Permissions\NotificationPermissionNames;
 use App\Modules\Core\Teams\Application\Public\Permissions\TeamPermissionNames;
+use App\Modules\Core\Users\Application\Public\Permissions\UserPermissionNames;
 
 final class StarterRoleCatalog
 {
@@ -19,6 +20,12 @@ final class StarterRoleCatalog
         return [
             new StarterRoleDefinition(StarterRoleName::WorkspaceAccess, [
                 CoreAuthorizationPermissionCatalog::DASHBOARD,
+                UserPermissionNames::USERS_PROFILE,
+                UserPermissionNames::USERS_PROFILE_AVATAR_IMAGE,
+                UserPermissionNames::USERS_PROFILE_AVATAR_UPDATE,
+                UserPermissionNames::USERS_PROFILE_PASSWORD_UPDATE,
+                UserPermissionNames::USERS_PROFILE_NOTIFICATION_EMAILS_STORE,
+                UserPermissionNames::USERS_PROFILE_NOTIFICATION_EMAILS_UPDATE,
                 'team.switch',
                 NotificationPermissionNames::NOTIFICATIONS_INDEX,
                 NotificationPermissionNames::NOTIFICATIONS_READ,

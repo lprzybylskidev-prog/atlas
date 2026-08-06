@@ -12,7 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table(DatabaseTable::USERS, function (Blueprint $table): void {
-            $table->string('account_sensitivity', 32)->default('normal')->after('session_max_lifetime_minutes');
+            $table->string('account_sensitivity', 32)->default('normal')->after('login_locked_until');
             $table->index('account_sensitivity');
         });
     }

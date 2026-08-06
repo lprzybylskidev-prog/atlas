@@ -34,6 +34,7 @@ class UserFactory extends Factory
             'failed_login_attempts' => 0,
             'login_lock_count' => 0,
             'login_locked_until' => null,
+            'avatar_color' => User::DEFAULT_AVATAR_COLOR,
             'remember_token' => Str::random(10),
         ];
     }

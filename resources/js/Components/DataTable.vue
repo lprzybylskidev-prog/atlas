@@ -19,6 +19,7 @@ import {
     IconChevronUp,
     IconCircleCheck,
     IconCircleOff,
+    IconCircleX,
     IconCopy,
     IconDeviceFloppy,
     IconDots,
@@ -30,6 +31,7 @@ import {
     IconLogout,
     IconMailCheck,
     IconPencil,
+    IconPlus,
     IconPlayerPlay,
     IconRefresh,
     IconSearch,
@@ -58,6 +60,7 @@ import type {
     DataTableMeta,
     DataTableSavedView,
 } from '../Types/data-table';
+import { tableMenuButtonClass } from '../Utils/buttonClasses';
 import {
     formatDate,
     formatEmpty,
@@ -76,6 +79,7 @@ import OverflowTooltip from './OverflowTooltip.vue';
 import SeverityBadge from './SeverityBadge.vue';
 import StatusBadge from './StatusBadge.vue';
 import Tooltip from './Tooltip.vue';
+import { statusBadgeToneForToken } from '../Utils/statusBadge';
 
 const props = withDefaults(
     defineProps<{
@@ -96,6 +100,7 @@ const props = withDefaults(
         table?: DataTableMeta;
         loading?: boolean;
         errorLabel?: string | null;
+        rowClass?: (row: TRow) => string;
     }>(),
     {
         actions: () => [],
@@ -111,6 +116,7 @@ const props = withDefaults(
         table: undefined,
         loading: false,
         errorLabel: null,
+        rowClass: undefined,
     },
 );
 
@@ -307,8 +313,7 @@ const tableRenderKey = computed(() =>
         orderedColumns.value.map((column) => column.key).join('|'),
     ].join('::'),
 );
-const menuButtonClass =
-    'inline-flex h-9 cursor-pointer list-none items-center gap-2 rounded-lg border border-zinc-300 bg-white px-3 text-sm font-medium text-zinc-700 transition hover:border-zinc-400 hover:bg-zinc-100 hover:text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:border-zinc-600 dark:hover:bg-zinc-800 dark:hover:text-zinc-50';
+const menuButtonClass = tableMenuButtonClass;
 const selectionButtonClass =
     'inline-flex h-8 items-center gap-1.5 rounded-md px-2 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-40';
 const selectionPrimaryButtonClass =
@@ -696,6 +701,10 @@ function formatCell(value: unknown, format: DataTableColumn<TRow>['format']): VN
         return localizedStatus(value);
     }
 
+    if (format === 'status-badge' && typeof value === 'string') {
+        return hStatusBadge(value);
+    }
+
     if (format === 'severity' && typeof value === 'string') {
         return h(SeverityBadge, { value, label: localizedStatus(value) });
     }
@@ -707,7 +716,7 @@ function cellTooltipText(value: unknown, columnId: string): string | null {
     const column = props.columns.find((candidate) => candidate.key === columnId);
     const format = column?.format;
 
-    if (format === 'boolean' || format === 'severity' || format === 'status') {
+    if (format === 'boolean' || format === 'severity' || format === 'status' || format === 'status-badge') {
         return null;
     }
 
@@ -757,7 +766,7 @@ function formattedCellText(value: unknown, format: DataTableColumn<TRow>['format
         return formatPercent(value, props.uiLocale ?? 'en');
     }
 
-    if ((format === 'severity' || format === 'status') && typeof value === 'string') {
+    if ((format === 'severity' || format === 'status' || format === 'status-badge') && typeof value === 'string') {
         return localizedStatus(value);
     }
 
@@ -768,28 +777,85 @@ function localizedStatus(value: string): string {
     const normalized = value.toLowerCase().trim().replaceAll(/\s+/gu, '_').replaceAll('-', '_');
     const statusKeys: Record<string, TranslationKey> = {
         active: 'datatable.status.active',
+        approved: 'datatable.status.approved',
         blocked: 'datatable.status.blocked',
+        break: 'datatable.status.break',
+        cancelled: 'datatable.status.cancelled',
+        clean: 'datatable.status.clean',
+        closed: 'datatable.status.closed',
+        corrected: 'datatable.status.corrected',
         danger: 'datatable.status.danger',
+        degraded: 'datatable.status.degraded',
         disabled: 'datatable.status.disabled',
+        draft: 'datatable.status.draft',
         enabled: 'datatable.status.enabled',
+        ended: 'datatable.status.ended',
         error: 'datatable.status.error',
+        exceeded: 'datatable.status.exceeded',
+        expired: 'datatable.status.expired',
         failed: 'datatable.status.failed',
+        final: 'datatable.status.final',
+        forced: 'datatable.status.forced',
         failure: 'datatable.status.failed',
         handled: 'datatable.status.handled',
+        half_open: 'datatable.status.half_open',
+        inactivity: 'datatable.status.inactivity',
         info: 'datatable.status.info',
         inactive: 'datatable.status.inactive',
+        infected: 'datatable.status.infected',
+        logout: 'datatable.status.logout',
+        maintenance: 'datatable.status.maintenance',
+        module_unavailable: 'datatable.status.module_unavailable',
         needs_attention: 'datatable.status.needs_attention',
+        none: 'datatable.status.none',
+        no_session: 'datatable.status.no_session',
+        normal: 'datatable.status.normal',
+        not_applicable: 'datatable.status.not_applicable',
         ok: 'datatable.status.ok',
+        open: 'datatable.status.open',
+        offline: 'datatable.status.offline',
+        other_work: 'datatable.status.other_work',
         pending: 'datatable.status.pending',
+        queued: 'datatable.status.queued',
+        rejected: 'datatable.status.rejected',
+        released: 'datatable.status.released',
+        requires_manager_review: 'datatable.status.requires_manager_review',
         resolved: 'datatable.status.resolved',
         running: 'datatable.status.running',
+        scanning: 'datatable.status.scanning',
+        session_superseded: 'datatable.status.session_superseded',
+        started: 'datatable.status.started',
         success: 'datatable.status.success',
+        succeeded: 'datatable.status.succeeded',
+        succeeded_with_warnings: 'datatable.status.succeeded_with_warnings',
+        team_switched: 'datatable.status.team_switched',
+        team_untracked: 'datatable.status.team_untracked',
+        unavailable: 'datatable.status.unavailable',
+        under_review: 'datatable.status.under_review',
+        unhealthy: 'datatable.status.unhealthy',
+        unsupported: 'datatable.status.unsupported',
+        updated: 'datatable.status.updated',
         warn: 'datatable.status.warning',
         warning: 'datatable.status.warning',
+        waiting: 'datatable.status.waiting',
+        working: 'datatable.status.working',
+        work_session: 'datatable.status.work_session',
+        within_limit: 'datatable.status.within_limit',
     };
     const key = statusKeys[normalized];
 
     return key === undefined ? formatStatus(value) : t(key);
+}
+
+function hStatusBadge(value: string): VNodeChild {
+    const tone = statusBadgeToneForToken(value);
+    const icon = tone === 'success' ? IconCircleCheck : tone === 'danger' ? IconCircleX : undefined;
+
+    return h(StatusBadge, {
+        label: localizedStatus(value),
+        tone,
+        icon,
+    });
 }
 
 async function withBusyModal(
@@ -823,6 +889,9 @@ function actionIcon(action: DataTableAction<TRow>): Component {
         delete: IconTrash,
         details: IconEye,
         disable: IconCircleOff,
+        correct: IconPencil,
+        convert_excess: IconRefresh,
+        create: IconPlus,
         edit: IconPencil,
         open: IconExternalLink,
         show: IconEye,
@@ -830,8 +899,24 @@ function actionIcon(action: DataTableAction<TRow>): Component {
         retry: IconPlayerPlay,
         run: IconPlayerPlay,
         acknowledge: IconCircleCheck,
+        approve: IconCircleCheck,
         read: IconCircleCheck,
         'mark-read': IconCircleCheck,
+        reject: IconCircleX,
+        request_correction: IconPencil,
+        force_close: IconCircleOff,
+        'force-close': IconCircleOff,
+        global: IconSettings,
+        team: IconSettings,
+        'clear-team': IconEraser,
+        rebuild_index: IconRefresh,
+        'rebuild-index': IconRefresh,
+        rescan: IconRefresh,
+        test: IconPlayerPlay,
+        set_global: IconSettings,
+        set_team: IconSettings,
+        clear_team: IconEraser,
+        terminate: IconLogout,
         verify: IconMailCheck,
         'first-password': IconKey,
         unlock: IconLockOpen,
@@ -1044,7 +1129,7 @@ function bodyCellContentClass(columnId: string): string {
 
     const column = props.columns.find((candidate) => candidate.key === columnId);
 
-    if (column?.format === 'boolean' || column?.format === 'severity') {
+    if (column?.format === 'boolean' || column?.format === 'severity' || column?.format === 'status-badge') {
         return 'inline-flex max-w-full overflow-visible py-0.5 align-middle';
     }
 
@@ -1392,7 +1477,7 @@ onBeforeUnmount(() => {
                             </td>
                         </tr>
                         <template v-else>
-                            <tr v-for="row in table.getRowModel().rows" :key="rowId(row.original)">
+                            <tr v-for="row in table.getRowModel().rows" :key="rowId(row.original)" :class="rowClass?.(row.original)">
                                 <td v-for="cell in row.getVisibleCells()" :key="cell.id" :class="bodyCellClass(cell.column.id)">
                                     <OverflowTooltip
                                         v-if="cellTooltipText(cell.getValue(), cell.column.id) !== null"

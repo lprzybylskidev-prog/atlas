@@ -10,10 +10,13 @@ import FormSelect, { type FormSelectOption } from '../../../Components/Form/Form
 import OperationalMetricTile from '../../../Components/OperationalMetricTile.vue';
 import PageStack from '../../../Components/PageStack.vue';
 import { applyTableFilters, clearTableFilters } from '../../../Composables/useTableFilterControls';
-import AdminLayout from '../../../Layouts/AdminLayout.vue';
+import AppLayout from '../../../Layouts/AppLayout.vue';
 import { useTranslator } from '../../../Localization/translator';
 import type { DataTableAction, DataTableColumn, DataTableMeta } from '../../../Types/data-table';
 import type { ShellSubnavigationItem } from '../../../Types/navigation';
+import { existingOptionsWithAll } from '../../../Utils/filterOptions';
+import { formatStatus } from '../../../Utils/formatters';
+import { readableFilterOption, readableToken } from '../../../Utils/readableTokens';
 
 interface FilterOption {
     value: string;
@@ -84,6 +87,8 @@ const subnavigation = computed<ShellSubnavigationItem[]>(() => [
 const rows = computed<SecurityEventRow[]>(() =>
     props.events.map((event) => ({
         ...event,
+        action: readableToken(event.action),
+        source: readableToken(event.source),
         userContext: contextLabel(event.userContext),
     })),
 );
@@ -111,13 +116,13 @@ const actions = computed<DataTableAction<SecurityEventRow>[]>(() => [
     },
 ]);
 const userOptions = computed<FormSelectOption[]>(() =>
-    allOptions(props.filterOptions.users, t('pages.admin.audit.security.filters.any_user')),
+    existingOptionsWithAll(props.filterOptions.users, t('pages.admin.audit.security.filters.any_user')),
 );
 const actionOptions = computed<FormSelectOption[]>(() =>
-    allOptions(props.filterOptions.actions, t('pages.admin.audit.security.filters.any_action')),
+    existingOptionsWithAll(props.filterOptions.actions, t('pages.admin.audit.security.filters.any_action'), readableFilterOption),
 );
 const sourceOptions = computed<FormSelectOption[]>(() =>
-    allOptions(props.filterOptions.sources, t('pages.admin.audit.security.filters.any_source')),
+    existingOptionsWithAll(props.filterOptions.sources, t('pages.admin.audit.security.filters.any_source'), readableFilterOption),
 );
 const resultOptions = computed<FormSelectOption[]>(() => [
     { value: 'all', label: t('pages.admin.audit.security.filters.any_result') },
@@ -145,10 +150,6 @@ function filterValues(): Record<string, string> {
     };
 }
 
-function allOptions(values: FilterOption[], label: string): FormSelectOption[] {
-    return [{ value: 'all', label }, ...values];
-}
-
 function contextLabel(value: string): string {
     const keys: Record<string, string> = {
         'Actual actor': 'pages.admin.audit.security.context.actual_actor',
@@ -157,7 +158,7 @@ function contextLabel(value: string): string {
         'Target user': 'pages.admin.audit.security.context.target_user',
     };
 
-    return keys[value] === undefined ? value : t(keys[value]);
+    return keys[value] === undefined ? formatStatus(value) : t(keys[value]);
 }
 
 function applyFilters(): void {
@@ -172,7 +173,8 @@ function clearFilters(): void {
 
 <template>
     <Head :title="t('pages.admin.audit.security.head_title')" />
-    <AdminLayout
+    <AppLayout
+        mode="admin"
         :title="t('pages.admin.audit.security.title')"
         :title-icon="IconShieldCheck"
         :subnavigation="subnavigation"
@@ -241,5 +243,5 @@ function clearFilters(): void {
                 :empty-label="t('pages.admin.audit.security.events.empty')"
             />
         </PageStack>
-    </AdminLayout>
+    </AppLayout>
 </template>

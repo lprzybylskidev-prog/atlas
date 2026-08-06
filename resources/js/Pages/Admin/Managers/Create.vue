@@ -15,9 +15,9 @@ import ManagerHierarchyTree, { type ManagerHierarchyNode } from '../../../Compon
 import PageStack from '../../../Components/PageStack.vue';
 import SearchableCheckboxList from '../../../Components/SearchableCheckboxList.vue';
 import SurfaceCard from '../../../Components/SurfaceCard.vue';
-import TextBadge from '../../../Components/TextBadge.vue';
+import StatusBadge from '../../../Components/StatusBadge.vue';
 import UiState from '../../../Components/UiState.vue';
-import AdminLayout from '../../../Layouts/AdminLayout.vue';
+import AppLayout from '../../../Layouts/AppLayout.vue';
 import { useTranslator } from '../../../Localization/translator';
 import { formatDate } from '../../../Utils/formatters';
 import type { CheckboxListOption } from '../../../Components/CheckboxList.vue';
@@ -257,7 +257,7 @@ function relationshipDate(value: string): string {
 
 <template>
     <Head :title="t('pages.admin.managers.create.head_title')" />
-    <AdminLayout :title="t('pages.admin.managers.create.title')" :title-icon="IconUserPlus">
+    <AppLayout mode="admin" :title="t('pages.admin.managers.create.title')" :title-icon="IconUserPlus">
         <PageStack>
             <div class="flex justify-start">
                 <ActionLink :href="backHref" :icon="IconArrowLeft">
@@ -305,7 +305,7 @@ function relationshipDate(value: string): string {
                             <div class="text-xs font-semibold text-zinc-500 dark:text-zinc-400">
                                 {{ t('pages.admin.managers.table.manager_type') }}
                             </div>
-                            <TextBadge
+                            <StatusBadge
                                 class="mt-1"
                                 :label="
                                     manager.managerType === 'head'
@@ -405,7 +405,7 @@ function relationshipDate(value: string): string {
                                                             {{ preview.reportEmail }}
                                                         </p>
                                                     </div>
-                                                    <TextBadge
+                                                    <StatusBadge
                                                         :label="preview.allowed ? t('datatable.boolean.yes') : t('datatable.boolean.no')"
                                                         :tone="preview.allowed ? 'success' : 'danger'"
                                                     />
@@ -534,5 +534,5 @@ function relationshipDate(value: string): string {
                 </SurfaceCard>
             </template>
         </PageStack>
-    </AdminLayout>
+    </AppLayout>
 </template>

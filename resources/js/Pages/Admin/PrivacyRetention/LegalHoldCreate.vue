@@ -12,7 +12,7 @@ import FormTextarea from '../../../Components/Form/FormTextarea.vue';
 import PageStack from '../../../Components/PageStack.vue';
 import SurfaceCard from '../../../Components/SurfaceCard.vue';
 import { usePrivacyRetentionSubnavigation } from '../../../Composables/usePrivacyRetentionSubnavigation';
-import AdminLayout from '../../../Layouts/AdminLayout.vue';
+import AppLayout from '../../../Layouts/AppLayout.vue';
 import { useTranslator } from '../../../Localization/translator';
 
 const props = defineProps<{
@@ -43,7 +43,8 @@ function createHold(): void {
 
 <template>
     <Head :title="t('pages.admin.privacy_retention.legal_holds.create.head_title')" />
-    <AdminLayout
+    <AppLayout
+        mode="admin"
         :title="t('pages.admin.privacy_retention.title')"
         :title-icon="IconShieldCheck"
         :subnavigation="subnavigation"
@@ -92,5 +93,5 @@ function createHold(): void {
                 </AtlasForm>
             </SurfaceCard>
         </PageStack>
-    </AdminLayout>
+    </AppLayout>
 </template>

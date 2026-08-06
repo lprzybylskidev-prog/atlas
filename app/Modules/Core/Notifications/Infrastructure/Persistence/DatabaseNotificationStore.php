@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Core\Notifications\Infrastructure\Persistence;
 
+use App\Modules\Core\Notifications\Application\Public\Contracts\NotificationEmailPreferenceManager;
 use App\Modules\Core\Notifications\Application\Public\Contracts\NotificationInbox;
 use App\Modules\Core\Notifications\Application\Public\Contracts\NotificationMaintenance;
 use App\Modules\Core\Notifications\Application\Public\Contracts\NotificationPublisher;
@@ -218,34 +219,77 @@ final class DatabaseNotificationStore implements NotificationInbox, Notification
     }
 
     /**
-     * @return array{email: string, title: string, body: string|null}|null
+     * @return list<array{email: string, title: string, body: string|null}>
      */
-    public function emailPayload(int $recipientId): ?array
+    public function emailPayloads(int $recipientId): array
     {
-        $record = DB::table(DatabaseTable::NOTIFICATION_RECIPIENTS)
-            ->join(DatabaseTable::NOTIFICATIONS, 'notification_recipients.notification_id', '=', 'notifications.id')
-            ->join(DatabaseTable::USERS, 'notification_recipients.user_id', '=', 'users.id')
-            ->where('notification_recipients.id', $recipientId)
-            ->first(['users.email', 'notifications.title', 'notifications.body']);
+        $record = DB::table(DatabaseTable::NOTIFICATION_RECIPIENTS.' as recipients')
+            ->join(DatabaseTable::NOTIFICATIONS.' as notifications', 'recipients.notification_id', '=', 'notifications.id')
+            ->join(DatabaseTable::USERS.' as users', 'recipients.user_id', '=', 'users.id')
+            ->where('recipients.id', $recipientId)
+            ->first([
+                'users.id as user_id',
+                'users.public_id as user_public_id',
+                'recipients.team_id',
+                'notifications.type',
+                'notifications.title',
+                'notifications.body',
+            ]);
 
         if (! is_object($record)) {
-            return null;
+            return [];
         }
 
         $values = get_object_vars($record);
-        $email = $this->scalarString($values['email'] ?? '');
+        $userId = $values['user_id'] ?? null;
+        $teamId = $values['team_id'] ?? null;
+        $type = $this->scalarString($values['type'] ?? '');
         $title = $this->scalarString($values['title'] ?? '');
         $body = $values['body'] ?? null;
 
-        if ($email === '' || $title === '') {
-            return null;
+        if (! is_numeric($userId) || $type === '' || $title === '') {
+            return [];
         }
 
-        return [
-            'email' => $email,
-            'title' => $title,
-            'body' => is_string($body) ? $body : null,
-        ];
+        $user = DB::table(DatabaseTable::USERS)
+            ->where('id', (int) $userId)
+            ->first(['id', 'email', 'email_verified_at']);
+
+        if (is_object($user) && is_string($user->email ?? null)) {
+            app(NotificationEmailPreferenceManager::class)->ensurePrimaryAddressForUser(
+                (int) $userId,
+                (string) $user->email,
+                $user->email_verified_at instanceof DateTimeInterface ? $user->email_verified_at : null,
+                is_numeric($teamId) ? (int) $teamId : null,
+            );
+        }
+
+        $emails = DB::table(DatabaseTable::NOTIFICATION_EMAIL_ADDRESSES.' as addresses')
+            ->join(DatabaseTable::NOTIFICATION_EMAIL_PREFERENCES.' as preferences', 'preferences.notification_email_address_id', '=', 'addresses.id')
+            ->where('addresses.user_id', (int) $userId)
+            ->where('addresses.team_id', is_numeric($teamId) ? (int) $teamId : null)
+            ->whereNotNull('addresses.verified_at')
+            ->where('preferences.notification_type', $type)
+            ->where('preferences.team_id', is_numeric($teamId) ? (int) $teamId : null)
+            ->where('preferences.enabled', true)
+            ->orderByDesc('addresses.primary')
+            ->orderBy('addresses.email')
+            ->pluck('addresses.email')
+            ->filter(static fn (mixed $email): bool => is_string($email) && $email !== '')
+            ->unique()
+            ->values()
+            ->all();
+        $payloads = [];
+
+        foreach ($emails as $email) {
+            $payloads[] = [
+                'email' => $email,
+                'title' => $title,
+                'body' => is_string($body) ? $body : null,
+            ];
+        }
+
+        return $payloads;
     }
 
     public function markEmailDelivered(int $recipientId): void

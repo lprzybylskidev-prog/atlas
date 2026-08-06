@@ -381,6 +381,8 @@ final class AdminAdministrationCrudTest extends TestCase
                 ))
                 ->where('roleOptions', fn ($roles): bool => $this->optionsContainValue($roles, StarterRoleName::WorkspaceAccess->value))
                 ->where('permissionOptions', fn ($permissions): bool => $this->optionsContainValue($permissions, CoreAuthorizationPermissionCatalog::DASHBOARD))
+                ->where('sessionDefaults.inactivityTimeoutMinutes', 30)
+                ->where('sessionDefaults.sessionMaxLifetimeMinutes', 720)
                 ->has('rolePermissionMap')
             );
 
@@ -393,9 +395,19 @@ final class AdminAdministrationCrudTest extends TestCase
                 ->where('team.publicId', $activeTeam->public_id)
                 ->where('team.name', 'operations')
                 ->where('team.displayName', 'Operations')
+                ->where('team.inactivityTimeoutMinutes', null)
+                ->where('team.sessionMaxLifetimeMinutes', null)
+                ->where('team.breakDailyLimitMinutes', null)
+                ->where('team.breakMaximumSingleMinutes', null)
+                ->where('sessionDefaults.inactivityTimeoutMinutes', 30)
+                ->where('sessionDefaults.sessionMaxLifetimeMinutes', 720)
                 ->where('memberships', fn ($memberships): bool => $this->containsRow($memberships,
                     fn (array $membership): bool => ($membership['userPublicId'] ?? null) === $member->public_id
                         && $this->stringListContains($membership['roleNames'] ?? [], StarterRoleName::WorkspaceAccess->value)
+                        && ($membership['inactivityTimeoutMinutes'] ?? null) === null
+                        && ($membership['sessionMaxLifetimeMinutes'] ?? null) === null
+                        && ($membership['breakDailyLimitMinutes'] ?? null) === null
+                        && ($membership['breakMaximumSingleMinutes'] ?? null) === null
                 ))
                 ->has('assignableUsers')
                 ->has('rolePermissionMap')
@@ -674,11 +686,19 @@ final class AdminAdministrationCrudTest extends TestCase
             ->post('/admin/teams', [
                 'name' => 'new.integrated.team',
                 'display_name' => 'New Integrated Team',
+                'inactivity_timeout_minutes' => 25,
+                'session_max_lifetime_minutes' => 180,
+                'break_daily_limit_minutes' => 35,
+                'break_maximum_single_minutes' => 210,
                 'user_assignments' => [
                     [
                         'user_public_id' => $member->public_id,
                         'role_names' => [StarterRoleName::TeamManagersRead->value],
                         'direct_permission_names' => [CoreAuthorizationPermissionCatalog::DASHBOARD],
+                        'inactivity_timeout_minutes' => 20,
+                        'session_max_lifetime_minutes' => 120,
+                        'break_daily_limit_minutes' => 30,
+                        'break_maximum_single_minutes' => 180,
                     ],
                 ],
             ])
@@ -692,6 +712,30 @@ final class AdminAdministrationCrudTest extends TestCase
             'team_id' => $createdTeam->id,
             'user_id' => $member->id,
             'valid_to' => null,
+            'inactivity_timeout_minutes' => 20,
+            'session_max_lifetime_minutes' => 120,
+        ]);
+        self::assertDatabaseHas(DatabaseTable::TEAMS, [
+            'id' => $createdTeam->id,
+            'inactivity_timeout_minutes' => 25,
+            'session_max_lifetime_minutes' => 180,
+        ]);
+        self::assertDatabaseHas(DatabaseTable::TIME_TRACKING_BREAK_POLICIES, [
+            'scope_type' => 'team',
+            'scope_id' => $createdTeam->id,
+            'daily_limit_seconds' => 2100,
+            'maximum_single_break_seconds' => 12600,
+        ]);
+        $assignmentId = DB::table(DatabaseTable::TEAM_USER_ASSIGNMENTS)
+            ->where('team_id', $createdTeam->id)
+            ->where('user_id', $member->id)
+            ->value('id');
+        self::assertIsNumeric($assignmentId);
+        self::assertDatabaseHas(DatabaseTable::TIME_TRACKING_BREAK_POLICIES, [
+            'scope_type' => 'user_team',
+            'scope_id' => (int) $assignmentId,
+            'daily_limit_seconds' => 1800,
+            'maximum_single_break_seconds' => 10800,
         ]);
         self::assertDatabaseHas(DatabaseTable::MODEL_HAS_ROLES, [
             'role_id' => $managerRole->id,

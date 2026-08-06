@@ -1,14 +1,6 @@
 <script setup lang="ts">
 import { Head } from '@inertiajs/vue3';
-import {
-    IconAlertTriangle,
-    IconFingerprint,
-    IconHistory,
-    IconListDetails,
-    IconSearch,
-    IconShieldCheck,
-    IconUserScan,
-} from '@tabler/icons-vue';
+import { IconAlertTriangle, IconHistory, IconListDetails, IconSearch, IconShieldCheck, IconUserScan } from '@tabler/icons-vue';
 import { computed, ref, watch } from 'vue';
 
 import DataTable from '../../../Components/DataTable.vue';
@@ -19,10 +11,13 @@ import FormSelect, { type FormSelectOption } from '../../../Components/Form/Form
 import OperationalMetricTile from '../../../Components/OperationalMetricTile.vue';
 import PageStack from '../../../Components/PageStack.vue';
 import { applyTableFilters, clearTableFilters } from '../../../Composables/useTableFilterControls';
-import AdminLayout from '../../../Layouts/AdminLayout.vue';
+import AppLayout from '../../../Layouts/AppLayout.vue';
 import { useTranslator } from '../../../Localization/translator';
 import type { DataTableAction, DataTableColumn, DataTableMeta } from '../../../Types/data-table';
 import type { ShellSubnavigationItem } from '../../../Types/navigation';
+import { existingOptionsWithAll } from '../../../Utils/filterOptions';
+import { moduleLabel } from '../../../Utils/moduleLabels';
+import { readableFilterOption, readableToken } from '../../../Utils/readableTokens';
 
 interface FilterOption {
     value: string;
@@ -158,18 +153,22 @@ const actions = computed<DataTableAction<AuditEventRow>[]>(() => [
     },
 ]);
 const moduleOptions = computed<FormSelectOption[]>(() =>
-    allOptions(props.filterOptions.modules, t('pages.admin.audit.filters.any_module')),
+    existingOptionsWithAll(props.filterOptions.modules, t('pages.admin.audit.filters.any_module'), (option) =>
+        moduleLabel(option.value, t),
+    ),
 );
 const actionOptions = computed<FormSelectOption[]>(() =>
-    allOptions(props.filterOptions.actions, t('pages.admin.audit.filters.any_action')),
+    existingOptionsWithAll(props.filterOptions.actions, t('pages.admin.audit.filters.any_action'), readableFilterOption),
 );
 const sourceOptions = computed<FormSelectOption[]>(() =>
-    allOptions(props.filterOptions.sources, t('pages.admin.audit.filters.any_source')),
+    existingOptionsWithAll(props.filterOptions.sources, t('pages.admin.audit.filters.any_source'), readableFilterOption),
 );
 const targetTypeOptions = computed<FormSelectOption[]>(() =>
-    allOptions(props.filterOptions.targetTypes, t('pages.admin.audit.filters.any_target_type')),
+    existingOptionsWithAll(props.filterOptions.targetTypes, t('pages.admin.audit.filters.any_target_type'), readableFilterOption),
 );
-const teamOptions = computed<FormSelectOption[]>(() => allOptions(props.filterOptions.teams, t('pages.admin.audit.filters.any_team')));
+const teamOptions = computed<FormSelectOption[]>(() =>
+    existingOptionsWithAll(props.filterOptions.teams, t('pages.admin.audit.filters.any_team')),
+);
 const resultOptions = computed<FormSelectOption[]>(() => [
     { value: 'all', label: t('pages.admin.audit.filters.any_result') },
     { value: 'succeeded', label: t('pages.admin.audit.result.succeeded') },
@@ -182,6 +181,16 @@ const securityOptions = computed<FormSelectOption[]>(() => [
     { value: 'no', label: t('pages.admin.audit.filters.non_security') },
 ]);
 const tableFilters = computed(() => filterValues());
+const rows = computed<AuditEventRow[]>(() =>
+    props.events.map((event) => ({
+        ...event,
+        module: moduleLabel(event.module, t),
+        action: readableToken(event.action),
+        source: readableToken(event.source),
+        targetType: readableToken(event.targetType),
+        aggregateType: readableToken(event.aggregateType),
+    })),
+);
 
 watch(
     () => props.table.state.filters,
@@ -210,10 +219,6 @@ function filterValues(): Record<string, string> {
     };
 }
 
-function allOptions(values: FilterOption[], label: string): FormSelectOption[] {
-    return [{ value: 'all', label }, ...values];
-}
-
 function applyFilters(): void {
     applyTableFilters(filterKeys, filters.value, filterDefaults);
 }
@@ -226,9 +231,10 @@ function clearFilters(): void {
 
 <template>
     <Head :title="t('pages.admin.audit.head_title')" />
-    <AdminLayout
+    <AppLayout
+        mode="admin"
         :title="t('pages.admin.audit.title')"
-        :title-icon="IconFingerprint"
+        :title-icon="IconShieldCheck"
         :subnavigation="subnavigation"
         :subnavigation-label="t('pages.admin.audit.nav.label')"
     >
@@ -304,7 +310,7 @@ function clearFilters(): void {
 
             <DataTable
                 :title="t('pages.admin.audit.events.title')"
-                :rows="events"
+                :rows="rows"
                 :columns="columns"
                 row-key="publicId"
                 :actions="actions"
@@ -314,5 +320,5 @@ function clearFilters(): void {
                 :empty-label="t('pages.admin.audit.events.empty')"
             />
         </PageStack>
-    </AdminLayout>
+    </AppLayout>
 </template>

@@ -24,7 +24,15 @@ final class ModuleKeyResolver
             return 'authorization';
         }
 
-        if (str_starts_with($permission, 'admin.users.')) {
+        if ($permission === 'users.work-time' || str_starts_with($permission, 'users.work-time.')) {
+            return 'time_tracking';
+        }
+
+        if (str_starts_with($permission, 'users.notifications.')) {
+            return 'notifications';
+        }
+
+        if (str_starts_with($permission, 'admin.users.') || str_starts_with($permission, 'users.')) {
             return 'users';
         }
 
@@ -86,6 +94,14 @@ final class ModuleKeyResolver
 
         if (str_starts_with($permission, 'admin.reports.') || str_starts_with($permission, 'reports.')) {
             return 'reports';
+        }
+
+        if (str_starts_with($permission, 'time-tracking.')
+            || str_starts_with($permission, 'manager.work-time.')
+            || str_starts_with($permission, 'admin.time-tracking.')
+            || str_starts_with($permission, 'admin.work-time.')
+        ) {
+            return 'time_tracking';
         }
 
         if (str_starts_with($permission, 'admin.modules.') || str_starts_with($permission, 'modules.')) {

@@ -54,7 +54,9 @@ final class DatabaseTable
 
     public const NOTIFICATION_RECIPIENTS = DatabaseSchema::CORE_NOTIFICATIONS.'.notification_recipients';
 
-    public const NOTIFICATION_PREFERENCES = DatabaseSchema::CORE_NOTIFICATIONS.'.notification_preferences';
+    public const NOTIFICATION_EMAIL_ADDRESSES = DatabaseSchema::CORE_NOTIFICATIONS.'.notification_email_addresses';
+
+    public const NOTIFICATION_EMAIL_PREFERENCES = DatabaseSchema::CORE_NOTIFICATIONS.'.notification_email_preferences';
 
     public const REALTIME_EVENTS = DatabaseSchema::CORE_NOTIFICATIONS.'.realtime_events';
 
@@ -101,6 +103,38 @@ final class DatabaseTable
     public const FEATURE_FLAG_TEAM_VALUES = DatabaseSchema::OPTIONAL_FEATURE_FLAGS.'.feature_flag_team_values';
 
     public const FEATURE_FLAG_HISTORY = DatabaseSchema::OPTIONAL_FEATURE_FLAGS.'.feature_flag_history';
+
+    public const TIME_TRACKING_USER_TEAM_SETTINGS = DatabaseSchema::OPTIONAL_TIME_TRACKING.'.user_team_settings';
+
+    public const TIME_TRACKING_WORK_SESSIONS = DatabaseSchema::OPTIONAL_TIME_TRACKING.'.work_sessions';
+
+    public const TIME_TRACKING_MODULE_CONTEXT_SEGMENTS = DatabaseSchema::OPTIONAL_TIME_TRACKING.'.module_context_segments';
+
+    public const TIME_TRACKING_BREAKS = DatabaseSchema::OPTIONAL_TIME_TRACKING.'.breaks';
+
+    public const TIME_TRACKING_BREAK_REMINDERS = DatabaseSchema::OPTIONAL_TIME_TRACKING.'.break_reminders';
+
+    public const TIME_TRACKING_OTHER_WORK_CATEGORIES = DatabaseSchema::OPTIONAL_TIME_TRACKING.'.other_work_categories';
+
+    public const TIME_TRACKING_OTHER_WORK = DatabaseSchema::OPTIONAL_TIME_TRACKING.'.other_work';
+
+    public const TIME_TRACKING_MAINTENANCE_WINDOWS = DatabaseSchema::OPTIONAL_TIME_TRACKING.'.maintenance_windows';
+
+    public const TIME_TRACKING_MAINTENANCE_AFFECTED_SESSIONS = DatabaseSchema::OPTIONAL_TIME_TRACKING.'.maintenance_affected_sessions';
+
+    public const TIME_TRACKING_CORRECTION_REQUESTS = DatabaseSchema::OPTIONAL_TIME_TRACKING.'.correction_requests';
+
+    public const TIME_TRACKING_CORRECTION_PROPOSALS = DatabaseSchema::OPTIONAL_TIME_TRACKING.'.correction_proposals';
+
+    public const TIME_TRACKING_CORRECTION_HISTORY = DatabaseSchema::OPTIONAL_TIME_TRACKING.'.correction_history';
+
+    public const TIME_TRACKING_CLOSED_PERIOD_OVERRIDES = DatabaseSchema::OPTIONAL_TIME_TRACKING.'.closed_period_overrides';
+
+    public const TIME_TRACKING_SETTLEMENT_SETTINGS = DatabaseSchema::OPTIONAL_TIME_TRACKING.'.settlement_settings';
+
+    public const TIME_TRACKING_SETTLEMENT_PERIODS = DatabaseSchema::OPTIONAL_TIME_TRACKING.'.settlement_periods';
+
+    public const TIME_TRACKING_BREAK_POLICIES = DatabaseSchema::OPTIONAL_TIME_TRACKING.'.break_policies';
 
     public const REPORT_EXPORT_REQUESTS = DatabaseSchema::CORE_EXPORTS.'.export_requests';
 

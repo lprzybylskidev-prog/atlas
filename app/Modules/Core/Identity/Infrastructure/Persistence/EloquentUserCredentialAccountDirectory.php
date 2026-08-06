@@ -70,8 +70,12 @@ final class EloquentUserCredentialAccountDirectory implements UserCredentialAcco
             ->exists();
     }
 
-    public function updateIdentity(string $publicId, string $name, string $email, string $accountSensitivity): ?AdminUserCredentialAccount
-    {
+    public function updateIdentity(
+        string $publicId,
+        string $name,
+        string $email,
+        string $accountSensitivity,
+    ): ?AdminUserCredentialAccount {
         $user = User::query()->where('public_id', $publicId)->first();
 
         if (! $user instanceof User) {

@@ -35,17 +35,19 @@ final class DeliverNotification implements ShouldQueue
             return;
         }
 
-        $payload = $notifications->emailPayload($this->recipientId);
+        $payloads = $notifications->emailPayloads($this->recipientId);
 
-        if ($payload === null) {
+        if ($payloads === []) {
             $notifications->markEmailSkipped($this->recipientId);
 
             return;
         }
 
-        Mail::raw($payload['body'] ?? $payload['title'], function (Message $message) use ($payload): void {
-            $message->to($payload['email'])->subject($payload['title']);
-        });
+        foreach ($payloads as $payload) {
+            Mail::raw($payload['body'] ?? $payload['title'], function (Message $message) use ($payload): void {
+                $message->to($payload['email'])->subject($payload['title']);
+            });
+        }
 
         $notifications->markEmailDelivered($this->recipientId);
     }

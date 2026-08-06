@@ -89,7 +89,7 @@ function createSchedule(): void {
                     </div>
                     <div class="mt-4 flex justify-end">
                         <FormButton type="submit" :icon="IconDeviceFloppy" :loading="form.processing">
-                            {{ t('pages.admin.managed_processes.create') }}
+                            {{ t('pages.admin.managed_processes.schedules.create') }}
                         </FormButton>
                     </div>
                 </AtlasForm>

@@ -12,12 +12,14 @@ import FormSelect, { type FormSelectOption } from '../../../Components/Form/Form
 import OperationalMetricTile from '../../../Components/OperationalMetricTile.vue';
 import PageStack from '../../../Components/PageStack.vue';
 import SurfaceCard from '../../../Components/SurfaceCard.vue';
-import TextBadge from '../../../Components/TextBadge.vue';
+import StatusBadge from '../../../Components/StatusBadge.vue';
 import { applyTableFilters, clearTableFilters } from '../../../Composables/useTableFilterControls';
-import AdminLayout from '../../../Layouts/AdminLayout.vue';
+import AppLayout from '../../../Layouts/AppLayout.vue';
 import { useTranslator } from '../../../Localization/translator';
 import type { DataTableExportMeta } from '../../../Types/data-table';
-import { formatDateTime } from '../../../Utils/formatters';
+import { optionsWithAll } from '../../../Utils/filterOptions';
+import { formatDateTime, formatStatus } from '../../../Utils/formatters';
+import { moduleLabel } from '../../../Utils/moduleLabels';
 
 interface LogEntry {
     publicId: string;
@@ -101,8 +103,16 @@ const exportColumns = [
     'details',
 ];
 
+const displayLogs = computed<LogEntry[]>(() =>
+    props.logs.map((log) => ({
+        ...log,
+        module: moduleLabel(log.module, t),
+        source: readableLogToken(log.source),
+        eventName: readableLogToken(log.eventName),
+    })),
+);
 const selectedLog = computed<LogEntry | null>(
-    () => props.logs.find((log) => log.publicId === selectedLogId.value) ?? props.logs[0] ?? null,
+    () => displayLogs.value.find((log) => log.publicId === selectedLogId.value) ?? displayLogs.value[0] ?? null,
 );
 const fileOptions = computed<FormSelectOption[]>(() =>
     props.filterOptions.files.map((file) => ({
@@ -111,10 +121,14 @@ const fileOptions = computed<FormSelectOption[]>(() =>
     })),
 );
 const levelOptions = computed<FormSelectOption[]>(() =>
-    allOptions(props.filterOptions.levels, t('pages.admin.logs.filters.any_level'), levelLabel),
+    optionsWithAll(props.filterOptions.levels, t('pages.admin.logs.filters.any_level'), levelLabel),
 );
-const moduleOptions = computed<FormSelectOption[]>(() => allOptions(props.filterOptions.modules, t('pages.admin.logs.filters.any_module')));
-const sourceOptions = computed<FormSelectOption[]>(() => allOptions(props.filterOptions.sources, t('pages.admin.logs.filters.any_source')));
+const moduleOptions = computed<FormSelectOption[]>(() =>
+    optionsWithAll(props.filterOptions.modules, t('pages.admin.logs.filters.any_module'), (module) => moduleLabel(module, t)),
+);
+const sourceOptions = computed<FormSelectOption[]>(() =>
+    optionsWithAll(props.filterOptions.sources, t('pages.admin.logs.filters.any_source'), readableLogToken),
+);
 const latestModified = computed(() => formatDateTime(props.summary.latestModifiedAt, locale.value));
 
 watch(
@@ -132,16 +146,6 @@ watch(
         }
     },
 );
-
-function allOptions(values: string[], label: string, formatter?: (value: string) => string): FormSelectOption[] {
-    return [
-        { value: 'all', label },
-        ...values.map((value) => ({
-            value,
-            label: formatter === undefined ? value : formatter(value),
-        })),
-    ];
-}
 
 function applyFilters(): void {
     applyTableFilters(filterKeys, filters.value, filterDefaults.value);
@@ -165,7 +169,11 @@ function levelLabel(level: string): string {
         warning: 'pages.admin.logs.level.warning',
     };
 
-    return keys[level] === undefined ? level : t(keys[level]);
+    return keys[level] === undefined ? formatStatus(level) : t(keys[level]);
+}
+
+function readableLogToken(value: string): string {
+    return value === '' ? '' : formatStatus(value);
 }
 
 function levelTone(level: string): 'danger' | 'info' | 'neutral' | 'success' | 'warning' {
@@ -205,7 +213,7 @@ function detailContent(log: LogEntry | null): string {
 
 <template>
     <Head :title="t('pages.admin.logs.head_title')" />
-    <AdminLayout :title="t('pages.admin.logs.title')" :title-icon="IconFileText">
+    <AppLayout mode="admin" :title="t('pages.admin.logs.title')" :title-icon="IconFileText">
         <PageStack>
             <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-6">
                 <OperationalMetricTile
@@ -283,14 +291,14 @@ function detailContent(log: LogEntry | null): string {
                     <span v-if="summary.latestModifiedAt">{{ t('pages.admin.logs.viewer.modified', { date: latestModified }) }}</span>
                 </div>
 
-                <div v-if="logs.length === 0" class="py-8 text-center text-sm text-zinc-500 dark:text-zinc-400">
+                <div v-if="displayLogs.length === 0" class="py-8 text-center text-sm text-zinc-500 dark:text-zinc-400">
                     {{ t('pages.admin.logs.viewer.empty') }}
                 </div>
 
                 <div v-else class="grid min-h-[34rem] gap-4 xl:grid-cols-[minmax(20rem,28rem)_1fr]">
                     <div class="max-h-[42rem] overflow-auto rounded-lg border border-zinc-200 dark:border-zinc-800">
                         <button
-                            v-for="log in logs"
+                            v-for="log in displayLogs"
                             :key="log.publicId"
                             type="button"
                             class="block w-full border-b border-zinc-200 px-3 py-3 text-left transition last:border-b-0 hover:bg-zinc-50 focus-visible:outline focus-visible:outline-amber-500 dark:border-zinc-800 dark:hover:bg-zinc-900"
@@ -298,7 +306,7 @@ function detailContent(log: LogEntry | null): string {
                             @click="selectedLogId = log.publicId"
                         >
                             <div class="flex min-w-0 items-center justify-between gap-2">
-                                <TextBadge :label="levelLabel(log.level)" :tone="levelTone(log.level)" />
+                                <StatusBadge :label="levelLabel(log.level)" :tone="levelTone(log.level)" />
                                 <span class="shrink-0 text-xs text-zinc-500 dark:text-zinc-400">{{ occurredAtLabel(log) }}</span>
                             </div>
                             <p class="mt-2 line-clamp-2 text-sm font-medium text-zinc-950 dark:text-zinc-50">{{ log.message }}</p>
@@ -362,5 +370,5 @@ function detailContent(log: LogEntry | null): string {
                 </div>
             </SurfaceCard>
         </PageStack>
-    </AdminLayout>
+    </AppLayout>
 </template>

@@ -1,5 +1,7 @@
 import type { FunctionalComponent } from 'vue';
 
+export type ShellMode = 'app' | 'user' | 'manager' | 'admin';
+
 export interface NavigationNode {
     key: string;
     label: string;

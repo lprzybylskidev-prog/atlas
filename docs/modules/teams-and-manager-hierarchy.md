@@ -69,6 +69,6 @@ Audited manager hierarchy actions include `team.manager_relationship.created`, `
 
 Granular permissions include `admin.managers.index`, `admin.managers.create`, `admin.managers.edit`, `admin.managers.store`, `admin.managers.end`, `admin.managers.head.update`, `teams.managers.view`, `teams.managers.create`, `teams.managers.update`, `teams.managers.terminate`, `teams.managers.tree`, `teams.managers.history`, and `teams.managers.head.update`.
 
-Development reset does not seed representative manager hierarchies after Phase 25 cleanup. Tests and future business modules must create their own explicit manager fixtures.
+Development reset does not seed generic representative manager hierarchies after Phase 25 cleanup. The Phase 27 TimeTracking development demo is the current explicit exception: it creates a small manager hierarchy only for TimeTracking review data. Tests and future business modules must create their own explicit manager fixtures.
 
 ---

@@ -4,7 +4,7 @@ import { IconPackage } from '@tabler/icons-vue';
 
 import OnboardingPackageForm from '../../../../Components/Authorization/OnboardingPackageForm.vue';
 import PageStack from '../../../../Components/PageStack.vue';
-import AdminLayout from '../../../../Layouts/AdminLayout.vue';
+import AppLayout from '../../../../Layouts/AppLayout.vue';
 import { useTranslator } from '../../../../Localization/translator';
 import type { AuthorizationAssignmentOption } from '../../../../Types/user-team-access';
 
@@ -39,7 +39,7 @@ function submit(): void {
 
 <template>
     <Head :title="t('pages.admin.packages.edit.head_title')" />
-    <AdminLayout :title="t('pages.admin.packages.edit.title')" :title-icon="IconPackage">
+    <AppLayout mode="admin" :title="t('pages.admin.packages.edit.title')" :title-icon="IconPackage">
         <PageStack>
             <OnboardingPackageForm
                 v-model:team-public-id="form.team_public_id"
@@ -60,5 +60,5 @@ function submit(): void {
                 @submit="submit"
             />
         </PageStack>
-    </AdminLayout>
+    </AppLayout>
 </template>

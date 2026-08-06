@@ -4,7 +4,19 @@ export interface DataTableColumn<TRow extends Record<string, unknown>> {
     sortable?: boolean;
     hidden?: boolean;
     format?:
-        'boolean' | 'count' | 'date' | 'datetime' | 'file-size' | 'list' | 'money' | 'number' | 'percent' | 'severity' | 'status' | 'time';
+        | 'boolean'
+        | 'count'
+        | 'date'
+        | 'datetime'
+        | 'file-size'
+        | 'list'
+        | 'money'
+        | 'number'
+        | 'percent'
+        | 'severity'
+        | 'status'
+        | 'status-badge'
+        | 'time';
 }
 
 export interface DataTableAction<TRow extends Record<string, unknown>> {

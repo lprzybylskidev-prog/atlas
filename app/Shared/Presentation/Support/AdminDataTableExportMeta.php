@@ -11,10 +11,10 @@ final class AdminDataTableExportMeta
     /**
      * @return array{endpoint: string, formats: list<string>}
      */
-    public static function defaults(): array
+    public static function defaults(?string $endpoint = null): array
     {
         return [
-            'endpoint' => route('admin.exports.data-table'),
+            'endpoint' => $endpoint ?? route('admin.exports.data-table'),
             'formats' => [
                 ReportExportFormat::Csv->value,
                 ReportExportFormat::Xlsx->value,

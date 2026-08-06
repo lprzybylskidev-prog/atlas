@@ -12,6 +12,12 @@ const tsFiles = import.meta.glob('../**/*.ts', {
     query: '?raw',
 }) as Record<string, string>;
 
+const translationFiles = import.meta.glob('../../../lang/*.json', {
+    eager: true,
+    import: 'default',
+    query: '?raw',
+}) as Record<string, string>;
+
 describe('shared UI guardrails', () => {
     it('does not use native browser alert or confirm APIs', () => {
         for (const [file, contents] of Object.entries({ ...vueFiles, ...tsFiles })) {
@@ -24,16 +30,25 @@ describe('shared UI guardrails', () => {
             const domTitleAttributes = contents
                 .split('\n')
                 .filter((line) => /<([a-z][\w-]*)\b[^>]*(\s|:)title=/.test(line))
-                .filter(
-                    (line) =>
-                        !line.includes('<Head') &&
-                        !line.includes('<DataTable') &&
-                        !line.includes('<AdminLayout') &&
-                        !line.includes('<AppLayout'),
-                );
+                .filter((line) => !line.includes('<Head') && !line.includes('<DataTable') && !line.includes('<AppLayout'));
 
             expect(domTitleAttributes, file).toEqual([]);
         }
+    });
+
+    it('keeps common technical filter and status labels human-readable', () => {
+        const polishTranslations = translationFiles['../../../lang/pl.json'];
+        const dataTable = Object.entries(vueFiles).find(([file]) => file.endsWith('/DataTable.vue'))?.[1];
+
+        expect(polishTranslations).toBeDefined();
+        expect(polishTranslations).not.toMatch(/Dowoln|Dowolnie/);
+        expect(polishTranslations).toContain('"pages.admin.files.filters.any_handling": "Wszystkie statusy obsługi"');
+        expect(polishTranslations).toContain('"pages.admin.files.filters.not_applicable": "Nie wymaga obsługi"');
+        expect(polishTranslations).toContain('"pages.admin.files.providers.fake": "Skaner testowy"');
+        expect(polishTranslations).toContain('"pages.admin.managed_processes.filters.ok": "Nie wymaga obsługi"');
+        expect(dataTable).toBeDefined();
+        expect(dataTable).toContain("half_open: 'datatable.status.half_open'");
+        expect(dataTable).toContain("under_review: 'datatable.status.under_review'");
     });
 
     it('keeps modal accessibility behavior wired in the shared host', () => {
@@ -46,13 +61,115 @@ describe('shared UI guardrails', () => {
         expect(modalHost).toContain("event.key === 'Tab'");
     });
 
-    it('keeps admin shell localized with language switching controls', () => {
+    it('keeps admin pages on the shared application shell', () => {
+        const appLayout = Object.entries(vueFiles).find(([file]) => file.endsWith('/Layouts/AppLayout.vue'))?.[1];
         const adminLayout = Object.entries(vueFiles).find(([file]) => file.endsWith('/Layouts/AdminLayout.vue'))?.[1];
 
-        expect(adminLayout).toBeDefined();
-        expect(adminLayout).toContain('mode="admin"');
-        expect(adminLayout).not.toMatch(/\bui-locale="en"/);
-        expect(adminLayout).toContain(':show-locale-switcher="true"');
+        expect(appLayout).toBeDefined();
+        expect(adminLayout).toBeUndefined();
+        expect(appLayout).not.toMatch(/\bui-locale="en"/);
+
+        for (const [file, contents] of Object.entries(vueFiles)) {
+            if (!file.includes('/Pages/Admin/') && !file.includes('/Components/ManagedProcesses/')) {
+                continue;
+            }
+
+            expect(contents, `${file}: admin surfaces must not reintroduce an AdminLayout wrapper.`).not.toContain('AdminLayout');
+
+            if (file.includes('/Pages/Admin/ManagedProcesses/')) {
+                expect(contents, `${file}: managed-process pages may use the shared section area only.`).toContain('ManagedProcessArea');
+
+                continue;
+            }
+
+            expect(contents, `${file}: admin surfaces must use AppLayout directly in admin mode.`).toContain('AppLayout');
+            expect(contents, `${file}: admin surfaces must explicitly select the admin shell mode.`).toContain('mode="admin"');
+        }
+    });
+
+    it('keeps application, user, manager, and admin side navigation separated', () => {
+        const sidebar = Object.entries(vueFiles).find(([file]) => file.endsWith('/Sidebar.vue'))?.[1];
+        const mobileNavigation = Object.entries(vueFiles).find(([file]) => file.endsWith('/MobileNavigation.vue'))?.[1];
+        const dashboard = Object.entries(vueFiles).find(([file]) => file.endsWith('/Pages/Dashboard.vue'))?.[1];
+        const userPanel = Object.entries(vueFiles).find(([file]) => file.endsWith('/Pages/User/Panel.vue'))?.[1];
+        const managerPanel = Object.entries(vueFiles).find(([file]) => file.endsWith('/Pages/Manager/Panel.vue'))?.[1];
+        const userReport = Object.entries(vueFiles).find(([file]) => file.endsWith('/Pages/TimeTracking/UserReport.vue'))?.[1];
+        const managerReport = Object.entries(vueFiles).find(([file]) => file.endsWith('/Pages/TimeTracking/ManagerReport.vue'))?.[1];
+        const notifications = Object.entries(vueFiles).find(([file]) => file.endsWith('/Pages/Notifications/Index.vue'))?.[1];
+        const polishTranslations = JSON.parse(translationFiles['../../../lang/pl.json'] ?? '{}') as Record<string, string>;
+        const englishTranslations = JSON.parse(translationFiles['../../../lang/en.json'] ?? '{}') as Record<string, string>;
+
+        expect(sidebar).toBeDefined();
+        expect(sidebar).toContain("const workspaceItemsByMode: Record<Exclude<ShellMode, 'admin'>, NavigationNode[]>");
+        expect(sidebar).toContain('app: [appDashboard]');
+        expect(sidebar).toContain('user: [');
+        expect(sidebar).toContain('manager: [');
+        expect(sidebar).not.toContain('v-if="mode !== \'admin\'"');
+        expect(mobileNavigation).toBeDefined();
+        expect(mobileNavigation).toContain("const workspaceItemsByMode: Record<Exclude<ShellMode, 'admin'>, MobileNavigationItem[]>");
+        expect(mobileNavigation).toContain('app: [appDashboard]');
+        expect(mobileNavigation).not.toContain('v-if="mode !== \'admin\'"');
+        expect(dashboard).toBeDefined();
+        expect(dashboard).toContain('<AppLayout :title="t(\'pages.dashboard.title\')" :title-icon="IconLayoutDashboard" />');
+        expect(polishTranslations['pages.dashboard.title']).toBe(polishTranslations['navigation.app_dashboard']);
+        expect(polishTranslations['pages.dashboard.head_title']).toBe(polishTranslations['navigation.app_dashboard']);
+        expect(englishTranslations['pages.dashboard.title']).toBe(englishTranslations['navigation.app_dashboard']);
+        expect(englishTranslations['pages.dashboard.head_title']).toBe(englishTranslations['navigation.app_dashboard']);
+        expect(userPanel).toContain('mode="user"');
+        expect(userReport).toContain('mode="user"');
+        expect(notifications).toContain('mode="user"');
+        expect(managerPanel).toContain('mode="manager"');
+        expect(managerReport).toContain('mode="manager"');
+    });
+
+    it('keeps page titles aligned with canonical navigation labels', () => {
+        const polishTranslations = JSON.parse(translationFiles['../../../lang/pl.json'] ?? '{}') as Record<string, string>;
+        const englishTranslations = JSON.parse(translationFiles['../../../lang/en.json'] ?? '{}') as Record<string, string>;
+        const titleContracts = [
+            ['navigation.app_dashboard', ['pages.dashboard.title', 'pages.dashboard.head_title']],
+            [
+                'navigation.user_dashboard',
+                [
+                    'pages.user_panel.title',
+                    'pages.user_panel.head_title',
+                    'pages.user_panel.profile_title',
+                    'pages.user_panel.profile_head_title',
+                ],
+            ],
+            ['navigation.manager_dashboard', ['pages.manager_panel.title', 'pages.manager_panel.head_title']],
+            ['navigation.notifications', ['pages.notifications.title', 'pages.notifications.head_title']],
+            ['navigation.time_tracking', ['pages.time_tracking.user_report.title', 'pages.time_tracking.user_report.head_title']],
+            [
+                'navigation.time_tracking_manager',
+                ['pages.time_tracking.manager_report.title', 'pages.time_tracking.manager_report.head_title'],
+            ],
+            ['navigation.admin_dashboard', ['pages.admin.dashboard.title']],
+            ['navigation.users', ['pages.admin.users.index.title', 'pages.admin.users.index.head_title']],
+            ['navigation.teams', ['pages.admin.teams.title', 'pages.admin.teams.head_title']],
+            ['navigation.managers', ['pages.admin.managers.title', 'pages.admin.managers.head_title']],
+            ['navigation.roles', ['pages.admin.roles.title', 'pages.admin.roles.head_title']],
+            ['navigation.permissions', ['pages.admin.permissions.title', 'pages.admin.permissions.head_title']],
+            ['navigation.packages', ['pages.admin.packages.title', 'pages.admin.packages.head_title']],
+            ['navigation.audit_security', ['pages.admin.audit.title', 'pages.admin.audit.head_title']],
+            ['navigation.modules', ['pages.admin.modules.title', 'pages.admin.modules.head_title']],
+            ['navigation.managed_processes', ['pages.admin.managed_processes.title', 'pages.admin.managed_processes.head_title']],
+            ['navigation.queues', ['pages.admin.queues.title', 'pages.admin.queues.head_title']],
+            ['navigation.files', ['pages.admin.files.title', 'pages.admin.files.head_title']],
+            ['navigation.privacy_retention', ['pages.admin.privacy_retention.title', 'pages.admin.privacy_retention.head_title']],
+            ['navigation.logs', ['pages.admin.logs.title', 'pages.admin.logs.head_title']],
+            ['navigation.feature_flags', ['pages.admin.feature_flags.title', 'pages.admin.feature_flags.head_title']],
+            ['navigation.rate_limits', ['pages.admin.rate_limits.title', 'pages.admin.rate_limits.head_title']],
+            ['navigation.integrations', ['pages.admin.integrations.title', 'pages.admin.integrations.head_title']],
+            ['navigation.search', ['pages.admin.search.title', 'pages.admin.search.head_title']],
+        ] as const;
+
+        for (const translations of [polishTranslations, englishTranslations]) {
+            for (const [navigationKey, pageTitleKeys] of titleContracts) {
+                for (const pageTitleKey of pageTitleKeys) {
+                    expect(translations[pageTitleKey], `${pageTitleKey} must match ${navigationKey}`).toBe(translations[navigationKey]);
+                }
+            }
+        }
     });
 
     it('keeps the global impersonation banner localized', () => {
@@ -63,6 +180,78 @@ describe('shared UI guardrails', () => {
         expect(appLayout).toContain("t('pages.admin.impersonation.banner.exit')");
         expect(appLayout).not.toContain('Impersonating');
         expect(appLayout).not.toContain('Exit impersonation');
+    });
+
+    it('keeps breadcrumbs text-only in the top bar', () => {
+        const topBar = Object.entries(vueFiles).find(([file]) => file.endsWith('/TopBar.vue'))?.[1];
+        const breadcrumbNav = topBar?.match(/<nav[\s\S]*:aria-label="t\('navigation\.aria\.breadcrumb'\)"[\s\S]*<\/nav>/)?.[0] ?? '';
+
+        expect(topBar).toBeDefined();
+        expect(breadcrumbNav).toContain('{{ breadcrumb.label }}');
+        expect(breadcrumbNav).not.toContain('<component');
+        expect(breadcrumbNav).not.toContain(':is=');
+    });
+
+    it('keeps system status detail labels localized', () => {
+        const systemStatusCard = Object.entries(vueFiles).find(([file]) =>
+            file.endsWith('/ComposableView/Elements/SystemStatusCard.vue'),
+        )?.[1];
+
+        expect(systemStatusCard).toBeDefined();
+        expect(systemStatusCard).toContain("t('pages.admin.dashboard.system_status.version')");
+        expect(systemStatusCard).toContain("t('pages.admin.dashboard.system_status.queues')");
+        expect(systemStatusCard).not.toContain("label: 'Queues'");
+        expect(systemStatusCard).not.toContain("label: 'Version'");
+        expect(systemStatusCard).not.toContain("label: 'Environment'");
+    });
+
+    it('keeps TimeTracking activity and offline states in the shared application shell', () => {
+        const appLayout = Object.entries(vueFiles).find(([file]) => file.endsWith('/Layouts/AppLayout.vue'))?.[1];
+        const tracker = Object.entries(tsFiles).find(([file]) => file.endsWith('/Composables/useTimeTrackingActivityTracker.ts'))?.[1];
+
+        expect(appLayout).toBeDefined();
+        expect(appLayout).toContain("t('pages.time_tracking.activity_warning.title')");
+        expect(appLayout).toContain("t('pages.time_tracking.offline.banner')");
+        expect(appLayout).toContain('DialogPanel');
+        expect(tracker).toBeDefined();
+        expect(tracker).toContain('performance.now()');
+        expect(tracker).toContain('BroadcastChannel');
+        expect(tracker).toContain("window.addEventListener('offline'");
+        expect(tracker).toContain("window.addEventListener('online'");
+    });
+
+    it('keeps TimeTracking transition and lock screens on the authentication shell', () => {
+        const startOtherWork = Object.entries(vueFiles).find(([file]) => file.endsWith('/Pages/TimeTracking/StartOtherWork.vue'))?.[1];
+        const breakLock = Object.entries(vueFiles).find(([file]) => file.endsWith('/Pages/TimeTracking/BreakLock.vue'))?.[1];
+        const otherWorkLock = Object.entries(vueFiles).find(([file]) => file.endsWith('/Pages/TimeTracking/OtherWorkLock.vue'))?.[1];
+
+        expect(startOtherWork).toBeDefined();
+        expect(breakLock).toBeDefined();
+        expect(otherWorkLock).toBeDefined();
+        expect(startOtherWork).toContain('AuthLayout');
+        expect(breakLock).toContain('AuthLayout');
+        expect(otherWorkLock).toContain('AuthLayout');
+        expect(startOtherWork).not.toContain('AppLayout');
+        expect(breakLock).not.toContain('AppLayout');
+        expect(otherWorkLock).not.toContain('AppLayout');
+    });
+
+    it('keeps Admin TimeTracking Other-work categories outside the report index', () => {
+        const adminOperations = Object.entries(vueFiles).find(([file]) => file.endsWith('/Pages/TimeTracking/AdminOperations.vue'))?.[1];
+        const categoriesIndex = Object.entries(vueFiles).find(([file]) =>
+            file.endsWith('/Pages/TimeTracking/AdminOtherWorkCategories.vue'),
+        )?.[1];
+        const categoriesCreate = Object.entries(vueFiles).find(([file]) =>
+            file.endsWith('/Pages/TimeTracking/AdminOtherWorkCategoryCreate.vue'),
+        )?.[1];
+
+        expect(adminOperations).toBeDefined();
+        expect(categoriesIndex).toBeDefined();
+        expect(categoriesCreate).toBeDefined();
+        expect(adminOperations).not.toContain('categoryForm');
+        expect(adminOperations).not.toContain("categoryForm.post('/admin/work-time/other-work/categories'");
+        expect(categoriesCreate).toContain('function basePath(): string');
+        expect(categoriesCreate).toContain('form.post(`${basePath()}/other-work/categories`');
     });
 
     it('does not turn managed-process progress events into toast storms', () => {
@@ -125,6 +314,47 @@ describe('shared UI guardrails', () => {
         }
     });
 
+    it('keeps advanced form controls generic and shared', () => {
+        const formColorPicker = Object.entries(vueFiles).find(([file]) => file.endsWith('/Form/FormColorPicker.vue'))?.[1];
+        const formImageCropper = Object.entries(vueFiles).find(([file]) => file.endsWith('/Form/FormImageCropper.vue'))?.[1];
+        const formMoneyInput = Object.entries(vueFiles).find(([file]) => file.endsWith('/Form/FormMoneyInput.vue'))?.[1];
+        const forbiddenFeatureControlFileName =
+            /(?:Debt|Case|User|Profile|Avatar|Team|Manager|Notification|TimeTracking|Module|Search|Queue|Audit|Integration)(?:Money|Euro|Currency|Color|Image|Date|DateTime|Tag|Autocomplete|Upload|Cropper|Picker|Input|Select|Textarea)\.vue$/;
+        const forbiddenKnownBadNames = ['DebtEuroInput', 'AvatarColorPicker', 'AvatarImageCropper', 'ProfileUpload', 'CaseDatePicker'];
+
+        expect(formColorPicker).toBeDefined();
+        expect(formImageCropper).toBeDefined();
+        expect(formMoneyInput).toBeDefined();
+
+        for (const [file, contents] of Object.entries(vueFiles)) {
+            if (file.includes('/Components/Form/')) {
+                expect(file, file).not.toMatch(forbiddenFeatureControlFileName);
+            }
+
+            for (const componentName of forbiddenKnownBadNames) {
+                expect(contents, file).not.toContain(componentName);
+            }
+        }
+    });
+
+    it('keeps pages composed from shared form and action primitives', () => {
+        for (const [file, contents] of Object.entries(vueFiles)) {
+            if (!file.includes('/Pages/')) {
+                continue;
+            }
+
+            expect(contents, `${file}: pages must use shared Form* controls instead of native controls.`).not.toMatch(
+                /<(input|select|textarea)\b/,
+            );
+            expect(contents, `${file}: reusable filter helpers belong in Utils or Composables.`).not.toMatch(
+                /function\s+(allOptions|readableToken|readableFilterOption)\b/,
+            );
+            expect(contents, `${file}: repeated action footers belong in FormActions or DialogFormActions.`).not.toContain(
+                'mt-5 flex flex-wrap justify-end gap-2',
+            );
+        }
+    });
+
     it('keeps page action links and form footers on shared primitives', () => {
         const actionLink = Object.entries(vueFiles).find(([file]) => file.endsWith('/ActionLink.vue'))?.[1];
         const formActions = Object.entries(vueFiles).find(([file]) => file.endsWith('/FormActions.vue'))?.[1];
@@ -153,7 +383,8 @@ describe('shared UI guardrails', () => {
         const codeViewer = Object.entries(vueFiles).find(([file]) => file.endsWith('/CodeViewer.vue'))?.[1];
         const uiState = Object.entries(vueFiles).find(([file]) => file.endsWith('/UiState.vue'))?.[1];
         const noticeBanner = Object.entries(vueFiles).find(([file]) => file.endsWith('/NoticeBanner.vue'))?.[1];
-        const textBadge = Object.entries(vueFiles).find(([file]) => file.endsWith('/TextBadge.vue'))?.[1];
+        const statusBadge = Object.entries(vueFiles).find(([file]) => file.endsWith('/StatusBadge.vue'))?.[1];
+        const statusBadgeUtil = Object.entries(tsFiles).find(([file]) => file.endsWith('/statusBadge.ts'))?.[1];
         const iconTile = Object.entries(vueFiles).find(([file]) => file.endsWith('/IconTile.vue'))?.[1];
         const operationalTile = Object.entries(vueFiles).find(([file]) => file.endsWith('/OperationalTile.vue'))?.[1];
         const operationalMetricTile = Object.entries(vueFiles).find(([file]) => file.endsWith('/OperationalMetricTile.vue'))?.[1];
@@ -185,14 +416,17 @@ describe('shared UI guardrails', () => {
         expect(uiState).toContain("variant: 'loading' | 'empty' | 'error' | 'no-results'");
         expect(noticeBanner).toBeDefined();
         expect(noticeBanner).toContain("tone?: 'info' | 'success' | 'warning' | 'danger'");
-        expect(textBadge).toBeDefined();
-        expect(textBadge).toContain("type TextBadgeTone = 'neutral' | 'info' | 'success' | 'warning' | 'danger'");
-        expect(textBadge).toContain('icon?: Component');
+        expect(statusBadge).toBeDefined();
+        expect(statusBadge).toContain('value?: boolean | string');
+        expect(statusBadge).toContain('icon?: Component');
+        expect(statusBadgeUtil).toBeDefined();
+        expect(statusBadgeUtil).toContain("export type StatusBadgeTone = 'neutral' | 'info' | 'success' | 'warning' | 'danger'");
+        expect(statusBadgeUtil).toContain('statusBadgeToneForToken');
         expect(iconTile).toBeDefined();
         expect(iconTile).toContain("type IconTileTone = 'teal' | 'sky' | 'emerald' | 'amber' | 'rose' | 'zinc'");
         expect(iconTile).toContain("type IconTileSize = 'sm' | 'md'");
         expect(operationalTile).toBeDefined();
-        expect(operationalTile).toContain('TextBadge');
+        expect(operationalTile).toContain('StatusBadge');
         expect(operationalTile).toContain('Tooltip');
         expect(operationalMetricTile).toBeDefined();
         expect(dialogPanel).toBeDefined();

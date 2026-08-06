@@ -27,6 +27,7 @@ use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
@@ -37,6 +38,13 @@ use Tests\TestCase;
 final class ManagedProcessesAdminTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        Cache::flush();
+    }
 
     public function test_admin_can_start_and_inspect_managed_process_logs(): void
     {
@@ -49,10 +57,11 @@ final class ManagedProcessesAdminTest extends TestCase
             ->assertOk()
             ->assertInertia(fn (AssertableInertia $page) => $page
                 ->component('Admin/ManagedProcesses/Runs')
-                ->has('navigation.breadcrumbs', 3)
-                ->where('navigation.breadcrumbs.0.label', 'Admin')
-                ->where('navigation.breadcrumbs.1.label', 'Procesy')
-                ->where('navigation.breadcrumbs.2.label', 'Uruchomienia')
+                ->has('navigation.breadcrumbs', 4)
+                ->where('navigation.breadcrumbs.0.label', 'Atlas')
+                ->where('navigation.breadcrumbs.1.label', 'Panel administratora')
+                ->where('navigation.breadcrumbs.2.label', 'Procesy')
+                ->where('navigation.breadcrumbs.3.label', 'Uruchomienia')
                 ->where('table.key', 'admin.managed-processes.runs')
                 ->where('table.state.filters.status', 'all')
                 ->where('auth.availableAdminRoutes', function (Collection $routes): bool {
@@ -93,11 +102,12 @@ final class ManagedProcessesAdminTest extends TestCase
             ->assertOk()
             ->assertInertia(fn (AssertableInertia $page) => $page
                 ->component('Admin/ManagedProcesses/Show')
-                ->has('navigation.breadcrumbs', 4)
-                ->where('navigation.breadcrumbs.0.label', 'Admin')
-                ->where('navigation.breadcrumbs.1.label', 'Procesy')
-                ->where('navigation.breadcrumbs.2.label', 'Uruchomienia')
-                ->where('navigation.breadcrumbs.3.label', 'Szczegóły uruchomienia')
+                ->has('navigation.breadcrumbs', 5)
+                ->where('navigation.breadcrumbs.0.label', 'Atlas')
+                ->where('navigation.breadcrumbs.1.label', 'Panel administratora')
+                ->where('navigation.breadcrumbs.2.label', 'Procesy')
+                ->where('navigation.breadcrumbs.3.label', 'Uruchomienia')
+                ->where('navigation.breadcrumbs.4.label', "Szczegóły uruchomienia · {$runPublicId}")
                 ->where('run.publicId', $runPublicId)
                 ->where('run.canRetry', true)
                 ->where('filterOptions.severities', fn (Collection $severities): bool => $severities->contains('info'))
@@ -256,14 +266,14 @@ final class ManagedProcessesAdminTest extends TestCase
             'status' => ProcessRunStatus::Succeeded->value,
         ]);
         $this->assertDatabaseHas(DatabaseTable::NOTIFICATIONS, [
-            'type' => 'managed_process.terminal',
+            'type' => 'managed_process.succeeded',
             'title' => 'notifications.managed_process.succeeded.title',
             'body' => 'notifications.managed_process.succeeded.body',
             'deep_link_url' => null,
         ]);
 
         $notification = DB::table(DatabaseTable::NOTIFICATIONS)
-            ->where('type', 'managed_process.terminal')
+            ->where('type', 'managed_process.succeeded')
             ->first(['data']);
 
         self::assertNotNull($notification);
@@ -288,11 +298,12 @@ final class ManagedProcessesAdminTest extends TestCase
             ->assertOk()
             ->assertInertia(fn (AssertableInertia $page) => $page
                 ->component('Admin/ManagedProcesses/Schedules/Create')
-                ->has('navigation.breadcrumbs', 4)
-                ->where('navigation.breadcrumbs.0.label', 'Admin')
-                ->where('navigation.breadcrumbs.1.label', 'Procesy')
-                ->where('navigation.breadcrumbs.2.label', 'Harmonogramy')
-                ->where('navigation.breadcrumbs.3.label', 'Utwórz'));
+                ->has('navigation.breadcrumbs', 5)
+                ->where('navigation.breadcrumbs.0.label', 'Atlas')
+                ->where('navigation.breadcrumbs.1.label', 'Panel administratora')
+                ->where('navigation.breadcrumbs.2.label', 'Procesy')
+                ->where('navigation.breadcrumbs.3.label', 'Harmonogramy')
+                ->where('navigation.breadcrumbs.4.label', 'Utwórz harmonogram'));
 
         $this->assertTrue($this->containsRow(
             $response->inertiaProps('definitions'),
@@ -331,10 +342,11 @@ final class ManagedProcessesAdminTest extends TestCase
             ->assertOk()
             ->assertInertia(fn (AssertableInertia $page) => $page
                 ->component('Admin/ManagedProcesses/Schedules')
-                ->has('navigation.breadcrumbs', 3)
-                ->where('navigation.breadcrumbs.0.label', 'Admin')
-                ->where('navigation.breadcrumbs.1.label', 'Procesy')
-                ->where('navigation.breadcrumbs.2.label', 'Harmonogramy')
+                ->has('navigation.breadcrumbs', 4)
+                ->where('navigation.breadcrumbs.0.label', 'Atlas')
+                ->where('navigation.breadcrumbs.1.label', 'Panel administratora')
+                ->where('navigation.breadcrumbs.2.label', 'Procesy')
+                ->where('navigation.breadcrumbs.3.label', 'Harmonogramy')
                 ->where('table.key', 'admin.managed-processes.schedules')
                 ->where('table.state.filters.enabled', 'all')
                 ->where('schedules.0.publicId', $schedulePublicId));
@@ -345,10 +357,11 @@ final class ManagedProcessesAdminTest extends TestCase
             ->assertOk()
             ->assertInertia(fn (AssertableInertia $page) => $page
                 ->component('Admin/ManagedProcesses/Definitions')
-                ->has('navigation.breadcrumbs', 3)
-                ->where('navigation.breadcrumbs.0.label', 'Admin')
-                ->where('navigation.breadcrumbs.1.label', 'Procesy')
-                ->where('navigation.breadcrumbs.2.label', 'Definicje')
+                ->has('navigation.breadcrumbs', 4)
+                ->where('navigation.breadcrumbs.0.label', 'Atlas')
+                ->where('navigation.breadcrumbs.1.label', 'Panel administratora')
+                ->where('navigation.breadcrumbs.2.label', 'Procesy')
+                ->where('navigation.breadcrumbs.3.label', 'Definicje')
                 ->where('table.key', 'admin.managed-processes.definitions')
                 ->where('table.state.filters.manual', 'all')
                 ->where('definitions', function (mixed $definitions): bool {

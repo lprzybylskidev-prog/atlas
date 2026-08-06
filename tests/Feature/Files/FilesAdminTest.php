@@ -14,6 +14,7 @@ use App\Shared\Infrastructure\Database\DatabaseTable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Testing\AssertableInertia;
@@ -32,8 +33,8 @@ final class FilesAdminTest extends TestCase
         Config::set('atlas.files.scanner', 'fake');
         Config::set('atlas.files.fake_scanner_result', 'infected');
 
-        Config::set('atlas.files.allowed_extensions', ['txt']);
-        Config::set('atlas.files.allowed_mime_types', ['text/plain', 'application/octet-stream']);
+        Config::set('atlas.files.allowed_extensions', ['txt', 'webp']);
+        Config::set('atlas.files.allowed_mime_types', ['text/plain', 'application/octet-stream', 'image/webp']);
 
         $stored = $this->app->make(FileStorage::class)->storeUpload(UploadedFile::fake()->createWithContent('evidence.txt', 'Evidence content.'));
         [$admin, $team] = $this->adminWithTeam();
@@ -93,6 +94,26 @@ final class FilesAdminTest extends TestCase
                 ->where('files.0.publicId', $stored->publicId)
                 ->where('files.0.handlingStatus', 'handled')
                 ->where('files.0.canAcknowledge', false));
+
+        $cleanStored = $this->app->make(FileStorage::class)->storeUpload(UploadedFile::fake()->createWithContent('avatar.webp', 'Clean avatar content.'));
+        DB::table(DatabaseTable::FILE_OBJECTS)
+            ->where('public_id', $cleanStored->publicId)
+            ->update([
+                'scan_state' => FileScanState::Clean->value,
+                'available_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+        $this->actingAs($admin)
+            ->withSession($this->adminSession($team))
+            ->get('/admin/files?handling=not_applicable')
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->component('Admin/Files/Index')
+                ->where('files.0.publicId', $cleanStored->publicId)
+                ->where('files.0.handlingStatus', 'not_applicable')
+                ->where('files.0.canAcknowledge', false)
+                ->where('table.state.filters.handling', 'not_applicable'));
 
         $this->actingAs($admin)
             ->withSession($this->adminSession($team))

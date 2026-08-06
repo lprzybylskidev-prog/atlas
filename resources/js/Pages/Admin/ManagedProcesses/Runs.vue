@@ -10,7 +10,7 @@ import FormSelect, { type FormSelectOption } from '../../../Components/Form/Form
 import ManagedProcessArea from '../../../Components/ManagedProcesses/ManagedProcessArea.vue';
 import OperationalMetricTile from '../../../Components/OperationalMetricTile.vue';
 import PageStack from '../../../Components/PageStack.vue';
-import { allOptions, processSourceLabel, processStatusLabel } from '../../../Composables/useManagedProcessUi';
+import { managedProcessOptionsWithAll, processSourceLabel, processStatusLabel } from '../../../Composables/useManagedProcessUi';
 import { applyTableFilters, clearTableFilters } from '../../../Composables/useTableFilterControls';
 import { useTranslator } from '../../../Localization/translator';
 import type { DataTableAction, DataTableBulkAction, DataTableColumn, DataTableMeta } from '../../../Types/data-table';
@@ -60,7 +60,7 @@ const columns = computed<DataTableColumn<ManagedProcessRunRow>[]>(() => [
     { key: 'importFile', label: t('pages.admin.managed_processes.import_file'), hidden: true },
     { key: 'idempotencyKey', label: t('pages.admin.managed_processes.idempotency_key') },
     { key: 'idempotencyState', label: t('pages.admin.managed_processes.idempotency_state') },
-    { key: 'handlingStatus', label: t('pages.admin.managed_processes.handling_status'), format: 'status' },
+    { key: 'handlingStatus', label: t('pages.admin.managed_processes.handling_status'), format: 'status-badge' },
     { key: 'acknowledgedAt', label: t('pages.admin.managed_processes.handled_at'), format: 'datetime', hidden: true },
     { key: 'acknowledgedBy', label: t('pages.admin.managed_processes.handled_by'), hidden: true },
     { key: 'progressLabel', label: t('pages.admin.managed_processes.progress') },
@@ -95,33 +95,34 @@ const bulkActions = computed<DataTableBulkAction[]>(() => [
     { key: 'acknowledge', label: t('pages.admin.managed_processes.acknowledge_selected'), tone: 'success' },
 ]);
 const processOptions = computed<FormSelectOption[]>(() =>
-    allOptions(props.filterOptions.processes ?? [], t('pages.admin.managed_processes.filters.any_process')),
+    managedProcessOptionsWithAll(props.filterOptions.processes ?? [], t('pages.admin.managed_processes.filters.any_process')),
 );
 const statusOptions = computed<FormSelectOption[]>(() =>
-    allOptions(props.filterOptions.statuses ?? [], t('pages.admin.managed_processes.filters.any_status'), (status) =>
+    managedProcessOptionsWithAll(props.filterOptions.statuses ?? [], t('pages.admin.managed_processes.filters.any_status'), (status) =>
         processStatusLabel(status, t),
     ),
 );
 const sourceOptions = computed<FormSelectOption[]>(() =>
-    allOptions(props.filterOptions.sources ?? [], t('pages.admin.managed_processes.filters.any_source'), (source) =>
+    managedProcessOptionsWithAll(props.filterOptions.sources ?? [], t('pages.admin.managed_processes.filters.any_source'), (source) =>
         processSourceLabel(source, t),
     ),
 );
 const moduleOptions = computed<FormSelectOption[]>(() =>
-    allOptions(props.filterOptions.modules ?? [], t('pages.admin.managed_processes.filters.any_module'), (module) =>
+    managedProcessOptionsWithAll(props.filterOptions.modules ?? [], t('pages.admin.managed_processes.filters.any_module'), (module) =>
         moduleLabel(module, t),
     ),
 );
 const importOptions = computed<FormSelectOption[]>(() =>
-    allOptions(props.filterOptions.imports ?? [], t('pages.admin.managed_processes.filters.any_import')),
+    managedProcessOptionsWithAll(props.filterOptions.imports ?? [], t('pages.admin.managed_processes.filters.any_import')),
 );
 const idempotencyOptions = computed<FormSelectOption[]>(() =>
-    allOptions(props.filterOptions.idempotencyStates ?? [], t('pages.admin.managed_processes.filters.any_idempotency')),
+    managedProcessOptionsWithAll(props.filterOptions.idempotencyStates ?? [], t('pages.admin.managed_processes.filters.any_idempotency')),
 );
 const handlingOptions = computed<FormSelectOption[]>(() => [
     { value: 'all', label: t('pages.admin.managed_processes.filters.any_handling') },
     { value: 'needs_attention', label: t('pages.admin.managed_processes.filters.needs_attention') },
     { value: 'handled', label: t('pages.admin.managed_processes.filters.handled') },
+    { value: 'ok', label: t('pages.admin.managed_processes.filters.ok') },
 ]);
 const tableFilters = computed(() => filterValues());
 

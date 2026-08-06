@@ -20,9 +20,11 @@ import PageStack from '../../../Components/PageStack.vue';
 import SurfaceCard from '../../../Components/SurfaceCard.vue';
 import TruncatedText from '../../../Components/TruncatedText.vue';
 import { applyTableFilters, clearTableFilters } from '../../../Composables/useTableFilterControls';
-import AdminLayout from '../../../Layouts/AdminLayout.vue';
+import AppLayout from '../../../Layouts/AppLayout.vue';
 import { useTranslator } from '../../../Localization/translator';
 import type { DataTableAction, DataTableBulkAction, DataTableColumn, DataTableMeta } from '../../../Types/data-table';
+import { optionsWithAll } from '../../../Utils/filterOptions';
+import { formatStatus } from '../../../Utils/formatters';
 
 interface FileRow extends Record<string, unknown> {
     publicId: string;
@@ -91,16 +93,14 @@ const filters = ref({ ...filterDefaults, ...filterValues() });
 const rows = computed<FileRow[]>(() =>
     props.files.map((file) => ({
         ...file,
-        scanState: scanStateLabel(file.scanState),
-        handlingStatus: handlingStatusLabel(file.handlingStatus),
+        provider: providerLabel(file.provider),
         resultLabel: scanStateLabel(file.result),
     })),
 );
 const evidenceRows = computed<FileRow[]>(() =>
     props.scanEvidence.map((file) => ({
         ...file,
-        scanState: scanStateLabel(file.scanState),
-        handlingStatus: handlingStatusLabel(file.handlingStatus),
+        provider: providerLabel(file.provider),
         resultLabel: scanStateLabel(file.result),
     })),
 );
@@ -109,10 +109,10 @@ const columns = computed<DataTableColumn<FileRow>[]>(() => [
     { key: 'originalName', label: t('pages.admin.files.table.file') },
     { key: 'extension', label: t('pages.admin.files.table.extension') },
     { key: 'mimeType', label: t('pages.admin.files.table.mime_type') },
-    { key: 'scanState', label: t('pages.admin.files.table.scan_state'), format: 'status' },
-    { key: 'handlingStatus', label: t('pages.admin.files.table.handling_status'), format: 'status' },
+    { key: 'scanState', label: t('pages.admin.files.table.scan_state'), format: 'status-badge' },
+    { key: 'handlingStatus', label: t('pages.admin.files.table.handling_status'), format: 'status-badge' },
     { key: 'sizeBytes', label: t('pages.admin.files.table.size'), format: 'file-size' },
-    { key: 'checksumSha256', label: t('pages.admin.files.table.checksum') },
+    { key: 'checksumSha256', label: t('pages.admin.files.table.checksum'), hidden: true },
     { key: 'scannedAt', label: t('pages.admin.files.table.scanned_at'), format: 'datetime' },
     { key: 'acknowledgedAt', label: t('pages.admin.files.table.handled_at'), format: 'datetime', hidden: true },
     { key: 'acknowledgedBy', label: t('pages.admin.files.table.handled_by'), hidden: true },
@@ -156,10 +156,10 @@ const stateOptions = computed<FormSelectOption[]>(() => [
     })),
 ]);
 const extensionOptions = computed<FormSelectOption[]>(() =>
-    allOptions(props.filterOptions.extensions, t('pages.admin.files.filters.any_extension')),
+    optionsWithAll(props.filterOptions.extensions, t('pages.admin.files.filters.any_extension'), (value) => value),
 );
 const providerOptions = computed<FormSelectOption[]>(() =>
-    allOptions(props.filterOptions.providers, t('pages.admin.files.filters.any_provider')),
+    optionsWithAll(props.filterOptions.providers, t('pages.admin.files.filters.any_provider'), providerLabel),
 );
 const availabilityOptions = computed<FormSelectOption[]>(() => [
     { value: 'all', label: t('pages.admin.files.filters.any_availability') },
@@ -169,6 +169,7 @@ const availabilityOptions = computed<FormSelectOption[]>(() => [
 const handlingOptions = computed<FormSelectOption[]>(() => [
     { value: 'needs_attention', label: t('pages.admin.files.filters.needs_attention') },
     { value: 'handled', label: t('pages.admin.files.filters.handled') },
+    { value: 'not_applicable', label: t('pages.admin.files.filters.not_applicable') },
     { value: 'all', label: t('pages.admin.files.filters.any_handling') },
 ]);
 const tableFilters = computed(() => filterValues());
@@ -193,16 +194,6 @@ function filterValues(): Record<string, string> {
     };
 }
 
-function allOptions(values: string[], label: string): FormSelectOption[] {
-    return [
-        { value: 'all', label },
-        ...values.map((value) => ({
-            value,
-            label: value,
-        })),
-    ];
-}
-
 function scanStateLabel(value: string | null): string {
     if (value === null || value === '') {
         return '';
@@ -217,21 +208,21 @@ function scanStateLabel(value: string | null): string {
         unsupported: 'pages.admin.files.states.unsupported',
     };
 
-    return keys[value] === undefined ? value : t(keys[value]);
+    return keys[value] === undefined ? formatStatus(value) : t(keys[value]);
 }
 
-function handlingStatusLabel(value: string | null): string {
+function providerLabel(value: string | null): string {
     if (value === null || value === '') {
         return '';
     }
 
     const keys: Record<string, string> = {
-        handled: 'pages.admin.files.handling.handled',
-        needs_attention: 'pages.admin.files.handling.needs_attention',
-        not_applicable: 'pages.admin.files.handling.not_applicable',
+        clamav: 'pages.admin.files.providers.clamav',
+        deduplicated: 'pages.admin.files.providers.deduplicated',
+        fake: 'pages.admin.files.providers.fake',
     };
 
-    return keys[value] === undefined ? value : t(keys[value]);
+    return keys[value] === undefined ? formatStatus(value) : t(keys[value]);
 }
 
 function applyFilters(): void {
@@ -264,7 +255,7 @@ function handleBulkAction(payload: { action: DataTableBulkAction; rowIds: string
 
 <template>
     <Head :title="t('pages.admin.files.head_title')" />
-    <AdminLayout :title="t('pages.admin.files.title')" :title-icon="IconFiles">
+    <AppLayout mode="admin" :title="t('pages.admin.files.title')" :title-icon="IconFiles">
         <PageStack>
             <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-6">
                 <OperationalMetricTile :label="t('pages.admin.files.metric.total')" :value="summary.total" :icon="IconFiles" tone="sky" />
@@ -398,5 +389,5 @@ function handleBulkAction(payload: { action: DataTableBulkAction; rowIds: string
                 </div>
             </SurfaceCard>
         </PageStack>
-    </AdminLayout>
+    </AppLayout>
 </template>

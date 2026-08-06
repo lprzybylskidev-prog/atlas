@@ -42,6 +42,34 @@ final class AdminTableDefinitions
 
     public const NOTIFICATIONS = 'notifications';
 
+    public const TIME_TRACKING_USER_REPORT = 'time-tracking.user-report';
+
+    public const TIME_TRACKING_USER_WORK_TIME_DAILY = 'users.work-time.daily';
+
+    public const TIME_TRACKING_USER_OTHER_WORK = 'users.work-time.other-work';
+
+    public const TIME_TRACKING_USER_WORK_SESSIONS = 'users.work-time.work-sessions';
+
+    public const TIME_TRACKING_USER_BREAKS = 'users.work-time.breaks';
+
+    public const TIME_TRACKING_USER_CORRECTIONS = 'users.work-time.corrections';
+
+    public const TIME_TRACKING_MANAGER_REPORT = 'time-tracking.manager-report';
+
+    public const TIME_TRACKING_MANAGER_WORK_TIME_DAILY = 'time-tracking.manager-report.daily';
+
+    public const TIME_TRACKING_MANAGER_OTHER_WORK = 'time-tracking.manager-report.other-work';
+
+    public const TIME_TRACKING_ADMIN_OPERATIONS_DAILY = 'admin.time-tracking.operations.daily';
+
+    public const TIME_TRACKING_ADMIN_OPERATIONS_OTHER_WORK = 'admin.time-tracking.operations.other-work';
+
+    public const TIME_TRACKING_ADMIN_OPERATIONS_WORK_SESSIONS = 'admin.time-tracking.operations.work-sessions';
+
+    public const TIME_TRACKING_ADMIN_OPERATIONS_BREAKS = 'admin.time-tracking.operations.breaks';
+
+    public const TIME_TRACKING_ADMIN_OPERATIONS_CORRECTIONS = 'admin.time-tracking.operations.corrections';
+
     public const FILES = 'admin.files';
 
     public const PRIVACY_RETENTION_COVERAGE = 'admin.privacy-retention.coverage';
@@ -326,6 +354,176 @@ final class AdminTableDefinitions
                 new TableColumn('readAt', defaultVisible: false),
                 new TableColumn('deepLinkUrl', defaultVisible: false),
             ], 'createdAt', 'desc'),
+            self::TIME_TRACKING_USER_REPORT => new TableDefinition($key, [
+                new TableColumn('publicId', defaultVisible: false),
+                new TableColumn('type'),
+                new TableColumn('status'),
+                new TableColumn('context'),
+                new TableColumn('startedAt'),
+                new TableColumn('endedAt'),
+                new TableColumn('duration', searchable: false),
+                new TableColumn('exactSeconds', searchable: false, defaultVisible: false),
+                new TableColumn('reason', defaultVisible: false),
+            ], 'startedAt', 'desc'),
+            self::TIME_TRACKING_USER_WORK_TIME_DAILY => new TableDefinition($key, [
+                new TableColumn('date'),
+                new TableColumn('countedDuration', searchable: false),
+                new TableColumn('workDuration', searchable: false),
+                new TableColumn('breakDuration', searchable: false),
+                new TableColumn('technicalBreakDuration', searchable: false),
+                new TableColumn('otherWorkDuration', searchable: false),
+                new TableColumn('acceptedOtherWorkDuration', searchable: false),
+                new TableColumn('pendingOtherWorkDuration', searchable: false),
+                new TableColumn('sessionStatus'),
+            ], 'date', 'desc'),
+            self::TIME_TRACKING_USER_OTHER_WORK => new TableDefinition($key, [
+                new TableColumn('publicId', defaultVisible: false),
+                new TableColumn('sourceType', defaultVisible: false),
+                new TableColumn('category'),
+                new TableColumn('description'),
+                new TableColumn('endNote', defaultVisible: false),
+                new TableColumn('status'),
+                new TableColumn('decisionState'),
+                new TableColumn('startedAt'),
+                new TableColumn('endedAt'),
+                new TableColumn('duration', searchable: false),
+                new TableColumn('exactSeconds', searchable: false, defaultVisible: false),
+                new TableColumn('closureReason', defaultVisible: false),
+            ], 'startedAt', 'desc'),
+            self::TIME_TRACKING_USER_WORK_SESSIONS => new TableDefinition($key, [
+                new TableColumn('publicId', defaultVisible: false),
+                new TableColumn('sourceType', defaultVisible: false),
+                new TableColumn('status'),
+                new TableColumn('startedAt'),
+                new TableColumn('endedAt'),
+                new TableColumn('duration', searchable: false),
+                new TableColumn('exactSeconds', searchable: false, defaultVisible: false),
+            ], 'startedAt', 'desc'),
+            self::TIME_TRACKING_USER_BREAKS => new TableDefinition($key, [
+                new TableColumn('publicId', defaultVisible: false),
+                new TableColumn('sourceType', defaultVisible: false),
+                new TableColumn('status'),
+                new TableColumn('startedAt'),
+                new TableColumn('endedAt'),
+                new TableColumn('duration', searchable: false),
+                new TableColumn('breakLimitStatus'),
+                new TableColumn('excessBreakSeconds', searchable: false),
+                new TableColumn('requiresManagerReview', searchable: false),
+                new TableColumn('exactSeconds', searchable: false, defaultVisible: false),
+            ], 'startedAt', 'desc'),
+            self::TIME_TRACKING_USER_CORRECTIONS => new TableDefinition($key, [
+                new TableColumn('publicId', defaultVisible: false),
+                new TableColumn('sourceType'),
+                new TableColumn('type'),
+                new TableColumn('status'),
+                new TableColumn('description'),
+                new TableColumn('requestedAt'),
+                new TableColumn('decidedAt'),
+                new TableColumn('decisionReason', defaultVisible: false),
+            ], 'requestedAt', 'desc'),
+            self::TIME_TRACKING_MANAGER_REPORT => new TableDefinition($key, [
+                new TableColumn('publicId', defaultVisible: false),
+                new TableColumn('userPublicId', defaultVisible: false),
+                new TableColumn('userName'),
+                new TableColumn('userEmail', defaultVisible: false),
+                new TableColumn('type'),
+                new TableColumn('status'),
+                new TableColumn('context'),
+                new TableColumn('startedAt'),
+                new TableColumn('endedAt'),
+                new TableColumn('duration', searchable: false),
+                new TableColumn('exactSeconds', searchable: false, defaultVisible: false),
+                new TableColumn('reason', defaultVisible: false),
+            ], 'startedAt', 'desc'),
+            self::TIME_TRACKING_MANAGER_WORK_TIME_DAILY, self::TIME_TRACKING_ADMIN_OPERATIONS_DAILY => new TableDefinition($key, [
+                new TableColumn('userPublicId', defaultVisible: false),
+                new TableColumn('userName'),
+                new TableColumn('userEmail', defaultVisible: false),
+                new TableColumn('teamPublicId', defaultVisible: false),
+                new TableColumn('teamName'),
+                new TableColumn('date'),
+                new TableColumn('countedDuration', searchable: false),
+                new TableColumn('workDuration', searchable: false),
+                new TableColumn('breakDuration', searchable: false),
+                new TableColumn('technicalBreakDuration', searchable: false),
+                new TableColumn('maintenanceDuration', searchable: false),
+                new TableColumn('otherWorkDuration', searchable: false),
+                new TableColumn('acceptedOtherWorkDuration', searchable: false),
+                new TableColumn('pendingOtherWorkDuration', searchable: false),
+                new TableColumn('sessionStatus'),
+            ], 'date', 'desc'),
+            self::TIME_TRACKING_MANAGER_OTHER_WORK, self::TIME_TRACKING_ADMIN_OPERATIONS_OTHER_WORK => new TableDefinition($key, [
+                new TableColumn('publicId', defaultVisible: false),
+                new TableColumn('userPublicId', defaultVisible: false),
+                new TableColumn('userName'),
+                new TableColumn('userEmail', defaultVisible: false),
+                new TableColumn('teamPublicId', defaultVisible: false),
+                new TableColumn('teamName'),
+                new TableColumn('category'),
+                new TableColumn('description'),
+                new TableColumn('endNote', defaultVisible: false),
+                new TableColumn('status'),
+                new TableColumn('decisionState'),
+                new TableColumn('startedAt'),
+                new TableColumn('endedAt'),
+                new TableColumn('duration', searchable: false),
+                new TableColumn('exactSeconds', searchable: false, defaultVisible: false),
+                new TableColumn('closureReason', defaultVisible: false),
+            ], 'startedAt', 'desc'),
+            self::TIME_TRACKING_ADMIN_OPERATIONS_WORK_SESSIONS => new TableDefinition($key, [
+                new TableColumn('publicId', defaultVisible: false),
+                new TableColumn('userPublicId', defaultVisible: false),
+                new TableColumn('userName'),
+                new TableColumn('userEmail', defaultVisible: false),
+                new TableColumn('teamPublicId', defaultVisible: false),
+                new TableColumn('teamName'),
+                new TableColumn('startedAt'),
+                new TableColumn('endedAt'),
+                new TableColumn('duration', searchable: false),
+                new TableColumn('exactSeconds', searchable: false, defaultVisible: false),
+                new TableColumn('closureReason'),
+                new TableColumn('laravelSessionId', defaultVisible: false),
+                new TableColumn('moduleSegments', searchable: false),
+                new TableColumn('relatedBreaks', searchable: false),
+                new TableColumn('relatedOtherWork', searchable: false),
+                new TableColumn('maintenanceImpacts', searchable: false),
+                new TableColumn('corrections', searchable: false),
+            ], 'startedAt', 'desc'),
+            self::TIME_TRACKING_ADMIN_OPERATIONS_BREAKS => new TableDefinition($key, [
+                new TableColumn('publicId', defaultVisible: false),
+                new TableColumn('userPublicId', defaultVisible: false),
+                new TableColumn('userName'),
+                new TableColumn('userEmail', defaultVisible: false),
+                new TableColumn('teamPublicId', defaultVisible: false),
+                new TableColumn('teamName'),
+                new TableColumn('status'),
+                new TableColumn('startedAt'),
+                new TableColumn('endedAt'),
+                new TableColumn('duration', searchable: false),
+                new TableColumn('exactSeconds', searchable: false, defaultVisible: false),
+                new TableColumn('breakLimitStatus'),
+                new TableColumn('excessBreakSeconds', searchable: false),
+                new TableColumn('closureReason'),
+                new TableColumn('requiresManagerReview', searchable: false),
+            ], 'startedAt', 'desc'),
+            self::TIME_TRACKING_ADMIN_OPERATIONS_CORRECTIONS => new TableDefinition($key, [
+                new TableColumn('publicId', defaultVisible: false),
+                new TableColumn('userPublicId', defaultVisible: false),
+                new TableColumn('userName'),
+                new TableColumn('userEmail', defaultVisible: false),
+                new TableColumn('teamPublicId', defaultVisible: false),
+                new TableColumn('teamName'),
+                new TableColumn('sourceType'),
+                new TableColumn('sourcePublicId', defaultVisible: false),
+                new TableColumn('type'),
+                new TableColumn('status'),
+                new TableColumn('description'),
+                new TableColumn('requestedAt'),
+                new TableColumn('decidedAt'),
+                new TableColumn('decisionReason', defaultVisible: false),
+                new TableColumn('proposalCount', searchable: false),
+                new TableColumn('historyCount', searchable: false),
+            ], 'requestedAt', 'desc'),
             self::FILES => new TableDefinition($key, [
                 new TableColumn('publicId', defaultVisible: false),
                 new TableColumn('originalName'),

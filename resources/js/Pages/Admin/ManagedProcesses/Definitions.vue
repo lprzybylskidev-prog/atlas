@@ -7,14 +7,14 @@ import DataTable from '../../../Components/DataTable.vue';
 import DialogPanel from '../../../Components/DialogPanel.vue';
 import FilterPanel from '../../../Components/FilterPanel.vue';
 import AtlasForm from '../../../Components/Form/AtlasForm.vue';
-import FormButton from '../../../Components/Form/FormButton.vue';
+import DialogFormActions from '../../../Components/Form/DialogFormActions.vue';
 import FormFileUpload from '../../../Components/Form/FormFileUpload.vue';
 import FormInput from '../../../Components/Form/FormInput.vue';
 import FormSelect, { type FormSelectOption } from '../../../Components/Form/FormSelect.vue';
 import ManagedProcessArea from '../../../Components/ManagedProcesses/ManagedProcessArea.vue';
 import OperationalMetricTile from '../../../Components/OperationalMetricTile.vue';
 import PageStack from '../../../Components/PageStack.vue';
-import { allOptions, yesNoOptions } from '../../../Composables/useManagedProcessUi';
+import { managedProcessOptionsWithAll, yesNoOptions } from '../../../Composables/useManagedProcessUi';
 import { applyTableFilters, clearTableFilters } from '../../../Composables/useTableFilterControls';
 import { useTranslator } from '../../../Localization/translator';
 import type { DataTableAction, DataTableColumn, DataTableMeta } from '../../../Types/data-table';
@@ -92,12 +92,12 @@ const actions = computed<DataTableAction<ManagedProcessDefinitionRow>[]>(() => [
     },
 ]);
 const moduleOptions = computed<FormSelectOption[]>(() =>
-    allOptions(props.filterOptions.modules ?? [], t('pages.admin.managed_processes.filters.any_module'), (module) =>
+    managedProcessOptionsWithAll(props.filterOptions.modules ?? [], t('pages.admin.managed_processes.filters.any_module'), (module) =>
         moduleLabel(module, t),
     ),
 );
 const queueOptions = computed<FormSelectOption[]>(() =>
-    allOptions(props.filterOptions.queues ?? [], t('pages.admin.managed_processes.filters.any_queue')),
+    managedProcessOptionsWithAll(props.filterOptions.queues ?? [], t('pages.admin.managed_processes.filters.any_queue')),
 );
 const booleanOptions = computed<FormSelectOption[]>(() => yesNoOptions(t));
 const riskOptions = computed<FormSelectOption[]>(() => [
@@ -252,14 +252,13 @@ function startSelectedDefinition(): void {
                             :error="runForm.errors.idempotency_key"
                         />
                     </div>
-                    <div class="mt-5 flex flex-wrap justify-end gap-2">
-                        <FormButton type="button" tone="neutral" @click="closeRunModal">
-                            {{ t('modal.cancel') }}
-                        </FormButton>
-                        <FormButton type="submit" :icon="IconPlayerPlay" :loading="runForm.processing">
-                            {{ t('pages.admin.managed_processes.run') }}
-                        </FormButton>
-                    </div>
+                    <DialogFormActions
+                        :cancel-label="t('modal.cancel')"
+                        :submit-label="t('pages.admin.managed_processes.run')"
+                        :submit-icon="IconPlayerPlay"
+                        :loading="runForm.processing"
+                        @cancel="closeRunModal"
+                    />
                 </AtlasForm>
             </DialogPanel>
         </PageStack>

@@ -7,16 +7,18 @@ import DataTable from '../../../Components/DataTable.vue';
 import DialogPanel from '../../../Components/DialogPanel.vue';
 import FilterPanel from '../../../Components/FilterPanel.vue';
 import AtlasForm from '../../../Components/Form/AtlasForm.vue';
-import FormButton from '../../../Components/Form/FormButton.vue';
+import DialogFormActions from '../../../Components/Form/DialogFormActions.vue';
 import FormInput from '../../../Components/Form/FormInput.vue';
 import FormSelect, { type FormSelectOption } from '../../../Components/Form/FormSelect.vue';
 import FormTextarea from '../../../Components/Form/FormTextarea.vue';
 import OperationalMetricTile from '../../../Components/OperationalMetricTile.vue';
 import PageStack from '../../../Components/PageStack.vue';
 import { applyTableFilters, clearTableFilters } from '../../../Composables/useTableFilterControls';
-import AdminLayout from '../../../Layouts/AdminLayout.vue';
+import AppLayout from '../../../Layouts/AppLayout.vue';
 import { useTranslator } from '../../../Localization/translator';
 import type { DataTableAction, DataTableColumn, DataTableMeta } from '../../../Types/data-table';
+import { optionsWithAll } from '../../../Utils/filterOptions';
+import { formatStatus } from '../../../Utils/formatters';
 
 interface PolicyOption {
     value: string;
@@ -104,7 +106,7 @@ const actions = computed<DataTableAction<RateLimitPolicyRow>[]>(() => [
     },
 ]);
 const familyOptions = computed<FormSelectOption[]>(() =>
-    allOptions(props.filterOptions.families, t('pages.admin.rate_limits.filters.any_family')),
+    optionsWithAll(props.filterOptions.families, t('pages.admin.rate_limits.filters.any_family')),
 );
 const activityOptions = computed<FormSelectOption[]>(() => [
     { value: 'all', label: t('pages.admin.rate_limits.filters.any_activity') },
@@ -112,12 +114,17 @@ const activityOptions = computed<FormSelectOption[]>(() => [
     { value: 'without_rejections', label: t('pages.admin.rate_limits.filters.without_rejections') },
 ]);
 const keyPartOptions = computed<FormSelectOption[]>(() =>
-    allOptions(props.filterOptions.keyParts, t('pages.admin.rate_limits.filters.any_key_part'), keyPartLabel),
+    optionsWithAll(props.filterOptions.keyParts, t('pages.admin.rate_limits.filters.any_key_part'), keyPartLabel),
 );
-const booleanOptions = computed<FormSelectOption[]>(() => [
-    { value: 'all', label: t('pages.admin.rate_limits.filters.any_support') },
-    { value: 'enabled', label: t('pages.admin.rate_limits.filters.enabled') },
-    { value: 'disabled', label: t('pages.admin.rate_limits.filters.disabled') },
+const progressiveDelayOptions = computed<FormSelectOption[]>(() => [
+    { value: 'all', label: t('pages.admin.rate_limits.filters.any_progressive_delay') },
+    { value: 'enabled', label: t('pages.admin.rate_limits.filters.with_progressive_delay') },
+    { value: 'disabled', label: t('pages.admin.rate_limits.filters.without_progressive_delay') },
+]);
+const temporaryLockOptions = computed<FormSelectOption[]>(() => [
+    { value: 'all', label: t('pages.admin.rate_limits.filters.any_temporary_lock') },
+    { value: 'enabled', label: t('pages.admin.rate_limits.filters.with_temporary_lock') },
+    { value: 'disabled', label: t('pages.admin.rate_limits.filters.without_temporary_lock') },
 ]);
 const tableFilters = computed(() => filterValues());
 
@@ -136,16 +143,6 @@ function filterValues(): Record<string, string> {
         progressive_delay: String(props.table.state.filters?.progressive_delay ?? 'all'),
         temporary_lock: String(props.table.state.filters?.temporary_lock ?? 'all'),
     };
-}
-
-function allOptions(values: string[], label: string, formatter?: (value: string) => string): FormSelectOption[] {
-    return [
-        { value: 'all', label },
-        ...values.map((value) => ({
-            value,
-            label: formatter === undefined ? value : formatter(value),
-        })),
-    ];
 }
 
 function applyFilters(): void {
@@ -189,13 +186,13 @@ function keyPartLabel(value: string): string {
         user: 'pages.admin.rate_limits.key_parts.user',
     };
 
-    return keys[value] === undefined ? value : t(keys[value]);
+    return keys[value] === undefined ? formatStatus(value) : t(keys[value]);
 }
 </script>
 
 <template>
     <Head :title="t('pages.admin.rate_limits.head_title')" />
-    <AdminLayout :title="t('pages.admin.rate_limits.title')" :title-icon="IconGauge">
+    <AppLayout mode="admin" :title="t('pages.admin.rate_limits.title')" :title-icon="IconShieldLock">
         <PageStack>
             <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-6">
                 <OperationalMetricTile
@@ -258,12 +255,12 @@ function keyPartLabel(value: string): string {
                     <FormSelect
                         v-model="filters.progressive_delay"
                         :label="t('pages.admin.rate_limits.filters.progressive_delay')"
-                        :options="booleanOptions"
+                        :options="progressiveDelayOptions"
                     />
                     <FormSelect
                         v-model="filters.temporary_lock"
                         :label="t('pages.admin.rate_limits.filters.temporary_lock')"
-                        :options="booleanOptions"
+                        :options="temporaryLockOptions"
                     />
                 </div>
             </FilterPanel>
@@ -309,15 +306,15 @@ function keyPartLabel(value: string): string {
                         :error="form.errors.reason"
                     />
                 </div>
-                <div class="mt-5 flex flex-wrap justify-end gap-2">
-                    <FormButton type="button" tone="neutral" @click="closeResetModal">
-                        {{ t('modal.cancel') }}
-                    </FormButton>
-                    <FormButton type="submit" tone="danger" :icon="IconEraser" :loading="form.processing">
-                        {{ t('pages.admin.rate_limits.actions.reset_counter') }}
-                    </FormButton>
-                </div>
+                <DialogFormActions
+                    :cancel-label="t('modal.cancel')"
+                    :submit-label="t('pages.admin.rate_limits.actions.reset_counter')"
+                    :submit-icon="IconEraser"
+                    submit-tone="danger"
+                    :loading="form.processing"
+                    @cancel="closeResetModal"
+                />
             </AtlasForm>
         </DialogPanel>
-    </AdminLayout>
+    </AppLayout>
 </template>

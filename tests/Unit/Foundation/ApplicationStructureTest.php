@@ -51,6 +51,27 @@ final class ApplicationStructureTest extends TestCase
         self::assertFileDoesNotExist($path);
     }
 
+    public function test_breadcrumb_definitions_use_localized_labels(): void
+    {
+        $basePath = dirname(__DIR__, 3);
+        $iterator = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($basePath.'/routes/breadcrumbs'));
+
+        foreach ($iterator as $candidate) {
+            if (! $candidate instanceof SplFileInfo || ! $candidate->isFile() || $candidate->getExtension() !== 'php') {
+                continue;
+            }
+
+            $contents = file_get_contents($candidate->getPathname());
+
+            self::assertIsString($contents);
+            self::assertDoesNotMatchRegularExpression(
+                '/->push\(\s*[\'"][^\'"]+[\'"]/',
+                $contents,
+                sprintf('Breadcrumb file [%s] must use translated labels or shared breadcrumb helpers, not literal UI labels.', $candidate->getPathname()),
+            );
+        }
+    }
+
     public function test_application_code_does_not_reference_removed_laravel_skeleton_namespaces(): void
     {
         $basePath = dirname(__DIR__, 3);

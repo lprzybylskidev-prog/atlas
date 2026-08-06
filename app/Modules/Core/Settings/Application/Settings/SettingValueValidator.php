@@ -28,7 +28,6 @@ final class SettingValueValidator
             TeamSettingKey::DefaultTheme,
             UserSettingKey::Theme => $this->nullableTheme($key, $value),
 
-            UserSettingKey::NotificationPreferences => $this->notificationPreferences($value),
             UserSettingKey::DefaultTeamPublicId => $this->nullablePublicId($key, $value),
             UserSettingKey::TableViewPreferences,
             UserSettingKey::DashboardPreferences => $this->arrayValue($key, $value),
@@ -38,6 +37,7 @@ final class SettingValueValidator
             SecuritySettingKey::AdministrativeModeIdleTimeoutMinutes,
             SecuritySettingKey::AdministrativeHighRiskTimeoutMinutes,
             SecuritySettingKey::PasswordConfirmationTimeoutMinutes => $this->integerRange($key, $value, 5, 1440),
+            SecuritySettingKey::PasswordExpiresAfterDays => $this->integerRange($key, $value, 1, 365),
             SecuritySettingKey::AdministrativeModeAbsoluteLifetimeMinutes => $this->integerRange($key, $value, 5, 10080),
             SecuritySettingKey::MfaRequired => $this->boolean($key, $value),
         };
@@ -67,19 +67,6 @@ final class SettingValueValidator
         }
 
         throw new InvalidArgumentException(sprintf('Invalid value for setting [%s].', $this->keyName($key)));
-    }
-
-    /**
-     * @return array{database: bool, mail: bool}
-     */
-    private function notificationPreferences(mixed $value): array
-    {
-        $preferences = $this->stringKeyedArray($value, 'Notification preferences must be an object.');
-
-        return [
-            'database' => $this->optionalBoolean($preferences, 'database', true),
-            'mail' => $this->optionalBoolean($preferences, 'mail', true),
-        ];
     }
 
     private function nullablePublicId(UnitEnum $key, mixed $value): ?string

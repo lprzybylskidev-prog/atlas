@@ -9,7 +9,7 @@ import FilterPanel from '../../../Components/FilterPanel.vue';
 import FormSelect, { type FormSelectOption } from '../../../Components/Form/FormSelect.vue';
 import PageStack from '../../../Components/PageStack.vue';
 import { applyTableFilters, clearTableFilters } from '../../../Composables/useTableFilterControls';
-import AdminLayout from '../../../Layouts/AdminLayout.vue';
+import AppLayout from '../../../Layouts/AppLayout.vue';
 import { useTranslator } from '../../../Localization/translator';
 import type { DataTableAction, DataTableColumn, DataTableMeta } from '../../../Types/data-table';
 
@@ -118,7 +118,7 @@ function clearFilters(): void {
 
 <template>
     <Head :title="t('pages.admin.teams.head_title')" />
-    <AdminLayout :title="t('pages.admin.teams.title')" :title-icon="IconUsersGroup">
+    <AppLayout mode="admin" :title="t('pages.admin.teams.title')" :title-icon="IconUsersGroup">
         <PageStack>
             <div class="flex justify-end">
                 <ActionLink href="/admin/teams/create" :icon="IconUserPlus" tone="primary">
@@ -151,5 +151,5 @@ function clearFilters(): void {
                 :empty-label="t('pages.admin.teams.empty')"
             />
         </PageStack>
-    </AdminLayout>
+    </AppLayout>
 </template>

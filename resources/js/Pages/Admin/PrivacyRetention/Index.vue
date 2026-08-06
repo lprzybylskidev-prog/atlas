@@ -15,11 +15,13 @@ import FormTextarea from '../../../Components/Form/FormTextarea.vue';
 import OperationalMetricTile from '../../../Components/OperationalMetricTile.vue';
 import PageStack from '../../../Components/PageStack.vue';
 import SurfaceCard from '../../../Components/SurfaceCard.vue';
-import AdminLayout from '../../../Layouts/AdminLayout.vue';
+import AppLayout from '../../../Layouts/AppLayout.vue';
 import { useTranslator } from '../../../Localization/translator';
 import { applyTableFilters, clearTableFilters } from '../../../Composables/useTableFilterControls';
 import { usePrivacyRetentionSubnavigation } from '../../../Composables/usePrivacyRetentionSubnavigation';
 import type { DataTableColumn, DataTableMeta } from '../../../Types/data-table';
+import { optionsWithAll } from '../../../Utils/filterOptions';
+import { formatStatus } from '../../../Utils/formatters';
 
 interface PrivacyCoverageRow extends Record<string, unknown> {
     publicId: string;
@@ -131,10 +133,10 @@ const columns = computed<DataTableColumn<PrivacyCoverageRow>[]>(() => [
 ]);
 
 const ownerOptions = computed<FormSelectOption[]>(() =>
-    allOptions(props.filterOptions.owners, t('pages.admin.privacy_retention.filters.any_owner'), ownerLabel),
+    optionsWithAll(props.filterOptions.owners, t('pages.admin.privacy_retention.filters.any_owner'), ownerLabel),
 );
 const coverageOptions = computed<FormSelectOption[]>(() =>
-    allOptions(props.filterOptions.coverage, t('pages.admin.privacy_retention.filters.any_coverage'), coverageLabel),
+    optionsWithAll(props.filterOptions.coverage, t('pages.admin.privacy_retention.filters.any_coverage'), coverageLabel),
 );
 const retentionOptions = computed<FormSelectOption[]>(() => [
     { value: 'all', label: t('pages.admin.privacy_retention.filters.any_retention') },
@@ -205,16 +207,6 @@ function filterValues(): Record<string, string> {
     };
 }
 
-function allOptions(values: string[], label: string, formatter: (value: string) => string): FormSelectOption[] {
-    return [
-        { value: 'all', label },
-        ...values.map((value) => ({
-            value,
-            label: formatter(value),
-        })),
-    ];
-}
-
 function applyFilters(): void {
     applyTableFilters(filterKeys, filters.value, filterDefaults);
 }
@@ -246,30 +238,45 @@ function closeImpactDetails(): void {
 }
 
 function ownerLabel(value: string): string {
-    return t(`pages.admin.privacy_retention.owner.${value}`);
+    const key = `pages.admin.privacy_retention.owner.${value}`;
+    const translated = t(key);
+
+    return translated === key ? formatStatus(value) : translated;
 }
 
 function coverageLabel(value: string): string {
-    return t(`pages.admin.privacy_retention.coverage.${value}`);
+    const key = `pages.admin.privacy_retention.coverage.${value}`;
+    const translated = t(key);
+
+    return translated === key ? formatStatus(value) : translated;
 }
 
 function policyLabel(value: string): string {
-    return t(`pages.admin.privacy_retention.policy.${value}`);
+    const key = `pages.admin.privacy_retention.policy.${value}`;
+    const translated = t(key);
+
+    return translated === key ? formatStatus(value) : translated;
 }
 
 function operationLabel(value: string): string {
-    return t(`pages.admin.privacy_retention.operation.${value}`);
+    const key = `pages.admin.privacy_retention.operation.${value}`;
+    const translated = t(key);
+
+    return translated === key ? formatStatus(value) : translated;
 }
 
 function statusLabel(value: string): string {
-    return t(`pages.admin.privacy_retention.preview.status.${value}`);
+    const key = `pages.admin.privacy_retention.preview.status.${value}`;
+    const translated = t(key);
+
+    return translated === key ? formatStatus(value) : translated;
 }
 
 function blockerCodeLabel(value: string): string {
     const key = `pages.admin.privacy_retention.blocker.${value}`;
     const translated = t(key);
 
-    return translated === key ? value : translated;
+    return translated === key ? formatStatus(value) : translated;
 }
 
 function blockerMessage(blocker: PrivacyPreviewBlocker): string {
@@ -282,7 +289,8 @@ function blockerMessage(blocker: PrivacyPreviewBlocker): string {
 
 <template>
     <Head :title="t('pages.admin.privacy_retention.head_title')" />
-    <AdminLayout
+    <AppLayout
+        mode="admin"
         :title="t('pages.admin.privacy_retention.title')"
         :title-icon="IconShieldCheck"
         :subnavigation="subnavigation"
@@ -543,5 +551,5 @@ function blockerMessage(blocker: PrivacyPreviewBlocker): string {
                 :empty-label="t('pages.admin.privacy_retention.coverage_table.empty')"
             />
         </PageStack>
-    </AdminLayout>
+    </AppLayout>
 </template>

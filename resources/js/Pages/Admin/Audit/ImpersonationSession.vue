@@ -8,7 +8,7 @@ import DataTable from '../../../Components/DataTable.vue';
 import OperationalMetricTile from '../../../Components/OperationalMetricTile.vue';
 import PageStack from '../../../Components/PageStack.vue';
 import SurfaceCard from '../../../Components/SurfaceCard.vue';
-import AdminLayout from '../../../Layouts/AdminLayout.vue';
+import AppLayout from '../../../Layouts/AppLayout.vue';
 import { useTranslator } from '../../../Localization/translator';
 import type { DataTableColumn, DataTableMeta } from '../../../Types/data-table';
 import type { ShellSubnavigationItem } from '../../../Types/navigation';
@@ -99,7 +99,8 @@ function text(value: string | null): string {
 
 <template>
     <Head :title="t('pages.admin.audit.impersonation.head_title')" />
-    <AdminLayout
+    <AppLayout
+        mode="admin"
         :title="t('pages.admin.audit.impersonation.title')"
         :title-icon="IconUserScan"
         :subnavigation="subnavigation"
@@ -201,5 +202,5 @@ function text(value: string | null): string {
                 :empty-label="t('pages.admin.audit.impersonation.events.empty')"
             />
         </PageStack>
-    </AdminLayout>
+    </AppLayout>
 </template>

@@ -121,7 +121,7 @@ export function formatStatus(value: string | EmptyValue): string {
     }
 
     return value
-        .split(/[-_\s]+/u)
+        .split(/[-_\s.]+/u)
         .filter(Boolean)
         .map((part) => `${part.charAt(0).toUpperCase()}${part.slice(1)}`)
         .join(' ');

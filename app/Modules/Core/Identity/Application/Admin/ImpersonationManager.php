@@ -10,6 +10,7 @@ use App\Modules\Core\Audit\Application\Public\Enums\SecurityAuditCategory;
 use App\Modules\Core\Authorization\Application\Public\Contracts\EffectivePermissionChecker;
 use App\Modules\Core\Authorization\Application\Public\DTOs\EffectivePermissionRequest;
 use App\Modules\Core\Identity\Application\Public\Contracts\ImpersonationEligibilityChecker;
+use App\Modules\Core\Identity\Application\Public\Contracts\ImpersonationSessionState;
 use App\Modules\Core\Identity\Application\Public\Contracts\UserSessionRegistry;
 use App\Modules\Core\Identity\Application\Public\DTOs\ImpersonationEligibility;
 use App\Modules\Core\Identity\Domain\AccountSensitivity;
@@ -21,7 +22,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
-final readonly class ImpersonationManager implements ImpersonationEligibilityChecker
+final readonly class ImpersonationManager implements ImpersonationEligibilityChecker, ImpersonationSessionState
 {
     private const ADMINISTRATOR_ROLE_NAME = 'system.administrator';
 
@@ -58,7 +59,18 @@ final readonly class ImpersonationManager implements ImpersonationEligibilityChe
 
     public function active(Request $request): bool
     {
-        return $request->hasSession() && is_string($request->session()->get(self::SESSION_ID));
+        return $this->sessionId($request) !== null;
+    }
+
+    public function sessionId(Request $request): ?string
+    {
+        if (! $request->hasSession()) {
+            return null;
+        }
+
+        $sessionId = $request->session()->get(self::SESSION_ID);
+
+        return is_string($sessionId) && $sessionId !== '' ? $sessionId : null;
     }
 
     public function eligibility(Request $request, string $actorPublicId, string $targetPublicId, ?string $teamPublicId = null): ImpersonationEligibility

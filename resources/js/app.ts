@@ -17,7 +17,7 @@ createInertiaApp({
             throw new Error(`Page not found: ${name}`);
         }
 
-        return page();
+        return page().then((module) => module.default);
     },
     setup({ el, App, props, plugin }) {
         registerNetworkHandling();

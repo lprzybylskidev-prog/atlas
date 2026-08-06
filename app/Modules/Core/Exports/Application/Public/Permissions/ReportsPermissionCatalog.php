@@ -17,6 +17,8 @@ final class ReportsPermissionCatalog implements ModulePermissionContribution
 
     public const AUDIT_EXPORT = 'exports.audit-export';
 
+    public const DATA_TABLE = 'exports.data-table';
+
     public const ADMIN_INDEX = 'admin.exports.index';
 
     public const ADMIN_DATA_TABLE = 'admin.exports.data-table';
@@ -28,6 +30,7 @@ final class ReportsPermissionCatalog implements ModulePermissionContribution
             new ModulePermissionDefinition(self::DOWNLOAD, 'Download generated export artifacts after reauthorization.'),
             new ModulePermissionDefinition(self::PRINT, 'Render authorized export browser print layouts.'),
             new ModulePermissionDefinition(self::AUDIT_EXPORT, 'Export detailed audit/history datasets instead of ordinary final values.'),
+            new ModulePermissionDefinition(self::DATA_TABLE, 'Request application DataTable exports through the Core Exports lifecycle.'),
             new ModulePermissionDefinition(self::ADMIN_INDEX, 'View export generation lifecycle status in Admin operations.'),
             new ModulePermissionDefinition(self::ADMIN_DATA_TABLE, 'Request Admin DataTable exports through the Core Exports lifecycle.'),
         ];

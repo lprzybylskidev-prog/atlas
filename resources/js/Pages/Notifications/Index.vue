@@ -13,6 +13,8 @@ import { applyTableFilters, clearTableFilters } from '../../Composables/useTable
 import AppLayout from '../../Layouts/AppLayout.vue';
 import { useTranslator } from '../../Localization/translator';
 import type { DataTableAction, DataTableBulkAction, DataTableColumn, DataTableMeta } from '../../Types/data-table';
+import { optionsWithAll } from '../../Utils/filterOptions';
+import { formatStatus } from '../../Utils/formatters';
 
 interface NotificationRow extends Record<string, unknown> {
     publicId: string;
@@ -77,7 +79,7 @@ const actions = computed<DataTableAction<NotificationRow>[]>(() => [
     {
         key: 'open',
         label: t('notifications.open'),
-        href: (row) => (row.deepLinkUrl === '' ? '/notifications' : row.deepLinkUrl),
+        href: (row) => (row.deepLinkUrl === '' ? '/user/notifications' : row.deepLinkUrl),
         method: 'get',
         nativeNavigation: true,
         tone: 'info',
@@ -86,7 +88,7 @@ const actions = computed<DataTableAction<NotificationRow>[]>(() => [
     {
         key: 'mark-read',
         label: t('notifications.mark_read'),
-        href: (row) => `/notifications/${row.publicId}/read`,
+        href: (row) => `/user/notifications/${row.publicId}/read`,
         method: 'post',
         tone: 'success',
         visible: (row) => !row.read,
@@ -105,14 +107,16 @@ const statusOptions = computed<FormSelectOption[]>(() => [
     { value: 'read', label: t('notifications.filters.read') },
 ]);
 const severityOptions = computed<FormSelectOption[]>(() =>
-    allOptions(props.filterOptions.severities, t('notifications.filters.any_severity'), severityLabel),
+    optionsWithAll(props.filterOptions.severities, t('notifications.filters.any_severity'), severityLabel),
 );
 const scopeOptions = computed<FormSelectOption[]>(() => [
     { value: 'all', label: t('notifications.filters.any_scope') },
     { value: 'team', label: t('notifications.scope.team') },
     { value: 'global', label: t('notifications.scope.global') },
 ]);
-const typeOptions = computed<FormSelectOption[]>(() => allOptions(props.filterOptions.types, t('notifications.filters.any_type')));
+const typeOptions = computed<FormSelectOption[]>(() =>
+    optionsWithAll(props.filterOptions.types, t('notifications.filters.any_type'), formatStatus),
+);
 const linkOptions = computed<FormSelectOption[]>(() => [
     { value: 'all', label: t('notifications.filters.any_link') },
     { value: 'with_link', label: t('notifications.filters.with_link') },
@@ -138,16 +142,6 @@ function filterValues(): Record<string, string> {
     };
 }
 
-function allOptions(values: string[], label: string, formatter?: (value: string) => string): FormSelectOption[] {
-    return [
-        { value: 'all', label },
-        ...values.map((value) => ({
-            value,
-            label: formatter === undefined ? value : formatter(value),
-        })),
-    ];
-}
-
 function severityLabel(severity: string): string {
     const keys: Record<string, string> = {
         critical: 'notifications.severity.critical',
@@ -157,7 +151,7 @@ function severityLabel(severity: string): string {
         warning: 'notifications.severity.warning',
     };
 
-    return keys[severity] === undefined ? severity : t(keys[severity]);
+    return keys[severity] === undefined ? formatStatus(severity) : t(keys[severity]);
 }
 
 function applyFilters(): void {
@@ -175,7 +169,7 @@ function handleBulkAction(payload: { action: DataTableBulkAction; rowIds: string
     }
 
     router.post(
-        '/notifications/read',
+        '/user/notifications/read',
         { notifications: payload.rowIds },
         {
             preserveScroll: true,
@@ -187,7 +181,7 @@ function handleBulkAction(payload: { action: DataTableBulkAction; rowIds: string
 
 <template>
     <Head :title="t('pages.notifications.head_title')" />
-    <AppLayout :title="t('pages.notifications.title')" :title-icon="IconBell">
+    <AppLayout :title="t('pages.notifications.title')" :title-icon="IconBell" mode="user">
         <PageStack>
             <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-6">
                 <OperationalMetricTile :label="t('notifications.metric.total')" :value="summary.total" :icon="IconInbox" tone="teal" />

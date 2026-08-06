@@ -205,6 +205,7 @@ final class E2eVisibilitySeeder extends Seeder
             'is_active' => true,
             'deactivated_at' => null,
             'account_sensitivity' => $accountSensitivity,
+            'avatar_color' => User::DEFAULT_AVATAR_COLOR,
         ])->save();
 
         return $user;

@@ -9,10 +9,11 @@ import FormButton from '../../../Components/Form/FormButton.vue';
 import FormCheckbox from '../../../Components/Form/FormCheckbox.vue';
 import FormSelect, { type FormSelectOption } from '../../../Components/Form/FormSelect.vue';
 import FormTextarea from '../../../Components/Form/FormTextarea.vue';
+import FormActions from '../../../Components/FormActions.vue';
 import NoticeBanner from '../../../Components/NoticeBanner.vue';
 import PageStack from '../../../Components/PageStack.vue';
 import SurfaceCard from '../../../Components/SurfaceCard.vue';
-import AdminLayout from '../../../Layouts/AdminLayout.vue';
+import AppLayout from '../../../Layouts/AppLayout.vue';
 import { useTranslator } from '../../../Localization/translator';
 import { formatEmpty } from '../../../Utils/formatters';
 
@@ -61,7 +62,7 @@ function submit(): void {
 
 <template>
     <Head :title="t('pages.admin.impersonation.head_title')" />
-    <AdminLayout :title="t('pages.admin.impersonation.title')" :title-icon="IconUserScan">
+    <AppLayout mode="admin" :title="t('pages.admin.impersonation.title')" :title-icon="IconUserScan">
         <PageStack>
             <div class="flex flex-wrap items-center justify-between gap-3">
                 <ActionLink href="/admin/users" tone="neutral" :icon="IconArrowLeft">
@@ -129,16 +130,16 @@ function submit(): void {
                         </NoticeBanner>
                     </div>
 
-                    <div class="mt-5 flex flex-wrap justify-end gap-2">
+                    <FormActions class="mt-5 justify-end">
                         <ActionLink href="/admin/users" tone="neutral">
                             {{ t('modal.cancel') }}
                         </ActionLink>
                         <FormButton type="submit" tone="danger" :icon="IconUserScan" :loading="form.processing">
                             {{ t('pages.admin.impersonation.actions.start') }}
                         </FormButton>
-                    </div>
+                    </FormActions>
                 </AtlasForm>
             </SurfaceCard>
         </PageStack>
-    </AdminLayout>
+    </AppLayout>
 </template>

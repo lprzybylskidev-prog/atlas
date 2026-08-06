@@ -17,6 +17,8 @@ final class Team extends Model
         'public_id',
         'name',
         'display_name',
+        'inactivity_timeout_minutes',
+        'session_max_lifetime_minutes',
         'is_active',
     ];
 
@@ -35,6 +37,8 @@ final class Team extends Model
     protected function casts(): array
     {
         return [
+            'inactivity_timeout_minutes' => 'integer',
+            'session_max_lifetime_minutes' => 'integer',
             'is_active' => 'boolean',
         ];
     }

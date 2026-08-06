@@ -15,6 +15,7 @@ import DataTable from '../../../Components/DataTable.vue';
 import DialogPanel from '../../../Components/DialogPanel.vue';
 import FilterPanel from '../../../Components/FilterPanel.vue';
 import AtlasForm from '../../../Components/Form/AtlasForm.vue';
+import DialogFormActions from '../../../Components/Form/DialogFormActions.vue';
 import FormButton from '../../../Components/Form/FormButton.vue';
 import FormInput from '../../../Components/Form/FormInput.vue';
 import FormSelect, { type FormSelectOption } from '../../../Components/Form/FormSelect.vue';
@@ -22,10 +23,11 @@ import OperationalMetricTile from '../../../Components/OperationalMetricTile.vue
 import PageStack from '../../../Components/PageStack.vue';
 import SurfaceCard from '../../../Components/SurfaceCard.vue';
 import { applyTableFilters, clearTableFilters } from '../../../Composables/useTableFilterControls';
-import AdminLayout from '../../../Layouts/AdminLayout.vue';
+import AppLayout from '../../../Layouts/AppLayout.vue';
 import { useTranslator } from '../../../Localization/translator';
 import type { DataTableAction, DataTableColumn, DataTableMeta } from '../../../Types/data-table';
-import { formatDateTime } from '../../../Utils/formatters';
+import { optionsWithAll } from '../../../Utils/filterOptions';
+import { formatDateTime, formatStatus } from '../../../Utils/formatters';
 import { moduleLabel } from '../../../Utils/moduleLabels';
 
 interface SearchIndexRow extends Record<string, unknown> {
@@ -125,7 +127,7 @@ const actions = computed<DataTableAction<SearchIndexRow>[]>(() => [
     },
 ]);
 const moduleOptions = computed<FormSelectOption[]>(() =>
-    allOptions(props.filterOptions.modules, t('pages.admin.search.filters.any_module'), (module) => moduleLabel(module, t)),
+    optionsWithAll(props.filterOptions.modules, t('pages.admin.search.filters.any_module'), (module) => moduleLabel(module, t)),
 );
 const sensitivityOptions = computed<FormSelectOption[]>(() => [
     { value: 'all', label: t('pages.admin.search.filters.any_sensitivity') },
@@ -168,16 +170,6 @@ function filterValues(): Record<string, string> {
         deletion: String(props.table.state.filters?.deletion ?? 'all'),
         anonymization: String(props.table.state.filters?.anonymization ?? 'all'),
     };
-}
-
-function allOptions(values: string[], label: string, valueLabel?: (value: string) => string): FormSelectOption[] {
-    return [
-        { value: 'all', label },
-        ...values.map((value) => ({
-            value,
-            label: valueLabel === undefined ? value : valueLabel(value),
-        })),
-    ];
 }
 
 function applyFilters(): void {
@@ -247,7 +239,7 @@ function statusLabel(value: string | null): string {
         waiting: 'statuses.waiting',
     };
 
-    return keys[value] === undefined ? value : t(keys[value]);
+    return keys[value] === undefined ? formatStatus(value) : t(keys[value]);
 }
 
 function progressLabel(run: RebuildRunRow): string {
@@ -265,7 +257,7 @@ function createdAtLabel(run: RebuildRunRow): string {
 
 <template>
     <Head :title="t('pages.admin.search.head_title')" />
-    <AdminLayout :title="t('pages.admin.search.title')" :title-icon="IconSearch">
+    <AppLayout mode="admin" :title="t('pages.admin.search.title')" :title-icon="IconSearch">
         <PageStack>
             <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
                 <OperationalMetricTile
@@ -417,15 +409,14 @@ function createdAtLabel(run: RebuildRunRow): string {
                         :error="rebuildForm.errors.confirmation"
                     />
                 </div>
-                <div class="mt-5 flex flex-wrap justify-end gap-2">
-                    <FormButton type="button" tone="neutral" @click="closeRebuildModal">
-                        {{ t('modal.cancel') }}
-                    </FormButton>
-                    <FormButton type="submit" :icon="IconPlayerPlay" :loading="rebuildForm.processing">
-                        {{ t('pages.admin.search.actions.start_rebuild') }}
-                    </FormButton>
-                </div>
+                <DialogFormActions
+                    :cancel-label="t('modal.cancel')"
+                    :submit-label="t('pages.admin.search.actions.start_rebuild')"
+                    :submit-icon="IconPlayerPlay"
+                    :loading="rebuildForm.processing"
+                    @cancel="closeRebuildModal"
+                />
             </AtlasForm>
         </DialogPanel>
-    </AdminLayout>
+    </AppLayout>
 </template>

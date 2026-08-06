@@ -32,7 +32,7 @@ Rules:
 
 The Users module registers `UserAccountDataLifecycleParticipant` for `user` subjects. The participant treats the Identity user row as the stable technical anchor for audit and related foreign-key references, so hard-delete and anonymization execution redacts the account instead of physically deleting it.
 
-Execution removes database-backed sessions, password reset tokens, password history rows, and WebAuthn credentials for the user. It clears MFA secrets/recovery codes, remember token, login-lock state, per-user session overrides, email verification, and first-password state, marks the account inactive, and replaces name/email with neutral redacted values. Producers must use public contracts rather than deleting `users` directly.
+Execution removes database-backed sessions, password reset tokens, password history rows, and WebAuthn credentials for the user. It clears MFA secrets/recovery codes, remember token, login-lock state, email verification, and first-password state, marks the account inactive, and replaces name/email with neutral redacted values. Producers must use public contracts rather than deleting `users` directly.
 
 Current persistence baseline:
 
@@ -43,7 +43,7 @@ Current persistence baseline:
 - `users.first_password_set_at` records whether the account completed first-password setup;
 - `users.is_active` and `users.deactivated_at` control whether an account may authenticate;
 - `users.failed_login_attempts`, `users.login_lock_count`, and `users.login_locked_until` track persistent login locks;
-- `users.inactivity_timeout_minutes` and `users.session_max_lifetime_minutes` optionally override the global session security defaults for an individual user;
+- session inactivity and maximum lifetime are resolved from global security defaults, then optional team overrides, then optional user-team assignment overrides. They are intentionally not stored directly on `users`, because the same user can work in several teams with different session policies;
 - `users.account_sensitivity` stores the impersonation/account-sensitivity classification independently from role and team assignments. Supported values are `normal`, `sensitive`, `technical`, `service`, and `integration`;
 - `user_password_histories` keeps the last 10 recorded password hashes per user;
 - accounts without `first_password_set_at` cannot authenticate, even when active;
@@ -120,6 +120,12 @@ Support:
 
 TOTP MFA uses Laravel Fortify's two-factor backend with encrypted `two_factor_secret` and encrypted recovery codes on the user record. MFA must be confirmed before it is treated as enabled. Confirmed TOTP users receive a second-factor login challenge instead of a complete session after password validation. Recovery codes are generated as one-time fallback codes by Fortify and are hidden from serialized user output.
 
+The user profile panel at `/user` exposes TOTP MFA enable, confirmation, QR/recovery-code display, and disable actions using the existing Fortify backend routes. It shows only user-relevant account state and does not expose roles, permissions, or low-level security event history.
+
+The Admin team create and edit forms expose team session overrides for inactivity logout minutes and maximum session lifetime minutes. Admin user create/edit assignment workflows expose the same values as user-team overrides. Empty user-team values inherit the effective team policy, and empty team values inherit global security defaults. Admin validation compares effective values after inheritance and rejects an inactivity timeout longer than the maximum session lifetime. Runtime session resolution also clamps inactivity to the effective maximum lifetime as a defensive safeguard.
+
+The regular user profile panel shows only the effective inactivity logout time for the active team. It intentionally does not show the maximum session lifetime because that value is an administrative security bound rather than a user-facing setting.
+
 MFA requirements are evaluated by `App\Modules\Core\Identity\Application\Mfa\MfaRequirementEvaluator`. Requirements are configurable through `atlas.security.mfa.requirements` and can require MFA globally, for specific user public IDs, team public IDs, permissions, or operation keys. Later authorization/team phases connect this evaluator to concrete UI and permission workflows.
 
 WebAuthn/passkey and FIDO2 hardware-key backend support uses `web-auth/webauthn-lib`. Credential storage is owned by `user_webauthn_credentials` and exposed through `App\Modules\Core\Identity\Application\WebAuthn\Contracts\WebAuthnCredentialRepository`. `WebAuthnOptionsFactory` generates WebAuthn registration options for platform passkeys and cross-platform hardware keys, plus authentication options from stored credentials. Browser-facing passkey screens and ceremonies are connected in later UI/authentication workflow work.
@@ -133,6 +139,14 @@ MFA may be required:
 - per sensitive operation.
 
 MFA reset is a separate audited administrative flow exposed through `App\Modules\Core\Users\Application\ResetUserMfa`. It requires an actor, target account, and reason, clears TOTP secret, recovery codes, and confirmation timestamp, and records an `audit_events` entry with action `user.mfa_reset`.
+
+### Password Expiry
+
+Atlas stores `password_changed_at` on user accounts and calculates password expiration through `App\Modules\Core\Identity\Application\PasswordExpiryPolicy`. The default lifetime is configured by `ATLAS_PASSWORD_EXPIRES_AFTER_DAYS` / `atlas.security.passwords.expires_after_days` and is 90 days.
+
+Users can change their password from `/user` before expiry. The change uses the same password policy, password history checks, audit event, and session invalidation behavior as the Fortify password-update action. Expired passwords are rejected during login after password validation and before a session is established.
+
+The user profile panel shows the password-valid-until date, MFA controls, cropped avatar image upload/removal, fallback avatar color controls, and notification email preferences. Uploaded avatar images are stored through the Core Files module, remain unavailable while pending/scanning/blocked, and take precedence over color initials only after Files marks them clean. Removing the image restores the color-based initials avatar and deletes the avatar file through the Files lifecycle workflow. The shared Inertia auth payload exposes the current clean avatar presentation so global navigation and later user-facing surfaces can render the same avatar consistently. The panel intentionally does not show role names, permission names, email verification status, first-password setup dates, active sessions, team lists, or detailed security logs.
 
 ### Sessions
 

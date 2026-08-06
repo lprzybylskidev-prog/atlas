@@ -7,23 +7,33 @@ namespace App\Modules\Core\Identity\Presentation\Providers;
 use App\Modules\Core\Audit\Application\Public\Contracts\AuditActorContextProvider;
 use App\Modules\Core\Audit\Application\Public\Enums\SecurityAuditCategory;
 use App\Modules\Core\Identity\Application\Admin\AdministrativeSessionManager;
+use App\Modules\Core\Identity\Application\Admin\CurrentUserStepUpAuthenticator;
 use App\Modules\Core\Identity\Application\Admin\ImpersonationManager;
+use App\Modules\Core\Identity\Application\Admin\ImpersonationSimulationStore;
 use App\Modules\Core\Identity\Application\Contracts\PasswordHistoryRepository;
 use App\Modules\Core\Identity\Application\Contracts\SuspiciousLoginNotifier;
 use App\Modules\Core\Identity\Application\Exports\AdminRateLimitPoliciesDataTableExportProvider;
 use App\Modules\Core\Identity\Application\LoginProtection\LoginAttemptProtection;
+use App\Modules\Core\Identity\Application\PasswordExpiryPolicy;
 use App\Modules\Core\Identity\Application\Public\Contracts\HighRiskAdministrativeAuthorization;
 use App\Modules\Core\Identity\Application\Public\Contracts\ImpersonationEligibilityChecker;
+use App\Modules\Core\Identity\Application\Public\Contracts\ImpersonationSessionState;
+use App\Modules\Core\Identity\Application\Public\Contracts\ImpersonationSimulationRecorder;
 use App\Modules\Core\Identity\Application\Public\Contracts\SecurityAuditRecorder;
 use App\Modules\Core\Identity\Application\Public\Contracts\UserCredentialAccountDirectory;
 use App\Modules\Core\Identity\Application\Public\Contracts\UserCredentialAccountStatusManager;
 use App\Modules\Core\Identity\Application\Public\Contracts\UserCredentialAccountStore;
+use App\Modules\Core\Identity\Application\Public\Contracts\UserPasswordExpiration;
+use App\Modules\Core\Identity\Application\Public\Contracts\UserPasswordUpdater;
+use App\Modules\Core\Identity\Application\Public\Contracts\UserSessionLimitResolver;
 use App\Modules\Core\Identity\Application\Public\Contracts\UserSessionRegistry;
+use App\Modules\Core\Identity\Application\Public\Contracts\UserStepUpAuthentication;
 use App\Modules\Core\Identity\Application\Public\DTOs\SecurityAuditEvent;
 use App\Modules\Core\Identity\Application\RateLimiting\RateLimitKeyBuilder;
 use App\Modules\Core\Identity\Application\RateLimiting\RateLimitPolicyCatalog;
 use App\Modules\Core\Identity\Application\RateLimiting\RateLimitPolicyRegistrar;
 use App\Modules\Core\Identity\Application\RateLimiting\RateLimitRejectionRecorder;
+use App\Modules\Core\Identity\Application\Sessions\SessionLimitResolver;
 use App\Modules\Core\Identity\Application\Sessions\SingleSessionLoginGuard;
 use App\Modules\Core\Identity\Application\WebAuthn\Contracts\WebAuthnCredentialRepository;
 use App\Modules\Core\Identity\Infrastructure\Notifications\UserSuspiciousLoginNotifier;
@@ -58,8 +68,14 @@ class FortifyServiceProvider extends ServiceProvider
         $this->app->bind(UserCredentialAccountStore::class, EloquentUserCredentialAccountStore::class);
         $this->app->bind(UserCredentialAccountStatusManager::class, EloquentUserCredentialAccountStatusManager::class);
         $this->app->bind(UserSessionRegistry::class, RedisUserSessionRegistry::class);
+        $this->app->bind(UserPasswordExpiration::class, PasswordExpiryPolicy::class);
+        $this->app->bind(UserPasswordUpdater::class, UpdateUserPassword::class);
         $this->app->bind(ImpersonationEligibilityChecker::class, ImpersonationManager::class);
+        $this->app->bind(ImpersonationSessionState::class, ImpersonationManager::class);
+        $this->app->bind(ImpersonationSimulationRecorder::class, ImpersonationSimulationStore::class);
+        $this->app->bind(UserSessionLimitResolver::class, SessionLimitResolver::class);
         $this->app->bind(HighRiskAdministrativeAuthorization::class, AdministrativeSessionManager::class);
+        $this->app->bind(UserStepUpAuthentication::class, CurrentUserStepUpAuthenticator::class);
         $this->app->bind(AuditActorContextProvider::class, SessionAuditActorContextProvider::class);
         $this->app->tag([AdminRateLimitPoliciesDataTableExportProvider::class], 'atlas.admin_data_table_export_providers');
     }
@@ -77,8 +93,9 @@ class FortifyServiceProvider extends ServiceProvider
         $loginAttempts = $this->app->make(LoginAttemptProtection::class);
         $audit = $this->app->make(SecurityAuditRecorder::class);
         $singleSessionLoginGuard = $this->app->make(SingleSessionLoginGuard::class);
+        $passwordExpiry = $this->app->make(PasswordExpiryPolicy::class);
 
-        Fortify::authenticateUsing(function (Request $request) use ($loginAttempts, $audit, $singleSessionLoginGuard): ?User {
+        Fortify::authenticateUsing(function (Request $request) use ($loginAttempts, $audit, $singleSessionLoginGuard, $passwordExpiry): ?User {
             $user = User::query()
                 ->where('email', $request->string(Fortify::username())->lower()->toString())
                 ->first();
@@ -105,6 +122,24 @@ class FortifyServiceProvider extends ServiceProvider
 
             if (! is_string($password) || ! Hash::check($password, $user->password)) {
                 $loginAttempts->recordFailedAttempt($user);
+
+                return null;
+            }
+
+            if ($passwordExpiry->expired($user)) {
+                $audit->record(new SecurityAuditEvent(
+                    module: 'identity',
+                    action: 'auth.login_failure',
+                    result: 'rejected',
+                    source: 'ui',
+                    actorPublicId: null,
+                    targetPublicId: (string) $user->public_id,
+                    reason: null,
+                    category: SecurityAuditCategory::Authentication,
+                    metadata: [
+                        'reason' => 'password_expired',
+                    ],
+                ));
 
                 return null;
             }

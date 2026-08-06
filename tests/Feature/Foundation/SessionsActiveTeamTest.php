@@ -7,6 +7,7 @@ namespace Tests\Feature\Foundation;
 use App\Modules\Core\Authorization\Application\Roles\InstallStarterRoles;
 use App\Modules\Core\Authorization\Application\Roles\StarterRoleName;
 use App\Modules\Core\Identity\Application\Public\Contracts\UserSessionRegistry;
+use App\Modules\Core\Identity\Application\Sessions\SessionLimitResolver;
 use App\Modules\Core\Identity\Infrastructure\Persistence\User;
 use App\Modules\Core\Teams\Infrastructure\Persistence\Team;
 use App\Shared\Application\Tables\AdminTableDefinitions;
@@ -115,12 +116,16 @@ final class SessionsActiveTeamTest extends TestCase
     {
         Carbon::setTestNow(Carbon::parse('2026-07-16 10:00:00'));
 
-        $user = User::factory()->create([
-            'inactivity_timeout_minutes' => 5,
-            'session_max_lifetime_minutes' => 60,
-        ]);
+        $user = User::factory()->create();
         $team = Team::query()->create(['name' => 'Operations']);
         $this->assignStarterRoleInTeam($user, $team, StarterRoleName::WorkspaceAccess->value);
+        DB::table(DatabaseTable::TEAM_USER_ASSIGNMENTS)
+            ->where('team_id', $team->id)
+            ->where('user_id', $user->id)
+            ->update([
+                'inactivity_timeout_minutes' => 5,
+                'session_max_lifetime_minutes' => 60,
+            ]);
         $configuredLifetime = config('session.lifetime');
 
         Carbon::setTestNow(Carbon::parse('2026-07-16 10:06:00'));
@@ -135,6 +140,25 @@ final class SessionsActiveTeamTest extends TestCase
             ->assertRedirect(route('login'));
 
         self::assertSame($configuredLifetime, config('session.lifetime'));
+    }
+
+    public function test_session_limit_resolver_clamps_inactivity_to_maximum_lifetime(): void
+    {
+        $user = User::factory()->create();
+        $team = Team::query()->create(['name' => 'Operations']);
+        $this->assignStarterRoleInTeam($user, $team, StarterRoleName::WorkspaceAccess->value);
+        DB::table(DatabaseTable::TEAM_USER_ASSIGNMENTS)
+            ->where('team_id', $team->id)
+            ->where('user_id', $user->id)
+            ->update([
+                'inactivity_timeout_minutes' => 90,
+                'session_max_lifetime_minutes' => 30,
+            ]);
+
+        $limits = $this->app->make(SessionLimitResolver::class)->limitsFor($user, (string) $team->public_id);
+
+        self::assertSame(30, $limits['inactivity']);
+        self::assertSame(30, $limits['maximum']);
     }
 
     public function test_admin_users_table_exposes_default_visible_online_status(): void

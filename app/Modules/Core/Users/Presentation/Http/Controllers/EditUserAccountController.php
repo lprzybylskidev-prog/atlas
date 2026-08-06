@@ -9,7 +9,10 @@ use App\Modules\Core\Authorization\Application\Public\Contracts\UserTeamAuthoriz
 use App\Modules\Core\Identity\Application\Public\Contracts\ImpersonationEligibilityChecker;
 use App\Modules\Core\Identity\Application\Public\Contracts\UserCredentialAccountDirectory;
 use App\Modules\Core\Identity\Application\Public\DTOs\UserCredentialAccountOption;
+use App\Modules\Core\Settings\Application\Public\Contracts\SecuritySessionSettings;
 use App\Modules\Core\Teams\Application\Public\Contracts\UserTeamMembershipManager;
+use App\Modules\Core\Teams\Application\Public\Contracts\UserTeamSessionLimitSettings;
+use App\Modules\Optional\TimeTracking\Application\Public\Contracts\UserBreakPolicySettings;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -21,9 +24,12 @@ final readonly class EditUserAccountController
     public function __construct(
         private UserCredentialAccountDirectory $accounts,
         private UserTeamMembershipManager $memberships,
+        private UserTeamSessionLimitSettings $sessionLimits,
         private UserTeamAuthorizationManager $authorization,
         private OnboardingPackageDirectory $packages,
         private ImpersonationEligibilityChecker $impersonation,
+        private SecuritySessionSettings $sessionSettings,
+        private UserBreakPolicySettings $breakPolicies,
     ) {}
 
     public function __invoke(Request $request, string $user): Response
@@ -53,6 +59,10 @@ final readonly class EditUserAccountController
             ],
             'teamMemberships' => array_map(function ($membership) use ($account): array {
                 $assignments = $this->authorization->assignmentsForUserTeam($account->publicId, $membership->teamPublicId);
+                $sessionLimits = $this->sessionLimits->resolvedForUserTeam($account->publicId, $membership->teamPublicId);
+                $breakLimits = $this->breakPolicies->resolvedForUserTeam($account->publicId, $membership->teamPublicId);
+                $hasUserTeamSessionOverride = $sessionLimits['source'] === 'user_team';
+                $hasUserTeamBreakOverride = $breakLimits['source'] === 'user_team';
 
                 return [
                     'teamPublicId' => $membership->teamPublicId,
@@ -62,12 +72,20 @@ final readonly class EditUserAccountController
                     'validTo' => $membership->validTo,
                     'roleNames' => $assignments->roleNames,
                     'directPermissionNames' => $assignments->directPermissionNames,
+                    'inactivityTimeoutMinutes' => $hasUserTeamSessionOverride ? $sessionLimits['inactivityTimeoutMinutes'] : null,
+                    'sessionMaxLifetimeMinutes' => $hasUserTeamSessionOverride ? $sessionLimits['sessionMaxLifetimeMinutes'] : null,
+                    'breakDailyLimitMinutes' => $hasUserTeamBreakOverride ? $breakLimits['dailyLimitMinutes'] : null,
+                    'breakMaximumSingleMinutes' => $hasUserTeamBreakOverride ? $breakLimits['maximumSingleBreakMinutes'] : null,
                 ];
             }, $this->memberships->activeMembershipsForUser($account->publicId)),
             'assignableTeams' => array_map(static fn ($team): array => [
                 'value' => $team->publicId,
                 'label' => $team->name,
             ], $this->memberships->assignableTeamsForUser($account->publicId)),
+            'teamPolicyDefaults' => $this->teamPolicyDefaults(array_values(array_unique(array_merge(
+                array_map(static fn ($membership): string => $membership->teamPublicId, $this->memberships->activeMembershipsForUser($account->publicId)),
+                array_map(static fn ($team): string => $team->publicId, $this->memberships->assignableTeamsForUser($account->publicId)),
+            )))),
             'packages' => array_map(static fn ($package): array => [
                 'publicId' => $package->publicId,
                 'teamPublicId' => $package->teamPublicId,
@@ -102,7 +120,40 @@ final readonly class EditUserAccountController
             'roleOptions' => $this->authorization->roleOptions(),
             'permissionOptions' => $this->authorization->permissionOptions(),
             'rolePermissionMap' => $this->authorization->rolePermissionMap(),
+            'sessionDefaults' => [
+                'inactivityTimeoutMinutes' => $this->sessionSettings->inactivityTimeoutMinutes(),
+                'sessionMaxLifetimeMinutes' => $this->globalSessionMaxLifetimeMinutes(),
+            ],
         ]);
+    }
+
+    /**
+     * @param  list<string>  $teamPublicIds
+     * @return array<string, array{inactivityTimeoutMinutes: int, sessionMaxLifetimeMinutes: int, breakDailyLimitMinutes: int, breakMaximumSingleMinutes: int}>
+     */
+    private function teamPolicyDefaults(array $teamPublicIds): array
+    {
+        $defaults = [];
+
+        foreach ($teamPublicIds as $teamPublicId) {
+            $sessionLimits = $this->sessionLimits->resolvedForTeam($teamPublicId);
+            $breakLimits = $this->breakPolicies->resolvedForTeam($teamPublicId);
+            $defaults[$teamPublicId] = [
+                'inactivityTimeoutMinutes' => $sessionLimits['inactivityTimeoutMinutes'],
+                'sessionMaxLifetimeMinutes' => $sessionLimits['sessionMaxLifetimeMinutes'],
+                'breakDailyLimitMinutes' => $breakLimits['dailyLimitMinutes'],
+                'breakMaximumSingleMinutes' => $breakLimits['maximumSingleBreakMinutes'],
+            ];
+        }
+
+        return $defaults;
+    }
+
+    private function globalSessionMaxLifetimeMinutes(): int
+    {
+        $configured = config('atlas.security.sessions.max_lifetime_minutes', 720);
+
+        return max(1, is_numeric($configured) ? (int) $configured : 720);
     }
 
     private function actorPublicId(Request $request): ?string

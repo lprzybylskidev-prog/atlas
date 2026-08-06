@@ -18,11 +18,12 @@ import OperationalMetricTile from '../../../Components/OperationalMetricTile.vue
 import PageStack from '../../../Components/PageStack.vue';
 import SurfaceCard from '../../../Components/SurfaceCard.vue';
 import { applyTableFilters, clearTableFilters } from '../../../Composables/useTableFilterControls';
-import AdminLayout from '../../../Layouts/AdminLayout.vue';
+import AppLayout from '../../../Layouts/AppLayout.vue';
 import { useTranslator } from '../../../Localization/translator';
 import type { DataTableAction, DataTableColumn, DataTableMeta } from '../../../Types/data-table';
 import { moduleLabel } from '../../../Utils/moduleLabels';
-import { formatDateTime } from '../../../Utils/formatters';
+import { optionsWithAll } from '../../../Utils/filterOptions';
+import { formatDateTime, formatStatus } from '../../../Utils/formatters';
 
 interface IntegrationRow extends Record<string, unknown> {
     key: string;
@@ -85,10 +86,9 @@ const filters = ref({ ...filterDefaults, ...filterValues() });
 const rows = computed<IntegrationRow[]>(() =>
     props.integrations.map((integration) => ({
         ...integration,
+        providedScopes: integration.providedScopes.map((scope) => scopeLabel(scope)),
         requiredModules: integration.requiredModules.map((module) => moduleLabel(module, t)),
         optionalModules: integration.optionalModules.map((module) => moduleLabel(module, t)),
-        circuitState: circuitLabel(integration.circuitState),
-        lastRunStatus: statusLabel(integration.lastRunStatus),
     })),
 );
 const columns = computed<DataTableColumn<IntegrationRow>[]>(() => [
@@ -97,8 +97,8 @@ const columns = computed<DataTableColumn<IntegrationRow>[]>(() => [
     { key: 'sourceOfTruth', label: t('pages.admin.integrations.table.source_of_truth') },
     { key: 'providedScopes', label: t('pages.admin.integrations.table.scopes'), format: 'list' },
     { key: 'enabled', label: t('pages.admin.integrations.table.enabled'), format: 'boolean' },
-    { key: 'circuitState', label: t('pages.admin.integrations.table.circuit'), format: 'status' },
-    { key: 'lastRunStatus', label: t('pages.admin.integrations.table.last_run'), format: 'status' },
+    { key: 'circuitState', label: t('pages.admin.integrations.table.circuit'), format: 'status-badge' },
+    { key: 'lastRunStatus', label: t('pages.admin.integrations.table.last_run'), format: 'status-badge' },
     { key: 'lastSuccessAt', label: t('pages.admin.integrations.table.last_success'), format: 'datetime' },
     { key: 'lastErrorAt', label: t('pages.admin.integrations.table.last_error'), format: 'datetime' },
     { key: 'externalApiEnabled', label: t('pages.admin.integrations.table.external_api'), format: 'boolean', hidden: true },
@@ -134,7 +134,7 @@ const externalApiOptions = computed<FormSelectOption[]>(() => [
     { value: 'disabled', label: t('pages.admin.integrations.filters.disabled') },
 ]);
 const scopeOptions = computed<FormSelectOption[]>(() =>
-    allOptions(props.filterOptions.scopes, t('pages.admin.integrations.filters.any_scope')),
+    optionsWithAll(props.filterOptions.scopes, t('pages.admin.integrations.filters.any_scope'), scopeLabel),
 );
 const tableFilters = computed(() => filterValues());
 const externalApiTone = computed(() => (props.externalApiEnabled ? 'amber' : 'zinc'));
@@ -158,16 +158,6 @@ function filterValues(): Record<string, string> {
     };
 }
 
-function allOptions(values: string[], label: string): FormSelectOption[] {
-    return [
-        { value: 'all', label },
-        ...values.map((value) => ({
-            value,
-            label: value,
-        })),
-    ];
-}
-
 function applyFilters(): void {
     applyTableFilters(filterKeys, filters.value, filterDefaults);
 }
@@ -188,7 +178,7 @@ function circuitLabel(value: string | null): string {
         open: 'pages.admin.integrations.circuit.open',
     };
 
-    return keys[value] === undefined ? value : t(keys[value]);
+    return keys[value] === undefined ? formatStatus(value) : t(keys[value]);
 }
 
 function statusLabel(value: string | null): string {
@@ -202,7 +192,14 @@ function statusLabel(value: string | null): string {
         succeeded: 'statuses.succeeded',
     };
 
-    return keys[value] === undefined ? value : t(keys[value]);
+    return keys[value] === undefined ? formatStatus(value) : t(keys[value]);
+}
+
+function scopeLabel(value: string): string {
+    const key = `pages.admin.integrations.scopes.${value.replaceAll('-', '_')}`;
+    const translated = t(key);
+
+    return translated === key ? formatStatus(value) : translated;
 }
 
 function runStartedAtLabel(run: IntegrationRunRow): string {
@@ -212,7 +209,7 @@ function runStartedAtLabel(run: IntegrationRunRow): string {
 
 <template>
     <Head :title="t('pages.admin.integrations.head_title')" />
-    <AdminLayout :title="t('pages.admin.integrations.title')" :title-icon="IconPlugConnected">
+    <AppLayout mode="admin" :title="t('pages.admin.integrations.title')" :title-icon="IconPlugConnected">
         <PageStack>
             <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-6">
                 <OperationalMetricTile
@@ -337,5 +334,5 @@ function runStartedAtLabel(run: IntegrationRunRow): string {
                 </div>
             </SurfaceCard>
         </PageStack>
-    </AdminLayout>
+    </AppLayout>
 </template>

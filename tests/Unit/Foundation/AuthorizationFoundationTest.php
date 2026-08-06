@@ -10,6 +10,7 @@ use App\Modules\Core\Authorization\Application\Public\DTOs\EffectivePermissionRe
 use App\Modules\Core\Authorization\Infrastructure\Persistence\SpatieEffectivePermissionChecker;
 use App\Modules\Core\Teams\Application\Permissions\TeamPermissionCatalog;
 use App\Modules\Core\Users\Application\Permissions\UserPermissionCatalog;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Route;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
@@ -18,6 +19,8 @@ use Tests\TestCase;
 
 final class AuthorizationFoundationTest extends TestCase
 {
+    use RefreshDatabase;
+
     public function test_permission_teams_mode_is_mandatory(): void
     {
         self::assertTrue(config('permission.teams'));
@@ -111,6 +114,7 @@ final class AuthorizationFoundationTest extends TestCase
             'team.select.store',
             'team.switch',
             'theme.update',
+            'users.profile.notification-emails.verify',
         ];
 
         foreach (Route::getRoutes()->getRoutes() as $route) {

@@ -8,6 +8,7 @@ enum SecuritySettingKey: string
 {
     case SessionIdleTimeoutMinutes = 'security.sessions.idle_timeout_minutes';
     case PasswordConfirmationTimeoutMinutes = 'security.password_confirmation_timeout_minutes';
+    case PasswordExpiresAfterDays = 'security.password_expires_after_days';
     case AdministrativeModeIdleTimeoutMinutes = 'security.admin_mode.idle_timeout_minutes';
     case AdministrativeModeAbsoluteLifetimeMinutes = 'security.admin_mode.absolute_lifetime_minutes';
     case AdministrativeHighRiskTimeoutMinutes = 'security.admin_mode.high_risk_timeout_minutes';

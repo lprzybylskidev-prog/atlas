@@ -38,7 +38,7 @@ Do not replace this index after the initial technical foundation is completed. C
 ## Current phase
 
 - Phase: [Phase 27 — Optional TimeTracking module](docs/roadmap/phase-27-time-tracking.md)
-- Status: `in progress`
+- Status: `complete`
 
 ## Roadmap dependency repair note
 
@@ -312,18 +312,42 @@ Implement optional operational TimeTracking, breaks, other work, inactivity, cor
 
 [Open implementation contract and tasks](docs/roadmap/phase-27-time-tracking.md)
 
-### Phase 28 — Production deployment, backup, restore, and rollback
+### Phase 27a — Demo and test seeder invariant repair
+
+**Status:** `not started`
+
+Repair development demo, e2e, and bootstrap seed data so they preserve application invariants through public contracts or dedicated invariant-preserving fixture helpers.
+
+[Open implementation contract and tasks](docs/roadmap/phase-27a-demo-seeder-invariant-repair.md)
+
+### Phase 27b — Bilingual email templates and notification mail audit
+
+**Status:** `not started`
+
+Standardize every Atlas-owned outgoing email so mail content is localized, bilingual, consistently branded, and test-protected before production deployment.
+
+[Open implementation contract and tasks](docs/roadmap/phase-27b-bilingual-email-templates.md)
+
+### Phase 28 — Backend and database surface audit
+
+**Status:** `not started`
+
+Audit all completed foundation modules for backend/database capabilities that lack an appropriate frontend, Admin, manager, user, CLI, automated, or documented operational surface, then expose, remove, or explicitly defer them.
+
+[Open implementation contract and tasks](docs/roadmap/phase-28-backend-surface-audit.md)
+
+### Phase 29 — Production deployment, backup, restore, and rollback
 
 **Status:** `not started`
 
 Implement the single-host production Docker topology, HTTPS, deployment releases, PostgreSQL backups, restore, readiness, and rollback.
 
-[Open implementation contract and tasks](docs/roadmap/phase-28-deployment-backup-rollback.md)
+[Open implementation contract and tasks](docs/roadmap/phase-29-deployment-backup-rollback.md)
 
-### Phase 29 — Final test audit, full-app E2E review, and foundation verification
+### Phase 30 — Final test audit, full-app E2E review, and foundation verification
 
 **Status:** `not started`
 
 Perform a full test-suite audit, browser-level E2E review of the whole application, architecture/security/documentation verification, restore/deployment checks, and final technical-foundation hardening before debt collection business modules begin.
 
-[Open implementation contract and tasks](docs/roadmap/phase-29-final-verification.md)
+[Open implementation contract and tasks](docs/roadmap/phase-30-final-verification.md)

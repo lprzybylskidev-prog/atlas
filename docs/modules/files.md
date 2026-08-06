@@ -38,6 +38,7 @@ The public storage contract is `App\Modules\Core\Files\Application\Public\Contra
 
 Current rules:
 
+- every Atlas-owned user upload, including profile avatars, must enter this Files workflow rather than being written directly to a filesystem disk;
 - files are written to the configured private disk from `atlas.files.disk`;
 - local development defaults to `atlas_files`;
 - production defaults to `atlas_files_s3`;

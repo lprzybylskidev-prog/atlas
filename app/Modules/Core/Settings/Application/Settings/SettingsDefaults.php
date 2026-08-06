@@ -32,10 +32,6 @@ final class SettingsDefaults
         return match ($key) {
             UserSettingKey::UiLocale => null,
             UserSettingKey::Theme => null,
-            UserSettingKey::NotificationPreferences => [
-                'database' => true,
-                'mail' => true,
-            ],
             UserSettingKey::DefaultTeamPublicId => null,
             UserSettingKey::TableViewPreferences => [],
             UserSettingKey::DashboardPreferences => [],
@@ -51,6 +47,7 @@ final class SettingsDefaults
         return match ($key) {
             SecuritySettingKey::SessionIdleTimeoutMinutes => 30,
             SecuritySettingKey::PasswordConfirmationTimeoutMinutes => 15,
+            SecuritySettingKey::PasswordExpiresAfterDays => config('atlas.security.passwords.expires_after_days', 90),
             SecuritySettingKey::AdministrativeModeIdleTimeoutMinutes => 30,
             SecuritySettingKey::AdministrativeModeAbsoluteLifetimeMinutes => 240,
             SecuritySettingKey::AdministrativeHighRiskTimeoutMinutes => 5,

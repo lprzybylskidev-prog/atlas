@@ -8,10 +8,12 @@ import FilterPanel from '../../../Components/FilterPanel.vue';
 import FormSelect from '../../../Components/Form/FormSelect.vue';
 import PageStack from '../../../Components/PageStack.vue';
 import { applyTableFilters, clearTableFilters } from '../../../Composables/useTableFilterControls';
-import AdminLayout from '../../../Layouts/AdminLayout.vue';
+import AppLayout from '../../../Layouts/AppLayout.vue';
 import { useTranslator } from '../../../Localization/translator';
 import type { DataTableColumn, DataTableMeta } from '../../../Types/data-table';
 import type { FormSelectOption } from '../../../Components/Form/FormSelect.vue';
+import { optionsWithAll, yesNoOptionsWithAll } from '../../../Utils/filterOptions';
+import { moduleLabel } from '../../../Utils/moduleLabels';
 
 interface PermissionRow extends Record<string, unknown> {
     id: number | null;
@@ -52,6 +54,7 @@ const filters = ref({ ...filterDefaults, ...filterValues() });
 const rows = computed<PermissionRow[]>(() =>
     props.permissions.map((permission) => ({
         ...permission,
+        module: moduleLabel(permission.module, t),
         ineffectiveReason: permission.ineffectiveReason === null ? null : ineffectiveReasonLabel(permission.ineffectiveReason),
     })),
 );
@@ -74,19 +77,16 @@ const columns = computed<DataTableColumn<PermissionRow>[]>(() => [
 ]);
 
 const moduleOptions = computed<FormSelectOption[]>(() => [
-    { value: 'all', label: t('pages.admin.permissions.filters.any_module') },
-    ...props.filterOptions.modules.map((module) => ({ value: module, label: module })),
+    ...optionsWithAll(props.filterOptions.modules, t('pages.admin.permissions.filters.any_module'), (module) => moduleLabel(module, t)),
 ]);
 const activationOptions = computed<FormSelectOption[]>(() => [
     { value: 'all', label: t('pages.admin.permissions.filters.any_activation') },
     { value: 'active', label: t('datatable.status.active') },
     { value: 'inactive', label: t('datatable.status.inactive') },
 ]);
-const booleanOptions = computed<FormSelectOption[]>(() => [
-    { value: 'all', label: t('pages.admin.permissions.filters.any_boolean') },
-    { value: 'yes', label: t('datatable.boolean.yes') },
-    { value: 'no', label: t('datatable.boolean.no') },
-]);
+const booleanOptions = computed<FormSelectOption[]>(() =>
+    yesNoOptionsWithAll(t('pages.admin.permissions.filters.any_boolean'), t('datatable.boolean.yes'), t('datatable.boolean.no')),
+);
 const tableFilters = computed(() => filterValues());
 
 watch(
@@ -134,7 +134,7 @@ function clearFilters(): void {
 
 <template>
     <Head :title="t('pages.admin.permissions.head_title')" />
-    <AdminLayout :title="t('pages.admin.permissions.title')" :title-icon="IconKey">
+    <AppLayout mode="admin" :title="t('pages.admin.permissions.title')" :title-icon="IconKey">
         <PageStack>
             <FilterPanel
                 :title="t('pages.admin.permissions.filters.title')"
@@ -179,5 +179,5 @@ function clearFilters(): void {
                 :empty-label="t('pages.admin.permissions.empty')"
             />
         </PageStack>
-    </AdminLayout>
+    </AppLayout>
 </template>

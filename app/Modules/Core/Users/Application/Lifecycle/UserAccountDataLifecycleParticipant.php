@@ -125,11 +125,6 @@ final readonly class UserAccountDataLifecycleParticipant implements DataLifecycl
             $updates['two_factor_confirmed_at'] = null;
         }
 
-        if (Schema::hasColumn(DatabaseTable::USERS, 'inactivity_timeout_minutes')) {
-            $updates['inactivity_timeout_minutes'] = null;
-            $updates['session_max_lifetime_minutes'] = null;
-        }
-
         if (Schema::hasColumn(DatabaseTable::USERS, 'account_sensitivity')) {
             $updates['account_sensitivity'] = 'normal';
         }

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { computed } from 'vue';
 import AtlasLogo from '../Components/AtlasLogo.vue';
 import FullscreenTransitionLoader from '../Components/FullscreenTransitionLoader.vue';
 import IconButton from '../Components/IconButton.vue';
@@ -11,15 +12,32 @@ import type { AtlasPageProps } from '../Types/inertia';
 import { usePage } from '@inertiajs/vue3';
 import { IconLanguage, IconMoon, IconSun } from '@tabler/icons-vue';
 
-defineProps<{
-    title: string;
-    subtitle: string;
-}>();
+const props = withDefaults(
+    defineProps<{
+        title: string;
+        subtitle: string;
+        frameContent?: boolean;
+        contentSize?: 'md' | 'xl' | '4xl';
+    }>(),
+    {
+        frameContent: true,
+        contentSize: 'md',
+    },
+);
 
 const { isDark, toggleTheme } = useTheme();
 const { switchLocale } = useLocaleSwitcher();
 const page = usePage<AtlasPageProps>();
 const { t } = useTranslator();
+const contentWidthClass = computed(() => {
+    const classes = {
+        md: 'max-w-md',
+        xl: 'max-w-xl',
+        '4xl': 'max-w-4xl',
+    };
+
+    return classes[props.contentSize];
+});
 </script>
 
 <template>
@@ -64,7 +82,7 @@ const { t } = useTranslator();
             </div>
 
             <div class="flex flex-1 items-center justify-center px-4 py-8 sm:px-6 lg:px-8">
-                <div class="w-full max-w-md">
+                <div class="w-full" :class="contentWidthClass">
                     <div class="mb-7">
                         <div class="flex items-center gap-2">
                             <AtlasLogo :show-text="false" mark-class="h-7 w-7" />
@@ -73,9 +91,10 @@ const { t } = useTranslator();
                         <h2 class="mt-2 text-2xl font-semibold text-zinc-950 dark:text-zinc-50">{{ title }}</h2>
                         <p class="mt-2 text-sm leading-6 text-zinc-600 dark:text-zinc-300">{{ subtitle }}</p>
                     </div>
-                    <SurfaceCard aria-label="Authentication form" body-class="sm:p-6">
+                    <SurfaceCard v-if="frameContent" aria-label="Authentication form" body-class="sm:p-6">
                         <slot />
                     </SurfaceCard>
+                    <slot v-else />
                 </div>
             </div>
         </section>

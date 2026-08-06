@@ -41,6 +41,12 @@ use App\Modules\Optional\FeatureFlags\Presentation\Http\Controllers\AdminFeature
 use App\Modules\Optional\Integrations\Presentation\Http\Controllers\AdminIntegrationsController;
 use App\Modules\Optional\ManagedProcesses\Presentation\Http\Controllers\AdminManagedProcessesController;
 use App\Modules\Optional\Search\Presentation\Http\Controllers\AdminSearchController;
+use App\Modules\Optional\TimeTracking\Presentation\Http\Controllers\AdminClosedPeriodCorrectionController;
+use App\Modules\Optional\TimeTracking\Presentation\Http\Controllers\AdminManualEntryController;
+use App\Modules\Optional\TimeTracking\Presentation\Http\Controllers\AdminOtherWorkCategoryController;
+use App\Modules\Optional\TimeTracking\Presentation\Http\Controllers\AdminTimeTrackingOperationActionController;
+use App\Modules\Optional\TimeTracking\Presentation\Http\Controllers\AdminTimeTrackingOperationDetailController;
+use App\Modules\Optional\TimeTracking\Presentation\Http\Controllers\AdminTimeTrackingOperationsController;
 use App\Shared\Presentation\Http\Controllers\AdminApplicationLogController;
 use App\Shared\Presentation\Http\Controllers\AdminFailedJobController;
 use App\Shared\Presentation\Http\Controllers\AdminSystemStatusController;
@@ -129,6 +135,27 @@ Route::middleware(['auth', 'admin.mode', 'route.permission'])->group(function ()
     Route::get('/admin/files', [AdminFilesController::class, 'index'])->name('admin.files.index');
     Route::post('/admin/files/acknowledge', [AdminFilesController::class, 'acknowledge'])->name('admin.files.acknowledge');
     Route::post('/admin/files/{file}/rescan', [AdminFilesController::class, 'rescan'])->name('admin.files.rescan');
+    Route::get('/admin/work-time/summary', [AdminTimeTrackingOperationsController::class, 'daily'])->name('admin.work-time.summary.index');
+    Route::get('/admin/work-time/other-work', [AdminTimeTrackingOperationsController::class, 'otherWork'])->name('admin.work-time.other-work.index');
+    Route::get('/admin/work-time/other-work/categories', [AdminOtherWorkCategoryController::class, 'index'])->name('admin.work-time.other-work.categories.index');
+    Route::get('/admin/work-time/other-work/categories/create', [AdminOtherWorkCategoryController::class, 'create'])->name('admin.work-time.other-work.categories.create');
+    Route::get('/admin/work-time/work-sessions', [AdminTimeTrackingOperationsController::class, 'workSessions'])->name('admin.work-time.work-sessions.index');
+    Route::get('/admin/work-time/breaks', [AdminTimeTrackingOperationsController::class, 'breaks'])->name('admin.work-time.breaks.index');
+    Route::get('/admin/work-time/corrections', [AdminTimeTrackingOperationsController::class, 'corrections'])->name('admin.work-time.corrections.index');
+    Route::get('/admin/work-time/corrections/manual-entry', [AdminManualEntryController::class, 'create'])->name('admin.work-time.corrections.manual-entry');
+    Route::post('/admin/work-time/corrections/manual-entry', [AdminTimeTrackingOperationActionController::class, 'createManualEntry'])->name('admin.work-time.corrections.manual-entry.store');
+    Route::get('/admin/work-time/work-sessions/{session}', [AdminTimeTrackingOperationDetailController::class, 'workSession'])->name('admin.work-time.work-sessions.show');
+    Route::get('/admin/work-time/breaks/{break}', [AdminTimeTrackingOperationDetailController::class, 'break'])->name('admin.work-time.breaks.show');
+    Route::get('/admin/work-time/other-work/{otherWork}', [AdminTimeTrackingOperationDetailController::class, 'otherWork'])->name('admin.work-time.other-work.show');
+    Route::get('/admin/work-time/corrections/{correction}', [AdminTimeTrackingOperationDetailController::class, 'correction'])->name('admin.work-time.corrections.show');
+    Route::post('/admin/work-time/work-sessions/{session}/terminate', [AdminTimeTrackingOperationActionController::class, 'terminateWorkSession'])->name('admin.work-time.work-sessions.terminate');
+    Route::post('/admin/work-time/breaks/{break}/force-close', [AdminTimeTrackingOperationActionController::class, 'forceCloseBreak'])->name('admin.work-time.breaks.force-close');
+    Route::post('/admin/work-time/breaks/{break}/convert-excess', [AdminTimeTrackingOperationActionController::class, 'convertExcessBreak'])->name('admin.work-time.breaks.convert-excess');
+    Route::post('/admin/work-time/other-work/{otherWork}/force-close', [AdminTimeTrackingOperationActionController::class, 'forceCloseOtherWork'])->name('admin.work-time.other-work.force-close');
+    Route::post('/admin/work-time/other-work/{otherWork}/decide', [AdminTimeTrackingOperationActionController::class, 'decideOtherWork'])->name('admin.work-time.other-work.decide');
+    Route::post('/admin/work-time/corrections/{correction}/decide', [AdminTimeTrackingOperationActionController::class, 'decideCorrection'])->name('admin.work-time.corrections.decide');
+    Route::post('/admin/work-time/other-work/categories', [AdminTimeTrackingOperationActionController::class, 'storeCategory'])->name('admin.work-time.other-work.categories.store');
+    Route::delete('/admin/work-time/other-work/categories/{category}', [AdminTimeTrackingOperationActionController::class, 'deactivateCategory'])->name('admin.work-time.other-work.categories.deactivate');
     Route::get('/admin/privacy-retention', PrivacyRetentionController::class)->name('admin.privacy-retention.index');
     Route::post('/admin/privacy-retention/hard-delete/preview', [PrivacyRetentionController::class, 'previewHardDelete'])
         ->middleware('admin.high-risk:'.HighRiskAdministrativeOperation::HardDelete->value)
@@ -175,4 +202,7 @@ Route::middleware(['auth', 'admin.mode', 'route.permission'])->group(function ()
     Route::post('/admin/table-views/{view}/copy', [TableSavedViewController::class, 'copy'])->name('admin.table-views.copy');
     Route::post('/admin/table-views/{view}/default', [TableSavedViewController::class, 'default'])->name('admin.table-views.default');
     Route::post('/admin/exports/data-table', AdminDataTableExportController::class)->name('admin.exports.data-table');
+    Route::post('/admin/time-tracking/closed-period-corrections', [AdminClosedPeriodCorrectionController::class, 'store'])
+        ->middleware('admin.high-risk:'.HighRiskAdministrativeOperation::ClosedPeriodTimeTrackingCorrection->value)
+        ->name('admin.time-tracking.closed-period-corrections.store');
 });

@@ -86,6 +86,39 @@ create_database() {
     "$database"
 }
 
+reset_atlas_schemas() {
+  local database="$1"
+  local schemas=(
+    core_identity
+    core_teams
+    core_authorization
+    core_audit
+    core_settings
+    core_notifications
+    core_files
+    core_privacy
+    core_exports
+    optional_integrations
+    optional_managed_processes
+    optional_imports
+    optional_feature_flags
+    optional_time_tracking
+    shared
+  )
+  local schema
+
+  for schema in "${schemas[@]}"; do
+    PGPASSWORD="$DB_PASSWORD" psql \
+      --host="$DB_HOST" \
+      --port="$DB_PORT" \
+      --username="$DB_USERNAME" \
+      --dbname="$database" \
+      --quiet \
+      --command="set client_min_messages to warning; drop schema if exists \"${schema}\" cascade;"
+  done
+}
+
 for database in "${databases[@]}"; do
   create_database "$database"
+  reset_atlas_schemas "$database"
 done

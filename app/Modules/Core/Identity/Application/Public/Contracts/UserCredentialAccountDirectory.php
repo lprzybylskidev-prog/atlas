@@ -25,7 +25,12 @@ interface UserCredentialAccountDirectory
 
     public function emailExists(string $email, ?string $exceptPublicId = null): bool;
 
-    public function updateIdentity(string $publicId, string $name, string $email, string $accountSensitivity): ?AdminUserCredentialAccount;
+    public function updateIdentity(
+        string $publicId,
+        string $name,
+        string $email,
+        string $accountSensitivity,
+    ): ?AdminUserCredentialAccount;
 
     public function verifyEmail(string $publicId): ?AdminUserCredentialAccount;
 

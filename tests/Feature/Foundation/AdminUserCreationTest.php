@@ -12,6 +12,7 @@ use App\Modules\Core\Identity\Infrastructure\Notifications\UserEmailVerification
 use App\Modules\Core\Identity\Infrastructure\Persistence\User;
 use App\Modules\Core\Teams\Infrastructure\Persistence\Team;
 use App\Modules\Core\Users\Infrastructure\Notifications\FirstPasswordSetupNotification;
+use App\Modules\Optional\TimeTracking\Application\Permissions\TimeTrackingPermissionCatalog;
 use App\Shared\Infrastructure\Database\DatabaseTable;
 use DateTimeInterface;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -52,6 +53,7 @@ final class AdminUserCreationTest extends TestCase
         $created = User::query()->where('email', 'created.admin@example.test')->firstOrFail();
 
         self::assertSame('sensitive', $created->account_sensitivity);
+        self::assertSame(User::DEFAULT_AVATAR_COLOR, $created->avatar_color);
         self::assertDatabaseHas(DatabaseTable::USER_ONBOARDING_PACKAGES, [
             'user_id' => $created->id,
             'team_id' => $team->id,
@@ -89,6 +91,176 @@ final class AdminUserCreationTest extends TestCase
 
         self::assertSame('normal', $created->account_sensitivity);
         Notification::assertSentOnDemand(FirstPasswordSetupNotification::class);
+    }
+
+    public function test_admin_user_creation_accepts_user_team_session_limit_overrides(): void
+    {
+        Notification::fake();
+
+        $actor = User::factory()->create();
+        $team = Team::query()->create(['name' => 'Operations']);
+        $this->assignStarterRoleInTeam($actor, $team, StarterRoleName::Administrator->value);
+
+        $this->actingAs($actor)
+            ->withSession($this->adminSession($team))
+            ->post('/admin/users', [
+                'name' => 'Created Session Limits',
+                'email' => 'created.session.limits@example.test',
+                'account_sensitivity' => 'normal',
+                'team_assignments' => [
+                    [
+                        'team_public_id' => $team->public_id,
+                        'source' => 'manual',
+                        'role_names' => [StarterRoleName::WorkspaceAccess->value],
+                        'direct_permission_names' => [],
+                        'inactivity_timeout_minutes' => 20,
+                        'session_max_lifetime_minutes' => 120,
+                    ],
+                ],
+            ])
+            ->assertRedirect(route('admin.users.index'));
+
+        $created = User::query()->where('email', 'created.session.limits@example.test')->firstOrFail();
+
+        self::assertDatabaseHas(DatabaseTable::TEAM_USER_ASSIGNMENTS, [
+            'team_id' => $team->id,
+            'user_id' => $created->id,
+            'inactivity_timeout_minutes' => 20,
+            'session_max_lifetime_minutes' => 120,
+        ]);
+        Notification::assertSentOnDemand(FirstPasswordSetupNotification::class);
+    }
+
+    public function test_admin_user_creation_accepts_regular_break_daily_limit_override(): void
+    {
+        Notification::fake();
+
+        $actor = User::factory()->create();
+        $team = Team::query()->create(['name' => 'Operations']);
+        $this->assignStarterRoleInTeam($actor, $team, StarterRoleName::Administrator->value);
+
+        $this->actingAs($actor)
+            ->withSession($this->adminSession($team))
+            ->post('/admin/users', [
+                'name' => 'Created Break Limit',
+                'email' => 'created.break.limit@example.test',
+                'account_sensitivity' => 'normal',
+                'team_assignments' => [
+                    [
+                        'team_public_id' => $team->public_id,
+                        'source' => 'manual',
+                        'role_names' => [StarterRoleName::WorkspaceAccess->value],
+                        'direct_permission_names' => [TimeTrackingPermissionCatalog::USER_REPORT],
+                        'break_daily_limit_minutes' => 45,
+                    ],
+                ],
+            ])
+            ->assertRedirect(route('admin.users.index'));
+
+        $created = User::query()->where('email', 'created.break.limit@example.test')->firstOrFail();
+        $assignmentId = $this->assignmentId($created, $team);
+
+        self::assertDatabaseHas(DatabaseTable::TIME_TRACKING_BREAK_POLICIES, [
+            'scope_type' => 'user_team',
+            'scope_id' => $assignmentId,
+            'daily_limit_seconds' => 2700,
+            'maximum_single_break_seconds' => 14400,
+        ]);
+        Notification::assertSentOnDemand(FirstPasswordSetupNotification::class);
+    }
+
+    public function test_admin_user_creation_rejects_inactivity_timeout_longer_than_session_lifetime(): void
+    {
+        Notification::fake();
+
+        $actor = User::factory()->create();
+        $team = Team::query()->create(['name' => 'Operations']);
+        $this->assignStarterRoleInTeam($actor, $team, StarterRoleName::Administrator->value);
+
+        $this->actingAs($actor)
+            ->withSession($this->adminSession($team))
+            ->from('/admin/users/create')
+            ->post('/admin/users', [
+                'name' => 'Invalid Session Limits',
+                'email' => 'invalid.session.limits@example.test',
+                'account_sensitivity' => 'normal',
+                'team_assignments' => [
+                    [
+                        'team_public_id' => $team->public_id,
+                        'source' => 'manual',
+                        'role_names' => [StarterRoleName::WorkspaceAccess->value],
+                        'direct_permission_names' => [],
+                        'inactivity_timeout_minutes' => 90,
+                        'session_max_lifetime_minutes' => 30,
+                    ],
+                ],
+            ])
+            ->assertRedirect('/admin/users/create')
+            ->assertSessionHasErrors(['team_assignments']);
+
+        self::assertDatabaseMissing(DatabaseTable::USERS, [
+            'email' => 'invalid.session.limits@example.test',
+        ]);
+        Notification::assertNothingSent();
+    }
+
+    public function test_admin_user_team_authorization_updates_session_limit_overrides(): void
+    {
+        $actor = User::factory()->create();
+        $target = User::factory()->create([
+            'name' => 'Target User',
+            'email' => 'target.session@example.test',
+            'account_sensitivity' => 'normal',
+        ]);
+        $team = Team::query()->create(['name' => 'Operations']);
+        $this->assignStarterRoleInTeam($actor, $team, StarterRoleName::Administrator->value);
+        $this->assignStarterRoleInTeam($target, $team, StarterRoleName::WorkspaceAccess->value);
+
+        $this->actingAs($actor)
+            ->withSession($this->adminSession($team))
+            ->patch('/admin/users/'.$target->public_id.'/teams/'.$team->public_id.'/authorization', [
+                'source' => 'manual',
+                'role_names' => [StarterRoleName::WorkspaceAccess->value],
+                'direct_permission_names' => [],
+                'inactivity_timeout_minutes' => 15,
+                'session_max_lifetime_minutes' => 90,
+            ])
+            ->assertRedirect()
+            ->assertSessionHasNoErrors();
+
+        self::assertDatabaseHas(DatabaseTable::TEAM_USER_ASSIGNMENTS, [
+            'team_id' => $team->id,
+            'user_id' => $target->id,
+            'inactivity_timeout_minutes' => 15,
+            'session_max_lifetime_minutes' => 90,
+        ]);
+    }
+
+    public function test_admin_user_team_authorization_updates_regular_break_daily_limit_override(): void
+    {
+        $actor = User::factory()->create();
+        $target = User::factory()->create();
+        $team = Team::query()->create(['name' => 'Operations']);
+        $this->assignStarterRoleInTeam($actor, $team, StarterRoleName::Administrator->value);
+        $this->assignStarterRoleInTeam($target, $team, StarterRoleName::WorkspaceAccess->value);
+
+        $this->actingAs($actor)
+            ->withSession($this->adminSession($team))
+            ->patch('/admin/users/'.$target->public_id.'/teams/'.$team->public_id.'/authorization', [
+                'source' => 'manual',
+                'role_names' => [StarterRoleName::WorkspaceAccess->value],
+                'direct_permission_names' => [TimeTrackingPermissionCatalog::USER_REPORT],
+                'break_daily_limit_minutes' => 20,
+            ])
+            ->assertRedirect()
+            ->assertSessionHasNoErrors();
+
+        self::assertDatabaseHas(DatabaseTable::TIME_TRACKING_BREAK_POLICIES, [
+            'scope_type' => 'user_team',
+            'scope_id' => $this->assignmentId($target, $team),
+            'daily_limit_seconds' => 1200,
+            'maximum_single_break_seconds' => 14400,
+        ]);
     }
 
     public function test_admin_user_creation_can_copy_authorization_from_existing_user(): void
@@ -389,6 +561,19 @@ final class AdminUserCreationTest extends TestCase
             'model_id' => $user->id,
             'team_id' => $team->id,
         ]);
+    }
+
+    private function assignmentId(User $user, Team $team): int
+    {
+        $assignmentId = DB::table(DatabaseTable::TEAM_USER_ASSIGNMENTS)
+            ->where('team_id', $team->id)
+            ->where('user_id', $user->id)
+            ->whereNull('valid_to')
+            ->value('id');
+
+        self::assertIsNumeric($assignmentId);
+
+        return (int) $assignmentId;
     }
 
     private function createOnboardingPackage(string $teamPublicId, string $name, string $roleName): void

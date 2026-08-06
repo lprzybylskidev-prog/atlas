@@ -29,7 +29,7 @@ Known demo credentials are permitted only in local or development environments, 
 
 Module-specific demo seeders are created in the owning module phase, after that module's real tables, contracts, and invariants exist.
 
-`Database\Seeders\DevelopmentDemoSeeder` is intentionally empty after Phase 25 cleanup. The temporary Phase 25 Admin review dataset and placeholder `demo` Application module were removed on 2026-07-31 so local reset returns Atlas to a clean foundation state instead of seeding permanent showcase records.
+`Database\Seeders\DevelopmentDemoSeeder` currently seeds the Phase 27 development-only TimeTracking scenario. It creates `TT Demo Team North` and `TT Demo Team South`, 2 `TT Head Manager ...` accounts, 3 `TT Manager ...` accounts, 50 `TT User ...` accounts, and `TT One Minute Policy Test User - North` with the local demo password `password`; activates TimeTracking for both teams; grants scoped panel/report/activity/lock/notification permissions; creates head-manager and direct-manager hierarchy scopes; enables tracking; gives the one-minute policy test user a 1-minute inactivity policy and 1-minute regular-break policy while leaving maximum session lifetime inherited; seeds team-scoped work-outside-the-computer categories; and seeds representative official work, regular break, maintenance/technical break, work outside the computer, and correction records for report review. Each TimeTracking demo team includes at least one correction linked to a work session, one linked to a break, and one linked to work outside the computer. The seeder skips production and no-ops when TimeTracking tables have not been migrated yet.
 
 `Database\Seeders\DatabaseSeeder` is production-safe, installs starter roles and registered permissions, creates the mandatory `Administration` team, and synchronizes Administration module access. It must not create demo accounts or module demo records.
 
@@ -44,6 +44,8 @@ composer demo:reset
 ```
 
 The command runs `php artisan demo:reset`, clears cached application state and sessions, recreates the database schema, runs production-safe technical seeders, runs the development bootstrap seeder, runs development-only demo seeders, and clears cached/session state again so stale browser sessions do not retain old active-team data.
+
+For PostgreSQL module schemas, the command first drops Atlas-owned schemas listed by `DatabaseSchema::all()` with `cascade`, then runs `migrate:fresh`. This keeps local demo resets reliable when a previous interrupted migration left tables in module-owned schemas such as `optional_time_tracking`.
 
 The demo reset command must refuse to run outside approved local or development environments.
 

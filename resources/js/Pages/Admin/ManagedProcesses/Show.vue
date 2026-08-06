@@ -16,7 +16,7 @@ import PageStack from '../../../Components/PageStack.vue';
 import SeverityBadge from '../../../Components/SeverityBadge.vue';
 import SurfaceCard from '../../../Components/SurfaceCard.vue';
 import {
-    allOptions,
+    managedProcessOptionsWithAll,
     jsonText,
     processSeverityLabel,
     processSourceLabel,
@@ -77,15 +77,17 @@ const errorColumns = computed<DataTableColumn<ImportErrorRow>[]>(() => [
     { key: 'message', label: t('pages.admin.managed_processes.table.message') },
 ]);
 const severityOptions = computed<FormSelectOption[]>(() =>
-    allOptions(props.filterOptions.severities ?? [], t('pages.admin.managed_processes.filters.any_severity'), (severity) =>
-        processSeverityLabel(severity, t),
+    managedProcessOptionsWithAll(
+        props.filterOptions.severities ?? [],
+        t('pages.admin.managed_processes.filters.any_severity'),
+        (severity) => processSeverityLabel(severity, t),
     ),
 );
 const eventOptions = computed<FormSelectOption[]>(() =>
-    allOptions(props.filterOptions.eventTypes ?? [], t('pages.admin.managed_processes.filters.any_event')),
+    managedProcessOptionsWithAll(props.filterOptions.eventTypes ?? [], t('pages.admin.managed_processes.filters.any_event')),
 );
 const stageOptions = computed<FormSelectOption[]>(() =>
-    allOptions(props.filterOptions.stages ?? [], t('pages.admin.managed_processes.filters.any_stage')),
+    managedProcessOptionsWithAll(props.filterOptions.stages ?? [], t('pages.admin.managed_processes.filters.any_stage')),
 );
 const statusLabel = computed(() => processStatusLabel(props.run.status, t));
 const sourceLabel = computed(() => processSourceLabel(props.run.sourceType, t));

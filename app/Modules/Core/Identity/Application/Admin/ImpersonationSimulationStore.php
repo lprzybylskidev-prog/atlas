@@ -4,9 +4,10 @@ declare(strict_types=1);
 
 namespace App\Modules\Core\Identity\Application\Admin;
 
+use App\Modules\Core\Identity\Application\Public\Contracts\ImpersonationSimulationRecorder;
 use Illuminate\Contracts\Cache\Repository as CacheRepository;
 
-final readonly class ImpersonationSimulationStore
+final readonly class ImpersonationSimulationStore implements ImpersonationSimulationRecorder
 {
     public function __construct(
         private CacheRepository $cache,

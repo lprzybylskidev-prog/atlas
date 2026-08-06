@@ -339,7 +339,12 @@ final readonly class ManagedProcessManager implements ManagedProcessRunner
         };
 
         $this->notifications->publish(new CreateNotification(
-            type: 'managed_process.terminal',
+            type: match ($status) {
+                ProcessRunStatus::Succeeded => 'managed_process.succeeded',
+                ProcessRunStatus::SucceededWithWarnings => 'managed_process.warning',
+                ProcessRunStatus::Failed, ProcessRunStatus::Cancelled, ProcessRunStatus::Expired => 'managed_process.failed',
+                default => 'managed_process.finished',
+            },
             title: $titleKey,
             body: $bodyKey,
             recipientUserPublicId: $actorPublicId,

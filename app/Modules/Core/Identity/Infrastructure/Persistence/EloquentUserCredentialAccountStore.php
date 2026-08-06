@@ -30,6 +30,7 @@ final class EloquentUserCredentialAccountStore implements UserCredentialAccountS
             'is_active' => true,
             'deactivated_at' => null,
             'account_sensitivity' => $command->accountSensitivity,
+            'avatar_color' => User::DEFAULT_AVATAR_COLOR,
         ]);
 
         return $this->mapper->created($user);

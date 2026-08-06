@@ -71,6 +71,7 @@ function handleRealtimeEvents(events: RealtimeEvent[]): void {
     const toast = useToast();
     let refreshNotifications = false;
     let reloadPage = false;
+    let refreshTimeTrackingManagerReport = false;
 
     for (const event of events) {
         window.sessionStorage.setItem(STORAGE_KEY, event.publicId);
@@ -92,6 +93,10 @@ function handleRealtimeEvents(events: RealtimeEvent[]): void {
         if (event.eventType === 'session.invalidated') {
             reloadPage = true;
         }
+
+        if (event.eventType === 'time_tracking.status.changed' && window.location.pathname === '/time-tracking/manager-report') {
+            refreshTimeTrackingManagerReport = true;
+        }
     }
 
     if (refreshNotifications) {
@@ -101,10 +106,14 @@ function handleRealtimeEvents(events: RealtimeEvent[]): void {
     if (reloadPage) {
         window.location.reload();
     }
+
+    if (refreshTimeTrackingManagerReport) {
+        router.reload({ only: ['rows', 'summary', 'teamSummary', 'statusFeed', 'table'] });
+    }
 }
 
 function notificationReloadProps(): string[] {
-    if (window.location.pathname.startsWith('/notifications')) {
+    if (window.location.pathname.startsWith('/user/notifications')) {
         return ['notifications', 'notificationRows', 'table'];
     }
 

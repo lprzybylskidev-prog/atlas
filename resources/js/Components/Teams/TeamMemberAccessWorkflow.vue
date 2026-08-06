@@ -2,14 +2,20 @@
 import { IconDeviceFloppy, IconPlus, IconTrash, IconUserPlus, IconUsersGroup } from '@tabler/icons-vue';
 import { computed, ref } from 'vue';
 
+import AuthorizationAssignmentPreview from '../Authorization/AuthorizationAssignmentPreview.vue';
 import FormButton from '../Form/FormButton.vue';
 import FormInput from '../Form/FormInput.vue';
 import FormSelect, { type FormSelectOption } from '../Form/FormSelect.vue';
 import SearchableCheckboxList from '../SearchableCheckboxList.vue';
 import SurfaceCard from '../SurfaceCard.vue';
 import UiState from '../UiState.vue';
+import {
+    authorizationListLabel,
+    effectivePermissions as resolveEffectivePermissions,
+    selectedCountLabel,
+} from '../../Composables/useAuthorizationAssignmentUi';
 import { useTranslator } from '../../Localization/translator';
-import type { AuthorizationAssignmentOption } from '../../Types/user-team-access';
+import type { AuthorizationAssignmentOption, TeamPolicyDefaults } from '../../Types/user-team-access';
 
 export interface TeamMemberAccessAssignment {
     user_public_id: string;
@@ -17,6 +23,10 @@ export interface TeamMemberAccessAssignment {
     userEmail?: string;
     role_names: string[];
     direct_permission_names: string[];
+    inactivity_timeout_minutes: string;
+    session_max_lifetime_minutes: string;
+    break_daily_limit_minutes: string;
+    break_maximum_single_minutes: string;
     reason: string;
     removal_reason: string;
 }
@@ -29,6 +39,11 @@ const props = withDefaults(
         roleOptions: AuthorizationAssignmentOption[];
         permissionOptions: AuthorizationAssignmentOption[];
         rolePermissionMap: Record<string, string[]>;
+        sessionDefaults: {
+            inactivityTimeoutMinutes: number;
+            sessionMaxLifetimeMinutes: number;
+        };
+        policyDefaults: TeamPolicyDefaults;
         processing?: boolean;
         rootError?: string;
         errors?: Record<string, string>;
@@ -88,30 +103,24 @@ function userLabel(assignment: TeamMemberAccessAssignment): string {
     return props.userOptions.find((user) => String(user.value) === assignment.user_public_id)?.label ?? assignment.user_public_id;
 }
 
-function roleGrantedPermissions(assignment: TeamMemberAccessAssignment): string[] {
-    return Array.from(new Set(assignment.role_names.flatMap((role) => props.rolePermissionMap[role] ?? []))).sort();
-}
-
 function effectivePermissions(assignment: TeamMemberAccessAssignment): string[] {
-    return Array.from(new Set([...roleGrantedPermissions(assignment), ...assignment.direct_permission_names])).sort();
+    return resolveEffectivePermissions(assignment, props.rolePermissionMap);
 }
 
 function listLabel(values: string[], labels: Map<string, string>): string {
-    return values.length === 0 ? t('pages.admin.teams.members.none') : values.map((value) => labels.get(value) ?? value).join(', ');
+    return authorizationListLabel(values, labels, t('pages.admin.teams.members.none'));
 }
 
 function selectedRolesLabel(assignment: TeamMemberAccessAssignment): string {
-    return t('pages.admin.teams.members.selected_roles', {
-        selected: assignment.role_names.length,
-        total: props.roleOptions.length,
-    });
+    return selectedCountLabel(assignment.role_names.length, props.roleOptions.length, (replacements) =>
+        t('pages.admin.teams.members.selected_roles', replacements),
+    );
 }
 
 function selectedPermissionsLabel(assignment: TeamMemberAccessAssignment): string {
-    return t('pages.admin.teams.members.selected_permissions', {
-        selected: assignment.direct_permission_names.length,
-        total: props.permissionOptions.length,
-    });
+    return selectedCountLabel(assignment.direct_permission_names.length, props.permissionOptions.length, (replacements) =>
+        t('pages.admin.teams.members.selected_permissions', replacements),
+    );
 }
 
 function fieldError(index: number, field: string): string | undefined {
@@ -179,6 +188,74 @@ function fieldError(index: number, field: string): string | undefined {
                     </FormButton>
                 </div>
 
+                <div class="rounded-lg border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-800 dark:bg-zinc-900/40">
+                    <p class="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                        {{ t('pages.admin.users.assignment.policy_limits_title') }}
+                    </p>
+                    <div class="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                        <FormInput
+                            v-model="assignment.inactivity_timeout_minutes"
+                            type="number"
+                            inputmode="numeric"
+                            step="1"
+                            min="1"
+                            suffix="min"
+                            :label="t('pages.admin.users.fields.inactivity_timeout_minutes')"
+                            :placeholder="
+                                t('pages.admin.users.session_limits.default_minutes', {
+                                    minutes: policyDefaults.inactivityTimeoutMinutes,
+                                })
+                            "
+                            :error="fieldError(index, 'inactivity_timeout_minutes')"
+                        />
+                        <FormInput
+                            v-model="assignment.session_max_lifetime_minutes"
+                            type="number"
+                            inputmode="numeric"
+                            step="1"
+                            min="1"
+                            suffix="min"
+                            :label="t('pages.admin.users.fields.session_max_lifetime_minutes')"
+                            :placeholder="
+                                t('pages.admin.users.session_limits.default_minutes', {
+                                    minutes: policyDefaults.sessionMaxLifetimeMinutes,
+                                })
+                            "
+                            :error="fieldError(index, 'session_max_lifetime_minutes')"
+                        />
+                        <FormInput
+                            v-model="assignment.break_daily_limit_minutes"
+                            type="number"
+                            inputmode="numeric"
+                            step="1"
+                            min="0"
+                            suffix="min"
+                            :label="t('pages.admin.users.assignment.break_daily_limit_minutes')"
+                            :placeholder="
+                                t('pages.admin.users.session_limits.default_minutes', {
+                                    minutes: policyDefaults.breakDailyLimitMinutes,
+                                })
+                            "
+                            :error="fieldError(index, 'break_daily_limit_minutes')"
+                        />
+                        <FormInput
+                            v-model="assignment.break_maximum_single_minutes"
+                            type="number"
+                            inputmode="numeric"
+                            step="1"
+                            min="1"
+                            suffix="min"
+                            :label="t('pages.admin.users.assignment.break_maximum_single_minutes')"
+                            :placeholder="
+                                t('pages.admin.users.session_limits.default_minutes', {
+                                    minutes: policyDefaults.breakMaximumSingleMinutes,
+                                })
+                            "
+                            :error="fieldError(index, 'break_maximum_single_minutes')"
+                        />
+                    </div>
+                </div>
+
                 <div class="grid gap-4 xl:grid-cols-2">
                     <SearchableCheckboxList
                         v-model="assignment.role_names"
@@ -202,37 +279,15 @@ function fieldError(index: number, field: string): string | undefined {
                     />
                 </div>
 
-                <section class="rounded-lg border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-900/50">
-                    <h3 class="text-xs font-semibold uppercase text-zinc-500 dark:text-zinc-400">
-                        {{ t('pages.admin.teams.members.preview') }}
-                    </h3>
-                    <div class="mt-3 grid gap-4 xl:grid-cols-3">
-                        <div>
-                            <p class="text-xs font-semibold text-zinc-500 dark:text-zinc-400">
-                                {{ t('pages.admin.teams.members.roles') }}
-                            </p>
-                            <p class="mt-1 break-words text-sm text-zinc-700 dark:text-zinc-200">
-                                {{ listLabel(assignment.role_names, roleLabelByValue) }}
-                            </p>
-                        </div>
-                        <div>
-                            <p class="text-xs font-semibold text-zinc-500 dark:text-zinc-400">
-                                {{ t('pages.admin.teams.members.permissions') }}
-                            </p>
-                            <p class="mt-1 break-words text-sm text-zinc-700 dark:text-zinc-200">
-                                {{ listLabel(assignment.direct_permission_names, permissionLabelByValue) }}
-                            </p>
-                        </div>
-                        <div>
-                            <p class="text-xs font-semibold text-zinc-500 dark:text-zinc-400">
-                                {{ t('pages.admin.teams.members.effective_permissions') }}
-                            </p>
-                            <p class="mt-1 break-words text-sm text-zinc-700 dark:text-zinc-200">
-                                {{ listLabel(effectivePermissions(assignment), permissionLabelByValue) }}
-                            </p>
-                        </div>
-                    </div>
-                </section>
+                <AuthorizationAssignmentPreview
+                    :title="t('pages.admin.teams.members.preview')"
+                    :roles-label="t('pages.admin.teams.members.roles')"
+                    :direct-permissions-label="t('pages.admin.teams.members.permissions')"
+                    :effective-permissions-label="t('pages.admin.teams.members.effective_permissions')"
+                    :roles="listLabel(assignment.role_names, roleLabelByValue)"
+                    :direct-permissions="listLabel(assignment.direct_permission_names, permissionLabelByValue)"
+                    :effective-permissions="listLabel(effectivePermissions(assignment), permissionLabelByValue)"
+                />
 
                 <div v-if="mode === 'edit'" class="grid gap-3 xl:grid-cols-[minmax(0,1fr)_auto]">
                     <FormInput

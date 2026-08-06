@@ -157,6 +157,7 @@ final readonly class PrivacyLegalHoldController
                 'holds.created_at',
                 'creators.public_id as created_by_public_id',
                 'teams.public_id as team_public_id',
+                'teams.name as team_name',
             ])
             ->map(fn (object $row): array => $this->row($row))
             ->all());
@@ -181,6 +182,7 @@ final readonly class PrivacyLegalHoldController
             'subjectIdentifier' => $this->stringValue($row->subject_identifier ?? ''),
             'status' => $this->holdStatus($releasedAt, $expiresOn),
             'teamPublicId' => $this->stringValue($row->team_public_id ?? ''),
+            'teamName' => $this->stringValue($row->team_name ?? ''),
             'createdByPublicId' => $this->stringValue($row->created_by_public_id ?? ''),
             'reason' => $this->stringValue($row->reason ?? ''),
             'expiresOn' => $expiresOn ?? '',

@@ -7,10 +7,12 @@ namespace App\Modules\Core\Settings\Presentation\Providers;
 use App\Modules\Core\Audit\Application\Public\Contracts\AuditRecorder;
 use App\Modules\Core\Settings\Application\Contracts\SettingsStore;
 use App\Modules\Core\Settings\Application\Public\Contracts\AdministrativeSecuritySettings;
+use App\Modules\Core\Settings\Application\Public\Contracts\PasswordSecuritySettings;
 use App\Modules\Core\Settings\Application\Public\Contracts\SecuritySessionSettings;
 use App\Modules\Core\Settings\Application\Settings\SettingsDefaults;
 use App\Modules\Core\Settings\Application\Settings\SettingValueValidator;
 use App\Modules\Core\Settings\Infrastructure\Persistence\DatabaseAdministrativeSecuritySettings;
+use App\Modules\Core\Settings\Infrastructure\Persistence\DatabasePasswordSecuritySettings;
 use App\Modules\Core\Settings\Infrastructure\Persistence\DatabaseSecuritySessionSettings;
 use App\Modules\Core\Settings\Infrastructure\Persistence\DatabaseSettingsStore;
 use Illuminate\Contracts\Cache\Repository as CacheRepository;
@@ -31,6 +33,7 @@ final class SettingsServiceProvider extends ServiceProvider
             );
         });
         $this->app->bind(AdministrativeSecuritySettings::class, DatabaseAdministrativeSecuritySettings::class);
+        $this->app->bind(PasswordSecuritySettings::class, DatabasePasswordSecuritySettings::class);
         $this->app->bind(SecuritySessionSettings::class, DatabaseSecuritySessionSettings::class);
     }
 }

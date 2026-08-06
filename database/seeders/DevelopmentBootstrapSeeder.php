@@ -32,6 +32,7 @@ class DevelopmentBootstrapSeeder extends Seeder
             'is_active' => true,
             'deactivated_at' => null,
             'account_sensitivity' => AccountSensitivity::Sensitive->value,
+            'avatar_color' => User::DEFAULT_AVATAR_COLOR,
         ])->save();
 
         app(AdministratorAccessManager::class)->assignAdministrator(

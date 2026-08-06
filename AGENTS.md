@@ -131,14 +131,17 @@ Infrastructure and quality:
 
 ### System consistency
 
-- Use one canonical name for each user-facing concept across navigation, labels, actions, breadcrumbs, documentation, demo data, and tests. When renaming or clarifying a concept, search for legacy synonyms and update them or document why a legacy technical name remains internal only.
+- Use one canonical name for each user-facing concept across navigation, page titles, browser titles, labels, actions, breadcrumbs, documentation, demo data, and tests. When renaming or clarifying a concept, search for legacy synonyms and update them or document why a legacy technical name remains internal only.
+- Breadcrumbs are user-facing navigation, must be text-only, must start with the correct shell context (`Atlas`, then the relevant user, manager, or administrator panel when applicable), and must reuse the same labels as the links or actions that lead to the current view. The visible page title and browser title must match the final breadcrumb/link label, and the page title icon must match the active navigation/subnavigation/action icon unless a documented view contract says otherwise. Object-specific breadcrumbs include the public identifier or canonical route identifier.
 - User/team/role/permission behavior is system-wide, not Admin UI-specific. Frontend filtering may improve ergonomics, but backend contracts and use cases must enforce the same team scope and authorization invariants.
 - Validation errors shown to users must use translated human field names and translated accepted values. Never expose raw request keys such as `team_assignments.0.team_public_id`, database column names, enum internals, or other implementation identifiers in user-facing validation messages.
 - Admin UI validation errors, flash messages, breadcrumbs, and backend-rendered interface text are user-facing and must support Polish and English through the same localization model as the regular UI.
 - Laravel translation files are the canonical source of truth for Atlas-owned user-facing localization. Frontend code must receive already translated text or a Laravel-derived active-locale dictionary; do not maintain independent manually duplicated PL/EN frontend translation catalogs for Atlas-owned copy.
 - Atlas-owned translation entries must use stable, namespaced semantic keys instead of natural-language source-string keys. Laravel framework/vendor source-string translations may remain only where required by Laravel or package behavior.
+- Atlas-owned outgoing emails must use the canonical shared Atlas mail template and translation keys after the bilingual mail rebuild. Do not create one-off mail layouts or hardcoded mail copy; introduce a new mail template variant only when a real layout need exists, such as a wider report-oriented email, and document, test, and reuse that variant explicitly.
 - Regular application UI tables must not expose technical implementation values such as internal IDs, raw event types, enum keys, database names, or public identifiers unless the value is genuinely user-facing. Remove those columns or render translated human labels; Admin and diagnostic UI may expose technical values when they are necessary for operations.
 - Development demo data must evolve with the application and cover representative current workflows, edge cases, and permission/team/module combinations. Demo seeders must not mask authorization or team-scope problems by granting every user every role, permission, team, or module unless that exact scenario is intentional and named.
+- Every new user-facing notification type must be registered in the canonical notification type catalog with Polish and English labels/descriptions and default email-preference behavior so users can control email delivery for each verified notification address.
 
 ### Explicit over magic
 
@@ -230,6 +233,7 @@ Read affected canonical documents before changing authentication, authorization,
 - Audit security-sensitive and irreversible operations.
 - Use least privilege.
 - Keep public and internal services explicitly separated.
+- Every Atlas-owned user upload must go through the Core Files module storage, validation, quarantine, malware scanning, metadata, and audit workflow. Do not store uploaded user files directly on public or private filesystem disks unless an explicit documented exception exists for a generated non-user-upload artifact.
 - Do not weaken authentication, authorization, rate limits, malware scanning, module gates, or audit controls for convenience.
 - Security bypasses require explicit user approval, a documented reason, and a safer replacement plan.
 
@@ -240,7 +244,11 @@ Read [`docs/architecture/security-baseline.md`](docs/architecture/security-basel
 - Frontend views are product surfaces, not thin delivery wrappers for backend features; visible workflows must be understandable, actionable, localized, accessible, and reviewable by the target user.
 - Before creating or materially changing a view, read and follow the canonical frontend contract in [`docs/architecture/frontend-ui.md`](docs/architecture/frontend-ui.md): identify the view contract, inspect accepted nearby patterns, compose shared primitives first, and preserve navigation, breadcrumbs, authorization, module gates, active-team behavior, states, localization, and review data.
 - Do not patch structurally poor or incoherent screens with local styling, explanatory copy, or duplicated components. Redesign the workflow around accepted shared primitives and documented ownership.
+- Authenticated application, user, manager, and administrator screens use the shared `AppLayout` with an explicit shell mode. Do not introduce separate shell layout wrappers such as `AdminLayout` when they only pass through to the same layout.
 - Page components must not contain reusable design-system decisions. Shared components, composables, services, formatters, forms, dialogs, toasts, tables, tooltips, cards, layouts, loading/empty/error states, and display primitives belong in the shared frontend layer.
+- Advanced form controls such as money/currency inputs, color pickers, file uploaders, image croppers, rich text editors, date/time pickers, tag selectors, and autocomplete inputs must be generic shared form components under `resources/js/Components/Form/`. Do not create feature-named controls such as `DebtEuroInput`, `AvatarColorPicker`, `ProfileUpload`, or case-specific pickers/croppers unless they only compose generic shared controls and contain no reusable design-system behavior.
+- Repeated frontend option builders, status/token labelers, dialog/form action footers, report/chart formatters, and relation-assignment previews must be extracted to shared components, composables, or utilities before a second page copies the pattern.
+- New or materially changed frontend views must pass a component inventory check: search existing shared components, composables, formatters, and utilities first; extend them when a recurring primitive is missing; create page-local UI structure only for genuinely one-off composition.
 - Maintain light and dark themes together, meet WCAG 2.2 AA where applicable, preserve keyboard/focus/screen-reader behavior, and never use native `alert`, `confirm`, or title-only tooltips.
 - Keep business decisions and authorization on the backend. Frontend visibility may improve ergonomics, but it must not duplicate or replace backend permission, module-gate, team-scope, or invariant enforcement.
 - Loading, empty, error, offline, and permission-denied states are first-class UI states. User feedback must have one clear owner and must avoid duplicate flashes, toast storms, and raw technical status spam.

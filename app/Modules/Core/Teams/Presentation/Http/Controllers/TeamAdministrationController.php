@@ -9,8 +9,11 @@ use App\Modules\Core\Audit\Application\Public\DTOs\AuditEvent;
 use App\Modules\Core\Audit\Application\Public\Enums\SecurityAuditCategory;
 use App\Modules\Core\Authorization\Application\Public\Contracts\UserTeamAuthorizationManager;
 use App\Modules\Core\Identity\Application\Public\Contracts\UserCredentialAccountDirectory;
+use App\Modules\Core\Settings\Application\Public\Contracts\SecuritySessionSettings;
 use App\Modules\Core\Teams\Application\Public\Contracts\UserTeamMembershipManager;
+use App\Modules\Core\Teams\Application\Public\Contracts\UserTeamSessionLimitSettings;
 use App\Modules\Core\Teams\Infrastructure\Persistence\Team;
+use App\Modules\Optional\TimeTracking\Application\Public\Contracts\UserBreakPolicySettings;
 use App\Shared\Application\Modules\Activation\Contracts\ModuleActivationService;
 use App\Shared\Application\Modules\Activation\ModuleActivationChange;
 use App\Shared\Application\Modules\Activation\ModuleActivationException;
@@ -46,6 +49,9 @@ final class TeamAdministrationController
         private readonly ModuleRegistry $modules,
         private readonly ModuleActivationService $activation,
         private readonly UserCredentialAccountDirectory $accounts,
+        private readonly SecuritySessionSettings $securitySessionSettings,
+        private readonly UserTeamSessionLimitSettings $sessionLimits,
+        private readonly UserBreakPolicySettings $breakPolicies,
     ) {}
 
     public function __invoke(Request $request): Response
@@ -150,6 +156,11 @@ final class TeamAdministrationController
             'permissionOptions' => $this->authorization->permissionOptions(),
             'rolePermissionMap' => $this->authorization->rolePermissionMap(),
             'moduleOptions' => $this->moduleOptions(),
+            'sessionDefaults' => [
+                'inactivityTimeoutMinutes' => $this->securitySessionSettings->inactivityTimeoutMinutes(),
+                'sessionMaxLifetimeMinutes' => $this->globalSessionMaxLifetimeMinutes(),
+            ],
+            'breakDefaults' => $this->globalBreakDefaults(),
         ]);
     }
 
@@ -161,15 +172,25 @@ final class TeamAdministrationController
             abort(404);
         }
 
+        $teamBreakLimits = $this->breakPolicies->resolvedForTeam((string) $record->public_id);
+
         return Inertia::render('Admin/Teams/Edit', [
             'team' => [
                 'publicId' => (string) $record->public_id,
                 'name' => $record->name,
                 'displayName' => is_string($record->display_name) && $record->display_name !== '' ? $record->display_name : $record->name,
                 'isActive' => $record->is_active,
+                'inactivityTimeoutMinutes' => $record->inactivity_timeout_minutes,
+                'sessionMaxLifetimeMinutes' => $record->session_max_lifetime_minutes,
+                'breakDailyLimitMinutes' => $teamBreakLimits['source'] === 'team' ? $teamBreakLimits['dailyLimitMinutes'] : null,
+                'breakMaximumSingleMinutes' => $teamBreakLimits['source'] === 'team' ? $teamBreakLimits['maximumSingleBreakMinutes'] : null,
             ],
             'memberships' => array_map(function ($membership) use ($record): array {
                 $assignments = $this->authorization->assignmentsForUserTeam($membership->userPublicId, (string) $record->public_id);
+                $sessionLimits = $this->sessionLimits->resolvedForUserTeam($membership->userPublicId, (string) $record->public_id);
+                $breakLimits = $this->breakPolicies->resolvedForUserTeam($membership->userPublicId, (string) $record->public_id);
+                $hasUserTeamSessionOverride = $sessionLimits['source'] === 'user_team';
+                $hasUserTeamBreakOverride = $breakLimits['source'] === 'user_team';
 
                 return [
                     'userPublicId' => $membership->userPublicId,
@@ -179,6 +200,10 @@ final class TeamAdministrationController
                     'validTo' => $membership->validTo,
                     'roleNames' => $assignments->roleNames,
                     'directPermissionNames' => $assignments->directPermissionNames,
+                    'inactivityTimeoutMinutes' => $hasUserTeamSessionOverride ? $sessionLimits['inactivityTimeoutMinutes'] : null,
+                    'sessionMaxLifetimeMinutes' => $hasUserTeamSessionOverride ? $sessionLimits['sessionMaxLifetimeMinutes'] : null,
+                    'breakDailyLimitMinutes' => $hasUserTeamBreakOverride ? $breakLimits['dailyLimitMinutes'] : null,
+                    'breakMaximumSingleMinutes' => $hasUserTeamBreakOverride ? $breakLimits['maximumSingleBreakMinutes'] : null,
                 ];
             }, $this->memberships->activeMembershipsForTeam((string) $record->public_id)),
             'assignableUsers' => $this->memberships->assignableUsersForTeam((string) $record->public_id),
@@ -186,6 +211,11 @@ final class TeamAdministrationController
             'permissionOptions' => $this->authorization->permissionOptions(),
             'rolePermissionMap' => $this->authorization->rolePermissionMap(),
             'moduleStates' => $this->teamModuleStates($record->id),
+            'sessionDefaults' => [
+                'inactivityTimeoutMinutes' => $this->securitySessionSettings->inactivityTimeoutMinutes(),
+                'sessionMaxLifetimeMinutes' => $this->globalSessionMaxLifetimeMinutes(),
+            ],
+            'breakDefaults' => $this->globalBreakDefaults(),
         ]);
     }
 
@@ -194,25 +224,48 @@ final class TeamAdministrationController
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255', Rule::unique(Team::class, 'name')],
             'display_name' => ['required', 'string', 'max:255'],
+            'inactivity_timeout_minutes' => ['nullable', 'integer', 'min:1'],
+            'session_max_lifetime_minutes' => ['nullable', 'integer', 'min:1'],
+            'break_daily_limit_minutes' => ['nullable', 'integer', 'min:1'],
+            'break_maximum_single_minutes' => ['nullable', 'integer', 'min:1'],
             'user_assignments' => ['array'],
             'user_assignments.*.user_public_id' => ['nullable', 'string'],
             'user_assignments.*.role_names' => ['array'],
             'user_assignments.*.role_names.*' => ['string'],
             'user_assignments.*.direct_permission_names' => ['array'],
             'user_assignments.*.direct_permission_names.*' => ['string'],
+            'user_assignments.*.inactivity_timeout_minutes' => ['nullable', 'integer', 'min:1'],
+            'user_assignments.*.session_max_lifetime_minutes' => ['nullable', 'integer', 'min:1'],
+            'user_assignments.*.break_daily_limit_minutes' => ['nullable', 'integer', 'min:1'],
+            'user_assignments.*.break_maximum_single_minutes' => ['nullable', 'integer', 'min:1'],
             'module_overrides' => ['array'],
             'module_overrides.*.module_key' => ['required', 'string'],
             'module_overrides.*.enabled' => ['required', 'boolean'],
             'module_overrides.*.reason' => ['required', 'string', 'min:3', 'max:2000'],
         ]);
-        $userAssignments = $this->userAssignments(is_array($validated) ? $validated : []);
+        $validated = is_array($validated) ? $validated : [];
+        $userAssignments = $this->userAssignments($validated);
+        $teamInactivityTimeoutMinutes = $this->nullableIntValue($validated, 'inactivity_timeout_minutes');
+        $teamSessionMaxLifetimeMinutes = $this->nullableIntValue($validated, 'session_max_lifetime_minutes');
+        $this->validateSessionLimits($teamInactivityTimeoutMinutes, $teamSessionMaxLifetimeMinutes);
 
-        $this->validateUserAssignments($userAssignments);
+        $this->validateUserAssignments(
+            $userAssignments,
+            $teamInactivityTimeoutMinutes ?? $this->securitySessionSettings->inactivityTimeoutMinutes(),
+            $teamSessionMaxLifetimeMinutes ?? $this->globalSessionMaxLifetimeMinutes(),
+        );
 
         $record = Team::query()->create([
-            'name' => is_array($validated) && is_string($validated['name'] ?? null) ? $validated['name'] : '',
-            'display_name' => is_array($validated) && is_string($validated['display_name'] ?? null) ? $validated['display_name'] : '',
+            'name' => is_string($validated['name'] ?? null) ? $validated['name'] : '',
+            'display_name' => is_string($validated['display_name'] ?? null) ? $validated['display_name'] : '',
+            'inactivity_timeout_minutes' => $teamInactivityTimeoutMinutes,
+            'session_max_lifetime_minutes' => $teamSessionMaxLifetimeMinutes,
         ]);
+        $this->breakPolicies->setTeamOverrides(
+            (string) $record->public_id,
+            $this->nullableIntValue($validated, 'break_daily_limit_minutes'),
+            $this->nullableIntValue($validated, 'break_maximum_single_minutes'),
+        );
 
         $this->recordAudit($request, 'team.created', 'succeeded', 'team', (string) $record->public_id, [], [
             'name' => $record->name,
@@ -233,9 +286,21 @@ final class TeamAdministrationController
                     directPermissionNames: $assignment['direct_permission_names'],
                     reason: 'Initial team member assignment.',
                 );
+                $this->sessionLimits->setUserTeamOverrides(
+                    $assignment['user_public_id'],
+                    (string) $record->public_id,
+                    $assignment['inactivity_timeout_minutes'],
+                    $assignment['session_max_lifetime_minutes'],
+                );
+                $this->breakPolicies->setUserTeamOverrides(
+                    $assignment['user_public_id'],
+                    (string) $record->public_id,
+                    $assignment['break_daily_limit_minutes'],
+                    $assignment['break_maximum_single_minutes'],
+                );
             }
 
-            foreach ($this->moduleOverrides(is_array($validated) ? $validated : []) as $override) {
+            foreach ($this->moduleOverrides($validated) as $override) {
                 try {
                     $this->activation->change(new ModuleActivationChange(
                         moduleKey: $override['module_key'],
@@ -272,7 +337,19 @@ final class TeamAdministrationController
                 Rule::unique(Team::class, 'name')->ignore($record->id),
             ],
             'display_name' => ['required', 'string', 'max:255'],
+            'inactivity_timeout_minutes' => ['nullable', 'integer', 'min:1'],
+            'session_max_lifetime_minutes' => ['nullable', 'integer', 'min:1'],
+            'break_daily_limit_minutes' => ['nullable', 'integer', 'min:1'],
+            'break_maximum_single_minutes' => ['nullable', 'integer', 'min:1'],
         ]);
+        $validated = is_array($validated) ? $validated : [];
+        $teamLimits = $this->sessionLimits->resolvedForTeam((string) $record->public_id);
+        $this->validateSessionLimits(
+            $this->nullableIntValue($validated, 'inactivity_timeout_minutes'),
+            $this->nullableIntValue($validated, 'session_max_lifetime_minutes'),
+            $teamLimits['inactivityTimeoutMinutes'],
+            $teamLimits['sessionMaxLifetimeMinutes'],
+        );
 
         $before = [
             'name' => $record->name,
@@ -280,9 +357,16 @@ final class TeamAdministrationController
             'isActive' => $record->is_active,
         ];
         $record->forceFill([
-            'name' => is_array($validated) && is_string($validated['name'] ?? null) ? $validated['name'] : '',
-            'display_name' => is_array($validated) && is_string($validated['display_name'] ?? null) ? $validated['display_name'] : '',
+            'name' => is_string($validated['name'] ?? null) ? $validated['name'] : '',
+            'display_name' => is_string($validated['display_name'] ?? null) ? $validated['display_name'] : '',
+            'inactivity_timeout_minutes' => $this->nullableIntValue($validated, 'inactivity_timeout_minutes'),
+            'session_max_lifetime_minutes' => $this->nullableIntValue($validated, 'session_max_lifetime_minutes'),
         ])->save();
+        $this->breakPolicies->setTeamOverrides(
+            (string) $record->public_id,
+            $this->nullableIntValue($validated, 'break_daily_limit_minutes'),
+            $this->nullableIntValue($validated, 'break_maximum_single_minutes'),
+        );
 
         $this->recordAudit($request, 'team.updated', 'succeeded', 'team', (string) $record->public_id, $before, [
             'name' => $record->name,
@@ -408,8 +492,19 @@ final class TeamAdministrationController
             'direct_permission_names' => ['array'],
             'direct_permission_names.*' => ['string'],
             'reason' => ['nullable', 'string', 'max:500'],
+            'inactivity_timeout_minutes' => ['nullable', 'integer', 'min:1'],
+            'session_max_lifetime_minutes' => ['nullable', 'integer', 'min:1'],
+            'break_daily_limit_minutes' => ['nullable', 'integer', 'min:1'],
+            'break_maximum_single_minutes' => ['nullable', 'integer', 'min:1'],
         ]);
         $validated = is_array($validated) ? $validated : [];
+        $teamLimits = $this->sessionLimits->resolvedForTeam((string) $record->public_id);
+        $this->validateSessionLimits(
+            $this->nullableIntValue($validated, 'inactivity_timeout_minutes'),
+            $this->nullableIntValue($validated, 'session_max_lifetime_minutes'),
+            $teamLimits['inactivityTimeoutMinutes'],
+            $teamLimits['sessionMaxLifetimeMinutes'],
+        );
         $actorPublicId = data_get($request->user(), 'public_id');
 
         if (is_string($actorPublicId)) {
@@ -420,6 +515,18 @@ final class TeamAdministrationController
                 roleNames: $this->stringList($validated['role_names'] ?? []),
                 directPermissionNames: $this->stringList($validated['direct_permission_names'] ?? []),
                 reason: is_string($validated['reason'] ?? null) ? $validated['reason'] : null,
+            );
+            $this->sessionLimits->setUserTeamOverrides(
+                $user,
+                (string) $record->public_id,
+                $this->nullableIntValue($validated, 'inactivity_timeout_minutes'),
+                $this->nullableIntValue($validated, 'session_max_lifetime_minutes'),
+            );
+            $this->breakPolicies->setUserTeamOverrides(
+                $user,
+                (string) $record->public_id,
+                $this->nullableIntValue($validated, 'break_daily_limit_minutes'),
+                $this->nullableIntValue($validated, 'break_maximum_single_minutes'),
             );
         }
 
@@ -468,7 +575,7 @@ final class TeamAdministrationController
 
     /**
      * @param  array<mixed>  $values
-     * @return list<array{user_public_id: string, role_names: list<string>, direct_permission_names: list<string>}>
+     * @return list<array{user_public_id: string, role_names: list<string>, direct_permission_names: list<string>, inactivity_timeout_minutes: ?int, session_max_lifetime_minutes: ?int, break_daily_limit_minutes: ?int, break_maximum_single_minutes: ?int}>
      */
     private function userAssignments(array $values): array
     {
@@ -495,6 +602,10 @@ final class TeamAdministrationController
                 'user_public_id' => $userPublicId,
                 'role_names' => $this->stringList($assignment['role_names'] ?? []),
                 'direct_permission_names' => $this->stringList($assignment['direct_permission_names'] ?? []),
+                'inactivity_timeout_minutes' => $this->nullableIntValue($assignment, 'inactivity_timeout_minutes'),
+                'session_max_lifetime_minutes' => $this->nullableIntValue($assignment, 'session_max_lifetime_minutes'),
+                'break_daily_limit_minutes' => $this->nullableIntValue($assignment, 'break_daily_limit_minutes'),
+                'break_maximum_single_minutes' => $this->nullableIntValue($assignment, 'break_maximum_single_minutes'),
             ];
         }
 
@@ -502,12 +613,19 @@ final class TeamAdministrationController
     }
 
     /**
-     * @param  list<array{user_public_id: string, role_names: list<string>, direct_permission_names: list<string>}>  $assignments
+     * @param  list<array{user_public_id: string, role_names: list<string>, direct_permission_names: list<string>, inactivity_timeout_minutes: ?int, session_max_lifetime_minutes: ?int, break_daily_limit_minutes: ?int, break_maximum_single_minutes: ?int}>  $assignments
      */
-    private function validateUserAssignments(array $assignments): void
+    private function validateUserAssignments(array $assignments, int $teamInactivityTimeoutMinutes, int $teamSessionMaxLifetimeMinutes): void
     {
         foreach ($assignments as $assignment) {
             if ($this->accounts->publicIdExists($assignment['user_public_id'])) {
+                $this->validateSessionLimits(
+                    $assignment['inactivity_timeout_minutes'],
+                    $assignment['session_max_lifetime_minutes'],
+                    $teamInactivityTimeoutMinutes,
+                    $teamSessionMaxLifetimeMinutes,
+                );
+
                 continue;
             }
 
@@ -606,6 +724,52 @@ final class TeamAdministrationController
         }
 
         return array_values(array_filter($values, 'is_string'));
+    }
+
+    /**
+     * @param  array<mixed>  $values
+     */
+    private function nullableIntValue(array $values, string $key): ?int
+    {
+        $value = $values[$key] ?? null;
+
+        return is_numeric($value) ? (int) $value : null;
+    }
+
+    private function validateSessionLimits(
+        ?int $inactivityTimeoutMinutes,
+        ?int $sessionMaxLifetimeMinutes,
+        ?int $baseInactivityTimeoutMinutes = null,
+        ?int $baseSessionMaxLifetimeMinutes = null,
+    ): void {
+        $effectiveInactivity = $inactivityTimeoutMinutes ?? $baseInactivityTimeoutMinutes ?? $this->securitySessionSettings->inactivityTimeoutMinutes();
+        $effectiveMaximum = $sessionMaxLifetimeMinutes ?? $baseSessionMaxLifetimeMinutes ?? $this->globalSessionMaxLifetimeMinutes();
+
+        if ($effectiveInactivity <= $effectiveMaximum) {
+            return;
+        }
+
+        throw ValidationException::withMessages([
+            'inactivity_timeout_minutes' => __('validation.custom.session_limits.inactivity_not_greater_than_maximum'),
+        ]);
+    }
+
+    private function globalSessionMaxLifetimeMinutes(): int
+    {
+        $configured = config('atlas.security.sessions.max_lifetime_minutes', 720);
+
+        return max(1, is_numeric($configured) ? (int) $configured : 720);
+    }
+
+    /**
+     * @return array{dailyLimitMinutes: int, maximumSingleBreakMinutes: int}
+     */
+    private function globalBreakDefaults(): array
+    {
+        return [
+            'dailyLimitMinutes' => 15,
+            'maximumSingleBreakMinutes' => 240,
+        ];
     }
 
     private static function intValue(mixed $value): int

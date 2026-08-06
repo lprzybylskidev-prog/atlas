@@ -48,7 +48,7 @@ test.describe('Admin visibility', () => {
         await expect(page.getByRole('heading', { name: /Zaloguj się|Log in/ })).toBeVisible();
 
         await signIn(page, users.admin);
-        await page.goto('/notifications');
+        await page.goto('/user/notifications');
 
         const main = page.getByRole('main');
 

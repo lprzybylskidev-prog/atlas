@@ -220,7 +220,7 @@ final readonly class AdminFilesController
             'extension' => $this->oneOf($request->query('extension'), $this->allOr($this->uniqueValues($rows, 'extension'))),
             'provider' => $this->oneOf($request->query('provider'), $this->allOr($this->uniqueValues($rows, 'provider'))),
             'availability' => $this->oneOf($request->query('availability'), ['all', 'available', 'blocked']),
-            'handling' => $this->oneOf($request->query('handling', 'needs_attention'), ['needs_attention', 'handled', 'all']),
+            'handling' => $this->oneOf($request->query('handling', 'needs_attention'), ['needs_attention', 'handled', 'not_applicable', 'all']),
             'from' => $this->dateFilter($request->query('from')),
             'to' => $this->dateFilter($request->query('to')),
         ];
@@ -269,6 +269,10 @@ final readonly class AdminFilesController
             }
 
             if ($filters['handling'] === 'handled' && ($row['handlingStatus'] ?? null) !== 'handled') {
+                return false;
+            }
+
+            if ($filters['handling'] === 'not_applicable' && ($row['handlingStatus'] ?? null) !== 'not_applicable') {
                 return false;
             }
 

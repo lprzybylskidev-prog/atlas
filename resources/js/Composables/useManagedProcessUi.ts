@@ -4,6 +4,8 @@ import { computed } from 'vue';
 
 import type { AtlasPageProps } from '../Types/inertia';
 import type { ShellSubnavigationItem } from '../Types/navigation';
+import { optionsWithAll, yesNoOptionsWithAll } from '../Utils/filterOptions';
+import { formatStatus } from '../Utils/formatters';
 
 export function useManagedProcessSubnavigation(
     currentPath: string,
@@ -44,37 +46,27 @@ export function useManagedProcessSubnavigation(
 export function processStatusLabel(status: string, t: (key: string) => string): string {
     const key = `pages.admin.managed_processes.statuses.${status}`;
 
-    return t(key) === key ? status : t(key);
+    return t(key) === key ? formatStatus(status) : t(key);
 }
 
 export function processSourceLabel(source: string, t: (key: string) => string): string {
     const key = `pages.admin.managed_processes.sources.${source}`;
 
-    return t(key) === key ? source : t(key);
+    return t(key) === key ? formatStatus(source) : t(key);
 }
 
 export function processSeverityLabel(severity: string, t: (key: string) => string): string {
     const key = `pages.admin.managed_processes.severities.${severity}`;
 
-    return t(key) === key ? severity : t(key);
+    return t(key) === key ? formatStatus(severity) : t(key);
 }
 
 export function yesNoOptions(t: (key: string) => string) {
-    return [
-        { value: 'all', label: t('pages.admin.managed_processes.all') },
-        { value: 'yes', label: t('datatable.boolean.yes') },
-        { value: 'no', label: t('datatable.boolean.no') },
-    ];
+    return yesNoOptionsWithAll(t('pages.admin.managed_processes.all'), t('datatable.boolean.yes'), t('datatable.boolean.no'));
 }
 
-export function allOptions(values: string[], label: string, valueLabel?: (value: string) => string) {
-    return [
-        { value: 'all', label },
-        ...values.map((value) => ({
-            value,
-            label: valueLabel === undefined ? value : valueLabel(value),
-        })),
-    ];
+export function managedProcessOptionsWithAll(values: string[], label: string, valueLabel?: (value: string) => string) {
+    return optionsWithAll(values, label, valueLabel);
 }
 
 export function jsonText(value: Record<string, unknown> | string | null | undefined): string {

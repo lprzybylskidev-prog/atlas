@@ -11,9 +11,11 @@ import OperationalMetricTile from '../../../Components/OperationalMetricTile.vue
 import PageStack from '../../../Components/PageStack.vue';
 import { usePrivacyRetentionSubnavigation } from '../../../Composables/usePrivacyRetentionSubnavigation';
 import { applyTableFilters, clearTableFilters } from '../../../Composables/useTableFilterControls';
-import AdminLayout from '../../../Layouts/AdminLayout.vue';
+import AppLayout from '../../../Layouts/AppLayout.vue';
 import { useTranslator } from '../../../Localization/translator';
 import type { DataTableColumn, DataTableMeta } from '../../../Types/data-table';
+import { optionsWithAll } from '../../../Utils/filterOptions';
+import { formatStatus } from '../../../Utils/formatters';
 
 interface PrivacyLegalHoldRow extends Record<string, unknown> {
     publicId: string;
@@ -21,6 +23,7 @@ interface PrivacyLegalHoldRow extends Record<string, unknown> {
     subjectIdentifier: string;
     status: string;
     teamPublicId: string;
+    teamName: string;
     createdByPublicId: string;
     reason: string;
     expiresOn: string;
@@ -62,8 +65,8 @@ const tableFilters = computed(() => filterValues());
 const columns = computed<DataTableColumn<PrivacyLegalHoldRow>[]>(() => [
     { key: 'subjectType', label: t('pages.admin.privacy_retention.legal_holds.table.subject_type'), format: 'status' },
     { key: 'subjectIdentifier', label: t('pages.admin.privacy_retention.legal_holds.table.subject_identifier') },
-    { key: 'status', label: t('pages.admin.privacy_retention.legal_holds.table.status'), format: 'status' },
-    { key: 'teamPublicId', label: t('pages.admin.privacy_retention.legal_holds.table.team') },
+    { key: 'status', label: t('pages.admin.privacy_retention.legal_holds.table.status'), format: 'status-badge' },
+    { key: 'teamName', label: t('pages.admin.privacy_retention.legal_holds.table.team') },
     { key: 'reason', label: t('pages.admin.privacy_retention.legal_holds.table.reason') },
     { key: 'expiresOn', label: t('pages.admin.privacy_retention.legal_holds.table.expires_on'), format: 'date' },
     { key: 'createdAt', label: t('pages.admin.privacy_retention.legal_holds.table.created_at'), format: 'datetime' },
@@ -79,12 +82,14 @@ const statusOptions = computed<FormSelectOption[]>(() => [
     { value: 'released', label: statusLabel('released') },
 ]);
 const subjectTypeOptions = computed<FormSelectOption[]>(() => [
-    { value: 'all', label: t('pages.admin.privacy_retention.legal_holds.filters.any_subject_type') },
-    ...props.filterOptions.subjectTypes.map((value) => ({ value, label: value })),
+    ...optionsWithAll(
+        props.filterOptions.subjectTypes,
+        t('pages.admin.privacy_retention.legal_holds.filters.any_subject_type'),
+        subjectTypeLabel,
+    ),
 ]);
 const teamOptions = computed<FormSelectOption[]>(() => [
-    { value: 'all', label: t('pages.admin.privacy_retention.legal_holds.filters.any_team') },
-    ...props.filterOptions.teams.map((value) => ({ value, label: value })),
+    ...optionsWithAll(props.filterOptions.teams, t('pages.admin.privacy_retention.legal_holds.filters.any_team'), teamLabel),
 ]);
 
 watch(
@@ -112,13 +117,28 @@ function clearFilters(): void {
 }
 
 function statusLabel(value: string): string {
-    return t(`pages.admin.privacy_retention.legal_holds.status.${value}`);
+    const key = `pages.admin.privacy_retention.legal_holds.status.${value}`;
+    const translated = t(key);
+
+    return translated === key ? formatStatus(value) : translated;
+}
+
+function subjectTypeLabel(value: string): string {
+    const key = `pages.admin.privacy_retention.subject_type.${value}`;
+    const translated = t(key);
+
+    return translated === key ? formatStatus(value) : translated;
+}
+
+function teamLabel(value: string): string {
+    return props.holds.find((hold) => hold.teamPublicId === value)?.teamName || value;
 }
 </script>
 
 <template>
     <Head :title="t('pages.admin.privacy_retention.legal_holds.head_title')" />
-    <AdminLayout
+    <AppLayout
+        mode="admin"
         :title="t('pages.admin.privacy_retention.title')"
         :title-icon="IconShieldCheck"
         :subnavigation="subnavigation"
@@ -198,7 +218,7 @@ function statusLabel(value: string): string {
 
             <DataTable
                 :title="t('pages.admin.privacy_retention.legal_holds.table.title')"
-                :rows="holds.map((row) => ({ ...row, status: statusLabel(row.status) }))"
+                :rows="holds.map((row) => ({ ...row, subjectType: subjectTypeLabel(row.subjectType) }))"
                 :columns="columns"
                 row-key="publicId"
                 :table="table"
@@ -207,5 +227,5 @@ function statusLabel(value: string): string {
                 :empty-label="t('pages.admin.privacy_retention.legal_holds.table.empty')"
             />
         </PageStack>
-    </AdminLayout>
+    </AppLayout>
 </template>

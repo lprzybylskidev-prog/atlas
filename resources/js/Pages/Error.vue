@@ -20,7 +20,60 @@ const props = defineProps<{
 
 const { isDark, toggleTheme } = useTheme();
 const { switchLocale } = useLocaleSwitcher();
-const { t } = useTranslator();
+const { locale, t } = useTranslator();
+
+const fallbackTranslations: Record<string, Record<'pl' | 'en', string>> = {
+    'errors.403.description': {
+        pl: 'Nie masz skutecznego uprawnienia w aktywnym zespole albo aktywny zespół nie został wybrany. Poproś administratora o sprawdzenie dostępu.',
+        en: 'You do not have an effective permission in the active team, or no active team is selected. Ask an administrator to review your access.',
+    },
+    'errors.403.title': {
+        pl: 'Brak dostępu',
+        en: 'Access denied',
+    },
+    'errors.404.description': {
+        pl: 'Nie znaleźliśmy strony lub zasobu, którego szukasz.',
+        en: 'We could not find the page or resource you are looking for.',
+    },
+    'errors.404.title': {
+        pl: 'Nie znaleziono strony',
+        en: 'Page not found',
+    },
+    'errors.419.description': {
+        pl: 'Sesja wygasła. Odśwież stronę i spróbuj ponownie.',
+        en: 'Your session has expired. Refresh the page and try again.',
+    },
+    'errors.419.title': {
+        pl: 'Sesja wygasła',
+        en: 'Session expired',
+    },
+    'errors.actions.back': {
+        pl: 'Wróć',
+        en: 'Go back',
+    },
+    'errors.actions.home': {
+        pl: 'Przejdź do pulpitu',
+        en: 'Go to dashboard',
+    },
+    'errors.default.description': {
+        pl: 'Wystąpił problem po stronie systemu. Spróbuj ponownie za chwilę.',
+        en: 'The system ran into a problem. Try again in a moment.',
+    },
+    'errors.default.title': {
+        pl: 'Coś poszło nie tak',
+        en: 'Something went wrong',
+    },
+};
+
+function errorText(key: string): string {
+    const translated = t(key);
+
+    if (translated !== key) {
+        return translated;
+    }
+
+    return fallbackTranslations[key]?.[locale.value] ?? key;
+}
 
 function goBack(): void {
     window.history.back();
@@ -29,31 +82,31 @@ function goBack(): void {
 const content = computed(() => {
     if (props.status === 403) {
         return {
-            title: t('errors.403.title'),
-            description: t('errors.403.description'),
+            title: errorText('errors.403.title'),
+            description: errorText('errors.403.description'),
             icon: IconLock,
         };
     }
 
     if (props.status === 404) {
         return {
-            title: t('errors.404.title'),
-            description: t('errors.404.description'),
+            title: errorText('errors.404.title'),
+            description: errorText('errors.404.description'),
             icon: IconHome,
         };
     }
 
     if (props.status === 419) {
         return {
-            title: t('errors.419.title'),
-            description: t('errors.419.description'),
+            title: errorText('errors.419.title'),
+            description: errorText('errors.419.description'),
             icon: IconRefresh,
         };
     }
 
     return {
-        title: t('errors.default.title'),
-        description: t('errors.default.description'),
+        title: errorText('errors.default.title'),
+        description: errorText('errors.default.description'),
         icon: IconServerOff,
     };
 });
@@ -90,10 +143,10 @@ const content = computed(() => {
 
                 <div class="mt-8 flex flex-wrap gap-3">
                     <FormButton type="button" tone="neutral" :icon="IconArrowLeft" @click="goBack">
-                        {{ t('errors.actions.back') }}
+                        {{ errorText('errors.actions.back') }}
                     </FormButton>
                     <ActionLink href="/" tone="primary" :icon="IconHome">
-                        {{ t('errors.actions.home') }}
+                        {{ errorText('errors.actions.home') }}
                     </ActionLink>
                 </div>
             </div>

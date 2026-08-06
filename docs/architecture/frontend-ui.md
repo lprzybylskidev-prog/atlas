@@ -30,6 +30,7 @@ Frontend work must be easy to continue safely by an agent that only knows the re
 - route name;
 - Vue page;
 - layout;
+- canonical page title and browser title;
 - controller or data provider;
 - sidebar entry;
 - breadcrumb;
@@ -59,6 +60,14 @@ Implementation order:
 
 Pages must not contain reusable design-system decisions. Pages choose data, labels, route actions, and module-specific composition; shared components, composables, and formatters own visual structure, control styling, common states, formatting, and repeated interaction patterns.
 
+Advanced controls are shared form primitives before they are feature-specific UI. Color pickers, image croppers, uploaders, rich text editors, date/time pickers, tag selectors, autocomplete inputs, and similar controls belong under `resources/js/Components/Form/` with generic names and configuration props. A feature-specific component may wrap them only when it composes the generic controls for one workflow and contains no reusable design-system behavior.
+
+Reusable controls must be named after the interaction or data type, not the first business screen that needed them. Use names such as `FormMoneyInput`, `FormColorPicker`, `FormImageCropper`, `FormAutocomplete`, or `FormDateTimeInput`; do not introduce names such as `DebtEuroInput`, `AvatarColorPicker`, `ProfileUpload`, or `CaseDatePicker` unless the component is only a thin workflow wrapper and delegates all reusable control behavior to a shared primitive.
+
+Before adding a new frontend input, modal, filter builder, status labeler, table action style, report chart formatter, or repeated preview block, perform a component inventory check against `resources/js/Components`, `resources/js/Components/Form`, `resources/js/Composables`, and `resources/js/Utils`. A second copy of the same interaction means the shared layer is missing a primitive and must be extended.
+
+Pages must not define reusable helper families such as local `allOptions`, generic `readableToken`, generic yes/no filter builders, reusable date/currency/number formatters, or common dialog action footers. Page-local helpers are acceptable only when the labels or transformations are truly owned by that one page and cannot reasonably recur.
+
 When one operational workflow appears in multiple contexts, such as create/edit/show, user/team sides of the same relation, or Admin/Application variants, implement it as one coherent workflow component or view module with explicit modes and typed props/events. The page may own routing, data loading, permissions, and submit endpoints, but the shared workflow module owns layout, control order, labels, empty states, previews, action placement, and mode-specific rendering.
 
 Paired workflow surfaces must be compared side by side before editing and before declaring completion. If create and edit expose the same concept, they must keep the same composition, spacing, labels, control sequence, preview placement, and action semantics unless a documented product reason explains the difference. Adding a capability to one side requires updating the shared workflow module or explicitly documenting why the other side cannot support it.
@@ -83,9 +92,9 @@ The Atlas shell owns navigation hierarchy:
 - Breadcrumbs remain centralized and visible independently of shell subnavigation.
 - Breadcrumbs for pages with top-navbar subsection links must include the active subsection level so the hierarchy matches the visible navigation, for example `Admin / Processes / Runs` and `Admin / Processes / Schedules / Create`.
 
-Use `AdminLayout` or `AppLayout` `subnavigation` props for module subsection links. A page may define module-specific subnavigation items locally, but the rendering, active state treatment, spacing, theme behavior, and responsive overflow belong to `ShellSubnavigation`.
+Use `AppLayout` `subnavigation` props for module subsection links. A page may define module-specific subnavigation items locally, but the rendering, active state treatment, spacing, theme behavior, and responsive overflow belong to `ShellSubnavigation`.
 
-Shared application and Admin pages use the same base primitives. Context-specific layouts such as `AdminLayout` and `AppLayout` may differ, but reusable surfaces, tables, forms, filters, dialogs, formatters, badges, tooltips, and visual states belong to the shared frontend layer.
+Shared application, user, manager, and administrator pages use the same authenticated shell: `AppLayout` with an explicit shell mode. Do not create pass-through shell wrappers such as `AdminLayout`; shell variation belongs in `AppLayout`, `Sidebar`, `MobileNavigation`, `TopBar`, and typed navigation mode configuration.
 
 Shared surface composition uses:
 
@@ -98,7 +107,7 @@ Shared surface composition uses:
 - `DataTable` for tabular data whenever the interaction fits a normal table.
 - `AtlasBarChart` for accessible repository-owned bar charts.
 
-Every Inertia Admin page rendered through `AdminLayout` uses `PageStack` as the outer page-content wrapper. `PageStack` is fluid by default and owns only full-width page rhythm. Admin pages must not introduce narrow page variants or recreate page width with page-local `mx-auto`, `max-w-*`, or ad hoc container classes.
+Every Inertia Admin page rendered through `AppLayout mode="admin"` uses `PageStack` as the outer page-content wrapper. `PageStack` is fluid by default and owns only full-width page rhythm. Admin pages must not introduce narrow page variants or recreate page width with page-local `mx-auto`, `max-w-*`, or ad hoc container classes.
 
 Do not nest `SurfaceCard` inside another `SurfaceCard`. If a subsection contains filters plus a table, use an unframed `SectionHeader`, then `FilterPanel` and `DataTable` as siblings.
 
@@ -182,8 +191,7 @@ Team switching must be visible enough to avoid accidental context mistakes after
 The baseline frontend shell includes:
 
 - `AuthLayout` for login;
-- `AppLayout` for authenticated application screens;
-- `AdminLayout` for authenticated administrative screens;
+- `AppLayout` for authenticated application, user, manager, and administrator screens;
 - collapsible desktop sidebar;
 - mobile navigation drawer;
 - top bar with theme, language, avatar menu, admin entry, and logout controls.
@@ -208,6 +216,10 @@ Breadcrumbs use:
 - translation keys;
 - permissions;
 - team context.
+
+Breadcrumbs are text-only and must not render icons. The first levels describe the shell context: `Atlas` for the application root, then `Panel użytkownika`, `Panel managera`, or `Panel administratora` for panel-owned views. Later levels must reuse the same user-facing names as sidebar links, subnavigation links, action links, and primary buttons. Create/detail/edit breadcrumbs use the action label that led to the view, and object-specific breadcrumbs include the public identifier or canonical route identifier when the route addresses a concrete object.
+
+The visible page title passed to `AppLayout`, the browser title passed to Inertia `Head`, the final breadcrumb label, and the sidebar/subnavigation/action link that opens the page must use the same canonical user-facing name unless a documented product reason requires a longer explanatory title. The `AppLayout` title icon must match the icon of the active sidebar, subnavigation, action, or tab link that opened the page; missing or mismatched title icons are UI defects unless the route has no navigation entry and the exception is documented in the view contract. For example, `/user` is `Pulpit użytkownika` everywhere, not `Profil` in one place and `Panel użytkownika` in another.
 
 Breadcrumb definitions live in small files under `routes/breadcrumbs/` and are shared with Inertia as `navigation.breadcrumbs`.
 
@@ -381,7 +393,7 @@ Application, Admin, and operational card titles use `SurfaceCard`, `CardHeader`,
 
 Every page-level `SurfaceCard` with a title must pass an approved icon or explicitly suppress the icon through a documented component-level exception. Anonymous `SurfaceCard` usage is allowed only for deliberate structural wrappers or repeated record rows, and those wrappers must expose an accessible label. `SectionHeader` always requires an icon because it is a visible section heading.
 
-Do not name shared primitives after `Admin` or `App` unless the component is coupled to that shell, route family, or permission boundary. A shared card is `SurfaceCard`, not `AdminCard`; a shell layout can be `AdminLayout` because it owns Admin navigation and route context.
+Do not name shared primitives after `Admin` or `App` unless the component is coupled to that shell, route family, or permission boundary. A shared card is `SurfaceCard`, not `AdminCard`; authenticated shell variation belongs in the shared `AppLayout` mode contract instead of separate pass-through layout wrappers.
 
 Repeated role, permission, and option checklists use `resources/js/Components/CheckboxList.vue` instead of rebuilding local checkbox grids in pages. Keep one-off binary settings on `FormCheckbox`.
 

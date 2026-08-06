@@ -6,6 +6,7 @@ import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import type { TranslationKey } from '../Localization/catalog';
 import { useTranslator } from '../Localization/translator';
 import type { DataTableExportFormat, DataTableExportMeta } from '../Types/data-table';
+import { tableMenuButtonClass } from '../Utils/buttonClasses';
 
 const props = withDefaults(
     defineProps<{
@@ -36,9 +37,7 @@ const { t } = useTranslator(props.uiLocale);
 const exportMenu = ref<HTMLDetailsElement | null>(null);
 const exportFormats = computed(() => props.exports?.formats ?? []);
 const exportAvailable = computed(() => props.exports !== undefined && exportFormats.value.length > 0);
-const menuButtonClass =
-    'inline-flex h-9 cursor-pointer list-none items-center gap-2 rounded-lg border border-zinc-300 bg-white px-3 text-sm font-medium text-zinc-700 transition hover:border-zinc-400 hover:bg-zinc-100 hover:text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:border-zinc-600 dark:hover:bg-zinc-800 dark:hover:text-zinc-50';
-
+const menuButtonClass = tableMenuButtonClass;
 function exportLabel(format: DataTableExportFormat): string {
     const labels: Record<DataTableExportFormat, TranslationKey> = {
         csv: 'datatable.exports.csv',

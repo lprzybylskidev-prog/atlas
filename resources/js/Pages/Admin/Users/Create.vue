@@ -12,13 +12,14 @@ import PageStack from '../../../Components/PageStack.vue';
 import SurfaceCard from '../../../Components/SurfaceCard.vue';
 import UserTeamAccessWorkflow from '../../../Components/Users/UserTeamAccessWorkflow.vue';
 import { useAccountSensitivityOptions } from '../../../Composables/useAccountSensitivityOptions';
-import AdminLayout from '../../../Layouts/AdminLayout.vue';
+import AppLayout from '../../../Layouts/AppLayout.vue';
 import { useTranslator } from '../../../Localization/translator';
 import type {
     AuthorizationAssignmentOption,
     UserTeamAccessAssignment,
     UserTeamAccessCopySource,
     UserTeamAccessPackage,
+    TeamPolicyDefaults,
 } from '../../../Types/user-team-access';
 
 defineProps<{
@@ -28,6 +29,11 @@ defineProps<{
     roleOptions: AuthorizationAssignmentOption[];
     permissionOptions: AuthorizationAssignmentOption[];
     rolePermissionMap: Record<string, string[]>;
+    sessionDefaults: {
+        inactivityTimeoutMinutes: number;
+        sessionMaxLifetimeMinutes: number;
+    };
+    teamPolicyDefaults: Record<string, TeamPolicyDefaults>;
 }>();
 
 const { t } = useTranslator();
@@ -48,6 +54,10 @@ function addTeamAssignment(teamPublicId: string): void {
         copy_authorization_from_user: '',
         role_names: [],
         direct_permission_names: [],
+        inactivity_timeout_minutes: '',
+        session_max_lifetime_minutes: '',
+        break_daily_limit_minutes: '',
+        break_maximum_single_minutes: '',
         reason: '',
         removal_reason: '',
     });
@@ -64,7 +74,7 @@ function submit(): void {
 
 <template>
     <Head :title="t('pages.admin.users.create.head_title')" />
-    <AdminLayout :title="t('pages.admin.users.create.title')" :title-icon="IconUserPlus">
+    <AppLayout mode="admin" :title="t('pages.admin.users.create.title')" :title-icon="IconUserPlus">
         <PageStack>
             <AtlasForm class="space-y-5" :processing="form.processing" @submit="submit">
                 <SurfaceCard :title="t('pages.admin.users.identity.title')" :icon="IconUserPlus" tone="teal">
@@ -100,6 +110,8 @@ function submit(): void {
                     :role-options="roleOptions"
                     :permission-options="permissionOptions"
                     :role-permission-map="rolePermissionMap"
+                    :session-defaults="sessionDefaults"
+                    :team-policy-defaults="teamPolicyDefaults"
                     :root-error="form.errors.team_assignments"
                     :errors="form.errors"
                     @add-team="addTeamAssignment"
@@ -116,5 +128,5 @@ function submit(): void {
                 </FormActions>
             </AtlasForm>
         </PageStack>
-    </AdminLayout>
+    </AppLayout>
 </template>

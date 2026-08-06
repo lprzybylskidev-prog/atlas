@@ -19,6 +19,7 @@ use App\Modules\Optional\Integrations\IntegrationsModule;
 use App\Modules\Optional\ManagedProcesses\ManagedProcessesModule;
 use App\Modules\Optional\Reports\ReportsModule;
 use App\Modules\Optional\Search\SearchModule;
+use App\Modules\Optional\TimeTracking\TimeTrackingModule;
 
 return [
     'deployed' => [
@@ -39,5 +40,6 @@ return [
         ImportsModule::class,
         SearchModule::class,
         ReportsModule::class,
+        TimeTrackingModule::class,
     ],
 ];

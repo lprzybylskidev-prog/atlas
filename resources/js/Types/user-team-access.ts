@@ -33,9 +33,20 @@ export interface UserTeamAccessAssignment {
     copy_authorization_from_user: string;
     role_names: string[];
     direct_permission_names: string[];
+    inactivity_timeout_minutes: string;
+    session_max_lifetime_minutes: string;
+    break_daily_limit_minutes: string;
+    break_maximum_single_minutes: string;
     teamName?: string;
     reason: string;
     removal_reason: string;
+}
+
+export interface TeamPolicyDefaults {
+    inactivityTimeoutMinutes: number;
+    sessionMaxLifetimeMinutes: number;
+    breakDailyLimitMinutes: number;
+    breakMaximumSingleMinutes: number;
 }
 
 export interface UserTeamAccessSavePayload {

@@ -45,18 +45,6 @@ return new class extends Migration
             $table->index(['user_id', 'created_at']);
         });
 
-        Schema::create(DatabaseTable::NOTIFICATION_PREFERENCES, function (Blueprint $table): void {
-            $table->id();
-            $table->foreignId('user_id')->constrained(DatabaseTable::USERS)->restrictOnDelete();
-            $table->string('type');
-            $table->string('channel');
-            $table->boolean('enabled')->default(true);
-            $table->timestampsTz();
-
-            $table->unique(['user_id', 'type', 'channel']);
-            $table->index(['user_id', 'channel']);
-        });
-
         Schema::create(DatabaseTable::REALTIME_EVENTS, function (Blueprint $table): void {
             $table->id();
             $table->ulid('public_id')->unique();
@@ -78,7 +66,6 @@ return new class extends Migration
     public function down(): void
     {
         Schema::dropIfExists(DatabaseTable::REALTIME_EVENTS);
-        Schema::dropIfExists(DatabaseTable::NOTIFICATION_PREFERENCES);
         Schema::dropIfExists(DatabaseTable::NOTIFICATION_RECIPIENTS);
         Schema::dropIfExists(DatabaseTable::NOTIFICATIONS);
     }

@@ -1,6 +1,10 @@
 export interface AtlasUser {
     name: string;
     email: string;
+    avatar: {
+        color: string | null;
+        imageUrl: string | null;
+    };
 }
 
 export interface AtlasTeam {
@@ -45,6 +49,7 @@ export interface AtlasPageProps {
     auth: {
         user: AtlasUser | null;
         availableAdminRoutes: string[];
+        availableApplicationRoutes: string[];
         teams: {
             active: AtlasTeam | null;
             available: AtlasTeam[];
@@ -66,6 +71,14 @@ export interface AtlasPageProps {
     notifications: {
         unreadCount: number;
         latest: AtlasNotificationSummary[];
+    };
+    timeTracking: {
+        activity: {
+            enabled: boolean;
+            endpoint: string;
+            thresholdSeconds: number;
+            warningSeconds: number;
+        };
     };
     flash: {
         messages?: {

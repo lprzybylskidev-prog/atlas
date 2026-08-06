@@ -1,6 +1,10 @@
 <script setup lang="ts">
 import { Link, usePage } from '@inertiajs/vue3';
 import {
+    IconBell,
+    IconBriefcase,
+    IconClockHour4,
+    IconDatabase,
     IconFlag,
     IconFiles,
     IconFileText,
@@ -16,6 +20,8 @@ import {
     IconShieldCheck,
     IconShieldLock,
     IconSitemap,
+    IconPlayerPause,
+    IconUserCircle,
     IconUsers,
     IconUsersGroup,
     IconX,
@@ -25,6 +31,7 @@ import { computed } from 'vue';
 import AtlasLogo from './AtlasLogo.vue';
 import { useTranslator } from '../Localization/translator';
 import type { AtlasPageProps } from '../Types/inertia';
+import type { ShellMode } from '../Types/navigation';
 
 interface MobileNavigationItem {
     label: string;
@@ -41,7 +48,7 @@ interface MobileNavigationGroup {
 
 const props = defineProps<{
     open: boolean;
-    mode?: 'app' | 'admin';
+    mode?: ShellMode;
     uiLocale?: string;
 }>();
 
@@ -56,21 +63,79 @@ function canSeeAdminRoute(route: string): boolean {
     return page.props.auth.availableAdminRoutes.includes(route);
 }
 
+function canSeeApplicationRoute(route: string): boolean {
+    return page.props.auth.availableApplicationRoutes.includes(route);
+}
+
 const groups = computed<MobileNavigationGroup[]>(() => {
+    const navigationMode: Exclude<ShellMode, 'admin'> = props.mode === 'admin' ? 'app' : (props.mode ?? 'app');
+    const appDashboard: MobileNavigationItem = {
+        label: t('navigation.app_dashboard'),
+        href: '/',
+        icon: IconLayoutDashboard,
+        visible: canSeeApplicationRoute('dashboard'),
+    };
+
+    const userProfile: MobileNavigationItem = {
+        label: t('navigation.user_dashboard'),
+        href: '/user',
+        icon: IconUserCircle,
+        visible: canSeeApplicationRoute('users.profile'),
+    };
+    const userMatterItems: MobileNavigationItem[] = [
+        {
+            label: t('navigation.time_tracking'),
+            href: '/user/work-time',
+            icon: IconClockHour4,
+            visible: canSeeApplicationRoute('users.work-time'),
+        },
+        {
+            label: t('navigation.notifications'),
+            href: '/user/notifications',
+            icon: IconBell,
+            visible: canSeeApplicationRoute('users.notifications.index'),
+        },
+    ];
+    const workspaceItemsByMode: Record<Exclude<ShellMode, 'admin'>, MobileNavigationItem[]> = {
+        app: [appDashboard],
+        user: [appDashboard, userProfile],
+        manager: [
+            appDashboard,
+            {
+                label: t('navigation.manager_dashboard'),
+                href: '/manager',
+                icon: IconUsersGroup,
+                visible: canSeeApplicationRoute('time-tracking.panels.manager'),
+            },
+            {
+                label: t('navigation.time_tracking_manager'),
+                href: '/time-tracking/manager-report',
+                icon: IconClockHour4,
+                visible: canSeeApplicationRoute('time-tracking.reports.manager'),
+            },
+        ],
+    };
+
     const workspace: MobileNavigationGroup = {
         label: t('navigation.group.workspace'),
-        items: [{ label: t('navigation.app_dashboard'), href: '/', icon: IconGauge }],
+        items: workspaceItemsByMode[navigationMode].filter((item) => item.visible !== false),
     };
 
     if (props.mode !== 'admin') {
-        return [workspace];
+        return [
+            workspace,
+            {
+                label: t('navigation.group.my_matters'),
+                items: navigationMode === 'user' ? userMatterItems.filter((item) => item.visible !== false) : [],
+            },
+        ].filter((group) => group.items.length > 0);
     }
 
     return [
         {
             ...workspace,
             items: [
-                ...workspace.items,
+                appDashboard,
                 {
                     label: t('navigation.admin_dashboard'),
                     href: '/admin',
@@ -123,6 +188,41 @@ const groups = computed<MobileNavigationGroup[]>(() => {
                     href: '/admin/authorization/packages',
                     icon: IconPackage,
                     visible: canSeeAdminRoute('admin.authorization.packages.index'),
+                },
+            ],
+        },
+        {
+            label: t('navigation.group.work_time'),
+            items: [
+                {
+                    label: t('navigation.work_time_daily'),
+                    href: '/admin/work-time/summary',
+                    icon: IconClockHour4,
+                    visible: canSeeAdminRoute('admin.work-time.summary.index'),
+                },
+                {
+                    label: t('navigation.work_time_other_work'),
+                    href: '/admin/work-time/other-work',
+                    icon: IconBriefcase,
+                    visible: canSeeAdminRoute('admin.work-time.other-work.index'),
+                },
+                {
+                    label: t('navigation.work_time_breaks'),
+                    href: '/admin/work-time/breaks',
+                    icon: IconPlayerPause,
+                    visible: canSeeAdminRoute('admin.work-time.breaks.index'),
+                },
+                {
+                    label: t('navigation.work_time_corrections'),
+                    href: '/admin/work-time/corrections',
+                    icon: IconFileText,
+                    visible: canSeeAdminRoute('admin.work-time.corrections.index'),
+                },
+                {
+                    label: t('navigation.work_time_sessions'),
+                    href: '/admin/work-time/work-sessions',
+                    icon: IconDatabase,
+                    visible: canSeeAdminRoute('admin.work-time.work-sessions.index'),
                 },
             ],
         },
@@ -231,20 +331,7 @@ const groups = computed<MobileNavigationGroup[]>(() => {
                     <IconX aria-hidden="true" class="h-5 w-5" :stroke-width="1.8" />
                 </button>
             </div>
-            <nav v-if="mode !== 'admin'" class="space-y-1 p-4" :aria-label="t('navigation.aria.mobile')">
-                <Link
-                    v-for="item in groups[0]?.items ?? []"
-                    :key="item.label"
-                    :href="item.href"
-                    class="flex h-12 items-center gap-3 rounded-lg px-3 text-sm font-medium text-zinc-700 hover:bg-zinc-100 dark:text-zinc-200 dark:hover:bg-zinc-900"
-                    @click="emit('close')"
-                >
-                    <component :is="item.icon" aria-hidden="true" class="h-5 w-5" :stroke-width="1.8" />
-                    {{ item.label }}
-                </Link>
-            </nav>
-
-            <nav v-else class="space-y-4 p-4" :aria-label="t('navigation.aria.mobile')">
+            <nav class="space-y-4 p-4" :aria-label="t('navigation.aria.mobile')">
                 <details v-for="group in groups" :key="group.label" open>
                     <summary class="list-none px-3 text-xs font-semibold uppercase text-zinc-400">{{ group.label }}</summary>
                     <div class="mt-2 space-y-1">

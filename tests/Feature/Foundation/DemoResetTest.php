@@ -92,7 +92,7 @@ final class DemoResetTest extends TestCase
             ->assertInertia(fn (AssertableInertia $page) => $page->component('Admin/SystemStatus'));
     }
 
-    public function test_development_demo_seeder_is_noop_after_phase_25_cleanup(): void
+    public function test_development_demo_seeder_creates_idempotent_time_tracking_demo_data(): void
     {
         $this->seed(DatabaseSeeder::class);
         $this->seed(DevelopmentBootstrapSeeder::class);
@@ -100,10 +100,78 @@ final class DemoResetTest extends TestCase
         $this->seed(DevelopmentDemoSeeder::class);
         $this->seed(DevelopmentDemoSeeder::class);
 
-        $this->assertDatabaseCount(DatabaseTable::USERS, 1);
-        $this->assertDatabaseCount(DatabaseTable::TEAMS, 1);
+        $this->assertDatabaseCount(DatabaseTable::USERS, 57);
+        $this->assertDatabaseCount(DatabaseTable::TEAMS, 3);
+        $this->assertDatabaseHas(DatabaseTable::USERS, [
+            'email' => 'tt.one.minute.policy.north@example.test',
+            'name' => 'TT One Minute Policy Test User - North',
+        ]);
+        $this->assertDatabaseHas(DatabaseTable::TEAMS, ['name' => 'TT Demo Team North']);
+        $this->assertDatabaseHas(DatabaseTable::TEAMS, ['name' => 'TT Demo Team South']);
+        $this->assertDatabaseCount(DatabaseTable::TEAM_MANAGER_RELATIONSHIPS, 54);
+        $this->assertDatabaseCount(DatabaseTable::TIME_TRACKING_MAINTENANCE_WINDOWS, 1);
+        $this->assertGreaterThan(0, DB::table(DatabaseTable::TIME_TRACKING_WORK_SESSIONS)->count());
+        $this->assertGreaterThan(0, DB::table(DatabaseTable::TIME_TRACKING_BREAKS)->count());
+        $this->assertGreaterThan(0, DB::table(DatabaseTable::TIME_TRACKING_MAINTENANCE_AFFECTED_SESSIONS)->count());
+        $this->assertGreaterThan(0, DB::table(DatabaseTable::TIME_TRACKING_OTHER_WORK)->count());
+        $this->assertGreaterThan(0, DB::table(DatabaseTable::TIME_TRACKING_CORRECTION_REQUESTS)->count());
+        $this->assertGreaterThan(0, DB::table(DatabaseTable::TIME_TRACKING_MODULE_CONTEXT_SEGMENTS)->count());
+        $this->assertSame(
+            DB::table(DatabaseTable::TIME_TRACKING_MODULE_CONTEXT_SEGMENTS)->count(),
+            DB::table(DatabaseTable::TIME_TRACKING_MODULE_CONTEXT_SEGMENTS)
+                ->where('module_key', 'system')
+                ->where('context_key', 'System')
+                ->count(),
+            'Development TimeTracking demo segments must use the current system context contract.',
+        );
+        $this->assertSame(
+            DB::table(DatabaseTable::TIME_TRACKING_CORRECTION_REQUESTS)->count(),
+            DB::table(DatabaseTable::TIME_TRACKING_CORRECTION_REQUESTS.' as correction_requests')
+                ->join(DatabaseTable::TIME_TRACKING_CORRECTION_PROPOSALS.' as correction_proposals', 'correction_proposals.correction_request_id', '=', 'correction_requests.id')
+                ->whereNotNull('correction_proposals.proposed_started_at')
+                ->whereNotNull('correction_proposals.proposed_ended_at')
+                ->count(),
+            'Every demo correction request must expose proposed start and end timestamps.',
+        );
+        foreach (['TT Demo Team North', 'TT Demo Team South'] as $teamName) {
+            foreach (['work_session', 'break', 'other_work'] as $sourceType) {
+                $this->assertGreaterThan(
+                    0,
+                    DB::table(DatabaseTable::TIME_TRACKING_CORRECTION_REQUESTS.' as correction_requests')
+                        ->join(DatabaseTable::TEAMS.' as teams', 'correction_requests.team_id', '=', 'teams.id')
+                        ->where('teams.name', $teamName)
+                        ->where('correction_requests.source_type', $sourceType)
+                        ->count(),
+                    sprintf('Expected %s demo correction source in %s.', $sourceType, $teamName),
+                );
+            }
+        }
+        $this->assertGreaterThan(0, DB::table(DatabaseTable::TIME_TRACKING_BREAKS)
+            ->where('closure_reason', 'normal')
+            ->where('requires_manager_review', false)
+            ->where('exact_seconds', '>', 900)
+            ->count());
+
+        $specialPolicy = DB::table(DatabaseTable::TEAM_USER_ASSIGNMENTS)
+            ->join(DatabaseTable::USERS, 'team_user_assignments.user_id', '=', 'users.id')
+            ->where('users.email', 'tt.one.minute.policy.north@example.test')
+            ->first([
+                'team_user_assignments.id',
+                'team_user_assignments.inactivity_timeout_minutes',
+                'team_user_assignments.session_max_lifetime_minutes',
+            ]);
+
+        self::assertNotNull($specialPolicy);
+        self::assertSame(1, $this->intValue(data_get($specialPolicy, 'inactivity_timeout_minutes')));
+        self::assertNull(data_get($specialPolicy, 'session_max_lifetime_minutes'));
+        $this->assertDatabaseHas(DatabaseTable::TIME_TRACKING_BREAK_POLICIES, [
+            'scope_type' => 'user_team',
+            'scope_id' => $this->intValue(data_get($specialPolicy, 'id')),
+            'daily_limit_seconds' => 60,
+            'maximum_single_break_seconds' => 60,
+        ]);
+
         $this->assertDatabaseCount(DatabaseTable::USER_ONBOARDING_PACKAGES, 0);
-        $this->assertDatabaseCount(DatabaseTable::TEAM_MANAGER_RELATIONSHIPS, 0);
         $this->assertDatabaseCount(DatabaseTable::FAILED_JOBS, 0);
         $this->assertDatabaseCount(DatabaseTable::RATE_LIMIT_REJECTIONS, 0);
         $this->assertDatabaseCount(DatabaseTable::MANAGED_PROCESS_RUNS, 0);
@@ -126,5 +194,10 @@ final class DemoResetTest extends TestCase
         $this->assertDatabaseMissing(DatabaseTable::MODULE_TEAM_STATES, [
             'module_key' => 'demo',
         ]);
+    }
+
+    private function intValue(mixed $value): int
+    {
+        return is_numeric($value) ? (int) $value : 0;
     }
 }

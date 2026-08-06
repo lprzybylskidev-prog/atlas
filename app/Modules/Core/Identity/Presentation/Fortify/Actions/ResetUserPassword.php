@@ -49,6 +49,7 @@ class ResetUserPassword implements ResetsUserPasswords
 
         $user->forceFill([
             'password' => $passwordHash,
+            'password_changed_at' => now(),
         ])->save();
 
         if ($hadSetFirstPassword) {

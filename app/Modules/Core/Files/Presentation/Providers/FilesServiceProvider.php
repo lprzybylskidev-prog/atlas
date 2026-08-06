@@ -10,9 +10,11 @@ use App\Modules\Core\Files\Application\Lifecycle\FileDataLifecycleParticipant;
 use App\Modules\Core\Files\Application\Permissions\FilesPermissionCatalog;
 use App\Modules\Core\Files\Application\Public\Contracts\FileLifecycle;
 use App\Modules\Core\Files\Application\Public\Contracts\FileMaintenance;
+use App\Modules\Core\Files\Application\Public\Contracts\FileScanner;
 use App\Modules\Core\Files\Application\Public\Contracts\FileStorage;
 use App\Modules\Core\Files\Infrastructure\Persistence\DatabaseFileStorage;
 use App\Modules\Core\Files\Infrastructure\Scanning\ClamAvMalwareScanner;
+use App\Modules\Core\Files\Infrastructure\Scanning\DatabaseFileScanner;
 use App\Modules\Core\Files\Infrastructure\Scanning\FakeMalwareScanner;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\ServiceProvider;
@@ -25,6 +27,7 @@ final class FilesServiceProvider extends ServiceProvider
         $this->app->bind(FileStorage::class, DatabaseFileStorage::class);
         $this->app->bind(FileLifecycle::class, DatabaseFileStorage::class);
         $this->app->bind(FileMaintenance::class, DatabaseFileStorage::class);
+        $this->app->bind(FileScanner::class, DatabaseFileScanner::class);
         $this->app->bind(MalwareScanner::class, function (): MalwareScanner {
             $scanner = Config::string('atlas.files.scanner', 'fake');
 

@@ -12,9 +12,11 @@ import OperationalMetricTile from '../../../Components/OperationalMetricTile.vue
 import PageStack from '../../../Components/PageStack.vue';
 import SurfaceCard from '../../../Components/SurfaceCard.vue';
 import { applyTableFilters, clearTableFilters } from '../../../Composables/useTableFilterControls';
-import AdminLayout from '../../../Layouts/AdminLayout.vue';
+import AppLayout from '../../../Layouts/AppLayout.vue';
 import { useTranslator } from '../../../Localization/translator';
 import type { DataTableAction, DataTableBulkAction, DataTableColumn, DataTableMeta } from '../../../Types/data-table';
+import { optionsWithAll } from '../../../Utils/filterOptions';
+import { formatStatus } from '../../../Utils/formatters';
 
 interface FailedJobRow extends Record<string, unknown> {
     uuid: string;
@@ -80,8 +82,8 @@ const filterDefaults = {
 };
 const filters = ref({ ...filterDefaults, ...filterValues() });
 
-const rows = computed<FailedJobRow[]>(() => props.jobs);
-const detailRows = computed<FailedJobRow[]>(() => props.jobDetails);
+const rows = computed<FailedJobRow[]>(() => props.jobs.map((job) => displayJob(job)));
+const detailRows = computed<FailedJobRow[]>(() => props.jobDetails.map((job) => displayJob(job)));
 const columns = computed<DataTableColumn<FailedJobRow>[]>(() => [
     { key: 'uuid', label: t('pages.admin.queues.table.uuid') },
     { key: 'connection', label: t('pages.admin.queues.connection') },
@@ -91,7 +93,7 @@ const columns = computed<DataTableColumn<FailedJobRow>[]>(() => [
     { key: 'jobClass', label: t('pages.admin.queues.job_class'), hidden: true },
     { key: 'exceptionType', label: t('pages.admin.queues.table.exception_type') },
     { key: 'exceptionMessage', label: t('pages.admin.queues.table.exception_message') },
-    { key: 'handlingStatus', label: t('pages.admin.queues.table.handling_status'), format: 'status' },
+    { key: 'handlingStatus', label: t('pages.admin.queues.table.handling_status'), format: 'status-badge' },
     { key: 'acknowledgedAt', label: t('pages.admin.queues.table.handled_at'), format: 'datetime', hidden: true },
     { key: 'acknowledgedBy', label: t('pages.admin.queues.table.handled_by'), hidden: true },
 ]);
@@ -119,9 +121,11 @@ const bulkActions = computed<DataTableBulkAction[]>(() => [
     { key: 'acknowledge', label: t('pages.admin.queues.acknowledge_selected'), tone: 'success' },
 ]);
 const connectionOptions = computed<FormSelectOption[]>(() =>
-    allOptions(props.filterOptions.connections, t('pages.admin.queues.filters.any_connection')),
+    optionsWithAll(props.filterOptions.connections, t('pages.admin.queues.filters.any_connection'), connectionLabel),
 );
-const queueOptions = computed<FormSelectOption[]>(() => allOptions(props.filterOptions.queues, t('pages.admin.queues.filters.any_queue')));
+const queueOptions = computed<FormSelectOption[]>(() =>
+    optionsWithAll(props.filterOptions.queues, t('pages.admin.queues.filters.any_queue'), queueLabel),
+);
 const handlingOptions = computed<FormSelectOption[]>(() => [
     { value: 'needs_attention', label: t('pages.admin.queues.filters.needs_attention') },
     { value: 'handled', label: t('pages.admin.queues.filters.handled') },
@@ -137,14 +141,26 @@ watch(
     },
 );
 
-function allOptions(values: string[], label: string): FormSelectOption[] {
-    return [
-        { value: 'all', label },
-        ...values.map((value) => ({
-            value,
-            label: value,
-        })),
-    ];
+function displayJob(job: FailedJobRow): FailedJobRow {
+    return {
+        ...job,
+        connection: connectionLabel(job.connection),
+        queue: queueLabel(job.queue),
+    };
+}
+
+function connectionLabel(value: string): string {
+    const key = `pages.admin.queues.connections.${value}`;
+    const translated = t(key);
+
+    return translated === key ? formatStatus(value) : translated;
+}
+
+function queueLabel(value: string): string {
+    const key = `pages.admin.queues.queues.${value.replaceAll('-', '_')}`;
+    const translated = t(key);
+
+    return translated === key ? formatStatus(value) : translated;
 }
 
 function filterValues(): Record<string, string> {
@@ -184,7 +200,7 @@ function handleBulkAction(payload: { action: DataTableBulkAction; rowIds: string
 
 <template>
     <Head :title="t('pages.admin.queues.head_title')" />
-    <AdminLayout :title="t('pages.admin.queues.title')" :title-icon="IconServerCog">
+    <AppLayout mode="admin" :title="t('pages.admin.queues.title')" :title-icon="IconRoute">
         <PageStack>
             <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
                 <OperationalMetricTile
@@ -226,7 +242,9 @@ function handleBulkAction(payload: { action: DataTableBulkAction; rowIds: string
                         </thead>
                         <tbody class="divide-y divide-zinc-100 dark:divide-zinc-800">
                             <tr v-for="knownQueue in queueOperations.knownQueues" :key="knownQueue.queue">
-                                <td class="px-0 py-2 pr-3 font-medium text-zinc-950 dark:text-zinc-50">{{ knownQueue.queue }}</td>
+                                <td class="px-0 py-2 pr-3 font-medium text-zinc-950 dark:text-zinc-50">
+                                    {{ queueLabel(knownQueue.queue) }}
+                                </td>
                                 <td class="px-3 py-2 text-zinc-600 dark:text-zinc-300">
                                     {{ knownQueue.configured ? t('datatable.boolean.yes') : t('datatable.boolean.no') }}
                                 </td>
@@ -311,5 +329,5 @@ function handleBulkAction(payload: { action: DataTableBulkAction; rowIds: string
                 </div>
             </SurfaceCard>
         </PageStack>
-    </AdminLayout>
+    </AppLayout>
 </template>

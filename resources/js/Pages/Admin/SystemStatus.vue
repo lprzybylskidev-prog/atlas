@@ -47,7 +47,7 @@ import OperationalTile from '../../Components/OperationalTile.vue';
 import SurfaceCard from '../../Components/SurfaceCard.vue';
 import AppLayout from '../../Layouts/AppLayout.vue';
 import { useTranslator } from '../../Localization/translator';
-import { formatDateTime, formatNumber } from '../../Utils/formatters';
+import { formatDateTime, formatNumber, formatStatus } from '../../Utils/formatters';
 import { moduleLabel } from '../../Utils/moduleLabels';
 
 type DashboardStatus = 'healthy' | 'degraded' | 'unhealthy' | 'inactive' | 'unavailable' | 'info' | string;
@@ -176,7 +176,7 @@ function statusLabel(status: DashboardStatus): string {
 function mechanismLabel(key: string): string {
     const supported = ['postgresql', 'redis', 'storage', 'meilisearch', 'clamav', 'chromium-pdf'];
 
-    return supported.includes(key) ? t(`pages.admin.dashboard.external.${key.replaceAll('-', '_')}`) : key;
+    return supported.includes(key) ? t(`pages.admin.dashboard.external.${key.replaceAll('-', '_')}`) : formatStatus(key);
 }
 
 function mechanismIcon(key: string): Component {
@@ -230,12 +230,14 @@ function moduleIcon(key: string): Component {
 
 function moduleIssueLabel(module: DashboardModule): string {
     if (module.issue === null) {
-        return t(`pages.admin.dashboard.status.${module.status}`);
+        return statusLabel(module.status);
     }
 
     const key = module.issue.label.toLowerCase().replaceAll('-', ' ').replace(/\s+/g, '_');
+    const translationKey = `pages.admin.dashboard.issue.${key}`;
+    const translated = t(translationKey, { value: module.issue.value ?? module.issueCount });
 
-    return t(`pages.admin.dashboard.issue.${key}`, { value: module.issue.value ?? module.issueCount });
+    return translated === translationKey ? formatStatus(module.issue.label) : translated;
 }
 
 function moduleTooltip(module: DashboardModule): string {

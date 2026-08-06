@@ -9,8 +9,10 @@ use App\Modules\Core\Authorization\Application\Public\Contracts\UserOnboardingPa
 use App\Modules\Core\Authorization\Application\Public\Contracts\UserTeamAuthorizationManager;
 use App\Modules\Core\Identity\Application\Public\Contracts\UserCredentialAccountDirectory;
 use App\Modules\Core\Teams\Application\Public\Contracts\UserTeamMembershipManager;
+use App\Modules\Core\Teams\Application\Public\Contracts\UserTeamSessionLimitSettings;
 use App\Modules\Core\Users\Application\Commands\CreateUserAccountCommand;
 use App\Modules\Core\Users\Application\CreateUserAccount;
+use App\Modules\Optional\TimeTracking\Application\Public\Contracts\UserBreakPolicySettings;
 use App\Shared\Presentation\Support\FlashMessage;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -25,6 +27,8 @@ final readonly class StoreUserAccountController
         private UserOnboardingPackageApplier $onboardingPackages,
         private OnboardingPackageDirectory $packageDirectory,
         private UserCredentialAccountDirectory $accounts,
+        private UserTeamSessionLimitSettings $sessionLimits,
+        private UserBreakPolicySettings $breakPolicies,
     ) {}
 
     public function __invoke(Request $request): RedirectResponse
@@ -42,7 +46,11 @@ final readonly class StoreUserAccountController
             'team_assignments.*.role_names.*' => ['string'],
             'team_assignments.*.direct_permission_names' => ['array'],
             'team_assignments.*.direct_permission_names.*' => ['string'],
-        ]);
+            'team_assignments.*.inactivity_timeout_minutes' => ['nullable', 'integer', 'min:1'],
+            'team_assignments.*.session_max_lifetime_minutes' => ['nullable', 'integer', 'min:1'],
+            'team_assignments.*.break_daily_limit_minutes' => ['nullable', 'integer', 'min:1'],
+            'team_assignments.*.break_maximum_single_minutes' => ['nullable', 'integer', 'min:1'],
+        ], [], $this->validationAttributes());
         $validated = is_array($validated) ? $validated : [];
 
         $actorPublicId = data_get($request->user(), 'public_id');
@@ -73,6 +81,7 @@ final readonly class StoreUserAccountController
                         teamPublicId: $assignment['team_public_id'],
                         actorPublicId: $actorPublicId,
                     );
+                    $this->applyTeamPolicyOverrides($account->publicId, $assignment);
 
                     continue;
                 }
@@ -97,6 +106,7 @@ final readonly class StoreUserAccountController
                     directPermissionNames: $directPermissionNames,
                     reason: 'Initial user team assignment.',
                 );
+                $this->applyTeamPolicyOverrides($account->publicId, $assignment);
             }
         }
 
@@ -119,7 +129,30 @@ final readonly class StoreUserAccountController
 
     /**
      * @param  array<mixed>  $values
-     * @return list<array{team_public_id: string, source: string, onboarding_package: string, copy_authorization_from_user: string, role_names: list<string>, direct_permission_names: list<string>}>
+     */
+    private function nullableIntValue(array $values, string $key): ?int
+    {
+        $value = $values[$key] ?? null;
+
+        return is_numeric($value) ? (int) $value : null;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function validationAttributes(): array
+    {
+        return [
+            'team_assignments.*.inactivity_timeout_minutes' => __('validation.attributes.inactivity_timeout_minutes'),
+            'team_assignments.*.session_max_lifetime_minutes' => __('validation.attributes.session_max_lifetime_minutes'),
+            'team_assignments.*.break_daily_limit_minutes' => __('validation.attributes.time_tracking_break_daily_limit_minutes'),
+            'team_assignments.*.break_maximum_single_minutes' => __('validation.attributes.time_tracking_break_maximum_single_minutes'),
+        ];
+    }
+
+    /**
+     * @param  array<mixed>  $values
+     * @return list<array{team_public_id: string, source: string, onboarding_package: string, copy_authorization_from_user: string, role_names: list<string>, direct_permission_names: list<string>, inactivity_timeout_minutes: ?int, session_max_lifetime_minutes: ?int, break_daily_limit_minutes: ?int, break_maximum_single_minutes: ?int}>
      */
     private function teamAssignments(array $values): array
     {
@@ -149,6 +182,10 @@ final readonly class StoreUserAccountController
                 'copy_authorization_from_user' => $this->stringValue($assignment, 'copy_authorization_from_user'),
                 'role_names' => $this->stringList($assignment['role_names'] ?? []),
                 'direct_permission_names' => $this->stringList($assignment['direct_permission_names'] ?? []),
+                'inactivity_timeout_minutes' => $this->nullableIntValue($assignment, 'inactivity_timeout_minutes'),
+                'session_max_lifetime_minutes' => $this->nullableIntValue($assignment, 'session_max_lifetime_minutes'),
+                'break_daily_limit_minutes' => $this->nullableIntValue($assignment, 'break_daily_limit_minutes'),
+                'break_maximum_single_minutes' => $this->nullableIntValue($assignment, 'break_maximum_single_minutes'),
             ];
         }
 
@@ -156,7 +193,7 @@ final readonly class StoreUserAccountController
     }
 
     /**
-     * @param  list<array{team_public_id: string, source: string, onboarding_package: string, copy_authorization_from_user: string, role_names: list<string>, direct_permission_names: list<string>}>  $assignments
+     * @param  list<array{team_public_id: string, source: string, onboarding_package: string, copy_authorization_from_user: string, role_names: list<string>, direct_permission_names: list<string>, inactivity_timeout_minutes: ?int, session_max_lifetime_minutes: ?int, break_daily_limit_minutes: ?int, break_maximum_single_minutes: ?int}>  $assignments
      */
     private function validateTeamAssignments(array $assignments): void
     {
@@ -174,6 +211,8 @@ final readonly class StoreUserAccountController
             }
 
             if ($assignment['source'] !== 'copy') {
+                $this->validateAssignmentSessionLimits($assignment);
+
                 continue;
             }
 
@@ -191,7 +230,46 @@ final readonly class StoreUserAccountController
                     'team_assignments' => __('validation.custom.team_assignments.copy_source_team'),
                 ]);
             }
+
+            $this->validateAssignmentSessionLimits($assignment);
         }
+    }
+
+    /**
+     * @param  array{team_public_id: string, source: string, onboarding_package: string, copy_authorization_from_user: string, role_names: list<string>, direct_permission_names: list<string>, inactivity_timeout_minutes: ?int, session_max_lifetime_minutes: ?int, break_daily_limit_minutes: ?int, break_maximum_single_minutes: ?int}  $assignment
+     */
+    private function validateAssignmentSessionLimits(array $assignment): void
+    {
+        $teamLimits = $this->sessionLimits->resolvedForTeam($assignment['team_public_id']);
+        $effectiveInactivity = $assignment['inactivity_timeout_minutes'] ?? $teamLimits['inactivityTimeoutMinutes'];
+        $effectiveMaximum = $assignment['session_max_lifetime_minutes'] ?? $teamLimits['sessionMaxLifetimeMinutes'];
+
+        if ($effectiveInactivity <= $effectiveMaximum) {
+            return;
+        }
+
+        throw ValidationException::withMessages([
+            'team_assignments' => __('validation.custom.session_limits.inactivity_not_greater_than_maximum'),
+        ]);
+    }
+
+    /**
+     * @param  array{team_public_id: string, source: string, onboarding_package: string, copy_authorization_from_user: string, role_names: list<string>, direct_permission_names: list<string>, inactivity_timeout_minutes: ?int, session_max_lifetime_minutes: ?int, break_daily_limit_minutes: ?int, break_maximum_single_minutes: ?int}  $assignment
+     */
+    private function applyTeamPolicyOverrides(string $userPublicId, array $assignment): void
+    {
+        $this->sessionLimits->setUserTeamOverrides(
+            $userPublicId,
+            $assignment['team_public_id'],
+            $assignment['inactivity_timeout_minutes'],
+            $assignment['session_max_lifetime_minutes'],
+        );
+        $this->breakPolicies->setUserTeamOverrides(
+            $userPublicId,
+            $assignment['team_public_id'],
+            $assignment['break_daily_limit_minutes'],
+            $assignment['break_maximum_single_minutes'],
+        );
     }
 
     private function packageExistsForTeam(string $packageName, string $teamPublicId): bool

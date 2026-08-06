@@ -40,6 +40,7 @@ final class UserAccountCreationTest extends TestCase
         self::assertTrue($user->isActive());
         self::assertFalse($user->hasSetFirstPassword());
         self::assertNull($user->email_verified_at);
+        self::assertSame(User::DEFAULT_AVATAR_COLOR, $user->avatar_color);
         self::assertFalse(Hash::check('', $user->password));
 
         $this->assertDatabaseHas(DatabaseTable::PASSWORD_RESET_TOKENS, [
@@ -71,5 +72,14 @@ final class UserAccountCreationTest extends TestCase
             name: 'Duplicate User',
             email: 'EXISTING@example.test',
         ));
+    }
+
+    public function test_user_model_assigns_default_avatar_color_when_missing(): void
+    {
+        $user = User::factory()->create([
+            'avatar_color' => null,
+        ]);
+
+        self::assertSame(User::DEFAULT_AVATAR_COLOR, $user->avatar_color);
     }
 }

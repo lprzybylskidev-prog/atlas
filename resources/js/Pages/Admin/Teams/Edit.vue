@@ -7,7 +7,7 @@ import RecordActions, { type RecordAction } from '../../../Components/RecordActi
 import TeamForm from '../../../Components/Teams/TeamForm.vue';
 import TeamMemberAccessWorkflow, { type TeamMemberAccessAssignment } from '../../../Components/Teams/TeamMemberAccessWorkflow.vue';
 import PageStack from '../../../Components/PageStack.vue';
-import AdminLayout from '../../../Layouts/AdminLayout.vue';
+import AppLayout from '../../../Layouts/AppLayout.vue';
 import { useTranslator } from '../../../Localization/translator';
 import type { FormSelectOption } from '../../../Components/Form/FormSelect.vue';
 import type { AuthorizationAssignmentOption } from '../../../Types/user-team-access';
@@ -18,6 +18,10 @@ const props = defineProps<{
         name: string;
         displayName: string;
         isActive: boolean;
+        inactivityTimeoutMinutes: number | null;
+        sessionMaxLifetimeMinutes: number | null;
+        breakDailyLimitMinutes: number | null;
+        breakMaximumSingleMinutes: number | null;
     };
     memberships: Array<{
         userPublicId: string;
@@ -27,18 +31,48 @@ const props = defineProps<{
         validTo: string | null;
         roleNames: string[];
         directPermissionNames: string[];
+        inactivityTimeoutMinutes: number | null;
+        sessionMaxLifetimeMinutes: number | null;
+        breakDailyLimitMinutes: number | null;
+        breakMaximumSingleMinutes: number | null;
     }>;
     assignableUsers: FormSelectOption[];
     roleOptions: AuthorizationAssignmentOption[];
     permissionOptions: AuthorizationAssignmentOption[];
     rolePermissionMap: Record<string, string[]>;
+    sessionDefaults: {
+        inactivityTimeoutMinutes: number;
+        sessionMaxLifetimeMinutes: number;
+    };
+    breakDefaults: {
+        dailyLimitMinutes: number;
+        maximumSingleBreakMinutes: number;
+    };
 }>();
 
 const { t } = useTranslator();
 const form = useForm({
     name: props.team.name,
     display_name: props.team.displayName,
+    inactivity_timeout_minutes: props.team.inactivityTimeoutMinutes === null ? '' : String(props.team.inactivityTimeoutMinutes),
+    session_max_lifetime_minutes: props.team.sessionMaxLifetimeMinutes === null ? '' : String(props.team.sessionMaxLifetimeMinutes),
+    break_daily_limit_minutes: props.team.breakDailyLimitMinutes === null ? '' : String(props.team.breakDailyLimitMinutes),
+    break_maximum_single_minutes: props.team.breakMaximumSingleMinutes === null ? '' : String(props.team.breakMaximumSingleMinutes),
 });
+const policyDefaults = computed(() => ({
+    inactivityTimeoutMinutes:
+        form.inactivity_timeout_minutes === '' ? props.sessionDefaults.inactivityTimeoutMinutes : Number(form.inactivity_timeout_minutes),
+    sessionMaxLifetimeMinutes:
+        form.session_max_lifetime_minutes === ''
+            ? props.sessionDefaults.sessionMaxLifetimeMinutes
+            : Number(form.session_max_lifetime_minutes),
+    breakDailyLimitMinutes:
+        form.break_daily_limit_minutes === '' ? props.breakDefaults.dailyLimitMinutes : Number(form.break_daily_limit_minutes),
+    breakMaximumSingleMinutes:
+        form.break_maximum_single_minutes === ''
+            ? props.breakDefaults.maximumSingleBreakMinutes
+            : Number(form.break_maximum_single_minutes),
+}));
 const memberAssignments = ref<TeamMemberAccessAssignment[]>(
     props.memberships.map((membership) => ({
         user_public_id: membership.userPublicId,
@@ -46,6 +80,10 @@ const memberAssignments = ref<TeamMemberAccessAssignment[]>(
         userEmail: membership.userEmail,
         role_names: [...membership.roleNames],
         direct_permission_names: [...membership.directPermissionNames],
+        inactivity_timeout_minutes: membership.inactivityTimeoutMinutes === null ? '' : String(membership.inactivityTimeoutMinutes),
+        session_max_lifetime_minutes: membership.sessionMaxLifetimeMinutes === null ? '' : String(membership.sessionMaxLifetimeMinutes),
+        break_daily_limit_minutes: membership.breakDailyLimitMinutes === null ? '' : String(membership.breakDailyLimitMinutes),
+        break_maximum_single_minutes: membership.breakMaximumSingleMinutes === null ? '' : String(membership.breakMaximumSingleMinutes),
         reason: '',
         removal_reason: '',
     })),
@@ -98,6 +136,10 @@ function saveAuthorization(assignment: TeamMemberAccessAssignment): void {
         {
             role_names: assignment.role_names,
             direct_permission_names: assignment.direct_permission_names,
+            inactivity_timeout_minutes: assignment.inactivity_timeout_minutes,
+            session_max_lifetime_minutes: assignment.session_max_lifetime_minutes,
+            break_daily_limit_minutes: assignment.break_daily_limit_minutes,
+            break_maximum_single_minutes: assignment.break_maximum_single_minutes,
             reason: assignment.reason ?? '',
         },
         {
@@ -129,7 +171,7 @@ function removeUser(assignment: TeamMemberAccessAssignment): void {
 
 <template>
     <Head :title="t('pages.admin.teams.edit.head_title')" />
-    <AdminLayout :title="t('pages.admin.teams.edit.title')" :title-icon="IconUsersGroup">
+    <AppLayout mode="admin" :title="t('pages.admin.teams.edit.title')" :title-icon="IconUsersGroup">
         <PageStack>
             <div class="flex justify-end">
                 <RecordActions :actions="recordActions" />
@@ -138,7 +180,13 @@ function removeUser(assignment: TeamMemberAccessAssignment): void {
             <TeamForm
                 v-model:name="form.name"
                 v-model:display-name="form.display_name"
+                v-model:inactivity-timeout-minutes="form.inactivity_timeout_minutes"
+                v-model:session-max-lifetime-minutes="form.session_max_lifetime_minutes"
+                v-model:break-daily-limit-minutes="form.break_daily_limit_minutes"
+                v-model:break-maximum-single-minutes="form.break_maximum_single_minutes"
                 :errors="form.errors"
+                :session-defaults="sessionDefaults"
+                :break-defaults="breakDefaults"
                 :processing="form.processing"
                 :submit-label="t('pages.admin.teams.actions.save')"
                 :processing-label="t('pages.admin.teams.actions.saving')"
@@ -152,6 +200,8 @@ function removeUser(assignment: TeamMemberAccessAssignment): void {
                     :role-options="roleOptions"
                     :permission-options="permissionOptions"
                     :role-permission-map="rolePermissionMap"
+                    :session-defaults="sessionDefaults"
+                    :policy-defaults="policyDefaults"
                     :processing="memberProcessing"
                     @add-user="addUser"
                     @save="saveAuthorization($event.assignment)"
@@ -159,5 +209,5 @@ function removeUser(assignment: TeamMemberAccessAssignment): void {
                 />
             </TeamForm>
         </PageStack>
-    </AdminLayout>
+    </AppLayout>
 </template>

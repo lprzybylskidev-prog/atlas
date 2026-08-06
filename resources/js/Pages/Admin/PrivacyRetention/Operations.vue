@@ -10,9 +10,11 @@ import OperationalMetricTile from '../../../Components/OperationalMetricTile.vue
 import PageStack from '../../../Components/PageStack.vue';
 import { usePrivacyRetentionSubnavigation } from '../../../Composables/usePrivacyRetentionSubnavigation';
 import { applyTableFilters, clearTableFilters } from '../../../Composables/useTableFilterControls';
-import AdminLayout from '../../../Layouts/AdminLayout.vue';
+import AppLayout from '../../../Layouts/AppLayout.vue';
 import { useTranslator } from '../../../Localization/translator';
 import type { DataTableColumn, DataTableMeta } from '../../../Types/data-table';
+import { optionsWithAll, yesNoOptionsWithAll } from '../../../Utils/filterOptions';
+import { formatStatus } from '../../../Utils/formatters';
 
 interface PrivacyOperationRow extends Record<string, unknown> {
     publicId: string;
@@ -26,6 +28,7 @@ interface PrivacyOperationRow extends Record<string, unknown> {
     participantCount: number;
     blockerCount: number;
     teamPublicId: string;
+    teamName: string;
     actorPublicId: string;
     reason: string;
     confirmationPhrase: string;
@@ -68,7 +71,7 @@ const filters = ref({ ...filterDefaults, ...filterValues() });
 const tableFilters = computed(() => filterValues());
 const columns = computed<DataTableColumn<PrivacyOperationRow>[]>(() => [
     { key: 'operation', label: t('pages.admin.privacy_retention.operations.table.operation'), format: 'status' },
-    { key: 'status', label: t('pages.admin.privacy_retention.operations.table.status'), format: 'status' },
+    { key: 'status', label: t('pages.admin.privacy_retention.operations.table.status'), format: 'status-badge' },
     { key: 'subjectType', label: t('pages.admin.privacy_retention.operations.table.subject_type'), format: 'status' },
     { key: 'subjectIdentifier', label: t('pages.admin.privacy_retention.operations.table.subject_identifier') },
     { key: 'dryRun', label: t('pages.admin.privacy_retention.operations.table.dry_run'), format: 'boolean' },
@@ -76,7 +79,7 @@ const columns = computed<DataTableColumn<PrivacyOperationRow>[]>(() => [
     { key: 'estimatedRecords', label: t('pages.admin.privacy_retention.operations.table.estimated_records'), format: 'number' },
     { key: 'blockerCount', label: t('pages.admin.privacy_retention.operations.table.blockers'), format: 'number' },
     { key: 'previewedAt', label: t('pages.admin.privacy_retention.operations.table.previewed_at'), format: 'datetime' },
-    { key: 'teamPublicId', label: t('pages.admin.privacy_retention.operations.table.team') },
+    { key: 'teamName', label: t('pages.admin.privacy_retention.operations.table.team') },
     { key: 'participantCount', label: t('pages.admin.privacy_retention.operations.table.participants'), format: 'number', hidden: true },
     { key: 'actorPublicId', label: t('pages.admin.privacy_retention.operations.table.actor'), hidden: true },
     { key: 'reason', label: t('pages.admin.privacy_retention.operations.table.reason'), hidden: true },
@@ -85,26 +88,28 @@ const columns = computed<DataTableColumn<PrivacyOperationRow>[]>(() => [
     { key: 'publicId', label: t('pages.admin.privacy_retention.operations.table.public_id'), hidden: true },
 ]);
 const operationOptions = computed<FormSelectOption[]>(() => [
-    { value: 'all', label: t('pages.admin.privacy_retention.operations.filters.any_operation') },
-    ...props.filterOptions.operations.map((value) => ({ value, label: operationLabel(value) })),
+    ...optionsWithAll(props.filterOptions.operations, t('pages.admin.privacy_retention.operations.filters.any_operation'), operationLabel),
 ]);
 const statusOptions = computed<FormSelectOption[]>(() => [
-    { value: 'all', label: t('pages.admin.privacy_retention.operations.filters.any_status') },
-    ...props.filterOptions.statuses.map((value) => ({ value, label: statusLabel(value) })),
+    ...optionsWithAll(props.filterOptions.statuses, t('pages.admin.privacy_retention.operations.filters.any_status'), statusLabel),
 ]);
 const subjectTypeOptions = computed<FormSelectOption[]>(() => [
-    { value: 'all', label: t('pages.admin.privacy_retention.operations.filters.any_subject_type') },
-    ...props.filterOptions.subjectTypes.map((value) => ({ value, label: value })),
+    ...optionsWithAll(
+        props.filterOptions.subjectTypes,
+        t('pages.admin.privacy_retention.operations.filters.any_subject_type'),
+        subjectTypeLabel,
+    ),
 ]);
 const teamOptions = computed<FormSelectOption[]>(() => [
-    { value: 'all', label: t('pages.admin.privacy_retention.operations.filters.any_team') },
-    ...props.filterOptions.teams.map((value) => ({ value, label: value })),
+    ...optionsWithAll(props.filterOptions.teams, t('pages.admin.privacy_retention.operations.filters.any_team'), teamLabel),
 ]);
-const executableOptions = computed<FormSelectOption[]>(() => [
-    { value: 'all', label: t('pages.admin.privacy_retention.operations.filters.any_executable') },
-    { value: 'yes', label: t('datatable.boolean.yes') },
-    { value: 'no', label: t('datatable.boolean.no') },
-]);
+const executableOptions = computed<FormSelectOption[]>(() =>
+    yesNoOptionsWithAll(
+        t('pages.admin.privacy_retention.operations.filters.any_executable'),
+        t('datatable.boolean.yes'),
+        t('datatable.boolean.no'),
+    ),
+);
 
 watch(
     () => props.table.state.filters,
@@ -133,17 +138,35 @@ function clearFilters(): void {
 }
 
 function operationLabel(value: string): string {
-    return t(`pages.admin.privacy_retention.operation.${value}`);
+    const key = `pages.admin.privacy_retention.operation.${value}`;
+    const translated = t(key);
+
+    return translated === key ? formatStatus(value) : translated;
 }
 
 function statusLabel(value: string): string {
-    return t(`pages.admin.privacy_retention.preview.status.${value}`);
+    const key = `pages.admin.privacy_retention.preview.status.${value}`;
+    const translated = t(key);
+
+    return translated === key ? formatStatus(value) : translated;
+}
+
+function subjectTypeLabel(value: string): string {
+    const key = `pages.admin.privacy_retention.subject_type.${value}`;
+    const translated = t(key);
+
+    return translated === key ? formatStatus(value) : translated;
+}
+
+function teamLabel(value: string): string {
+    return props.operations.find((operation) => operation.teamPublicId === value)?.teamName || value;
 }
 </script>
 
 <template>
     <Head :title="t('pages.admin.privacy_retention.operations.head_title')" />
-    <AdminLayout
+    <AppLayout
+        mode="admin"
         :title="t('pages.admin.privacy_retention.title')"
         :title-icon="IconShieldCheck"
         :subnavigation="subnavigation"
@@ -227,7 +250,13 @@ function statusLabel(value: string): string {
 
             <DataTable
                 :title="t('pages.admin.privacy_retention.operations.table.title')"
-                :rows="operations.map((row) => ({ ...row, operation: operationLabel(row.operation), status: statusLabel(row.status) }))"
+                :rows="
+                    operations.map((row) => ({
+                        ...row,
+                        operation: operationLabel(row.operation),
+                        subjectType: subjectTypeLabel(row.subjectType),
+                    }))
+                "
                 :columns="columns"
                 row-key="publicId"
                 :table="table"
@@ -236,5 +265,5 @@ function statusLabel(value: string): string {
                 :empty-label="t('pages.admin.privacy_retention.operations.table.empty')"
             />
         </PageStack>
-    </AdminLayout>
+    </AppLayout>
 </template>

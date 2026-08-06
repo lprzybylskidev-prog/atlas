@@ -16,10 +16,11 @@ import SurfaceCard from '../../../Components/SurfaceCard.vue';
 import UserTeamAccessWorkflow from '../../../Components/Users/UserTeamAccessWorkflow.vue';
 import { useAccountSensitivityOptions } from '../../../Composables/useAccountSensitivityOptions';
 import { useAdminUserAccountActions } from '../../../Composables/useAdminUserAccountActions';
-import AdminLayout from '../../../Layouts/AdminLayout.vue';
+import AppLayout from '../../../Layouts/AppLayout.vue';
 import { useTranslator } from '../../../Localization/translator';
 import type {
     AuthorizationAssignmentOption,
+    TeamPolicyDefaults,
     UserTeamAccessAssignment,
     UserTeamAccessCopySource,
     UserTeamAccessPackage,
@@ -47,6 +48,10 @@ interface TeamMembership {
     validTo: string | null;
     roleNames: string[];
     directPermissionNames: string[];
+    inactivityTimeoutMinutes: number | null;
+    sessionMaxLifetimeMinutes: number | null;
+    breakDailyLimitMinutes: number | null;
+    breakMaximumSingleMinutes: number | null;
 }
 
 const props = defineProps<{
@@ -58,6 +63,11 @@ const props = defineProps<{
     roleOptions: AuthorizationAssignmentOption[];
     permissionOptions: AuthorizationAssignmentOption[];
     rolePermissionMap: Record<string, string[]>;
+    sessionDefaults: {
+        inactivityTimeoutMinutes: number;
+        sessionMaxLifetimeMinutes: number;
+    };
+    teamPolicyDefaults: Record<string, TeamPolicyDefaults>;
 }>();
 
 const { t } = useTranslator();
@@ -78,6 +88,10 @@ const teamAccessAssignments = reactive<UserTeamAccessAssignment[]>(
         copy_authorization_from_user: '',
         role_names: [...membership.roleNames],
         direct_permission_names: [...membership.directPermissionNames],
+        inactivity_timeout_minutes: membership.inactivityTimeoutMinutes === null ? '' : String(membership.inactivityTimeoutMinutes),
+        session_max_lifetime_minutes: membership.sessionMaxLifetimeMinutes === null ? '' : String(membership.sessionMaxLifetimeMinutes),
+        break_daily_limit_minutes: membership.breakDailyLimitMinutes === null ? '' : String(membership.breakDailyLimitMinutes),
+        break_maximum_single_minutes: membership.breakMaximumSingleMinutes === null ? '' : String(membership.breakMaximumSingleMinutes),
         reason: '',
         removal_reason: '',
     })),
@@ -118,6 +132,10 @@ function updateTeamAuthorization(assignment: UserTeamAccessAssignment): void {
         {
             role_names: assignment.role_names,
             direct_permission_names: assignment.direct_permission_names,
+            inactivity_timeout_minutes: assignment.inactivity_timeout_minutes,
+            session_max_lifetime_minutes: assignment.session_max_lifetime_minutes,
+            break_daily_limit_minutes: assignment.break_daily_limit_minutes,
+            break_maximum_single_minutes: assignment.break_maximum_single_minutes,
             reason: assignment.reason ?? '',
         },
         { preserveScroll: true },
@@ -127,7 +145,7 @@ function updateTeamAuthorization(assignment: UserTeamAccessAssignment): void {
 
 <template>
     <Head :title="t('pages.admin.users.edit.head_title')" />
-    <AdminLayout :title="t('pages.admin.users.edit.title')" :title-icon="IconUserEdit">
+    <AppLayout mode="admin" :title="t('pages.admin.users.edit.title')" :title-icon="IconUserEdit">
         <PageStack>
             <SurfaceCard :title="t('pages.admin.users.status.title')" :icon="IconUserEdit" tone="emerald">
                 <dl class="grid gap-3 text-sm sm:grid-cols-2 xl:grid-cols-5">
@@ -243,6 +261,8 @@ function updateTeamAuthorization(assignment: UserTeamAccessAssignment): void {
                     :role-options="roleOptions"
                     :permission-options="permissionOptions"
                     :role-permission-map="rolePermissionMap"
+                    :session-defaults="sessionDefaults"
+                    :team-policy-defaults="teamPolicyDefaults"
                     :processing="teamForm.processing"
                     :root-error="teamForm.errors.team_public_id"
                     @add-team="addTeamAccessFromWorkflow"
@@ -251,5 +271,5 @@ function updateTeamAuthorization(assignment: UserTeamAccessAssignment): void {
                 />
             </div>
         </PageStack>
-    </AdminLayout>
+    </AppLayout>
 </template>

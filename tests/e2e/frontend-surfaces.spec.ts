@@ -7,7 +7,7 @@ const adminUser = {
     password: 'password',
 };
 
-const applicationRoutes = ['/notifications'];
+const applicationRoutes = ['/user/notifications'];
 
 const adminRoutes = ['/admin'];
 

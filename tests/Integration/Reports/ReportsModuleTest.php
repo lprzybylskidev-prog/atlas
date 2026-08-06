@@ -256,6 +256,13 @@ final class ReportsModuleTest extends TestCase
             AdminTableDefinitions::MODULE_DETAIL_TEAMS,
             AdminTableDefinitions::MODULE_DETAIL_HISTORY,
             AdminTableDefinitions::MODULE_DETAIL_SCHEDULES,
+            AdminTableDefinitions::TIME_TRACKING_USER_REPORT,
+            AdminTableDefinitions::TIME_TRACKING_MANAGER_REPORT,
+            AdminTableDefinitions::TIME_TRACKING_ADMIN_OPERATIONS_DAILY,
+            AdminTableDefinitions::TIME_TRACKING_ADMIN_OPERATIONS_OTHER_WORK,
+            AdminTableDefinitions::TIME_TRACKING_ADMIN_OPERATIONS_WORK_SESSIONS,
+            AdminTableDefinitions::TIME_TRACKING_ADMIN_OPERATIONS_BREAKS,
+            AdminTableDefinitions::TIME_TRACKING_ADMIN_OPERATIONS_CORRECTIONS,
             AdminTableDefinitions::FILES,
             AdminTableDefinitions::INTEGRATION_ADAPTERS,
             AdminTableDefinitions::INTEGRATION_RUNS,
@@ -1651,8 +1658,12 @@ final class FakeUserCredentialAccountDirectory implements UserCredentialAccountD
         return false;
     }
 
-    public function updateIdentity(string $publicId, string $name, string $email, string $accountSensitivity): ?AdminUserCredentialAccount
-    {
+    public function updateIdentity(
+        string $publicId,
+        string $name,
+        string $email,
+        string $accountSensitivity,
+    ): ?AdminUserCredentialAccount {
         return $this->findAdminRow($publicId);
     }
 

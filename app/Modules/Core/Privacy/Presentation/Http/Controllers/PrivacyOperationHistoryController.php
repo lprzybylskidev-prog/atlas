@@ -83,6 +83,7 @@ final readonly class PrivacyOperationHistoryController
                 'previews.can_execute',
                 'actors.public_id as actor_public_id',
                 'teams.public_id as team_public_id',
+                'teams.name as team_name',
             ])
             ->map(fn (object $row): array => $this->row($row))
             ->all());
@@ -105,6 +106,7 @@ final readonly class PrivacyOperationHistoryController
             'participantCount' => $this->intValue($row->participant_count ?? null),
             'blockerCount' => count($this->jsonList($row->blockers ?? '[]')),
             'teamPublicId' => $this->stringValue($row->team_public_id ?? ''),
+            'teamName' => $this->stringValue($row->team_name ?? ''),
             'actorPublicId' => $this->stringValue($row->actor_public_id ?? ''),
             'reason' => $this->stringValue($row->reason ?? ''),
             'confirmationPhrase' => $this->stringValue($row->confirmation_phrase ?? ''),

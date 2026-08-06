@@ -62,17 +62,17 @@ const { t } = useTranslator();
 const normalizedStatus = computed(() => props.data?.status ?? 'healthy');
 const detailItems = computed(() =>
     [
-        { label: 'Version', value: props.data?.releaseVersion, mono: false },
-        { label: 'Release ID', value: props.data?.releaseId, mono: true },
-        { label: 'Environment', value: props.data?.environment, mono: false },
+        { label: t('pages.admin.dashboard.system_status.version'), value: props.data?.releaseVersion, mono: false },
+        { label: t('pages.admin.dashboard.system_status.release_id'), value: props.data?.releaseId, mono: true },
+        { label: t('pages.admin.dashboard.system_status.environment'), value: props.data?.environment, mono: false },
         { label: 'Laravel', value: props.data?.laravelVersion, mono: false },
         { label: 'PHP', value: props.data?.phpVersion, mono: false },
-        { label: 'Timezone', value: props.data?.timezone, mono: false },
-        { label: 'Runtime', value: props.data?.runtime, mono: false },
-        { label: 'Last deploy', value: props.data?.deployedAt, mono: false },
-        { label: 'Deploy operator', value: props.data?.deployedBy, mono: false },
-        { label: 'Deploy source', value: props.data?.deploySource, mono: true },
-        { label: 'Checked at', value: props.data?.checkedAt, mono: false },
+        { label: t('pages.admin.dashboard.system_status.timezone'), value: props.data?.timezone, mono: false },
+        { label: t('pages.admin.dashboard.system_status.runtime'), value: props.data?.runtime, mono: false },
+        { label: t('pages.admin.dashboard.system_status.last_deploy'), value: props.data?.deployedAt, mono: false },
+        { label: t('pages.admin.dashboard.system_status.deploy_operator'), value: props.data?.deployedBy, mono: false },
+        { label: t('pages.admin.dashboard.system_status.deploy_source'), value: props.data?.deploySource, mono: true },
+        { label: t('pages.admin.dashboard.system_status.checked_at'), value: props.data?.checkedAt, mono: false },
         {
             label: t('pages.admin.dashboard.readiness.blocking_checks'),
             value:
@@ -95,40 +95,42 @@ const detailItems = computed(() =>
                       }),
             mono: false,
         },
-        { label: 'Last success', value: props.data?.lastSuccessAt, mono: false },
+        { label: t('pages.admin.dashboard.system_status.last_success'), value: props.data?.lastSuccessAt, mono: false },
         {
-            label: 'Runtime',
+            label: t('pages.admin.dashboard.system_status.runtime'),
             value: props.data?.lastRuntimeMs === undefined || props.data.lastRuntimeMs === null ? null : `${props.data.lastRuntimeMs} ms`,
             mono: false,
         },
         {
-            label: 'Freshness threshold',
-            value: props.data?.staleAfterSeconds ? `${props.data.staleAfterSeconds} seconds` : null,
+            label: t('pages.admin.dashboard.system_status.freshness_threshold'),
+            value: props.data?.staleAfterSeconds
+                ? t('pages.admin.dashboard.system_status.seconds', { seconds: props.data.staleAfterSeconds })
+                : null,
             mono: false,
         },
         {
-            label: 'Failed schedules',
+            label: t('pages.admin.dashboard.system_status.failed_schedules'),
             value: props.data?.failedCount === undefined || props.data.failedCount === null ? null : String(props.data.failedCount),
             mono: false,
         },
         {
-            label: 'Scheduled changes',
+            label: t('pages.admin.dashboard.system_status.scheduled_changes'),
             value:
                 props.data?.scheduledCount === undefined || props.data.scheduledCount === null ? null : String(props.data.scheduledCount),
             mono: false,
         },
         {
-            label: 'Queues',
+            label: t('pages.admin.dashboard.system_status.queues'),
             value: props.data?.queueCount === undefined || props.data.queueCount === null ? null : String(props.data.queueCount),
             mono: false,
         },
         {
-            label: 'Latest failed module',
+            label: t('pages.admin.dashboard.system_status.latest_failed_module'),
             value: props.data?.latestFailedModule ? moduleLabel(props.data.latestFailedModule, t) : null,
             mono: false,
         },
-        { label: 'Latest failed at', value: props.data?.latestFailedAt, mono: false },
-        { label: 'Latest failure', value: props.data?.latestFailureReason, mono: true },
+        { label: t('pages.admin.dashboard.system_status.latest_failed_at'), value: props.data?.latestFailedAt, mono: false },
+        { label: t('pages.admin.dashboard.system_status.latest_failure'), value: props.data?.latestFailureReason, mono: true },
     ].filter((item): item is { label: string; value: string; mono: boolean } => typeof item.value === 'string' && item.value !== ''),
 );
 

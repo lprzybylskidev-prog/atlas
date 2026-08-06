@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { IconStarFilled, IconUser } from '@tabler/icons-vue';
 
-import TextBadge from '../TextBadge.vue';
+import StatusBadge from '../StatusBadge.vue';
 import { useTranslator } from '../../Localization/translator';
 
 interface ManagerHierarchyNode {
@@ -39,7 +39,7 @@ const { t } = useTranslator();
                     <p class="truncate text-xs text-zinc-500 dark:text-zinc-400">{{ node.email }}</p>
                 </div>
             </div>
-            <TextBadge
+            <StatusBadge
                 :label="node.headManager ? t('pages.admin.managers.tree.head_manager') : t('pages.admin.managers.tree.manager')"
                 :tone="node.headManager ? 'warning' : 'info'"
             />

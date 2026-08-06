@@ -3,6 +3,7 @@ import { Link, router, usePage } from '@inertiajs/vue3';
 import {
     IconAlertTriangle,
     IconBell,
+    IconBriefcase,
     IconCircleCheck,
     IconCircleX,
     IconInfoCircle,
@@ -12,8 +13,11 @@ import {
     IconLogout,
     IconMenu2,
     IconMoon,
+    IconPlayerPause,
     IconShieldLock,
     IconSun,
+    IconUserCircle,
+    IconUsersGroup,
 } from '@tabler/icons-vue';
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import type { Component } from 'vue';
@@ -29,14 +33,15 @@ import { useTranslator } from '../Localization/translator';
 import { beginFullscreenTransitionLoading } from '../Services/fullscreenTransitionLoading';
 import { clearTeamScopedState } from '../Services/teamScopedState';
 import type { AtlasPageProps } from '../Types/inertia';
-import type { ShellSubnavigationItem } from '../Types/navigation';
+import type { ShellMode, ShellSubnavigationItem } from '../Types/navigation';
+import { DEFAULT_AVATAR_COLOR, readableAvatarTextColor } from '../Utils/avatar';
 import { formatTimestamp } from '../Utils/formatters';
 
 const props = withDefaults(
     defineProps<{
         title: string;
         titleIcon?: Component;
-        mode?: 'app' | 'admin';
+        mode?: ShellMode;
         showLocaleSwitcher?: boolean;
         uiLocale?: string;
         subnavigation?: ShellSubnavigationItem[];
@@ -91,18 +96,30 @@ const closeUserMenu = (): void => {
     userMenuOpen.value = false;
 };
 
-const notificationHref = (deepLinkUrl: string | null): string => deepLinkUrl ?? '/notifications';
+const notificationHref = (deepLinkUrl: string | null): string => deepLinkUrl ?? '/user/notifications';
 
 const isNativeNotificationHref = (deepLinkUrl: string | null): boolean => notificationHref(deepLinkUrl).startsWith('/exports/');
 
 const breadcrumbs = computed(() => page.props.navigation.breadcrumbs);
 const isAdminMode = computed(() => props.mode === 'admin');
 const canEnterAdmin = computed(() => page.props.auth.availableAdminRoutes.includes('admin.system-status'));
+const canEnterUserPanel = computed(() => page.props.auth.availableApplicationRoutes.includes('users.profile'));
+const canEnterManagerPanel = computed(() => page.props.auth.availableApplicationRoutes.includes('time-tracking.panels.manager'));
+const canStartBreak = computed(() => page.props.auth.availableApplicationRoutes.includes('users.work-time.break.start'));
+const canStartOtherWork = computed(() => page.props.auth.availableApplicationRoutes.includes('users.work-time.other-work.create'));
 const activeTeamPublicId = computed(() => page.props.auth.teams.active?.publicId ?? '');
 const availableTeamOptions = computed(() => page.props.auth.teams.available.map((team) => ({ value: team.publicId, label: team.name })));
 const latestNotifications = computed(() => page.props.notifications.latest);
 const unreadCountLabel = computed(() => t('notifications.unread_count').replace('{count}', String(page.props.notifications.unreadCount)));
 const avatarBadgeLabel = computed(() => String(Math.min(page.props.notifications.unreadCount, 99)));
+const userAvatarColor = computed(() => page.props.auth.user?.avatar.color ?? DEFAULT_AVATAR_COLOR);
+const userAvatarImageUrl = computed(() => page.props.auth.user?.avatar.imageUrl ?? null);
+const userAvatarTextColor = computed(() => readableAvatarTextColor(userAvatarColor.value));
+
+function startBreak(): void {
+    closeUserMenu();
+    router.post('/user/work-time/break/start', {}, { preserveScroll: true });
+}
 
 const handleOutsidePointerDown = (event: PointerEvent): void => {
     const target = event.target;
@@ -149,7 +166,7 @@ const switchTeam = (teamPublicId: string | number): void => {
 
 const markNotificationRead = (notificationPublicId: string): void => {
     router.post(
-        `/notifications/${notificationPublicId}/read`,
+        `/user/notifications/${notificationPublicId}/read`,
         {},
         {
             preserveScroll: true,
@@ -336,13 +353,20 @@ watch(
                     <button
                         ref="userMenuButton"
                         type="button"
-                        class="relative flex h-10 w-10 items-center justify-center rounded-full bg-zinc-950 text-sm font-semibold text-white shadow-sm ring-2 ring-white transition hover:bg-teal-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-500 dark:bg-zinc-100 dark:text-zinc-950 dark:ring-zinc-950 dark:hover:bg-teal-200"
+                        class="relative flex h-10 w-10 items-center justify-center overflow-hidden rounded-full text-sm font-semibold shadow-sm ring-2 ring-white transition hover:brightness-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-500 dark:ring-zinc-950"
+                        :style="{ backgroundColor: userAvatarColor, color: userAvatarTextColor }"
                         aria-haspopup="menu"
                         :aria-expanded="userMenuOpen"
                         :aria-label="t('user.menu')"
                         @click="toggleUserMenu"
                     >
-                        {{ userInitials }}
+                        <img
+                            v-if="userAvatarImageUrl"
+                            :src="userAvatarImageUrl"
+                            :alt="t('pages.user_panel.avatar.current')"
+                            class="h-full w-full object-cover"
+                        />
+                        <span v-else>{{ userInitials }}</span>
                         <span
                             v-if="page.props.notifications.unreadCount > 0"
                             class="absolute -right-1 -top-1 inline-flex min-w-5 items-center justify-center rounded-full bg-rose-600 px-1.5 text-[0.65rem] font-bold leading-5 text-white ring-2 ring-white dark:ring-zinc-950"
@@ -460,7 +484,7 @@ watch(
                                     {{ t('notifications.dropdown.empty') }}
                                 </p>
                                 <Link
-                                    href="/notifications"
+                                    href="/user/notifications"
                                     class="mt-2 flex h-8 items-center justify-center rounded-md text-sm font-medium text-teal-700 transition hover:bg-teal-50 focus-visible:outline focus-visible:outline-amber-500 dark:text-teal-300 dark:hover:bg-teal-950/40"
                                     role="menuitem"
                                     @click="closeUserMenu"
@@ -468,16 +492,63 @@ watch(
                                     {{ t('notifications.dropdown.open_all') }}
                                 </Link>
                             </div>
-                            <Link
-                                v-if="canEnterAdmin"
-                                href="/admin"
-                                class="mt-2 flex h-10 items-center gap-3 rounded-lg px-2 text-sm font-medium text-zinc-700 transition hover:bg-zinc-100 hover:text-zinc-950 dark:text-zinc-200 dark:hover:bg-zinc-800 dark:hover:text-zinc-50"
-                                role="menuitem"
-                                @click="closeUserMenu"
+                            <div v-if="canStartBreak || canStartOtherWork" class="border-b border-zinc-200 py-2 dark:border-zinc-800">
+                                <button
+                                    v-if="canStartBreak"
+                                    type="button"
+                                    class="flex h-10 w-full items-center gap-3 rounded-lg px-2 text-sm font-medium text-zinc-700 transition hover:bg-amber-50 hover:text-amber-800 focus-visible:outline focus-visible:outline-amber-500 dark:text-zinc-200 dark:hover:bg-amber-950/40 dark:hover:text-amber-200"
+                                    role="menuitem"
+                                    @click="startBreak"
+                                >
+                                    <IconPlayerPause aria-hidden="true" class="h-5 w-5" :stroke-width="1.8" />
+                                    {{ t('navigation.start_break') }}
+                                </button>
+                                <Link
+                                    v-if="canStartOtherWork"
+                                    href="/user/work-time/other-work/start"
+                                    class="flex h-10 items-center gap-3 rounded-lg px-2 text-sm font-medium text-zinc-700 transition hover:bg-sky-50 hover:text-sky-800 focus-visible:outline focus-visible:outline-amber-500 dark:text-zinc-200 dark:hover:bg-sky-950/40 dark:hover:text-sky-200"
+                                    role="menuitem"
+                                    @click="closeUserMenu"
+                                >
+                                    <IconBriefcase aria-hidden="true" class="h-5 w-5" :stroke-width="1.8" />
+                                    {{ t('navigation.start_other_work') }}
+                                </Link>
+                            </div>
+                            <div
+                                v-if="canEnterUserPanel || canEnterManagerPanel || canEnterAdmin"
+                                class="border-b border-zinc-200 py-2 dark:border-zinc-800"
                             >
-                                <IconShieldLock aria-hidden="true" class="h-5 w-5" :stroke-width="1.8" />
-                                {{ t('navigation.admin_panel') }}
-                            </Link>
+                                <Link
+                                    v-if="canEnterUserPanel"
+                                    href="/user"
+                                    class="flex h-10 items-center gap-3 rounded-lg px-2 text-sm font-medium text-zinc-700 transition hover:bg-zinc-100 hover:text-zinc-950 dark:text-zinc-200 dark:hover:bg-zinc-800 dark:hover:text-zinc-50"
+                                    role="menuitem"
+                                    @click="closeUserMenu"
+                                >
+                                    <IconUserCircle aria-hidden="true" class="h-5 w-5" :stroke-width="1.8" />
+                                    {{ t('navigation.user_panel') }}
+                                </Link>
+                                <Link
+                                    v-if="canEnterManagerPanel"
+                                    href="/manager"
+                                    class="flex h-10 items-center gap-3 rounded-lg px-2 text-sm font-medium text-zinc-700 transition hover:bg-zinc-100 hover:text-zinc-950 dark:text-zinc-200 dark:hover:bg-zinc-800 dark:hover:text-zinc-50"
+                                    role="menuitem"
+                                    @click="closeUserMenu"
+                                >
+                                    <IconUsersGroup aria-hidden="true" class="h-5 w-5" :stroke-width="1.8" />
+                                    {{ t('navigation.manager_panel') }}
+                                </Link>
+                                <Link
+                                    v-if="canEnterAdmin"
+                                    href="/admin"
+                                    class="flex h-10 items-center gap-3 rounded-lg px-2 text-sm font-medium text-zinc-700 transition hover:bg-zinc-100 hover:text-zinc-950 dark:text-zinc-200 dark:hover:bg-zinc-800 dark:hover:text-zinc-50"
+                                    role="menuitem"
+                                    @click="closeUserMenu"
+                                >
+                                    <IconShieldLock aria-hidden="true" class="h-5 w-5" :stroke-width="1.8" />
+                                    {{ t('navigation.admin_panel') }}
+                                </Link>
+                            </div>
                             <button
                                 type="button"
                                 class="flex h-10 w-full items-center gap-3 rounded-lg px-2 text-sm font-medium text-zinc-700 transition hover:bg-zinc-100 hover:text-zinc-950 dark:text-zinc-200 dark:hover:bg-zinc-800 dark:hover:text-zinc-50"

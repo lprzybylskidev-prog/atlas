@@ -9,7 +9,7 @@ import FilterPanel from '../../../Components/FilterPanel.vue';
 import FormSelect, { type FormSelectOption } from '../../../Components/Form/FormSelect.vue';
 import PageStack from '../../../Components/PageStack.vue';
 import { applyTableFilters, clearTableFilters } from '../../../Composables/useTableFilterControls';
-import AdminLayout from '../../../Layouts/AdminLayout.vue';
+import AppLayout from '../../../Layouts/AppLayout.vue';
 import { useTranslator } from '../../../Localization/translator';
 import type { DataTableAction, DataTableColumn, DataTableMeta } from '../../../Types/data-table';
 
@@ -119,7 +119,7 @@ function clearFilters(): void {
 
 <template>
     <Head :title="t('pages.admin.managers.head_title')" />
-    <AdminLayout :title="t('pages.admin.managers.title')" :title-icon="IconSitemap">
+    <AppLayout mode="admin" :title="t('pages.admin.managers.title')" :title-icon="IconSitemap">
         <PageStack>
             <div class="flex justify-end">
                 <ActionLink :href="createHref" :icon="IconUserPlus" tone="primary">
@@ -167,5 +167,5 @@ function clearFilters(): void {
                 :empty-label="t('pages.admin.managers.empty.index')"
             />
         </PageStack>
-    </AdminLayout>
+    </AppLayout>
 </template>
