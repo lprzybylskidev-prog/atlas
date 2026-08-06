@@ -75,8 +75,17 @@ async function confirmAdminPassword(page: Page): Promise<void> {
     await expect(page).toHaveURL('/admin');
 }
 
+async function dismissToasts(page: Page): Promise<void> {
+    const closeButtons = page.getByRole('button', { name: /Zamknij komunikat|Close message/ });
+
+    while ((await closeButtons.count()) > 0) {
+        await closeButtons.first().click();
+    }
+}
+
 async function expectShellScreenshot(page: Page, name: string): Promise<void> {
     await waitForFullscreenTransitionIdle(page);
+    await dismissToasts(page);
     await expect(page).toHaveScreenshot(name, { fullPage: true, maxDiffPixels: 500 });
 }
 

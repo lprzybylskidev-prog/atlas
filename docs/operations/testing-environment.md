@@ -53,6 +53,14 @@ The committed PHPUnit contract lives in `phpunit.xml`. The repository intentiona
 
 Playwright e2e environment values live in `playwright.config.ts`. The Playwright web server command prepares `atlas_e2e`, clears Laravel config, runs `migrate:fresh --force`, clears cache-backed state, seeds the deterministic e2e fixture set, and starts isolated local servers. The Laravel e2e server uses PHP's built-in server with Laravel's router file so the configured e2e environment is inherited by the request process. Playwright must not depend on an already-running development Laravel server or Vite server. The e2e-only auth login rate-limit override exists because full browser suites intentionally perform many successful login workflows; production and feature-test rate-limit contracts must stay covered without weakening production configuration.
 
+The VS Code Dev Container image must include browser binaries matching the repository Playwright package version. If a current container reports a missing browser executable, repair it without rebuilding the active workspace container:
+
+```text
+pnpm exec playwright install chromium firefox webkit
+```
+
+Use `pnpm exec playwright install firefox` for a Firefox-only repair.
+
 `tools/testing/ensure-test-databases.sh` creates the local PostgreSQL databases required by PHPUnit and Playwright. Public Composer and pnpm commands call this setup where they need stateful test databases.
 
 For PHPUnit lanes, the same preparation script drops known Atlas-owned PostgreSQL schemas before migrations run. This keeps schema-qualified module tables isolated even when a previous interrupted test run left a non-`public` schema behind.

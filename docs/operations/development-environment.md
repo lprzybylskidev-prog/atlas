@@ -107,6 +107,20 @@ HTTP traffic goes through the development `nginx` service and the separate `php-
 
 The `php-fpm`, `scheduler`, and `worker` runtime services use the production PHP image during local Compose development. That image includes Node.js and system Chromium so web readiness and queued PDF export execution validate the same PDF runtime chain that production uses. The separate VS Code `app` Dev Container still includes the broader Playwright browser set for E2E development.
 
+The Dev Container image installs Playwright browsers for the Playwright version pinned by the repository. If a running Dev Container is missing a browser binary or the Playwright package version changes after dependency updates, repair the current container without rebuilding it by running:
+
+```text
+pnpm exec playwright install chromium firefox webkit
+```
+
+For a single missing Firefox binary, the narrower repair command is:
+
+```text
+pnpm exec playwright install firefox
+```
+
+When the pinned Playwright version changes in `package.json`, update the `PLAYWRIGHT_VERSION` build argument in `docker/dev/app/Dockerfile` in the same change so fresh Dev Containers include the matching browser revisions.
+
 The `worker` service runs the local Redis queue listener for Atlas runtime queues:
 
 ```text

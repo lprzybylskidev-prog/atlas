@@ -6,6 +6,7 @@ ARG USERNAME=vscode
 ARG USER_UID=1000
 ARG USER_GID=1000
 ARG DOCKER_GID=998
+ARG PLAYWRIGHT_VERSION=1.61.1
 
 ENV APP_TIMEZONE=Europe/Warsaw \
     TZ=Europe/Warsaw \
@@ -65,7 +66,7 @@ RUN apt-get update \
     && pecl install redis \
     && docker-php-ext-enable redis \
     && npm install -g pnpm@latest \
-    && npx -y playwright@latest install --with-deps chromium firefox webkit \
+    && npx -y "playwright@${PLAYWRIGHT_VERSION}" install --with-deps chromium firefox webkit \
     && groupadd --gid "${USER_GID}" "${USERNAME}" \
     && if getent group docker >/dev/null; then groupmod --gid "${DOCKER_GID}" docker; elif getent group "${DOCKER_GID}" >/dev/null; then groupadd --non-unique --gid "${DOCKER_GID}" docker; else groupadd --gid "${DOCKER_GID}" docker; fi \
     && useradd --uid "${USER_UID}" --gid "${USER_GID}" --shell /bin/bash -m "${USERNAME}" \

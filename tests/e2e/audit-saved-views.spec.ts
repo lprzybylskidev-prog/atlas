@@ -75,6 +75,28 @@ async function chooseSelect(page: Page, label: string | RegExp, option: string |
     }
 }
 
+function readableOption(value: string): RegExp {
+    const readable = value
+        .split(/[-_\s.]+/u)
+        .filter(Boolean)
+        .map((part) => `${part.charAt(0).toUpperCase()}${part.slice(1)}`)
+        .join(' ');
+
+    return new RegExp(`${escapeRegExp(value)}|${escapeRegExp(readable)}`);
+}
+
+function moduleOption(value: string): RegExp {
+    if (value === 'identity') {
+        return /Tożsamość|Identity/;
+    }
+
+    return readableOption(value);
+}
+
+function escapeRegExp(value: string): string {
+    return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 async function dismissToasts(page: Page): Promise<void> {
     const closeButtons = page.getByRole('button', { name: /Zamknij komunikat|Close message/ });
 
@@ -223,11 +245,11 @@ async function applyAuditFilters(
     page: Page,
     filters: { module: string; action: string; source?: string; security?: string },
 ): Promise<void> {
-    await chooseSelect(page, /Moduł|Module/, filters.module);
-    await chooseSelect(page, /Akcja|Action/, filters.action);
+    await chooseSelect(page, /Moduł|Module/, moduleOption(filters.module));
+    await chooseSelect(page, /Akcja|Action/, readableOption(filters.action));
 
     if (filters.source !== undefined) {
-        await chooseSelect(page, /Źródło|Source/, filters.source);
+        await chooseSelect(page, /Źródło|Source/, readableOption(filters.source));
     }
 
     if (filters.security !== undefined) {
@@ -256,15 +278,15 @@ async function expectAuditFilterState(
     expected: { module?: string; action?: string; source?: string; security?: string },
 ): Promise<void> {
     if (expected.module !== undefined) {
-        await expect(page.getByRole('combobox', { name: /Moduł|Module/ })).toContainText(expected.module);
+        await expect(page.getByRole('combobox', { name: /Moduł|Module/ })).toContainText(moduleOption(expected.module));
     }
 
     if (expected.action !== undefined) {
-        await expect(page.getByRole('combobox', { name: /Akcja|Action/ })).toContainText(expected.action);
+        await expect(page.getByRole('combobox', { name: /Akcja|Action/ })).toContainText(readableOption(expected.action));
     }
 
     if (expected.source !== undefined) {
-        await expect(page.getByRole('combobox', { name: /Źródło|Source/ })).toContainText(expected.source);
+        await expect(page.getByRole('combobox', { name: /Źródło|Source/ })).toContainText(readableOption(expected.source));
     }
 
     if (expected.security !== undefined) {
@@ -296,7 +318,7 @@ test.describe('Audit DataTable saved views', () => {
         });
         await expect(page).toHaveURL(/module=identity/);
         await expect(page).toHaveURL(/action=e2e\.audit\.alpha/);
-        await expect(page.getByRole('cell', { name: 'e2e.audit.alpha' })).toBeVisible();
+        await expect(page.getByRole('cell', { name: readableOption('e2e.audit.alpha') })).toBeVisible();
         await saveView(page, firstView);
 
         const clearReload = waitForAuditReload(page, (url) => !url.searchParams.has('module') || url.searchParams.get('module') === '');
@@ -313,7 +335,7 @@ test.describe('Audit DataTable saved views', () => {
             security: 'yes',
         });
         await expect(page).toHaveURL(/module=identity/);
-        await expect(page.getByRole('cell', { name: 'e2e.audit.alpha' })).toBeVisible();
+        await expect(page.getByRole('cell', { name: readableOption('e2e.audit.alpha') })).toBeVisible();
 
         await applyAuditFilters(page, {
             module: 'shared',
@@ -326,7 +348,7 @@ test.describe('Audit DataTable saved views', () => {
 
         await expect(page).toHaveURL(/module=shared/);
         await expect(page).toHaveURL(/action=e2e\.audit\.beta/);
-        await expect(page.getByRole('cell', { name: 'e2e.audit.beta' })).toBeVisible();
+        await expect(page.getByRole('cell', { name: readableOption('e2e.audit.beta') })).toBeVisible();
 
         await openViews(page);
         await fillSavedViewName(page, copiedView);
