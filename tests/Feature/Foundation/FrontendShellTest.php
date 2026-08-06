@@ -4,11 +4,12 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Foundation;
 
+use App\Modules\Core\Authorization\Application\Public\Persistence\AuthorizationDatabaseTable;
 use App\Modules\Core\Authorization\Application\Roles\InstallStarterRoles;
 use App\Modules\Core\Authorization\Application\Roles\StarterRoleName;
 use App\Modules\Core\Identity\Infrastructure\Persistence\User;
+use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
 use App\Modules\Core\Teams\Infrastructure\Persistence\Team;
-use App\Shared\Infrastructure\Database\DatabaseTable;
 use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -149,14 +150,14 @@ final class FrontendShellTest extends TestCase
 
         $role = Role::query()->where('name', $roleName)->firstOrFail();
 
-        DB::table(DatabaseTable::TEAM_USER_ASSIGNMENTS)->insert([
+        DB::table(TeamsDatabaseTable::TEAM_USER_ASSIGNMENTS)->insert([
             'team_id' => $team->id,
             'user_id' => $user->id,
             'created_at' => now(),
             'updated_at' => now(),
         ]);
 
-        DB::table(DatabaseTable::MODEL_HAS_ROLES)->insert([
+        DB::table(AuthorizationDatabaseTable::MODEL_HAS_ROLES)->insert([
             'role_id' => $role->id,
             'model_type' => config('auth.providers.users.model'),
             'model_id' => $user->id,

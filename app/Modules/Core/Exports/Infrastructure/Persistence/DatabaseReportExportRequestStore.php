@@ -8,8 +8,9 @@ use App\Modules\Core\Exports\Application\Contracts\ReportExportRequestStore;
 use App\Modules\Core\Exports\Application\DTOs\ReportExportRequestSnapshot;
 use App\Modules\Core\Exports\Application\Enums\ReportExportStatus;
 use App\Modules\Core\Exports\Application\Public\DTOs\ReportExportRequestRecord;
+use App\Modules\Core\Exports\Application\Public\Persistence\ExportsDatabaseTable;
 use App\Modules\Core\Files\Application\Public\DTOs\StoredFile;
-use App\Shared\Infrastructure\Database\DatabaseTable;
+use App\Modules\Optional\ManagedProcesses\Application\Public\Persistence\ManagedProcessesDatabaseTable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -21,7 +22,7 @@ final class DatabaseReportExportRequestStore implements ReportExportRequestStore
         $authorizationFingerprint = $snapshot->authorization->hash();
         $now = now('UTC');
 
-        $existing = DB::table(DatabaseTable::REPORT_EXPORT_REQUESTS)
+        $existing = DB::table(ExportsDatabaseTable::REPORT_EXPORT_REQUESTS)
             ->where('request_fingerprint', $requestFingerprint)
             ->first();
 
@@ -31,7 +32,7 @@ final class DatabaseReportExportRequestStore implements ReportExportRequestStore
 
         $publicId = (string) Str::ulid();
 
-        DB::table(DatabaseTable::REPORT_EXPORT_REQUESTS)->insert([
+        DB::table(ExportsDatabaseTable::REPORT_EXPORT_REQUESTS)->insert([
             'public_id' => $publicId,
             'report_key' => $snapshot->reportKey,
             'report_name' => $snapshot->reportName,
@@ -60,7 +61,7 @@ final class DatabaseReportExportRequestStore implements ReportExportRequestStore
             'updated_at' => $now,
         ]);
 
-        $row = DB::table(DatabaseTable::REPORT_EXPORT_REQUESTS)->where('public_id', $publicId)->first();
+        $row = DB::table(ExportsDatabaseTable::REPORT_EXPORT_REQUESTS)->where('public_id', $publicId)->first();
 
         if ($row === null) {
             throw new \RuntimeException('Report export request snapshot was not persisted.');
@@ -71,7 +72,7 @@ final class DatabaseReportExportRequestStore implements ReportExportRequestStore
 
     public function linkProcessRun(string $requestPublicId, string $processRunPublicId): void
     {
-        $processRunId = DB::table(DatabaseTable::MANAGED_PROCESS_RUNS)
+        $processRunId = DB::table(ManagedProcessesDatabaseTable::RUNS)
             ->where('public_id', $processRunPublicId)
             ->value('id');
 
@@ -79,7 +80,7 @@ final class DatabaseReportExportRequestStore implements ReportExportRequestStore
             throw new \RuntimeException('Report export generation process run was not found.');
         }
 
-        DB::table(DatabaseTable::REPORT_EXPORT_REQUESTS)
+        DB::table(ExportsDatabaseTable::REPORT_EXPORT_REQUESTS)
             ->where('public_id', $requestPublicId)
             ->whereIn('status', [ReportExportStatus::Requested->value, ReportExportStatus::Queued->value])
             ->update([
@@ -92,7 +93,7 @@ final class DatabaseReportExportRequestStore implements ReportExportRequestStore
 
     public function markGenerating(string $requestPublicId): void
     {
-        DB::table(DatabaseTable::REPORT_EXPORT_REQUESTS)
+        DB::table(ExportsDatabaseTable::REPORT_EXPORT_REQUESTS)
             ->where('public_id', $requestPublicId)
             ->whereIn('status', [ReportExportStatus::Requested->value, ReportExportStatus::Queued->value, ReportExportStatus::Generating->value])
             ->update([
@@ -105,7 +106,7 @@ final class DatabaseReportExportRequestStore implements ReportExportRequestStore
     public function markFailed(string $requestPublicId, string $safeErrorSummary): void
     {
         DB::transaction(function () use ($requestPublicId, $safeErrorSummary): void {
-            $requestId = DB::table(DatabaseTable::REPORT_EXPORT_REQUESTS)
+            $requestId = DB::table(ExportsDatabaseTable::REPORT_EXPORT_REQUESTS)
                 ->where('public_id', $requestPublicId)
                 ->value('id');
 
@@ -113,7 +114,7 @@ final class DatabaseReportExportRequestStore implements ReportExportRequestStore
                 throw new \RuntimeException('Report export request was not found.');
             }
 
-            DB::table(DatabaseTable::REPORT_EXPORT_ARTIFACTS)
+            DB::table(ExportsDatabaseTable::REPORT_EXPORT_ARTIFACTS)
                 ->where('export_request_id', (int) $requestId)
                 ->where('status', ReportExportStatus::Generating->value)
                 ->update([
@@ -122,7 +123,7 @@ final class DatabaseReportExportRequestStore implements ReportExportRequestStore
                     'updated_at' => now('UTC'),
                 ]);
 
-            DB::table(DatabaseTable::REPORT_EXPORT_REQUESTS)
+            DB::table(ExportsDatabaseTable::REPORT_EXPORT_REQUESTS)
                 ->where('public_id', $requestPublicId)
                 ->update([
                     'status' => ReportExportStatus::Failed->value,
@@ -140,13 +141,13 @@ final class DatabaseReportExportRequestStore implements ReportExportRequestStore
         }
 
         return DB::transaction(function () use ($requestPublicId, $file, $filename, $contentType): string {
-            $request = DB::table(DatabaseTable::REPORT_EXPORT_REQUESTS)->where('public_id', $requestPublicId)->lockForUpdate()->first();
+            $request = DB::table(ExportsDatabaseTable::REPORT_EXPORT_REQUESTS)->where('public_id', $requestPublicId)->lockForUpdate()->first();
 
             if ($request === null || ! is_numeric($request->id ?? null)) {
                 throw new \RuntimeException('Report export request was not found.');
             }
 
-            DB::table(DatabaseTable::REPORT_EXPORT_ARTIFACTS)
+            DB::table(ExportsDatabaseTable::REPORT_EXPORT_ARTIFACTS)
                 ->where('export_request_id', (int) $request->id)
                 ->where('status', ReportExportStatus::Generating->value)
                 ->update([
@@ -157,7 +158,7 @@ final class DatabaseReportExportRequestStore implements ReportExportRequestStore
 
             $artifactPublicId = (string) Str::ulid();
 
-            DB::table(DatabaseTable::REPORT_EXPORT_ARTIFACTS)->insert([
+            DB::table(ExportsDatabaseTable::REPORT_EXPORT_ARTIFACTS)->insert([
                 'public_id' => $artifactPublicId,
                 'export_request_id' => (int) $request->id,
                 'file_object_id' => $file->internalId,
@@ -175,7 +176,7 @@ final class DatabaseReportExportRequestStore implements ReportExportRequestStore
                 'updated_at' => now('UTC'),
             ]);
 
-            DB::table(DatabaseTable::REPORT_EXPORT_REQUESTS)->where('id', (int) $request->id)->update([
+            DB::table(ExportsDatabaseTable::REPORT_EXPORT_REQUESTS)->where('id', (int) $request->id)->update([
                 'status' => ReportExportStatus::Available->value,
                 'finished_at' => now('UTC'),
                 'failed_at' => null,
@@ -189,8 +190,8 @@ final class DatabaseReportExportRequestStore implements ReportExportRequestStore
 
     public function availableArtifactPublicId(string $requestPublicId): ?string
     {
-        $publicId = DB::table(DatabaseTable::REPORT_EXPORT_ARTIFACTS.' as artifacts')
-            ->join(DatabaseTable::REPORT_EXPORT_REQUESTS.' as requests', 'artifacts.export_request_id', '=', 'requests.id')
+        $publicId = DB::table(ExportsDatabaseTable::REPORT_EXPORT_ARTIFACTS.' as artifacts')
+            ->join(ExportsDatabaseTable::REPORT_EXPORT_REQUESTS.' as requests', 'artifacts.export_request_id', '=', 'requests.id')
             ->where('requests.public_id', $requestPublicId)
             ->where('requests.status', ReportExportStatus::Available->value)
             ->where('artifacts.status', ReportExportStatus::Available->value)

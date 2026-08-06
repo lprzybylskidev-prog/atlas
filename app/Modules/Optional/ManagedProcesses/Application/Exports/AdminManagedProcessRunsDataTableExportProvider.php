@@ -7,8 +7,12 @@ namespace App\Modules\Optional\ManagedProcesses\Application\Exports;
 use App\Modules\Core\Exports\Application\Public\AbstractAdminDataTableExportProvider;
 use App\Modules\Core\Exports\Application\Public\DTOs\ReportExportGenerationRequest;
 use App\Modules\Core\Exports\Application\Public\Permissions\ReportsPermissionCatalog;
+use App\Modules\Core\Files\Application\Public\Persistence\FilesDatabaseTable;
+use App\Modules\Core\Identity\Application\Public\Persistence\IdentityDatabaseTable;
+use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
+use App\Modules\Optional\Imports\Application\Public\Persistence\ImportsDatabaseTable;
+use App\Modules\Optional\ManagedProcesses\Application\Public\Persistence\ManagedProcessesDatabaseTable;
 use App\Shared\Application\Tables\AdminTableDefinitions;
-use App\Shared\Infrastructure\Database\DatabaseTable;
 use Illuminate\Support\Facades\DB;
 
 final readonly class AdminManagedProcessRunsDataTableExportProvider extends AbstractAdminDataTableExportProvider
@@ -70,13 +74,13 @@ final readonly class AdminManagedProcessRunsDataTableExportProvider extends Abst
 
     public function rows(ReportExportGenerationRequest $request): iterable
     {
-        $rows = array_values(DB::table(DatabaseTable::MANAGED_PROCESS_RUNS.' as process_runs')
-            ->leftJoin(DatabaseTable::USERS, 'process_runs.actor_user_id', '=', 'users.id')
-            ->leftJoin(DatabaseTable::TEAMS, 'process_runs.team_id', '=', 'teams.id')
-            ->leftJoin(DatabaseTable::IMPORT_EXECUTIONS, 'import_executions.process_run_id', '=', 'process_runs.id')
-            ->leftJoin(DatabaseTable::FILE_OBJECTS, 'import_executions.file_object_id', '=', 'file_objects.id')
-            ->leftJoin(DatabaseTable::MANAGED_PROCESS_RUN_ACKNOWLEDGEMENTS.' as acknowledgements', 'acknowledgements.process_run_id', '=', 'process_runs.id')
-            ->leftJoin(DatabaseTable::USERS.' as acknowledged_users', 'acknowledged_users.id', '=', 'acknowledgements.acknowledged_by_user_id')
+        $rows = array_values(DB::table(ManagedProcessesDatabaseTable::RUNS.' as process_runs')
+            ->leftJoin(IdentityDatabaseTable::USERS, 'process_runs.actor_user_id', '=', 'users.id')
+            ->leftJoin(TeamsDatabaseTable::TEAMS, 'process_runs.team_id', '=', 'teams.id')
+            ->leftJoin(ImportsDatabaseTable::EXECUTIONS, 'import_executions.process_run_id', '=', 'process_runs.id')
+            ->leftJoin(FilesDatabaseTable::FILE_OBJECTS, 'import_executions.file_object_id', '=', 'file_objects.id')
+            ->leftJoin(ManagedProcessesDatabaseTable::RUN_ACKNOWLEDGEMENTS.' as acknowledgements', 'acknowledgements.process_run_id', '=', 'process_runs.id')
+            ->leftJoin(IdentityDatabaseTable::USERS.' as acknowledged_users', 'acknowledged_users.id', '=', 'acknowledgements.acknowledged_by_user_id')
             ->orderByDesc('process_runs.created_at')
             ->limit(80)
             ->get([

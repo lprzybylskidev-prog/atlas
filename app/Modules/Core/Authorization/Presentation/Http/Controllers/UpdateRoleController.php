@@ -8,7 +8,7 @@ use App\Modules\Core\Audit\Application\Public\Contracts\AuditRecorder;
 use App\Modules\Core\Audit\Application\Public\DTOs\AuditEvent;
 use App\Modules\Core\Audit\Application\Public\Enums\SecurityAuditCategory;
 use App\Modules\Core\Authorization\Application\Permissions\PermissionCatalogRegistry;
-use App\Shared\Infrastructure\Database\DatabaseTable;
+use App\Modules\Core\Authorization\Application\Public\Persistence\AuthorizationDatabaseTable;
 use App\Shared\Presentation\Support\FlashMessage;
 use Closure;
 use Illuminate\Http\RedirectResponse;
@@ -25,7 +25,7 @@ final readonly class UpdateRoleController
 
     public function __invoke(Request $request, string $role): RedirectResponse
     {
-        $record = DB::table(DatabaseTable::ROLES)
+        $record = DB::table(AuthorizationDatabaseTable::ROLES)
             ->where('name', $role)
             ->where('guard_name', 'web')
             ->first(['id', 'public_id', 'name', 'display_name']);
@@ -58,7 +58,7 @@ final readonly class UpdateRoleController
         $permissionNames = $this->stringList($validated, 'permissions');
 
         DB::transaction(function () use ($roleId, $name, $displayName, $permissionNames): void {
-            DB::table(DatabaseTable::ROLES)->where('id', $roleId)->update([
+            DB::table(AuthorizationDatabaseTable::ROLES)->where('id', $roleId)->update([
                 'name' => $name,
                 'display_name' => $displayName,
                 'updated_at' => now(),
@@ -91,9 +91,9 @@ final readonly class UpdateRoleController
      */
     private function syncRolePermissions(int $roleId, array $permissionNames): void
     {
-        DB::table(DatabaseTable::ROLE_HAS_PERMISSIONS)->where('role_id', $roleId)->delete();
+        DB::table(AuthorizationDatabaseTable::ROLE_HAS_PERMISSIONS)->where('role_id', $roleId)->delete();
 
-        $permissionIds = DB::table(DatabaseTable::PERMISSIONS)
+        $permissionIds = DB::table(AuthorizationDatabaseTable::PERMISSIONS)
             ->whereIn('name', $permissionNames)
             ->where('guard_name', 'web')
             ->pluck('id')
@@ -103,7 +103,7 @@ final readonly class UpdateRoleController
             ->all();
 
         foreach ($permissionIds as $permissionId) {
-            DB::table(DatabaseTable::ROLE_HAS_PERMISSIONS)->insert([
+            DB::table(AuthorizationDatabaseTable::ROLE_HAS_PERMISSIONS)->insert([
                 'role_id' => $roleId,
                 'permission_id' => $permissionId,
             ]);
@@ -132,7 +132,7 @@ final readonly class UpdateRoleController
                 return;
             }
 
-            $exists = DB::table(DatabaseTable::ROLES)
+            $exists = DB::table(AuthorizationDatabaseTable::ROLES)
                 ->where('name', $value)
                 ->where('guard_name', 'web')
                 ->whereNull(config()->string('permission.column_names.team_foreign_key'))
@@ -152,8 +152,8 @@ final readonly class UpdateRoleController
      */
     private function permissionNames(int $roleId): array
     {
-        return array_values(DB::table(DatabaseTable::ROLE_HAS_PERMISSIONS)
-            ->join(DatabaseTable::PERMISSIONS, 'role_has_permissions.permission_id', '=', 'permissions.id')
+        return array_values(DB::table(AuthorizationDatabaseTable::ROLE_HAS_PERMISSIONS)
+            ->join(AuthorizationDatabaseTable::PERMISSIONS, 'role_has_permissions.permission_id', '=', 'permissions.id')
             ->where('role_has_permissions.role_id', $roleId)
             ->orderBy('permissions.name')
             ->pluck('permissions.name')

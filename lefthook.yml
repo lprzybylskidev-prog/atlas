@@ -17,7 +17,5 @@ pre-push:
           run: composer analyse
         - name: phpunit
           run: composer test
-        - name: vitest
-          run: pnpm test
-        - name: frontend-build
-          run: pnpm build
+        - name: frontend-check
+          run: pnpm check

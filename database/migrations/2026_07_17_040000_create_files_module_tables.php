@@ -2,8 +2,8 @@
 
 declare(strict_types=1);
 
+use App\Modules\Core\Files\Application\Public\Persistence\FilesDatabaseTable;
 use App\Shared\Infrastructure\Database\DatabaseSchema;
-use App\Shared\Infrastructure\Database\DatabaseTable;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -14,7 +14,7 @@ return new class extends Migration
     {
         DatabaseSchema::ensure(DatabaseSchema::CORE_FILES);
 
-        Schema::create(DatabaseTable::FILE_OBJECTS, function (Blueprint $table): void {
+        Schema::create(FilesDatabaseTable::FILE_OBJECTS, function (Blueprint $table): void {
             $table->id();
             $table->ulid('public_id')->unique();
             $table->string('disk');
@@ -39,8 +39,8 @@ return new class extends Migration
             $table->jsonb('metadata')->nullable();
             $table->timestampsTz();
 
-            $table->foreign('canonical_file_object_id')->references('id')->on(DatabaseTable::FILE_OBJECTS)->restrictOnDelete();
-            $table->foreign('retention_source_file_object_id')->references('id')->on(DatabaseTable::FILE_OBJECTS)->restrictOnDelete();
+            $table->foreign('canonical_file_object_id')->references('id')->on(FilesDatabaseTable::FILE_OBJECTS)->restrictOnDelete();
+            $table->foreign('retention_source_file_object_id')->references('id')->on(FilesDatabaseTable::FILE_OBJECTS)->restrictOnDelete();
             $table->index(['disk', 'path']);
             $table->index(['scan_state', 'created_at']);
             $table->index(['checksum_sha256', 'scan_state']);
@@ -49,9 +49,9 @@ return new class extends Migration
             $table->index(['deleted_at', 'created_at']);
         });
 
-        Schema::create(DatabaseTable::FILE_SCAN_EVIDENCE, function (Blueprint $table): void {
+        Schema::create(FilesDatabaseTable::FILE_SCAN_EVIDENCE, function (Blueprint $table): void {
             $table->id();
-            $table->foreignId('file_object_id')->constrained(DatabaseTable::FILE_OBJECTS)->restrictOnDelete();
+            $table->foreignId('file_object_id')->constrained(FilesDatabaseTable::FILE_OBJECTS)->restrictOnDelete();
             $table->string('provider');
             $table->string('engine_version')->nullable();
             $table->string('signature_version')->nullable();
@@ -70,7 +70,7 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::dropIfExists(DatabaseTable::FILE_SCAN_EVIDENCE);
-        Schema::dropIfExists(DatabaseTable::FILE_OBJECTS);
+        Schema::dropIfExists(FilesDatabaseTable::FILE_SCAN_EVIDENCE);
+        Schema::dropIfExists(FilesDatabaseTable::FILE_OBJECTS);
     }
 };

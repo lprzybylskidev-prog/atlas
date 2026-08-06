@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Optional\Search\Presentation\Http\Controllers;
 
 use App\Modules\Optional\ManagedProcesses\Application\Public\Contracts\ManagedProcessRunner;
+use App\Modules\Optional\ManagedProcesses\Application\Public\Persistence\ManagedProcessesDatabaseTable;
 use App\Modules\Optional\Search\Application\Contracts\SearchIndexRegistry;
 use App\Modules\Optional\Search\Application\Public\DTOs\SearchIndexDescriptor;
 use App\Modules\Optional\Search\Application\SearchRebuildProcess;
@@ -15,7 +16,6 @@ use App\Shared\Application\Tables\TableRequestContext;
 use App\Shared\Application\Tables\TableResult;
 use App\Shared\Application\Tables\TableSavedViewService;
 use App\Shared\Application\Tables\TableState;
-use App\Shared\Infrastructure\Database\DatabaseTable;
 use App\Shared\Presentation\Support\AdminDataTableExportMeta;
 use App\Shared\Presentation\Support\FlashMessage;
 use Illuminate\Http\RedirectResponse;
@@ -212,7 +212,7 @@ final readonly class AdminSearchController
      */
     private function recentRebuildRuns(): array
     {
-        return array_values(DB::table(DatabaseTable::MANAGED_PROCESS_RUNS)
+        return array_values(DB::table(ManagedProcessesDatabaseTable::RUNS)
             ->where('process_key', SearchRebuildProcess::KEY)
             ->orderByDesc('created_at')
             ->limit(8)

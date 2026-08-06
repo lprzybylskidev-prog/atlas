@@ -9,8 +9,8 @@ use App\Modules\Core\Exports\Application\Public\DTOs\ReportExportGenerationReque
 use App\Modules\Core\Exports\Application\Public\Permissions\ReportsPermissionCatalog;
 use App\Modules\Optional\Integrations\Application\Contracts\IntegrationRegistry;
 use App\Modules\Optional\Integrations\Application\DTOs\IntegrationDefinition;
+use App\Modules\Optional\Integrations\Application\Public\Persistence\IntegrationsDatabaseTable;
 use App\Shared\Application\Tables\AdminTableDefinitions;
-use App\Shared\Infrastructure\Database\DatabaseTable;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 
@@ -74,8 +74,8 @@ final readonly class AdminIntegrationAdaptersDataTableExportProvider extends Abs
      */
     private function integrationRow(IntegrationDefinition $definition): array
     {
-        $connection = DB::table(DatabaseTable::INTEGRATION_CONNECTIONS)->where('integration_key', $definition->key)->first();
-        $circuit = DB::table(DatabaseTable::INTEGRATION_CIRCUIT_BREAKERS)->where('integration_key', $definition->key)->orderByDesc('updated_at')->first();
+        $connection = DB::table(IntegrationsDatabaseTable::CONNECTIONS)->where('integration_key', $definition->key)->first();
+        $circuit = DB::table(IntegrationsDatabaseTable::CIRCUIT_BREAKERS)->where('integration_key', $definition->key)->orderByDesc('updated_at')->first();
 
         return [
             'key' => $definition->key,

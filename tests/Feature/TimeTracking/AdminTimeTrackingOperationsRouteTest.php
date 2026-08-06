@@ -4,9 +4,13 @@ declare(strict_types=1);
 
 namespace Tests\Feature\TimeTracking;
 
+use App\Modules\Core\Audit\Application\Public\Persistence\AuditDatabaseTable;
+use App\Modules\Core\Authorization\Application\Public\Persistence\AuthorizationDatabaseTable;
 use App\Modules\Core\Authorization\Application\Roles\InstallStarterRoles;
 use App\Modules\Core\Identity\Application\Admin\AdministrativeSessionManager;
 use App\Modules\Core\Identity\Infrastructure\Persistence\User;
+use App\Modules\Core\Notifications\Application\Public\Persistence\NotificationsDatabaseTable;
+use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
 use App\Modules\Core\Teams\Infrastructure\Persistence\Team;
 use App\Modules\Optional\TimeTracking\Application\Contracts\BreakPolicyStore;
 use App\Modules\Optional\TimeTracking\Application\Contracts\UserTeamTrackingSettings;
@@ -14,11 +18,11 @@ use App\Modules\Optional\TimeTracking\Application\CorrectionRequestCoordinator;
 use App\Modules\Optional\TimeTracking\Application\DTOs\ExactTimeChange;
 use App\Modules\Optional\TimeTracking\Application\Enums\CorrectionSourceType;
 use App\Modules\Optional\TimeTracking\Application\Permissions\TimeTrackingPermissionCatalog;
+use App\Modules\Optional\TimeTracking\Application\Public\Persistence\TimeTrackingDatabaseTable;
 use App\Shared\Application\Modules\Activation\Contracts\ModuleActivationService;
 use App\Shared\Application\Modules\Activation\ModuleActivationChange;
 use App\Shared\Application\Modules\Activation\ModuleActivationScope;
 use App\Shared\Application\Modules\Activation\ModuleActivationSource;
-use App\Shared\Infrastructure\Database\DatabaseTable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Queue;
@@ -45,7 +49,7 @@ final class AdminTimeTrackingOperationsRouteTest extends TestCase
         $this->assignDirectPermissionInTeam($admin, $team, TimeTrackingPermissionCatalog::ADMIN_OTHER_WORK);
         $this->assignDirectPermissionInTeam($admin, $team, TimeTrackingPermissionCatalog::ADMIN_OTHER_WORK_SHOW);
         $workSessionPublicId = (string) Str::ulid();
-        $workSessionId = DB::table(DatabaseTable::TIME_TRACKING_WORK_SESSIONS)->insertGetId([
+        $workSessionId = DB::table(TimeTrackingDatabaseTable::WORK_SESSIONS)->insertGetId([
             'public_id' => $workSessionPublicId,
             'user_id' => $target->id,
             'team_id' => $team->id,
@@ -57,7 +61,7 @@ final class AdminTimeTrackingOperationsRouteTest extends TestCase
             'created_at' => now(),
             'updated_at' => now(),
         ]);
-        DB::table(DatabaseTable::TIME_TRACKING_MODULE_CONTEXT_SEGMENTS)->insert([
+        DB::table(TimeTrackingDatabaseTable::MODULE_CONTEXT_SEGMENTS)->insert([
             'public_id' => (string) Str::ulid(),
             'work_session_id' => $workSessionId,
             'module_key' => 'system',
@@ -69,7 +73,7 @@ final class AdminTimeTrackingOperationsRouteTest extends TestCase
             'updated_at' => now(),
         ]);
         $otherWorkPublicId = (string) Str::ulid();
-        DB::table(DatabaseTable::TIME_TRACKING_OTHER_WORK)->insert([
+        DB::table(TimeTrackingDatabaseTable::OTHER_WORK)->insert([
             'public_id' => $otherWorkPublicId,
             'work_session_id' => $workSessionId,
             'user_id' => $target->id,
@@ -86,7 +90,7 @@ final class AdminTimeTrackingOperationsRouteTest extends TestCase
             'created_at' => now(),
             'updated_at' => now(),
         ]);
-        DB::table(DatabaseTable::TIME_TRACKING_WORK_SESSIONS)->insert([
+        DB::table(TimeTrackingDatabaseTable::WORK_SESSIONS)->insert([
             'public_id' => (string) Str::ulid(),
             'user_id' => $secondTarget->id,
             'team_id' => $team->id,
@@ -217,7 +221,7 @@ final class AdminTimeTrackingOperationsRouteTest extends TestCase
         $this->enableTracking($target, $team);
         $this->assignDirectPermissionInTeam($admin, $team, TimeTrackingPermissionCatalog::ADMIN_TERMINATE_SESSION);
         $sessionPublicId = (string) Str::ulid();
-        DB::table(DatabaseTable::TIME_TRACKING_WORK_SESSIONS)->insert([
+        DB::table(TimeTrackingDatabaseTable::WORK_SESSIONS)->insert([
             'public_id' => $sessionPublicId,
             'user_id' => $target->id,
             'team_id' => $team->id,
@@ -237,18 +241,18 @@ final class AdminTimeTrackingOperationsRouteTest extends TestCase
             ])
             ->assertRedirect();
 
-        $this->assertDatabaseHas(DatabaseTable::TIME_TRACKING_WORK_SESSIONS, [
+        $this->assertDatabaseHas(TimeTrackingDatabaseTable::WORK_SESSIONS, [
             'public_id' => $sessionPublicId,
             'closure_reason' => 'administrative_termination',
         ]);
-        $this->assertDatabaseHas(DatabaseTable::AUDIT_EVENTS, [
+        $this->assertDatabaseHas(AuditDatabaseTable::AUDIT_EVENTS, [
             'module' => 'time_tracking',
             'action' => 'time_tracking.admin_work_session_terminated',
             'actor_public_id' => $admin->public_id,
             'target_public_id' => $target->public_id,
             'team_public_id' => $team->public_id,
         ]);
-        $this->assertDatabaseHas(DatabaseTable::NOTIFICATIONS, [
+        $this->assertDatabaseHas(NotificationsDatabaseTable::NOTIFICATIONS, [
             'type' => 'time_tracking.admin_action',
             'title' => 'notifications.time_tracking.admin_action.work_session_terminated.title',
         ]);
@@ -265,7 +269,7 @@ final class AdminTimeTrackingOperationsRouteTest extends TestCase
         $this->assignDirectPermissionInTeam($admin, $team, TimeTrackingPermissionCatalog::ADMIN_OTHER_WORK_FORCE_CLOSE);
         $workSessionId = $this->insertOpenWorkSession($target, $team);
         $breakPublicId = (string) Str::ulid();
-        DB::table(DatabaseTable::TIME_TRACKING_BREAKS)->insert([
+        DB::table(TimeTrackingDatabaseTable::BREAKS)->insert([
             'public_id' => $breakPublicId,
             'work_session_id' => $workSessionId,
             'user_id' => $target->id,
@@ -286,14 +290,14 @@ final class AdminTimeTrackingOperationsRouteTest extends TestCase
             ])
             ->assertRedirect();
 
-        $this->assertDatabaseHas(DatabaseTable::TIME_TRACKING_BREAKS, [
+        $this->assertDatabaseHas(TimeTrackingDatabaseTable::BREAKS, [
             'public_id' => $breakPublicId,
             'closure_reason' => 'forced',
             'requires_manager_review' => true,
         ]);
 
         $otherWorkPublicId = (string) Str::ulid();
-        DB::table(DatabaseTable::TIME_TRACKING_OTHER_WORK)->insert([
+        DB::table(TimeTrackingDatabaseTable::OTHER_WORK)->insert([
             'public_id' => $otherWorkPublicId,
             'work_session_id' => $workSessionId,
             'user_id' => $target->id,
@@ -318,7 +322,7 @@ final class AdminTimeTrackingOperationsRouteTest extends TestCase
             ])
             ->assertRedirect();
 
-        $this->assertDatabaseHas(DatabaseTable::TIME_TRACKING_OTHER_WORK, [
+        $this->assertDatabaseHas(TimeTrackingDatabaseTable::OTHER_WORK, [
             'public_id' => $otherWorkPublicId,
             'closure_reason' => 'forced',
             'approval_status' => 'under_review',
@@ -338,7 +342,7 @@ final class AdminTimeTrackingOperationsRouteTest extends TestCase
         $this->assignDirectPermissionInTeam($admin, $team, TimeTrackingPermissionCatalog::ADMIN_BREAK_SHOW);
         $this->assignDirectPermissionInTeam($admin, $team, TimeTrackingPermissionCatalog::ADMIN_BREAK_CONVERT_EXCESS);
         $this->app->make(BreakPolicyStore::class)->setTeamPolicy($team->id, 1800, 14400);
-        $workSessionId = DB::table(DatabaseTable::TIME_TRACKING_WORK_SESSIONS)->insertGetId([
+        $workSessionId = DB::table(TimeTrackingDatabaseTable::WORK_SESSIONS)->insertGetId([
             'public_id' => (string) Str::ulid(),
             'user_id' => $target->id,
             'team_id' => $team->id,
@@ -350,7 +354,7 @@ final class AdminTimeTrackingOperationsRouteTest extends TestCase
             'created_at' => now(),
             'updated_at' => now(),
         ]);
-        DB::table(DatabaseTable::TIME_TRACKING_BREAKS)->insert([
+        DB::table(TimeTrackingDatabaseTable::BREAKS)->insert([
             'public_id' => (string) Str::ulid(),
             'work_session_id' => $workSessionId,
             'user_id' => $target->id,
@@ -364,7 +368,7 @@ final class AdminTimeTrackingOperationsRouteTest extends TestCase
             'updated_at' => now(),
         ]);
         $breakPublicId = (string) Str::ulid();
-        $breakId = DB::table(DatabaseTable::TIME_TRACKING_BREAKS)->insertGetId([
+        $breakId = DB::table(TimeTrackingDatabaseTable::BREAKS)->insertGetId([
             'public_id' => $breakPublicId,
             'work_session_id' => $workSessionId,
             'user_id' => $target->id,
@@ -407,14 +411,14 @@ final class AdminTimeTrackingOperationsRouteTest extends TestCase
             ->assertRedirect()
             ->assertSessionHas('flash.messages');
 
-        $correctionId = DB::table(DatabaseTable::TIME_TRACKING_CORRECTION_REQUESTS)
+        $correctionId = DB::table(TimeTrackingDatabaseTable::CORRECTION_REQUESTS)
             ->where('source_type', 'break')
             ->where('source_id', $breakId)
             ->value('id');
 
         self::assertIsNumeric($correctionId);
 
-        $this->assertDatabaseHas(DatabaseTable::TIME_TRACKING_CORRECTION_REQUESTS, [
+        $this->assertDatabaseHas(TimeTrackingDatabaseTable::CORRECTION_REQUESTS, [
             'id' => $correctionId,
             'user_id' => $target->id,
             'team_id' => $team->id,
@@ -424,17 +428,17 @@ final class AdminTimeTrackingOperationsRouteTest extends TestCase
             'status' => 'corrected',
             'decided_by_user_id' => $admin->id,
         ]);
-        $this->assertDatabaseHas(DatabaseTable::TIME_TRACKING_CORRECTION_PROPOSALS, [
+        $this->assertDatabaseHas(TimeTrackingDatabaseTable::CORRECTION_PROPOSALS, [
             'correction_request_id' => $correctionId,
             'original_exact_seconds' => 1200,
             'final_exact_seconds' => 600,
         ]);
-        $this->assertDatabaseHas(DatabaseTable::TIME_TRACKING_CORRECTION_HISTORY, [
+        $this->assertDatabaseHas(TimeTrackingDatabaseTable::CORRECTION_HISTORY, [
             'correction_request_id' => $correctionId,
             'actor_user_id' => $admin->id,
             'action' => 'corrected',
         ]);
-        $this->assertDatabaseHas(DatabaseTable::AUDIT_EVENTS, [
+        $this->assertDatabaseHas(AuditDatabaseTable::AUDIT_EVENTS, [
             'module' => 'time_tracking',
             'action' => 'time_tracking.admin_break_excess_converted',
             'actor_public_id' => $admin->public_id,
@@ -475,7 +479,7 @@ final class AdminTimeTrackingOperationsRouteTest extends TestCase
         $workSessionId = $this->insertOpenWorkSession($target, $team);
         $otherWorkPublicId = (string) Str::ulid();
 
-        DB::table(DatabaseTable::TIME_TRACKING_OTHER_WORK)->insert([
+        DB::table(TimeTrackingDatabaseTable::OTHER_WORK)->insert([
             'public_id' => $otherWorkPublicId,
             'work_session_id' => $workSessionId,
             'user_id' => $target->id,
@@ -511,19 +515,19 @@ final class AdminTimeTrackingOperationsRouteTest extends TestCase
             ])
             ->assertRedirect();
 
-        $this->assertDatabaseHas(DatabaseTable::TIME_TRACKING_OTHER_WORK, [
+        $this->assertDatabaseHas(TimeTrackingDatabaseTable::OTHER_WORK, [
             'public_id' => $otherWorkPublicId,
             'approval_status' => 'approved',
             'requires_manager_review' => false,
         ]);
-        $this->assertDatabaseHas(DatabaseTable::AUDIT_EVENTS, [
+        $this->assertDatabaseHas(AuditDatabaseTable::AUDIT_EVENTS, [
             'module' => 'time_tracking',
             'action' => 'time_tracking.other_work_approved',
             'actor_public_id' => $admin->public_id,
             'target_public_id' => $target->public_id,
             'team_public_id' => $team->public_id,
         ]);
-        $this->assertDatabaseHas(DatabaseTable::NOTIFICATIONS, [
+        $this->assertDatabaseHas(NotificationsDatabaseTable::NOTIFICATIONS, [
             'type' => 'time_tracking.admin_action',
             'title' => 'notifications.time_tracking.admin_action.other_work_decided.title',
         ]);
@@ -536,7 +540,7 @@ final class AdminTimeTrackingOperationsRouteTest extends TestCase
             ])
             ->assertSessionHasErrors('decision');
 
-        $this->assertDatabaseHas(DatabaseTable::TIME_TRACKING_OTHER_WORK, [
+        $this->assertDatabaseHas(TimeTrackingDatabaseTable::OTHER_WORK, [
             'public_id' => $otherWorkPublicId,
             'approval_status' => 'approved',
             'requires_manager_review' => false,
@@ -562,7 +566,7 @@ final class AdminTimeTrackingOperationsRouteTest extends TestCase
         $this->assignDirectPermissionInTeam($admin, $adminTeam, TimeTrackingPermissionCatalog::ADMIN_OTHER_WORK_SHOW);
         $this->assignDirectPermissionInTeam($admin, $adminTeam, TimeTrackingPermissionCatalog::ADMIN_CORRECTION_SHOW);
         $workSessionId = $this->insertOpenWorkSession($target, $team);
-        $workSessionPublicId = $this->stringValue(DB::table(DatabaseTable::TIME_TRACKING_WORK_SESSIONS)
+        $workSessionPublicId = $this->stringValue(DB::table(TimeTrackingDatabaseTable::WORK_SESSIONS)
             ->where('id', $workSessionId)
             ->value('public_id'));
         $breakPublicId = (string) Str::ulid();
@@ -575,7 +579,7 @@ final class AdminTimeTrackingOperationsRouteTest extends TestCase
             new \DateTimeImmutable('2026-08-01 11:00:00+00'),
         );
 
-        DB::table(DatabaseTable::TIME_TRACKING_BREAKS)->insert([
+        DB::table(TimeTrackingDatabaseTable::BREAKS)->insert([
             'public_id' => $breakPublicId,
             'work_session_id' => $workSessionId,
             'user_id' => $target->id,
@@ -589,7 +593,7 @@ final class AdminTimeTrackingOperationsRouteTest extends TestCase
             'updated_at' => now(),
         ]);
 
-        DB::table(DatabaseTable::TIME_TRACKING_OTHER_WORK)->insert([
+        DB::table(TimeTrackingDatabaseTable::OTHER_WORK)->insert([
             'public_id' => $otherWorkPublicId,
             'work_session_id' => $workSessionId,
             'user_id' => $target->id,
@@ -676,7 +680,7 @@ final class AdminTimeTrackingOperationsRouteTest extends TestCase
             ])
             ->assertRedirect();
 
-        $this->assertDatabaseHas(DatabaseTable::TIME_TRACKING_CORRECTION_REQUESTS, [
+        $this->assertDatabaseHas(TimeTrackingDatabaseTable::CORRECTION_REQUESTS, [
             'public_id' => $request->publicId,
             'status' => 'corrected',
             'decided_by_user_id' => $admin->id,
@@ -705,7 +709,7 @@ final class AdminTimeTrackingOperationsRouteTest extends TestCase
             ])
             ->assertRedirect();
 
-        $this->assertDatabaseHas(DatabaseTable::TIME_TRACKING_CORRECTION_REQUESTS, [
+        $this->assertDatabaseHas(TimeTrackingDatabaseTable::CORRECTION_REQUESTS, [
             'user_id' => $target->id,
             'team_id' => $team->id,
             'request_type' => 'manual_entry',
@@ -713,7 +717,7 @@ final class AdminTimeTrackingOperationsRouteTest extends TestCase
             'decided_by_user_id' => $admin->id,
             'source_type' => 'work_session',
         ]);
-        $this->assertDatabaseHas(DatabaseTable::TIME_TRACKING_WORK_SESSIONS, [
+        $this->assertDatabaseHas(TimeTrackingDatabaseTable::WORK_SESSIONS, [
             'user_id' => $target->id,
             'team_id' => $team->id,
             'closure_reason' => 'manual_entry',
@@ -732,19 +736,19 @@ final class AdminTimeTrackingOperationsRouteTest extends TestCase
             ])
             ->assertRedirect();
 
-        $this->assertDatabaseHas(DatabaseTable::TIME_TRACKING_BREAKS, [
+        $this->assertDatabaseHas(TimeTrackingDatabaseTable::BREAKS, [
             'user_id' => $target->id,
             'team_id' => $team->id,
             'closure_reason' => 'normal',
             'requires_manager_review' => false,
             'exact_seconds' => 900,
         ]);
-        $breakId = $this->intValue(DB::table(DatabaseTable::TIME_TRACKING_BREAKS)
+        $breakId = $this->intValue(DB::table(TimeTrackingDatabaseTable::BREAKS)
             ->where('user_id', $target->id)
             ->where('team_id', $team->id)
             ->where('exact_seconds', 900)
             ->value('id'));
-        $this->assertDatabaseHas(DatabaseTable::TIME_TRACKING_CORRECTION_REQUESTS, [
+        $this->assertDatabaseHas(TimeTrackingDatabaseTable::CORRECTION_REQUESTS, [
             'user_id' => $target->id,
             'team_id' => $team->id,
             'request_type' => 'manual_entry',
@@ -765,19 +769,19 @@ final class AdminTimeTrackingOperationsRouteTest extends TestCase
             ])
             ->assertRedirect();
 
-        $this->assertDatabaseHas(DatabaseTable::TIME_TRACKING_OTHER_WORK, [
+        $this->assertDatabaseHas(TimeTrackingDatabaseTable::OTHER_WORK, [
             'user_id' => $target->id,
             'team_id' => $team->id,
             'approval_status' => 'approved',
             'requires_manager_review' => false,
             'exact_seconds' => 1800,
         ]);
-        $otherWorkId = $this->intValue(DB::table(DatabaseTable::TIME_TRACKING_OTHER_WORK)
+        $otherWorkId = $this->intValue(DB::table(TimeTrackingDatabaseTable::OTHER_WORK)
             ->where('user_id', $target->id)
             ->where('team_id', $team->id)
             ->where('exact_seconds', 1800)
             ->value('id'));
-        $this->assertDatabaseHas(DatabaseTable::TIME_TRACKING_CORRECTION_REQUESTS, [
+        $this->assertDatabaseHas(TimeTrackingDatabaseTable::CORRECTION_REQUESTS, [
             'user_id' => $target->id,
             'team_id' => $team->id,
             'request_type' => 'manual_entry',
@@ -830,7 +834,7 @@ final class AdminTimeTrackingOperationsRouteTest extends TestCase
         $this->assignDirectPermissionInTeam($admin, $team, TimeTrackingPermissionCatalog::ADMIN_CORRECTIONS);
         $this->assignDirectPermissionInTeam($admin, $team, TimeTrackingPermissionCatalog::ADMIN_CORRECTION_SHOW);
         $this->assignDirectPermissionInTeam($admin, $team, TimeTrackingPermissionCatalog::ADMIN_CORRECTION_DECIDE);
-        $workSessionId = DB::table(DatabaseTable::TIME_TRACKING_WORK_SESSIONS)->insertGetId([
+        $workSessionId = DB::table(TimeTrackingDatabaseTable::WORK_SESSIONS)->insertGetId([
             'public_id' => (string) Str::ulid(),
             'user_id' => $target->id,
             'team_id' => $team->id,
@@ -878,7 +882,7 @@ final class AdminTimeTrackingOperationsRouteTest extends TestCase
                 ->where('correctionRows.0.availableActions.0', 'reject')
                 ->where('correctionRows.0.availableActions.1', 'correct'));
 
-        $correctionPublicId = $this->stringValue(DB::table(DatabaseTable::TIME_TRACKING_CORRECTION_REQUESTS)
+        $correctionPublicId = $this->stringValue(DB::table(TimeTrackingDatabaseTable::CORRECTION_REQUESTS)
             ->where('source_type', 'work_session')
             ->where('source_id', $workSessionId)
             ->value('public_id'));
@@ -938,7 +942,7 @@ final class AdminTimeTrackingOperationsRouteTest extends TestCase
             ])
             ->assertRedirect();
 
-        $this->assertDatabaseHas(DatabaseTable::TIME_TRACKING_OTHER_WORK_CATEGORIES, [
+        $this->assertDatabaseHas(TimeTrackingDatabaseTable::OTHER_WORK_CATEGORIES, [
             'scope_type' => 'team',
             'scope_id' => $team->id,
             'category_key' => 'court_call',
@@ -967,7 +971,7 @@ final class AdminTimeTrackingOperationsRouteTest extends TestCase
             ])
             ->assertRedirect();
 
-        $this->assertDatabaseHas(DatabaseTable::TIME_TRACKING_OTHER_WORK_CATEGORIES, [
+        $this->assertDatabaseHas(TimeTrackingDatabaseTable::OTHER_WORK_CATEGORIES, [
             'scope_type' => 'team',
             'scope_id' => $team->id,
             'category_key' => 'court_call',
@@ -1008,7 +1012,7 @@ final class AdminTimeTrackingOperationsRouteTest extends TestCase
 
     private function assignUserToTeam(User $user, Team $team): void
     {
-        DB::table(DatabaseTable::TEAM_USER_ASSIGNMENTS)->insert([
+        DB::table(TeamsDatabaseTable::TEAM_USER_ASSIGNMENTS)->insert([
             'team_id' => $team->id,
             'user_id' => $user->id,
             'created_at' => now(),
@@ -1020,7 +1024,7 @@ final class AdminTimeTrackingOperationsRouteTest extends TestCase
     {
         $permission = Permission::query()->where('name', $permissionName)->firstOrFail();
 
-        DB::table(DatabaseTable::MODEL_HAS_PERMISSIONS)->insert([
+        DB::table(AuthorizationDatabaseTable::MODEL_HAS_PERMISSIONS)->insert([
             'permission_id' => $permission->id,
             'model_type' => config('auth.providers.users.model'),
             'model_id' => $user->id,
@@ -1049,7 +1053,7 @@ final class AdminTimeTrackingOperationsRouteTest extends TestCase
 
     private function enableTracking(User $user, Team $team): void
     {
-        $assignmentId = DB::table(DatabaseTable::TEAM_USER_ASSIGNMENTS)
+        $assignmentId = DB::table(TeamsDatabaseTable::TEAM_USER_ASSIGNMENTS)
             ->where('team_id', $team->id)
             ->where('user_id', $user->id)
             ->value('id');
@@ -1061,7 +1065,7 @@ final class AdminTimeTrackingOperationsRouteTest extends TestCase
 
     private function insertOpenWorkSession(User $user, Team $team): int
     {
-        return (int) DB::table(DatabaseTable::TIME_TRACKING_WORK_SESSIONS)->insertGetId([
+        return (int) DB::table(TimeTrackingDatabaseTable::WORK_SESSIONS)->insertGetId([
             'public_id' => (string) Str::ulid(),
             'user_id' => $user->id,
             'team_id' => $team->id,

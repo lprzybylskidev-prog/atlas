@@ -7,6 +7,7 @@ namespace App\Shared\Presentation\Http\Controllers\Modules;
 use App\Modules\Core\Audit\Application\Public\Contracts\AuditRecorder;
 use App\Modules\Core\Audit\Application\Public\DTOs\AuditEvent;
 use App\Modules\Core\Audit\Application\Public\Enums\SecurityAuditCategory;
+use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
 use App\Shared\Application\Modules\Activation\Contracts\ModuleActivationService;
 use App\Shared\Application\Modules\Activation\ModuleActivationChange;
 use App\Shared\Application\Modules\Activation\ModuleActivationException;
@@ -433,7 +434,7 @@ final readonly class ModuleActivationController
     {
         $rows = [];
 
-        foreach (DB::table(DatabaseTable::TEAMS)->orderBy('display_name')->orderBy('name')->get(['id', 'public_id', 'name', 'display_name', 'is_active']) as $team) {
+        foreach (DB::table(TeamsDatabaseTable::TEAMS)->orderBy('display_name')->orderBy('name')->get(['id', 'public_id', 'name', 'display_name', 'is_active']) as $team) {
             $values = get_object_vars($team);
             $teamId = is_numeric($values['id'] ?? null) ? (int) $values['id'] : null;
 
@@ -462,7 +463,7 @@ final readonly class ModuleActivationController
     private function historyRows(string $module): array
     {
         $rows = DB::table(DatabaseTable::MODULE_ACTIVATION_HISTORY)
-            ->leftJoin(DatabaseTable::TEAMS, 'module_activation_history.team_id', '=', 'teams.id')
+            ->leftJoin(TeamsDatabaseTable::TEAMS, 'module_activation_history.team_id', '=', 'teams.id')
             ->where('module_activation_history.module_key', $module)
             ->orderByDesc('module_activation_history.effective_at')
             ->limit(25)
@@ -498,7 +499,7 @@ final readonly class ModuleActivationController
     private function scheduleRows(string $module): array
     {
         $rows = DB::table(DatabaseTable::MODULE_ACTIVATION_SCHEDULES)
-            ->leftJoin(DatabaseTable::TEAMS, 'module_activation_schedules.team_id', '=', 'teams.id')
+            ->leftJoin(TeamsDatabaseTable::TEAMS, 'module_activation_schedules.team_id', '=', 'teams.id')
             ->where('module_activation_schedules.module_key', $module)
             ->orderByDesc('module_activation_schedules.effective_at')
             ->limit(25)
@@ -544,7 +545,7 @@ final readonly class ModuleActivationController
 
     private function teamId(string $teamPublicId): ?int
     {
-        $teamId = DB::table(DatabaseTable::TEAMS)->where('public_id', $teamPublicId)->value('id');
+        $teamId = DB::table(TeamsDatabaseTable::TEAMS)->where('public_id', $teamPublicId)->value('id');
 
         return is_numeric($teamId) ? (int) $teamId : null;
     }

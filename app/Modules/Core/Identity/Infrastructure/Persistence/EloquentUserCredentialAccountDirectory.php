@@ -5,12 +5,13 @@ declare(strict_types=1);
 namespace App\Modules\Core\Identity\Infrastructure\Persistence;
 
 use App\Modules\Core\Identity\Application\Public\Contracts\UserCredentialAccountDirectory;
+use App\Modules\Core\Identity\Application\Public\Contracts\UserLookup;
 use App\Modules\Core\Identity\Application\Public\Contracts\UserSessionRegistry;
 use App\Modules\Core\Identity\Application\Public\DTOs\AdminUserCredentialAccount;
 use App\Modules\Core\Identity\Application\Public\DTOs\UserCredentialAccountOption;
 use DateTimeInterface;
 
-final class EloquentUserCredentialAccountDirectory implements UserCredentialAccountDirectory
+final class EloquentUserCredentialAccountDirectory implements UserCredentialAccountDirectory, UserLookup
 {
     public function __construct(
         private readonly UserSessionRegistry $sessions,
@@ -60,6 +61,20 @@ final class EloquentUserCredentialAccountDirectory implements UserCredentialAcco
     public function publicIdExists(string $publicId): bool
     {
         return User::query()->where('public_id', $publicId)->exists();
+    }
+
+    public function internalIdForPublicId(string $userPublicId): ?int
+    {
+        $id = User::query()->where('public_id', $userPublicId)->value('id');
+
+        return is_numeric($id) ? (int) $id : null;
+    }
+
+    public function publicIdForInternalId(int $userId): ?string
+    {
+        $publicId = User::query()->whereKey($userId)->value('public_id');
+
+        return is_string($publicId) && $publicId !== '' ? $publicId : null;
     }
 
     public function emailExists(string $email, ?string $exceptPublicId = null): bool

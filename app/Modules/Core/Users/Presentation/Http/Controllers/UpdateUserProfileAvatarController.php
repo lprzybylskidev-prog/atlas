@@ -7,7 +7,7 @@ namespace App\Modules\Core\Users\Presentation\Http\Controllers;
 use App\Modules\Core\Files\Application\Public\Contracts\FileLifecycle;
 use App\Modules\Core\Files\Application\Public\Contracts\FileScanner;
 use App\Modules\Core\Files\Application\Public\Contracts\FileStorage;
-use App\Shared\Infrastructure\Database\DatabaseTable;
+use App\Modules\Core\Identity\Application\Public\Persistence\IdentityDatabaseTable;
 use App\Shared\Presentation\Support\FlashMessage;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -58,7 +58,7 @@ final readonly class UpdateUserProfileAvatarController
             $updates['avatar_image_file_public_id'] = $stored?->publicId;
         }
 
-        DB::table(DatabaseTable::USERS)
+        DB::table(IdentityDatabaseTable::USERS)
             ->where('id', $userId)
             ->update(array_merge($updates, ['updated_at' => now()]));
 

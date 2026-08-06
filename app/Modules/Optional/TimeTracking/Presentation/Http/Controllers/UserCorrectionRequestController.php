@@ -9,9 +9,9 @@ use App\Modules\Optional\TimeTracking\Application\CorrectionRequestCoordinator;
 use App\Modules\Optional\TimeTracking\Application\DTOs\ExactTimeChange;
 use App\Modules\Optional\TimeTracking\Application\Enums\CorrectionSourceType;
 use App\Modules\Optional\TimeTracking\Application\Permissions\TimeTrackingPermissionCatalog;
+use App\Modules\Optional\TimeTracking\Application\Public\Persistence\TimeTrackingDatabaseTable;
 use App\Modules\Optional\TimeTracking\Application\TimeTrackingModuleAccess;
 use App\Shared\Application\Tables\TableRequestContext;
-use App\Shared\Infrastructure\Database\DatabaseTable;
 use App\Shared\Presentation\Support\FlashMessage;
 use DateTimeImmutable;
 use DateTimeZone;
@@ -98,9 +98,9 @@ final readonly class UserCorrectionRequestController
     private function sourceRecord(CorrectionSourceType $sourceType, string $publicId, int $userId, int $teamId): object
     {
         $table = match ($sourceType) {
-            CorrectionSourceType::WorkSession => DatabaseTable::TIME_TRACKING_WORK_SESSIONS,
-            CorrectionSourceType::Break => DatabaseTable::TIME_TRACKING_BREAKS,
-            CorrectionSourceType::OtherWork => DatabaseTable::TIME_TRACKING_OTHER_WORK,
+            CorrectionSourceType::WorkSession => TimeTrackingDatabaseTable::WORK_SESSIONS,
+            CorrectionSourceType::Break => TimeTrackingDatabaseTable::BREAKS,
+            CorrectionSourceType::OtherWork => TimeTrackingDatabaseTable::OTHER_WORK,
         };
         $record = DB::table($table)
             ->where('public_id', $publicId)

@@ -8,7 +8,7 @@ use App\Modules\Core\Audit\Application\Public\Contracts\AuditRecorder;
 use App\Modules\Core\Audit\Application\Public\DTOs\AuditEvent;
 use App\Modules\Core\Audit\Application\Public\Enums\SecurityAuditCategory;
 use App\Modules\Core\Authorization\Application\Permissions\PermissionCatalogRegistry;
-use App\Shared\Infrastructure\Database\DatabaseTable;
+use App\Modules\Core\Authorization\Application\Public\Persistence\AuthorizationDatabaseTable;
 use App\Shared\Presentation\Support\FlashMessage;
 use Closure;
 use Illuminate\Http\RedirectResponse;
@@ -40,7 +40,7 @@ final readonly class StoreRoleController
         $permissionNames = $this->stringList($validated, 'permissions');
 
         DB::transaction(function () use ($name, $displayName, $rolePublicId, $permissionNames): void {
-            $roleId = DB::table(DatabaseTable::ROLES)->insertGetId([
+            $roleId = DB::table(AuthorizationDatabaseTable::ROLES)->insertGetId([
                 'public_id' => $rolePublicId,
                 'name' => $name,
                 'display_name' => $displayName,
@@ -69,9 +69,9 @@ final readonly class StoreRoleController
      */
     private function syncRolePermissions(int $roleId, array $permissionNames): void
     {
-        DB::table(DatabaseTable::ROLE_HAS_PERMISSIONS)->where('role_id', $roleId)->delete();
+        DB::table(AuthorizationDatabaseTable::ROLE_HAS_PERMISSIONS)->where('role_id', $roleId)->delete();
 
-        $permissionIds = DB::table(DatabaseTable::PERMISSIONS)
+        $permissionIds = DB::table(AuthorizationDatabaseTable::PERMISSIONS)
             ->whereIn('name', $permissionNames)
             ->where('guard_name', 'web')
             ->pluck('id')
@@ -81,7 +81,7 @@ final readonly class StoreRoleController
             ->all();
 
         foreach ($permissionIds as $permissionId) {
-            DB::table(DatabaseTable::ROLE_HAS_PERMISSIONS)->insert([
+            DB::table(AuthorizationDatabaseTable::ROLE_HAS_PERMISSIONS)->insert([
                 'role_id' => $roleId,
                 'permission_id' => $permissionId,
             ]);
@@ -110,7 +110,7 @@ final readonly class StoreRoleController
                 return;
             }
 
-            $exists = DB::table(DatabaseTable::ROLES)
+            $exists = DB::table(AuthorizationDatabaseTable::ROLES)
                 ->where('name', $value)
                 ->where('guard_name', 'web')
                 ->whereNull(config()->string('permission.column_names.team_foreign_key'))

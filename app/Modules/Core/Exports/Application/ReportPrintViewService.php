@@ -10,7 +10,7 @@ use App\Modules\Core\Exports\Application\Public\Contracts\ReportPrintViewAccess;
 use App\Modules\Core\Exports\Application\Public\Contracts\ReportRenderCredentialAccess;
 use App\Modules\Core\Exports\Application\Public\Contracts\ReportRenderCredentialIssuer;
 use App\Modules\Core\Exports\Application\Public\Permissions\ReportsPermissionCatalog;
-use App\Shared\Infrastructure\Database\DatabaseTable;
+use App\Modules\Core\Exports\Application\Public\Persistence\ExportsDatabaseTable;
 use App\Shared\Infrastructure\Operations\OperationalModuleGuard;
 use DateTimeImmutable;
 use DateTimeInterface;
@@ -59,7 +59,7 @@ final readonly class ReportPrintViewService implements ReportPrintViewAccess
 
     private function request(string $publicId): stdClass
     {
-        $request = $this->database->table(DatabaseTable::REPORT_EXPORT_REQUESTS)->where('public_id', $publicId)->first();
+        $request = $this->database->table(ExportsDatabaseTable::REPORT_EXPORT_REQUESTS)->where('public_id', $publicId)->first();
 
         if ($request instanceof stdClass) {
             return $request;

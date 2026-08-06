@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Modules\Optional\TimeTracking\Presentation\Http\Controllers;
 
+use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
 use App\Modules\Optional\TimeTracking\Application\Permissions\TimeTrackingPermissionCatalog;
 use App\Modules\Optional\TimeTracking\Application\TimeTrackingModuleAccess;
 use App\Modules\Optional\TimeTracking\Application\UserTimeReportService;
-use App\Shared\Infrastructure\Database\DatabaseTable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
@@ -37,7 +37,7 @@ final readonly class AdminManualEntryController
         $userPublicId = data_get($request->user(), 'public_id');
         $teamPublicId = $this->activeTeamPublicId($request);
         $teamId = is_string($teamPublicId)
-            ? DB::table(DatabaseTable::TEAMS)->where('public_id', $teamPublicId)->value('id')
+            ? DB::table(TeamsDatabaseTable::TEAMS)->where('public_id', $teamPublicId)->value('id')
             : null;
 
         $this->access->ensureAllowed(

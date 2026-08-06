@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Foundation;
 
+use App\Modules\Core\Audit\Application\Public\Persistence\AuditDatabaseTable;
 use App\Modules\Core\Identity\Infrastructure\Persistence\User;
 use App\Modules\Core\Users\Application\Commands\ResetUserMfaCommand;
 use App\Modules\Core\Users\Application\Exceptions\InvalidUserMfaReset;
 use App\Modules\Core\Users\Application\ResetUserMfa;
-use App\Shared\Infrastructure\Database\DatabaseTable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Fortify\Fortify;
 use Tests\TestCase;
@@ -39,7 +39,7 @@ final class UserMfaResetTest extends TestCase
         self::assertNull($target->two_factor_recovery_codes);
         self::assertNull($target->two_factor_confirmed_at);
 
-        $this->assertDatabaseHas(DatabaseTable::AUDIT_EVENTS, [
+        $this->assertDatabaseHas(AuditDatabaseTable::AUDIT_EVENTS, [
             'module' => 'identity',
             'action' => 'user.mfa_reset',
             'result' => 'succeeded',

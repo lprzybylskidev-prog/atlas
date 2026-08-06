@@ -11,8 +11,9 @@ This phase prevents hidden or half-exposed foundation work from shipping as dead
 ## Dependencies
 
 - [Phase 27 — Optional TimeTracking module](phase-27-time-tracking.md)
-- [Phase 27a — Demo and test seeder invariant repair](phase-27a-demo-seeder-invariant-repair.md)
-- [Phase 27b — Bilingual email templates and notification mail audit](phase-27b-bilingual-email-templates.md)
+- [Phase 27a — Foundation architecture and quality-gate hardening](phase-27a-foundation-architecture-quality-hardening.md)
+- [Phase 27b — Demo and test seeder invariant repair](phase-27b-demo-seeder-invariant-repair.md)
+- [Phase 27c — Bilingual email templates and notification mail audit](phase-27c-bilingual-email-templates.md)
 - [Identity, authentication, users, and sessions](../modules/identity-authentication-and-sessions.md)
 - [Notifications module](../modules/notifications.md)
 - [TimeTracking module](../modules/time-tracking.md)

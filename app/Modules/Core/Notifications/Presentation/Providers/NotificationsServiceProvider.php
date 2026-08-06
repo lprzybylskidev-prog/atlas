@@ -15,6 +15,8 @@ use App\Modules\Core\Notifications\Application\Public\Contracts\RealtimeFeed;
 use App\Modules\Core\Notifications\Application\Public\Contracts\RealtimePublisher;
 use App\Modules\Core\Notifications\Application\UserNotificationEmailPreferences;
 use App\Modules\Core\Notifications\Infrastructure\Persistence\DatabaseNotificationStore;
+use App\Modules\Core\Notifications\Presentation\Inertia\NotificationsInertiaData;
+use App\Modules\Core\Notifications\Presentation\Inertia\NotificationsRouteAvailability;
 use Illuminate\Support\ServiceProvider;
 
 final class NotificationsServiceProvider extends ServiceProvider
@@ -30,5 +32,7 @@ final class NotificationsServiceProvider extends ServiceProvider
         $this->app->bind(NotificationTypeDirectory::class, NotificationTypeCatalog::class);
         $this->app->bind(NotificationEmailPreferenceManager::class, UserNotificationEmailPreferences::class);
         $this->app->tag([NotificationPermissionCatalog::class], 'atlas.permission_catalogs');
+        $this->app->tag([NotificationsInertiaData::class], 'atlas.inertia_shared_data');
+        $this->app->tag([NotificationsRouteAvailability::class], 'atlas.inertia_route_availability');
     }
 }

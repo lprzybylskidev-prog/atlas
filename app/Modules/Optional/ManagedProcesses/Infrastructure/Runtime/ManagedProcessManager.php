@@ -6,9 +6,11 @@ namespace App\Modules\Optional\ManagedProcesses\Infrastructure\Runtime;
 
 use App\Modules\Core\Audit\Application\Public\Contracts\AuditRecorder;
 use App\Modules\Core\Audit\Application\Public\DTOs\AuditEvent;
+use App\Modules\Core\Identity\Application\Public\Persistence\IdentityDatabaseTable;
 use App\Modules\Core\Notifications\Application\Public\Contracts\NotificationPublisher;
 use App\Modules\Core\Notifications\Application\Public\Contracts\RealtimePublisher;
 use App\Modules\Core\Notifications\Application\Public\DTOs\CreateNotification;
+use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
 use App\Modules\Optional\ManagedProcesses\Application\Contracts\ProcessDefinitionRegistry;
 use App\Modules\Optional\ManagedProcesses\Application\DTOs\ProcessLogEntry;
 use App\Modules\Optional\ManagedProcesses\Application\Enums\ProcessLogSeverity;
@@ -16,9 +18,9 @@ use App\Modules\Optional\ManagedProcesses\Application\Enums\ProcessRunStatus;
 use App\Modules\Optional\ManagedProcesses\Application\Permissions\ManagedProcessesPermissionCatalog;
 use App\Modules\Optional\ManagedProcesses\Application\Public\Contracts\ManagedProcessRunner;
 use App\Modules\Optional\ManagedProcesses\Application\Public\DTOs\ProcessDefinition;
+use App\Modules\Optional\ManagedProcesses\Application\Public\Persistence\ManagedProcessesDatabaseTable;
 use App\Shared\Application\Modules\Contracts\ModuleGate;
 use App\Shared\Application\Modules\ModuleAccessRequest;
-use App\Shared\Infrastructure\Database\DatabaseTable;
 use Illuminate\Database\ConnectionInterface;
 use Illuminate\Support\Facades\Context;
 use Illuminate\Support\Str;
@@ -59,7 +61,7 @@ final readonly class ManagedProcessManager implements ManagedProcessRunner
         $correlationId = $this->correlationId();
         $now = now();
 
-        $this->database->table(DatabaseTable::MANAGED_PROCESS_RUNS)->insert([
+        $this->database->table(ManagedProcessesDatabaseTable::RUNS)->insert([
             'public_id' => $publicId,
             'process_key' => $definition->key,
             'module_key' => $definition->moduleKey,
@@ -106,13 +108,13 @@ final readonly class ManagedProcessManager implements ManagedProcessRunner
         $newRun = $this->start($definition->key, 'retry', $input, $actorPublicId, $teamPublicId, $this->requiredString($run, 'correlation_id'));
         $newRunId = $this->runId($newRun);
 
-        $this->database->table(DatabaseTable::MANAGED_PROCESS_RUNS)
+        $this->database->table(ManagedProcessesDatabaseTable::RUNS)
             ->where('public_id', $newRun)
             ->update([
                 'retry_of_run_id' => $this->intValue($run->id),
                 'updated_at' => now(),
             ]);
-        $this->database->table(DatabaseTable::MANAGED_PROCESS_RUNS)
+        $this->database->table(ManagedProcessesDatabaseTable::RUNS)
             ->where('public_id', $runPublicId)
             ->update([
                 'retried_at' => now(),
@@ -135,7 +137,7 @@ final readonly class ManagedProcessManager implements ManagedProcessRunner
             throw new RuntimeException('This run cannot be cancelled.');
         }
 
-        $this->database->table(DatabaseTable::MANAGED_PROCESS_RUNS)
+        $this->database->table(ManagedProcessesDatabaseTable::RUNS)
             ->where('public_id', $runPublicId)
             ->update([
                 'status' => ProcessRunStatus::Cancelled->value,
@@ -158,7 +160,7 @@ final readonly class ManagedProcessManager implements ManagedProcessRunner
 
         $run = $this->run($runPublicId);
 
-        $this->database->table(DatabaseTable::MANAGED_PROCESS_LOG_EVENTS)->insert([
+        $this->database->table(ManagedProcessesDatabaseTable::LOG_EVENTS)->insert([
             'public_id' => (string) Str::ulid(),
             'process_run_id' => $this->intValue($run->id),
             'occurred_at' => now(),
@@ -228,10 +230,10 @@ final readonly class ManagedProcessManager implements ManagedProcessRunner
             $updates['cancelled_at'] = now();
         }
 
-        $this->database->table(DatabaseTable::MANAGED_PROCESS_RUNS)->where('public_id', $runPublicId)->update($updates);
+        $this->database->table(ManagedProcessesDatabaseTable::RUNS)->where('public_id', $runPublicId)->update($updates);
 
         if ($status === ProcessRunStatus::Running) {
-            $this->database->table(DatabaseTable::MANAGED_PROCESS_RUNS)
+            $this->database->table(ManagedProcessesDatabaseTable::RUNS)
                 ->where('public_id', $runPublicId)
                 ->whereNull('started_at')
                 ->update([
@@ -260,7 +262,7 @@ final readonly class ManagedProcessManager implements ManagedProcessRunner
 
     private function assertConcurrencyAvailable(ProcessDefinition $definition, ?int $teamId, ?int $actorId): void
     {
-        $query = $this->database->table(DatabaseTable::MANAGED_PROCESS_RUNS)
+        $query = $this->database->table(ManagedProcessesDatabaseTable::RUNS)
             ->where('process_key', $definition->key)
             ->whereIn('status', [ProcessRunStatus::Draft->value, ProcessRunStatus::Queued->value, ProcessRunStatus::Running->value, ProcessRunStatus::Waiting->value]);
 
@@ -289,7 +291,7 @@ final readonly class ManagedProcessManager implements ManagedProcessRunner
 
     private function persistDefinition(ProcessDefinition $definition): void
     {
-        $this->database->table(DatabaseTable::MANAGED_PROCESS_DEFINITIONS)->updateOrInsert(
+        $this->database->table(ManagedProcessesDatabaseTable::DEFINITIONS)->updateOrInsert(
             ['process_key' => $definition->key],
             [
                 'public_id' => (string) Str::ulid(),
@@ -376,7 +378,7 @@ final readonly class ManagedProcessManager implements ManagedProcessRunner
 
     private function processLabel(string $processKey): string
     {
-        $label = $this->database->table(DatabaseTable::MANAGED_PROCESS_DEFINITIONS)
+        $label = $this->database->table(ManagedProcessesDatabaseTable::DEFINITIONS)
             ->where('process_key', $processKey)
             ->value('label');
 
@@ -428,7 +430,7 @@ final readonly class ManagedProcessManager implements ManagedProcessRunner
 
     private function run(string $publicId): stdClass
     {
-        $run = $this->database->table(DatabaseTable::MANAGED_PROCESS_RUNS)->where('public_id', $publicId)->first();
+        $run = $this->database->table(ManagedProcessesDatabaseTable::RUNS)->where('public_id', $publicId)->first();
 
         if ($run instanceof stdClass) {
             return $run;
@@ -439,7 +441,7 @@ final readonly class ManagedProcessManager implements ManagedProcessRunner
 
     private function runId(string $publicId): int
     {
-        $id = $this->database->table(DatabaseTable::MANAGED_PROCESS_RUNS)->where('public_id', $publicId)->value('id');
+        $id = $this->database->table(ManagedProcessesDatabaseTable::RUNS)->where('public_id', $publicId)->value('id');
 
         return $this->intValue($id);
     }
@@ -450,7 +452,7 @@ final readonly class ManagedProcessManager implements ManagedProcessRunner
             return null;
         }
 
-        $id = $this->database->table(DatabaseTable::USERS)->where('public_id', $publicId)->value('id');
+        $id = $this->database->table(IdentityDatabaseTable::USERS)->where('public_id', $publicId)->value('id');
 
         return is_numeric($id) ? (int) $id : null;
     }
@@ -461,7 +463,7 @@ final readonly class ManagedProcessManager implements ManagedProcessRunner
             return null;
         }
 
-        $publicId = $this->database->table(DatabaseTable::USERS)->where('id', $id)->value('public_id');
+        $publicId = $this->database->table(IdentityDatabaseTable::USERS)->where('id', $id)->value('public_id');
 
         return is_string($publicId) ? $publicId : null;
     }
@@ -472,7 +474,7 @@ final readonly class ManagedProcessManager implements ManagedProcessRunner
             return null;
         }
 
-        $id = $this->database->table(DatabaseTable::TEAMS)->where('public_id', $publicId)->value('id');
+        $id = $this->database->table(TeamsDatabaseTable::TEAMS)->where('public_id', $publicId)->value('id');
 
         return is_numeric($id) ? (int) $id : null;
     }
@@ -483,7 +485,7 @@ final readonly class ManagedProcessManager implements ManagedProcessRunner
             return null;
         }
 
-        $publicId = $this->database->table(DatabaseTable::TEAMS)->where('id', $id)->value('public_id');
+        $publicId = $this->database->table(TeamsDatabaseTable::TEAMS)->where('id', $id)->value('public_id');
 
         return is_string($publicId) ? $publicId : null;
     }

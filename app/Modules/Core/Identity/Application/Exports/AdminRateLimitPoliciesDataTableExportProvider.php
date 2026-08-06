@@ -7,10 +7,10 @@ namespace App\Modules\Core\Identity\Application\Exports;
 use App\Modules\Core\Exports\Application\Public\AbstractAdminDataTableExportProvider;
 use App\Modules\Core\Exports\Application\Public\DTOs\ReportExportGenerationRequest;
 use App\Modules\Core\Exports\Application\Public\Permissions\ReportsPermissionCatalog;
+use App\Modules\Core\Identity\Application\Public\Persistence\IdentityDatabaseTable;
 use App\Modules\Core\Identity\Application\RateLimiting\RateLimitPolicy;
 use App\Modules\Core\Identity\Application\RateLimiting\RateLimitPolicyCatalog;
 use App\Shared\Application\Tables\AdminTableDefinitions;
-use App\Shared\Infrastructure\Database\DatabaseTable;
 use Illuminate\Support\Facades\DB;
 
 final readonly class AdminRateLimitPoliciesDataTableExportProvider extends AbstractAdminDataTableExportProvider
@@ -81,7 +81,7 @@ final readonly class AdminRateLimitPoliciesDataTableExportProvider extends Abstr
     {
         $stats = [];
 
-        foreach (DB::table(DatabaseTable::RATE_LIMIT_REJECTIONS)
+        foreach (DB::table(IdentityDatabaseTable::RATE_LIMIT_REJECTIONS)
             ->selectRaw('policy, sum(rejections_count) as rejections, count(*) as distinct_keys, max(last_rejected_at) as last_rejected_at')
             ->groupBy('policy')
             ->get() as $row) {

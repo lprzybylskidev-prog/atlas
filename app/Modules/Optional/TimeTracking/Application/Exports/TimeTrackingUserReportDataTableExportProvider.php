@@ -7,9 +7,10 @@ namespace App\Modules\Optional\TimeTracking\Application\Exports;
 use App\Modules\Core\Exports\Application\Public\AbstractAdminDataTableExportProvider;
 use App\Modules\Core\Exports\Application\Public\DTOs\ReportExportGenerationRequest;
 use App\Modules\Core\Exports\Application\Public\Permissions\ReportsPermissionCatalog;
+use App\Modules\Core\Identity\Application\Public\Persistence\IdentityDatabaseTable;
+use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
 use App\Modules\Optional\TimeTracking\Application\UserTimeReportService;
 use App\Shared\Application\Tables\AdminTableDefinitions;
-use App\Shared\Infrastructure\Database\DatabaseTable;
 use Illuminate\Database\ConnectionInterface;
 use Illuminate\Http\Request;
 use Stringable;
@@ -79,7 +80,7 @@ final readonly class TimeTrackingUserReportDataTableExportProvider extends Abstr
 
     private function userId(string $publicId): int
     {
-        $id = $this->database->table(DatabaseTable::USERS)->where('public_id', $publicId)->value('id');
+        $id = $this->database->table(IdentityDatabaseTable::USERS)->where('public_id', $publicId)->value('id');
 
         return is_numeric($id) ? (int) $id : 0;
     }
@@ -90,7 +91,7 @@ final readonly class TimeTrackingUserReportDataTableExportProvider extends Abstr
             return 0;
         }
 
-        $id = $this->database->table(DatabaseTable::TEAMS)->where('public_id', $request->activeTeamPublicId)->value('id');
+        $id = $this->database->table(TeamsDatabaseTable::TEAMS)->where('public_id', $request->activeTeamPublicId)->value('id');
 
         return is_numeric($id) ? (int) $id : 0;
     }

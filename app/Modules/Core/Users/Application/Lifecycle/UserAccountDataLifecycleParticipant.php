@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Core\Users\Application\Lifecycle;
 
+use App\Modules\Core\Identity\Application\Public\Persistence\IdentityDatabaseTable;
 use App\Shared\Application\DataLifecycle\Contracts\DataLifecycleParticipant;
 use App\Shared\Application\DataLifecycle\DataLifecycleImpact;
 use App\Shared\Application\DataLifecycle\DataLifecycleOperation;
@@ -11,7 +12,6 @@ use App\Shared\Application\DataLifecycle\DataLifecyclePreview;
 use App\Shared\Application\DataLifecycle\DataLifecycleResult;
 use App\Shared\Application\DataLifecycle\DataLifecycleStepResult;
 use App\Shared\Application\DataLifecycle\DataLifecycleSubject;
-use App\Shared\Infrastructure\Database\DatabaseTable;
 use Illuminate\Database\ConnectionInterface;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Facades\Hash;
@@ -119,19 +119,19 @@ final readonly class UserAccountDataLifecycleParticipant implements DataLifecycl
             'updated_at' => now(),
         ];
 
-        if (Schema::hasColumn(DatabaseTable::USERS, 'two_factor_secret')) {
+        if (Schema::hasColumn(IdentityDatabaseTable::USERS, 'two_factor_secret')) {
             $updates['two_factor_secret'] = null;
             $updates['two_factor_recovery_codes'] = null;
             $updates['two_factor_confirmed_at'] = null;
         }
 
-        if (Schema::hasColumn(DatabaseTable::USERS, 'account_sensitivity')) {
+        if (Schema::hasColumn(IdentityDatabaseTable::USERS, 'account_sensitivity')) {
             $updates['account_sensitivity'] = 'normal';
         }
 
         $steps[] = new DataLifecycleStepResult(
             'identity.user_account_redacted',
-            $this->db->table(DatabaseTable::USERS)->where('id', $user['id'])->update($updates),
+            $this->db->table(IdentityDatabaseTable::USERS)->where('id', $user['id'])->update($updates),
             true,
         );
 
@@ -147,7 +147,7 @@ final readonly class UserAccountDataLifecycleParticipant implements DataLifecycl
             return null;
         }
 
-        $user = $this->db->table(DatabaseTable::USERS)
+        $user = $this->db->table(IdentityDatabaseTable::USERS)
             ->where('public_id', $subject->identifier)
             ->first([
                 'id',
@@ -187,22 +187,22 @@ final readonly class UserAccountDataLifecycleParticipant implements DataLifecycl
 
     private function passwordHistories(int $userId): Builder
     {
-        return $this->db->table(DatabaseTable::USER_PASSWORD_HISTORIES)->where('user_id', $userId);
+        return $this->db->table(IdentityDatabaseTable::USER_PASSWORD_HISTORIES)->where('user_id', $userId);
     }
 
     private function passwordResetTokens(string $email): Builder
     {
-        return $this->db->table(DatabaseTable::PASSWORD_RESET_TOKENS)->where('email', $email);
+        return $this->db->table(IdentityDatabaseTable::PASSWORD_RESET_TOKENS)->where('email', $email);
     }
 
     private function webAuthnCredentials(string $userPublicId): Builder
     {
-        return $this->db->table(DatabaseTable::USER_WEBAUTHN_CREDENTIALS)->where('user_public_id', $userPublicId);
+        return $this->db->table(IdentityDatabaseTable::USER_WEBAUTHN_CREDENTIALS)->where('user_public_id', $userPublicId);
     }
 
     private function sessions(int $userId): Builder
     {
-        return $this->db->table(DatabaseTable::SESSIONS)->where('user_id', $userId);
+        return $this->db->table(IdentityDatabaseTable::SESSIONS)->where('user_id', $userId);
     }
 
     /**

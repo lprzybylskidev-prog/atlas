@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace App\Modules\Core\Authorization\Presentation\Http\Controllers;
 
+use App\Modules\Core\Authorization\Application\Public\Persistence\AuthorizationDatabaseTable;
 use App\Shared\Application\Tables\AdminTableDefinitions;
 use App\Shared\Application\Tables\ArrayTableProcessor;
 use App\Shared\Application\Tables\TableRequestContext;
 use App\Shared\Application\Tables\TableSavedViewService;
 use App\Shared\Application\Tables\TableState;
-use App\Shared\Infrastructure\Database\DatabaseTable;
 use App\Shared\Presentation\Support\AdminDataTableExportMeta;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -30,8 +30,8 @@ final readonly class RoleAdministrationController
         $state = TableState::fromRequest($request, $definition);
         $filters = $this->filters($request);
         [$userId, $teamId] = $this->context->userTeam($request);
-        $roles = array_values(DB::table(DatabaseTable::ROLES)
-            ->leftJoin(DatabaseTable::ROLE_HAS_PERMISSIONS, 'roles.id', '=', 'role_has_permissions.role_id')
+        $roles = array_values(DB::table(AuthorizationDatabaseTable::ROLES)
+            ->leftJoin(AuthorizationDatabaseTable::ROLE_HAS_PERMISSIONS, 'roles.id', '=', 'role_has_permissions.role_id')
             ->select(
                 'roles.id',
                 'roles.public_id',
@@ -41,7 +41,7 @@ final readonly class RoleAdministrationController
                 'roles.created_at',
                 'roles.updated_at',
                 DB::raw('count(role_has_permissions.permission_id) as permissions_count'),
-                DB::raw('(select count(*) from '.DatabaseTable::MODEL_HAS_ROLES.' where model_has_roles.role_id = roles.id) as assigned_users_count'),
+                DB::raw('(select count(*) from '.AuthorizationDatabaseTable::MODEL_HAS_ROLES.' where model_has_roles.role_id = roles.id) as assigned_users_count'),
             )
             ->groupBy('roles.id', 'roles.public_id', 'roles.name', 'roles.display_name', 'roles.guard_name', 'roles.created_at', 'roles.updated_at')
             ->get()

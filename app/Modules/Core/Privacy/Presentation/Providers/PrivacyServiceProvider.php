@@ -9,6 +9,8 @@ use App\Modules\Core\Privacy\Application\Services\DataLifecycleParticipantRegist
 use App\Modules\Core\Privacy\Application\Services\PrivacyOperationExecutor;
 use App\Modules\Core\Privacy\Application\Services\PrivacyOperationPreviewer;
 use App\Modules\Core\Privacy\Application\Services\PrivacyRetentionCoverageCatalog;
+use App\Modules\Core\Privacy\Presentation\Http\PrivacyHighRiskContinuation;
+use App\Modules\Core\Privacy\Presentation\Inertia\PrivacyRouteAvailability;
 use App\Shared\Application\DataLifecycle\Contracts\DataLifecycleParticipant;
 use Illuminate\Support\ServiceProvider;
 
@@ -17,6 +19,8 @@ final class PrivacyServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->tag([PrivacyPermissionCatalog::class], 'atlas.permission_catalogs');
+        $this->app->tag([PrivacyRouteAvailability::class], 'atlas.inertia_route_availability');
+        $this->app->tag([PrivacyHighRiskContinuation::class], 'atlas.high_risk_reauthentication_continuations');
         $this->app->singleton(DataLifecycleParticipantRegistry::class, fn (): DataLifecycleParticipantRegistry => new DataLifecycleParticipantRegistry(
             $this->dataLifecycleParticipants(),
         ));

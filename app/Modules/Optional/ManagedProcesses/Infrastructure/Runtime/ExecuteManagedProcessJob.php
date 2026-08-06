@@ -10,7 +10,7 @@ use App\Modules\Optional\ManagedProcesses\Application\Enums\ProcessLogSeverity;
 use App\Modules\Optional\ManagedProcesses\Application\Enums\ProcessRunStatus;
 use App\Modules\Optional\ManagedProcesses\Application\Public\Contracts\ManagedProcessHandler;
 use App\Modules\Optional\ManagedProcesses\Application\Public\Contracts\ManagedProcessRunner;
-use App\Shared\Infrastructure\Database\DatabaseTable;
+use App\Modules\Optional\ManagedProcesses\Application\Public\Persistence\ManagedProcessesDatabaseTable;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -32,7 +32,7 @@ final class ExecuteManagedProcessJob implements ShouldQueue
     public function handle(ProcessDefinitionRegistry $definitions): void
     {
         $runner = app(ManagedProcessRunner::class);
-        $run = DB::table(DatabaseTable::MANAGED_PROCESS_RUNS)->where('public_id', $this->runPublicId)->first();
+        $run = DB::table(ManagedProcessesDatabaseTable::RUNS)->where('public_id', $this->runPublicId)->first();
 
         if (! is_object($run)) {
             throw new RuntimeException('Managed process run was not found.');

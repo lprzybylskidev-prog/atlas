@@ -6,14 +6,17 @@ namespace Tests\Feature\Foundation;
 
 use App\Modules\Core\Authorization\Application\Contracts\OnboardingPackageStore;
 use App\Modules\Core\Authorization\Application\Permissions\CoreAuthorizationPermissionCatalog;
+use App\Modules\Core\Authorization\Application\Public\Persistence\AuthorizationDatabaseTable;
 use App\Modules\Core\Authorization\Application\Roles\InstallStarterRoles;
 use App\Modules\Core\Authorization\Application\Roles\StarterRoleName;
+use App\Modules\Core\Identity\Application\Public\Persistence\IdentityDatabaseTable;
 use App\Modules\Core\Identity\Infrastructure\Notifications\UserEmailVerificationNotification;
 use App\Modules\Core\Identity\Infrastructure\Persistence\User;
+use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
 use App\Modules\Core\Teams\Infrastructure\Persistence\Team;
 use App\Modules\Core\Users\Infrastructure\Notifications\FirstPasswordSetupNotification;
 use App\Modules\Optional\TimeTracking\Application\Permissions\TimeTrackingPermissionCatalog;
-use App\Shared\Infrastructure\Database\DatabaseTable;
+use App\Modules\Optional\TimeTracking\Application\Public\Persistence\TimeTrackingDatabaseTable;
 use DateTimeInterface;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -54,7 +57,7 @@ final class AdminUserCreationTest extends TestCase
 
         self::assertSame('sensitive', $created->account_sensitivity);
         self::assertSame(User::DEFAULT_AVATAR_COLOR, $created->avatar_color);
-        self::assertDatabaseHas(DatabaseTable::USER_ONBOARDING_PACKAGES, [
+        self::assertDatabaseHas(AuthorizationDatabaseTable::USER_ONBOARDING_PACKAGES, [
             'user_id' => $created->id,
             'team_id' => $team->id,
             'package_name' => 'collections.agent',
@@ -122,7 +125,7 @@ final class AdminUserCreationTest extends TestCase
 
         $created = User::query()->where('email', 'created.session.limits@example.test')->firstOrFail();
 
-        self::assertDatabaseHas(DatabaseTable::TEAM_USER_ASSIGNMENTS, [
+        self::assertDatabaseHas(TeamsDatabaseTable::TEAM_USER_ASSIGNMENTS, [
             'team_id' => $team->id,
             'user_id' => $created->id,
             'inactivity_timeout_minutes' => 20,
@@ -160,7 +163,7 @@ final class AdminUserCreationTest extends TestCase
         $created = User::query()->where('email', 'created.break.limit@example.test')->firstOrFail();
         $assignmentId = $this->assignmentId($created, $team);
 
-        self::assertDatabaseHas(DatabaseTable::TIME_TRACKING_BREAK_POLICIES, [
+        self::assertDatabaseHas(TimeTrackingDatabaseTable::BREAK_POLICIES, [
             'scope_type' => 'user_team',
             'scope_id' => $assignmentId,
             'daily_limit_seconds' => 2700,
@@ -198,7 +201,7 @@ final class AdminUserCreationTest extends TestCase
             ->assertRedirect('/admin/users/create')
             ->assertSessionHasErrors(['team_assignments']);
 
-        self::assertDatabaseMissing(DatabaseTable::USERS, [
+        self::assertDatabaseMissing(IdentityDatabaseTable::USERS, [
             'email' => 'invalid.session.limits@example.test',
         ]);
         Notification::assertNothingSent();
@@ -228,7 +231,7 @@ final class AdminUserCreationTest extends TestCase
             ->assertRedirect()
             ->assertSessionHasNoErrors();
 
-        self::assertDatabaseHas(DatabaseTable::TEAM_USER_ASSIGNMENTS, [
+        self::assertDatabaseHas(TeamsDatabaseTable::TEAM_USER_ASSIGNMENTS, [
             'team_id' => $team->id,
             'user_id' => $target->id,
             'inactivity_timeout_minutes' => 15,
@@ -255,7 +258,7 @@ final class AdminUserCreationTest extends TestCase
             ->assertRedirect()
             ->assertSessionHasNoErrors();
 
-        self::assertDatabaseHas(DatabaseTable::TIME_TRACKING_BREAK_POLICIES, [
+        self::assertDatabaseHas(TimeTrackingDatabaseTable::BREAK_POLICIES, [
             'scope_type' => 'user_team',
             'scope_id' => $this->assignmentId($target, $team),
             'daily_limit_seconds' => 1200,
@@ -294,21 +297,21 @@ final class AdminUserCreationTest extends TestCase
         $managerRole = Role::query()->where('name', StarterRoleName::TeamManagersRead->value)->firstOrFail();
         $permission = Permission::query()->where('name', 'admin.authorization.permissions.index')->firstOrFail();
 
-        self::assertDatabaseHas(DatabaseTable::TEAM_USER_ASSIGNMENTS, [
+        self::assertDatabaseHas(TeamsDatabaseTable::TEAM_USER_ASSIGNMENTS, [
             'team_id' => $team->id,
             'user_id' => $created->id,
         ]);
-        self::assertDatabaseHas(DatabaseTable::MODEL_HAS_ROLES, [
+        self::assertDatabaseHas(AuthorizationDatabaseTable::MODEL_HAS_ROLES, [
             'role_id' => $managerRole->id,
             'model_id' => $created->id,
             'team_id' => $team->id,
         ]);
-        self::assertDatabaseHas(DatabaseTable::MODEL_HAS_PERMISSIONS, [
+        self::assertDatabaseHas(AuthorizationDatabaseTable::MODEL_HAS_PERMISSIONS, [
             'permission_id' => $permission->id,
             'model_id' => $created->id,
             'team_id' => $team->id,
         ]);
-        self::assertDatabaseMissing(DatabaseTable::USER_ONBOARDING_PACKAGES, [
+        self::assertDatabaseMissing(AuthorizationDatabaseTable::USER_ONBOARDING_PACKAGES, [
             'user_id' => $created->id,
         ]);
         Notification::assertSentOnDemand(FirstPasswordSetupNotification::class);
@@ -343,7 +346,7 @@ final class AdminUserCreationTest extends TestCase
             ->assertRedirect('/admin/users/create')
             ->assertSessionHasErrors(['team_assignments']);
 
-        self::assertDatabaseMissing(DatabaseTable::USERS, [
+        self::assertDatabaseMissing(IdentityDatabaseTable::USERS, [
             'email' => 'invalid.copy.source@example.test',
         ]);
         Notification::assertNothingSent();
@@ -377,7 +380,7 @@ final class AdminUserCreationTest extends TestCase
             ->assertRedirect('/admin/users/create')
             ->assertSessionHasErrors(['team_assignments']);
 
-        self::assertDatabaseMissing(DatabaseTable::USERS, [
+        self::assertDatabaseMissing(IdentityDatabaseTable::USERS, [
             'email' => 'invalid.preset.team@example.test',
         ]);
         Notification::assertNothingSent();
@@ -443,17 +446,17 @@ final class AdminUserCreationTest extends TestCase
         $managerRole = Role::query()->where('name', StarterRoleName::TeamManagersRead->value)->firstOrFail();
         $permission = Permission::query()->where('name', CoreAuthorizationPermissionCatalog::DASHBOARD)->firstOrFail();
 
-        self::assertDatabaseHas(DatabaseTable::TEAM_USER_ASSIGNMENTS, [
+        self::assertDatabaseHas(TeamsDatabaseTable::TEAM_USER_ASSIGNMENTS, [
             'team_id' => $assignedTeam->id,
             'user_id' => $created->id,
             'valid_to' => null,
         ]);
-        self::assertDatabaseHas(DatabaseTable::MODEL_HAS_ROLES, [
+        self::assertDatabaseHas(AuthorizationDatabaseTable::MODEL_HAS_ROLES, [
             'role_id' => $managerRole->id,
             'model_id' => $created->id,
             'team_id' => $assignedTeam->id,
         ]);
-        self::assertDatabaseHas(DatabaseTable::MODEL_HAS_PERMISSIONS, [
+        self::assertDatabaseHas(AuthorizationDatabaseTable::MODEL_HAS_PERMISSIONS, [
             'permission_id' => $permission->id,
             'model_id' => $created->id,
             'team_id' => $assignedTeam->id,
@@ -477,7 +480,7 @@ final class AdminUserCreationTest extends TestCase
             ])
             ->assertRedirect(route('admin.authorization.packages.index'));
 
-        self::assertDatabaseHas(DatabaseTable::AUTHORIZATION_ONBOARDING_PACKAGES, [
+        self::assertDatabaseHas(AuthorizationDatabaseTable::AUTHORIZATION_ONBOARDING_PACKAGES, [
             'name' => 'legal.assistant',
             'label' => 'Legal assistant',
         ]);
@@ -522,14 +525,14 @@ final class AdminUserCreationTest extends TestCase
 
         $role = Role::query()->where('name', $roleName)->firstOrFail();
 
-        DB::table(DatabaseTable::TEAM_USER_ASSIGNMENTS)->insert([
+        DB::table(TeamsDatabaseTable::TEAM_USER_ASSIGNMENTS)->insert([
             'team_id' => $team->id,
             'user_id' => $user->id,
             'created_at' => now(),
             'updated_at' => now(),
         ]);
 
-        DB::table(DatabaseTable::MODEL_HAS_ROLES)->insert([
+        DB::table(AuthorizationDatabaseTable::MODEL_HAS_ROLES)->insert([
             'role_id' => $role->id,
             'model_type' => config('auth.providers.users.model'),
             'model_id' => $user->id,
@@ -555,7 +558,7 @@ final class AdminUserCreationTest extends TestCase
     {
         $permission = Permission::query()->where('name', $permissionName)->firstOrFail();
 
-        DB::table(DatabaseTable::MODEL_HAS_PERMISSIONS)->insert([
+        DB::table(AuthorizationDatabaseTable::MODEL_HAS_PERMISSIONS)->insert([
             'permission_id' => $permission->id,
             'model_type' => config('auth.providers.users.model'),
             'model_id' => $user->id,
@@ -565,7 +568,7 @@ final class AdminUserCreationTest extends TestCase
 
     private function assignmentId(User $user, Team $team): int
     {
-        $assignmentId = DB::table(DatabaseTable::TEAM_USER_ASSIGNMENTS)
+        $assignmentId = DB::table(TeamsDatabaseTable::TEAM_USER_ASSIGNMENTS)
             ->where('team_id', $team->id)
             ->where('user_id', $user->id)
             ->whereNull('valid_to')

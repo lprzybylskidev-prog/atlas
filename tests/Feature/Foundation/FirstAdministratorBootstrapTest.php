@@ -4,10 +4,13 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Foundation;
 
+use App\Modules\Core\Audit\Application\Public\Persistence\AuditDatabaseTable;
+use App\Modules\Core\Authorization\Application\Public\Persistence\AuthorizationDatabaseTable;
 use App\Modules\Core\Authorization\Application\Roles\StarterRoleName;
+use App\Modules\Core\Identity\Application\Public\Persistence\IdentityDatabaseTable;
 use App\Modules\Core\Identity\Infrastructure\Persistence\User;
+use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
 use App\Modules\Core\Users\Infrastructure\Notifications\FirstPasswordSetupNotification;
-use App\Shared\Infrastructure\Database\DatabaseTable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
@@ -33,25 +36,25 @@ final class FirstAdministratorBootstrapTest extends TestCase
         self::assertSame(Command::SUCCESS, $exitCode);
 
         $user = User::query()->where('email', 'first.admin@example.test')->firstOrFail();
-        $teamId = DB::table(DatabaseTable::TEAMS)->where('name', 'Operations')->value('id');
+        $teamId = DB::table(TeamsDatabaseTable::TEAMS)->where('name', 'Operations')->value('id');
         $role = Role::query()->where('name', StarterRoleName::Administrator->value)->firstOrFail();
 
         self::assertFalse($user->hasSetFirstPassword());
         self::assertSame('sensitive', $user->account_sensitivity);
         self::assertNotNull($teamId);
-        self::assertDatabaseHas(DatabaseTable::TEAM_USER_ASSIGNMENTS, [
+        self::assertDatabaseHas(TeamsDatabaseTable::TEAM_USER_ASSIGNMENTS, [
             'team_id' => $teamId,
             'user_id' => $user->id,
         ]);
-        self::assertDatabaseHas(DatabaseTable::MODEL_HAS_ROLES, [
+        self::assertDatabaseHas(AuthorizationDatabaseTable::MODEL_HAS_ROLES, [
             'role_id' => $role->id,
             'model_id' => $user->id,
             'team_id' => $teamId,
         ]);
-        self::assertDatabaseHas(DatabaseTable::PASSWORD_RESET_TOKENS, [
+        self::assertDatabaseHas(IdentityDatabaseTable::PASSWORD_RESET_TOKENS, [
             'email' => 'first.admin@example.test',
         ]);
-        self::assertDatabaseHas(DatabaseTable::AUDIT_EVENTS, [
+        self::assertDatabaseHas(AuditDatabaseTable::AUDIT_EVENTS, [
             'module' => 'authorization',
             'action' => 'authorization.first_administrator_bootstrap',
             'target_public_id' => $user->public_id,
@@ -75,7 +78,7 @@ final class FirstAdministratorBootstrapTest extends TestCase
         ]);
 
         self::assertSame(Command::FAILURE, $exitCode);
-        self::assertDatabaseMissing(DatabaseTable::USERS, [
+        self::assertDatabaseMissing(IdentityDatabaseTable::USERS, [
             'email' => 'second.admin@example.test',
         ]);
     }

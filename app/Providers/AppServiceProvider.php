@@ -4,9 +4,12 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Http\Middleware\RequireHighRiskAdministrativeAuthorization;
 use App\Modules\Core\Authorization\Application\Permissions\CoreAuthorizationPermissionCatalog;
 use App\Modules\Core\Authorization\Application\Public\Contracts\EffectivePermissionChecker;
 use App\Modules\Core\Authorization\Application\Public\DTOs\EffectivePermissionRequest;
+use App\Modules\Core\Identity\Application\Admin\AdministrativeSessionManager;
+use App\Modules\Core\Identity\Application\Public\Contracts\ImpersonationSessionState;
 use App\Shared\Application\Modules\Activation\Contracts\ModuleActivationService;
 use App\Shared\Application\Modules\Contracts\ModuleDeactivationGuard;
 use App\Shared\Application\Modules\Contracts\ModuleDeactivationGuardRegistry;
@@ -26,6 +29,10 @@ use App\Shared\Infrastructure\Observability\ObservabilityContext;
 use App\Shared\Infrastructure\Outbox\DatabaseOutboxConsumerDeduplicator;
 use App\Shared\Infrastructure\Outbox\DatabaseOutboxEventRecorder;
 use App\Shared\Infrastructure\Outbox\DatabaseOutboxMaintenance;
+use App\Shared\Presentation\Inertia\InertiaSharedDataRegistry;
+use App\Shared\Presentation\Inertia\RouteAvailabilityInertiaData;
+use App\Shared\Presentation\Inertia\SharedFoundationInertiaData;
+use App\Shared\Presentation\Inertia\SharedRouteAvailability;
 use Illuminate\Console\Events\CommandStarting;
 use Illuminate\Console\Events\ScheduledTaskStarting;
 use Illuminate\Contracts\Auth\Authenticatable;
@@ -218,6 +225,20 @@ class AppServiceProvider extends ServiceProvider
             return new DatabaseOutboxConsumerDeduplicator($this->app->make(ConnectionInterface::class));
         });
         $this->app->tag([SharedDerivedDataLifecycleParticipant::class], 'atlas.data_lifecycle_participants');
+        $this->app->tag([RouteAvailabilityInertiaData::class, SharedFoundationInertiaData::class], 'atlas.inertia_shared_data');
+        $this->app->tag([SharedRouteAvailability::class], 'atlas.inertia_route_availability');
+        $this->app->singleton(InertiaSharedDataRegistry::class, fn (): InertiaSharedDataRegistry => new InertiaSharedDataRegistry(
+            $this->app->tagged('atlas.inertia_shared_data'),
+        ));
+        $this->app->bind(RouteAvailabilityInertiaData::class, fn (): RouteAvailabilityInertiaData => new RouteAvailabilityInertiaData(
+            $this->app->tagged('atlas.inertia_route_availability'),
+            $this->app->make(EffectivePermissionChecker::class),
+            $this->app->make(ImpersonationSessionState::class),
+        ));
+        $this->app->bind(RequireHighRiskAdministrativeAuthorization::class, fn (): RequireHighRiskAdministrativeAuthorization => new RequireHighRiskAdministrativeAuthorization(
+            $this->app->make(AdministrativeSessionManager::class),
+            $this->app->tagged('atlas.high_risk_reauthentication_continuations'),
+        ));
     }
 
     private function registerLocalDevelopmentProviders(): void

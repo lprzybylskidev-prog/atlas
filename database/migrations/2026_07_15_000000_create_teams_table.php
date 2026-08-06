@@ -2,8 +2,10 @@
 
 declare(strict_types=1);
 
+use App\Modules\Core\Authorization\Application\Public\Persistence\AuthorizationDatabaseTable;
+use App\Modules\Core\Identity\Application\Public\Persistence\IdentityDatabaseTable;
+use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
 use App\Shared\Infrastructure\Database\DatabaseSchema;
-use App\Shared\Infrastructure\Database\DatabaseTable;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
@@ -16,7 +18,7 @@ return new class extends Migration
         DatabaseSchema::ensure(DatabaseSchema::CORE_TEAMS);
         DatabaseSchema::ensure(DatabaseSchema::CORE_AUTHORIZATION);
 
-        Schema::create(DatabaseTable::TEAMS, static function (Blueprint $table): void {
+        Schema::create(TeamsDatabaseTable::TEAMS, static function (Blueprint $table): void {
             $table->id();
             $table->ulid('public_id')->unique();
             $table->string('name');
@@ -26,10 +28,10 @@ return new class extends Migration
             $table->timestamps();
         });
 
-        Schema::create(DatabaseTable::TEAM_USER_ASSIGNMENTS, static function (Blueprint $table): void {
+        Schema::create(TeamsDatabaseTable::TEAM_USER_ASSIGNMENTS, static function (Blueprint $table): void {
             $table->id();
-            $table->foreignId('team_id')->constrained(DatabaseTable::TEAMS)->restrictOnDelete();
-            $table->foreignId('user_id')->constrained(DatabaseTable::USERS)->restrictOnDelete();
+            $table->foreignId('team_id')->constrained(TeamsDatabaseTable::TEAMS)->restrictOnDelete();
+            $table->foreignId('user_id')->constrained(IdentityDatabaseTable::USERS)->restrictOnDelete();
             $table->boolean('is_head_manager')->default(false);
             $table->unsignedSmallInteger('inactivity_timeout_minutes')->nullable();
             $table->unsignedSmallInteger('session_max_lifetime_minutes')->nullable();
@@ -41,18 +43,18 @@ return new class extends Migration
             $table->index(['user_id', 'team_id']);
         });
 
-        DB::statement('create unique index team_user_assignments_active_unique on '.DatabaseTable::TEAM_USER_ASSIGNMENTS.' (team_id, user_id) where valid_to is null');
+        DB::statement('create unique index team_user_assignments_active_unique on '.TeamsDatabaseTable::TEAM_USER_ASSIGNMENTS.' (team_id, user_id) where valid_to is null');
 
-        Schema::create(DatabaseTable::TEAM_MANAGER_RELATIONSHIPS, static function (Blueprint $table): void {
+        Schema::create(TeamsDatabaseTable::TEAM_MANAGER_RELATIONSHIPS, static function (Blueprint $table): void {
             $table->id();
             $table->ulid('public_id')->unique();
-            $table->foreignId('team_id')->constrained(DatabaseTable::TEAMS)->restrictOnDelete();
-            $table->foreignId('manager_user_id')->constrained(DatabaseTable::USERS)->restrictOnDelete();
-            $table->foreignId('report_user_id')->constrained(DatabaseTable::USERS)->restrictOnDelete();
+            $table->foreignId('team_id')->constrained(TeamsDatabaseTable::TEAMS)->restrictOnDelete();
+            $table->foreignId('manager_user_id')->constrained(IdentityDatabaseTable::USERS)->restrictOnDelete();
+            $table->foreignId('report_user_id')->constrained(IdentityDatabaseTable::USERS)->restrictOnDelete();
             $table->timestampTz('valid_from');
             $table->timestampTz('valid_to')->nullable();
-            $table->foreignId('created_by_user_id')->nullable()->constrained(DatabaseTable::USERS)->nullOnDelete();
-            $table->foreignId('ended_by_user_id')->nullable()->constrained(DatabaseTable::USERS)->nullOnDelete();
+            $table->foreignId('created_by_user_id')->nullable()->constrained(IdentityDatabaseTable::USERS)->nullOnDelete();
+            $table->foreignId('ended_by_user_id')->nullable()->constrained(IdentityDatabaseTable::USERS)->nullOnDelete();
             $table->text('reason');
             $table->text('end_reason')->nullable();
             $table->timestamps();
@@ -62,13 +64,13 @@ return new class extends Migration
             $table->index(['team_id', 'valid_from', 'valid_to']);
         });
 
-        DB::statement('alter table '.DatabaseTable::TEAM_MANAGER_RELATIONSHIPS.' add constraint team_manager_relationships_not_self_check check (manager_user_id <> report_user_id)');
-        DB::statement('create unique index team_manager_relationships_active_unique on '.DatabaseTable::TEAM_MANAGER_RELATIONSHIPS.' (team_id, manager_user_id, report_user_id) where valid_to is null');
+        DB::statement('alter table '.TeamsDatabaseTable::TEAM_MANAGER_RELATIONSHIPS.' add constraint team_manager_relationships_not_self_check check (manager_user_id <> report_user_id)');
+        DB::statement('create unique index team_manager_relationships_active_unique on '.TeamsDatabaseTable::TEAM_MANAGER_RELATIONSHIPS.' (team_id, manager_user_id, report_user_id) where valid_to is null');
 
-        Schema::create(DatabaseTable::AUTHORIZATION_ONBOARDING_PACKAGES, static function (Blueprint $table): void {
+        Schema::create(AuthorizationDatabaseTable::AUTHORIZATION_ONBOARDING_PACKAGES, static function (Blueprint $table): void {
             $table->id();
             $table->ulid('public_id')->unique();
-            $table->foreignId('team_id')->constrained(DatabaseTable::TEAMS)->restrictOnDelete();
+            $table->foreignId('team_id')->constrained(TeamsDatabaseTable::TEAMS)->restrictOnDelete();
             $table->string('name');
             $table->string('label');
             $table->json('initial_role_names');
@@ -81,10 +83,10 @@ return new class extends Migration
             $table->index(['team_id', 'is_active']);
         });
 
-        Schema::create(DatabaseTable::USER_ONBOARDING_PACKAGES, static function (Blueprint $table): void {
+        Schema::create(AuthorizationDatabaseTable::USER_ONBOARDING_PACKAGES, static function (Blueprint $table): void {
             $table->id();
-            $table->foreignId('user_id')->constrained(DatabaseTable::USERS)->restrictOnDelete();
-            $table->foreignId('team_id')->constrained(DatabaseTable::TEAMS)->restrictOnDelete();
+            $table->foreignId('user_id')->constrained(IdentityDatabaseTable::USERS)->restrictOnDelete();
+            $table->foreignId('team_id')->constrained(TeamsDatabaseTable::TEAMS)->restrictOnDelete();
             $table->string('package_name');
             $table->timestamps();
 
@@ -95,10 +97,10 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::dropIfExists(DatabaseTable::USER_ONBOARDING_PACKAGES);
-        Schema::dropIfExists(DatabaseTable::AUTHORIZATION_ONBOARDING_PACKAGES);
-        Schema::dropIfExists(DatabaseTable::TEAM_MANAGER_RELATIONSHIPS);
-        Schema::dropIfExists(DatabaseTable::TEAM_USER_ASSIGNMENTS);
-        Schema::dropIfExists(DatabaseTable::TEAMS);
+        Schema::dropIfExists(AuthorizationDatabaseTable::USER_ONBOARDING_PACKAGES);
+        Schema::dropIfExists(AuthorizationDatabaseTable::AUTHORIZATION_ONBOARDING_PACKAGES);
+        Schema::dropIfExists(TeamsDatabaseTable::TEAM_MANAGER_RELATIONSHIPS);
+        Schema::dropIfExists(TeamsDatabaseTable::TEAM_USER_ASSIGNMENTS);
+        Schema::dropIfExists(TeamsDatabaseTable::TEAMS);
     }
 };

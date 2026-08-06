@@ -6,6 +6,7 @@ namespace App\Modules\Optional\Integrations\Presentation\Http\Controllers;
 
 use App\Modules\Optional\Integrations\Application\Contracts\IntegrationRegistry;
 use App\Modules\Optional\Integrations\Application\DTOs\IntegrationDefinition;
+use App\Modules\Optional\Integrations\Application\Public\Persistence\IntegrationsDatabaseTable;
 use App\Shared\Application\Tables\AdminTableDefinitions;
 use App\Shared\Application\Tables\ArrayTableProcessor;
 use App\Shared\Application\Tables\TableDefinition;
@@ -13,7 +14,6 @@ use App\Shared\Application\Tables\TableRequestContext;
 use App\Shared\Application\Tables\TableResult;
 use App\Shared\Application\Tables\TableSavedViewService;
 use App\Shared\Application\Tables\TableState;
-use App\Shared\Infrastructure\Database\DatabaseTable;
 use App\Shared\Presentation\Support\AdminDataTableExportMeta;
 use App\Shared\Presentation\Support\FlashMessage;
 use Illuminate\Http\RedirectResponse;
@@ -66,7 +66,7 @@ final readonly class AdminIntegrationsController
 
         $result = $adapter->testConnection((string) Str::uuid());
 
-        DB::table(DatabaseTable::INTEGRATION_CONNECTIONS)->updateOrInsert(
+        DB::table(IntegrationsDatabaseTable::CONNECTIONS)->updateOrInsert(
             ['integration_key' => $result->integrationKey],
             [
                 'public_id' => (string) Str::ulid(),
@@ -96,9 +96,9 @@ final readonly class AdminIntegrationsController
      */
     private function integrationRow(IntegrationDefinition $definition): array
     {
-        $connection = DB::table(DatabaseTable::INTEGRATION_CONNECTIONS)->where('integration_key', $definition->key)->first();
-        $circuit = DB::table(DatabaseTable::INTEGRATION_CIRCUIT_BREAKERS)->where('integration_key', $definition->key)->orderByDesc('updated_at')->first();
-        $lastRun = DB::table(DatabaseTable::INTEGRATION_SYNC_RUNS)->where('integration_key', $definition->key)->orderByDesc('started_at')->first();
+        $connection = DB::table(IntegrationsDatabaseTable::CONNECTIONS)->where('integration_key', $definition->key)->first();
+        $circuit = DB::table(IntegrationsDatabaseTable::CIRCUIT_BREAKERS)->where('integration_key', $definition->key)->orderByDesc('updated_at')->first();
+        $lastRun = DB::table(IntegrationsDatabaseTable::SYNC_RUNS)->where('integration_key', $definition->key)->orderByDesc('started_at')->first();
 
         return [
             'key' => $definition->key,
@@ -206,9 +206,9 @@ final readonly class AdminIntegrationsController
             'registered' => count($adapters),
             'visible' => $visible,
             'enabled' => count(array_filter($adapters, static fn (array $adapter): bool => ($adapter['enabled'] ?? false) === true)),
-            'openCircuits' => (int) DB::table(DatabaseTable::INTEGRATION_CIRCUIT_BREAKERS)->where('state', 'open')->count(),
-            'running' => (int) DB::table(DatabaseTable::INTEGRATION_SYNC_RUNS)->where('status', 'running')->count(),
-            'failedLastRuns' => (int) DB::table(DatabaseTable::INTEGRATION_SYNC_RUNS)->where('status', 'failed')->where('started_at', '>=', now()->subDay())->count(),
+            'openCircuits' => (int) DB::table(IntegrationsDatabaseTable::CIRCUIT_BREAKERS)->where('state', 'open')->count(),
+            'running' => (int) DB::table(IntegrationsDatabaseTable::SYNC_RUNS)->where('status', 'running')->count(),
+            'failedLastRuns' => (int) DB::table(IntegrationsDatabaseTable::SYNC_RUNS)->where('status', 'failed')->where('started_at', '>=', now()->subDay())->count(),
         ];
     }
 
@@ -219,7 +219,7 @@ final readonly class AdminIntegrationsController
     {
         $runs = [];
 
-        foreach (DB::table(DatabaseTable::INTEGRATION_SYNC_RUNS)
+        foreach (DB::table(IntegrationsDatabaseTable::SYNC_RUNS)
             ->orderByDesc('started_at')
             ->limit(8)
             ->get(['integration_key', 'operation', 'correlation_id', 'status', 'started_at', 'finished_at', 'message']) as $row) {

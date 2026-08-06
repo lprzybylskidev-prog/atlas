@@ -4,12 +4,15 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Foundation;
 
+use App\Modules\Core\Audit\Application\Public\Persistence\AuditDatabaseTable;
+use App\Modules\Core\Authorization\Application\Public\Persistence\AuthorizationDatabaseTable;
 use App\Modules\Core\Authorization\Application\Roles\InstallStarterRoles;
 use App\Modules\Core\Authorization\Application\Roles\StarterRoleName;
+use App\Modules\Core\Identity\Application\Public\Persistence\IdentityDatabaseTable;
 use App\Modules\Core\Identity\Application\RateLimiting\RateLimitRejectionRecorder;
 use App\Modules\Core\Identity\Infrastructure\Persistence\User;
+use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
 use App\Modules\Core\Teams\Infrastructure\Persistence\Team;
-use App\Shared\Infrastructure\Database\DatabaseTable;
 use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -91,11 +94,11 @@ final class RateLimitAdministrationTest extends TestCase
             ->assertRedirect('/admin/rate-limits');
 
         self::assertFalse(RateLimiter::tooManyAttempts($limiterKey, 1));
-        self::assertDatabaseMissing(DatabaseTable::RATE_LIMIT_REJECTIONS, [
+        self::assertDatabaseMissing(IdentityDatabaseTable::RATE_LIMIT_REJECTIONS, [
             'policy' => 'auth.login',
             'limiter_key_hash' => hash('sha256', $limiterKey),
         ]);
-        self::assertDatabaseHas(DatabaseTable::AUDIT_EVENTS, [
+        self::assertDatabaseHas(AuditDatabaseTable::AUDIT_EVENTS, [
             'module' => 'identity',
             'action' => 'rate_limit.counter_reset',
             'result' => 'succeeded',
@@ -107,7 +110,7 @@ final class RateLimitAdministrationTest extends TestCase
             'is_security' => true,
         ]);
 
-        $metadata = DB::table(DatabaseTable::AUDIT_EVENTS)
+        $metadata = DB::table(AuditDatabaseTable::AUDIT_EVENTS)
             ->where('action', 'rate_limit.counter_reset')
             ->value('metadata');
 
@@ -138,14 +141,14 @@ final class RateLimitAdministrationTest extends TestCase
         $team = Team::query()->create(['name' => 'Operations']);
         $role = Role::query()->where('name', StarterRoleName::Administrator->value)->firstOrFail();
 
-        DB::table(DatabaseTable::TEAM_USER_ASSIGNMENTS)->insert([
+        DB::table(TeamsDatabaseTable::TEAM_USER_ASSIGNMENTS)->insert([
             'team_id' => $team->id,
             'user_id' => $user->id,
             'created_at' => now(),
             'updated_at' => now(),
         ]);
 
-        DB::table(DatabaseTable::MODEL_HAS_ROLES)->insert([
+        DB::table(AuthorizationDatabaseTable::MODEL_HAS_ROLES)->insert([
             'role_id' => $role->id,
             'model_type' => config('auth.providers.users.model'),
             'model_id' => $user->id,

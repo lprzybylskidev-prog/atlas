@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace Tests\Feature\Foundation;
 
 use App\Modules\Core\Identity\Application\PasswordHistory;
+use App\Modules\Core\Identity\Application\Public\Persistence\IdentityDatabaseTable;
 use App\Modules\Core\Identity\Infrastructure\Persistence\User;
 use App\Modules\Core\Identity\Presentation\Fortify\Actions\UpdateUserPassword;
-use App\Shared\Infrastructure\Database\DatabaseTable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -58,6 +58,6 @@ final class PasswordHistoryTest extends TestCase
             $history->recordNewPassword($user->internalId(), Hash::make(sprintf('Password%d!', $passwordNumber)));
         }
 
-        self::assertSame(10, DB::table(DatabaseTable::USER_PASSWORD_HISTORIES)->where('user_id', $user->getKey())->count());
+        self::assertSame(10, DB::table(IdentityDatabaseTable::USER_PASSWORD_HISTORIES)->where('user_id', $user->getKey())->count());
     }
 }

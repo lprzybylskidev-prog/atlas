@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Feature\Foundation;
 
 use App\Modules\Core\Identity\Infrastructure\Persistence\User;
+use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
 use App\Shared\Application\Modules\Activation\ModuleActivationScheduleStatus;
 use App\Shared\Infrastructure\Database\DatabaseTable;
 use Database\Seeders\E2eVisibilitySeeder;
@@ -22,7 +23,7 @@ final class ModuleActivationAdministrationTest extends TestCase
     {
         $this->seed(E2eVisibilitySeeder::class);
         $admin = User::query()->where('email', E2eVisibilitySeeder::ADMIN_EMAIL)->firstOrFail();
-        $team = DB::table(DatabaseTable::TEAMS)->first();
+        $team = DB::table(TeamsDatabaseTable::TEAMS)->first();
 
         self::assertIsObject($team);
         $teamPublicId = is_string($team->public_id) ? $team->public_id : '';
@@ -148,7 +149,7 @@ final class ModuleActivationAdministrationTest extends TestCase
     {
         $this->seed(E2eVisibilitySeeder::class);
         $admin = User::query()->where('email', E2eVisibilitySeeder::ADMIN_EMAIL)->firstOrFail();
-        $team = DB::table(DatabaseTable::TEAMS)->first();
+        $team = DB::table(TeamsDatabaseTable::TEAMS)->first();
 
         self::assertIsObject($team);
         $teamPublicId = is_string($team->public_id) ? $team->public_id : '';
@@ -222,7 +223,7 @@ final class ModuleActivationAdministrationTest extends TestCase
     {
         $this->seed(E2eVisibilitySeeder::class);
         $limited = User::query()->where('email', E2eVisibilitySeeder::LIMITED_EMAIL)->firstOrFail();
-        $team = DB::table(DatabaseTable::TEAMS)->first();
+        $team = DB::table(TeamsDatabaseTable::TEAMS)->first();
 
         self::assertIsObject($team);
 

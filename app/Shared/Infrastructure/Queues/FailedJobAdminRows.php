@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Shared\Infrastructure\Queues;
 
+use App\Modules\Core\Identity\Application\Public\Persistence\IdentityDatabaseTable;
 use App\Shared\Infrastructure\Database\DatabaseTable;
 use Illuminate\Support\Facades\DB;
 
@@ -16,7 +17,7 @@ final readonly class FailedJobAdminRows
     {
         return array_values(DB::table(DatabaseTable::FAILED_JOBS.' as failed_jobs')
             ->leftJoin(DatabaseTable::FAILED_JOB_ACKNOWLEDGEMENTS.' as acknowledgements', 'acknowledgements.failed_job_uuid', '=', 'failed_jobs.uuid')
-            ->leftJoin(DatabaseTable::USERS.' as acknowledged_users', 'acknowledged_users.id', '=', 'acknowledgements.acknowledged_by_user_id')
+            ->leftJoin(IdentityDatabaseTable::USERS.' as acknowledged_users', 'acknowledged_users.id', '=', 'acknowledgements.acknowledged_by_user_id')
             ->orderByDesc('failed_jobs.failed_at')
             ->limit($limit)
             ->get([

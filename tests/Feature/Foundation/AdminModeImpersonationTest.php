@@ -7,6 +7,7 @@ namespace Tests\Feature\Foundation;
 use App\Modules\Core\Audit\Application\Public\Contracts\AuditRecorder;
 use App\Modules\Core\Audit\Application\Public\DTOs\AuditEvent;
 use App\Modules\Core\Audit\Application\Public\Enums\SecurityAuditCategory;
+use App\Modules\Core\Authorization\Application\Public\Persistence\AuthorizationDatabaseTable;
 use App\Modules\Core\Authorization\Application\Roles\InstallStarterRoles;
 use App\Modules\Core\Authorization\Application\Roles\StarterRoleName;
 use App\Modules\Core\Identity\Application\Admin\AdministrativeSessionManager;
@@ -14,8 +15,8 @@ use App\Modules\Core\Identity\Application\Admin\HighRiskAdministrativeOperation;
 use App\Modules\Core\Identity\Application\Admin\ImpersonationManager;
 use App\Modules\Core\Identity\Application\Admin\ImpersonationSimulationStore;
 use App\Modules\Core\Identity\Infrastructure\Persistence\User;
+use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
 use App\Modules\Core\Teams\Infrastructure\Persistence\Team;
-use App\Shared\Infrastructure\Database\DatabaseTable;
 use Illuminate\Contracts\Session\Session;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
@@ -219,7 +220,7 @@ final class AdminModeImpersonationTest extends TestCase
         [$admin, $team] = $this->adminActor();
         $target = User::factory()->create();
 
-        DB::table(DatabaseTable::TEAM_USER_ASSIGNMENTS)->insert([
+        DB::table(TeamsDatabaseTable::TEAM_USER_ASSIGNMENTS)->insert([
             'team_id' => $team->id,
             'user_id' => $target->id,
             'created_at' => now(),
@@ -430,14 +431,14 @@ final class AdminModeImpersonationTest extends TestCase
 
         $role = Role::query()->where('name', $roleName)->firstOrFail();
 
-        DB::table(DatabaseTable::TEAM_USER_ASSIGNMENTS)->insertOrIgnore([
+        DB::table(TeamsDatabaseTable::TEAM_USER_ASSIGNMENTS)->insertOrIgnore([
             'team_id' => $team->id,
             'user_id' => $user->id,
             'created_at' => now(),
             'updated_at' => now(),
         ]);
 
-        DB::table(DatabaseTable::MODEL_HAS_ROLES)->insertOrIgnore([
+        DB::table(AuthorizationDatabaseTable::MODEL_HAS_ROLES)->insertOrIgnore([
             'role_id' => $role->id,
             'model_type' => config('auth.providers.users.model'),
             'model_id' => $user->id,

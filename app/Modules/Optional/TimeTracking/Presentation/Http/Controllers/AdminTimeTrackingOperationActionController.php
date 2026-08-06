@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace App\Modules\Optional\TimeTracking\Presentation\Http\Controllers;
 
+use App\Modules\Core\Identity\Application\Public\Contracts\UserLookup;
 use App\Modules\Core\Identity\Application\Public\Contracts\UserSessionRegistry;
 use App\Modules\Core\Notifications\Application\Public\Contracts\NotificationPublisher;
 use App\Modules\Core\Notifications\Application\Public\DTOs\CreateNotification;
 use App\Modules\Core\Teams\Application\Public\Contracts\ManagerHierarchy;
+use App\Modules\Core\Teams\Application\Public\Contracts\TeamLookup;
 use App\Modules\Optional\TimeTracking\Application\BreakSessionCoordinator;
 use App\Modules\Optional\TimeTracking\Application\Contracts\BreakPolicyStore;
 use App\Modules\Optional\TimeTracking\Application\Contracts\OtherWorkCategoryStore;
@@ -18,10 +20,10 @@ use App\Modules\Optional\TimeTracking\Application\Enums\CorrectionSourceType;
 use App\Modules\Optional\TimeTracking\Application\Enums\OtherWorkApprovalStatus;
 use App\Modules\Optional\TimeTracking\Application\Enums\WorkSessionClosureReason;
 use App\Modules\Optional\TimeTracking\Application\OtherWorkSessionCoordinator;
+use App\Modules\Optional\TimeTracking\Application\Public\Persistence\TimeTrackingDatabaseTable;
 use App\Modules\Optional\TimeTracking\Application\TimeTrackingAudit;
 use App\Modules\Optional\TimeTracking\Application\UserTimeReportService;
 use App\Modules\Optional\TimeTracking\Domain\Time\CalendarDayIntervalSplitter;
-use App\Shared\Infrastructure\Database\DatabaseTable;
 use App\Shared\Presentation\Support\FlashMessage;
 use DateTimeImmutable;
 use DateTimeZone;
@@ -50,12 +52,14 @@ final readonly class AdminTimeTrackingOperationActionController
         private TimeTrackingAudit $audit,
         private NotificationPublisher $notifications,
         private ManagerHierarchy $hierarchy,
+        private TeamLookup $teams,
+        private UserLookup $users,
     ) {}
 
     public function terminateWorkSession(Request $request, string $session): RedirectResponse
     {
         $reason = $this->reason($request);
-        $record = $this->recordByPublicId(DatabaseTable::TIME_TRACKING_WORK_SESSIONS, $session, [
+        $record = $this->recordByPublicId(TimeTrackingDatabaseTable::WORK_SESSIONS, $session, [
             'id',
             'public_id',
             'user_id',
@@ -108,7 +112,7 @@ final readonly class AdminTimeTrackingOperationActionController
     public function forceCloseBreak(Request $request, string $break): RedirectResponse
     {
         $reason = $this->reason($request);
-        $record = $this->recordByPublicId(DatabaseTable::TIME_TRACKING_BREAKS, $break, ['id', 'public_id', 'user_id', 'team_id', 'ended_at']);
+        $record = $this->recordByPublicId(TimeTrackingDatabaseTable::BREAKS, $break, ['id', 'public_id', 'user_id', 'team_id', 'ended_at']);
 
         $this->assertRecordForAuthorizedSurface($request, $record);
 
@@ -131,7 +135,7 @@ final readonly class AdminTimeTrackingOperationActionController
             'converted_seconds' => ['required', 'integer', 'min:1'],
             'reason' => ['required', 'string', 'min:10', 'max:2000'],
         ], [], $this->validationAttributes())->validate();
-        $record = $this->recordByPublicId(DatabaseTable::TIME_TRACKING_BREAKS, $break, [
+        $record = $this->recordByPublicId(TimeTrackingDatabaseTable::BREAKS, $break, [
             'id',
             'public_id',
             'user_id',
@@ -187,7 +191,7 @@ final readonly class AdminTimeTrackingOperationActionController
     public function forceCloseOtherWork(Request $request, string $otherWork): RedirectResponse
     {
         $reason = $this->reason($request);
-        $record = $this->recordByPublicId(DatabaseTable::TIME_TRACKING_OTHER_WORK, $otherWork, ['id', 'public_id', 'user_id', 'team_id', 'ended_at']);
+        $record = $this->recordByPublicId(TimeTrackingDatabaseTable::OTHER_WORK, $otherWork, ['id', 'public_id', 'user_id', 'team_id', 'ended_at']);
 
         $this->assertRecordForAuthorizedSurface($request, $record);
 
@@ -211,7 +215,7 @@ final readonly class AdminTimeTrackingOperationActionController
             'reason' => ['required', 'string', 'min:10', 'max:2000'],
         ], [], $this->validationAttributes())->validate();
 
-        $record = $this->recordByPublicId(DatabaseTable::TIME_TRACKING_OTHER_WORK, $otherWork, [
+        $record = $this->recordByPublicId(TimeTrackingDatabaseTable::OTHER_WORK, $otherWork, [
             'id',
             'public_id',
             'user_id',
@@ -262,7 +266,7 @@ final readonly class AdminTimeTrackingOperationActionController
             'final_ended_at' => ['required_if:decision,correct', 'nullable', 'date'],
         ], [], $this->validationAttributes())->validate();
 
-        $record = $this->recordByPublicId(DatabaseTable::TIME_TRACKING_CORRECTION_REQUESTS, $correction, [
+        $record = $this->recordByPublicId(TimeTrackingDatabaseTable::CORRECTION_REQUESTS, $correction, [
             'id',
             'public_id',
             'user_id',
@@ -307,10 +311,8 @@ final readonly class AdminTimeTrackingOperationActionController
             'reason' => ['required', 'string', 'min:10', 'max:2000'],
         ], [], $this->validationAttributes())->validate();
 
-        $team = $this->teamByPublicId($this->stringValue($values['team_public_id'] ?? null));
-        $user = $this->userByPublicId($this->stringValue($values['user_public_id'] ?? null));
-        $teamId = $this->intValue(data_get($team, 'id'));
-        $userId = $this->intValue(data_get($user, 'id'));
+        $teamId = $this->teamIdByPublicId($this->stringValue($values['team_public_id'] ?? null));
+        $userId = $this->userIdByPublicId($this->stringValue($values['user_public_id'] ?? null));
 
         $this->assertRecordForAuthorizedSurface($request, (object) ['team_id' => $teamId, 'user_id' => $userId]);
 
@@ -369,8 +371,7 @@ final readonly class AdminTimeTrackingOperationActionController
             'reason' => ['required', 'string', 'min:10', 'max:2000'],
         ], [], $this->validationAttributes())->validate();
 
-        $team = $this->teamByPublicId($this->stringValue($values['team_public_id'] ?? null));
-        $teamId = $this->intValue(data_get($team, 'id'));
+        $teamId = $this->teamIdByPublicId($this->stringValue($values['team_public_id'] ?? null));
         $this->assertRecordForAuthorizedSurface($request, (object) ['team_id' => $teamId]);
 
         $this->categories->upsertTeam(
@@ -401,8 +402,7 @@ final readonly class AdminTimeTrackingOperationActionController
             'reason' => ['required', 'string', 'min:10', 'max:2000'],
         ], [], $this->validationAttributes())->validate();
 
-        $team = $this->teamByPublicId($this->stringValue($values['team_public_id'] ?? null));
-        $teamId = $this->intValue(data_get($team, 'id'));
+        $teamId = $this->teamIdByPublicId($this->stringValue($values['team_public_id'] ?? null));
         $this->assertRecordForAuthorizedSurface($request, (object) ['team_id' => $teamId]);
         $this->categories->deactivateTeam($teamId, $category);
         $this->recordAdminAction($request, 'time_tracking.admin_other_work_category_deactivated', (object) ['team_id' => $teamId], 'time_tracking_other_work_category', $category, $this->stringValue($values['reason'] ?? null));
@@ -424,26 +424,26 @@ final readonly class AdminTimeTrackingOperationActionController
         return $record;
     }
 
-    private function teamByPublicId(string $publicId): object
+    private function teamIdByPublicId(string $publicId): int
     {
-        $team = DB::table(DatabaseTable::TEAMS)->where('public_id', $publicId)->first(['id', 'public_id']);
+        $teamId = $this->teams->internalIdForPublicId($publicId);
 
-        if (! is_object($team)) {
+        if ($teamId === null) {
             abort(404);
         }
 
-        return $team;
+        return $teamId;
     }
 
-    private function userByPublicId(string $publicId): object
+    private function userIdByPublicId(string $publicId): int
     {
-        $user = DB::table(DatabaseTable::USERS)->where('public_id', $publicId)->first(['id', 'public_id']);
+        $userId = $this->users->internalIdForPublicId($publicId);
 
-        if (! is_object($user)) {
+        if ($userId === null) {
             abort(404);
         }
 
-        return $user;
+        return $userId;
     }
 
     private function assertRecordForAuthorizedSurface(Request $request, object $record): void
@@ -465,8 +465,8 @@ final readonly class AdminTimeTrackingOperationActionController
 
     private function assertRecordForManagerScope(Request $request, object $record): void
     {
-        $teamPublicId = $this->publicId(DatabaseTable::TEAMS, $this->intValue($record->team_id ?? null));
-        $targetUserPublicId = $this->publicId(DatabaseTable::USERS, $this->intValue($record->user_id ?? null));
+        $teamPublicId = $this->teams->publicIdForInternalId($this->intValue($record->team_id ?? null));
+        $targetUserPublicId = $this->users->publicIdForInternalId($this->intValue($record->user_id ?? null));
         $managerUserPublicId = data_get($request->user(), 'public_id');
 
         if (! is_string($managerUserPublicId) || $teamPublicId === null) {
@@ -515,13 +515,7 @@ final readonly class AdminTimeTrackingOperationActionController
             return [];
         }
 
-        return array_values(array_map(
-            fn (mixed $id): int => $this->intValue($id),
-            DB::table(DatabaseTable::TEAMS)
-                ->whereIn('public_id', $publicIds)
-                ->pluck('id')
-                ->all(),
-        ));
+        return $this->teams->internalIdsForPublicIds($publicIds);
     }
 
     private function reason(Request $request): string
@@ -567,7 +561,7 @@ final readonly class AdminTimeTrackingOperationActionController
         }
 
         if ($entryKind === CorrectionSourceType::WorkSession->value) {
-            $id = DB::table(DatabaseTable::TIME_TRACKING_WORK_SESSIONS)->insertGetId([
+            $id = DB::table(TimeTrackingDatabaseTable::WORK_SESSIONS)->insertGetId([
                 'public_id' => (string) Str::ulid(),
                 'user_id' => $userId,
                 'team_id' => $teamId,
@@ -586,7 +580,7 @@ final readonly class AdminTimeTrackingOperationActionController
         $workSessionId = $this->createManualContainerWorkSession($userId, $teamId, $final);
 
         if ($entryKind === CorrectionSourceType::Break->value) {
-            $id = DB::table(DatabaseTable::TIME_TRACKING_BREAKS)->insertGetId([
+            $id = DB::table(TimeTrackingDatabaseTable::BREAKS)->insertGetId([
                 'public_id' => (string) Str::ulid(),
                 'work_session_id' => $workSessionId,
                 'user_id' => $userId,
@@ -615,7 +609,7 @@ final readonly class AdminTimeTrackingOperationActionController
             ]);
         }
 
-        $id = DB::table(DatabaseTable::TIME_TRACKING_OTHER_WORK)->insertGetId([
+        $id = DB::table(TimeTrackingDatabaseTable::OTHER_WORK)->insertGetId([
             'public_id' => (string) Str::ulid(),
             'work_session_id' => $workSessionId,
             'user_id' => $userId,
@@ -638,7 +632,7 @@ final readonly class AdminTimeTrackingOperationActionController
 
     private function createManualContainerWorkSession(int $userId, int $teamId, ExactTimeChange $final): int
     {
-        return (int) DB::table(DatabaseTable::TIME_TRACKING_WORK_SESSIONS)->insertGetId([
+        return (int) DB::table(TimeTrackingDatabaseTable::WORK_SESSIONS)->insertGetId([
             'public_id' => (string) Str::ulid(),
             'user_id' => $userId,
             'team_id' => $teamId,
@@ -654,7 +648,7 @@ final readonly class AdminTimeTrackingOperationActionController
 
     private function categoryExistsForTeam(int $teamId, string $categoryKey): bool
     {
-        return DB::table(DatabaseTable::TIME_TRACKING_OTHER_WORK_CATEGORIES)
+        return DB::table(TimeTrackingDatabaseTable::OTHER_WORK_CATEGORIES)
             ->where('scope_type', 'team')
             ->where('scope_id', $teamId)
             ->where('category_key', $categoryKey)
@@ -714,7 +708,7 @@ final readonly class AdminTimeTrackingOperationActionController
         $windowEnd = new DateTimeImmutable(max(array_keys($dates)).' 23:59:59', $timezone);
         $totalsByDate = array_fill_keys(array_keys($dates), 0);
 
-        foreach (DB::table(DatabaseTable::TIME_TRACKING_BREAKS)
+        foreach (DB::table(TimeTrackingDatabaseTable::BREAKS)
             ->where('user_id', $userId)
             ->where('team_id', $teamId)
             ->where('requires_manager_review', false)
@@ -745,8 +739,8 @@ final readonly class AdminTimeTrackingOperationActionController
 
     private function correctedSourceSeconds(CorrectionSourceType $sourceType, int $sourceId, int $fallbackSeconds): int
     {
-        $seconds = DB::table(DatabaseTable::TIME_TRACKING_CORRECTION_REQUESTS.' as requests')
-            ->join(DatabaseTable::TIME_TRACKING_CORRECTION_PROPOSALS.' as proposals', 'proposals.correction_request_id', '=', 'requests.id')
+        $seconds = DB::table(TimeTrackingDatabaseTable::CORRECTION_REQUESTS.' as requests')
+            ->join(TimeTrackingDatabaseTable::CORRECTION_PROPOSALS.' as proposals', 'proposals.correction_request_id', '=', 'requests.id')
             ->where('requests.source_type', $sourceType->value)
             ->where('requests.source_id', $sourceId)
             ->where('requests.status', 'corrected')
@@ -790,8 +784,8 @@ final readonly class AdminTimeTrackingOperationActionController
 
     private function notifyTarget(object $record, string $titleKey, string $bodyKey): void
     {
-        $userPublicId = $this->publicId(DatabaseTable::USERS, $this->intValue($record->user_id ?? null));
-        $teamPublicId = $this->publicId(DatabaseTable::TEAMS, $this->intValue($record->team_id ?? null));
+        $userPublicId = $this->users->publicIdForInternalId($this->intValue($record->user_id ?? null));
+        $teamPublicId = $this->teams->publicIdForInternalId($this->intValue($record->team_id ?? null));
 
         if ($userPublicId === null || $teamPublicId === null) {
             return;
@@ -810,17 +804,6 @@ final readonly class AdminTimeTrackingOperationActionController
                 'body_key' => $bodyKey,
             ],
         ));
-    }
-
-    private function publicId(string $table, int $id): ?string
-    {
-        if ($id < 1) {
-            return null;
-        }
-
-        $publicId = DB::table($table)->where('id', $id)->value('public_id');
-
-        return is_string($publicId) && $publicId !== '' ? $publicId : null;
     }
 
     private function actorId(Request $request): int

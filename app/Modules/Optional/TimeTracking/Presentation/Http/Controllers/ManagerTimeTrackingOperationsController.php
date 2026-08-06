@@ -6,8 +6,11 @@ namespace App\Modules\Optional\TimeTracking\Presentation\Http\Controllers;
 
 use App\Modules\Core\Authorization\Application\Public\Contracts\EffectivePermissionChecker;
 use App\Modules\Core\Authorization\Application\Public\DTOs\EffectivePermissionRequest;
+use App\Modules\Core\Identity\Application\Public\Persistence\IdentityDatabaseTable;
 use App\Modules\Core\Teams\Application\Public\Contracts\ManagerHierarchy;
+use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
 use App\Modules\Optional\TimeTracking\Application\Permissions\TimeTrackingPermissionCatalog;
+use App\Modules\Optional\TimeTracking\Application\Public\Persistence\TimeTrackingDatabaseTable;
 use App\Modules\Optional\TimeTracking\Application\TimeTrackingModuleAccess;
 use App\Modules\Optional\TimeTracking\Application\UserTimeReportService;
 use App\Shared\Application\Tables\AdminTableDefinitions;
@@ -15,7 +18,6 @@ use App\Shared\Application\Tables\ArrayTableProcessor;
 use App\Shared\Application\Tables\TableRequestContext;
 use App\Shared\Application\Tables\TableSavedViewService;
 use App\Shared\Application\Tables\TableState;
-use App\Shared\Infrastructure\Database\DatabaseTable;
 use Illuminate\Database\ConnectionInterface;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -187,9 +189,9 @@ final readonly class ManagerTimeTrackingOperationsController
     {
         $teams = [];
 
-        foreach ($this->database->table(DatabaseTable::TIME_TRACKING_USER_TEAM_SETTINGS.' as settings')
-            ->join(DatabaseTable::TEAM_USER_ASSIGNMENTS.' as assignments', 'settings.team_user_assignment_id', '=', 'assignments.id')
-            ->join(DatabaseTable::TEAMS.' as teams', 'assignments.team_id', '=', 'teams.id')
+        foreach ($this->database->table(TimeTrackingDatabaseTable::USER_TEAM_SETTINGS.' as settings')
+            ->join(TeamsDatabaseTable::TEAM_USER_ASSIGNMENTS.' as assignments', 'settings.team_user_assignment_id', '=', 'assignments.id')
+            ->join(TeamsDatabaseTable::TEAMS.' as teams', 'assignments.team_id', '=', 'teams.id')
             ->where('settings.tracking_enabled', true)
             ->distinct()
             ->orderBy('teams.name')
@@ -219,9 +221,9 @@ final readonly class ManagerTimeTrackingOperationsController
             return [];
         }
 
-        return array_values($this->database->table(DatabaseTable::TIME_TRACKING_USER_TEAM_SETTINGS.' as settings')
-            ->join(DatabaseTable::TEAM_USER_ASSIGNMENTS.' as assignments', 'settings.team_user_assignment_id', '=', 'assignments.id')
-            ->join(DatabaseTable::USERS.' as users', 'assignments.user_id', '=', 'users.id')
+        return array_values($this->database->table(TimeTrackingDatabaseTable::USER_TEAM_SETTINGS.' as settings')
+            ->join(TeamsDatabaseTable::TEAM_USER_ASSIGNMENTS.' as assignments', 'settings.team_user_assignment_id', '=', 'assignments.id')
+            ->join(IdentityDatabaseTable::USERS.' as users', 'assignments.user_id', '=', 'users.id')
             ->where('settings.tracking_enabled', true)
             ->where('assignments.team_id', $teamId)
             ->whereIn('users.public_id', $visibleUserPublicIds)
@@ -253,10 +255,10 @@ final readonly class ManagerTimeTrackingOperationsController
         }
 
         $selectedUserPublicId = $this->stringValue($request->query('user'));
-        $query = $this->database->table(DatabaseTable::TIME_TRACKING_USER_TEAM_SETTINGS.' as settings')
-            ->join(DatabaseTable::TEAM_USER_ASSIGNMENTS.' as assignments', 'settings.team_user_assignment_id', '=', 'assignments.id')
-            ->join(DatabaseTable::USERS.' as users', 'assignments.user_id', '=', 'users.id')
-            ->join(DatabaseTable::TEAMS.' as teams', 'assignments.team_id', '=', 'teams.id')
+        $query = $this->database->table(TimeTrackingDatabaseTable::USER_TEAM_SETTINGS.' as settings')
+            ->join(TeamsDatabaseTable::TEAM_USER_ASSIGNMENTS.' as assignments', 'settings.team_user_assignment_id', '=', 'assignments.id')
+            ->join(IdentityDatabaseTable::USERS.' as users', 'assignments.user_id', '=', 'users.id')
+            ->join(TeamsDatabaseTable::TEAMS.' as teams', 'assignments.team_id', '=', 'teams.id')
             ->where('settings.tracking_enabled', true)
             ->where('assignments.team_id', $teamId)
             ->whereIn('users.public_id', $scope->visibleUserPublicIds);
@@ -386,8 +388,8 @@ final readonly class ManagerTimeTrackingOperationsController
 
         $categories = [];
 
-        foreach ($this->database->table(DatabaseTable::TIME_TRACKING_OTHER_WORK_CATEGORIES.' as categories')
-            ->join(DatabaseTable::TEAMS.' as teams', 'categories.scope_id', '=', 'teams.id')
+        foreach ($this->database->table(TimeTrackingDatabaseTable::OTHER_WORK_CATEGORIES.' as categories')
+            ->join(TeamsDatabaseTable::TEAMS.' as teams', 'categories.scope_id', '=', 'teams.id')
             ->where('categories.scope_type', 'team')
             ->whereIn('teams.public_id', $teamPublicIds)
             ->orderBy('categories.label_pl')
@@ -430,7 +432,7 @@ final readonly class ManagerTimeTrackingOperationsController
             return 0;
         }
 
-        $id = $this->database->table(DatabaseTable::TEAMS)
+        $id = $this->database->table(TeamsDatabaseTable::TEAMS)
             ->where('public_id', $teamPublicId)
             ->value('id');
 

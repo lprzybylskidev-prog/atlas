@@ -7,13 +7,14 @@ namespace App\Modules\Optional\Integrations\Infrastructure\Runtime;
 use App\Modules\Core\Audit\Application\Public\Contracts\AuditRecorder;
 use App\Modules\Core\Audit\Application\Public\DTOs\AuditEvent;
 use App\Modules\Core\Audit\Application\Public\Enums\SecurityAuditCategory;
+use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
 use App\Modules\Optional\Integrations\Application\DTOs\IntegrationExecutionResult;
 use App\Modules\Optional\Integrations\Application\DTOs\IntegrationRetryPolicy;
 use App\Modules\Optional\Integrations\Application\Enums\IntegrationCircuitState;
 use App\Modules\Optional\Integrations\Application\Enums\IntegrationRunStatus;
 use App\Modules\Optional\Integrations\Application\Public\Contracts\IntegrationIdempotencyStore;
 use App\Modules\Optional\Integrations\Application\Public\Contracts\SynchronizationHistory;
-use App\Shared\Infrastructure\Database\DatabaseTable;
+use App\Modules\Optional\Integrations\Application\Public\Persistence\IntegrationsDatabaseTable;
 use App\Shared\Infrastructure\Operations\OperationalModuleGuard;
 use Closure;
 use Illuminate\Database\ConnectionInterface;
@@ -124,7 +125,7 @@ final readonly class IntegrationOperationRunner
 
     private function assertCircuitAllows(string $integrationKey, string $operationName): void
     {
-        $row = $this->db->table(DatabaseTable::INTEGRATION_CIRCUIT_BREAKERS)
+        $row = $this->db->table(IntegrationsDatabaseTable::CIRCUIT_BREAKERS)
             ->where('integration_key', $integrationKey)
             ->where('operation', $operationName)
             ->first();
@@ -136,7 +137,7 @@ final readonly class IntegrationOperationRunner
         $openedUntil = $row->opened_until ?? null;
 
         if (is_scalar($openedUntil) && now()->greaterThan((string) $openedUntil)) {
-            $this->db->table(DatabaseTable::INTEGRATION_CIRCUIT_BREAKERS)->where('id', $row->id)->update([
+            $this->db->table(IntegrationsDatabaseTable::CIRCUIT_BREAKERS)->where('id', $row->id)->update([
                 'state' => IntegrationCircuitState::HalfOpen->value,
                 'updated_at' => now(),
             ]);
@@ -149,7 +150,7 @@ final readonly class IntegrationOperationRunner
 
     private function recordSuccess(string $integrationKey, string $operationName): void
     {
-        $this->db->table(DatabaseTable::INTEGRATION_CIRCUIT_BREAKERS)->upsert([
+        $this->db->table(IntegrationsDatabaseTable::CIRCUIT_BREAKERS)->upsert([
             [
                 'integration_key' => $integrationKey,
                 'operation' => $operationName,
@@ -163,7 +164,7 @@ final readonly class IntegrationOperationRunner
             ],
         ], ['integration_key', 'operation'], ['state', 'failure_count', 'opened_until', 'last_success_at', 'last_error_message', 'updated_at']);
 
-        $this->db->table(DatabaseTable::INTEGRATION_CONNECTIONS)->where('integration_key', $integrationKey)->update([
+        $this->db->table(IntegrationsDatabaseTable::CONNECTIONS)->where('integration_key', $integrationKey)->update([
             'last_success_at' => now(),
             'last_error_message' => null,
             'updated_at' => now(),
@@ -183,14 +184,14 @@ final readonly class IntegrationOperationRunner
 
     private function recordFailure(string $integrationKey, string $operationName, string $message, IntegrationRetryPolicy $policy): void
     {
-        $row = $this->db->table(DatabaseTable::INTEGRATION_CIRCUIT_BREAKERS)
+        $row = $this->db->table(IntegrationsDatabaseTable::CIRCUIT_BREAKERS)
             ->where('integration_key', $integrationKey)
             ->where('operation', $operationName)
             ->first();
         $failures = is_object($row) && is_numeric($row->failure_count ?? null) ? (int) $row->failure_count + 1 : 1;
         $state = $failures >= $policy->circuitFailureThreshold ? IntegrationCircuitState::Open : IntegrationCircuitState::Closed;
 
-        $this->db->table(DatabaseTable::INTEGRATION_CIRCUIT_BREAKERS)->upsert([
+        $this->db->table(IntegrationsDatabaseTable::CIRCUIT_BREAKERS)->upsert([
             [
                 'integration_key' => $integrationKey,
                 'operation' => $operationName,
@@ -204,7 +205,7 @@ final readonly class IntegrationOperationRunner
             ],
         ], ['integration_key', 'operation'], ['state', 'failure_count', 'opened_until', 'last_failure_at', 'last_error_message', 'updated_at']);
 
-        $this->db->table(DatabaseTable::INTEGRATION_CONNECTIONS)->where('integration_key', $integrationKey)->update([
+        $this->db->table(IntegrationsDatabaseTable::CONNECTIONS)->where('integration_key', $integrationKey)->update([
             'last_error_at' => now(),
             'last_error_message' => mb_substr($message, 0, 1000),
             'updated_at' => now(),
@@ -216,7 +217,7 @@ final readonly class IntegrationOperationRunner
      */
     private function audit(string $integrationKey, string $action, string $result, ?int $teamId, array $context = []): void
     {
-        $teamPublicId = $teamId === null ? null : $this->publicId(DatabaseTable::TEAMS, $teamId);
+        $teamPublicId = $teamId === null ? null : $this->publicId(TeamsDatabaseTable::TEAMS, $teamId);
 
         $this->audit->record(new AuditEvent(
             module: 'integrations',

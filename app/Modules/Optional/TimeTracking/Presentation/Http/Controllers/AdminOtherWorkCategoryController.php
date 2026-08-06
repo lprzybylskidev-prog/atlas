@@ -5,10 +5,11 @@ declare(strict_types=1);
 namespace App\Modules\Optional\TimeTracking\Presentation\Http\Controllers;
 
 use App\Modules\Core\Teams\Application\Public\Contracts\ManagerHierarchy;
+use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
 use App\Modules\Optional\TimeTracking\Application\Permissions\TimeTrackingPermissionCatalog;
+use App\Modules\Optional\TimeTracking\Application\Public\Persistence\TimeTrackingDatabaseTable;
 use App\Modules\Optional\TimeTracking\Application\TimeTrackingModuleAccess;
 use App\Modules\Optional\TimeTracking\Application\UserTimeReportService;
-use App\Shared\Infrastructure\Database\DatabaseTable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
@@ -54,7 +55,7 @@ final readonly class AdminOtherWorkCategoryController
         $userPublicId = data_get($request->user(), 'public_id');
         $teamPublicId = $this->activeTeamPublicId($request);
         $teamId = is_string($teamPublicId)
-            ? DB::table(DatabaseTable::TEAMS)->where('public_id', $teamPublicId)->value('id')
+            ? DB::table(TeamsDatabaseTable::TEAMS)->where('public_id', $teamPublicId)->value('id')
             : null;
 
         $this->access->ensureAllowed(
@@ -89,7 +90,7 @@ final readonly class AdminOtherWorkCategoryController
         foreach ($this->teamOptions($request) as $team) {
             $publicId = $this->stringValue($team['publicId']);
             $name = $this->stringValue($team['name']);
-            $id = DB::table(DatabaseTable::TEAMS)->where('public_id', $publicId)->value('id');
+            $id = DB::table(TeamsDatabaseTable::TEAMS)->where('public_id', $publicId)->value('id');
 
             if ($publicId !== '' && is_numeric($id)) {
                 $teams[$publicId] = ['id' => (int) $id, 'name' => $name];
@@ -143,7 +144,7 @@ final readonly class AdminOtherWorkCategoryController
             $teamsById[$team['id']] = ['publicId' => $publicId, 'name' => $team['name']];
         }
 
-        $query = DB::table(DatabaseTable::TIME_TRACKING_OTHER_WORK_CATEGORIES)
+        $query = DB::table(TimeTrackingDatabaseTable::OTHER_WORK_CATEGORIES)
             ->where('scope_type', 'team')
             ->whereIn('scope_id', array_keys($teamsById));
 

@@ -4,18 +4,19 @@ declare(strict_types=1);
 
 namespace App\Modules\Core\Teams\Presentation\Http\Controllers;
 
+use App\Modules\Core\Identity\Application\Public\Persistence\IdentityDatabaseTable;
 use App\Modules\Core\Teams\Application\Exceptions\ManagerHierarchyViolation;
 use App\Modules\Core\Teams\Application\Public\Contracts\ManagerHierarchy;
 use App\Modules\Core\Teams\Application\Public\Contracts\UserTeamMembershipManager;
 use App\Modules\Core\Teams\Application\Public\DTOs\ManagerHierarchyNode;
 use App\Modules\Core\Teams\Application\Public\DTOs\ManagerImpactPreview;
 use App\Modules\Core\Teams\Application\Public\DTOs\ManagerRelationshipSummary;
+use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
 use App\Shared\Application\Tables\AdminTableDefinitions;
 use App\Shared\Application\Tables\ArrayTableProcessor;
 use App\Shared\Application\Tables\TableRequestContext;
 use App\Shared\Application\Tables\TableSavedViewService;
 use App\Shared\Application\Tables\TableState;
-use App\Shared\Infrastructure\Database\DatabaseTable;
 use App\Shared\Presentation\Support\FlashMessage;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Http\RedirectResponse;
@@ -540,9 +541,9 @@ final class ManagerHierarchyAdministrationController
     {
         $members = [];
 
-        foreach (DB::table(DatabaseTable::TEAM_USER_ASSIGNMENTS.' as assignments')
-            ->join(DatabaseTable::TEAMS.' as teams', 'assignments.team_id', '=', 'teams.id')
-            ->join(DatabaseTable::USERS.' as users', 'assignments.user_id', '=', 'users.id')
+        foreach (DB::table(TeamsDatabaseTable::TEAM_USER_ASSIGNMENTS.' as assignments')
+            ->join(TeamsDatabaseTable::TEAMS.' as teams', 'assignments.team_id', '=', 'teams.id')
+            ->join(IdentityDatabaseTable::USERS.' as users', 'assignments.user_id', '=', 'users.id')
             ->where('teams.public_id', $teamPublicId)
             ->where(static function (Builder $query): void {
                 $query->whereNull('assignments.valid_from')->orWhere('assignments.valid_from', '<=', now());

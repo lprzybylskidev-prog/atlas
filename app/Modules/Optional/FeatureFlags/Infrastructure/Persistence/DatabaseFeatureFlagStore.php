@@ -6,12 +6,13 @@ namespace App\Modules\Optional\FeatureFlags\Infrastructure\Persistence;
 
 use App\Modules\Core\Audit\Application\Public\Contracts\AuditRecorder;
 use App\Modules\Core\Audit\Application\Public\DTOs\AuditEvent;
+use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
 use App\Modules\Optional\FeatureFlags\Application\Contracts\FeatureFlagRegistry;
 use App\Modules\Optional\FeatureFlags\Application\Contracts\FeatureFlagStore;
 use App\Modules\Optional\FeatureFlags\Application\DTOs\FeatureFlagDefinition;
 use App\Modules\Optional\FeatureFlags\Application\DTOs\FeatureFlagState;
 use App\Modules\Optional\FeatureFlags\Application\Enums\FeatureFlagKey;
-use App\Shared\Infrastructure\Database\DatabaseTable;
+use App\Modules\Optional\FeatureFlags\Application\Public\Persistence\FeatureFlagsDatabaseTable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
@@ -49,7 +50,7 @@ final readonly class DatabaseFeatureFlagStore implements FeatureFlagStore
         $after = ['enabled' => $enabled];
 
         DB::transaction(function () use ($definition, $after, $before, $actorPublicId, $reason): void {
-            DB::table(DatabaseTable::FEATURE_FLAG_GLOBAL_VALUES)->updateOrInsert(
+            DB::table(FeatureFlagsDatabaseTable::GLOBAL_VALUES)->updateOrInsert(
                 ['flag_key' => $definition->key->value],
                 [
                     'public_id' => (string) Str::ulid(),
@@ -78,7 +79,7 @@ final readonly class DatabaseFeatureFlagStore implements FeatureFlagStore
         $after = ['enabled' => $enabled];
 
         DB::transaction(function () use ($definition, $teamId, $teamPublicId, $after, $before, $actorPublicId, $reason): void {
-            DB::table(DatabaseTable::FEATURE_FLAG_TEAM_VALUES)->updateOrInsert(
+            DB::table(FeatureFlagsDatabaseTable::TEAM_VALUES)->updateOrInsert(
                 ['flag_key' => $definition->key->value, 'team_id' => $teamId],
                 [
                     'public_id' => (string) Str::ulid(),
@@ -102,7 +103,7 @@ final readonly class DatabaseFeatureFlagStore implements FeatureFlagStore
         $before = $this->teamValue($definition, $teamPublicId);
 
         DB::transaction(function () use ($definition, $teamId, $teamPublicId, $before, $actorPublicId, $reason): void {
-            DB::table(DatabaseTable::FEATURE_FLAG_TEAM_VALUES)
+            DB::table(FeatureFlagsDatabaseTable::TEAM_VALUES)
                 ->where('flag_key', $definition->key->value)
                 ->where('team_id', $teamId)
                 ->delete();
@@ -113,8 +114,8 @@ final readonly class DatabaseFeatureFlagStore implements FeatureFlagStore
 
     public function recentHistory(int $limit = 50): array
     {
-        $history = DB::table(DatabaseTable::FEATURE_FLAG_HISTORY)
-            ->leftJoin(DatabaseTable::TEAMS, 'feature_flag_history.team_id', '=', 'teams.id')
+        $history = DB::table(FeatureFlagsDatabaseTable::HISTORY)
+            ->leftJoin(TeamsDatabaseTable::TEAMS, 'feature_flag_history.team_id', '=', 'teams.id')
             ->orderByDesc('feature_flag_history.created_at')
             ->limit($limit)
             ->get([
@@ -166,7 +167,7 @@ final readonly class DatabaseFeatureFlagStore implements FeatureFlagStore
      */
     private function globalValue(FeatureFlagDefinition $definition): ?array
     {
-        return $this->decode(DB::table(DatabaseTable::FEATURE_FLAG_GLOBAL_VALUES)
+        return $this->decode(DB::table(FeatureFlagsDatabaseTable::GLOBAL_VALUES)
             ->where('flag_key', $definition->key->value)
             ->value('value'));
     }
@@ -176,8 +177,8 @@ final readonly class DatabaseFeatureFlagStore implements FeatureFlagStore
      */
     private function teamValue(FeatureFlagDefinition $definition, string $teamPublicId): ?array
     {
-        return $this->decode(DB::table(DatabaseTable::FEATURE_FLAG_TEAM_VALUES)
-            ->join(DatabaseTable::TEAMS, 'feature_flag_team_values.team_id', '=', 'teams.id')
+        return $this->decode(DB::table(FeatureFlagsDatabaseTable::TEAM_VALUES)
+            ->join(TeamsDatabaseTable::TEAMS, 'feature_flag_team_values.team_id', '=', 'teams.id')
             ->where('feature_flag_team_values.flag_key', $definition->key->value)
             ->where('teams.public_id', $teamPublicId)
             ->value('feature_flag_team_values.value'));
@@ -185,7 +186,7 @@ final readonly class DatabaseFeatureFlagStore implements FeatureFlagStore
 
     private function teamId(string $teamPublicId): int
     {
-        $teamId = DB::table(DatabaseTable::TEAMS)->where('public_id', $teamPublicId)->value('id');
+        $teamId = DB::table(TeamsDatabaseTable::TEAMS)->where('public_id', $teamPublicId)->value('id');
 
         if (! is_int($teamId)) {
             throw new InvalidArgumentException('Team was not found.');
@@ -267,7 +268,7 @@ final readonly class DatabaseFeatureFlagStore implements FeatureFlagStore
     ): void {
         $teamId = $teamPublicId === null ? null : $this->teamId($teamPublicId);
 
-        DB::table(DatabaseTable::FEATURE_FLAG_HISTORY)->insert([
+        DB::table(FeatureFlagsDatabaseTable::HISTORY)->insert([
             'public_id' => (string) Str::ulid(),
             'flag_key' => $definition->key->value,
             'scope' => $scope,

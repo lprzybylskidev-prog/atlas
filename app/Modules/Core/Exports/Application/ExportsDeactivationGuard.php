@@ -5,12 +5,12 @@ declare(strict_types=1);
 namespace App\Modules\Core\Exports\Application;
 
 use App\Modules\Core\Exports\Application\Enums\ReportExportStatus;
+use App\Modules\Core\Exports\Application\Public\Persistence\ExportsDatabaseTable;
 use App\Shared\Application\Modules\Contracts\ModuleDeactivationGuard;
 use App\Shared\Application\Modules\ModuleDeactivationAssessment;
 use App\Shared\Application\Modules\ModuleDeactivationBlocker;
 use App\Shared\Application\Modules\ModuleDeactivationRequest;
 use App\Shared\Application\Modules\ModuleDeactivationSafeAction;
-use App\Shared\Infrastructure\Database\DatabaseTable;
 use Illuminate\Database\ConnectionInterface;
 
 final readonly class ExportsDeactivationGuard implements ModuleDeactivationGuard
@@ -19,7 +19,7 @@ final readonly class ExportsDeactivationGuard implements ModuleDeactivationGuard
 
     public function assess(ModuleDeactivationRequest $request): ModuleDeactivationAssessment
     {
-        $exportRequest = $this->database->table(DatabaseTable::REPORT_EXPORT_REQUESTS)
+        $exportRequest = $this->database->table(ExportsDatabaseTable::REPORT_EXPORT_REQUESTS)
             ->where('module_key', $request->moduleKey->value)
             ->whereIn('status', [
                 ReportExportStatus::Requested->value,

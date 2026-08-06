@@ -7,8 +7,9 @@ namespace App\Modules\Optional\ManagedProcesses\Application\Exports;
 use App\Modules\Core\Exports\Application\Public\AbstractAdminDataTableExportProvider;
 use App\Modules\Core\Exports\Application\Public\DTOs\ReportExportGenerationRequest;
 use App\Modules\Core\Exports\Application\Public\Permissions\ReportsPermissionCatalog;
+use App\Modules\Optional\Imports\Application\Public\Persistence\ImportsDatabaseTable;
+use App\Modules\Optional\ManagedProcesses\Application\Public\Persistence\ManagedProcessesDatabaseTable;
 use App\Shared\Application\Tables\AdminTableDefinitions;
-use App\Shared\Infrastructure\Database\DatabaseTable;
 use Illuminate\Support\Facades\DB;
 
 final readonly class AdminImportRowErrorsDataTableExportProvider extends AbstractAdminDataTableExportProvider
@@ -60,9 +61,9 @@ final readonly class AdminImportRowErrorsDataTableExportProvider extends Abstrac
             return;
         }
 
-        $rows = DB::table(DatabaseTable::IMPORT_ROW_ERRORS)
-            ->join(DatabaseTable::IMPORT_EXECUTIONS, 'import_row_errors.import_execution_id', '=', 'import_executions.id')
-            ->join(DatabaseTable::MANAGED_PROCESS_RUNS, 'import_executions.process_run_id', '=', 'process_runs.id')
+        $rows = DB::table(ImportsDatabaseTable::ROW_ERRORS)
+            ->join(ImportsDatabaseTable::EXECUTIONS, 'import_row_errors.import_execution_id', '=', 'import_executions.id')
+            ->join(ManagedProcessesDatabaseTable::RUNS, 'import_executions.process_run_id', '=', 'process_runs.id')
             ->where('process_runs.public_id', $runPublicId)
             ->orderBy('import_row_errors.row_number')
             ->get([

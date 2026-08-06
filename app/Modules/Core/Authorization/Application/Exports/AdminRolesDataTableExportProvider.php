@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace App\Modules\Core\Authorization\Application\Exports;
 
+use App\Modules\Core\Authorization\Application\Public\Persistence\AuthorizationDatabaseTable;
 use App\Modules\Core\Exports\Application\Public\AbstractAdminDataTableExportProvider;
 use App\Modules\Core\Exports\Application\Public\DTOs\ReportExportGenerationRequest;
 use App\Modules\Core\Exports\Application\Public\Permissions\ReportsPermissionCatalog;
 use App\Shared\Application\Tables\AdminTableDefinitions;
-use App\Shared\Infrastructure\Database\DatabaseTable;
 use Illuminate\Support\Facades\DB;
 
 final readonly class AdminRolesDataTableExportProvider extends AbstractAdminDataTableExportProvider
@@ -55,8 +55,8 @@ final readonly class AdminRolesDataTableExportProvider extends AbstractAdminData
 
     public function rows(ReportExportGenerationRequest $request): iterable
     {
-        $rows = array_values(DB::table(DatabaseTable::ROLES)
-            ->leftJoin(DatabaseTable::ROLE_HAS_PERMISSIONS, 'roles.id', '=', 'role_has_permissions.role_id')
+        $rows = array_values(DB::table(AuthorizationDatabaseTable::ROLES)
+            ->leftJoin(AuthorizationDatabaseTable::ROLE_HAS_PERMISSIONS, 'roles.id', '=', 'role_has_permissions.role_id')
             ->select(
                 'roles.id',
                 'roles.public_id',
@@ -66,7 +66,7 @@ final readonly class AdminRolesDataTableExportProvider extends AbstractAdminData
                 'roles.created_at',
                 'roles.updated_at',
                 DB::raw('count(role_has_permissions.permission_id) as permissions_count'),
-                DB::raw('(select count(*) from '.DatabaseTable::MODEL_HAS_ROLES.' where model_has_roles.role_id = roles.id) as assigned_users_count'),
+                DB::raw('(select count(*) from '.AuthorizationDatabaseTable::MODEL_HAS_ROLES.' where model_has_roles.role_id = roles.id) as assigned_users_count'),
             )
             ->groupBy('roles.id', 'roles.public_id', 'roles.name', 'roles.display_name', 'roles.guard_name', 'roles.created_at', 'roles.updated_at')
             ->get()

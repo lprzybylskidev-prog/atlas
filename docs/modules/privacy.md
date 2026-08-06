@@ -66,6 +66,8 @@ Preview routes already require the matching high-risk administrative operation f
 - `hard_delete` for hard-delete previews;
 - `irreversible_anonymization` for anonymization previews.
 
+Privacy owns its high-risk reauthentication continuation payload. Before a preview request is redirected to password confirmation, the Privacy continuation validates the preview request, stores only the allowlisted preview fields, flashes the same fields for the form, and lets the generic high-risk middleware remain unaware of Privacy route names and form fields. The recovered payload is consumed once by the Privacy preview flow and cleared after the preview is created.
+
 Execution routes use the same high-risk administrative operation freshness and are intentionally separate from preview routes:
 
 - `POST /admin/privacy-retention/hard-delete/{operation}/execute`;

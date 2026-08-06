@@ -7,10 +7,15 @@ namespace App\Modules\Optional\ManagedProcesses\Presentation\Http\Controllers;
 use App\Modules\Core\Audit\Application\Public\Contracts\AuditRecorder;
 use App\Modules\Core\Audit\Application\Public\DTOs\AuditEvent;
 use App\Modules\Core\Files\Application\Public\Contracts\FileStorage;
+use App\Modules\Core\Files\Application\Public\Persistence\FilesDatabaseTable;
+use App\Modules\Core\Identity\Application\Public\Persistence\IdentityDatabaseTable;
+use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
+use App\Modules\Optional\Imports\Application\Public\Persistence\ImportsDatabaseTable;
 use App\Modules\Optional\ManagedProcesses\Application\Contracts\ProcessDefinitionRegistry;
 use App\Modules\Optional\ManagedProcesses\Application\Enums\ProcessRunStatus;
 use App\Modules\Optional\ManagedProcesses\Application\Public\Contracts\ManagedProcessRunner;
 use App\Modules\Optional\ManagedProcesses\Application\Public\DTOs\ProcessDefinition;
+use App\Modules\Optional\ManagedProcesses\Application\Public\Persistence\ManagedProcessesDatabaseTable;
 use App\Shared\Application\Tables\AdminTableDefinitions;
 use App\Shared\Application\Tables\ArrayTableProcessor;
 use App\Shared\Application\Tables\TableDefinition;
@@ -18,7 +23,6 @@ use App\Shared\Application\Tables\TableRequestContext;
 use App\Shared\Application\Tables\TableResult;
 use App\Shared\Application\Tables\TableSavedViewService;
 use App\Shared\Application\Tables\TableState;
-use App\Shared\Infrastructure\Database\DatabaseTable;
 use App\Shared\Presentation\Support\AdminDataTableExportMeta;
 use App\Shared\Presentation\Support\FlashMessage;
 use Illuminate\Database\Query\Builder;
@@ -83,11 +87,11 @@ final readonly class AdminManagedProcessesController
 
     public function show(Request $request, string $run): Response
     {
-        $record = DB::table(DatabaseTable::MANAGED_PROCESS_RUNS.' as process_runs')
-            ->leftJoin(DatabaseTable::USERS, 'process_runs.actor_user_id', '=', 'users.id')
-            ->leftJoin(DatabaseTable::TEAMS, 'process_runs.team_id', '=', 'teams.id')
-            ->leftJoin(DatabaseTable::MANAGED_PROCESS_RUN_ACKNOWLEDGEMENTS.' as acknowledgements', 'acknowledgements.process_run_id', '=', 'process_runs.id')
-            ->leftJoin(DatabaseTable::USERS.' as acknowledged_users', 'acknowledged_users.id', '=', 'acknowledgements.acknowledged_by_user_id')
+        $record = DB::table(ManagedProcessesDatabaseTable::RUNS.' as process_runs')
+            ->leftJoin(IdentityDatabaseTable::USERS, 'process_runs.actor_user_id', '=', 'users.id')
+            ->leftJoin(TeamsDatabaseTable::TEAMS, 'process_runs.team_id', '=', 'teams.id')
+            ->leftJoin(ManagedProcessesDatabaseTable::RUN_ACKNOWLEDGEMENTS.' as acknowledgements', 'acknowledgements.process_run_id', '=', 'process_runs.id')
+            ->leftJoin(IdentityDatabaseTable::USERS.' as acknowledged_users', 'acknowledged_users.id', '=', 'acknowledgements.acknowledged_by_user_id')
             ->where('process_runs.public_id', $run)
             ->first([
                 'process_runs.*',
@@ -248,7 +252,7 @@ final readonly class AdminManagedProcessesController
     public function acknowledge(Request $request): RedirectResponse
     {
         $validated = $this->validatedAcknowledge($request);
-        $runs = DB::table(DatabaseTable::MANAGED_PROCESS_RUNS)
+        $runs = DB::table(ManagedProcessesDatabaseTable::RUNS)
             ->whereIn('public_id', $validated['runs'])
             ->orderByDesc('created_at')
             ->get(['id', 'public_id', 'process_key', 'module_key', 'status'])
@@ -291,8 +295,8 @@ final readonly class AdminManagedProcessesController
             )),
             'schedules' => $result->rows,
             'summary' => [
-                'schedules' => (int) DB::table(DatabaseTable::MANAGED_PROCESS_SCHEDULES)->where('enabled', true)->count(),
-                'disabled' => (int) DB::table(DatabaseTable::MANAGED_PROCESS_SCHEDULES)->where('enabled', false)->count(),
+                'schedules' => (int) DB::table(ManagedProcessesDatabaseTable::SCHEDULES)->where('enabled', true)->count(),
+                'disabled' => (int) DB::table(ManagedProcessesDatabaseTable::SCHEDULES)->where('enabled', false)->count(),
             ],
             'filterOptions' => $this->scheduleFilterOptions(),
             'table' => $table,
@@ -351,7 +355,7 @@ final readonly class AdminManagedProcessesController
             ];
         }
 
-        DB::table(DatabaseTable::MANAGED_PROCESS_SCHEDULES)->insert([
+        DB::table(ManagedProcessesDatabaseTable::SCHEDULES)->insert([
             'public_id' => (string) Str::ulid(),
             'process_key' => $definition->key,
             'module_key' => $definition->moduleKey,
@@ -381,7 +385,7 @@ final readonly class AdminManagedProcessesController
     {
         $validated = $this->stringKeyedArray($request->validate(['reason' => ['nullable', 'string', 'max:1000']]));
 
-        DB::table(DatabaseTable::MANAGED_PROCESS_SCHEDULES)
+        DB::table(ManagedProcessesDatabaseTable::SCHEDULES)
             ->where('public_id', $schedule)
             ->update([
                 'enabled' => false,
@@ -610,13 +614,13 @@ final readonly class AdminManagedProcessesController
      */
     private function runs(): array
     {
-        return array_values(DB::table(DatabaseTable::MANAGED_PROCESS_RUNS.' as process_runs')
-            ->leftJoin(DatabaseTable::USERS, 'process_runs.actor_user_id', '=', 'users.id')
-            ->leftJoin(DatabaseTable::TEAMS, 'process_runs.team_id', '=', 'teams.id')
-            ->leftJoin(DatabaseTable::IMPORT_EXECUTIONS, 'import_executions.process_run_id', '=', 'process_runs.id')
-            ->leftJoin(DatabaseTable::FILE_OBJECTS, 'import_executions.file_object_id', '=', 'file_objects.id')
-            ->leftJoin(DatabaseTable::MANAGED_PROCESS_RUN_ACKNOWLEDGEMENTS.' as acknowledgements', 'acknowledgements.process_run_id', '=', 'process_runs.id')
-            ->leftJoin(DatabaseTable::USERS.' as acknowledged_users', 'acknowledged_users.id', '=', 'acknowledgements.acknowledged_by_user_id')
+        return array_values(DB::table(ManagedProcessesDatabaseTable::RUNS.' as process_runs')
+            ->leftJoin(IdentityDatabaseTable::USERS, 'process_runs.actor_user_id', '=', 'users.id')
+            ->leftJoin(TeamsDatabaseTable::TEAMS, 'process_runs.team_id', '=', 'teams.id')
+            ->leftJoin(ImportsDatabaseTable::EXECUTIONS, 'import_executions.process_run_id', '=', 'process_runs.id')
+            ->leftJoin(FilesDatabaseTable::FILE_OBJECTS, 'import_executions.file_object_id', '=', 'file_objects.id')
+            ->leftJoin(ManagedProcessesDatabaseTable::RUN_ACKNOWLEDGEMENTS.' as acknowledgements', 'acknowledgements.process_run_id', '=', 'process_runs.id')
+            ->leftJoin(IdentityDatabaseTable::USERS.' as acknowledged_users', 'acknowledged_users.id', '=', 'acknowledgements.acknowledged_by_user_id')
             ->orderByDesc('process_runs.created_at')
             ->limit(80)
             ->get([
@@ -694,7 +698,7 @@ final readonly class AdminManagedProcessesController
             'stage' => $this->oneOf($request->query('stage'), $this->allOr($this->distinctLogValues($runId, 'stage'))),
         ];
 
-        return DB::table(DatabaseTable::MANAGED_PROCESS_LOG_EVENTS)
+        return DB::table(ManagedProcessesDatabaseTable::LOG_EVENTS)
             ->where('process_run_id', $runId)
             ->orderBy('occurred_at')
             ->get()
@@ -733,7 +737,7 @@ final readonly class AdminManagedProcessesController
      */
     private function importExecution(int $runId): ?array
     {
-        $execution = DB::table(DatabaseTable::IMPORT_EXECUTIONS)->where('process_run_id', $runId)->first();
+        $execution = DB::table(ImportsDatabaseTable::EXECUTIONS)->where('process_run_id', $runId)->first();
 
         if (! is_object($execution)) {
             return null;
@@ -750,7 +754,7 @@ final readonly class AdminManagedProcessesController
             'statistics' => $this->decode($execution->statistics ?? null),
             'idempotencyKey' => $this->string($execution->idempotency_key ?? null),
             'idempotencyState' => $this->stringValue($execution->idempotency_state ?? null),
-            'errors' => DB::table(DatabaseTable::IMPORT_ROW_ERRORS)
+            'errors' => DB::table(ImportsDatabaseTable::ROW_ERRORS)
                 ->where('import_execution_id', $this->intValue($execution->id ?? null))
                 ->orderBy('row_number')
                 ->get()
@@ -772,8 +776,8 @@ final readonly class AdminManagedProcessesController
      */
     private function scheduleRows(): array
     {
-        return array_values(DB::table(DatabaseTable::MANAGED_PROCESS_SCHEDULES)
-            ->leftJoin(DatabaseTable::TEAMS, 'process_schedules.team_id', '=', 'teams.id')
+        return array_values(DB::table(ManagedProcessesDatabaseTable::SCHEDULES)
+            ->leftJoin(TeamsDatabaseTable::TEAMS, 'process_schedules.team_id', '=', 'teams.id')
             ->orderByDesc('process_schedules.created_at')
             ->get(['process_schedules.*', 'teams.name as team_name'])
             ->map(fn (object $schedule): array => [
@@ -801,18 +805,18 @@ final readonly class AdminManagedProcessesController
     private function summary(): array
     {
         return [
-            'active' => (int) DB::table(DatabaseTable::MANAGED_PROCESS_RUNS)->whereIn('status', ['draft', 'queued', 'running', 'waiting'])->count(),
+            'active' => (int) DB::table(ManagedProcessesDatabaseTable::RUNS)->whereIn('status', ['draft', 'queued', 'running', 'waiting'])->count(),
             'failed24h' => (int) $this->unacknowledgedAttentionRunsQuery()->where('process_runs.status', 'failed')->where('process_runs.created_at', '>=', now()->subDay())->count(),
             'warnings24h' => (int) $this->unacknowledgedAttentionRunsQuery()->where('process_runs.status', 'succeeded_with_warnings')->where('process_runs.created_at', '>=', now()->subDay())->count(),
-            'handled' => (int) DB::table(DatabaseTable::MANAGED_PROCESS_RUN_ACKNOWLEDGEMENTS)->count(),
-            'imports' => (int) DB::table(DatabaseTable::IMPORT_EXECUTIONS)->count(),
+            'handled' => (int) DB::table(ManagedProcessesDatabaseTable::RUN_ACKNOWLEDGEMENTS)->count(),
+            'imports' => (int) DB::table(ImportsDatabaseTable::EXECUTIONS)->count(),
         ];
     }
 
     private function unacknowledgedAttentionRunsQuery(): Builder
     {
-        return DB::table(DatabaseTable::MANAGED_PROCESS_RUNS.' as process_runs')
-            ->leftJoin(DatabaseTable::MANAGED_PROCESS_RUN_ACKNOWLEDGEMENTS.' as acknowledgements', 'acknowledgements.process_run_id', '=', 'process_runs.id')
+        return DB::table(ManagedProcessesDatabaseTable::RUNS.' as process_runs')
+            ->leftJoin(ManagedProcessesDatabaseTable::RUN_ACKNOWLEDGEMENTS.' as acknowledgements', 'acknowledgements.process_run_id', '=', 'process_runs.id')
             ->whereNull('acknowledgements.process_run_id');
     }
 
@@ -884,7 +888,7 @@ final readonly class AdminManagedProcessesController
      */
     private function distinctProcessRunValues(string $column): array
     {
-        return $this->distinctValues(DatabaseTable::MANAGED_PROCESS_RUNS, $column);
+        return $this->distinctValues(ManagedProcessesDatabaseTable::RUNS, $column);
     }
 
     /**
@@ -892,7 +896,7 @@ final readonly class AdminManagedProcessesController
      */
     private function distinctImportValues(string $column): array
     {
-        return $this->distinctValues(DatabaseTable::IMPORT_EXECUTIONS, $column);
+        return $this->distinctValues(ImportsDatabaseTable::EXECUTIONS, $column);
     }
 
     /**
@@ -900,7 +904,7 @@ final readonly class AdminManagedProcessesController
      */
     private function distinctScheduleValues(string $column): array
     {
-        return $this->distinctValues(DatabaseTable::MANAGED_PROCESS_SCHEDULES, $column);
+        return $this->distinctValues(ManagedProcessesDatabaseTable::SCHEDULES, $column);
     }
 
     /**
@@ -908,7 +912,7 @@ final readonly class AdminManagedProcessesController
      */
     private function distinctLogValues(int $runId, string $column): array
     {
-        return array_values(DB::table(DatabaseTable::MANAGED_PROCESS_LOG_EVENTS)
+        return array_values(DB::table(ManagedProcessesDatabaseTable::LOG_EVENTS)
             ->where('process_run_id', $runId)
             ->whereNotNull($column)
             ->distinct()
@@ -957,7 +961,7 @@ final readonly class AdminManagedProcessesController
 
         foreach ($runs as $run) {
             $runId = $this->intValue($run->id ?? null);
-            $existing = DB::table(DatabaseTable::MANAGED_PROCESS_RUN_ACKNOWLEDGEMENTS)->where('process_run_id', $runId)->exists();
+            $existing = DB::table(ManagedProcessesDatabaseTable::RUN_ACKNOWLEDGEMENTS)->where('process_run_id', $runId)->exists();
             $values = [
                 'acknowledged_by_user_id' => $actorId,
                 'reason' => $reason,
@@ -966,12 +970,12 @@ final readonly class AdminManagedProcessesController
             ];
 
             if ($existing) {
-                DB::table(DatabaseTable::MANAGED_PROCESS_RUN_ACKNOWLEDGEMENTS)->where('process_run_id', $runId)->update($values);
+                DB::table(ManagedProcessesDatabaseTable::RUN_ACKNOWLEDGEMENTS)->where('process_run_id', $runId)->update($values);
 
                 continue;
             }
 
-            DB::table(DatabaseTable::MANAGED_PROCESS_RUN_ACKNOWLEDGEMENTS)->insert($values + [
+            DB::table(ManagedProcessesDatabaseTable::RUN_ACKNOWLEDGEMENTS)->insert($values + [
                 'public_id' => (string) Str::ulid(),
                 'process_run_id' => $runId,
                 'created_at' => $now,
@@ -1094,7 +1098,7 @@ final readonly class AdminManagedProcessesController
             return null;
         }
 
-        $id = DB::table(DatabaseTable::TEAMS)->where('public_id', $publicId)->value('id');
+        $id = DB::table(TeamsDatabaseTable::TEAMS)->where('public_id', $publicId)->value('id');
 
         return is_numeric($id) ? (int) $id : null;
     }

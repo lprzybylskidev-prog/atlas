@@ -7,10 +7,11 @@ namespace App\Modules\Optional\TimeTracking\Presentation\Http\Controllers;
 use App\Modules\Core\Audit\Application\Public\Contracts\AuditRecorder;
 use App\Modules\Core\Audit\Application\Public\DTOs\AuditEvent;
 use App\Modules\Core\Audit\Application\Public\Enums\SecurityAuditCategory;
+use App\Modules\Core\Identity\Application\Public\Persistence\IdentityDatabaseTable;
+use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
 use App\Modules\Optional\TimeTracking\Application\CorrectionRequestCoordinator;
 use App\Modules\Optional\TimeTracking\Application\DTOs\ClosedPeriodOverrideAuthorization;
 use App\Modules\Optional\TimeTracking\Application\DTOs\ExactTimeChange;
-use App\Shared\Infrastructure\Database\DatabaseTable;
 use App\Shared\Presentation\Support\FlashMessage;
 use DateTimeImmutable;
 use DateTimeZone;
@@ -132,7 +133,7 @@ final readonly class AdminClosedPeriodCorrectionController
 
     private function teamId(string $teamPublicId): ?int
     {
-        $id = DB::table(DatabaseTable::TEAMS)
+        $id = DB::table(TeamsDatabaseTable::TEAMS)
             ->where('public_id', $teamPublicId)
             ->where('is_active', true)
             ->value('id');
@@ -142,7 +143,7 @@ final readonly class AdminClosedPeriodCorrectionController
 
     private function userId(string $userPublicId): ?int
     {
-        $id = DB::table(DatabaseTable::USERS)
+        $id = DB::table(IdentityDatabaseTable::USERS)
             ->where('public_id', $userPublicId)
             ->value('id');
 
@@ -151,7 +152,7 @@ final readonly class AdminClosedPeriodCorrectionController
 
     private function eligibleHeadManagerExists(int $teamId): bool
     {
-        return DB::table(DatabaseTable::TEAM_USER_ASSIGNMENTS)
+        return DB::table(TeamsDatabaseTable::TEAM_USER_ASSIGNMENTS)
             ->where('team_id', $teamId)
             ->where('is_head_manager', true)
             ->where(static function (Builder $query): void {

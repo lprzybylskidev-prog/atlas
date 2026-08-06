@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use App\Modules\Core\Identity\Application\Public\Persistence\IdentityDatabaseTable;
+use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
 use App\Shared\Infrastructure\Database\DatabaseSchema;
 use App\Shared\Infrastructure\Database\DatabaseTable;
 use Illuminate\Database\Migrations\Migration;
@@ -21,7 +23,7 @@ return new class extends Migration
             $table->boolean('enabled');
             $table->timestampTz('enabled_from')->nullable();
             $table->timestampTz('disabled_from')->nullable();
-            $table->foreignId('actor_user_id')->nullable()->constrained(DatabaseTable::USERS)->restrictOnDelete();
+            $table->foreignId('actor_user_id')->nullable()->constrained(IdentityDatabaseTable::USERS)->restrictOnDelete();
             $table->text('reason');
             $table->unsignedInteger('version')->default(1);
             $table->timestampsTz();
@@ -30,11 +32,11 @@ return new class extends Migration
         Schema::create(DatabaseTable::MODULE_TEAM_STATES, static function (Blueprint $table): void {
             $table->id();
             $table->string('module_key');
-            $table->foreignId('team_id')->constrained(DatabaseTable::TEAMS)->restrictOnDelete();
+            $table->foreignId('team_id')->constrained(TeamsDatabaseTable::TEAMS)->restrictOnDelete();
             $table->boolean('enabled');
             $table->timestampTz('enabled_from')->nullable();
             $table->timestampTz('disabled_from')->nullable();
-            $table->foreignId('actor_user_id')->nullable()->constrained(DatabaseTable::USERS)->restrictOnDelete();
+            $table->foreignId('actor_user_id')->nullable()->constrained(IdentityDatabaseTable::USERS)->restrictOnDelete();
             $table->text('reason');
             $table->unsignedInteger('version')->default(1);
             $table->timestampsTz();
@@ -48,12 +50,12 @@ return new class extends Migration
             $table->ulid('public_id')->unique();
             $table->string('module_key');
             $table->string('scope');
-            $table->foreignId('team_id')->nullable()->constrained(DatabaseTable::TEAMS)->restrictOnDelete();
+            $table->foreignId('team_id')->nullable()->constrained(TeamsDatabaseTable::TEAMS)->restrictOnDelete();
             $table->boolean('target_enabled');
             $table->timestampTz('effective_at');
             $table->string('status');
-            $table->foreignId('creator_user_id')->nullable()->constrained(DatabaseTable::USERS)->restrictOnDelete();
-            $table->foreignId('cancellation_actor_user_id')->nullable()->constrained(DatabaseTable::USERS)->restrictOnDelete();
+            $table->foreignId('creator_user_id')->nullable()->constrained(IdentityDatabaseTable::USERS)->restrictOnDelete();
+            $table->foreignId('cancellation_actor_user_id')->nullable()->constrained(IdentityDatabaseTable::USERS)->restrictOnDelete();
             $table->text('reason');
             $table->text('cancellation_reason')->nullable();
             $table->text('failure_reason')->nullable();
@@ -67,12 +69,12 @@ return new class extends Migration
             $table->id();
             $table->string('module_key');
             $table->string('scope');
-            $table->foreignId('team_id')->nullable()->constrained(DatabaseTable::TEAMS)->restrictOnDelete();
+            $table->foreignId('team_id')->nullable()->constrained(TeamsDatabaseTable::TEAMS)->restrictOnDelete();
             $table->boolean('previous_enabled')->nullable();
             $table->boolean('new_enabled');
             $table->string('source');
             $table->foreignId('schedule_id')->nullable()->constrained(DatabaseTable::MODULE_ACTIVATION_SCHEDULES)->restrictOnDelete();
-            $table->foreignId('actor_user_id')->nullable()->constrained(DatabaseTable::USERS)->restrictOnDelete();
+            $table->foreignId('actor_user_id')->nullable()->constrained(IdentityDatabaseTable::USERS)->restrictOnDelete();
             $table->text('reason');
             $table->timestampTz('effective_at');
             $table->string('correlation_id')->nullable();

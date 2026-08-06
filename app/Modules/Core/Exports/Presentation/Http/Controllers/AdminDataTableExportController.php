@@ -9,8 +9,8 @@ use App\Modules\Core\Exports\Application\AdminDataTableExportSnapshotFactory;
 use App\Modules\Core\Exports\Application\Enums\ReportExportFormat;
 use App\Modules\Core\Exports\Application\Public\Contracts\ReportExportGenerationDispatcher;
 use App\Modules\Core\Exports\Application\Public\DTOs\AdminDataTableExportContext;
+use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
 use App\Shared\Application\Tables\TableState;
-use App\Shared\Infrastructure\Database\DatabaseTable;
 use App\Shared\Presentation\Support\FlashMessage;
 use DateTimeImmutable;
 use Illuminate\Http\RedirectResponse;
@@ -53,7 +53,7 @@ final readonly class AdminDataTableExportController
             $format = ReportExportFormat::from($request->string('format', ReportExportFormat::Csv->value)->toString());
             $provider = $this->providers->get($tableKey);
             $teamPublicId = $request->hasSession() ? $request->session()->get('active_team_public_id') : null;
-            $teamId = is_string($teamPublicId) ? DB::table(DatabaseTable::TEAMS)->where('public_id', $teamPublicId)->value('id') : null;
+            $teamId = is_string($teamPublicId) ? DB::table(TeamsDatabaseTable::TEAMS)->where('public_id', $teamPublicId)->value('id') : null;
             $state = TableState::fromPayload($this->payload($request), $provider->tableDefinition());
             $context = new AdminDataTableExportContext(
                 state: $state,

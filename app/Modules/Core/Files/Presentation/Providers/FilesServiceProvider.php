@@ -8,6 +8,7 @@ use App\Modules\Core\Files\Application\Contracts\MalwareScanner;
 use App\Modules\Core\Files\Application\Exports\AdminFilesDataTableExportProvider;
 use App\Modules\Core\Files\Application\Lifecycle\FileDataLifecycleParticipant;
 use App\Modules\Core\Files\Application\Permissions\FilesPermissionCatalog;
+use App\Modules\Core\Files\Application\Public\Contracts\FileAvailability;
 use App\Modules\Core\Files\Application\Public\Contracts\FileLifecycle;
 use App\Modules\Core\Files\Application\Public\Contracts\FileMaintenance;
 use App\Modules\Core\Files\Application\Public\Contracts\FileScanner;
@@ -16,6 +17,7 @@ use App\Modules\Core\Files\Infrastructure\Persistence\DatabaseFileStorage;
 use App\Modules\Core\Files\Infrastructure\Scanning\ClamAvMalwareScanner;
 use App\Modules\Core\Files\Infrastructure\Scanning\DatabaseFileScanner;
 use App\Modules\Core\Files\Infrastructure\Scanning\FakeMalwareScanner;
+use App\Modules\Core\Files\Presentation\Inertia\FilesRouteAvailability;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\ServiceProvider;
 use RuntimeException;
@@ -25,6 +27,7 @@ final class FilesServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->bind(FileStorage::class, DatabaseFileStorage::class);
+        $this->app->bind(FileAvailability::class, DatabaseFileStorage::class);
         $this->app->bind(FileLifecycle::class, DatabaseFileStorage::class);
         $this->app->bind(FileMaintenance::class, DatabaseFileStorage::class);
         $this->app->bind(FileScanner::class, DatabaseFileScanner::class);
@@ -50,6 +53,7 @@ final class FilesServiceProvider extends ServiceProvider
             throw new RuntimeException(sprintf('Unsupported Files malware scanner [%s].', $scanner));
         });
         $this->app->tag([FilesPermissionCatalog::class], 'atlas.permission_catalogs');
+        $this->app->tag([FilesRouteAvailability::class], 'atlas.inertia_route_availability');
         $this->app->tag([AdminFilesDataTableExportProvider::class], 'atlas.admin_data_table_export_providers');
         $this->app->tag([FileDataLifecycleParticipant::class], 'atlas.data_lifecycle_participants');
     }

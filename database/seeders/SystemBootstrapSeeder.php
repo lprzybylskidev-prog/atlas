@@ -9,13 +9,13 @@ use App\Modules\Core\Authorization\Application\Permissions\PermissionCatalogRegi
 use App\Modules\Core\Authorization\Application\Roles\InstallStarterRoles;
 use App\Modules\Core\Authorization\Application\Roles\StarterRoleName;
 use App\Modules\Core\Teams\Application\Public\Contracts\BootstrapTeamProvider;
+use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
 use App\Shared\Application\Modules\Activation\Contracts\ModuleActivationService;
 use App\Shared\Application\Modules\Activation\ModuleActivationChange;
 use App\Shared\Application\Modules\Activation\ModuleActivationScope;
 use App\Shared\Application\Modules\Activation\ModuleActivationSource;
 use App\Shared\Application\Modules\ModuleCategory;
 use App\Shared\Application\Modules\ModuleRegistry;
-use App\Shared\Infrastructure\Database\DatabaseTable;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 
@@ -29,7 +29,7 @@ class SystemBootstrapSeeder extends Seeder
         $this->synchronizeAdministratorRole();
 
         $team = app(BootstrapTeamProvider::class)->provide(self::ADMINISTRATION_TEAM_NAME);
-        $teamId = DB::table(DatabaseTable::TEAMS)
+        $teamId = DB::table(TeamsDatabaseTable::TEAMS)
             ->where('public_id', $team->publicId)
             ->value('id');
 

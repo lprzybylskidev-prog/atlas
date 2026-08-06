@@ -8,11 +8,11 @@ use App\Modules\Core\Exports\Application\Contracts\ReportExportRequestStore;
 use App\Modules\Core\Exports\Application\Enums\ReportExportFormat;
 use App\Modules\Core\Exports\Application\Public\DTOs\ReportExportGenerationRequest;
 use App\Modules\Core\Exports\Application\Public\Permissions\ReportsPermissionCatalog;
+use App\Modules\Core\Exports\Application\Public\Persistence\ExportsDatabaseTable;
 use App\Modules\Core\Files\Application\Public\Contracts\FileStorage;
 use App\Modules\Core\Notifications\Application\Public\Contracts\NotificationPublisher;
 use App\Modules\Core\Notifications\Application\Public\DTOs\CreateNotification;
 use App\Modules\Optional\ManagedProcesses\Application\Public\Contracts\ManagedProcessReporter;
-use App\Shared\Infrastructure\Database\DatabaseTable;
 use App\Shared\Infrastructure\Operations\OperationalModuleGuard;
 use DateTimeImmutable;
 use DateTimeInterface;
@@ -210,7 +210,7 @@ final readonly class ReportExportArtifactGenerator
 
     private function request(string $publicId): stdClass
     {
-        $request = $this->database->table(DatabaseTable::REPORT_EXPORT_REQUESTS)->where('public_id', $publicId)->first();
+        $request = $this->database->table(ExportsDatabaseTable::REPORT_EXPORT_REQUESTS)->where('public_id', $publicId)->first();
 
         if ($request instanceof stdClass) {
             return $request;

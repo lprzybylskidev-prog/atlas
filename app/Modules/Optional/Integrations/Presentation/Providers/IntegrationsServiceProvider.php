@@ -15,6 +15,7 @@ use App\Modules\Optional\Integrations\Application\Public\Contracts\IntegrationId
 use App\Modules\Optional\Integrations\Application\Public\Contracts\SynchronizationHistory;
 use App\Modules\Optional\Integrations\Infrastructure\Persistence\DatabaseIntegrationStore;
 use App\Modules\Optional\Integrations\Infrastructure\Runtime\ConfiguredIntegrationRegistry;
+use App\Modules\Optional\Integrations\Presentation\Inertia\IntegrationsRouteAvailability;
 use Illuminate\Support\ServiceProvider;
 
 final class IntegrationsServiceProvider extends ServiceProvider
@@ -27,6 +28,7 @@ final class IntegrationsServiceProvider extends ServiceProvider
         $this->app->bind(IntegrationIdempotencyStore::class, DatabaseIntegrationStore::class);
         $this->app->bind(SynchronizationHistory::class, DatabaseIntegrationStore::class);
         $this->app->tag([IntegrationsPermissionCatalog::class], 'atlas.permission_catalogs');
+        $this->app->tag([IntegrationsRouteAvailability::class], 'atlas.inertia_route_availability');
         $this->app->tag([IntegrationsDeactivationGuard::class], 'atlas.module_deactivation_guards');
         $this->app->tag([
             AdminIntegrationAdaptersDataTableExportProvider::class,

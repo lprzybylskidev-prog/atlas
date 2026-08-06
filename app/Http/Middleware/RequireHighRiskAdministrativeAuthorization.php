@@ -6,18 +6,17 @@ namespace App\Http\Middleware;
 
 use App\Modules\Core\Identity\Application\Admin\AdministrativeSessionManager;
 use App\Modules\Core\Identity\Application\Admin\HighRiskAdministrativeOperation;
-use App\Modules\Core\Privacy\Presentation\Http\PrivacyPreviewInput;
+use App\Shared\Presentation\Http\Contracts\HighRiskReauthenticationContinuation;
 use Closure;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Validator;
 use Symfony\Component\HttpFoundation\Response;
 
 final readonly class RequireHighRiskAdministrativeAuthorization
 {
-    private const RECOVERABLE_INPUT = 'atlas_high_risk_recoverable_input';
-
     public function __construct(
         private AdministrativeSessionManager $adminMode,
+        /** @var iterable<mixed> */
+        private iterable $continuations = [],
     ) {}
 
     /**
@@ -39,8 +38,7 @@ final readonly class RequireHighRiskAdministrativeAuthorization
             if ($request->hasSession()) {
                 $request->session()->put(AdministrativeSessionManager::PENDING_REAUTHENTICATION, AdministrativeSessionManager::PENDING_HIGH_RISK);
                 $request->session()->put('url.intended', $this->intendedUrl($request));
-                $this->flashRecoverableInput($request);
-                $this->storeRecoverableInput($request);
+                $this->preserveRecoverableInput($request);
             }
 
             return redirect()->route('password.confirm');
@@ -62,48 +60,35 @@ final readonly class RequireHighRiskAdministrativeAuthorization
 
     private function validateBeforeReauthentication(Request $request): void
     {
-        if (! $this->isPrivacyPreviewRoute($request)) {
-            return;
+        foreach ($this->continuations() as $continuation) {
+            if ($continuation->supports($request)) {
+                $continuation->validate($request);
+            }
         }
-
-        Validator::make($request->all(), PrivacyPreviewInput::rules(), [], PrivacyPreviewInput::attributes())->validate();
     }
 
-    private function flashRecoverableInput(Request $request): void
+    private function preserveRecoverableInput(Request $request): void
     {
-        if (! $this->isPrivacyPreviewRoute($request)) {
-            return;
+        foreach ($this->continuations() as $continuation) {
+            if ($continuation->supports($request)) {
+                $continuation->preserve($request);
+            }
         }
-
-        $request->flashOnly([
-            'operation',
-            'subject_type',
-            'subject_identifier',
-            'reason',
-            'dry_run',
-        ]);
     }
 
-    private function storeRecoverableInput(Request $request): void
+    /**
+     * @return list<HighRiskReauthenticationContinuation>
+     */
+    private function continuations(): array
     {
-        if (! $this->isPrivacyPreviewRoute($request) || ! $request->hasSession()) {
-            return;
+        $continuations = [];
+
+        foreach ($this->continuations as $continuation) {
+            if ($continuation instanceof HighRiskReauthenticationContinuation) {
+                $continuations[] = $continuation;
+            }
         }
 
-        $request->session()->put(self::RECOVERABLE_INPUT, $request->only([
-            'operation',
-            'subject_type',
-            'subject_identifier',
-            'reason',
-            'dry_run',
-        ]));
-    }
-
-    private function isPrivacyPreviewRoute(Request $request): bool
-    {
-        return in_array($request->route()?->getName(), [
-            'admin.privacy-retention.hard-delete.preview',
-            'admin.privacy-retention.anonymization.preview',
-        ], true);
+        return $continuations;
     }
 }

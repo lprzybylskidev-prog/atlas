@@ -19,11 +19,11 @@ Provide project-level commands.
 
 `composer format` formats backend and frontend.
 
-`composer check` runs full verification and must not silently modify code.
+`composer check` runs full verification and must not silently modify code. It includes Pint check mode, Prettier check mode, ESLint, Stylelint, secret checks, unwanted-file checks, configuration guardrails, PHPStan/Larastan, PHPUnit, TypeScript typechecking, Vitest, and the production Vite build.
 
 At the frontend foundation checkpoint, `composer lint` also runs `pnpm lint` and `pnpm stylelint`, while `composer check` delegates frontend verification to `pnpm check`.
 
-`composer analyse` runs PHPStan/Larastan at the configured maximum practical level in deterministic repository chunks. The chunking is operational only: it avoids PHP worker segmentation faults on large aggregate batches while preserving the same analysed paths from `phpstan.neon`.
+`composer analyse` runs PHPStan/Larastan at the configured maximum practical level through `tools/quality/run-phpstan.sh`. The script discovers targets deterministically from `phpstan.neon`, expands modules automatically, includes global `app` directories such as `Http` and `Providers`, and verifies that every configured PHP file is covered by the public command. The chunking is operational only: it avoids PHP worker segmentation faults on large aggregate batches while preserving the same analysed paths from `phpstan.neon`.
 
 ### pnpm
 
@@ -38,6 +38,8 @@ At the frontend foundation checkpoint, `composer lint` also runs `pnpm lint` and
 - `pnpm check`
 
 `pnpm check` runs TypeScript checking, ESLint, Stylelint, Vitest, and the production Vite build.
+
+`pnpm check:config` runs repository configuration guardrails. The current checks reject duplicate active keys in `.env.example` and fail when the Playwright package versions drift from the Dev Container `PLAYWRIGHT_VERSION` browser-install argument.
 
 PHPUnit uses separate `Unit`, `Integration`, and `Feature` test suites. `Integration` is reserved for persistence, Redis, queues, cache, search, filesystem adapters, module providers, transaction boundaries, and other infrastructure behavior. `Feature` is reserved for HTTP, middleware, validation and authorization boundaries, Inertia responses, and protected backend workflows.
 
@@ -85,13 +87,13 @@ The pre-commit hook runs public commands only:
 - PHPUnit;
 - Vitest;
 - production frontend build.
+- TypeScript typechecking.
 
 The pre-push hook runs public commands only:
 
 - `composer analyse`;
 - `composer test`;
-- `pnpm test`;
-- `pnpm build`.
+- `pnpm check`.
 
 Playwright runs before deployment.
 

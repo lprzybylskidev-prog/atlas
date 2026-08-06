@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Foundation;
 
+use App\Modules\Core\Audit\Application\Public\Persistence\AuditDatabaseTable;
+use App\Modules\Core\Authorization\Application\Public\Persistence\AuthorizationDatabaseTable;
 use App\Modules\Core\Authorization\Application\Roles\InstallStarterRoles;
 use App\Modules\Core\Authorization\Application\Roles\StarterRoleName;
 use App\Modules\Core\Identity\Infrastructure\Persistence\User;
 use App\Modules\Core\Teams\Application\Public\Contracts\ManagerHierarchy;
+use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
 use App\Modules\Core\Teams\Infrastructure\Persistence\Team;
-use App\Shared\Infrastructure\Database\DatabaseTable;
 use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -120,13 +122,13 @@ final class ManagerHierarchyAdministrationTest extends TestCase
                 ->has('assignmentPreviews', 0)
             );
 
-        self::assertDatabaseHas(DatabaseTable::TEAM_MANAGER_RELATIONSHIPS, [
+        self::assertDatabaseHas(TeamsDatabaseTable::TEAM_MANAGER_RELATIONSHIPS, [
             'team_id' => $team->id,
             'manager_user_id' => $firstManager->id,
             'report_user_id' => $teamLead->id,
             'valid_to' => null,
         ]);
-        self::assertDatabaseHas(DatabaseTable::TEAM_MANAGER_RELATIONSHIPS, [
+        self::assertDatabaseHas(TeamsDatabaseTable::TEAM_MANAGER_RELATIONSHIPS, [
             'team_id' => $team->id,
             'manager_user_id' => $secondManager->id,
             'report_user_id' => $teamLead->id,
@@ -187,14 +189,14 @@ final class ManagerHierarchyAdministrationTest extends TestCase
             ])
             ->assertRedirect(route('admin.managers.edit', ['user' => $secondManager->public_id, 'team' => $team->public_id]));
 
-        self::assertDatabaseHas(DatabaseTable::TEAM_MANAGER_RELATIONSHIPS, [
+        self::assertDatabaseHas(TeamsDatabaseTable::TEAM_MANAGER_RELATIONSHIPS, [
             'team_id' => $team->id,
             'manager_user_id' => $secondManager->id,
             'report_user_id' => $extraReport->id,
             'valid_to' => null,
         ]);
 
-        $relationshipPublicId = DB::table(DatabaseTable::TEAM_MANAGER_RELATIONSHIPS)
+        $relationshipPublicId = DB::table(TeamsDatabaseTable::TEAM_MANAGER_RELATIONSHIPS)
             ->where('team_id', $team->id)
             ->where('manager_user_id', $teamLead->id)
             ->where('report_user_id', $report->id)
@@ -210,10 +212,10 @@ final class ManagerHierarchyAdministrationTest extends TestCase
             ])
             ->assertRedirect(route('admin.managers.edit', ['user' => $teamLead->public_id, 'team' => $team->public_id]));
 
-        $ended = DB::table(DatabaseTable::TEAM_MANAGER_RELATIONSHIPS)->where('public_id', $relationshipPublicId)->first();
+        $ended = DB::table(TeamsDatabaseTable::TEAM_MANAGER_RELATIONSHIPS)->where('public_id', $relationshipPublicId)->first();
         self::assertIsObject($ended);
         self::assertNotNull(get_object_vars($ended)['valid_to'] ?? null);
-        self::assertDatabaseHas(DatabaseTable::AUDIT_EVENTS, [
+        self::assertDatabaseHas(AuditDatabaseTable::AUDIT_EVENTS, [
             'module' => 'teams',
             'action' => 'team.manager_relationship.ended',
             'result' => 'succeeded',
@@ -247,7 +249,7 @@ final class ManagerHierarchyAdministrationTest extends TestCase
         $role = Role::query()->where('name', $roleName)->firstOrFail();
         $this->assignMembership($user, $team);
 
-        DB::table(DatabaseTable::MODEL_HAS_ROLES)->insert([
+        DB::table(AuthorizationDatabaseTable::MODEL_HAS_ROLES)->insert([
             'role_id' => $role->id,
             'model_type' => config('auth.providers.users.model'),
             'model_id' => $user->id,
@@ -257,7 +259,7 @@ final class ManagerHierarchyAdministrationTest extends TestCase
 
     private function assignMembership(User $user, Team $team): void
     {
-        DB::table(DatabaseTable::TEAM_USER_ASSIGNMENTS)->insertOrIgnore([
+        DB::table(TeamsDatabaseTable::TEAM_USER_ASSIGNMENTS)->insertOrIgnore([
             'team_id' => $team->id,
             'user_id' => $user->id,
             'created_at' => now(),

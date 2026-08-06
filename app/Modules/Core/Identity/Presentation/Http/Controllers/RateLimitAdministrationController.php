@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Core\Identity\Presentation\Http\Controllers;
 
+use App\Modules\Core\Identity\Application\Public\Persistence\IdentityDatabaseTable;
 use App\Modules\Core\Identity\Application\RateLimiting\RateLimitPolicy;
 use App\Modules\Core\Identity\Application\RateLimiting\RateLimitPolicyCatalog;
 use App\Shared\Application\Tables\AdminTableDefinitions;
@@ -11,7 +12,6 @@ use App\Shared\Application\Tables\ArrayTableProcessor;
 use App\Shared\Application\Tables\TableRequestContext;
 use App\Shared\Application\Tables\TableSavedViewService;
 use App\Shared\Application\Tables\TableState;
-use App\Shared\Infrastructure\Database\DatabaseTable;
 use App\Shared\Presentation\Support\AdminDataTableExportMeta;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -72,7 +72,7 @@ final readonly class RateLimitAdministrationController
     {
         $stats = [];
 
-        foreach (DB::table(DatabaseTable::RATE_LIMIT_REJECTIONS)
+        foreach (DB::table(IdentityDatabaseTable::RATE_LIMIT_REJECTIONS)
             ->selectRaw('policy, sum(rejections_count) as rejections, count(*) as distinct_keys, max(last_rejected_at) as last_rejected_at')
             ->groupBy('policy')
             ->get() as $row) {

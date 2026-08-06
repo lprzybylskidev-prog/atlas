@@ -7,6 +7,8 @@ namespace App\Modules\Core\Authorization\Presentation\Http\Controllers;
 use App\Modules\Core\Authorization\Application\Permissions\PermissionCatalogRegistry;
 use App\Modules\Core\Authorization\Application\Public\Contracts\EffectivePermissionChecker;
 use App\Modules\Core\Authorization\Application\Public\DTOs\EffectivePermissionRequest;
+use App\Modules\Core\Authorization\Application\Public\Persistence\AuthorizationDatabaseTable;
+use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
 use App\Shared\Application\Modules\Activation\Contracts\ModuleActivationService;
 use App\Shared\Application\Modules\ModuleKeyResolver;
 use App\Shared\Application\Tables\AdminTableDefinitions;
@@ -14,7 +16,6 @@ use App\Shared\Application\Tables\ArrayTableProcessor;
 use App\Shared\Application\Tables\TableRequestContext;
 use App\Shared\Application\Tables\TableSavedViewService;
 use App\Shared\Application\Tables\TableState;
-use App\Shared\Infrastructure\Database\DatabaseTable;
 use App\Shared\Presentation\Support\AdminDataTableExportMeta;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -40,7 +41,7 @@ final readonly class PermissionAdministrationController
         [$userId, $teamId] = $this->context->userTeam($request);
         $userPublicId = data_get($request->user(), 'public_id');
         $teamPublicId = $request->hasSession() ? $request->session()->get('active_team_public_id') : null;
-        $databasePermissions = DB::table(DatabaseTable::PERMISSIONS)
+        $databasePermissions = DB::table(AuthorizationDatabaseTable::PERMISSIONS)
             ->get(['id', 'public_id', 'name', 'display_name', 'guard_name', 'created_at', 'updated_at'])
             ->keyBy('name');
 
@@ -165,7 +166,7 @@ final readonly class PermissionAdministrationController
 
     private function teamId(string $teamPublicId): ?int
     {
-        $teamId = DB::table(DatabaseTable::TEAMS)->where('public_id', $teamPublicId)->value('id');
+        $teamId = DB::table(TeamsDatabaseTable::TEAMS)->where('public_id', $teamPublicId)->value('id');
 
         return is_numeric($teamId) ? (int) $teamId : null;
     }

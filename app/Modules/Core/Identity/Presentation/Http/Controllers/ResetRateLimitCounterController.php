@@ -7,9 +7,9 @@ namespace App\Modules\Core\Identity\Presentation\Http\Controllers;
 use App\Modules\Core\Audit\Application\Public\Contracts\AuditRecorder;
 use App\Modules\Core\Audit\Application\Public\DTOs\AuditEvent;
 use App\Modules\Core\Audit\Application\Public\Enums\SecurityAuditCategory;
+use App\Modules\Core\Identity\Application\Public\Persistence\IdentityDatabaseTable;
 use App\Modules\Core\Identity\Application\RateLimiting\RateLimitPolicyCatalog;
 use App\Modules\Core\Identity\Application\RateLimiting\RateLimitRejectionRecorder;
-use App\Shared\Infrastructure\Database\DatabaseTable;
 use App\Shared\Presentation\Support\FlashMessage;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -36,7 +36,7 @@ final readonly class ResetRateLimitCounterController
 
         RateLimiter::clear($limiterKey);
 
-        DB::table(DatabaseTable::RATE_LIMIT_REJECTIONS)
+        DB::table(IdentityDatabaseTable::RATE_LIMIT_REJECTIONS)
             ->where('policy', $policy)
             ->where('limiter_key_hash', $this->rejections->hash($limiterKey))
             ->delete();

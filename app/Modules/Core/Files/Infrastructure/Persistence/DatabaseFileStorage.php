@@ -9,6 +9,7 @@ use App\Modules\Core\Audit\Application\Public\DTOs\AuditEvent;
 use App\Modules\Core\Audit\Application\Public\Enums\SecurityAuditCategory;
 use App\Modules\Core\Files\Application\DTOs\MalwareScanResult;
 use App\Modules\Core\Files\Application\Enums\FileScanState;
+use App\Modules\Core\Files\Application\Public\Contracts\FileAvailability;
 use App\Modules\Core\Files\Application\Public\Contracts\FileLifecycle;
 use App\Modules\Core\Files\Application\Public\Contracts\FileMaintenance;
 use App\Modules\Core\Files\Application\Public\Contracts\FileStorage;
@@ -17,8 +18,10 @@ use App\Modules\Core\Files\Application\Public\DTOs\FileLifecycleResult;
 use App\Modules\Core\Files\Application\Public\DTOs\FileMaintenanceResult;
 use App\Modules\Core\Files\Application\Public\DTOs\StoredFile;
 use App\Modules\Core\Files\Application\Public\Exceptions\FileNotAvailableForDownload;
+use App\Modules\Core\Files\Application\Public\Persistence\FilesDatabaseTable;
 use App\Modules\Core\Files\Presentation\Jobs\ScanFileForMalware;
-use App\Shared\Infrastructure\Database\DatabaseTable;
+use App\Modules\Core\Identity\Application\Public\Persistence\IdentityDatabaseTable;
+use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
 use Illuminate\Database\ConnectionInterface;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Config;
@@ -26,7 +29,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
 
-final readonly class DatabaseFileStorage implements FileLifecycle, FileMaintenance, FileStorage
+final readonly class DatabaseFileStorage implements FileAvailability, FileLifecycle, FileMaintenance, FileStorage
 {
     public function __construct(
         private ConnectionInterface $db,
@@ -56,7 +59,7 @@ final readonly class DatabaseFileStorage implements FileLifecycle, FileMaintenan
             Storage::disk($disk)->put($path, file_get_contents($file->getRealPath() ?: $file->path()) ?: '', ['visibility' => 'private']);
         }
 
-        $id = (int) $this->db->table(DatabaseTable::FILE_OBJECTS)->insertGetId([
+        $id = (int) $this->db->table(FilesDatabaseTable::FILE_OBJECTS)->insertGetId([
             'public_id' => $publicId,
             'disk' => $storedDisk,
             'path' => $path,
@@ -117,7 +120,7 @@ final readonly class DatabaseFileStorage implements FileLifecycle, FileMaintenan
 
         Storage::disk($disk)->put($path, $contents, ['visibility' => 'private']);
 
-        $id = (int) $this->db->table(DatabaseTable::FILE_OBJECTS)->insertGetId([
+        $id = (int) $this->db->table(FilesDatabaseTable::FILE_OBJECTS)->insertGetId([
             'public_id' => $publicId,
             'disk' => $disk,
             'path' => $path,
@@ -162,9 +165,18 @@ final readonly class DatabaseFileStorage implements FileLifecycle, FileMaintenan
         return $this->cleanDownloadFile($publicId, $actorId, $teamId)->path;
     }
 
+    public function clean(string $publicId): bool
+    {
+        return $this->db->table(FilesDatabaseTable::FILE_OBJECTS)
+            ->where('public_id', $publicId)
+            ->where('scan_state', FileScanState::Clean->value)
+            ->whereNull('deleted_at')
+            ->exists();
+    }
+
     public function cleanDownloadFile(string $publicId, ?int $actorId = null, ?int $teamId = null): DownloadableFile
     {
-        $row = $this->db->table(DatabaseTable::FILE_OBJECTS)->where('public_id', $publicId)->whereNull('deleted_at')->first();
+        $row = $this->db->table(FilesDatabaseTable::FILE_OBJECTS)->where('public_id', $publicId)->whereNull('deleted_at')->first();
 
         if (! is_object($row) || ($row->scan_state ?? null) !== FileScanState::Clean->value) {
             $this->recordAudit('file.download_blocked', 'rejected', $actorId, $teamId, $publicId);
@@ -197,7 +209,7 @@ final readonly class DatabaseFileStorage implements FileLifecycle, FileMaintenan
     public function markScanning(int $fileObjectId): ?object
     {
         return $this->db->transaction(function () use ($fileObjectId): ?object {
-            $row = $this->db->table(DatabaseTable::FILE_OBJECTS)->where('id', $fileObjectId)->lockForUpdate()->first();
+            $row = $this->db->table(FilesDatabaseTable::FILE_OBJECTS)->where('id', $fileObjectId)->lockForUpdate()->first();
 
             if (! is_object($row) || ($row->deleted_at ?? null) !== null) {
                 return null;
@@ -207,7 +219,7 @@ final readonly class DatabaseFileStorage implements FileLifecycle, FileMaintenan
                 return $row;
             }
 
-            $this->db->table(DatabaseTable::FILE_OBJECTS)->where('id', $fileObjectId)->update([
+            $this->db->table(FilesDatabaseTable::FILE_OBJECTS)->where('id', $fileObjectId)->update([
                 'scan_state' => FileScanState::Scanning->value,
                 'scan_state_changed_at' => now(),
                 'scan_attempts' => $this->intValue($row->scan_attempts ?? null) + 1,
@@ -217,14 +229,14 @@ final readonly class DatabaseFileStorage implements FileLifecycle, FileMaintenan
 
             $this->recordAudit('file.scan_started', 'succeeded', null, null, $this->string($row->public_id ?? null));
 
-            return $this->db->table(DatabaseTable::FILE_OBJECTS)->where('id', $fileObjectId)->first();
+            return $this->db->table(FilesDatabaseTable::FILE_OBJECTS)->where('id', $fileObjectId)->first();
         });
     }
 
     public function recordScanResult(int $fileObjectId, MalwareScanResult $result): void
     {
         $this->db->transaction(function () use ($fileObjectId, $result): void {
-            $row = $this->db->table(DatabaseTable::FILE_OBJECTS)->where('id', $fileObjectId)->lockForUpdate()->first();
+            $row = $this->db->table(FilesDatabaseTable::FILE_OBJECTS)->where('id', $fileObjectId)->lockForUpdate()->first();
 
             if (! is_object($row)) {
                 return;
@@ -233,7 +245,7 @@ final readonly class DatabaseFileStorage implements FileLifecycle, FileMaintenan
             $currentChecksum = $this->string($row->checksum_sha256 ?? null);
             $state = $currentChecksum === $result->checksumSha256 ? $result->result : FileScanState::Pending;
 
-            $this->db->table(DatabaseTable::FILE_SCAN_EVIDENCE)->insert([
+            $this->db->table(FilesDatabaseTable::FILE_SCAN_EVIDENCE)->insert([
                 'file_object_id' => $fileObjectId,
                 'provider' => $result->provider,
                 'engine_version' => $result->engineVersion,
@@ -247,7 +259,7 @@ final readonly class DatabaseFileStorage implements FileLifecycle, FileMaintenan
                 'updated_at' => now(),
             ]);
 
-            $this->db->table(DatabaseTable::FILE_OBJECTS)->where('id', $fileObjectId)->update([
+            $this->db->table(FilesDatabaseTable::FILE_OBJECTS)->where('id', $fileObjectId)->update([
                 'scan_state' => $state->value,
                 'scan_state_changed_at' => now(),
                 'available_at' => $state === FileScanState::Clean ? now() : null,
@@ -265,7 +277,7 @@ final readonly class DatabaseFileStorage implements FileLifecycle, FileMaintenan
 
     public function markScanFailed(int $fileObjectId): void
     {
-        $this->db->table(DatabaseTable::FILE_OBJECTS)->where('id', $fileObjectId)->update([
+        $this->db->table(FilesDatabaseTable::FILE_OBJECTS)->where('id', $fileObjectId)->update([
             'scan_state' => FileScanState::Failed->value,
             'scan_state_changed_at' => now(),
             'available_at' => null,
@@ -278,13 +290,13 @@ final readonly class DatabaseFileStorage implements FileLifecycle, FileMaintenan
      */
     public function rescan(string $publicId, ?int $actorId = null, ?int $teamId = null, array $metadata = []): bool
     {
-        $row = $this->db->table(DatabaseTable::FILE_OBJECTS)->where('public_id', $publicId)->whereNull('deleted_at')->first();
+        $row = $this->db->table(FilesDatabaseTable::FILE_OBJECTS)->where('public_id', $publicId)->whereNull('deleted_at')->first();
 
         if (! is_object($row)) {
             return false;
         }
 
-        $this->db->table(DatabaseTable::FILE_OBJECTS)->where('id', $row->id)->update([
+        $this->db->table(FilesDatabaseTable::FILE_OBJECTS)->where('id', $row->id)->update([
             'scan_state' => FileScanState::Pending->value,
             'scan_state_changed_at' => now(),
             'available_at' => null,
@@ -302,7 +314,7 @@ final readonly class DatabaseFileStorage implements FileLifecycle, FileMaintenan
 
     public function replace(string $publicId, UploadedFile $replacement, ?int $actorId = null, ?int $teamId = null, string $reason = ''): FileLifecycleResult
     {
-        $existing = $this->db->table(DatabaseTable::FILE_OBJECTS)->where('public_id', $publicId)->whereNull('deleted_at')->first();
+        $existing = $this->db->table(FilesDatabaseTable::FILE_OBJECTS)->where('public_id', $publicId)->whereNull('deleted_at')->first();
 
         if (! is_object($existing)) {
             return new FileLifecycleResult($publicId, 'replace', false);
@@ -313,7 +325,7 @@ final readonly class DatabaseFileStorage implements FileLifecycle, FileMaintenan
             'reason' => $reason,
         ]);
 
-        $this->db->table(DatabaseTable::FILE_OBJECTS)->where('id', $existing->id)->update([
+        $this->db->table(FilesDatabaseTable::FILE_OBJECTS)->where('id', $existing->id)->update([
             'deleted_at' => now(),
             'updated_at' => now(),
         ]);
@@ -328,13 +340,13 @@ final readonly class DatabaseFileStorage implements FileLifecycle, FileMaintenan
 
     public function delete(string $publicId, ?int $actorId = null, ?int $teamId = null, string $reason = ''): FileLifecycleResult
     {
-        $row = $this->db->table(DatabaseTable::FILE_OBJECTS)->where('public_id', $publicId)->whereNull('deleted_at')->first();
+        $row = $this->db->table(FilesDatabaseTable::FILE_OBJECTS)->where('public_id', $publicId)->whereNull('deleted_at')->first();
 
         if (! is_object($row)) {
             return new FileLifecycleResult($publicId, 'delete', false);
         }
 
-        $this->db->table(DatabaseTable::FILE_OBJECTS)->where('id', $row->id)->update([
+        $this->db->table(FilesDatabaseTable::FILE_OBJECTS)->where('id', $row->id)->update([
             'deleted_at' => now(),
             'available_at' => null,
             'updated_at' => now(),
@@ -354,7 +366,7 @@ final readonly class DatabaseFileStorage implements FileLifecycle, FileMaintenan
 
     public function anonymize(string $publicId, ?int $actorId = null, ?int $teamId = null, string $reason = ''): FileLifecycleResult
     {
-        $row = $this->db->table(DatabaseTable::FILE_OBJECTS)->where('public_id', $publicId)->whereNull('deleted_at')->first();
+        $row = $this->db->table(FilesDatabaseTable::FILE_OBJECTS)->where('public_id', $publicId)->whereNull('deleted_at')->first();
 
         if (! is_object($row)) {
             return new FileLifecycleResult($publicId, 'anonymize', false);
@@ -364,7 +376,7 @@ final readonly class DatabaseFileStorage implements FileLifecycle, FileMaintenan
         $metadata['anonymized'] = true;
         $metadata['anonymized_original_name_hash'] = hash('sha256', $this->string($row->original_name ?? null) ?? '');
 
-        $this->db->table(DatabaseTable::FILE_OBJECTS)->where('id', $row->id)->update([
+        $this->db->table(FilesDatabaseTable::FILE_OBJECTS)->where('id', $row->id)->update([
             'original_name' => 'anonymized-'.$publicId,
             'metadata' => $this->json($metadata),
             'anonymized_at' => now(),
@@ -411,7 +423,7 @@ final readonly class DatabaseFileStorage implements FileLifecycle, FileMaintenan
         ?int $actorId,
         ?int $teamId,
     ): FileLifecycleResult {
-        $row = $this->db->table(DatabaseTable::FILE_OBJECTS)->where('public_id', $publicId)->whereNull('deleted_at')->first();
+        $row = $this->db->table(FilesDatabaseTable::FILE_OBJECTS)->where('public_id', $publicId)->whereNull('deleted_at')->first();
 
         if (! is_object($row) || trim($purpose) === '') {
             return new FileLifecycleResult($publicId, $operation, false);
@@ -429,7 +441,7 @@ final readonly class DatabaseFileStorage implements FileLifecycle, FileMaintenan
 
         Storage::disk($disk)->copy($sourcePath, $copyPath);
 
-        $this->db->table(DatabaseTable::FILE_OBJECTS)->insert([
+        $this->db->table(FilesDatabaseTable::FILE_OBJECTS)->insert([
             'public_id' => $copyPublicId,
             'disk' => $disk,
             'path' => $copyPath,
@@ -519,7 +531,7 @@ final readonly class DatabaseFileStorage implements FileLifecycle, FileMaintenan
 
     private function cleanCanonicalByChecksum(string $checksum, int $sizeBytes): ?object
     {
-        return $this->db->table(DatabaseTable::FILE_OBJECTS)
+        return $this->db->table(FilesDatabaseTable::FILE_OBJECTS)
             ->where('checksum_sha256', $checksum)
             ->where('size_bytes', $sizeBytes)
             ->where('scan_state', FileScanState::Clean->value)
@@ -530,12 +542,12 @@ final readonly class DatabaseFileStorage implements FileLifecycle, FileMaintenan
 
     private function recordDeduplicatedEvidence(int $fileObjectId, string $checksum, int $canonicalId): void
     {
-        $latest = $this->db->table(DatabaseTable::FILE_SCAN_EVIDENCE)
+        $latest = $this->db->table(FilesDatabaseTable::FILE_SCAN_EVIDENCE)
             ->where('file_object_id', $canonicalId)
             ->orderByDesc('scanned_at')
             ->first();
 
-        $this->db->table(DatabaseTable::FILE_SCAN_EVIDENCE)->insert([
+        $this->db->table(FilesDatabaseTable::FILE_SCAN_EVIDENCE)->insert([
             'file_object_id' => $fileObjectId,
             'provider' => 'deduplicated',
             'engine_version' => $this->string($latest->engine_version ?? null),
@@ -567,7 +579,7 @@ final readonly class DatabaseFileStorage implements FileLifecycle, FileMaintenan
             return false;
         }
 
-        return $this->db->table(DatabaseTable::FILE_OBJECTS)
+        return $this->db->table(FilesDatabaseTable::FILE_OBJECTS)
             ->where('disk', $disk)
             ->where('path', $path)
             ->where('id', '!=', $exceptId)
@@ -580,8 +592,8 @@ final readonly class DatabaseFileStorage implements FileLifecycle, FileMaintenan
      */
     private function recordAudit(string $action, string $result, ?int $actorId, ?int $teamId, ?string $filePublicId, array $metadata = []): void
     {
-        $actorPublicId = $actorId === null ? null : $this->publicId(DatabaseTable::USERS, $actorId);
-        $teamPublicId = $teamId === null ? null : $this->publicId(DatabaseTable::TEAMS, $teamId);
+        $actorPublicId = $actorId === null ? null : $this->publicId(IdentityDatabaseTable::USERS, $actorId);
+        $teamPublicId = $teamId === null ? null : $this->publicId(TeamsDatabaseTable::TEAMS, $teamId);
 
         $this->audit->record(new AuditEvent(
             module: 'files',

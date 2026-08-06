@@ -8,9 +8,9 @@ use App\Modules\Core\Exports\Application\Public\AbstractAdminDataTableExportProv
 use App\Modules\Core\Exports\Application\Public\DTOs\ReportExportGenerationRequest;
 use App\Modules\Core\Exports\Application\Public\Permissions\ReportsPermissionCatalog;
 use App\Modules\Core\Teams\Application\Public\Contracts\ManagerHierarchy;
+use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
 use App\Modules\Optional\TimeTracking\Application\UserTimeReportService;
 use App\Shared\Application\Tables\AdminTableDefinitions;
-use App\Shared\Infrastructure\Database\DatabaseTable;
 use Illuminate\Database\ConnectionInterface;
 use Illuminate\Http\Request;
 use Stringable;
@@ -88,7 +88,7 @@ final readonly class TimeTrackingManagerReportDataTableExportProvider extends Ab
             return 0;
         }
 
-        $id = $this->database->table(DatabaseTable::TEAMS)->where('public_id', $request->activeTeamPublicId)->value('id');
+        $id = $this->database->table(TeamsDatabaseTable::TEAMS)->where('public_id', $request->activeTeamPublicId)->value('id');
 
         return is_numeric($id) ? (int) $id : 0;
     }

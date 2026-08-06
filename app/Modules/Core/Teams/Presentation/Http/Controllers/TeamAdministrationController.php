@@ -12,6 +12,7 @@ use App\Modules\Core\Identity\Application\Public\Contracts\UserCredentialAccount
 use App\Modules\Core\Settings\Application\Public\Contracts\SecuritySessionSettings;
 use App\Modules\Core\Teams\Application\Public\Contracts\UserTeamMembershipManager;
 use App\Modules\Core\Teams\Application\Public\Contracts\UserTeamSessionLimitSettings;
+use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
 use App\Modules\Core\Teams\Infrastructure\Persistence\Team;
 use App\Modules\Optional\TimeTracking\Application\Public\Contracts\UserBreakPolicySettings;
 use App\Shared\Application\Modules\Activation\Contracts\ModuleActivationService;
@@ -25,7 +26,6 @@ use App\Shared\Application\Tables\ArrayTableProcessor;
 use App\Shared\Application\Tables\TableRequestContext;
 use App\Shared\Application\Tables\TableSavedViewService;
 use App\Shared\Application\Tables\TableState;
-use App\Shared\Infrastructure\Database\DatabaseTable;
 use App\Shared\Presentation\Support\AdminDataTableExportMeta;
 use App\Shared\Presentation\Support\FlashMessage;
 use Illuminate\Database\Query\Builder;
@@ -61,7 +61,7 @@ final class TeamAdministrationController
         $filters = $this->filters($request);
         [$userId, $teamId] = $this->context->userTeam($request);
         $rows = array_values(Team::query()
-            ->from(DatabaseTable::TEAMS.' as teams')
+            ->from(TeamsDatabaseTable::TEAMS.' as teams')
             ->select([
                 'teams.id',
                 'teams.public_id',
@@ -72,7 +72,7 @@ final class TeamAdministrationController
                 'teams.updated_at',
             ])
             ->selectSub(
-                DB::table(DatabaseTable::TEAM_USER_ASSIGNMENTS)
+                DB::table(TeamsDatabaseTable::TEAM_USER_ASSIGNMENTS)
                     ->selectRaw('count(*)')
                     ->whereColumn('team_user_assignments.team_id', 'teams.id')
                     ->where(static function (Builder $query): void {
@@ -403,7 +403,7 @@ final class TeamAdministrationController
 
         $deleted = false;
 
-        if ($record instanceof Team && ! DB::table(DatabaseTable::TEAM_USER_ASSIGNMENTS)->where('team_id', $record->id)->exists()) {
+        if ($record instanceof Team && ! DB::table(TeamsDatabaseTable::TEAM_USER_ASSIGNMENTS)->where('team_id', $record->id)->exists()) {
             $before = [
                 'name' => $record->name,
                 'isActive' => $record->is_active,

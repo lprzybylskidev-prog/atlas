@@ -8,7 +8,10 @@ use App\Modules\Core\Audit\Application\Public\Contracts\AuditRecorder;
 use App\Modules\Core\Audit\Application\Public\DTOs\AuditEvent;
 use App\Modules\Core\Audit\Application\Public\Enums\SecurityAuditCategory;
 use App\Modules\Core\Files\Application\Enums\FileScanState;
+use App\Modules\Core\Files\Application\Public\Persistence\FilesDatabaseTable;
 use App\Modules\Core\Files\Infrastructure\Persistence\DatabaseFileStorage;
+use App\Modules\Core\Identity\Application\Public\Persistence\IdentityDatabaseTable;
+use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
 use App\Shared\Application\Tables\AdminTableDefinitions;
 use App\Shared\Application\Tables\ArrayTableProcessor;
 use App\Shared\Application\Tables\TableDefinition;
@@ -16,7 +19,6 @@ use App\Shared\Application\Tables\TableRequestContext;
 use App\Shared\Application\Tables\TableResult;
 use App\Shared\Application\Tables\TableSavedViewService;
 use App\Shared\Application\Tables\TableState;
-use App\Shared\Infrastructure\Database\DatabaseTable;
 use App\Shared\Presentation\Support\AdminDataTableExportMeta;
 use App\Shared\Presentation\Support\FlashMessage;
 use Illuminate\Database\Query\JoinClause;
@@ -61,13 +63,13 @@ final readonly class AdminFilesController
      */
     private function rows(): array
     {
-        return array_values(DB::table(DatabaseTable::FILE_OBJECTS.' as file_objects')
-            ->leftJoin(DatabaseTable::FILE_SCAN_EVIDENCE.' as file_scan_evidence', function (JoinClause $join): void {
+        return array_values(DB::table(FilesDatabaseTable::FILE_OBJECTS.' as file_objects')
+            ->leftJoin(FilesDatabaseTable::FILE_SCAN_EVIDENCE.' as file_scan_evidence', function (JoinClause $join): void {
                 $join
                     ->on('file_scan_evidence.file_object_id', '=', 'file_objects.id')
-                    ->whereRaw('file_scan_evidence.id = (select max(evidence.id) from '.DatabaseTable::FILE_SCAN_EVIDENCE.' evidence where evidence.file_object_id = file_objects.id)');
+                    ->whereRaw('file_scan_evidence.id = (select max(evidence.id) from '.FilesDatabaseTable::FILE_SCAN_EVIDENCE.' evidence where evidence.file_object_id = file_objects.id)');
             })
-            ->leftJoin(DatabaseTable::USERS.' as acknowledged_users', 'acknowledged_users.id', '=', 'file_objects.acknowledged_by_user_id')
+            ->leftJoin(IdentityDatabaseTable::USERS.' as acknowledged_users', 'acknowledged_users.id', '=', 'file_objects.acknowledged_by_user_id')
             ->whereNull('file_objects.deleted_at')
             ->orderByDesc('file_objects.created_at')
             ->get([
@@ -102,7 +104,7 @@ final readonly class AdminFilesController
         $actorId = data_get($request->user(), 'id');
         $teamPublicId = $request->hasSession() ? $request->session()->get('active_team_public_id') : null;
         $teamId = is_string($teamPublicId)
-            ? DB::table(DatabaseTable::TEAMS)->where('public_id', $teamPublicId)->value('id')
+            ? DB::table(TeamsDatabaseTable::TEAMS)->where('public_id', $teamPublicId)->value('id')
             : null;
 
         $requested = $this->files->rescan(
@@ -126,7 +128,7 @@ final readonly class AdminFilesController
     public function acknowledge(Request $request): RedirectResponse
     {
         $validated = $this->validatedAcknowledge($request);
-        $files = DB::table(DatabaseTable::FILE_OBJECTS)
+        $files = DB::table(FilesDatabaseTable::FILE_OBJECTS)
             ->whereIn('public_id', $validated['files'])
             ->whereNull('deleted_at')
             ->orderByDesc('created_at')
@@ -354,7 +356,7 @@ final readonly class AdminFilesController
             return;
         }
 
-        DB::table(DatabaseTable::FILE_OBJECTS)
+        DB::table(FilesDatabaseTable::FILE_OBJECTS)
             ->whereIn('id', $ids)
             ->update([
                 'acknowledged_by_user_id' => $actorId,

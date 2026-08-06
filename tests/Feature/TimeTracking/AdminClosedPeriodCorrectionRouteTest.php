@@ -4,16 +4,19 @@ declare(strict_types=1);
 
 namespace Tests\Feature\TimeTracking;
 
+use App\Modules\Core\Audit\Application\Public\Persistence\AuditDatabaseTable;
+use App\Modules\Core\Authorization\Application\Public\Persistence\AuthorizationDatabaseTable;
 use App\Modules\Core\Authorization\Application\Roles\InstallStarterRoles;
 use App\Modules\Core\Identity\Application\Admin\AdministrativeSessionManager;
 use App\Modules\Core\Identity\Infrastructure\Persistence\User;
+use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
 use App\Modules\Core\Teams\Infrastructure\Persistence\Team;
 use App\Modules\Optional\TimeTracking\Application\Permissions\TimeTrackingPermissionCatalog;
+use App\Modules\Optional\TimeTracking\Application\Public\Persistence\TimeTrackingDatabaseTable;
 use App\Shared\Application\Modules\Activation\Contracts\ModuleActivationService;
 use App\Shared\Application\Modules\Activation\ModuleActivationChange;
 use App\Shared\Application\Modules\Activation\ModuleActivationScope;
 use App\Shared\Application\Modules\Activation\ModuleActivationSource;
-use App\Shared\Infrastructure\Database\DatabaseTable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -37,16 +40,16 @@ final class AdminClosedPeriodCorrectionRouteTest extends TestCase
             ->assertRedirect('/admin')
             ->assertSessionHasNoErrors();
 
-        $this->assertDatabaseHas(DatabaseTable::TIME_TRACKING_CORRECTION_REQUESTS, [
+        $this->assertDatabaseHas(TimeTrackingDatabaseTable::CORRECTION_REQUESTS, [
             'user_id' => $target->id,
             'team_id' => $team->id,
             'request_type' => 'closed_period_override',
             'status' => 'corrected',
             'decided_by_user_id' => $admin->id,
         ]);
-        $requestId = DB::table(DatabaseTable::TIME_TRACKING_CORRECTION_REQUESTS)->where('user_id', $target->id)->value('id');
+        $requestId = DB::table(TimeTrackingDatabaseTable::CORRECTION_REQUESTS)->where('user_id', $target->id)->value('id');
 
-        $this->assertDatabaseHas(DatabaseTable::TIME_TRACKING_CLOSED_PERIOD_OVERRIDES, [
+        $this->assertDatabaseHas(TimeTrackingDatabaseTable::CLOSED_PERIOD_OVERRIDES, [
             'correction_request_id' => $requestId,
             'actor_user_id' => $admin->id,
             'actor_scope' => 'admin',
@@ -55,7 +58,7 @@ final class AdminClosedPeriodCorrectionRouteTest extends TestCase
             'mfa_confirmed' => true,
             'before_after_preview_confirmed' => true,
         ]);
-        $this->assertDatabaseHas(DatabaseTable::AUDIT_EVENTS, [
+        $this->assertDatabaseHas(AuditDatabaseTable::AUDIT_EVENTS, [
             'module' => 'time_tracking',
             'action' => 'time_tracking.closed_period_override_created',
             'result' => 'succeeded',
@@ -81,11 +84,11 @@ final class AdminClosedPeriodCorrectionRouteTest extends TestCase
             ->assertRedirect('/admin')
             ->assertSessionHasErrors(['team_public_id']);
 
-        $this->assertDatabaseMissing(DatabaseTable::TIME_TRACKING_CORRECTION_REQUESTS, [
+        $this->assertDatabaseMissing(TimeTrackingDatabaseTable::CORRECTION_REQUESTS, [
             'request_type' => 'closed_period_override',
             'user_id' => $target->id,
         ]);
-        $this->assertDatabaseHas(DatabaseTable::AUDIT_EVENTS, [
+        $this->assertDatabaseHas(AuditDatabaseTable::AUDIT_EVENTS, [
             'module' => 'time_tracking',
             'action' => 'time_tracking.closed_period_override_rejected',
             'result' => 'rejected',
@@ -120,7 +123,7 @@ final class AdminClosedPeriodCorrectionRouteTest extends TestCase
 
     private function assignUserToTeam(User $user, Team $team, bool $headManager = false): void
     {
-        DB::table(DatabaseTable::TEAM_USER_ASSIGNMENTS)->insert([
+        DB::table(TeamsDatabaseTable::TEAM_USER_ASSIGNMENTS)->insert([
             'team_id' => $team->id,
             'user_id' => $user->id,
             'is_head_manager' => $headManager,
@@ -133,7 +136,7 @@ final class AdminClosedPeriodCorrectionRouteTest extends TestCase
     {
         $permission = Permission::query()->where('name', $permissionName)->firstOrFail();
 
-        DB::table(DatabaseTable::MODEL_HAS_PERMISSIONS)->insert([
+        DB::table(AuthorizationDatabaseTable::MODEL_HAS_PERMISSIONS)->insert([
             'permission_id' => $permission->id,
             'model_type' => config('auth.providers.users.model'),
             'model_id' => $user->id,

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Optional\ManagedProcesses\Infrastructure\Runtime;
 
 use App\Modules\Optional\ManagedProcesses\Application\Public\Contracts\ManagedProcessRunInspector;
-use App\Shared\Infrastructure\Database\DatabaseTable;
+use App\Modules\Optional\ManagedProcesses\Application\Public\Persistence\ManagedProcessesDatabaseTable;
 use Illuminate\Database\ConnectionInterface;
 use RuntimeException;
 
@@ -16,7 +16,7 @@ final readonly class DatabaseManagedProcessRunInspector implements ManagedProces
     public function inputSnapshot(string $runPublicId): array
     {
         $snapshot = $this->database
-            ->table(DatabaseTable::MANAGED_PROCESS_RUNS)
+            ->table(ManagedProcessesDatabaseTable::RUNS)
             ->where('public_id', $runPublicId)
             ->value('input_snapshot');
 

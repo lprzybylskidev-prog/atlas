@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace App\Modules\Core\Audit\Application\Exports;
 
+use App\Modules\Core\Audit\Application\Public\Persistence\AuditDatabaseTable;
 use App\Modules\Core\Exports\Application\Public\AbstractAdminDataTableExportProvider;
 use App\Modules\Core\Exports\Application\Public\DTOs\ReportExportGenerationRequest;
 use App\Modules\Core\Exports\Application\Public\Permissions\ReportsPermissionCatalog;
 use App\Shared\Application\Tables\AdminTableDefinitions;
-use App\Shared\Infrastructure\Database\DatabaseTable;
 use Illuminate\Support\Facades\DB;
 
 final readonly class AdminImpersonationSessionEventsDataTableExportProvider extends AbstractAdminDataTableExportProvider
@@ -67,7 +67,7 @@ final readonly class AdminImpersonationSessionEventsDataTableExportProvider exte
             return;
         }
 
-        $rows = DB::table(DatabaseTable::AUDIT_EVENTS)
+        $rows = DB::table(AuditDatabaseTable::AUDIT_EVENTS)
             ->where('impersonation_session_id', $session)
             ->orderBy('occurred_at')
             ->get()

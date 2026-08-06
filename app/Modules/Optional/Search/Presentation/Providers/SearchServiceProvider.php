@@ -18,6 +18,7 @@ use App\Modules\Optional\Search\Infrastructure\Meilisearch\MeilisearchDocumentSt
 use App\Modules\Optional\Search\Infrastructure\Meilisearch\MeilisearchSearchClient;
 use App\Modules\Optional\Search\Infrastructure\Runtime\ConfiguredSearchIndexRegistry;
 use App\Modules\Optional\Search\Infrastructure\Runtime\SearchRebuildProcessHandler;
+use App\Modules\Optional\Search\Presentation\Inertia\SearchRouteAvailability;
 use App\Shared\Application\Modules\Contracts\ModuleGate;
 use Illuminate\Support\ServiceProvider;
 use Meilisearch\Client;
@@ -42,6 +43,7 @@ final class SearchServiceProvider extends ServiceProvider
         $this->app->bind('search.managed_process.rebuild_definition', fn () => SearchRebuildProcess::definition());
 
         $this->app->tag([SearchPermissionCatalog::class], 'atlas.permission_catalogs');
+        $this->app->tag([SearchRouteAvailability::class], 'atlas.inertia_route_availability');
         $this->app->tag([SearchDataLifecycleParticipant::class], 'atlas.data_lifecycle_participants');
         $this->app->tag(['search.managed_process.rebuild_definition'], 'atlas.managed_process_definitions');
         $this->app->tag([SearchRebuildProcessHandler::class], 'atlas.managed_process_handlers');

@@ -6,6 +6,7 @@ namespace App\Shared\Infrastructure\Modules\Activation;
 
 use App\Modules\Core\Audit\Application\Public\Contracts\AuditRecorder;
 use App\Modules\Core\Audit\Application\Public\DTOs\AuditEvent;
+use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
 use App\Shared\Application\Modules\Activation\Contracts\ModuleActivationService;
 use App\Shared\Application\Modules\Activation\EffectiveModuleState;
 use App\Shared\Application\Modules\Activation\ModuleActivationChange;
@@ -269,7 +270,7 @@ final readonly class DatabaseModuleActivationService implements ModuleActivation
             return;
         }
 
-        foreach ($this->database->table(DatabaseTable::TEAMS)->pluck('id') as $id) {
+        foreach ($this->database->table(TeamsDatabaseTable::TEAMS)->pluck('id') as $id) {
             if (is_numeric($id)) {
                 Cache::forget($this->cacheKey($moduleKey, (int) $id));
             }
@@ -290,7 +291,7 @@ final readonly class DatabaseModuleActivationService implements ModuleActivation
         $teamVersion = null;
 
         if ($teamId !== null) {
-            $teamPublicIdValue = $this->database->table(DatabaseTable::TEAMS)->where('id', $teamId)->value('public_id');
+            $teamPublicIdValue = $this->database->table(TeamsDatabaseTable::TEAMS)->where('id', $teamId)->value('public_id');
             $teamPublicId = is_string($teamPublicIdValue) ? $teamPublicIdValue : null;
             $teamRow = $this->database->table(DatabaseTable::MODULE_TEAM_STATES)->where('module_key', $moduleKey)->where('team_id', $teamId)->first();
 

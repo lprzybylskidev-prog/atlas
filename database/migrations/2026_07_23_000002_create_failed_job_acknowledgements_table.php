@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Modules\Core\Identity\Application\Public\Persistence\IdentityDatabaseTable;
 use App\Shared\Infrastructure\Database\DatabaseSchema;
 use App\Shared\Infrastructure\Database\DatabaseTable;
 use Illuminate\Database\Migrations\Migration;
@@ -18,7 +19,7 @@ return new class extends Migration
             $table->id();
             $table->ulid('public_id')->unique();
             $table->string('failed_job_uuid')->unique();
-            $table->foreignId('acknowledged_by_user_id')->nullable()->constrained(DatabaseTable::USERS)->nullOnDelete();
+            $table->foreignId('acknowledged_by_user_id')->nullable()->constrained(IdentityDatabaseTable::USERS)->nullOnDelete();
             $table->text('reason')->nullable();
             $table->timestamp('acknowledged_at');
             $table->timestamps();

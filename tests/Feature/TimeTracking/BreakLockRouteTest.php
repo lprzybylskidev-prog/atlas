@@ -5,15 +5,17 @@ declare(strict_types=1);
 namespace Tests\Feature\TimeTracking;
 
 use App\Modules\Core\Authorization\Application\Permissions\CoreAuthorizationPermissionCatalog;
+use App\Modules\Core\Authorization\Application\Public\Persistence\AuthorizationDatabaseTable;
 use App\Modules\Core\Authorization\Application\Roles\InstallStarterRoles;
 use App\Modules\Core\Identity\Infrastructure\Persistence\User;
+use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
 use App\Modules\Core\Teams\Infrastructure\Persistence\Team;
 use App\Modules\Optional\TimeTracking\Application\Permissions\TimeTrackingPermissionCatalog;
+use App\Modules\Optional\TimeTracking\Application\Public\Persistence\TimeTrackingDatabaseTable;
 use App\Shared\Application\Modules\Activation\Contracts\ModuleActivationService;
 use App\Shared\Application\Modules\Activation\ModuleActivationChange;
 use App\Shared\Application\Modules\Activation\ModuleActivationScope;
 use App\Shared\Application\Modules\Activation\ModuleActivationSource;
-use App\Shared\Infrastructure\Database\DatabaseTable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -71,13 +73,13 @@ final class BreakLockRouteTest extends TestCase
             ->assertRedirect(route('dashboard'))
             ->assertSessionHasNoErrors();
 
-        $this->assertDatabaseHas(DatabaseTable::TIME_TRACKING_BREAKS, [
+        $this->assertDatabaseHas(TimeTrackingDatabaseTable::BREAKS, [
             'user_id' => $user->id,
             'team_id' => $team->id,
             'closure_reason' => 'normal',
             'requires_manager_review' => false,
         ]);
-        self::assertSame(0, DB::table(DatabaseTable::TIME_TRACKING_BREAKS)->where('user_id', $user->id)->whereNull('ended_at')->count());
+        self::assertSame(0, DB::table(TimeTrackingDatabaseTable::BREAKS)->where('user_id', $user->id)->whereNull('ended_at')->count());
     }
 
     /**
@@ -97,7 +99,7 @@ final class BreakLockRouteTest extends TestCase
             'is_active' => true,
         ]);
 
-        DB::table(DatabaseTable::TEAM_USER_ASSIGNMENTS)->insert([
+        DB::table(TeamsDatabaseTable::TEAM_USER_ASSIGNMENTS)->insert([
             'team_id' => $team->id,
             'user_id' => $user->id,
             'is_head_manager' => false,
@@ -110,7 +112,7 @@ final class BreakLockRouteTest extends TestCase
 
     private function createActiveBreak(User $user, Team $team): void
     {
-        $workSessionId = DB::table(DatabaseTable::TIME_TRACKING_WORK_SESSIONS)->insertGetId([
+        $workSessionId = DB::table(TimeTrackingDatabaseTable::WORK_SESSIONS)->insertGetId([
             'public_id' => (string) Str::ulid(),
             'user_id' => $user->id,
             'team_id' => $team->id,
@@ -120,7 +122,7 @@ final class BreakLockRouteTest extends TestCase
             'updated_at' => now(),
         ]);
 
-        DB::table(DatabaseTable::TIME_TRACKING_BREAKS)->insert([
+        DB::table(TimeTrackingDatabaseTable::BREAKS)->insert([
             'public_id' => (string) Str::ulid(),
             'work_session_id' => $workSessionId,
             'user_id' => $user->id,
@@ -135,7 +137,7 @@ final class BreakLockRouteTest extends TestCase
     {
         $permission = Permission::query()->where('name', $permissionName)->firstOrFail();
 
-        DB::table(DatabaseTable::MODEL_HAS_PERMISSIONS)->insert([
+        DB::table(AuthorizationDatabaseTable::MODEL_HAS_PERMISSIONS)->insert([
             'permission_id' => $permission->id,
             'model_type' => config('auth.providers.users.model'),
             'model_id' => $user->id,

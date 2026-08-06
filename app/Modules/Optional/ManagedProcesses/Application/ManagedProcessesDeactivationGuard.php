@@ -6,12 +6,12 @@ namespace App\Modules\Optional\ManagedProcesses\Application;
 
 use App\Modules\Optional\ManagedProcesses\Application\Contracts\ProcessDefinitionRegistry;
 use App\Modules\Optional\ManagedProcesses\Application\Enums\ProcessRunStatus;
+use App\Modules\Optional\ManagedProcesses\Application\Public\Persistence\ManagedProcessesDatabaseTable;
 use App\Shared\Application\Modules\Contracts\ModuleDeactivationGuard;
 use App\Shared\Application\Modules\ModuleDeactivationAssessment;
 use App\Shared\Application\Modules\ModuleDeactivationBlocker;
 use App\Shared\Application\Modules\ModuleDeactivationRequest;
 use App\Shared\Application\Modules\ModuleDeactivationSafeAction;
-use App\Shared\Infrastructure\Database\DatabaseTable;
 use Illuminate\Database\ConnectionInterface;
 
 final readonly class ManagedProcessesDeactivationGuard implements ModuleDeactivationGuard
@@ -32,7 +32,7 @@ final readonly class ManagedProcessesDeactivationGuard implements ModuleDeactiva
             return ModuleDeactivationAssessment::allow();
         }
 
-        $run = $this->database->table(DatabaseTable::MANAGED_PROCESS_RUNS)
+        $run = $this->database->table(ManagedProcessesDatabaseTable::RUNS)
             ->whereIn('process_key', $blockingKeys)
             ->whereIn('status', [
                 ProcessRunStatus::Draft->value,

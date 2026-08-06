@@ -7,7 +7,7 @@ namespace App\Modules\Core\Audit\Infrastructure\Persistence;
 use App\Modules\Core\Audit\Application\Public\Contracts\AuditActorContextProvider;
 use App\Modules\Core\Audit\Application\Public\Contracts\AuditRecorder;
 use App\Modules\Core\Audit\Application\Public\DTOs\AuditEvent;
-use App\Shared\Infrastructure\Database\DatabaseTable;
+use App\Modules\Core\Audit\Application\Public\Persistence\AuditDatabaseTable;
 use App\Shared\Infrastructure\Observability\SensitiveDataRedactor;
 use Illuminate\Database\ConnectionInterface;
 use Illuminate\Support\Str;
@@ -34,7 +34,7 @@ final readonly class DatabaseAuditRecorder implements AuditRecorder
         $impersonatedUserPublicId ??= $context->impersonatedUserPublicId;
         $impersonationSessionId ??= $context->impersonationSessionId;
 
-        $this->db->table(DatabaseTable::AUDIT_EVENTS)->insert([
+        $this->db->table(AuditDatabaseTable::AUDIT_EVENTS)->insert([
             'public_id' => $publicId,
             'occurred_at' => $occurredAt,
             'module' => $event->module,
@@ -62,7 +62,7 @@ final readonly class DatabaseAuditRecorder implements AuditRecorder
             return;
         }
 
-        $this->db->table(DatabaseTable::AUDIT_SECURITY_EVENTS)->insert([
+        $this->db->table(AuditDatabaseTable::AUDIT_SECURITY_EVENTS)->insert([
             'audit_event_public_id' => $publicId,
             'occurred_at' => $occurredAt,
             'category' => $event->securityCategory?->value,

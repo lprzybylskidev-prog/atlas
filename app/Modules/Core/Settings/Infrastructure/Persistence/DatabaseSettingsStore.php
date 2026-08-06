@@ -12,9 +12,9 @@ use App\Modules\Core\Settings\Application\Enums\GlobalSettingKey;
 use App\Modules\Core\Settings\Application\Enums\SecuritySettingKey;
 use App\Modules\Core\Settings\Application\Enums\TeamSettingKey;
 use App\Modules\Core\Settings\Application\Enums\UserSettingKey;
+use App\Modules\Core\Settings\Application\Public\Persistence\SettingsDatabaseTable;
 use App\Modules\Core\Settings\Application\Settings\SettingsDefaults;
 use App\Modules\Core\Settings\Application\Settings\SettingValueValidator;
-use App\Shared\Infrastructure\Database\DatabaseTable;
 use Closure;
 use Illuminate\Contracts\Cache\Repository as CacheRepository;
 use Illuminate\Database\ConnectionInterface;
@@ -35,13 +35,13 @@ final readonly class DatabaseSettingsStore implements SettingsStore
     {
         return $this->remember(
             sprintf('atlas.settings.global.%s', $key->value),
-            fn (): mixed => $this->settingValue(DatabaseTable::SETTINGS_GLOBAL_VALUES, ['key' => $key->value], $this->defaults->global($key)),
+            fn (): mixed => $this->settingValue(SettingsDatabaseTable::SETTINGS_GLOBAL_VALUES, ['key' => $key->value], $this->defaults->global($key)),
         );
     }
 
     public function putGlobal(GlobalSettingKey $key, mixed $value): void
     {
-        $this->upsert(DatabaseTable::SETTINGS_GLOBAL_VALUES, ['key' => $key->value], $this->validator->validate($key, $value));
+        $this->upsert(SettingsDatabaseTable::SETTINGS_GLOBAL_VALUES, ['key' => $key->value], $this->validator->validate($key, $value));
         $this->cache->forget(sprintf('atlas.settings.global.%s', $key->value));
     }
 
@@ -49,13 +49,13 @@ final readonly class DatabaseSettingsStore implements SettingsStore
     {
         return $this->remember(
             sprintf('atlas.settings.team.%d.%s', $teamId, $key->value),
-            fn (): mixed => $this->settingValue(DatabaseTable::SETTINGS_TEAM_VALUES, ['team_id' => $teamId, 'key' => $key->value], $this->defaults->team($key)),
+            fn (): mixed => $this->settingValue(SettingsDatabaseTable::SETTINGS_TEAM_VALUES, ['team_id' => $teamId, 'key' => $key->value], $this->defaults->team($key)),
         );
     }
 
     public function putTeam(int $teamId, TeamSettingKey $key, mixed $value): void
     {
-        $this->upsert(DatabaseTable::SETTINGS_TEAM_VALUES, ['team_id' => $teamId, 'key' => $key->value], $this->validator->validate($key, $value));
+        $this->upsert(SettingsDatabaseTable::SETTINGS_TEAM_VALUES, ['team_id' => $teamId, 'key' => $key->value], $this->validator->validate($key, $value));
         $this->cache->forget(sprintf('atlas.settings.team.%d.%s', $teamId, $key->value));
     }
 
@@ -63,13 +63,13 @@ final readonly class DatabaseSettingsStore implements SettingsStore
     {
         return $this->remember(
             sprintf('atlas.settings.user.%d.%s', $userId, $key->value),
-            fn (): mixed => $this->settingValue(DatabaseTable::SETTINGS_USER_VALUES, ['user_id' => $userId, 'key' => $key->value], $this->defaults->user($key)),
+            fn (): mixed => $this->settingValue(SettingsDatabaseTable::SETTINGS_USER_VALUES, ['user_id' => $userId, 'key' => $key->value], $this->defaults->user($key)),
         );
     }
 
     public function putUser(int $userId, UserSettingKey $key, mixed $value): void
     {
-        $this->upsert(DatabaseTable::SETTINGS_USER_VALUES, ['user_id' => $userId, 'key' => $key->value], $this->validator->validate($key, $value));
+        $this->upsert(SettingsDatabaseTable::SETTINGS_USER_VALUES, ['user_id' => $userId, 'key' => $key->value], $this->validator->validate($key, $value));
         $this->cache->forget(sprintf('atlas.settings.user.%d.%s', $userId, $key->value));
     }
 
@@ -77,7 +77,7 @@ final readonly class DatabaseSettingsStore implements SettingsStore
     {
         return $this->remember(
             sprintf('atlas.settings.security.%s', $key->value),
-            fn (): mixed => $this->settingValue(DatabaseTable::SETTINGS_SECURITY_VALUES, ['key' => $key->value], $this->defaults->security($key)),
+            fn (): mixed => $this->settingValue(SettingsDatabaseTable::SETTINGS_SECURITY_VALUES, ['key' => $key->value], $this->defaults->security($key)),
         );
     }
 
@@ -86,7 +86,7 @@ final readonly class DatabaseSettingsStore implements SettingsStore
         $before = $this->getSecurity($key);
         $validated = $this->validator->validate($key, $value);
 
-        $this->upsert(DatabaseTable::SETTINGS_SECURITY_VALUES, ['key' => $key->value], $validated);
+        $this->upsert(SettingsDatabaseTable::SETTINGS_SECURITY_VALUES, ['key' => $key->value], $validated);
         $this->cache->forget(sprintf('atlas.settings.security.%s', $key->value));
 
         $this->audit->record(new AuditEvent(

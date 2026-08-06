@@ -7,6 +7,7 @@ namespace App\Shared\Application\Modules\Exports;
 use App\Modules\Core\Exports\Application\Public\AbstractAdminDataTableExportProvider;
 use App\Modules\Core\Exports\Application\Public\DTOs\ReportExportGenerationRequest;
 use App\Modules\Core\Exports\Application\Public\Permissions\ReportsPermissionCatalog;
+use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
 use App\Shared\Application\Tables\AdminTableDefinitions;
 use App\Shared\Infrastructure\Database\DatabaseTable;
 use Illuminate\Support\Facades\DB;
@@ -62,7 +63,7 @@ final readonly class AdminModuleDetailHistoryDataTableExportProvider extends Abs
         }
 
         $rows = DB::table(DatabaseTable::MODULE_ACTIVATION_HISTORY)
-            ->leftJoin(DatabaseTable::TEAMS, 'module_activation_history.team_id', '=', 'teams.id')
+            ->leftJoin(TeamsDatabaseTable::TEAMS, 'module_activation_history.team_id', '=', 'teams.id')
             ->where('module_activation_history.module_key', $module)
             ->orderByDesc('module_activation_history.effective_at')
             ->limit(200)

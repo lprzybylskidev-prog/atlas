@@ -7,6 +7,8 @@ namespace App\Modules\Optional\Integrations\Infrastructure\Persistence;
 use App\Modules\Core\Audit\Application\Public\Contracts\AuditRecorder;
 use App\Modules\Core\Audit\Application\Public\DTOs\AuditEvent;
 use App\Modules\Core\Audit\Application\Public\Enums\SecurityAuditCategory;
+use App\Modules\Core\Identity\Application\Public\Persistence\IdentityDatabaseTable;
+use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
 use App\Modules\Optional\Integrations\Application\Exceptions\ExternalApiAccessDisabled;
 use App\Modules\Optional\Integrations\Application\Public\Contracts\ExternalApiAccessPolicy;
 use App\Modules\Optional\Integrations\Application\Public\Contracts\ExternalIdMappingStore;
@@ -14,7 +16,7 @@ use App\Modules\Optional\Integrations\Application\Public\Contracts\IntegrationId
 use App\Modules\Optional\Integrations\Application\Public\Contracts\SynchronizationHistory;
 use App\Modules\Optional\Integrations\Application\Public\DTOs\ExternalCredentialPolicy;
 use App\Modules\Optional\Integrations\Application\Public\DTOs\ExternalIdMapping;
-use App\Shared\Infrastructure\Database\DatabaseTable;
+use App\Modules\Optional\Integrations\Application\Public\Persistence\IntegrationsDatabaseTable;
 use Illuminate\Database\ConnectionInterface;
 use Illuminate\Support\Facades\Config;
 
@@ -48,7 +50,7 @@ final readonly class DatabaseIntegrationStore implements ExternalApiAccessPolicy
 
     public function map(ExternalIdMapping $mapping, ?int $actorId = null): void
     {
-        $this->db->table(DatabaseTable::INTEGRATION_EXTERNAL_ID_MAPPINGS)->upsert([
+        $this->db->table(IntegrationsDatabaseTable::EXTERNAL_ID_MAPPINGS)->upsert([
             [
                 'integration_key' => $mapping->integrationKey,
                 'source_system' => $mapping->sourceSystem,
@@ -69,7 +71,7 @@ final readonly class DatabaseIntegrationStore implements ExternalApiAccessPolicy
 
     public function findInternalPublicId(string $integrationKey, string $sourceSystem, string $entityType, string $externalId, ?int $teamId = null): ?string
     {
-        $value = $this->db->table(DatabaseTable::INTEGRATION_EXTERNAL_ID_MAPPINGS)
+        $value = $this->db->table(IntegrationsDatabaseTable::EXTERNAL_ID_MAPPINGS)
             ->where('integration_key', $integrationKey)
             ->where('source_system', $sourceSystem)
             ->where('entity_type', $entityType)
@@ -82,7 +84,7 @@ final readonly class DatabaseIntegrationStore implements ExternalApiAccessPolicy
 
     public function begin(string $integrationKey, string $operation, string $idempotencyKey, string $requestHash, ?int $teamId = null): bool
     {
-        $inserted = $this->db->table(DatabaseTable::INTEGRATION_IDEMPOTENCY_KEYS)->insertOrIgnore([
+        $inserted = $this->db->table(IntegrationsDatabaseTable::IDEMPOTENCY_KEYS)->insertOrIgnore([
             'integration_key' => $integrationKey,
             'operation' => $operation,
             'idempotency_key' => $idempotencyKey,
@@ -98,7 +100,7 @@ final readonly class DatabaseIntegrationStore implements ExternalApiAccessPolicy
 
     public function complete(string $integrationKey, string $operation, string $idempotencyKey, bool $successful, array $responseSummary = []): void
     {
-        $this->db->table(DatabaseTable::INTEGRATION_IDEMPOTENCY_KEYS)
+        $this->db->table(IntegrationsDatabaseTable::IDEMPOTENCY_KEYS)
             ->where('integration_key', $integrationKey)
             ->where('operation', $operation)
             ->where('idempotency_key', $idempotencyKey)
@@ -113,7 +115,7 @@ final readonly class DatabaseIntegrationStore implements ExternalApiAccessPolicy
 
     public function start(string $integrationKey, string $operation, string $correlationId, ?int $teamId = null, array $metadata = []): int
     {
-        return (int) $this->db->table(DatabaseTable::INTEGRATION_SYNC_RUNS)->insertGetId([
+        return (int) $this->db->table(IntegrationsDatabaseTable::SYNC_RUNS)->insertGetId([
             'integration_key' => $integrationKey,
             'operation' => $operation,
             'correlation_id' => $correlationId,
@@ -128,7 +130,7 @@ final readonly class DatabaseIntegrationStore implements ExternalApiAccessPolicy
 
     public function finish(int $runId, string $status, ?string $message = null, array $metadata = []): void
     {
-        $this->db->table(DatabaseTable::INTEGRATION_SYNC_RUNS)->where('id', $runId)->update([
+        $this->db->table(IntegrationsDatabaseTable::SYNC_RUNS)->where('id', $runId)->update([
             'status' => $status,
             'finished_at' => now(),
             'message' => $message,
@@ -142,8 +144,8 @@ final readonly class DatabaseIntegrationStore implements ExternalApiAccessPolicy
      */
     private function audit(string $action, string $result, ?int $actorId, ?int $teamId, string $entityPublicId, array $context = []): void
     {
-        $actorPublicId = $actorId === null ? null : $this->publicId(DatabaseTable::USERS, $actorId);
-        $teamPublicId = $teamId === null ? null : $this->publicId(DatabaseTable::TEAMS, $teamId);
+        $actorPublicId = $actorId === null ? null : $this->publicId(IdentityDatabaseTable::USERS, $actorId);
+        $teamPublicId = $teamId === null ? null : $this->publicId(TeamsDatabaseTable::TEAMS, $teamId);
 
         $this->audit->record(new AuditEvent(
             module: 'integrations',

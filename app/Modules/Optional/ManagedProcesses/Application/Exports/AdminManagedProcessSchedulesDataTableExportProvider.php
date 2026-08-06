@@ -7,8 +7,9 @@ namespace App\Modules\Optional\ManagedProcesses\Application\Exports;
 use App\Modules\Core\Exports\Application\Public\AbstractAdminDataTableExportProvider;
 use App\Modules\Core\Exports\Application\Public\DTOs\ReportExportGenerationRequest;
 use App\Modules\Core\Exports\Application\Public\Permissions\ReportsPermissionCatalog;
+use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
+use App\Modules\Optional\ManagedProcesses\Application\Public\Persistence\ManagedProcessesDatabaseTable;
 use App\Shared\Application\Tables\AdminTableDefinitions;
-use App\Shared\Infrastructure\Database\DatabaseTable;
 use Illuminate\Support\Facades\DB;
 
 final readonly class AdminManagedProcessSchedulesDataTableExportProvider extends AbstractAdminDataTableExportProvider
@@ -59,8 +60,8 @@ final readonly class AdminManagedProcessSchedulesDataTableExportProvider extends
 
     public function rows(ReportExportGenerationRequest $request): iterable
     {
-        $rows = array_values(DB::table(DatabaseTable::MANAGED_PROCESS_SCHEDULES)
-            ->leftJoin(DatabaseTable::TEAMS, 'process_schedules.team_id', '=', 'teams.id')
+        $rows = array_values(DB::table(ManagedProcessesDatabaseTable::SCHEDULES)
+            ->leftJoin(TeamsDatabaseTable::TEAMS, 'process_schedules.team_id', '=', 'teams.id')
             ->orderByDesc('process_schedules.created_at')
             ->get(['process_schedules.*', 'teams.name as team_name'])
             ->map(static fn (object $schedule): array => [

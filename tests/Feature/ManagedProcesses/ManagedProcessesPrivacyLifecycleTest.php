@@ -6,6 +6,7 @@ namespace Tests\Feature\ManagedProcesses;
 
 use App\Modules\Optional\ManagedProcesses\Application\Enums\ProcessRunStatus;
 use App\Modules\Optional\ManagedProcesses\Application\Lifecycle\ManagedProcessDataLifecycleParticipant;
+use App\Modules\Optional\ManagedProcesses\Application\Public\Persistence\ManagedProcessesDatabaseTable;
 use App\Shared\Application\DataLifecycle\DataLifecycleOperation;
 use App\Shared\Application\DataLifecycle\DataLifecycleSubject;
 use App\Shared\Infrastructure\Database\DatabaseTable;
@@ -54,14 +55,14 @@ final class ManagedProcessesPrivacyLifecycleTest extends TestCase
             ['managed_processes.runs_redacted', 'managed_processes.logs_redacted', 'managed_processes.schedules_redacted', 'managed_processes.queued_work_removed'],
             collect($result->steps)->map->step->all(),
         );
-        $this->assertDatabaseHas(DatabaseTable::MANAGED_PROCESS_RUNS, [
+        $this->assertDatabaseHas(ManagedProcessesDatabaseTable::RUNS, [
             'public_id' => $runPublicId,
             'input_snapshot' => '{"privacy":"redacted"}',
             'result_summary' => null,
             'safe_error_summary' => null,
             'cancel_reason' => null,
         ]);
-        $this->assertDatabaseHas(DatabaseTable::MANAGED_PROCESS_LOG_EVENTS, [
+        $this->assertDatabaseHas(ManagedProcessesDatabaseTable::LOG_EVENTS, [
             'public_id' => $logPublicId,
             'message' => 'Privacy-controlled process log content redacted.',
             'safe_context' => null,
@@ -69,7 +70,7 @@ final class ManagedProcessesPrivacyLifecycleTest extends TestCase
             'external_reference' => null,
             'source_reference' => null,
         ]);
-        $this->assertDatabaseHas(DatabaseTable::MANAGED_PROCESS_SCHEDULES, [
+        $this->assertDatabaseHas(ManagedProcessesDatabaseTable::SCHEDULES, [
             'public_id' => $schedulePublicId,
             'input_snapshot' => '{"privacy":"redacted"}',
             'reason' => 'Privacy-controlled schedule content redacted.',
@@ -83,7 +84,7 @@ final class ManagedProcessesPrivacyLifecycleTest extends TestCase
     {
         $publicId = (string) Str::ulid();
 
-        DB::table(DatabaseTable::MANAGED_PROCESS_RUNS)->insert([
+        DB::table(ManagedProcessesDatabaseTable::RUNS)->insert([
             'public_id' => $publicId,
             'process_key' => 'privacy.test',
             'module_key' => 'managed_processes',
@@ -121,10 +122,10 @@ final class ManagedProcessesPrivacyLifecycleTest extends TestCase
 
     private function insertLog(string $subjectIdentifier): string
     {
-        $runId = DB::table(DatabaseTable::MANAGED_PROCESS_RUNS)->orderByDesc('id')->value('id');
+        $runId = DB::table(ManagedProcessesDatabaseTable::RUNS)->orderByDesc('id')->value('id');
         $publicId = (string) Str::ulid();
 
-        DB::table(DatabaseTable::MANAGED_PROCESS_LOG_EVENTS)->insert([
+        DB::table(ManagedProcessesDatabaseTable::LOG_EVENTS)->insert([
             'public_id' => $publicId,
             'process_run_id' => $runId,
             'occurred_at' => now(),
@@ -152,7 +153,7 @@ final class ManagedProcessesPrivacyLifecycleTest extends TestCase
     {
         $publicId = (string) Str::ulid();
 
-        DB::table(DatabaseTable::MANAGED_PROCESS_SCHEDULES)->insert([
+        DB::table(ManagedProcessesDatabaseTable::SCHEDULES)->insert([
             'public_id' => $publicId,
             'process_key' => 'privacy.test',
             'module_key' => 'managed_processes',

@@ -4,8 +4,19 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Foundation;
 
+use App\Modules\Core\Audit\Application\Public\Persistence\AuditDatabaseTable;
+use App\Modules\Core\Authorization\Application\Public\Persistence\AuthorizationDatabaseTable;
 use App\Modules\Core\Authorization\Application\Roles\StarterRoleName;
+use App\Modules\Core\Files\Application\Public\Persistence\FilesDatabaseTable;
+use App\Modules\Core\Identity\Application\Public\Persistence\IdentityDatabaseTable;
 use App\Modules\Core\Identity\Infrastructure\Persistence\User;
+use App\Modules\Core\Notifications\Application\Public\Persistence\NotificationsDatabaseTable;
+use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
+use App\Modules\Optional\FeatureFlags\Application\Public\Persistence\FeatureFlagsDatabaseTable;
+use App\Modules\Optional\Imports\Application\Public\Persistence\ImportsDatabaseTable;
+use App\Modules\Optional\Integrations\Application\Public\Persistence\IntegrationsDatabaseTable;
+use App\Modules\Optional\ManagedProcesses\Application\Public\Persistence\ManagedProcessesDatabaseTable;
+use App\Modules\Optional\TimeTracking\Application\Public\Persistence\TimeTrackingDatabaseTable;
 use App\Shared\Infrastructure\Database\DatabaseTable;
 use Database\Seeders\DatabaseSeeder;
 use Database\Seeders\DevelopmentBootstrapSeeder;
@@ -41,14 +52,14 @@ final class DemoResetTest extends TestCase
     {
         $this->seed(DatabaseSeeder::class);
 
-        $this->assertDatabaseHas(DatabaseTable::ROLES, [
+        $this->assertDatabaseHas(AuthorizationDatabaseTable::ROLES, [
             'name' => StarterRoleName::Administrator->value,
         ]);
-        $this->assertGreaterThan(0, DB::table(DatabaseTable::PERMISSIONS)->count());
-        $this->assertDatabaseMissing(DatabaseTable::USERS, [
+        $this->assertGreaterThan(0, DB::table(AuthorizationDatabaseTable::PERMISSIONS)->count());
+        $this->assertDatabaseMissing(IdentityDatabaseTable::USERS, [
             'email' => DevelopmentBootstrapSeeder::PREVIEW_EMAIL,
         ]);
-        $this->assertDatabaseHas(DatabaseTable::TEAMS, ['name' => SystemBootstrapSeeder::ADMINISTRATION_TEAM_NAME]);
+        $this->assertDatabaseHas(TeamsDatabaseTable::TEAMS, ['name' => SystemBootstrapSeeder::ADMINISTRATION_TEAM_NAME]);
     }
 
     public function test_development_bootstrap_seeder_creates_only_clean_admin_foundation(): void
@@ -64,18 +75,18 @@ final class DemoResetTest extends TestCase
         $this->assertSame('sensitive', $user->account_sensitivity);
         $this->assertTrue(Hash::check(DevelopmentBootstrapSeeder::PREVIEW_PASSWORD, $user->password));
         $this->assertNotNull($user->email_verified_at);
-        $this->assertDatabaseCount(DatabaseTable::USERS, 1);
-        $this->assertDatabaseHas(DatabaseTable::TEAMS, ['name' => SystemBootstrapSeeder::ADMINISTRATION_TEAM_NAME]);
-        $this->assertDatabaseCount(DatabaseTable::TEAMS, 1);
-        $this->assertDatabaseHas(DatabaseTable::ROLES, ['name' => StarterRoleName::Administrator->value]);
-        $this->assertDatabaseCount(DatabaseTable::USER_ONBOARDING_PACKAGES, 0);
-        $this->assertDatabaseCount(DatabaseTable::FILE_OBJECTS, 0);
-        $this->assertDatabaseCount(DatabaseTable::NOTIFICATIONS, 0);
-        $this->assertDatabaseCount(DatabaseTable::MANAGED_PROCESS_RUNS, 0);
-        $this->assertDatabaseCount(DatabaseTable::MANAGED_PROCESS_SCHEDULES, 0);
-        $this->assertDatabaseCount(DatabaseTable::TEAM_MANAGER_RELATIONSHIPS, 0);
+        $this->assertDatabaseCount(IdentityDatabaseTable::USERS, 1);
+        $this->assertDatabaseHas(TeamsDatabaseTable::TEAMS, ['name' => SystemBootstrapSeeder::ADMINISTRATION_TEAM_NAME]);
+        $this->assertDatabaseCount(TeamsDatabaseTable::TEAMS, 1);
+        $this->assertDatabaseHas(AuthorizationDatabaseTable::ROLES, ['name' => StarterRoleName::Administrator->value]);
+        $this->assertDatabaseCount(AuthorizationDatabaseTable::USER_ONBOARDING_PACKAGES, 0);
+        $this->assertDatabaseCount(FilesDatabaseTable::FILE_OBJECTS, 0);
+        $this->assertDatabaseCount(NotificationsDatabaseTable::NOTIFICATIONS, 0);
+        $this->assertDatabaseCount(ManagedProcessesDatabaseTable::RUNS, 0);
+        $this->assertDatabaseCount(ManagedProcessesDatabaseTable::SCHEDULES, 0);
+        $this->assertDatabaseCount(TeamsDatabaseTable::TEAM_MANAGER_RELATIONSHIPS, 0);
 
-        $teamPublicId = DB::table(DatabaseTable::TEAMS)->where('name', SystemBootstrapSeeder::ADMINISTRATION_TEAM_NAME)->value('public_id');
+        $teamPublicId = DB::table(TeamsDatabaseTable::TEAMS)->where('name', SystemBootstrapSeeder::ADMINISTRATION_TEAM_NAME)->value('public_id');
 
         self::assertIsString($teamPublicId);
 
@@ -100,34 +111,34 @@ final class DemoResetTest extends TestCase
         $this->seed(DevelopmentDemoSeeder::class);
         $this->seed(DevelopmentDemoSeeder::class);
 
-        $this->assertDatabaseCount(DatabaseTable::USERS, 57);
-        $this->assertDatabaseCount(DatabaseTable::TEAMS, 3);
-        $this->assertDatabaseHas(DatabaseTable::USERS, [
+        $this->assertDatabaseCount(IdentityDatabaseTable::USERS, 57);
+        $this->assertDatabaseCount(TeamsDatabaseTable::TEAMS, 3);
+        $this->assertDatabaseHas(IdentityDatabaseTable::USERS, [
             'email' => 'tt.one.minute.policy.north@example.test',
             'name' => 'TT One Minute Policy Test User - North',
         ]);
-        $this->assertDatabaseHas(DatabaseTable::TEAMS, ['name' => 'TT Demo Team North']);
-        $this->assertDatabaseHas(DatabaseTable::TEAMS, ['name' => 'TT Demo Team South']);
-        $this->assertDatabaseCount(DatabaseTable::TEAM_MANAGER_RELATIONSHIPS, 54);
-        $this->assertDatabaseCount(DatabaseTable::TIME_TRACKING_MAINTENANCE_WINDOWS, 1);
-        $this->assertGreaterThan(0, DB::table(DatabaseTable::TIME_TRACKING_WORK_SESSIONS)->count());
-        $this->assertGreaterThan(0, DB::table(DatabaseTable::TIME_TRACKING_BREAKS)->count());
-        $this->assertGreaterThan(0, DB::table(DatabaseTable::TIME_TRACKING_MAINTENANCE_AFFECTED_SESSIONS)->count());
-        $this->assertGreaterThan(0, DB::table(DatabaseTable::TIME_TRACKING_OTHER_WORK)->count());
-        $this->assertGreaterThan(0, DB::table(DatabaseTable::TIME_TRACKING_CORRECTION_REQUESTS)->count());
-        $this->assertGreaterThan(0, DB::table(DatabaseTable::TIME_TRACKING_MODULE_CONTEXT_SEGMENTS)->count());
+        $this->assertDatabaseHas(TeamsDatabaseTable::TEAMS, ['name' => 'TT Demo Team North']);
+        $this->assertDatabaseHas(TeamsDatabaseTable::TEAMS, ['name' => 'TT Demo Team South']);
+        $this->assertDatabaseCount(TeamsDatabaseTable::TEAM_MANAGER_RELATIONSHIPS, 54);
+        $this->assertDatabaseCount(TimeTrackingDatabaseTable::MAINTENANCE_WINDOWS, 1);
+        $this->assertGreaterThan(0, DB::table(TimeTrackingDatabaseTable::WORK_SESSIONS)->count());
+        $this->assertGreaterThan(0, DB::table(TimeTrackingDatabaseTable::BREAKS)->count());
+        $this->assertGreaterThan(0, DB::table(TimeTrackingDatabaseTable::MAINTENANCE_AFFECTED_SESSIONS)->count());
+        $this->assertGreaterThan(0, DB::table(TimeTrackingDatabaseTable::OTHER_WORK)->count());
+        $this->assertGreaterThan(0, DB::table(TimeTrackingDatabaseTable::CORRECTION_REQUESTS)->count());
+        $this->assertGreaterThan(0, DB::table(TimeTrackingDatabaseTable::MODULE_CONTEXT_SEGMENTS)->count());
         $this->assertSame(
-            DB::table(DatabaseTable::TIME_TRACKING_MODULE_CONTEXT_SEGMENTS)->count(),
-            DB::table(DatabaseTable::TIME_TRACKING_MODULE_CONTEXT_SEGMENTS)
+            DB::table(TimeTrackingDatabaseTable::MODULE_CONTEXT_SEGMENTS)->count(),
+            DB::table(TimeTrackingDatabaseTable::MODULE_CONTEXT_SEGMENTS)
                 ->where('module_key', 'system')
                 ->where('context_key', 'System')
                 ->count(),
             'Development TimeTracking demo segments must use the current system context contract.',
         );
         $this->assertSame(
-            DB::table(DatabaseTable::TIME_TRACKING_CORRECTION_REQUESTS)->count(),
-            DB::table(DatabaseTable::TIME_TRACKING_CORRECTION_REQUESTS.' as correction_requests')
-                ->join(DatabaseTable::TIME_TRACKING_CORRECTION_PROPOSALS.' as correction_proposals', 'correction_proposals.correction_request_id', '=', 'correction_requests.id')
+            DB::table(TimeTrackingDatabaseTable::CORRECTION_REQUESTS)->count(),
+            DB::table(TimeTrackingDatabaseTable::CORRECTION_REQUESTS.' as correction_requests')
+                ->join(TimeTrackingDatabaseTable::CORRECTION_PROPOSALS.' as correction_proposals', 'correction_proposals.correction_request_id', '=', 'correction_requests.id')
                 ->whereNotNull('correction_proposals.proposed_started_at')
                 ->whereNotNull('correction_proposals.proposed_ended_at')
                 ->count(),
@@ -137,8 +148,8 @@ final class DemoResetTest extends TestCase
             foreach (['work_session', 'break', 'other_work'] as $sourceType) {
                 $this->assertGreaterThan(
                     0,
-                    DB::table(DatabaseTable::TIME_TRACKING_CORRECTION_REQUESTS.' as correction_requests')
-                        ->join(DatabaseTable::TEAMS.' as teams', 'correction_requests.team_id', '=', 'teams.id')
+                    DB::table(TimeTrackingDatabaseTable::CORRECTION_REQUESTS.' as correction_requests')
+                        ->join(TeamsDatabaseTable::TEAMS.' as teams', 'correction_requests.team_id', '=', 'teams.id')
                         ->where('teams.name', $teamName)
                         ->where('correction_requests.source_type', $sourceType)
                         ->count(),
@@ -146,14 +157,14 @@ final class DemoResetTest extends TestCase
                 );
             }
         }
-        $this->assertGreaterThan(0, DB::table(DatabaseTable::TIME_TRACKING_BREAKS)
+        $this->assertGreaterThan(0, DB::table(TimeTrackingDatabaseTable::BREAKS)
             ->where('closure_reason', 'normal')
             ->where('requires_manager_review', false)
             ->where('exact_seconds', '>', 900)
             ->count());
 
-        $specialPolicy = DB::table(DatabaseTable::TEAM_USER_ASSIGNMENTS)
-            ->join(DatabaseTable::USERS, 'team_user_assignments.user_id', '=', 'users.id')
+        $specialPolicy = DB::table(TeamsDatabaseTable::TEAM_USER_ASSIGNMENTS)
+            ->join(IdentityDatabaseTable::USERS, 'team_user_assignments.user_id', '=', 'users.id')
             ->where('users.email', 'tt.one.minute.policy.north@example.test')
             ->first([
                 'team_user_assignments.id',
@@ -164,30 +175,30 @@ final class DemoResetTest extends TestCase
         self::assertNotNull($specialPolicy);
         self::assertSame(1, $this->intValue(data_get($specialPolicy, 'inactivity_timeout_minutes')));
         self::assertNull(data_get($specialPolicy, 'session_max_lifetime_minutes'));
-        $this->assertDatabaseHas(DatabaseTable::TIME_TRACKING_BREAK_POLICIES, [
+        $this->assertDatabaseHas(TimeTrackingDatabaseTable::BREAK_POLICIES, [
             'scope_type' => 'user_team',
             'scope_id' => $this->intValue(data_get($specialPolicy, 'id')),
             'daily_limit_seconds' => 60,
             'maximum_single_break_seconds' => 60,
         ]);
 
-        $this->assertDatabaseCount(DatabaseTable::USER_ONBOARDING_PACKAGES, 0);
+        $this->assertDatabaseCount(AuthorizationDatabaseTable::USER_ONBOARDING_PACKAGES, 0);
         $this->assertDatabaseCount(DatabaseTable::FAILED_JOBS, 0);
-        $this->assertDatabaseCount(DatabaseTable::RATE_LIMIT_REJECTIONS, 0);
-        $this->assertDatabaseCount(DatabaseTable::MANAGED_PROCESS_RUNS, 0);
-        $this->assertDatabaseCount(DatabaseTable::IMPORT_EXECUTIONS, 0);
-        $this->assertDatabaseCount(DatabaseTable::IMPORT_ROW_ERRORS, 0);
-        $this->assertDatabaseCount(DatabaseTable::INTEGRATION_CONNECTIONS, 0);
-        $this->assertDatabaseCount(DatabaseTable::INTEGRATION_SYNC_RUNS, 0);
-        $this->assertDatabaseCount(DatabaseTable::INTEGRATION_CIRCUIT_BREAKERS, 0);
-        $this->assertDatabaseCount(DatabaseTable::FEATURE_FLAG_GLOBAL_VALUES, 0);
-        $this->assertDatabaseCount(DatabaseTable::FEATURE_FLAG_TEAM_VALUES, 0);
-        $this->assertDatabaseCount(DatabaseTable::FEATURE_FLAG_HISTORY, 0);
-        $this->assertDatabaseCount(DatabaseTable::NOTIFICATIONS, 0);
-        $this->assertDatabaseCount(DatabaseTable::AUDIT_EVENTS, 0);
-        $this->assertDatabaseCount(DatabaseTable::AUDIT_SECURITY_EVENTS, 0);
-        $this->assertDatabaseCount(DatabaseTable::FILE_OBJECTS, 0);
-        $this->assertDatabaseCount(DatabaseTable::FILE_SCAN_EVIDENCE, 0);
+        $this->assertDatabaseCount(IdentityDatabaseTable::RATE_LIMIT_REJECTIONS, 0);
+        $this->assertDatabaseCount(ManagedProcessesDatabaseTable::RUNS, 0);
+        $this->assertDatabaseCount(ImportsDatabaseTable::EXECUTIONS, 0);
+        $this->assertDatabaseCount(ImportsDatabaseTable::ROW_ERRORS, 0);
+        $this->assertDatabaseCount(IntegrationsDatabaseTable::CONNECTIONS, 0);
+        $this->assertDatabaseCount(IntegrationsDatabaseTable::SYNC_RUNS, 0);
+        $this->assertDatabaseCount(IntegrationsDatabaseTable::CIRCUIT_BREAKERS, 0);
+        $this->assertDatabaseCount(FeatureFlagsDatabaseTable::GLOBAL_VALUES, 0);
+        $this->assertDatabaseCount(FeatureFlagsDatabaseTable::TEAM_VALUES, 0);
+        $this->assertDatabaseCount(FeatureFlagsDatabaseTable::HISTORY, 0);
+        $this->assertDatabaseCount(NotificationsDatabaseTable::NOTIFICATIONS, 0);
+        $this->assertDatabaseCount(AuditDatabaseTable::AUDIT_EVENTS, 0);
+        $this->assertDatabaseCount(AuditDatabaseTable::AUDIT_SECURITY_EVENTS, 0);
+        $this->assertDatabaseCount(FilesDatabaseTable::FILE_OBJECTS, 0);
+        $this->assertDatabaseCount(FilesDatabaseTable::FILE_SCAN_EVIDENCE, 0);
         $this->assertDatabaseMissing(DatabaseTable::MODULE_GLOBAL_STATES, [
             'module_key' => 'demo',
         ]);

@@ -6,7 +6,7 @@ namespace App\Modules\Optional\TimeTracking\Infrastructure\Persistence;
 
 use App\Modules\Optional\TimeTracking\Application\Contracts\ActiveTimeLockStore;
 use App\Modules\Optional\TimeTracking\Application\DTOs\ActiveTimeLock;
-use App\Shared\Infrastructure\Database\DatabaseTable;
+use App\Modules\Optional\TimeTracking\Application\Public\Persistence\TimeTrackingDatabaseTable;
 use Illuminate\Database\ConnectionInterface;
 
 final readonly class DatabaseActiveTimeLockStore implements ActiveTimeLockStore
@@ -15,7 +15,7 @@ final readonly class DatabaseActiveTimeLockStore implements ActiveTimeLockStore
 
     public function activeForUser(int $userId): ?ActiveTimeLock
     {
-        $break = $this->database->table(DatabaseTable::TIME_TRACKING_BREAKS)
+        $break = $this->database->table(TimeTrackingDatabaseTable::BREAKS)
             ->where('user_id', $userId)
             ->whereNull('ended_at')
             ->orderByDesc('started_at')
@@ -25,7 +25,7 @@ final readonly class DatabaseActiveTimeLockStore implements ActiveTimeLockStore
             return new ActiveTimeLock('break', $this->stringValue($break->public_id ?? null));
         }
 
-        $otherWork = $this->database->table(DatabaseTable::TIME_TRACKING_OTHER_WORK)
+        $otherWork = $this->database->table(TimeTrackingDatabaseTable::OTHER_WORK)
             ->where('user_id', $userId)
             ->whereNull('ended_at')
             ->orderByDesc('started_at')

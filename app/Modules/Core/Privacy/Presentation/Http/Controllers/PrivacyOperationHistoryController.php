@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 namespace App\Modules\Core\Privacy\Presentation\Http\Controllers;
 
+use App\Modules\Core\Identity\Application\Public\Persistence\IdentityDatabaseTable;
+use App\Modules\Core\Privacy\Application\Public\Persistence\PrivacyDatabaseTable;
+use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
 use App\Shared\Application\Tables\AdminTableDefinitions;
 use App\Shared\Application\Tables\ArrayTableProcessor;
 use App\Shared\Application\Tables\TableRequestContext;
 use App\Shared\Application\Tables\TableSavedViewService;
 use App\Shared\Application\Tables\TableState;
-use App\Shared\Infrastructure\Database\DatabaseTable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
@@ -61,10 +63,10 @@ final readonly class PrivacyOperationHistoryController
      */
     private function rows(): array
     {
-        return array_values(DB::table(DatabaseTable::PRIVACY_OPERATION_REQUESTS.' as requests')
-            ->leftJoin(DatabaseTable::PRIVACY_OPERATION_PREVIEWS.' as previews', 'previews.operation_request_id', '=', 'requests.id')
-            ->leftJoin(DatabaseTable::USERS.' as actors', 'actors.id', '=', 'requests.requested_by_user_id')
-            ->leftJoin(DatabaseTable::TEAMS.' as teams', 'teams.id', '=', 'requests.team_id')
+        return array_values(DB::table(PrivacyDatabaseTable::OPERATION_REQUESTS.' as requests')
+            ->leftJoin(PrivacyDatabaseTable::OPERATION_PREVIEWS.' as previews', 'previews.operation_request_id', '=', 'requests.id')
+            ->leftJoin(IdentityDatabaseTable::USERS.' as actors', 'actors.id', '=', 'requests.requested_by_user_id')
+            ->leftJoin(TeamsDatabaseTable::TEAMS.' as teams', 'teams.id', '=', 'requests.team_id')
             ->orderByDesc('requests.created_at')
             ->get([
                 'requests.public_id',

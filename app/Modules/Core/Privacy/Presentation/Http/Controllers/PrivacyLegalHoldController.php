@@ -7,12 +7,14 @@ namespace App\Modules\Core\Privacy\Presentation\Http\Controllers;
 use App\Modules\Core\Audit\Application\Public\Contracts\AuditRecorder;
 use App\Modules\Core\Audit\Application\Public\DTOs\AuditEvent;
 use App\Modules\Core\Audit\Application\Public\Enums\SecurityAuditCategory;
+use App\Modules\Core\Identity\Application\Public\Persistence\IdentityDatabaseTable;
+use App\Modules\Core\Privacy\Application\Public\Persistence\PrivacyDatabaseTable;
+use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
 use App\Shared\Application\Tables\AdminTableDefinitions;
 use App\Shared\Application\Tables\ArrayTableProcessor;
 use App\Shared\Application\Tables\TableRequestContext;
 use App\Shared\Application\Tables\TableSavedViewService;
 use App\Shared\Application\Tables\TableState;
-use App\Shared\Infrastructure\Database\DatabaseTable;
 use App\Shared\Presentation\Support\FlashMessage;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -98,7 +100,7 @@ final readonly class PrivacyLegalHoldController
         $expiresOn = $this->nullableStringValue($this->arrayValue($validated, 'expires_on'));
 
         DB::transaction(function () use ($publicId, $subjectType, $subjectIdentifier, $reason, $expiresOn, $userId, $teamId, $actorPublicId, $teamPublicId): void {
-            DB::table(DatabaseTable::PRIVACY_LEGAL_HOLDS)->insert([
+            DB::table(PrivacyDatabaseTable::LEGAL_HOLDS)->insert([
                 'public_id' => $publicId,
                 'subject_type' => $subjectType,
                 'subject_identifier' => $subjectIdentifier,
@@ -142,9 +144,9 @@ final readonly class PrivacyLegalHoldController
      */
     private function rows(): array
     {
-        return array_values(DB::table(DatabaseTable::PRIVACY_LEGAL_HOLDS.' as holds')
-            ->leftJoin(DatabaseTable::USERS.' as creators', 'creators.id', '=', 'holds.created_by_user_id')
-            ->leftJoin(DatabaseTable::TEAMS.' as teams', 'teams.id', '=', 'holds.team_id')
+        return array_values(DB::table(PrivacyDatabaseTable::LEGAL_HOLDS.' as holds')
+            ->leftJoin(IdentityDatabaseTable::USERS.' as creators', 'creators.id', '=', 'holds.created_by_user_id')
+            ->leftJoin(TeamsDatabaseTable::TEAMS.' as teams', 'teams.id', '=', 'holds.team_id')
             ->orderByDesc('holds.created_at')
             ->get([
                 'holds.public_id',

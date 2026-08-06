@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Modules\Core\Authorization\Application\Lifecycle;
 
+use App\Modules\Core\Authorization\Application\Public\Persistence\AuthorizationDatabaseTable;
+use App\Modules\Core\Identity\Application\Public\Persistence\IdentityDatabaseTable;
 use App\Shared\Application\DataLifecycle\Contracts\DataLifecycleParticipant;
 use App\Shared\Application\DataLifecycle\DataLifecycleImpact;
 use App\Shared\Application\DataLifecycle\DataLifecycleOperation;
@@ -11,7 +13,6 @@ use App\Shared\Application\DataLifecycle\DataLifecyclePreview;
 use App\Shared\Application\DataLifecycle\DataLifecycleResult;
 use App\Shared\Application\DataLifecycle\DataLifecycleStepResult;
 use App\Shared\Application\DataLifecycle\DataLifecycleSubject;
-use App\Shared\Infrastructure\Database\DatabaseTable;
 use Illuminate\Database\ConnectionInterface;
 use Illuminate\Database\Query\Builder;
 
@@ -72,7 +73,7 @@ final readonly class UserAuthorizationDataLifecycleParticipant implements DataLi
             return null;
         }
 
-        $id = $this->db->table(DatabaseTable::USERS)
+        $id = $this->db->table(IdentityDatabaseTable::USERS)
             ->where('public_id', $subject->identifier)
             ->value('id');
 
@@ -81,21 +82,21 @@ final readonly class UserAuthorizationDataLifecycleParticipant implements DataLi
 
     private function roleAssignments(int $userId): Builder
     {
-        return $this->db->table(DatabaseTable::MODEL_HAS_ROLES)
+        return $this->db->table(AuthorizationDatabaseTable::MODEL_HAS_ROLES)
             ->where('model_type', config()->string('auth.providers.users.model'))
             ->where('model_id', $userId);
     }
 
     private function directPermissions(int $userId): Builder
     {
-        return $this->db->table(DatabaseTable::MODEL_HAS_PERMISSIONS)
+        return $this->db->table(AuthorizationDatabaseTable::MODEL_HAS_PERMISSIONS)
             ->where('model_type', config()->string('auth.providers.users.model'))
             ->where('model_id', $userId);
     }
 
     private function onboardingAssignments(int $userId): Builder
     {
-        return $this->db->table(DatabaseTable::USER_ONBOARDING_PACKAGES)->where('user_id', $userId);
+        return $this->db->table(AuthorizationDatabaseTable::USER_ONBOARDING_PACKAGES)->where('user_id', $userId);
     }
 
     /**

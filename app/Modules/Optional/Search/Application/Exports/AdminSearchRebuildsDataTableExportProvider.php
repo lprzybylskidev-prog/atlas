@@ -7,9 +7,9 @@ namespace App\Modules\Optional\Search\Application\Exports;
 use App\Modules\Core\Exports\Application\Public\AbstractAdminDataTableExportProvider;
 use App\Modules\Core\Exports\Application\Public\DTOs\ReportExportGenerationRequest;
 use App\Modules\Core\Exports\Application\Public\Permissions\ReportsPermissionCatalog;
+use App\Modules\Optional\ManagedProcesses\Application\Public\Persistence\ManagedProcessesDatabaseTable;
 use App\Modules\Optional\Search\Application\SearchRebuildProcess;
 use App\Shared\Application\Tables\AdminTableDefinitions;
-use App\Shared\Infrastructure\Database\DatabaseTable;
 use Illuminate\Support\Facades\DB;
 
 final readonly class AdminSearchRebuildsDataTableExportProvider extends AbstractAdminDataTableExportProvider
@@ -56,7 +56,7 @@ final readonly class AdminSearchRebuildsDataTableExportProvider extends Abstract
 
     public function rows(ReportExportGenerationRequest $request): iterable
     {
-        $rows = array_values(DB::table(DatabaseTable::MANAGED_PROCESS_RUNS)
+        $rows = array_values(DB::table(ManagedProcessesDatabaseTable::RUNS)
             ->where('process_key', SearchRebuildProcess::KEY)
             ->orderByDesc('created_at')
             ->get(['public_id', 'status', 'current_stage', 'progress_current', 'progress_total', 'progress_label', 'created_at', 'started_at', 'finished_at'])

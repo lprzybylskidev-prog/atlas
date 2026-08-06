@@ -4,13 +4,16 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Files;
 
+use App\Modules\Core\Audit\Application\Public\Persistence\AuditDatabaseTable;
+use App\Modules\Core\Authorization\Application\Public\Persistence\AuthorizationDatabaseTable;
 use App\Modules\Core\Authorization\Application\Roles\InstallStarterRoles;
 use App\Modules\Core\Authorization\Application\Roles\StarterRoleName;
 use App\Modules\Core\Files\Application\Enums\FileScanState;
 use App\Modules\Core\Files\Application\Public\Contracts\FileStorage;
+use App\Modules\Core\Files\Application\Public\Persistence\FilesDatabaseTable;
 use App\Modules\Core\Identity\Infrastructure\Persistence\User;
+use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
 use App\Modules\Core\Teams\Infrastructure\Persistence\Team;
-use App\Shared\Infrastructure\Database\DatabaseTable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Config;
@@ -73,12 +76,12 @@ final class FilesAdminTest extends TestCase
             ->assertRedirect(route('admin.files.index'))
             ->assertSessionHas('flash.messages.0.key', 'flash.files.acknowledge_single');
 
-        $this->assertDatabaseHas(DatabaseTable::FILE_OBJECTS, [
+        $this->assertDatabaseHas(FilesDatabaseTable::FILE_OBJECTS, [
             'public_id' => $stored->publicId,
             'acknowledged_by_user_id' => $admin->id,
             'acknowledgement_reason' => 'Review completed in the admin files panel.',
         ]);
-        $this->assertDatabaseHas(DatabaseTable::AUDIT_EVENTS, [
+        $this->assertDatabaseHas(AuditDatabaseTable::AUDIT_EVENTS, [
             'module' => 'files',
             'action' => 'file.scan_acknowledge',
             'target_public_id' => $stored->publicId,
@@ -96,7 +99,7 @@ final class FilesAdminTest extends TestCase
                 ->where('files.0.canAcknowledge', false));
 
         $cleanStored = $this->app->make(FileStorage::class)->storeUpload(UploadedFile::fake()->createWithContent('avatar.webp', 'Clean avatar content.'));
-        DB::table(DatabaseTable::FILE_OBJECTS)
+        DB::table(FilesDatabaseTable::FILE_OBJECTS)
             ->where('public_id', $cleanStored->publicId)
             ->update([
                 'scan_state' => FileScanState::Clean->value,
@@ -128,7 +131,7 @@ final class FilesAdminTest extends TestCase
             ->post('/admin/files/'.$stored->publicId.'/rescan')
             ->assertRedirect(route('admin.files.index'));
 
-        $this->assertDatabaseHas(DatabaseTable::FILE_OBJECTS, [
+        $this->assertDatabaseHas(FilesDatabaseTable::FILE_OBJECTS, [
             'public_id' => $stored->publicId,
             'scan_state' => FileScanState::Pending->value,
             'acknowledged_by_user_id' => null,
@@ -154,14 +157,14 @@ final class FilesAdminTest extends TestCase
 
         $role = Role::query()->where('name', StarterRoleName::Administrator->value)->firstOrFail();
 
-        $this->app['db']->table(DatabaseTable::TEAM_USER_ASSIGNMENTS)->insert([
+        $this->app['db']->table(TeamsDatabaseTable::TEAM_USER_ASSIGNMENTS)->insert([
             'team_id' => $team->id,
             'user_id' => $admin->id,
             'created_at' => now(),
             'updated_at' => now(),
         ]);
 
-        $this->app['db']->table(DatabaseTable::MODEL_HAS_ROLES)->insert([
+        $this->app['db']->table(AuthorizationDatabaseTable::MODEL_HAS_ROLES)->insert([
             'role_id' => $role->id,
             'model_type' => config('auth.providers.users.model'),
             'model_id' => $admin->id,

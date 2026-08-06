@@ -4,10 +4,11 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Foundation;
 
+use App\Modules\Core\Identity\Application\Public\Persistence\IdentityDatabaseTable;
+use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
 use App\Shared\Application\Modules\Contracts\ModuleGate;
 use App\Shared\Application\Modules\ModuleAccessDenialReason;
 use App\Shared\Application\Modules\ModuleAccessRequest;
-use App\Shared\Infrastructure\Database\DatabaseTable;
 use Database\Seeders\E2eVisibilitySeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -22,9 +23,9 @@ final class ModuleGateRuntimeTest extends TestCase
         $this->seed(E2eVisibilitySeeder::class);
 
         $gate = app(ModuleGate::class);
-        $admin = DB::table(DatabaseTable::USERS)->where('email', E2eVisibilitySeeder::ADMIN_EMAIL)->first();
-        $limited = DB::table(DatabaseTable::USERS)->where('email', E2eVisibilitySeeder::LIMITED_EMAIL)->first();
-        $team = DB::table(DatabaseTable::TEAMS)->where('name', E2eVisibilitySeeder::TEAM_NAME)->first();
+        $admin = DB::table(IdentityDatabaseTable::USERS)->where('email', E2eVisibilitySeeder::ADMIN_EMAIL)->first();
+        $limited = DB::table(IdentityDatabaseTable::USERS)->where('email', E2eVisibilitySeeder::LIMITED_EMAIL)->first();
+        $team = DB::table(TeamsDatabaseTable::TEAMS)->where('name', E2eVisibilitySeeder::TEAM_NAME)->first();
 
         self::assertIsObject($admin);
         self::assertIsObject($limited);

@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace App\Modules\Core\Audit\Application\Exports;
 
+use App\Modules\Core\Audit\Application\Public\Persistence\AuditDatabaseTable;
 use App\Modules\Core\Exports\Application\Public\AbstractAdminDataTableExportProvider;
 use App\Modules\Core\Exports\Application\Public\DTOs\AdminDataTableExportContext;
 use App\Modules\Core\Exports\Application\Public\DTOs\ReportExportGenerationRequest;
 use App\Modules\Core\Exports\Application\Public\Permissions\ReportsPermissionCatalog;
 use App\Shared\Application\Tables\AdminTableDefinitions;
-use App\Shared\Infrastructure\Database\DatabaseTable;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Facades\DB;
 
@@ -76,7 +76,7 @@ final readonly class AdminAuditEventsDataTableExportProvider extends AbstractAdm
 
     public function rows(ReportExportGenerationRequest $request): iterable
     {
-        $query = DB::table(DatabaseTable::AUDIT_EVENTS)->orderByDesc('occurred_at');
+        $query = DB::table(AuditDatabaseTable::AUDIT_EVENTS)->orderByDesc('occurred_at');
         $this->applyFilters($query, $request);
 
         $rows = array_values($query->limit(5000)->get()

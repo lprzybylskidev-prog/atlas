@@ -30,6 +30,7 @@ use App\Modules\Core\Authorization\Infrastructure\Persistence\SpatiePermissionRo
 use App\Modules\Core\Authorization\Infrastructure\Persistence\SpatiePublicIdHooks;
 use App\Modules\Core\Authorization\Infrastructure\Persistence\SpatieUserAuthorizationAssignmentPreviewer;
 use App\Modules\Core\Authorization\Presentation\Console\UpdateAdministratorRolePermissions;
+use App\Modules\Core\Authorization\Presentation\Inertia\AuthorizationRouteAvailability;
 use App\Shared\Application\Modules\Contributions\Contracts\ModulePermissionContribution;
 use App\Shared\Application\Modules\Exports\AdminModuleDetailHistoryDataTableExportProvider;
 use App\Shared\Application\Modules\Exports\AdminModuleDetailSchedulesDataTableExportProvider;
@@ -44,6 +45,7 @@ final class AuthorizationServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->tag([CoreAuthorizationPermissionCatalog::class], 'atlas.permission_catalogs');
+        $this->app->tag([AuthorizationRouteAvailability::class], 'atlas.inertia_route_availability');
         $this->app->tag([UserAuthorizationDataLifecycleParticipant::class], 'atlas.data_lifecycle_participants');
         $this->app->bind(EffectivePermissionChecker::class, SpatieEffectivePermissionChecker::class);
         $this->app->bind(AdministratorAccessManager::class, AdministratorAccess::class);

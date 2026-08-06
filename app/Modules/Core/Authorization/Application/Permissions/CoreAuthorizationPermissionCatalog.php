@@ -4,12 +4,13 @@ declare(strict_types=1);
 
 namespace App\Modules\Core\Authorization\Application\Permissions;
 
+use App\Modules\Core\Authorization\Application\Public\Permissions\CoreAuthorizationPermissionNames;
 use App\Shared\Application\Modules\Contributions\Contracts\ModulePermissionContribution;
 use App\Shared\Application\Modules\Contributions\ModulePermissionDefinition;
 
 final class CoreAuthorizationPermissionCatalog implements ModulePermissionContribution
 {
-    public const DASHBOARD = 'dashboard';
+    public const DASHBOARD = CoreAuthorizationPermissionNames::DASHBOARD;
 
     public const ADMIN_SYSTEM_STATUS = 'admin.system-status';
 

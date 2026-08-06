@@ -5,12 +5,12 @@ declare(strict_types=1);
 namespace App\Modules\Core\Authorization\Presentation\Http\Controllers;
 
 use App\Modules\Core\Authorization\Application\Packages\OnboardingPackageCatalog;
+use App\Modules\Core\Authorization\Application\Public\Persistence\AuthorizationDatabaseTable;
 use App\Shared\Application\Tables\AdminTableDefinitions;
 use App\Shared\Application\Tables\ArrayTableProcessor;
 use App\Shared\Application\Tables\TableRequestContext;
 use App\Shared\Application\Tables\TableSavedViewService;
 use App\Shared\Application\Tables\TableState;
-use App\Shared\Infrastructure\Database\DatabaseTable;
 use App\Shared\Presentation\Support\AdminDataTableExportMeta;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -32,7 +32,7 @@ final readonly class OnboardingPackageAdministrationController
         $state = TableState::fromRequest($request, $definition);
         $filters = $this->filters($request);
         [$userId, $teamId] = $this->context->userTeam($request);
-        $databasePackages = DB::table(DatabaseTable::AUTHORIZATION_ONBOARDING_PACKAGES)
+        $databasePackages = DB::table(AuthorizationDatabaseTable::AUTHORIZATION_ONBOARDING_PACKAGES)
             ->get(['id', 'public_id', 'is_active', 'created_at', 'updated_at'])
             ->keyBy('public_id');
         $rows = array_map(static function ($package) use ($databasePackages): array {

@@ -6,13 +6,13 @@ namespace App\Modules\Core\Users\Presentation\Http\Controllers;
 
 use App\Modules\Core\Authorization\Application\Public\Contracts\EffectivePermissionChecker;
 use App\Modules\Core\Authorization\Application\Public\DTOs\EffectivePermissionRequest;
+use App\Modules\Core\Files\Application\Public\Persistence\FilesDatabaseTable;
 use App\Modules\Core\Identity\Application\Public\Contracts\UserPasswordExpiration;
 use App\Modules\Core\Identity\Application\Public\Contracts\UserSessionLimitResolver;
 use App\Modules\Core\Notifications\Application\Public\Contracts\NotificationEmailPreferenceManager;
 use App\Modules\Core\Notifications\Application\Public\Contracts\NotificationTypeDirectory;
 use App\Modules\Optional\TimeTracking\Application\Public\Contracts\UserBreakPolicySettings;
 use App\Modules\Optional\TimeTracking\Application\Public\Permissions\TimeTrackingPermissionNames;
-use App\Shared\Infrastructure\Database\DatabaseTable;
 use DateTimeInterface;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -170,7 +170,7 @@ final class UserProfileController
             return null;
         }
 
-        $clean = DB::table(DatabaseTable::FILE_OBJECTS)
+        $clean = DB::table(FilesDatabaseTable::FILE_OBJECTS)
             ->where('public_id', $filePublicId)
             ->where('scan_state', 'clean')
             ->whereNull('deleted_at')

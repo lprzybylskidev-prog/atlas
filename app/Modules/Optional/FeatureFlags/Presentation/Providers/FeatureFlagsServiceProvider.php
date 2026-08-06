@@ -13,6 +13,7 @@ use App\Modules\Optional\FeatureFlags\Application\FeatureFlagService;
 use App\Modules\Optional\FeatureFlags\Application\Permissions\FeatureFlagsPermissionCatalog;
 use App\Modules\Optional\FeatureFlags\Application\Public\Contracts\FeatureFlagEvaluator;
 use App\Modules\Optional\FeatureFlags\Infrastructure\Persistence\DatabaseFeatureFlagStore;
+use App\Modules\Optional\FeatureFlags\Presentation\Inertia\FeatureFlagsRouteAvailability;
 use Illuminate\Support\ServiceProvider;
 
 final class FeatureFlagsServiceProvider extends ServiceProvider
@@ -24,6 +25,7 @@ final class FeatureFlagsServiceProvider extends ServiceProvider
         $this->app->bind(FeatureFlagEvaluator::class, FeatureFlagService::class);
 
         $this->app->tag([FeatureFlagsPermissionCatalog::class], 'atlas.permission_catalogs');
+        $this->app->tag([FeatureFlagsRouteAvailability::class], 'atlas.inertia_route_availability');
         $this->app->tag([
             AdminFeatureFlagsDataTableExportProvider::class,
             AdminFeatureFlagHistoryDataTableExportProvider::class,

@@ -4,10 +4,14 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Foundation;
 
+use App\Modules\Core\Authorization\Application\Public\Persistence\AuthorizationDatabaseTable;
 use App\Modules\Core\Authorization\Application\Roles\InstallStarterRoles;
 use App\Modules\Core\Exports\Application\Public\Permissions\ReportsPermissionCatalog;
+use App\Modules\Core\Files\Application\Public\Persistence\FilesDatabaseTable;
 use App\Modules\Core\Identity\Infrastructure\Persistence\User;
+use App\Modules\Core\Notifications\Application\Public\Persistence\NotificationsDatabaseTable;
 use App\Modules\Core\Teams\Application\Public\Contracts\UserTeamSessionLimitSettings;
+use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
 use App\Modules\Core\Teams\Infrastructure\Persistence\Team;
 use App\Modules\Core\Users\Application\Permissions\UserPermissionCatalog;
 use App\Modules\Optional\TimeTracking\Application\Contracts\UserTeamTrackingSettings;
@@ -17,7 +21,6 @@ use App\Shared\Application\Modules\Activation\Contracts\ModuleActivationService;
 use App\Shared\Application\Modules\Activation\ModuleActivationChange;
 use App\Shared\Application\Modules\Activation\ModuleActivationScope;
 use App\Shared\Application\Modules\Activation\ModuleActivationSource;
-use App\Shared\Infrastructure\Database\DatabaseTable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Config;
@@ -120,7 +123,7 @@ final class UserProfilePanelTest extends TestCase
             ->get('/user')
             ->assertOk();
 
-        $address = DB::table(DatabaseTable::NOTIFICATION_EMAIL_ADDRESSES)
+        $address = DB::table(NotificationsDatabaseTable::NOTIFICATION_EMAIL_ADDRESSES)
             ->where('user_id', $user->id)
             ->where('team_id', $team->id)
             ->where('primary', true)
@@ -129,7 +132,7 @@ final class UserProfilePanelTest extends TestCase
         self::assertIsObject($address);
         $addressId = $this->numericId($address->id ?? null);
 
-        DB::table(DatabaseTable::NOTIFICATION_EMAIL_PREFERENCES)
+        DB::table(NotificationsDatabaseTable::NOTIFICATION_EMAIL_PREFERENCES)
             ->where('notification_email_address_id', $addressId)
             ->where('team_id', $team->id)
             ->where('notification_type', 'managed_process.succeeded')
@@ -143,19 +146,19 @@ final class UserProfilePanelTest extends TestCase
             ->assertRedirect()
             ->assertSessionHasNoErrors();
 
-        $this->assertDatabaseHas(DatabaseTable::NOTIFICATION_EMAIL_PREFERENCES, [
+        $this->assertDatabaseHas(NotificationsDatabaseTable::NOTIFICATION_EMAIL_PREFERENCES, [
             'notification_email_address_id' => $addressId,
             'team_id' => $team->id,
             'notification_type' => 'report_export.available',
             'enabled' => true,
         ]);
-        $this->assertDatabaseHas(DatabaseTable::NOTIFICATION_EMAIL_PREFERENCES, [
+        $this->assertDatabaseHas(NotificationsDatabaseTable::NOTIFICATION_EMAIL_PREFERENCES, [
             'notification_email_address_id' => $addressId,
             'team_id' => $team->id,
             'notification_type' => 'report_export.failed',
             'enabled' => false,
         ]);
-        $this->assertDatabaseHas(DatabaseTable::NOTIFICATION_EMAIL_PREFERENCES, [
+        $this->assertDatabaseHas(NotificationsDatabaseTable::NOTIFICATION_EMAIL_PREFERENCES, [
             'notification_email_address_id' => $addressId,
             'team_id' => $team->id,
             'notification_type' => 'managed_process.succeeded',
@@ -216,7 +219,7 @@ final class UserProfilePanelTest extends TestCase
         self::assertSame('#fef3c7', $user->avatar_color);
         self::assertIsString($user->avatar_image_file_public_id);
 
-        $file = DB::table(DatabaseTable::FILE_OBJECTS)->where('public_id', $user->avatar_image_file_public_id)->first();
+        $file = DB::table(FilesDatabaseTable::FILE_OBJECTS)->where('public_id', $user->avatar_image_file_public_id)->first();
         self::assertIsObject($file);
         self::assertSame('clean', $file->scan_state);
         $storedPath = self::stringValue($file->path);
@@ -277,7 +280,7 @@ final class UserProfilePanelTest extends TestCase
         $user->refresh();
         self::assertNull($user->avatar_image_file_public_id);
 
-        $file = DB::table(DatabaseTable::FILE_OBJECTS)->where('original_name', 'avatar.png')->first();
+        $file = DB::table(FilesDatabaseTable::FILE_OBJECTS)->where('original_name', 'avatar.png')->first();
         self::assertIsObject($file);
         self::assertSame('infected', $file->scan_state);
     }
@@ -297,7 +300,7 @@ final class UserProfilePanelTest extends TestCase
             'is_active' => true,
         ]);
 
-        DB::table(DatabaseTable::TEAM_USER_ASSIGNMENTS)->insert([
+        DB::table(TeamsDatabaseTable::TEAM_USER_ASSIGNMENTS)->insert([
             'team_id' => $team->id,
             'user_id' => $user->id,
             'created_at' => now(),
@@ -311,7 +314,7 @@ final class UserProfilePanelTest extends TestCase
     {
         $permission = Permission::query()->where('name', $permissionName)->firstOrFail();
 
-        DB::table(DatabaseTable::MODEL_HAS_PERMISSIONS)->insert([
+        DB::table(AuthorizationDatabaseTable::MODEL_HAS_PERMISSIONS)->insert([
             'permission_id' => $permission->id,
             'model_type' => config('auth.providers.users.model'),
             'model_id' => $user->id,
@@ -321,7 +324,7 @@ final class UserProfilePanelTest extends TestCase
 
     private function enableTracking(User $user, Team $team): void
     {
-        $assignmentId = DB::table(DatabaseTable::TEAM_USER_ASSIGNMENTS)
+        $assignmentId = DB::table(TeamsDatabaseTable::TEAM_USER_ASSIGNMENTS)
             ->where('team_id', $team->id)
             ->where('user_id', $user->id)
             ->value('id');

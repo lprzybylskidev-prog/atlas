@@ -1,4 +1,4 @@
-# Phase 27a — Demo and test seeder invariant repair
+# Phase 27b — Demo and test seeder invariant repair
 
 **Status:** `not started`
 

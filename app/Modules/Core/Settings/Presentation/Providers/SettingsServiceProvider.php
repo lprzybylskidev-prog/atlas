@@ -15,6 +15,7 @@ use App\Modules\Core\Settings\Infrastructure\Persistence\DatabaseAdministrativeS
 use App\Modules\Core\Settings\Infrastructure\Persistence\DatabasePasswordSecuritySettings;
 use App\Modules\Core\Settings\Infrastructure\Persistence\DatabaseSecuritySessionSettings;
 use App\Modules\Core\Settings\Infrastructure\Persistence\DatabaseSettingsStore;
+use App\Modules\Core\Settings\Presentation\Inertia\SettingsInertiaData;
 use Illuminate\Contracts\Cache\Repository as CacheRepository;
 use Illuminate\Database\ConnectionInterface;
 use Illuminate\Support\ServiceProvider;
@@ -35,5 +36,6 @@ final class SettingsServiceProvider extends ServiceProvider
         $this->app->bind(AdministrativeSecuritySettings::class, DatabaseAdministrativeSecuritySettings::class);
         $this->app->bind(PasswordSecuritySettings::class, DatabasePasswordSecuritySettings::class);
         $this->app->bind(SecuritySessionSettings::class, DatabaseSecuritySessionSettings::class);
+        $this->app->tag([SettingsInertiaData::class], 'atlas.inertia_shared_data');
     }
 }

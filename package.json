@@ -6,9 +6,10 @@
     "type": "module",
     "scripts": {
         "build": "vite build",
+        "check:config": "bash tools/quality/check-env-example.sh && bash tools/quality/check-playwright-version.sh",
         "check:secrets": "bash tools/quality/check-secrets.sh",
         "check:unwanted": "bash tools/quality/check-unwanted-files.sh",
-        "check": "pnpm typecheck && pnpm lint && pnpm stylelint && pnpm test && pnpm build",
+        "check": "pnpm format:check && pnpm lint && pnpm stylelint && pnpm check:secrets && pnpm check:unwanted && pnpm check:config && pnpm typecheck && pnpm test && pnpm build",
         "dev": "vite",
         "format": "prettier --write resources/js resources/css tests/e2e eslint.config.js lefthook.yml package.json playwright.config.ts pnpm-workspace.yaml prettier.config.js stylelint.config.js tsconfig.e2e.json vite.config.js",
         "format:check": "prettier --check resources/js resources/css tests/e2e eslint.config.js lefthook.yml package.json playwright.config.ts pnpm-workspace.yaml prettier.config.js stylelint.config.js tsconfig.e2e.json vite.config.js",

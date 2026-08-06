@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use App\Modules\Core\Identity\Application\Public\Persistence\IdentityDatabaseTable;
+use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
 use App\Shared\Infrastructure\Database\DatabaseSchema;
 use App\Shared\Infrastructure\Database\DatabaseTable;
 use Illuminate\Database\Migrations\Migration;
@@ -21,8 +23,8 @@ return new class extends Migration
             $table->string('table_key');
             $table->string('name', 80);
             $table->string('type', 16);
-            $table->foreignId('owner_user_id')->nullable()->constrained(DatabaseTable::USERS)->restrictOnDelete();
-            $table->foreignId('team_id')->nullable()->constrained(DatabaseTable::TEAMS)->restrictOnDelete();
+            $table->foreignId('owner_user_id')->nullable()->constrained(IdentityDatabaseTable::USERS)->restrictOnDelete();
+            $table->foreignId('team_id')->nullable()->constrained(TeamsDatabaseTable::TEAMS)->restrictOnDelete();
             $table->jsonb('state');
             $table->timestampsTz();
 
@@ -33,8 +35,8 @@ return new class extends Migration
 
         Schema::create(DatabaseTable::TABLE_SAVED_VIEW_DEFAULTS, function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->constrained(DatabaseTable::USERS)->restrictOnDelete();
-            $table->foreignId('team_id')->nullable()->constrained(DatabaseTable::TEAMS)->restrictOnDelete();
+            $table->foreignId('user_id')->constrained(IdentityDatabaseTable::USERS)->restrictOnDelete();
+            $table->foreignId('team_id')->nullable()->constrained(TeamsDatabaseTable::TEAMS)->restrictOnDelete();
             $table->string('table_key');
             $table->foreignId('table_saved_view_id')->constrained(DatabaseTable::TABLE_SAVED_VIEWS)->cascadeOnDelete();
             $table->timestampsTz();

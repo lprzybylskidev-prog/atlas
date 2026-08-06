@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Modules\Core\Teams\Application\Lifecycle;
 
+use App\Modules\Core\Identity\Application\Public\Persistence\IdentityDatabaseTable;
+use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
 use App\Shared\Application\DataLifecycle\Contracts\DataLifecycleParticipant;
 use App\Shared\Application\DataLifecycle\DataLifecycleImpact;
 use App\Shared\Application\DataLifecycle\DataLifecycleOperation;
@@ -11,7 +13,6 @@ use App\Shared\Application\DataLifecycle\DataLifecyclePreview;
 use App\Shared\Application\DataLifecycle\DataLifecycleResult;
 use App\Shared\Application\DataLifecycle\DataLifecycleStepResult;
 use App\Shared\Application\DataLifecycle\DataLifecycleSubject;
-use App\Shared\Infrastructure\Database\DatabaseTable;
 use Illuminate\Database\ConnectionInterface;
 use Illuminate\Database\Query\Builder;
 
@@ -85,7 +86,7 @@ final readonly class TeamUserDataLifecycleParticipant implements DataLifecyclePa
             ),
             new DataLifecycleStepResult(
                 'teams.manager_relationship_actor_references_redacted',
-                $this->db->table(DatabaseTable::TEAM_MANAGER_RELATIONSHIPS)
+                $this->db->table(TeamsDatabaseTable::TEAM_MANAGER_RELATIONSHIPS)
                     ->where('created_by_user_id', $userId)
                     ->orWhere('ended_by_user_id', $userId)
                     ->update([
@@ -104,7 +105,7 @@ final readonly class TeamUserDataLifecycleParticipant implements DataLifecyclePa
             return null;
         }
 
-        $id = $this->db->table(DatabaseTable::USERS)
+        $id = $this->db->table(IdentityDatabaseTable::USERS)
             ->where('public_id', $subject->identifier)
             ->value('id');
 
@@ -113,12 +114,12 @@ final readonly class TeamUserDataLifecycleParticipant implements DataLifecyclePa
 
     private function assignments(int $userId): Builder
     {
-        return $this->db->table(DatabaseTable::TEAM_USER_ASSIGNMENTS)->where('user_id', $userId);
+        return $this->db->table(TeamsDatabaseTable::TEAM_USER_ASSIGNMENTS)->where('user_id', $userId);
     }
 
     private function relationships(int $userId): Builder
     {
-        return $this->db->table(DatabaseTable::TEAM_MANAGER_RELATIONSHIPS)
+        return $this->db->table(TeamsDatabaseTable::TEAM_MANAGER_RELATIONSHIPS)
             ->where(static function (Builder $query) use ($userId): void {
                 $query
                     ->where('manager_user_id', $userId)

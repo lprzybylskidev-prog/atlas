@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Optional\ManagedProcesses\Application\Lifecycle;
 
 use App\Modules\Optional\ManagedProcesses\Application\Enums\ProcessRunStatus;
+use App\Modules\Optional\ManagedProcesses\Application\Public\Persistence\ManagedProcessesDatabaseTable;
 use App\Shared\Application\DataLifecycle\Contracts\DataLifecycleParticipant;
 use App\Shared\Application\DataLifecycle\DataLifecycleBlocker;
 use App\Shared\Application\DataLifecycle\DataLifecycleImpact;
@@ -140,7 +141,7 @@ final readonly class ManagedProcessDataLifecycleParticipant implements DataLifec
 
     private function matchingRuns(DataLifecycleSubject $subject): Builder
     {
-        return $this->db->table(DatabaseTable::MANAGED_PROCESS_RUNS)
+        return $this->db->table(ManagedProcessesDatabaseTable::RUNS)
             ->where(function (Builder $query) use ($subject): void {
                 $query
                     ->where('public_id', $subject->identifier)
@@ -156,7 +157,7 @@ final readonly class ManagedProcessDataLifecycleParticipant implements DataLifec
 
     private function matchingLogs(DataLifecycleSubject $subject): Builder
     {
-        return $this->db->table(DatabaseTable::MANAGED_PROCESS_LOG_EVENTS)
+        return $this->db->table(ManagedProcessesDatabaseTable::LOG_EVENTS)
             ->where(function (Builder $query) use ($subject): void {
                 $query
                     ->where('correlation_id', $subject->identifier)
@@ -171,7 +172,7 @@ final readonly class ManagedProcessDataLifecycleParticipant implements DataLifec
 
     private function matchingSchedules(DataLifecycleSubject $subject): Builder
     {
-        return $this->db->table(DatabaseTable::MANAGED_PROCESS_SCHEDULES)
+        return $this->db->table(ManagedProcessesDatabaseTable::SCHEDULES)
             ->where(function (Builder $query) use ($subject): void {
                 $this->orJsonTextContains($query, 'input_snapshot', $subject->identifier);
                 $this->orTextContains($query, 'reason', $subject->identifier);

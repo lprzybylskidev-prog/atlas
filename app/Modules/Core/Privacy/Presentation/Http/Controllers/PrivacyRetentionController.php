@@ -8,17 +8,18 @@ use App\Modules\Core\Identity\Application\Public\Contracts\HighRiskAdministrativ
 use App\Modules\Core\Privacy\Application\DTOs\PrivacyPreviewCommand;
 use App\Modules\Core\Privacy\Application\Enums\PrivacyOperation;
 use App\Modules\Core\Privacy\Application\Exceptions\PrivacyOperationExecutionException;
+use App\Modules\Core\Privacy\Application\Public\Persistence\PrivacyDatabaseTable;
 use App\Modules\Core\Privacy\Application\Services\DataLifecycleParticipantRegistry;
 use App\Modules\Core\Privacy\Application\Services\PrivacyOperationExecutor;
 use App\Modules\Core\Privacy\Application\Services\PrivacyOperationPreviewer;
 use App\Modules\Core\Privacy\Application\Services\PrivacyRetentionCoverageCatalog;
+use App\Modules\Core\Privacy\Presentation\Http\PrivacyHighRiskContinuation;
 use App\Modules\Core\Privacy\Presentation\Http\PrivacyPreviewInput;
 use App\Shared\Application\Tables\AdminTableDefinitions;
 use App\Shared\Application\Tables\ArrayTableProcessor;
 use App\Shared\Application\Tables\TableRequestContext;
 use App\Shared\Application\Tables\TableSavedViewService;
 use App\Shared\Application\Tables\TableState;
-use App\Shared\Infrastructure\Database\DatabaseTable;
 use App\Shared\Presentation\Support\FlashMessage;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -28,7 +29,7 @@ use Inertia\Response;
 
 final readonly class PrivacyRetentionController
 {
-    private const HIGH_RISK_RECOVERABLE_INPUT = 'atlas_high_risk_recoverable_input';
+    private const HIGH_RISK_RECOVERABLE_INPUT = PrivacyHighRiskContinuation::RECOVERABLE_INPUT;
 
     public function __construct(
         private ArrayTableProcessor $tables,
@@ -234,8 +235,8 @@ final readonly class PrivacyRetentionController
             return null;
         }
 
-        $row = DB::table(DatabaseTable::PRIVACY_OPERATION_REQUESTS.' as requests')
-            ->join(DatabaseTable::PRIVACY_OPERATION_PREVIEWS.' as previews', 'previews.operation_request_id', '=', 'requests.id')
+        $row = DB::table(PrivacyDatabaseTable::OPERATION_REQUESTS.' as requests')
+            ->join(PrivacyDatabaseTable::OPERATION_PREVIEWS.' as previews', 'previews.operation_request_id', '=', 'requests.id')
             ->where('requests.public_id', $previewPublicId)
             ->orderByDesc('previews.created_at')
             ->first([

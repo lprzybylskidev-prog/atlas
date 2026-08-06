@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Foundation;
 
+use App\Modules\Core\Authorization\Application\Public\Persistence\AuthorizationDatabaseTable;
 use App\Modules\Core\Authorization\Application\Roles\InstallStarterRoles;
 use App\Modules\Core\Authorization\Application\Roles\StarterRoleName;
 use App\Modules\Core\Identity\Infrastructure\Persistence\User;
@@ -11,10 +12,11 @@ use App\Modules\Core\Notifications\Application\Public\Contracts\NotificationInbo
 use App\Modules\Core\Notifications\Application\Public\Contracts\NotificationPublisher;
 use App\Modules\Core\Notifications\Application\Public\Contracts\RealtimePublisher;
 use App\Modules\Core\Notifications\Application\Public\DTOs\CreateNotification;
+use App\Modules\Core\Notifications\Application\Public\Persistence\NotificationsDatabaseTable;
 use App\Modules\Core\Notifications\Application\UserNotificationEmailPreferences;
 use App\Modules\Core\Notifications\Infrastructure\Persistence\DatabaseNotificationStore;
+use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
 use App\Modules\Core\Teams\Infrastructure\Persistence\Team;
-use App\Shared\Infrastructure\Database\DatabaseTable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
@@ -135,7 +137,7 @@ final class NotificationsFoundationTest extends TestCase
             null,
             $team->id,
         );
-        $extraAddressId = DB::table(DatabaseTable::NOTIFICATION_EMAIL_ADDRESSES)->insertGetId([
+        $extraAddressId = DB::table(NotificationsDatabaseTable::NOTIFICATION_EMAIL_ADDRESSES)->insertGetId([
             'public_id' => (string) Str::ulid(),
             'user_id' => $user->id,
             'team_id' => $team->id,
@@ -147,7 +149,7 @@ final class NotificationsFoundationTest extends TestCase
             'created_at' => now(),
             'updated_at' => now(),
         ]);
-        DB::table(DatabaseTable::NOTIFICATION_EMAIL_PREFERENCES)->insert([
+        DB::table(NotificationsDatabaseTable::NOTIFICATION_EMAIL_PREFERENCES)->insert([
             'notification_email_address_id' => $extraAddressId,
             'team_id' => $team->id,
             'notification_type' => 'report_export.available',
@@ -164,8 +166,8 @@ final class NotificationsFoundationTest extends TestCase
             teamPublicId: (string) $team->public_id,
             emailRequested: true,
         ));
-        $recipientId = DB::table(DatabaseTable::NOTIFICATION_RECIPIENTS)
-            ->join(DatabaseTable::NOTIFICATIONS, 'notification_recipients.notification_id', '=', 'notifications.id')
+        $recipientId = DB::table(NotificationsDatabaseTable::NOTIFICATION_RECIPIENTS)
+            ->join(NotificationsDatabaseTable::NOTIFICATIONS, 'notification_recipients.notification_id', '=', 'notifications.id')
             ->where('notifications.public_id', $publicId)
             ->value('notification_recipients.id');
 
@@ -175,7 +177,7 @@ final class NotificationsFoundationTest extends TestCase
             array_column($this->app->make(DatabaseNotificationStore::class)->emailPayloads((int) $recipientId), 'email'),
         );
 
-        DB::table(DatabaseTable::NOTIFICATION_EMAIL_ADDRESSES)->where('id', $extraAddressId)->update([
+        DB::table(NotificationsDatabaseTable::NOTIFICATION_EMAIL_ADDRESSES)->where('id', $extraAddressId)->update([
             'verified_at' => now(),
             'verification_token_hash' => null,
         ]);
@@ -185,7 +187,7 @@ final class NotificationsFoundationTest extends TestCase
             array_column($this->app->make(DatabaseNotificationStore::class)->emailPayloads((int) $recipientId), 'email'),
         );
 
-        DB::table(DatabaseTable::NOTIFICATION_EMAIL_PREFERENCES)
+        DB::table(NotificationsDatabaseTable::NOTIFICATION_EMAIL_PREFERENCES)
             ->where('notification_email_address_id', $extraAddressId)
             ->where('notification_type', 'report_export.available')
             ->update(['enabled' => false]);
@@ -202,7 +204,7 @@ final class NotificationsFoundationTest extends TestCase
 
         [$user, $teamA] = $this->userWithTeam(StarterRoleName::WorkspaceAccess->value);
         $teamB = Team::query()->create(['name' => 'Notifications Team B']);
-        DB::table(DatabaseTable::TEAM_USER_ASSIGNMENTS)->insert([
+        DB::table(TeamsDatabaseTable::TEAM_USER_ASSIGNMENTS)->insert([
             'team_id' => $teamB->id,
             'user_id' => $user->id,
             'created_at' => now(),
@@ -213,14 +215,14 @@ final class NotificationsFoundationTest extends TestCase
         $preferences->ensurePrimaryAddressForUser((int) $user->id, (string) $user->email, null, $teamA->id);
         $preferences->ensurePrimaryAddressForUser((int) $user->id, (string) $user->email, null, $teamB->id);
 
-        $teamAAddressId = DB::table(DatabaseTable::NOTIFICATION_EMAIL_ADDRESSES)
+        $teamAAddressId = DB::table(NotificationsDatabaseTable::NOTIFICATION_EMAIL_ADDRESSES)
             ->where('user_id', $user->id)
             ->where('team_id', $teamA->id)
             ->where('primary', true)
             ->value('id');
         self::assertIsNumeric($teamAAddressId);
 
-        DB::table(DatabaseTable::NOTIFICATION_EMAIL_PREFERENCES)
+        DB::table(NotificationsDatabaseTable::NOTIFICATION_EMAIL_PREFERENCES)
             ->where('notification_email_address_id', (int) $teamAAddressId)
             ->where('team_id', $teamA->id)
             ->where('notification_type', 'report_export.available')
@@ -307,7 +309,7 @@ final class NotificationsFoundationTest extends TestCase
             ));
         }
 
-        $ids = DB::table(DatabaseTable::NOTIFICATIONS)
+        $ids = DB::table(NotificationsDatabaseTable::NOTIFICATIONS)
             ->orderBy('title')
             ->pluck('public_id')
             ->filter(static fn (mixed $id): bool => is_string($id))
@@ -340,7 +342,7 @@ final class NotificationsFoundationTest extends TestCase
         ]);
 
         self::assertSame(0, $exitCode);
-        self::assertDatabaseHas(DatabaseTable::NOTIFICATIONS, [
+        self::assertDatabaseHas(NotificationsDatabaseTable::NOTIFICATIONS, [
             'title' => 'Ręczne powiadomienie',
             'severity' => 'warning',
         ]);
@@ -396,8 +398,8 @@ final class NotificationsFoundationTest extends TestCase
             '--session' => 'session-1',
         ]));
 
-        self::assertDatabaseHas(DatabaseTable::REALTIME_EVENTS, ['event_type' => 'operation.progress']);
-        self::assertDatabaseHas(DatabaseTable::REALTIME_EVENTS, ['event_type' => 'session.invalidated']);
+        self::assertDatabaseHas(NotificationsDatabaseTable::REALTIME_EVENTS, ['event_type' => 'operation.progress']);
+        self::assertDatabaseHas(NotificationsDatabaseTable::REALTIME_EVENTS, ['event_type' => 'session.invalidated']);
     }
 
     public function test_notification_prune_removes_old_read_and_realtime_records(): void
@@ -413,21 +415,21 @@ final class NotificationsFoundationTest extends TestCase
             teamPublicId: (string) $team->public_id,
         ));
 
-        DB::table(DatabaseTable::NOTIFICATION_RECIPIENTS)->update([
+        DB::table(NotificationsDatabaseTable::NOTIFICATION_RECIPIENTS)->update([
             'read_at' => now()->subDays(120),
             'updated_at' => now()->subDays(120),
         ]);
-        DB::table(DatabaseTable::NOTIFICATIONS)->where('public_id', $publicId)->update(['created_at' => now()->subDays(120)]);
-        DB::table(DatabaseTable::REALTIME_EVENTS)->update(['created_at' => now()->subHours(120)]);
+        DB::table(NotificationsDatabaseTable::NOTIFICATIONS)->where('public_id', $publicId)->update(['created_at' => now()->subDays(120)]);
+        DB::table(NotificationsDatabaseTable::REALTIME_EVENTS)->update(['created_at' => now()->subHours(120)]);
 
         self::assertSame(0, Artisan::call('notifications:prune', [
             '--read-days' => '90',
             '--realtime-hours' => '72',
         ]));
 
-        self::assertDatabaseCount(DatabaseTable::NOTIFICATION_RECIPIENTS, 0);
-        self::assertDatabaseCount(DatabaseTable::NOTIFICATIONS, 0);
-        self::assertDatabaseCount(DatabaseTable::REALTIME_EVENTS, 0);
+        self::assertDatabaseCount(NotificationsDatabaseTable::NOTIFICATION_RECIPIENTS, 0);
+        self::assertDatabaseCount(NotificationsDatabaseTable::NOTIFICATIONS, 0);
+        self::assertDatabaseCount(NotificationsDatabaseTable::REALTIME_EVENTS, 0);
     }
 
     public function test_notification_center_requires_workspace_permission(): void
@@ -450,7 +452,7 @@ final class NotificationsFoundationTest extends TestCase
         $user = User::factory()->create();
         $team = Team::query()->create(['name' => 'Notifications Team']);
 
-        DB::table(DatabaseTable::TEAM_USER_ASSIGNMENTS)->insert([
+        DB::table(TeamsDatabaseTable::TEAM_USER_ASSIGNMENTS)->insert([
             'team_id' => $team->id,
             'user_id' => $user->id,
             'created_at' => now(),
@@ -460,7 +462,7 @@ final class NotificationsFoundationTest extends TestCase
         if ($roleName !== null) {
             $role = Role::query()->where('name', $roleName)->firstOrFail();
 
-            DB::table(DatabaseTable::MODEL_HAS_ROLES)->insert([
+            DB::table(AuthorizationDatabaseTable::MODEL_HAS_ROLES)->insert([
                 'role_id' => $role->id,
                 'model_type' => config('auth.providers.users.model'),
                 'model_id' => $user->id,
@@ -473,8 +475,8 @@ final class NotificationsFoundationTest extends TestCase
 
     private function recipientId(string $notificationPublicId): int
     {
-        $id = DB::table(DatabaseTable::NOTIFICATION_RECIPIENTS)
-            ->join(DatabaseTable::NOTIFICATIONS, 'notification_recipients.notification_id', '=', 'notifications.id')
+        $id = DB::table(NotificationsDatabaseTable::NOTIFICATION_RECIPIENTS)
+            ->join(NotificationsDatabaseTable::NOTIFICATIONS, 'notification_recipients.notification_id', '=', 'notifications.id')
             ->where('notifications.public_id', $notificationPublicId)
             ->value('notification_recipients.id');
 

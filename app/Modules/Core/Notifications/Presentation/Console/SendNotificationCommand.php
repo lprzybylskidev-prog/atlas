@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Modules\Core\Notifications\Presentation\Console;
 
+use App\Modules\Core\Identity\Application\Public\Persistence\IdentityDatabaseTable;
 use App\Modules\Core\Notifications\Application\Public\Contracts\NotificationPublisher;
 use App\Modules\Core\Notifications\Application\Public\DTOs\CreateNotification;
-use App\Shared\Infrastructure\Database\DatabaseTable;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 
@@ -69,7 +69,7 @@ final class SendNotificationCommand extends Command
         $user = $this->nullableStringOption('user');
 
         if ($user !== null) {
-            return DB::table(DatabaseTable::USERS)->where('public_id', $user)->exists() ? $user : null;
+            return DB::table(IdentityDatabaseTable::USERS)->where('public_id', $user)->exists() ? $user : null;
         }
 
         $email = $this->nullableStringOption('email');
@@ -78,7 +78,7 @@ final class SendNotificationCommand extends Command
             return null;
         }
 
-        $publicId = DB::table(DatabaseTable::USERS)->where('email', $email)->value('public_id');
+        $publicId = DB::table(IdentityDatabaseTable::USERS)->where('email', $email)->value('public_id');
 
         return is_string($publicId) ? $publicId : null;
     }

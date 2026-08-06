@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Modules\Optional\TimeTracking\Presentation\Http\Controllers;
 
+use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
 use App\Modules\Optional\TimeTracking\Application\Contracts\OtherWorkCategoryStore;
 use App\Modules\Optional\TimeTracking\Application\OtherWorkSessionCoordinator;
 use App\Modules\Optional\TimeTracking\Application\Permissions\TimeTrackingPermissionCatalog;
-use App\Shared\Infrastructure\Database\DatabaseTable;
 use App\Shared\Presentation\Support\FlashMessage;
 use DateTimeImmutable;
 use DateTimeZone;
@@ -95,7 +95,7 @@ final readonly class StartOtherWorkController
             return null;
         }
 
-        $id = DB::table(DatabaseTable::TEAMS)->where('public_id', $teamPublicId)->value('id');
+        $id = DB::table(TeamsDatabaseTable::TEAMS)->where('public_id', $teamPublicId)->value('id');
 
         return is_numeric($id) ? (int) $id : null;
     }

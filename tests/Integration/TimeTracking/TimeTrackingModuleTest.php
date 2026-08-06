@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 namespace Tests\Integration\TimeTracking;
 
+use App\Modules\Core\Audit\Application\Public\Persistence\AuditDatabaseTable;
+use App\Modules\Core\Identity\Application\Public\Persistence\IdentityDatabaseTable;
+use App\Modules\Core\Notifications\Application\Public\Persistence\NotificationsDatabaseTable;
+use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
 use App\Modules\Optional\TimeTracking\Application\BreakSessionCoordinator;
 use App\Modules\Optional\TimeTracking\Application\Contracts\ActiveTimeLockStore;
 use App\Modules\Optional\TimeTracking\Application\Contracts\BreakPolicyStore;
@@ -16,11 +20,11 @@ use App\Modules\Optional\TimeTracking\Application\DTOs\OtherWorkCategory;
 use App\Modules\Optional\TimeTracking\Application\InactivityCoordinator;
 use App\Modules\Optional\TimeTracking\Application\MaintenanceCoordinator;
 use App\Modules\Optional\TimeTracking\Application\OtherWorkSessionCoordinator;
+use App\Modules\Optional\TimeTracking\Application\Public\Persistence\TimeTrackingDatabaseTable;
 use App\Modules\Optional\TimeTracking\Application\SettlementPeriodCoordinator;
 use App\Modules\Optional\TimeTracking\Application\UserTimeReportService;
 use App\Modules\Optional\TimeTracking\Application\WorkSessionCoordinator;
 use App\Modules\Optional\TimeTracking\Presentation\Http\Middleware\SynchronizeWorkSession;
-use App\Shared\Infrastructure\Database\DatabaseTable;
 use DateTimeImmutable;
 use DateTimeZone;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -51,7 +55,7 @@ final class TimeTrackingModuleTest extends TestCase
         $settings->setEnabledForAssignment($assignmentId, true);
 
         self::assertTrue($settings->isEnabledForUserTeam($userId, $teamId));
-        $this->assertDatabaseHas(DatabaseTable::TIME_TRACKING_USER_TEAM_SETTINGS, [
+        $this->assertDatabaseHas(TimeTrackingDatabaseTable::USER_TEAM_SETTINGS, [
             'team_user_assignment_id' => $assignmentId,
             'tracking_enabled' => true,
         ]);
@@ -90,13 +94,13 @@ final class TimeTrackingModuleTest extends TestCase
             contextKey: 'System',
         );
 
-        $this->assertDatabaseHas(DatabaseTable::TIME_TRACKING_WORK_SESSIONS, [
+        $this->assertDatabaseHas(TimeTrackingDatabaseTable::WORK_SESSIONS, [
             'user_id' => $userId,
             'team_id' => $teamId,
             'laravel_session_id' => 'session-a',
             'ended_at' => null,
         ]);
-        $this->assertDatabaseHas(DatabaseTable::TIME_TRACKING_MODULE_CONTEXT_SEGMENTS, [
+        $this->assertDatabaseHas(TimeTrackingDatabaseTable::MODULE_CONTEXT_SEGMENTS, [
             'module_key' => 'system',
             'context_key' => 'System',
             'ended_at' => null,
@@ -104,13 +108,13 @@ final class TimeTrackingModuleTest extends TestCase
 
         $coordinator->endForLogout($userId, $this->instant('2026-08-01 09:01:05'));
 
-        $this->assertDatabaseHas(DatabaseTable::TIME_TRACKING_WORK_SESSIONS, [
+        $this->assertDatabaseHas(TimeTrackingDatabaseTable::WORK_SESSIONS, [
             'user_id' => $userId,
             'team_id' => $teamId,
             'closure_reason' => 'logout',
             'exact_seconds' => 3665,
         ]);
-        $this->assertDatabaseHas(DatabaseTable::TIME_TRACKING_MODULE_CONTEXT_SEGMENTS, [
+        $this->assertDatabaseHas(TimeTrackingDatabaseTable::MODULE_CONTEXT_SEGMENTS, [
             'module_key' => 'system',
             'context_key' => 'System',
             'exact_seconds' => 3665,
@@ -135,13 +139,13 @@ final class TimeTrackingModuleTest extends TestCase
         $coordinator->synchronizeActiveTeam($userId, $firstTeamId, 'session-a', $this->instant('2026-08-01 08:00:00'));
         $coordinator->synchronizeActiveTeam($userId, $secondTeamId, 'session-a', $this->instant('2026-08-01 09:00:00'));
 
-        $this->assertDatabaseHas(DatabaseTable::TIME_TRACKING_WORK_SESSIONS, [
+        $this->assertDatabaseHas(TimeTrackingDatabaseTable::WORK_SESSIONS, [
             'user_id' => $userId,
             'team_id' => $firstTeamId,
             'closure_reason' => 'team_switched',
             'exact_seconds' => 3600,
         ]);
-        $this->assertDatabaseHas(DatabaseTable::TIME_TRACKING_WORK_SESSIONS, [
+        $this->assertDatabaseHas(TimeTrackingDatabaseTable::WORK_SESSIONS, [
             'user_id' => $userId,
             'team_id' => $secondTeamId,
             'ended_at' => null,
@@ -149,13 +153,13 @@ final class TimeTrackingModuleTest extends TestCase
 
         $coordinator->synchronizeActiveTeam($userId, $untrackedTeamId, 'session-a', $this->instant('2026-08-01 09:30:00'));
 
-        $this->assertDatabaseHas(DatabaseTable::TIME_TRACKING_WORK_SESSIONS, [
+        $this->assertDatabaseHas(TimeTrackingDatabaseTable::WORK_SESSIONS, [
             'user_id' => $userId,
             'team_id' => $secondTeamId,
             'closure_reason' => 'team_untracked',
             'exact_seconds' => 1800,
         ]);
-        self::assertSame(0, DB::table(DatabaseTable::TIME_TRACKING_WORK_SESSIONS)->where('user_id', $userId)->whereNull('ended_at')->count());
+        self::assertSame(0, DB::table(TimeTrackingDatabaseTable::WORK_SESSIONS)->where('user_id', $userId)->whereNull('ended_at')->count());
     }
 
     public function test_work_session_synchronizes_same_browser_session_across_multiple_tabs(): void
@@ -185,14 +189,14 @@ final class TimeTrackingModuleTest extends TestCase
             contextKey: 'admin.files.index',
         );
 
-        self::assertSame(1, DB::table(DatabaseTable::TIME_TRACKING_WORK_SESSIONS)->where('user_id', $userId)->count());
-        $this->assertDatabaseHas(DatabaseTable::TIME_TRACKING_WORK_SESSIONS, [
+        self::assertSame(1, DB::table(TimeTrackingDatabaseTable::WORK_SESSIONS)->where('user_id', $userId)->count());
+        $this->assertDatabaseHas(TimeTrackingDatabaseTable::WORK_SESSIONS, [
             'user_id' => $userId,
             'team_id' => $teamId,
             'laravel_session_id' => 'shared-browser-session',
             'ended_at' => null,
         ]);
-        $this->assertDatabaseHas(DatabaseTable::TIME_TRACKING_MODULE_CONTEXT_SEGMENTS, [
+        $this->assertDatabaseHas(TimeTrackingDatabaseTable::MODULE_CONTEXT_SEGMENTS, [
             'module_key' => 'system',
             'context_key' => 'System',
             'ended_at' => null,
@@ -212,20 +216,20 @@ final class TimeTrackingModuleTest extends TestCase
         $coordinator->synchronizeActiveTeam($userId, $teamId, 'session-a', $this->instant('2026-08-01 08:00:00'));
         $coordinator->synchronizeActiveTeam($userId, $teamId, 'session-b', $this->instant('2026-08-01 08:10:00'));
 
-        $this->assertDatabaseHas(DatabaseTable::TIME_TRACKING_WORK_SESSIONS, [
+        $this->assertDatabaseHas(TimeTrackingDatabaseTable::WORK_SESSIONS, [
             'user_id' => $userId,
             'team_id' => $teamId,
             'laravel_session_id' => 'session-a',
             'closure_reason' => 'session_superseded',
             'exact_seconds' => 600,
         ]);
-        $this->assertDatabaseHas(DatabaseTable::TIME_TRACKING_WORK_SESSIONS, [
+        $this->assertDatabaseHas(TimeTrackingDatabaseTable::WORK_SESSIONS, [
             'user_id' => $userId,
             'team_id' => $teamId,
             'laravel_session_id' => 'session-b',
             'ended_at' => null,
         ]);
-        self::assertSame(1, DB::table(DatabaseTable::TIME_TRACKING_WORK_SESSIONS)->where('user_id', $userId)->whereNull('ended_at')->count());
+        self::assertSame(1, DB::table(TimeTrackingDatabaseTable::WORK_SESSIONS)->where('user_id', $userId)->whereNull('ended_at')->count());
     }
 
     public function test_current_atlas_routes_keep_system_context_inside_active_work_session(): void
@@ -255,14 +259,14 @@ final class TimeTrackingModuleTest extends TestCase
             contextKey: 'admin.files.index',
         );
 
-        $this->assertDatabaseHas(DatabaseTable::TIME_TRACKING_MODULE_CONTEXT_SEGMENTS, [
+        $this->assertDatabaseHas(TimeTrackingDatabaseTable::MODULE_CONTEXT_SEGMENTS, [
             'module_key' => 'system',
             'context_key' => 'System',
             'ended_at' => null,
         ]);
 
-        self::assertSame(1, DB::table(DatabaseTable::TIME_TRACKING_MODULE_CONTEXT_SEGMENTS)->count());
-        self::assertSame(1, DB::table(DatabaseTable::TIME_TRACKING_MODULE_CONTEXT_SEGMENTS)->whereNull('ended_at')->count());
+        self::assertSame(1, DB::table(TimeTrackingDatabaseTable::MODULE_CONTEXT_SEGMENTS)->count());
+        self::assertSame(1, DB::table(TimeTrackingDatabaseTable::MODULE_CONTEXT_SEGMENTS)->whereNull('ended_at')->count());
     }
 
     public function test_active_break_and_other_work_locks_are_detected(): void
@@ -272,7 +276,7 @@ final class TimeTrackingModuleTest extends TestCase
         $workSessionId = $this->createWorkSession($userId, $teamId);
 
         $breakPublicId = (string) Str::ulid();
-        DB::table(DatabaseTable::TIME_TRACKING_BREAKS)->insert([
+        DB::table(TimeTrackingDatabaseTable::BREAKS)->insert([
             'public_id' => $breakPublicId,
             'work_session_id' => $workSessionId,
             'user_id' => $userId,
@@ -288,14 +292,14 @@ final class TimeTrackingModuleTest extends TestCase
         self::assertSame('break', $lock->type);
         self::assertSame($breakPublicId, $lock->publicId);
 
-        DB::table(DatabaseTable::TIME_TRACKING_BREAKS)->where('public_id', $breakPublicId)->update([
+        DB::table(TimeTrackingDatabaseTable::BREAKS)->where('public_id', $breakPublicId)->update([
             'ended_at' => '2026-08-01 08:45:00+00',
             'exact_seconds' => 900,
             'updated_at' => now(),
         ]);
 
         $otherWorkPublicId = (string) Str::ulid();
-        DB::table(DatabaseTable::TIME_TRACKING_OTHER_WORK)->insert([
+        DB::table(TimeTrackingDatabaseTable::OTHER_WORK)->insert([
             'public_id' => $otherWorkPublicId,
             'work_session_id' => $workSessionId,
             'user_id' => $userId,
@@ -319,7 +323,7 @@ final class TimeTrackingModuleTest extends TestCase
         $teamId = $this->createTeam();
         $workSessionId = $this->createWorkSession($userId, $teamId);
 
-        DB::table(DatabaseTable::TIME_TRACKING_BREAKS)->insert([
+        DB::table(TimeTrackingDatabaseTable::BREAKS)->insert([
             'public_id' => (string) Str::ulid(),
             'work_session_id' => $workSessionId,
             'user_id' => $userId,
@@ -392,7 +396,7 @@ final class TimeTrackingModuleTest extends TestCase
 
         self::assertSame($userId, $break->userId);
         self::assertSame($teamId, $break->teamId);
-        $this->assertDatabaseHas(DatabaseTable::TIME_TRACKING_BREAKS, [
+        $this->assertDatabaseHas(TimeTrackingDatabaseTable::BREAKS, [
             'user_id' => $userId,
             'team_id' => $teamId,
             'ended_at' => null,
@@ -400,7 +404,7 @@ final class TimeTrackingModuleTest extends TestCase
 
         $breaks->end($userId, $this->instant('2026-08-01 08:25:30'));
 
-        $this->assertDatabaseHas(DatabaseTable::TIME_TRACKING_BREAKS, [
+        $this->assertDatabaseHas(TimeTrackingDatabaseTable::BREAKS, [
             'user_id' => $userId,
             'closure_reason' => 'normal',
             'exact_seconds' => 930,
@@ -423,7 +427,7 @@ final class TimeTrackingModuleTest extends TestCase
 
         $breaks->forceClose($userId, $this->instant('2026-08-01 08:18:00'));
 
-        $this->assertDatabaseHas(DatabaseTable::TIME_TRACKING_BREAKS, [
+        $this->assertDatabaseHas(TimeTrackingDatabaseTable::BREAKS, [
             'user_id' => $userId,
             'closure_reason' => 'forced',
             'exact_seconds' => 480,
@@ -449,13 +453,13 @@ final class TimeTrackingModuleTest extends TestCase
         $closed = $breaks->closeExpired($this->instant('2026-08-01 08:25:00'));
 
         self::assertSame(1, $closed);
-        $this->assertDatabaseHas(DatabaseTable::TIME_TRACKING_BREAKS, [
+        $this->assertDatabaseHas(TimeTrackingDatabaseTable::BREAKS, [
             'user_id' => $userId,
             'closure_reason' => 'maximum_duration',
             'exact_seconds' => 600,
             'requires_manager_review' => true,
         ]);
-        $this->assertDatabaseHas(DatabaseTable::TIME_TRACKING_WORK_SESSIONS, [
+        $this->assertDatabaseHas(TimeTrackingDatabaseTable::WORK_SESSIONS, [
             'user_id' => $userId,
             'closure_reason' => 'break_maximum_duration',
             'exact_seconds' => 1200,
@@ -483,13 +487,13 @@ final class TimeTrackingModuleTest extends TestCase
         self::assertSame(1, $breaks->recordDueReminders($this->instant('2026-08-01 08:25:00')));
         self::assertSame(0, $breaks->recordDueReminders($this->instant('2026-08-01 08:26:00')));
 
-        $this->assertDatabaseHas(DatabaseTable::TIME_TRACKING_BREAK_REMINDERS, [
+        $this->assertDatabaseHas(TimeTrackingDatabaseTable::BREAK_REMINDERS, [
             'break_id' => $break->id,
             'reminder_type' => 'before_maximum',
             'due_at' => '2026-08-01 06:25:00+00',
         ]);
 
-        $this->assertDatabaseMissing(DatabaseTable::NOTIFICATIONS, [
+        $this->assertDatabaseMissing(NotificationsDatabaseTable::NOTIFICATIONS, [
             'type' => 'time_tracking.break.before_maximum',
         ]);
     }
@@ -547,7 +551,7 @@ final class TimeTrackingModuleTest extends TestCase
         $active = $otherWork->start($userId, null, 'Visit outside Atlas.', $this->instant('2026-08-01 08:10:00'));
 
         self::assertSame($userId, $active->userId);
-        $this->assertDatabaseHas(DatabaseTable::TIME_TRACKING_OTHER_WORK, [
+        $this->assertDatabaseHas(TimeTrackingDatabaseTable::OTHER_WORK, [
             'user_id' => $userId,
             'approval_status' => 'pending',
             'requires_manager_review' => true,
@@ -556,7 +560,7 @@ final class TimeTrackingModuleTest extends TestCase
 
         $otherWork->end($userId, $this->instant('2026-08-01 08:40:00'), 'Returned.');
 
-        $this->assertDatabaseHas(DatabaseTable::TIME_TRACKING_OTHER_WORK, [
+        $this->assertDatabaseHas(TimeTrackingDatabaseTable::OTHER_WORK, [
             'user_id' => $userId,
             'closure_reason' => 'normal',
             'exact_seconds' => 1800,
@@ -590,7 +594,7 @@ final class TimeTrackingModuleTest extends TestCase
 
         $otherWork->start($userId, 'trusted_call', 'Call outside Atlas.', $this->instant('2026-08-01 08:10:00'));
 
-        $this->assertDatabaseHas(DatabaseTable::TIME_TRACKING_OTHER_WORK, [
+        $this->assertDatabaseHas(TimeTrackingDatabaseTable::OTHER_WORK, [
             'user_id' => $userId,
             'category_key' => 'trusted_call',
             'approval_status' => 'approved',
@@ -599,7 +603,7 @@ final class TimeTrackingModuleTest extends TestCase
 
         $otherWork->moveActiveToUnderReview($userId, 'Manager requested verification.');
 
-        $this->assertDatabaseHas(DatabaseTable::TIME_TRACKING_OTHER_WORK, [
+        $this->assertDatabaseHas(TimeTrackingDatabaseTable::OTHER_WORK, [
             'user_id' => $userId,
             'approval_status' => 'under_review',
             'requires_manager_review' => true,
@@ -634,19 +638,19 @@ final class TimeTrackingModuleTest extends TestCase
 
         $window = $maintenance->startEmergency($this->instant('2026-08-01 08:30:00'), 'Database maintenance.');
 
-        $this->assertDatabaseHas(DatabaseTable::TIME_TRACKING_MAINTENANCE_WINDOWS, [
+        $this->assertDatabaseHas(TimeTrackingDatabaseTable::MAINTENANCE_WINDOWS, [
             'id' => $window->id,
             'kind' => 'emergency',
             'status' => 'active',
         ]);
-        self::assertSame(2, DB::table(DatabaseTable::TIME_TRACKING_MAINTENANCE_AFFECTED_SESSIONS)->where('maintenance_window_id', $window->id)->count());
-        $this->assertDatabaseHas(DatabaseTable::TIME_TRACKING_BREAKS, [
+        self::assertSame(2, DB::table(TimeTrackingDatabaseTable::MAINTENANCE_AFFECTED_SESSIONS)->where('maintenance_window_id', $window->id)->count());
+        $this->assertDatabaseHas(TimeTrackingDatabaseTable::BREAKS, [
             'user_id' => $breakUserId,
             'closure_reason' => 'forced',
             'requires_manager_review' => true,
             'exact_seconds' => 1200,
         ]);
-        $this->assertDatabaseHas(DatabaseTable::TIME_TRACKING_OTHER_WORK, [
+        $this->assertDatabaseHas(TimeTrackingDatabaseTable::OTHER_WORK, [
             'user_id' => $otherWorkUserId,
             'closure_reason' => 'forced',
             'approval_status' => 'under_review',
@@ -666,7 +670,7 @@ final class TimeTrackingModuleTest extends TestCase
 
         $window = $maintenance->schedule($this->instant('2026-08-01 22:00:00'), 'Planned upgrade.');
 
-        $this->assertDatabaseHas(DatabaseTable::TIME_TRACKING_MAINTENANCE_WINDOWS, [
+        $this->assertDatabaseHas(TimeTrackingDatabaseTable::MAINTENANCE_WINDOWS, [
             'id' => $window->id,
             'kind' => 'scheduled',
             'status' => 'scheduled',
@@ -674,7 +678,7 @@ final class TimeTrackingModuleTest extends TestCase
 
         $maintenance->activateScheduled($window->id, $this->instant('2026-08-01 22:00:00'));
 
-        $this->assertDatabaseHas(DatabaseTable::TIME_TRACKING_MAINTENANCE_WINDOWS, [
+        $this->assertDatabaseHas(TimeTrackingDatabaseTable::MAINTENANCE_WINDOWS, [
             'id' => $window->id,
             'status' => 'active',
         ]);
@@ -701,7 +705,7 @@ final class TimeTrackingModuleTest extends TestCase
         self::assertTrue($decision->workEnded);
         self::assertSame(300, $decision->warningStartsAt->getTimestamp() - $this->instant('2026-08-01 08:10:00')->getTimestamp());
         self::assertSame(30, $decision->warningEndsAt->getTimestamp() - $decision->warningStartsAt->getTimestamp());
-        $this->assertDatabaseHas(DatabaseTable::TIME_TRACKING_WORK_SESSIONS, [
+        $this->assertDatabaseHas(TimeTrackingDatabaseTable::WORK_SESSIONS, [
             'user_id' => $userId,
             'closure_reason' => 'inactivity',
             'exact_seconds' => 900,
@@ -729,7 +733,7 @@ final class TimeTrackingModuleTest extends TestCase
         );
 
         self::assertFalse($decision->workEnded);
-        $this->assertDatabaseHas(DatabaseTable::TIME_TRACKING_WORK_SESSIONS, [
+        $this->assertDatabaseHas(TimeTrackingDatabaseTable::WORK_SESSIONS, [
             'user_id' => $userId,
             'ended_at' => null,
         ]);
@@ -750,14 +754,14 @@ final class TimeTrackingModuleTest extends TestCase
         );
 
         self::assertSame('pending', $request->status);
-        $this->assertDatabaseHas(DatabaseTable::TIME_TRACKING_CORRECTION_REQUESTS, [
+        $this->assertDatabaseHas(TimeTrackingDatabaseTable::CORRECTION_REQUESTS, [
             'id' => $request->id,
             'source_type' => null,
             'source_id' => null,
             'request_type' => 'descriptive',
             'status' => 'pending',
         ]);
-        $this->assertDatabaseHas(DatabaseTable::TIME_TRACKING_CORRECTION_HISTORY, [
+        $this->assertDatabaseHas(TimeTrackingDatabaseTable::CORRECTION_HISTORY, [
             'correction_request_id' => $request->id,
             'actor_user_id' => $userId,
             'action' => 'requested',
@@ -777,14 +781,14 @@ final class TimeTrackingModuleTest extends TestCase
         $cancelled = $corrections->cancelPending($request->id, $userId, 'I created a better request.', $this->instant('2026-08-01 10:05:00'));
 
         self::assertTrue($cancelled);
-        $this->assertDatabaseHas(DatabaseTable::TIME_TRACKING_CORRECTION_REQUESTS, [
+        $this->assertDatabaseHas(TimeTrackingDatabaseTable::CORRECTION_REQUESTS, [
             'id' => $request->id,
             'source_type' => 'work_session',
             'source_id' => $workSessionId,
             'status' => 'cancelled',
             'cancellation_reason' => 'I created a better request.',
         ]);
-        $this->assertDatabaseHas(DatabaseTable::TIME_TRACKING_CORRECTION_PROPOSALS, [
+        $this->assertDatabaseHas(TimeTrackingDatabaseTable::CORRECTION_PROPOSALS, [
             'correction_request_id' => $request->id,
             'original_exact_seconds' => 3600,
             'proposed_exact_seconds' => 5400,
@@ -804,17 +808,17 @@ final class TimeTrackingModuleTest extends TestCase
         self::assertTrue($corrections->correctPending($request->id, $managerId, $final, 'Approved 45 minutes.', $this->instant('2026-08-01 09:00:00')));
         self::assertFalse($corrections->rejectPending($request->id, $otherManagerId, 'Too late.', $this->instant('2026-08-01 09:01:00')));
 
-        $this->assertDatabaseHas(DatabaseTable::TIME_TRACKING_CORRECTION_REQUESTS, [
+        $this->assertDatabaseHas(TimeTrackingDatabaseTable::CORRECTION_REQUESTS, [
             'id' => $request->id,
             'status' => 'corrected',
             'decided_by_user_id' => $managerId,
             'decision_reason' => 'Approved 45 minutes.',
         ]);
-        $this->assertDatabaseHas(DatabaseTable::TIME_TRACKING_CORRECTION_PROPOSALS, [
+        $this->assertDatabaseHas(TimeTrackingDatabaseTable::CORRECTION_PROPOSALS, [
             'correction_request_id' => $request->id,
             'final_exact_seconds' => 2700,
         ]);
-        self::assertSame(2, DB::table(DatabaseTable::TIME_TRACKING_CORRECTION_HISTORY)->where('correction_request_id', $request->id)->count());
+        self::assertSame(2, DB::table(TimeTrackingDatabaseTable::CORRECTION_HISTORY)->where('correction_request_id', $request->id)->count());
     }
 
     public function test_manual_head_manager_entry_is_final_correction_with_visible_marker_type(): void
@@ -827,7 +831,7 @@ final class TimeTrackingModuleTest extends TestCase
 
         $request = $corrections->createManualEntry($managerId, $userId, $teamId, $final, 'Head manager manual entry.', $this->instant('2026-08-01 13:00:00'));
 
-        $this->assertDatabaseHas(DatabaseTable::TIME_TRACKING_CORRECTION_REQUESTS, [
+        $this->assertDatabaseHas(TimeTrackingDatabaseTable::CORRECTION_REQUESTS, [
             'id' => $request->id,
             'source_type' => null,
             'source_id' => null,
@@ -835,12 +839,12 @@ final class TimeTrackingModuleTest extends TestCase
             'status' => 'corrected',
             'decided_by_user_id' => $managerId,
         ]);
-        $this->assertDatabaseHas(DatabaseTable::TIME_TRACKING_CORRECTION_HISTORY, [
+        $this->assertDatabaseHas(TimeTrackingDatabaseTable::CORRECTION_HISTORY, [
             'correction_request_id' => $request->id,
             'actor_user_id' => $managerId,
             'action' => 'manual_entry',
         ]);
-        $this->assertDatabaseHas(DatabaseTable::TIME_TRACKING_CORRECTION_PROPOSALS, [
+        $this->assertDatabaseHas(TimeTrackingDatabaseTable::CORRECTION_PROPOSALS, [
             'correction_request_id' => $request->id,
             'final_exact_seconds' => 1800,
         ]);
@@ -859,7 +863,7 @@ final class TimeTrackingModuleTest extends TestCase
         $closed = $settlements->closeDuePeriods($this->instant('2026-08-10 00:01:00'));
 
         self::assertSame(1, $closed);
-        $this->assertDatabaseHas(DatabaseTable::TIME_TRACKING_SETTLEMENT_PERIODS, [
+        $this->assertDatabaseHas(TimeTrackingDatabaseTable::SETTLEMENT_PERIODS, [
             'id' => $period->id,
             'status' => 'closed',
         ]);
@@ -902,13 +906,13 @@ final class TimeTrackingModuleTest extends TestCase
             ),
         );
 
-        $this->assertDatabaseHas(DatabaseTable::TIME_TRACKING_CORRECTION_REQUESTS, [
+        $this->assertDatabaseHas(TimeTrackingDatabaseTable::CORRECTION_REQUESTS, [
             'id' => $request->id,
             'request_type' => 'closed_period_override',
             'status' => 'corrected',
             'decided_by_user_id' => $adminId,
         ]);
-        $this->assertDatabaseHas(DatabaseTable::TIME_TRACKING_CLOSED_PERIOD_OVERRIDES, [
+        $this->assertDatabaseHas(TimeTrackingDatabaseTable::CLOSED_PERIOD_OVERRIDES, [
             'correction_request_id' => $request->id,
             'actor_user_id' => $adminId,
             'actor_scope' => 'admin',
@@ -917,7 +921,7 @@ final class TimeTrackingModuleTest extends TestCase
             'mfa_confirmed' => true,
             'before_after_preview_confirmed' => true,
         ]);
-        $this->assertDatabaseHas(DatabaseTable::TIME_TRACKING_CORRECTION_PROPOSALS, [
+        $this->assertDatabaseHas(TimeTrackingDatabaseTable::CORRECTION_PROPOSALS, [
             'correction_request_id' => $request->id,
             'original_exact_seconds' => 3600,
             'final_exact_seconds' => 5400,
@@ -957,7 +961,7 @@ final class TimeTrackingModuleTest extends TestCase
         $otherTeamId = $this->createTeam('Other Time Tracking Team');
         $workSessionId = $this->createWorkSession($userId, $teamId);
 
-        DB::table(DatabaseTable::TIME_TRACKING_WORK_SESSIONS)
+        DB::table(TimeTrackingDatabaseTable::WORK_SESSIONS)
             ->where('id', $workSessionId)
             ->update([
                 'started_at' => '2026-08-01 08:00:00+00',
@@ -965,7 +969,7 @@ final class TimeTrackingModuleTest extends TestCase
                 'exact_seconds' => 7200,
                 'closure_reason' => 'logout',
             ]);
-        DB::table(DatabaseTable::TIME_TRACKING_BREAKS)->insert([
+        DB::table(TimeTrackingDatabaseTable::BREAKS)->insert([
             'public_id' => (string) Str::ulid(),
             'work_session_id' => $workSessionId,
             'user_id' => $userId,
@@ -978,7 +982,7 @@ final class TimeTrackingModuleTest extends TestCase
             'created_at' => now(),
             'updated_at' => now(),
         ]);
-        DB::table(DatabaseTable::TIME_TRACKING_OTHER_WORK)->insert([
+        DB::table(TimeTrackingDatabaseTable::OTHER_WORK)->insert([
             'public_id' => (string) Str::ulid(),
             'work_session_id' => $workSessionId,
             'user_id' => $userId,
@@ -994,7 +998,7 @@ final class TimeTrackingModuleTest extends TestCase
             'created_at' => now(),
             'updated_at' => now(),
         ]);
-        DB::table(DatabaseTable::TIME_TRACKING_CORRECTION_REQUESTS)->insert([
+        DB::table(TimeTrackingDatabaseTable::CORRECTION_REQUESTS)->insert([
             'public_id' => (string) Str::ulid(),
             'user_id' => $userId,
             'team_id' => $teamId,
@@ -1006,7 +1010,7 @@ final class TimeTrackingModuleTest extends TestCase
             'created_at' => now(),
             'updated_at' => now(),
         ]);
-        DB::table(DatabaseTable::TIME_TRACKING_WORK_SESSIONS)->insert([
+        DB::table(TimeTrackingDatabaseTable::WORK_SESSIONS)->insert([
             'public_id' => (string) Str::ulid(),
             'user_id' => $otherUserId,
             'team_id' => $teamId,
@@ -1017,7 +1021,7 @@ final class TimeTrackingModuleTest extends TestCase
             'created_at' => now(),
             'updated_at' => now(),
         ]);
-        DB::table(DatabaseTable::TIME_TRACKING_WORK_SESSIONS)->insert([
+        DB::table(TimeTrackingDatabaseTable::WORK_SESSIONS)->insert([
             'public_id' => (string) Str::ulid(),
             'user_id' => $userId,
             'team_id' => $otherTeamId,
@@ -1073,7 +1077,7 @@ final class TimeTrackingModuleTest extends TestCase
         $teamId = $this->createTeam();
         $workSessionId = $this->createWorkSession($userId, $teamId);
 
-        DB::table(DatabaseTable::TIME_TRACKING_WORK_SESSIONS)
+        DB::table(TimeTrackingDatabaseTable::WORK_SESSIONS)
             ->where('id', $workSessionId)
             ->update([
                 'started_at' => '2026-08-01 08:00:00+00',
@@ -1081,7 +1085,7 @@ final class TimeTrackingModuleTest extends TestCase
                 'exact_seconds' => 27000,
                 'closure_reason' => 'logout',
             ]);
-        DB::table(DatabaseTable::TIME_TRACKING_BREAKS)->insert([
+        DB::table(TimeTrackingDatabaseTable::BREAKS)->insert([
             'public_id' => (string) Str::ulid(),
             'work_session_id' => $workSessionId,
             'user_id' => $userId,
@@ -1094,7 +1098,7 @@ final class TimeTrackingModuleTest extends TestCase
             'created_at' => now(),
             'updated_at' => now(),
         ]);
-        DB::table(DatabaseTable::TIME_TRACKING_BREAKS)->insert([
+        DB::table(TimeTrackingDatabaseTable::BREAKS)->insert([
             'public_id' => (string) Str::ulid(),
             'work_session_id' => $workSessionId,
             'user_id' => $userId,
@@ -1107,7 +1111,7 @@ final class TimeTrackingModuleTest extends TestCase
             'created_at' => now(),
             'updated_at' => now(),
         ]);
-        $maintenanceId = (int) DB::table(DatabaseTable::TIME_TRACKING_MAINTENANCE_WINDOWS)->insertGetId([
+        $maintenanceId = (int) DB::table(TimeTrackingDatabaseTable::MAINTENANCE_WINDOWS)->insertGetId([
             'public_id' => (string) Str::ulid(),
             'kind' => 'scheduled',
             'status' => 'completed',
@@ -1119,7 +1123,7 @@ final class TimeTrackingModuleTest extends TestCase
             'created_at' => now(),
             'updated_at' => now(),
         ]);
-        DB::table(DatabaseTable::TIME_TRACKING_MAINTENANCE_AFFECTED_SESSIONS)->insert([
+        DB::table(TimeTrackingDatabaseTable::MAINTENANCE_AFFECTED_SESSIONS)->insert([
             'public_id' => (string) Str::ulid(),
             'maintenance_window_id' => $maintenanceId,
             'work_session_id' => $workSessionId,
@@ -1156,7 +1160,7 @@ final class TimeTrackingModuleTest extends TestCase
         $userId = $this->createUser();
         $teamId = $this->createTeam();
 
-        $currentWorkSessionId = (int) DB::table(DatabaseTable::TIME_TRACKING_WORK_SESSIONS)->insertGetId([
+        $currentWorkSessionId = (int) DB::table(TimeTrackingDatabaseTable::WORK_SESSIONS)->insertGetId([
             'public_id' => (string) Str::ulid(),
             'user_id' => $userId,
             'team_id' => $teamId,
@@ -1167,7 +1171,7 @@ final class TimeTrackingModuleTest extends TestCase
             'created_at' => now(),
             'updated_at' => now(),
         ]);
-        $previousWorkSessionId = (int) DB::table(DatabaseTable::TIME_TRACKING_WORK_SESSIONS)->insertGetId([
+        $previousWorkSessionId = (int) DB::table(TimeTrackingDatabaseTable::WORK_SESSIONS)->insertGetId([
             'public_id' => (string) Str::ulid(),
             'user_id' => $userId,
             'team_id' => $teamId,
@@ -1178,7 +1182,7 @@ final class TimeTrackingModuleTest extends TestCase
             'created_at' => now(),
             'updated_at' => now(),
         ]);
-        DB::table(DatabaseTable::TIME_TRACKING_BREAKS)->insert([
+        DB::table(TimeTrackingDatabaseTable::BREAKS)->insert([
             [
                 'public_id' => (string) Str::ulid(),
                 'work_session_id' => $currentWorkSessionId,
@@ -1248,16 +1252,16 @@ final class TimeTrackingModuleTest extends TestCase
             $this->instant('2026-08-01 11:00:00'),
         );
 
-        $this->assertDatabaseHas(DatabaseTable::AUDIT_EVENTS, [
+        $this->assertDatabaseHas(AuditDatabaseTable::AUDIT_EVENTS, [
             'module' => 'time_tracking',
             'action' => 'time_tracking.break_started',
             'result' => 'succeeded',
         ]);
-        $this->assertDatabaseHas(DatabaseTable::REALTIME_EVENTS, [
+        $this->assertDatabaseHas(NotificationsDatabaseTable::REALTIME_EVENTS, [
             'topic' => 'time-tracking',
             'event_type' => 'time_tracking.status.changed',
         ]);
-        $this->assertDatabaseHas(DatabaseTable::AUDIT_EVENTS, [
+        $this->assertDatabaseHas(AuditDatabaseTable::AUDIT_EVENTS, [
             'module' => 'time_tracking',
             'action' => 'time_tracking.correction_requested',
             'result' => 'succeeded',
@@ -1266,7 +1270,7 @@ final class TimeTrackingModuleTest extends TestCase
 
     private function createUser(): int
     {
-        return (int) DB::table(DatabaseTable::USERS)->insertGetId([
+        return (int) DB::table(IdentityDatabaseTable::USERS)->insertGetId([
             'public_id' => (string) Str::ulid(),
             'name' => 'Time Tracking User',
             'email' => sprintf('%s@example.test', Str::lower((string) Str::ulid())),
@@ -1278,7 +1282,7 @@ final class TimeTrackingModuleTest extends TestCase
 
     private function createTeam(string $name = 'Time Tracking Team'): int
     {
-        return (int) DB::table(DatabaseTable::TEAMS)->insertGetId([
+        return (int) DB::table(TeamsDatabaseTable::TEAMS)->insertGetId([
             'public_id' => (string) Str::ulid(),
             'name' => $name,
             'is_active' => true,
@@ -1289,7 +1293,7 @@ final class TimeTrackingModuleTest extends TestCase
 
     private function createAssignment(int $userId, int $teamId, ?string $validTo = null): int
     {
-        return (int) DB::table(DatabaseTable::TEAM_USER_ASSIGNMENTS)->insertGetId([
+        return (int) DB::table(TeamsDatabaseTable::TEAM_USER_ASSIGNMENTS)->insertGetId([
             'team_id' => $teamId,
             'user_id' => $userId,
             'is_head_manager' => false,
@@ -1302,7 +1306,7 @@ final class TimeTrackingModuleTest extends TestCase
 
     private function createWorkSession(int $userId, int $teamId): int
     {
-        return (int) DB::table(DatabaseTable::TIME_TRACKING_WORK_SESSIONS)->insertGetId([
+        return (int) DB::table(TimeTrackingDatabaseTable::WORK_SESSIONS)->insertGetId([
             'public_id' => (string) Str::ulid(),
             'user_id' => $userId,
             'team_id' => $teamId,

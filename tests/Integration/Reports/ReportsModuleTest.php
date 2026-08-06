@@ -35,18 +35,24 @@ use App\Modules\Core\Exports\Application\Public\Contracts\ReportRenderCredential
 use App\Modules\Core\Exports\Application\Public\DTOs\AdminDataTableExportContext;
 use App\Modules\Core\Exports\Application\Public\DTOs\ReportExportGenerationRequest;
 use App\Modules\Core\Exports\Application\Public\Permissions\ReportsPermissionCatalog;
+use App\Modules\Core\Exports\Application\Public\Persistence\ExportsDatabaseTable;
 use App\Modules\Core\Exports\Application\ReportExportDataProviderRegistry;
 use App\Modules\Core\Exports\Application\ReportExportGenerationProcess;
 use App\Modules\Core\Exports\Infrastructure\Runtime\ReportExportGenerationProcessHandler;
+use App\Modules\Core\Files\Application\Public\Persistence\FilesDatabaseTable;
 use App\Modules\Core\Identity\Application\Public\Contracts\UserCredentialAccountDirectory;
 use App\Modules\Core\Identity\Application\Public\DTOs\AdminUserCredentialAccount;
+use App\Modules\Core\Identity\Application\Public\Persistence\IdentityDatabaseTable;
 use App\Modules\Core\Identity\Infrastructure\Persistence\User;
+use App\Modules\Core\Notifications\Application\Public\Persistence\NotificationsDatabaseTable;
+use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
 use App\Modules\Core\Teams\Infrastructure\Persistence\Team;
 use App\Modules\Core\Users\Application\Exports\AdminUsersDataTableExportProvider;
 use App\Modules\Optional\ManagedProcesses\Application\Contracts\ProcessDefinitionRegistry;
 use App\Modules\Optional\ManagedProcesses\Application\DTOs\ProcessLogEntry;
 use App\Modules\Optional\ManagedProcesses\Application\Enums\ProcessRunStatus;
 use App\Modules\Optional\ManagedProcesses\Application\Public\Contracts\ManagedProcessRunner;
+use App\Modules\Optional\ManagedProcesses\Application\Public\Persistence\ManagedProcessesDatabaseTable;
 use App\Shared\Application\Modules\Contracts\ModuleGate;
 use App\Shared\Application\Modules\ModuleAccessDecision;
 use App\Shared\Application\Modules\ModuleAccessDenialReason;
@@ -58,7 +64,6 @@ use App\Shared\Application\Tables\AdminTableDefinitions;
 use App\Shared\Application\Tables\TableColumn;
 use App\Shared\Application\Tables\TableDefinition;
 use App\Shared\Application\Tables\TableState;
-use App\Shared\Infrastructure\Database\DatabaseTable;
 use DateTimeImmutable;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -93,8 +98,8 @@ final class ReportsModuleTest extends TestCase
         self::assertSame(ReportExportStatus::Requested->value, $first->status);
         self::assertSame($snapshot->requestFingerprint(), $first->requestFingerprint);
         self::assertSame($snapshot->authorization->hash(), $first->authorizationFingerprint);
-        $this->assertDatabaseCount(DatabaseTable::REPORT_EXPORT_REQUESTS, 1);
-        $this->assertDatabaseHas(DatabaseTable::REPORT_EXPORT_REQUESTS, [
+        $this->assertDatabaseCount(ExportsDatabaseTable::REPORT_EXPORT_REQUESTS, 1);
+        $this->assertDatabaseHas(ExportsDatabaseTable::REPORT_EXPORT_REQUESTS, [
             'public_id' => $first->publicId,
             'report_key' => 'admin.users',
             'module_key' => 'users',
@@ -113,7 +118,7 @@ final class ReportsModuleTest extends TestCase
 
         self::assertNotSame($ordinary->publicId, $audit->publicId);
         self::assertNotSame($ordinary->requestFingerprint, $audit->requestFingerprint);
-        $this->assertDatabaseHas(DatabaseTable::REPORT_EXPORT_REQUESTS, [
+        $this->assertDatabaseHas(ExportsDatabaseTable::REPORT_EXPORT_REQUESTS, [
             'public_id' => $audit->publicId,
             'audit_export' => true,
         ]);
@@ -127,17 +132,17 @@ final class ReportsModuleTest extends TestCase
         $smallCsv = $this->app->make(ReportExportRequestRecorder::class)->record($this->snapshot($user, $team, estimatedRowCount: 2));
         $pdf = $this->app->make(ReportExportRequestRecorder::class)->record($this->snapshot($user, $team, ReportExportFormat::Pdf, estimatedRowCount: 1));
 
-        $this->assertDatabaseHas(DatabaseTable::REPORT_EXPORT_REQUESTS, [
+        $this->assertDatabaseHas(ExportsDatabaseTable::REPORT_EXPORT_REQUESTS, [
             'public_id' => $withoutEstimate->publicId,
             'synchronous_allowed' => false,
             'estimated_row_count' => null,
         ]);
-        $this->assertDatabaseHas(DatabaseTable::REPORT_EXPORT_REQUESTS, [
+        $this->assertDatabaseHas(ExportsDatabaseTable::REPORT_EXPORT_REQUESTS, [
             'public_id' => $smallCsv->publicId,
             'synchronous_allowed' => true,
             'estimated_row_count' => 2,
         ]);
-        $this->assertDatabaseHas(DatabaseTable::REPORT_EXPORT_REQUESTS, [
+        $this->assertDatabaseHas(ExportsDatabaseTable::REPORT_EXPORT_REQUESTS, [
             'public_id' => $pdf->publicId,
             'format' => ReportExportFormat::Pdf->value,
             'synchronous_allowed' => false,
@@ -365,7 +370,7 @@ final class ReportsModuleTest extends TestCase
         $response->assertSessionHas('flash.messages.0.key', 'flash.exports.queued');
         $response->assertSessionMissing('success');
 
-        $record = DB::table(DatabaseTable::REPORT_EXPORT_REQUESTS)->where('report_key', AdminTableDefinitions::USERS)->first();
+        $record = DB::table(ExportsDatabaseTable::REPORT_EXPORT_REQUESTS)->where('report_key', AdminTableDefinitions::USERS)->first();
 
         self::assertNotNull($record);
         self::assertSame('users', $record->module_key);
@@ -410,7 +415,7 @@ final class ReportsModuleTest extends TestCase
         $response->assertRedirect();
         $response->assertSessionHas('flash.messages.0.key', 'flash.exports.queue_failed');
         $response->assertSessionMissing('error');
-        $this->assertDatabaseCount(DatabaseTable::REPORT_EXPORT_REQUESTS, 0);
+        $this->assertDatabaseCount(ExportsDatabaseTable::REPORT_EXPORT_REQUESTS, 0);
     }
 
     public function test_admin_data_table_browser_print_endpoint_redirects_to_print_view(): void
@@ -430,7 +435,7 @@ final class ReportsModuleTest extends TestCase
                 'columns' => 'publicId,email',
             ]);
 
-        $record = DB::table(DatabaseTable::REPORT_EXPORT_REQUESTS)->where('report_key', AdminTableDefinitions::USERS)->first();
+        $record = DB::table(ExportsDatabaseTable::REPORT_EXPORT_REQUESTS)->where('report_key', AdminTableDefinitions::USERS)->first();
 
         self::assertNotNull($record);
         self::assertSame(ReportExportStatus::Requested->value, $record->status);
@@ -458,7 +463,7 @@ final class ReportsModuleTest extends TestCase
 
         $response->assertRedirect();
 
-        $runPublicId = DB::table(DatabaseTable::MANAGED_PROCESS_RUNS)
+        $runPublicId = DB::table(ManagedProcessesDatabaseTable::RUNS)
             ->where('process_key', ReportExportGenerationProcess::KEY)
             ->value('public_id');
 
@@ -466,10 +471,10 @@ final class ReportsModuleTest extends TestCase
 
         $this->app->make(ReportExportGenerationProcessHandler::class)->handle($runPublicId);
 
-        $artifact = DB::table(DatabaseTable::REPORT_EXPORT_ARTIFACTS)->where('status', ReportExportStatus::Available->value)->first();
+        $artifact = DB::table(ExportsDatabaseTable::REPORT_EXPORT_ARTIFACTS)->where('status', ReportExportStatus::Available->value)->first();
 
         self::assertNotNull($artifact);
-        $this->assertDatabaseHas(DatabaseTable::REPORT_EXPORT_REQUESTS, [
+        $this->assertDatabaseHas(ExportsDatabaseTable::REPORT_EXPORT_REQUESTS, [
             'report_key' => AdminTableDefinitions::USERS,
             'status' => ReportExportStatus::Available->value,
         ]);
@@ -487,9 +492,9 @@ final class ReportsModuleTest extends TestCase
             teamPublicId: (string) $team->public_id,
         );
 
-        $processRunId = DB::table(DatabaseTable::MANAGED_PROCESS_RUNS)->where('public_id', $runPublicId)->value('id');
+        $processRunId = DB::table(ManagedProcessesDatabaseTable::RUNS)->where('public_id', $runPublicId)->value('id');
 
-        $this->assertDatabaseHas(DatabaseTable::REPORT_EXPORT_REQUESTS, [
+        $this->assertDatabaseHas(ExportsDatabaseTable::REPORT_EXPORT_REQUESTS, [
             'public_id' => $request->publicId,
             'status' => ReportExportStatus::Queued->value,
             'process_run_id' => $processRunId,
@@ -514,13 +519,13 @@ final class ReportsModuleTest extends TestCase
         self::assertSame('sync', $result->executionMode);
         self::assertNotNull($result->artifactPublicId);
         self::assertNull($result->processRunPublicId);
-        $this->assertDatabaseCount(DatabaseTable::MANAGED_PROCESS_RUNS, 0);
-        $this->assertDatabaseHas(DatabaseTable::REPORT_EXPORT_REQUESTS, [
+        $this->assertDatabaseCount(ManagedProcessesDatabaseTable::RUNS, 0);
+        $this->assertDatabaseHas(ExportsDatabaseTable::REPORT_EXPORT_REQUESTS, [
             'public_id' => $result->exportRequestPublicId,
             'status' => ReportExportStatus::Available->value,
             'synchronous_allowed' => true,
         ]);
-        $this->assertDatabaseHas(DatabaseTable::REPORT_EXPORT_ARTIFACTS, [
+        $this->assertDatabaseHas(ExportsDatabaseTable::REPORT_EXPORT_ARTIFACTS, [
             'public_id' => $result->artifactPublicId,
             'status' => ReportExportStatus::Available->value,
         ]);
@@ -543,9 +548,9 @@ final class ReportsModuleTest extends TestCase
         self::assertSame('cached', $second->executionMode);
         self::assertSame($first->exportRequestPublicId, $second->exportRequestPublicId);
         self::assertSame($first->artifactPublicId, $second->artifactPublicId);
-        $this->assertDatabaseCount(DatabaseTable::MANAGED_PROCESS_RUNS, 0);
-        $this->assertDatabaseCount(DatabaseTable::REPORT_EXPORT_REQUESTS, 1);
-        $this->assertDatabaseCount(DatabaseTable::REPORT_EXPORT_ARTIFACTS, 1);
+        $this->assertDatabaseCount(ManagedProcessesDatabaseTable::RUNS, 0);
+        $this->assertDatabaseCount(ExportsDatabaseTable::REPORT_EXPORT_REQUESTS, 1);
+        $this->assertDatabaseCount(ExportsDatabaseTable::REPORT_EXPORT_ARTIFACTS, 1);
     }
 
     public function test_dispatch_snapshot_queues_pdfs_even_when_the_estimate_is_small_by_default(): void
@@ -563,7 +568,7 @@ final class ReportsModuleTest extends TestCase
         self::assertSame('queued', $result->executionMode);
         self::assertNotNull($result->processRunPublicId);
         self::assertNull($result->artifactPublicId);
-        $this->assertDatabaseHas(DatabaseTable::REPORT_EXPORT_REQUESTS, [
+        $this->assertDatabaseHas(ExportsDatabaseTable::REPORT_EXPORT_REQUESTS, [
             'public_id' => $result->exportRequestPublicId,
             'status' => ReportExportStatus::Queued->value,
             'synchronous_allowed' => false,
@@ -586,7 +591,7 @@ final class ReportsModuleTest extends TestCase
         self::assertSame('report_export', $blocked->blockers[0]->processType);
         self::assertSame($request->publicId, $blocked->blockers[0]->processIdentifier);
 
-        DB::table(DatabaseTable::REPORT_EXPORT_REQUESTS)->where('public_id', $request->publicId)->update([
+        DB::table(ExportsDatabaseTable::REPORT_EXPORT_REQUESTS)->where('public_id', $request->publicId)->update([
             'status' => ReportExportStatus::Failed->value,
             'updated_at' => now(),
         ]);
@@ -604,11 +609,11 @@ final class ReportsModuleTest extends TestCase
     {
         [$user, $team] = $this->userAndTeam();
         $request = $this->app->make(ReportExportRequestRecorder::class)->record($this->snapshot($user, $team));
-        $requestId = DB::table(DatabaseTable::REPORT_EXPORT_REQUESTS)->where('public_id', $request->publicId)->value('id');
+        $requestId = DB::table(ExportsDatabaseTable::REPORT_EXPORT_REQUESTS)->where('public_id', $request->publicId)->value('id');
 
         $this->expectException(QueryException::class);
 
-        DB::table(DatabaseTable::REPORT_EXPORT_ARTIFACTS)->insert([
+        DB::table(ExportsDatabaseTable::REPORT_EXPORT_ARTIFACTS)->insert([
             'public_id' => (string) Str::ulid(),
             'export_request_id' => $requestId,
             'file_object_id' => null,
@@ -630,7 +635,7 @@ final class ReportsModuleTest extends TestCase
     {
         [$user, $team] = $this->userAndTeam();
         $request = $this->app->make(ReportExportRequestRecorder::class)->record($this->snapshot($user, $team));
-        $requestId = DB::table(DatabaseTable::REPORT_EXPORT_REQUESTS)->where('public_id', $request->publicId)->value('id');
+        $requestId = DB::table(ExportsDatabaseTable::REPORT_EXPORT_REQUESTS)->where('public_id', $request->publicId)->value('id');
 
         $this->insertAvailableArtifact($this->numericId($requestId), $this->numericId($user->id), 'admin-users.csv');
 
@@ -644,7 +649,7 @@ final class ReportsModuleTest extends TestCase
         $this->app->bind(ModuleGate::class, AllowAllReportModuleGate::class);
         [$user, $team] = $this->userAndTeam();
         $request = $this->app->make(ReportExportRequestRecorder::class)->record($this->snapshot($user, $team));
-        $requestId = DB::table(DatabaseTable::REPORT_EXPORT_REQUESTS)->where('public_id', $request->publicId)->value('id');
+        $requestId = DB::table(ExportsDatabaseTable::REPORT_EXPORT_REQUESTS)->where('public_id', $request->publicId)->value('id');
         $artifactPublicId = $this->insertAvailableArtifact($this->numericId($requestId), $this->numericId($user->id), 'admin-users.csv');
 
         $download = $this->app->make(ReportExportArtifactAccess::class)->download(
@@ -668,7 +673,7 @@ final class ReportsModuleTest extends TestCase
         $this->app->bind(EffectivePermissionChecker::class, AllowAllEffectivePermissionChecker::class);
         [$user, $team] = $this->userAndTeam();
         $request = $this->app->make(ReportExportRequestRecorder::class)->record($this->snapshot($user, $team));
-        $requestId = DB::table(DatabaseTable::REPORT_EXPORT_REQUESTS)->where('public_id', $request->publicId)->value('id');
+        $requestId = DB::table(ExportsDatabaseTable::REPORT_EXPORT_REQUESTS)->where('public_id', $request->publicId)->value('id');
         $artifactPublicId = $this->insertAvailableArtifact($this->numericId($requestId), $this->numericId($user->id), 'admin-users.csv');
 
         $response = $this->actingAs($user)
@@ -685,7 +690,7 @@ final class ReportsModuleTest extends TestCase
         [$user, $team] = $this->userAndTeam();
         $otherUser = User::factory()->create(['public_id' => '01J00000000000000000000063']);
         $request = $this->app->make(ReportExportRequestRecorder::class)->record($this->snapshot($user, $team));
-        $requestId = DB::table(DatabaseTable::REPORT_EXPORT_REQUESTS)->where('public_id', $request->publicId)->value('id');
+        $requestId = DB::table(ExportsDatabaseTable::REPORT_EXPORT_REQUESTS)->where('public_id', $request->publicId)->value('id');
         $artifactPublicId = $this->insertAvailableArtifact($this->numericId($requestId), $this->numericId($user->id), 'admin-users.csv');
 
         $this->expectException(ReportArtifactNotDownloadable::class);
@@ -701,7 +706,7 @@ final class ReportsModuleTest extends TestCase
     {
         [$user, $team] = $this->userAndTeam();
         $request = $this->app->make(ReportExportRequestRecorder::class)->record($this->snapshot($user, $team, auditExport: true));
-        $requestId = DB::table(DatabaseTable::REPORT_EXPORT_REQUESTS)->where('public_id', $request->publicId)->value('id');
+        $requestId = DB::table(ExportsDatabaseTable::REPORT_EXPORT_REQUESTS)->where('public_id', $request->publicId)->value('id');
         $artifactPublicId = $this->insertAvailableArtifact($this->numericId($requestId), $this->numericId($user->id), 'admin-users.csv');
         $this->app->bind(ModuleGate::class, DenyAuditExportReportModuleGate::class);
 
@@ -732,26 +737,26 @@ final class ReportsModuleTest extends TestCase
 
         $this->app->make(ReportExportGenerationProcessHandler::class)->handle($runPublicId);
 
-        $artifact = DB::table(DatabaseTable::REPORT_EXPORT_ARTIFACTS)->where('status', ReportExportStatus::Available->value)->first();
+        $artifact = DB::table(ExportsDatabaseTable::REPORT_EXPORT_ARTIFACTS)->where('status', ReportExportStatus::Available->value)->first();
 
         self::assertNotNull($artifact);
-        $this->assertDatabaseHas(DatabaseTable::REPORT_EXPORT_REQUESTS, [
+        $this->assertDatabaseHas(ExportsDatabaseTable::REPORT_EXPORT_REQUESTS, [
             'public_id' => $request->publicId,
             'status' => ReportExportStatus::Available->value,
         ]);
-        $this->assertDatabaseHas(DatabaseTable::REPORT_EXPORT_ARTIFACTS, [
+        $this->assertDatabaseHas(ExportsDatabaseTable::REPORT_EXPORT_ARTIFACTS, [
             'export_request_id' => $this->numericId($artifact->export_request_id ?? null),
             'status' => ReportExportStatus::Available->value,
             'content_type' => 'text/csv; charset=UTF-8',
             'size_bytes' => $this->numericId($artifact->size_bytes ?? null),
         ]);
-        $this->assertDatabaseHas(DatabaseTable::NOTIFICATIONS, [
+        $this->assertDatabaseHas(NotificationsDatabaseTable::NOTIFICATIONS, [
             'type' => 'report_export.available',
             'severity' => 'success',
             'title' => 'notifications.exports.available.title',
             'deep_link_url' => '/exports/'.$this->stringValue($artifact->public_id ?? null).'/download',
         ]);
-        $notification = DB::table(DatabaseTable::NOTIFICATIONS)->where('type', 'report_export.available')->first();
+        $notification = DB::table(NotificationsDatabaseTable::NOTIFICATIONS)->where('type', 'report_export.available')->first();
 
         self::assertNotNull($notification);
         $notificationData = json_decode($this->stringValue($notification->data ?? null), true, 512, JSON_THROW_ON_ERROR);
@@ -764,7 +769,7 @@ final class ReportsModuleTest extends TestCase
         self::assertSame('notifications.exports.available.body', $notificationData['body_key'] ?? null);
         self::assertSame('Admin users', $notificationData['report_name'] ?? null);
 
-        $file = DB::table(DatabaseTable::FILE_OBJECTS)->where('public_id', $artifact->file_object_public_id)->first();
+        $file = DB::table(FilesDatabaseTable::FILE_OBJECTS)->where('public_id', $artifact->file_object_public_id)->first();
 
         self::assertNotNull($file);
         self::assertSame('clean', $file->scan_state);
@@ -822,21 +827,21 @@ final class ReportsModuleTest extends TestCase
 
         $this->app->make(ReportExportGenerationProcessHandler::class)->handle($runPublicId);
 
-        $artifact = DB::table(DatabaseTable::REPORT_EXPORT_ARTIFACTS)->where('status', ReportExportStatus::Available->value)->first();
+        $artifact = DB::table(ExportsDatabaseTable::REPORT_EXPORT_ARTIFACTS)->where('status', ReportExportStatus::Available->value)->first();
 
         self::assertNotNull($artifact);
-        $this->assertDatabaseHas(DatabaseTable::REPORT_EXPORT_REQUESTS, [
+        $this->assertDatabaseHas(ExportsDatabaseTable::REPORT_EXPORT_REQUESTS, [
             'public_id' => $request->publicId,
             'status' => ReportExportStatus::Available->value,
             'format' => ReportExportFormat::Xlsx->value,
         ]);
-        $this->assertDatabaseHas(DatabaseTable::REPORT_EXPORT_ARTIFACTS, [
+        $this->assertDatabaseHas(ExportsDatabaseTable::REPORT_EXPORT_ARTIFACTS, [
             'export_request_id' => $this->numericId($artifact->export_request_id ?? null),
             'status' => ReportExportStatus::Available->value,
             'content_type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         ]);
 
-        $file = DB::table(DatabaseTable::FILE_OBJECTS)->where('public_id', $artifact->file_object_public_id)->first();
+        $file = DB::table(FilesDatabaseTable::FILE_OBJECTS)->where('public_id', $artifact->file_object_public_id)->first();
 
         self::assertNotNull($file);
         $path = $this->stringValue($file->path ?? null);
@@ -883,10 +888,10 @@ final class ReportsModuleTest extends TestCase
         );
 
         $this->app->make(ReportExportGenerationProcessHandler::class)->handle($runPublicId);
-        $artifact = DB::table(DatabaseTable::REPORT_EXPORT_ARTIFACTS)->where('status', ReportExportStatus::Available->value)->first();
+        $artifact = DB::table(ExportsDatabaseTable::REPORT_EXPORT_ARTIFACTS)->where('status', ReportExportStatus::Available->value)->first();
 
         self::assertNotNull($artifact);
-        $file = DB::table(DatabaseTable::FILE_OBJECTS)->where('public_id', $artifact->file_object_public_id)->first();
+        $file = DB::table(FilesDatabaseTable::FILE_OBJECTS)->where('public_id', $artifact->file_object_public_id)->first();
 
         self::assertNotNull($file);
         $contents = Storage::disk('atlas_files')->get($this->stringValue($file->path ?? null));
@@ -910,7 +915,7 @@ final class ReportsModuleTest extends TestCase
         $request = $this->app->make(ReportExportRequestRecorder::class)->record($this->snapshot($user, $team, ReportExportFormat::Pdf));
 
         $issued = $this->app->make(ReportRenderCredentialIssuer::class)->issue($request->publicId);
-        $record = DB::table(DatabaseTable::REPORT_RENDER_CREDENTIALS)->where('public_id', $issued->publicId)->first();
+        $record = DB::table(ExportsDatabaseTable::REPORT_RENDER_CREDENTIALS)->where('public_id', $issued->publicId)->first();
 
         self::assertNotNull($record);
         self::assertNotSame($issued->token, $record->token_hash);
@@ -952,25 +957,25 @@ final class ReportsModuleTest extends TestCase
 
         $this->app->make(ReportExportGenerationProcessHandler::class)->handle($runPublicId);
 
-        $artifact = DB::table(DatabaseTable::REPORT_EXPORT_ARTIFACTS)->where('status', ReportExportStatus::Available->value)->first();
+        $artifact = DB::table(ExportsDatabaseTable::REPORT_EXPORT_ARTIFACTS)->where('status', ReportExportStatus::Available->value)->first();
 
         self::assertNotNull($artifact);
-        $this->assertDatabaseHas(DatabaseTable::REPORT_EXPORT_REQUESTS, [
+        $this->assertDatabaseHas(ExportsDatabaseTable::REPORT_EXPORT_REQUESTS, [
             'public_id' => $request->publicId,
             'status' => ReportExportStatus::Available->value,
             'format' => ReportExportFormat::Pdf->value,
         ]);
-        $this->assertDatabaseHas(DatabaseTable::REPORT_EXPORT_ARTIFACTS, [
+        $this->assertDatabaseHas(ExportsDatabaseTable::REPORT_EXPORT_ARTIFACTS, [
             'export_request_id' => $this->numericId($artifact->export_request_id ?? null),
             'status' => ReportExportStatus::Available->value,
             'content_type' => 'application/pdf',
         ]);
-        self::assertSame(1, DB::table(DatabaseTable::REPORT_RENDER_CREDENTIALS)
+        self::assertSame(1, DB::table(ExportsDatabaseTable::REPORT_RENDER_CREDENTIALS)
             ->where('report_key', 'admin.users')
             ->whereNotNull('consumed_at')
             ->count());
 
-        $file = DB::table(DatabaseTable::FILE_OBJECTS)->where('public_id', $artifact->file_object_public_id)->first();
+        $file = DB::table(FilesDatabaseTable::FILE_OBJECTS)->where('public_id', $artifact->file_object_public_id)->first();
 
         self::assertNotNull($file);
         $path = $this->stringValue($file->path ?? null);
@@ -1010,10 +1015,10 @@ final class ReportsModuleTest extends TestCase
 
         $this->app->make(ReportExportGenerationProcessHandler::class)->handle($runPublicId);
 
-        $artifact = DB::table(DatabaseTable::REPORT_EXPORT_ARTIFACTS)->where('status', ReportExportStatus::Available->value)->first();
+        $artifact = DB::table(ExportsDatabaseTable::REPORT_EXPORT_ARTIFACTS)->where('status', ReportExportStatus::Available->value)->first();
 
         self::assertNotNull($artifact);
-        $file = DB::table(DatabaseTable::FILE_OBJECTS)->where('public_id', $artifact->file_object_public_id)->first();
+        $file = DB::table(FilesDatabaseTable::FILE_OBJECTS)->where('public_id', $artifact->file_object_public_id)->first();
 
         self::assertNotNull($file);
         $contents = Storage::disk('atlas_files')->get($this->stringValue($file->path ?? null));
@@ -1063,7 +1068,7 @@ final class ReportsModuleTest extends TestCase
         $response->assertSee('anna@example.test');
         $response->assertDontSee('/build/assets', false);
         $response->assertDontSee('internal-token');
-        self::assertSame(1, DB::table(DatabaseTable::REPORT_RENDER_CREDENTIALS)
+        self::assertSame(1, DB::table(ExportsDatabaseTable::REPORT_RENDER_CREDENTIALS)
             ->where('report_key', 'admin.users')
             ->whereNotNull('consumed_at')
             ->count());
@@ -1089,17 +1094,17 @@ final class ReportsModuleTest extends TestCase
         } catch (ReportRenderVisualsNotReady) {
         }
 
-        $this->assertDatabaseHas(DatabaseTable::REPORT_EXPORT_REQUESTS, [
+        $this->assertDatabaseHas(ExportsDatabaseTable::REPORT_EXPORT_REQUESTS, [
             'public_id' => $request->publicId,
             'status' => ReportExportStatus::Failed->value,
             'safe_error_summary' => 'Report [admin.users] is not ready for PDF rendering: chart canvas did not signal ready',
         ]);
-        $this->assertDatabaseHas(DatabaseTable::NOTIFICATIONS, [
+        $this->assertDatabaseHas(NotificationsDatabaseTable::NOTIFICATIONS, [
             'type' => 'report_export.failed',
             'severity' => 'warning',
             'title' => 'notifications.exports.failed.title',
         ]);
-        $failedNotification = DB::table(DatabaseTable::NOTIFICATIONS)->where('type', 'report_export.failed')->first();
+        $failedNotification = DB::table(NotificationsDatabaseTable::NOTIFICATIONS)->where('type', 'report_export.failed')->first();
 
         self::assertNotNull($failedNotification);
         $failedNotificationData = json_decode($this->stringValue($failedNotification->data ?? null), true, 512, JSON_THROW_ON_ERROR);
@@ -1111,8 +1116,8 @@ final class ReportsModuleTest extends TestCase
         self::assertSame('notifications.exports.failed.title', $failedNotificationData['title_key'] ?? null);
         self::assertSame('notifications.exports.failed.body', $failedNotificationData['body_key'] ?? null);
         self::assertSame('Admin users', $failedNotificationData['report_name'] ?? null);
-        $this->assertDatabaseCount(DatabaseTable::REPORT_EXPORT_ARTIFACTS, 0);
-        $this->assertDatabaseCount(DatabaseTable::REPORT_RENDER_CREDENTIALS, 0);
+        $this->assertDatabaseCount(ExportsDatabaseTable::REPORT_EXPORT_ARTIFACTS, 0);
+        $this->assertDatabaseCount(ExportsDatabaseTable::REPORT_RENDER_CREDENTIALS, 0);
     }
 
     public function test_expired_render_credentials_are_rejected(): void
@@ -1122,7 +1127,7 @@ final class ReportsModuleTest extends TestCase
         $request = $this->app->make(ReportExportRequestRecorder::class)->record($this->snapshot($user, $team, ReportExportFormat::Pdf));
         $issued = $this->app->make(ReportRenderCredentialIssuer::class)->issue($request->publicId);
 
-        DB::table(DatabaseTable::REPORT_RENDER_CREDENTIALS)->where('public_id', $issued->publicId)->update([
+        DB::table(ExportsDatabaseTable::REPORT_RENDER_CREDENTIALS)->where('public_id', $issued->publicId)->update([
             'expires_at' => new DateTimeImmutable('2000-01-01 00:00:00 UTC'),
             'updated_at' => now(),
         ]);
@@ -1135,11 +1140,11 @@ final class ReportsModuleTest extends TestCase
     {
         [$user, $team] = $this->userAndTeam();
         $request = $this->app->make(ReportExportRequestRecorder::class)->record($this->snapshot($user, $team));
-        $requestId = DB::table(DatabaseTable::REPORT_EXPORT_REQUESTS)->where('public_id', $request->publicId)->value('id');
+        $requestId = DB::table(ExportsDatabaseTable::REPORT_EXPORT_REQUESTS)->where('public_id', $request->publicId)->value('id');
         $artifactPublicId = $this->insertAvailableArtifact($this->numericId($requestId), $this->numericId($user->id), 'admin-users.csv', expired: true);
-        $filePublicId = DB::table(DatabaseTable::REPORT_EXPORT_ARTIFACTS)->where('public_id', $artifactPublicId)->value('file_object_public_id');
+        $filePublicId = DB::table(ExportsDatabaseTable::REPORT_EXPORT_ARTIFACTS)->where('public_id', $artifactPublicId)->value('file_object_public_id');
 
-        DB::table(DatabaseTable::REPORT_EXPORT_REQUESTS)->where('public_id', $request->publicId)->update([
+        DB::table(ExportsDatabaseTable::REPORT_EXPORT_REQUESTS)->where('public_id', $request->publicId)->update([
             'expires_at' => now()->subDay(),
             'updated_at' => now(),
         ]);
@@ -1150,15 +1155,15 @@ final class ReportsModuleTest extends TestCase
         self::assertSame(1, $result->expiredArtifacts);
         self::assertSame(1, $result->deletedFiles);
         self::assertSame(0, $result->failedFileDeletes);
-        $this->assertDatabaseHas(DatabaseTable::REPORT_EXPORT_ARTIFACTS, [
+        $this->assertDatabaseHas(ExportsDatabaseTable::REPORT_EXPORT_ARTIFACTS, [
             'public_id' => $artifactPublicId,
             'status' => ReportExportStatus::Expired->value,
         ]);
-        $this->assertDatabaseHas(DatabaseTable::REPORT_EXPORT_REQUESTS, [
+        $this->assertDatabaseHas(ExportsDatabaseTable::REPORT_EXPORT_REQUESTS, [
             'public_id' => $request->publicId,
             'status' => ReportExportStatus::Expired->value,
         ]);
-        $this->assertDatabaseMissing(DatabaseTable::FILE_OBJECTS, [
+        $this->assertDatabaseMissing(FilesDatabaseTable::FILE_OBJECTS, [
             'public_id' => $filePublicId,
             'deleted_at' => null,
         ]);
@@ -1168,10 +1173,10 @@ final class ReportsModuleTest extends TestCase
     {
         [$user, $team] = $this->userAndTeam();
         $request = $this->app->make(ReportExportRequestRecorder::class)->record($this->snapshot($user, $team));
-        $requestId = DB::table(DatabaseTable::REPORT_EXPORT_REQUESTS)->where('public_id', $request->publicId)->value('id');
+        $requestId = DB::table(ExportsDatabaseTable::REPORT_EXPORT_REQUESTS)->where('public_id', $request->publicId)->value('id');
         $this->insertAvailableArtifact($this->numericId($requestId), $this->numericId($user->id), 'admin-users.csv', expired: true);
 
-        DB::table(DatabaseTable::REPORT_EXPORT_REQUESTS)->where('public_id', $request->publicId)->update([
+        DB::table(ExportsDatabaseTable::REPORT_EXPORT_REQUESTS)->where('public_id', $request->publicId)->update([
             'expires_at' => now()->subDay(),
             'updated_at' => now(),
         ]);
@@ -1182,7 +1187,7 @@ final class ReportsModuleTest extends TestCase
             Artisan::output(),
         );
 
-        $this->assertDatabaseHas(DatabaseTable::REPORT_EXPORT_REQUESTS, [
+        $this->assertDatabaseHas(ExportsDatabaseTable::REPORT_EXPORT_REQUESTS, [
             'public_id' => $request->publicId,
             'status' => ReportExportStatus::Expired->value,
         ]);
@@ -1200,7 +1205,7 @@ final class ReportsModuleTest extends TestCase
             'slug' => 'operations-reports',
             'is_active' => true,
         ]);
-        DB::table(DatabaseTable::TEAM_USER_ASSIGNMENTS)->insert([
+        DB::table(TeamsDatabaseTable::TEAM_USER_ASSIGNMENTS)->insert([
             'team_id' => $team->id,
             'user_id' => $user->id,
             'is_head_manager' => false,
@@ -1266,7 +1271,7 @@ final class ReportsModuleTest extends TestCase
         $filePublicId = (string) Str::ulid();
         $artifactPublicId = (string) Str::ulid();
 
-        $fileObjectId = DB::table(DatabaseTable::FILE_OBJECTS)->insertGetId([
+        $fileObjectId = DB::table(FilesDatabaseTable::FILE_OBJECTS)->insertGetId([
             'public_id' => $filePublicId,
             'disk' => 'local',
             'path' => 'reports/'.$filename,
@@ -1292,12 +1297,12 @@ final class ReportsModuleTest extends TestCase
             'updated_at' => now(),
         ]);
 
-        DB::table(DatabaseTable::REPORT_EXPORT_REQUESTS)->where('id', $requestId)->update([
+        DB::table(ExportsDatabaseTable::REPORT_EXPORT_REQUESTS)->where('id', $requestId)->update([
             'status' => ReportExportStatus::Available->value,
             'updated_at' => now(),
         ]);
 
-        DB::table(DatabaseTable::REPORT_EXPORT_ARTIFACTS)->insert([
+        DB::table(ExportsDatabaseTable::REPORT_EXPORT_ARTIFACTS)->insert([
             'public_id' => $artifactPublicId,
             'export_request_id' => $requestId,
             'file_object_id' => $fileObjectId,
@@ -1729,10 +1734,10 @@ final class FakeReportManagedProcessRunner implements ManagedProcessRunner
         ?string $causationId = null,
     ): string {
         $publicId = (string) Str::ulid();
-        $actorId = DB::table(DatabaseTable::USERS)->where('public_id', $actorPublicId)->value('id');
-        $teamId = DB::table(DatabaseTable::TEAMS)->where('public_id', $teamPublicId)->value('id');
+        $actorId = DB::table(IdentityDatabaseTable::USERS)->where('public_id', $actorPublicId)->value('id');
+        $teamId = DB::table(TeamsDatabaseTable::TEAMS)->where('public_id', $teamPublicId)->value('id');
 
-        DB::table(DatabaseTable::MANAGED_PROCESS_RUNS)->insert([
+        DB::table(ManagedProcessesDatabaseTable::RUNS)->insert([
             'public_id' => $publicId,
             'process_key' => $processKey,
             'module_key' => 'exports',

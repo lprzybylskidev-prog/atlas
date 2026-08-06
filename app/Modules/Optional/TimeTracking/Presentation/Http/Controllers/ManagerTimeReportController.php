@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Modules\Optional\TimeTracking\Presentation\Http\Controllers;
 
+use App\Modules\Core\Identity\Application\Public\Persistence\IdentityDatabaseTable;
 use App\Modules\Core\Teams\Application\Public\Contracts\ManagerHierarchy;
+use App\Modules\Optional\TimeTracking\Application\Public\Persistence\TimeTrackingDatabaseTable;
 use App\Modules\Optional\TimeTracking\Application\TimeTrackingModuleAccess;
 use App\Modules\Optional\TimeTracking\Application\UserTimeReportService;
 use App\Shared\Application\Tables\AdminTableDefinitions;
@@ -12,7 +14,6 @@ use App\Shared\Application\Tables\ArrayTableProcessor;
 use App\Shared\Application\Tables\TableRequestContext;
 use App\Shared\Application\Tables\TableSavedViewService;
 use App\Shared\Application\Tables\TableState;
-use App\Shared\Infrastructure\Database\DatabaseTable;
 use App\Shared\Presentation\Support\AdminDataTableExportMeta;
 use Illuminate\Database\ConnectionInterface;
 use Illuminate\Http\Request;
@@ -116,7 +117,7 @@ final readonly class ManagerTimeReportController
     {
         $events = [];
 
-        foreach ($this->database->table(DatabaseTable::TIME_TRACKING_WORK_SESSIONS)
+        foreach ($this->database->table(TimeTrackingDatabaseTable::WORK_SESSIONS)
             ->where('team_id', $teamId)
             ->whereIn('user_id', $userIds)
             ->orderByDesc('started_at')
@@ -141,7 +142,7 @@ final readonly class ManagerTimeReportController
     {
         $events = [];
 
-        foreach ($this->database->table(DatabaseTable::TIME_TRACKING_BREAKS)
+        foreach ($this->database->table(TimeTrackingDatabaseTable::BREAKS)
             ->where('team_id', $teamId)
             ->whereIn('user_id', $userIds)
             ->orderByDesc('started_at')
@@ -167,7 +168,7 @@ final readonly class ManagerTimeReportController
     {
         $events = [];
 
-        foreach ($this->database->table(DatabaseTable::TIME_TRACKING_OTHER_WORK)
+        foreach ($this->database->table(TimeTrackingDatabaseTable::OTHER_WORK)
             ->where('team_id', $teamId)
             ->whereIn('user_id', $userIds)
             ->orderByDesc('started_at')
@@ -193,7 +194,7 @@ final readonly class ManagerTimeReportController
     {
         $events = [];
 
-        foreach ($this->database->table(DatabaseTable::TIME_TRACKING_CORRECTION_REQUESTS)
+        foreach ($this->database->table(TimeTrackingDatabaseTable::CORRECTION_REQUESTS)
             ->where('team_id', $teamId)
             ->whereIn('user_id', $userIds)
             ->orderByDesc('requested_at')
@@ -221,9 +222,9 @@ final readonly class ManagerTimeReportController
             return $this->emptyTeamSummary();
         }
 
-        $breakUserIds = $this->activeUserIds(DatabaseTable::TIME_TRACKING_BREAKS, $teamId, $userIds);
-        $otherWorkUserIds = $this->activeUserIds(DatabaseTable::TIME_TRACKING_OTHER_WORK, $teamId, $userIds);
-        $workUserIds = $this->activeUserIds(DatabaseTable::TIME_TRACKING_WORK_SESSIONS, $teamId, $userIds);
+        $breakUserIds = $this->activeUserIds(TimeTrackingDatabaseTable::BREAKS, $teamId, $userIds);
+        $otherWorkUserIds = $this->activeUserIds(TimeTrackingDatabaseTable::OTHER_WORK, $teamId, $userIds);
+        $workUserIds = $this->activeUserIds(TimeTrackingDatabaseTable::WORK_SESSIONS, $teamId, $userIds);
         $lockedUserIds = array_values(array_unique([...$breakUserIds, ...$otherWorkUserIds]));
         $workingUserIds = array_values(array_diff($workUserIds, $lockedUserIds));
 
@@ -259,7 +260,7 @@ final readonly class ManagerTimeReportController
 
         $users = [];
 
-        foreach ($this->database->table(DatabaseTable::USERS)->whereIn('public_id', $publicIds)->get(['id', 'name', 'email']) as $row) {
+        foreach ($this->database->table(IdentityDatabaseTable::USERS)->whereIn('public_id', $publicIds)->get(['id', 'name', 'email']) as $row) {
             $userId = $this->intValue($row->id ?? null);
 
             if ($userId < 1) {

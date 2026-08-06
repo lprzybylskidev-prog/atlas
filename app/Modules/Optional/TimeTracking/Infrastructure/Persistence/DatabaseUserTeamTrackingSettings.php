@@ -4,8 +4,9 @@ declare(strict_types=1);
 
 namespace App\Modules\Optional\TimeTracking\Infrastructure\Persistence;
 
+use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
 use App\Modules\Optional\TimeTracking\Application\Contracts\UserTeamTrackingSettings;
-use App\Shared\Infrastructure\Database\DatabaseTable;
+use App\Modules\Optional\TimeTracking\Application\Public\Persistence\TimeTrackingDatabaseTable;
 use Illuminate\Database\ConnectionInterface;
 use Illuminate\Support\Str;
 
@@ -15,7 +16,7 @@ final readonly class DatabaseUserTeamTrackingSettings implements UserTeamTrackin
 
     public function isEnabledForUserTeam(int $userId, int $teamId): bool
     {
-        $assignment = $this->database->table(DatabaseTable::TEAM_USER_ASSIGNMENTS)
+        $assignment = $this->database->table(TeamsDatabaseTable::TEAM_USER_ASSIGNMENTS)
             ->where('user_id', $userId)
             ->where('team_id', $teamId)
             ->whereNull('valid_to')
@@ -25,7 +26,7 @@ final readonly class DatabaseUserTeamTrackingSettings implements UserTeamTrackin
             return false;
         }
 
-        return $this->database->table(DatabaseTable::TIME_TRACKING_USER_TEAM_SETTINGS)
+        return $this->database->table(TimeTrackingDatabaseTable::USER_TEAM_SETTINGS)
             ->where('team_user_assignment_id', $this->intValue($assignment->id ?? null))
             ->where('tracking_enabled', true)
             ->exists();
@@ -35,7 +36,7 @@ final readonly class DatabaseUserTeamTrackingSettings implements UserTeamTrackin
     {
         $now = now();
 
-        $this->database->table(DatabaseTable::TIME_TRACKING_USER_TEAM_SETTINGS)->upsert([
+        $this->database->table(TimeTrackingDatabaseTable::USER_TEAM_SETTINGS)->upsert([
             [
                 'public_id' => (string) Str::ulid(),
                 'team_user_assignment_id' => $teamUserAssignmentId,

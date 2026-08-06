@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace App\Modules\Optional\TimeTracking\Infrastructure\Persistence;
 
+use App\Modules\Core\Identity\Application\Public\Persistence\IdentityDatabaseTable;
+use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
 use App\Modules\Optional\TimeTracking\Application\Contracts\BreakPolicyStore;
 use App\Modules\Optional\TimeTracking\Application\Public\Contracts\UserBreakPolicySettings;
-use App\Shared\Infrastructure\Database\DatabaseTable;
+use App\Modules\Optional\TimeTracking\Application\Public\Persistence\TimeTrackingDatabaseTable;
 use Illuminate\Database\ConnectionInterface;
 
 final readonly class DatabaseUserBreakPolicySettings implements UserBreakPolicySettings
@@ -46,7 +48,7 @@ final readonly class DatabaseUserBreakPolicySettings implements UserBreakPolicyS
             return false;
         }
 
-        return $this->database->table(DatabaseTable::TIME_TRACKING_USER_TEAM_SETTINGS)
+        return $this->database->table(TimeTrackingDatabaseTable::USER_TEAM_SETTINGS)
             ->where('team_user_assignment_id', $assignmentId)
             ->where('tracking_enabled', true)
             ->exists();
@@ -65,7 +67,7 @@ final readonly class DatabaseUserBreakPolicySettings implements UserBreakPolicyS
         }
 
         $policy = $this->policies->policyForUserTeam(0, $teamId);
-        $teamPolicy = $this->database->table(DatabaseTable::TIME_TRACKING_BREAK_POLICIES)
+        $teamPolicy = $this->database->table(TimeTrackingDatabaseTable::BREAK_POLICIES)
             ->where('scope_type', 'team')
             ->where('scope_id', $teamId)
             ->first(['daily_limit_seconds', 'maximum_single_break_seconds']);
@@ -94,7 +96,7 @@ final readonly class DatabaseUserBreakPolicySettings implements UserBreakPolicyS
         }
 
         if ($dailyLimitMinutes === null && $maximumSingleBreakMinutes === null) {
-            $this->database->table(DatabaseTable::TIME_TRACKING_BREAK_POLICIES)
+            $this->database->table(TimeTrackingDatabaseTable::BREAK_POLICIES)
                 ->where('scope_type', 'team')
                 ->where('scope_id', $teamId)
                 ->delete();
@@ -151,8 +153,8 @@ final readonly class DatabaseUserBreakPolicySettings implements UserBreakPolicyS
      */
     private function ids(string $userPublicId, string $teamPublicId): array
     {
-        $userId = $this->database->table(DatabaseTable::USERS)->where('public_id', $userPublicId)->value('id');
-        $teamId = $this->database->table(DatabaseTable::TEAMS)->where('public_id', $teamPublicId)->value('id');
+        $userId = $this->database->table(IdentityDatabaseTable::USERS)->where('public_id', $userPublicId)->value('id');
+        $teamId = $this->database->table(TeamsDatabaseTable::TEAMS)->where('public_id', $teamPublicId)->value('id');
 
         return [
             is_numeric($userId) ? (int) $userId : 0,
@@ -162,7 +164,7 @@ final readonly class DatabaseUserBreakPolicySettings implements UserBreakPolicyS
 
     private function assignmentId(int $userId, int $teamId): int
     {
-        $id = $this->database->table(DatabaseTable::TEAM_USER_ASSIGNMENTS)
+        $id = $this->database->table(TeamsDatabaseTable::TEAM_USER_ASSIGNMENTS)
             ->where('user_id', $userId)
             ->where('team_id', $teamId)
             ->whereNull('valid_to')
@@ -173,7 +175,7 @@ final readonly class DatabaseUserBreakPolicySettings implements UserBreakPolicyS
 
     private function teamId(string $teamPublicId): int
     {
-        $id = $this->database->table(DatabaseTable::TEAMS)->where('public_id', $teamPublicId)->value('id');
+        $id = $this->database->table(TeamsDatabaseTable::TEAMS)->where('public_id', $teamPublicId)->value('id');
 
         return is_numeric($id) ? (int) $id : 0;
     }

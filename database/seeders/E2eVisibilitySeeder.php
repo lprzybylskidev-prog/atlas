@@ -10,14 +10,17 @@ use App\Modules\Core\Audit\Application\Public\Enums\SecurityAuditCategory;
 use App\Modules\Core\Authorization\Application\Contracts\PermissionRoleStore;
 use App\Modules\Core\Authorization\Application\Public\Contracts\AdministratorAccessManager;
 use App\Modules\Core\Authorization\Application\Roles\StarterRoleName;
+use App\Modules\Core\Identity\Application\Public\Persistence\IdentityDatabaseTable;
 use App\Modules\Core\Identity\Domain\AccountSensitivity;
 use App\Modules\Core\Identity\Infrastructure\Persistence\User;
 use App\Modules\Core\Teams\Application\Public\Contracts\BootstrapTeamProvider;
+use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
+use App\Modules\Optional\Imports\Application\Public\Persistence\ImportsDatabaseTable;
+use App\Modules\Optional\ManagedProcesses\Application\Public\Persistence\ManagedProcessesDatabaseTable;
 use App\Shared\Application\Modules\Activation\Contracts\ModuleActivationService;
 use App\Shared\Application\Modules\Activation\ModuleActivationChange;
 use App\Shared\Application\Modules\Activation\ModuleActivationScope;
 use App\Shared\Application\Modules\Activation\ModuleActivationSource;
-use App\Shared\Infrastructure\Database\DatabaseTable;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -59,7 +62,7 @@ final class E2eVisibilitySeeder extends Seeder
 
     private function activateModules(string $teamPublicId): void
     {
-        $teamId = DB::table(DatabaseTable::TEAMS)->where('public_id', $teamPublicId)->value('id');
+        $teamId = DB::table(TeamsDatabaseTable::TEAMS)->where('public_id', $teamPublicId)->value('id');
 
         if (! is_int($teamId)) {
             return;
@@ -88,18 +91,18 @@ final class E2eVisibilitySeeder extends Seeder
 
     private function seedProcessRun(string $adminPublicId, string $teamPublicId): void
     {
-        if (DB::table(DatabaseTable::MANAGED_PROCESS_RUNS)->where('process_key', 'e2e.imports.debtor-ledger')->exists()) {
+        if (DB::table(ManagedProcessesDatabaseTable::RUNS)->where('process_key', 'e2e.imports.debtor-ledger')->exists()) {
             return;
         }
 
-        $teamId = DB::table(DatabaseTable::TEAMS)->where('public_id', $teamPublicId)->value('id');
-        $adminId = DB::table(DatabaseTable::USERS)->where('public_id', $adminPublicId)->value('id');
+        $teamId = DB::table(TeamsDatabaseTable::TEAMS)->where('public_id', $teamPublicId)->value('id');
+        $adminId = DB::table(IdentityDatabaseTable::USERS)->where('public_id', $adminPublicId)->value('id');
 
         if (! is_int($teamId) || ! is_int($adminId)) {
             return;
         }
 
-        $runId = DB::table(DatabaseTable::MANAGED_PROCESS_RUNS)->insertGetId([
+        $runId = DB::table(ManagedProcessesDatabaseTable::RUNS)->insertGetId([
             'public_id' => (string) Str::ulid(),
             'process_key' => 'e2e.imports.debtor-ledger',
             'module_key' => 'imports',
@@ -138,7 +141,7 @@ final class E2eVisibilitySeeder extends Seeder
             ['info', 'stage', 'started', 'Process execution started.', null],
             ['warning', 'row_warning', 'validate', 'Skipped unsupported currency rows.', 'currency.unsupported_e2e'],
         ] as [$severity, $eventType, $stage, $message, $errorCode]) {
-            DB::table(DatabaseTable::MANAGED_PROCESS_LOG_EVENTS)->insert([
+            DB::table(ManagedProcessesDatabaseTable::LOG_EVENTS)->insert([
                 'public_id' => (string) Str::ulid(),
                 'process_run_id' => $runId,
                 'occurred_at' => now()->subMinutes(2),
@@ -160,7 +163,7 @@ final class E2eVisibilitySeeder extends Seeder
             ]);
         }
 
-        $importExecutionId = DB::table(DatabaseTable::IMPORT_EXECUTIONS)->insertGetId([
+        $importExecutionId = DB::table(ImportsDatabaseTable::EXECUTIONS)->insertGetId([
             'public_id' => (string) Str::ulid(),
             'process_run_id' => $runId,
             'import_key' => 'debtor-ledger-e2e',
@@ -178,7 +181,7 @@ final class E2eVisibilitySeeder extends Seeder
         ]);
 
         foreach ([3, 4] as $rowNumber) {
-            DB::table(DatabaseTable::IMPORT_ROW_ERRORS)->insert([
+            DB::table(ImportsDatabaseTable::ROW_ERRORS)->insert([
                 'public_id' => (string) Str::ulid(),
                 'import_execution_id' => $importExecutionId,
                 'row_number' => $rowNumber,

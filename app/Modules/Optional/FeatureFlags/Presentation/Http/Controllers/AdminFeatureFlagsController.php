@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Optional\FeatureFlags\Presentation\Http\Controllers;
 
+use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
 use App\Modules\Optional\FeatureFlags\Application\Contracts\FeatureFlagRegistry;
 use App\Modules\Optional\FeatureFlags\Application\Contracts\FeatureFlagStore;
 use App\Shared\Application\Tables\AdminTableDefinitions;
@@ -13,7 +14,6 @@ use App\Shared\Application\Tables\TableRequestContext;
 use App\Shared\Application\Tables\TableResult;
 use App\Shared\Application\Tables\TableSavedViewService;
 use App\Shared\Application\Tables\TableState;
-use App\Shared\Infrastructure\Database\DatabaseTable;
 use App\Shared\Presentation\Support\AdminDataTableExportMeta;
 use App\Shared\Presentation\Support\FlashMessage;
 use Illuminate\Http\RedirectResponse;
@@ -172,7 +172,7 @@ final readonly class AdminFeatureFlagsController
      */
     private function teams(): array
     {
-        $teams = DB::table(DatabaseTable::TEAMS)
+        $teams = DB::table(TeamsDatabaseTable::TEAMS)
             ->where('is_active', true)
             ->orderBy('name')
             ->get(['public_id', 'name'])
@@ -355,7 +355,7 @@ final readonly class AdminFeatureFlagsController
 
     private function teamExists(string $teamPublicId): bool
     {
-        return DB::table(DatabaseTable::TEAMS)->where('public_id', $teamPublicId)->exists();
+        return DB::table(TeamsDatabaseTable::TEAMS)->where('public_id', $teamPublicId)->exists();
     }
 
     private function redirectToIndex(mixed $teamPublicId): RedirectResponse

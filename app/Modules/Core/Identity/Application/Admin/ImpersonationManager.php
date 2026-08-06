@@ -9,13 +9,15 @@ use App\Modules\Core\Audit\Application\Public\DTOs\AuditEvent;
 use App\Modules\Core\Audit\Application\Public\Enums\SecurityAuditCategory;
 use App\Modules\Core\Authorization\Application\Public\Contracts\EffectivePermissionChecker;
 use App\Modules\Core\Authorization\Application\Public\DTOs\EffectivePermissionRequest;
+use App\Modules\Core\Authorization\Application\Public\Persistence\AuthorizationDatabaseTable;
 use App\Modules\Core\Identity\Application\Public\Contracts\ImpersonationEligibilityChecker;
 use App\Modules\Core\Identity\Application\Public\Contracts\ImpersonationSessionState;
 use App\Modules\Core\Identity\Application\Public\Contracts\UserSessionRegistry;
 use App\Modules\Core\Identity\Application\Public\DTOs\ImpersonationEligibility;
+use App\Modules\Core\Identity\Application\Public\Persistence\IdentityDatabaseTable;
 use App\Modules\Core\Identity\Domain\AccountSensitivity;
 use App\Modules\Core\Identity\Infrastructure\Persistence\User;
-use App\Shared\Infrastructure\Database\DatabaseTable;
+use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -167,7 +169,7 @@ final readonly class ImpersonationManager implements ImpersonationEligibilityChe
             ]);
         }
 
-        $team = DB::table(DatabaseTable::TEAMS)
+        $team = DB::table(TeamsDatabaseTable::TEAMS)
             ->where('public_id', $teamPublicId)
             ->first(['name', 'display_name']);
         $teamName = $this->teamDisplayName($team);
@@ -323,7 +325,7 @@ final readonly class ImpersonationManager implements ImpersonationEligibilityChe
 
     private function hasAdministratorLevelAccess(string $userPublicId): bool
     {
-        $user = DB::table(DatabaseTable::USERS)->where('public_id', $userPublicId)->first(['id']);
+        $user = DB::table(IdentityDatabaseTable::USERS)->where('public_id', $userPublicId)->first(['id']);
 
         if ($user === null || ! property_exists($user, 'id') || ! is_int($user->id)) {
             return false;
@@ -333,8 +335,8 @@ final readonly class ImpersonationManager implements ImpersonationEligibilityChe
         $modelType = config('auth.providers.users.model');
         $modelType = is_string($modelType) && $modelType !== '' ? $modelType : User::class;
 
-        if (DB::table(DatabaseTable::MODEL_HAS_ROLES)
-            ->join(DatabaseTable::ROLES, 'model_has_roles.role_id', '=', 'roles.id')
+        if (DB::table(AuthorizationDatabaseTable::MODEL_HAS_ROLES)
+            ->join(AuthorizationDatabaseTable::ROLES, 'model_has_roles.role_id', '=', 'roles.id')
             ->where('model_has_roles.model_id', $user->id)
             ->where('model_has_roles.model_type', $modelType)
             ->where('roles.name', $roleName)
@@ -342,8 +344,8 @@ final readonly class ImpersonationManager implements ImpersonationEligibilityChe
             return true;
         }
 
-        return DB::table(DatabaseTable::MODEL_HAS_PERMISSIONS)
-            ->join(DatabaseTable::PERMISSIONS, 'model_has_permissions.permission_id', '=', 'permissions.id')
+        return DB::table(AuthorizationDatabaseTable::MODEL_HAS_PERMISSIONS)
+            ->join(AuthorizationDatabaseTable::PERMISSIONS, 'model_has_permissions.permission_id', '=', 'permissions.id')
             ->where('model_has_permissions.model_id', $user->id)
             ->where('model_has_permissions.model_type', $modelType)
             ->where('permissions.name', self::ADMIN_MODE_ENTER_PERMISSION)
@@ -352,9 +354,9 @@ final readonly class ImpersonationManager implements ImpersonationEligibilityChe
 
     private function targetBelongsToTeam(string $userPublicId, string $teamPublicId): bool
     {
-        return DB::table(DatabaseTable::TEAM_USER_ASSIGNMENTS)
-            ->join(DatabaseTable::USERS, 'team_user_assignments.user_id', '=', 'users.id')
-            ->join(DatabaseTable::TEAMS, 'team_user_assignments.team_id', '=', 'teams.id')
+        return DB::table(TeamsDatabaseTable::TEAM_USER_ASSIGNMENTS)
+            ->join(IdentityDatabaseTable::USERS, 'team_user_assignments.user_id', '=', 'users.id')
+            ->join(TeamsDatabaseTable::TEAMS, 'team_user_assignments.team_id', '=', 'teams.id')
             ->where('users.public_id', $userPublicId)
             ->where('teams.public_id', $teamPublicId)
             ->where('teams.is_active', true)
@@ -369,9 +371,9 @@ final readonly class ImpersonationManager implements ImpersonationEligibilityChe
 
     private function targetHasAvailableTeam(string $userPublicId): bool
     {
-        return DB::table(DatabaseTable::TEAM_USER_ASSIGNMENTS)
-            ->join(DatabaseTable::USERS, 'team_user_assignments.user_id', '=', 'users.id')
-            ->join(DatabaseTable::TEAMS, 'team_user_assignments.team_id', '=', 'teams.id')
+        return DB::table(TeamsDatabaseTable::TEAM_USER_ASSIGNMENTS)
+            ->join(IdentityDatabaseTable::USERS, 'team_user_assignments.user_id', '=', 'users.id')
+            ->join(TeamsDatabaseTable::TEAMS, 'team_user_assignments.team_id', '=', 'teams.id')
             ->where('users.public_id', $userPublicId)
             ->where('teams.is_active', true)
             ->where(static function (Builder $query): void {
@@ -399,7 +401,7 @@ final readonly class ImpersonationManager implements ImpersonationEligibilityChe
 
     private function teamDisplayNameForPublicId(string $teamPublicId): string
     {
-        return $this->teamDisplayName(DB::table(DatabaseTable::TEAMS)
+        return $this->teamDisplayName(DB::table(TeamsDatabaseTable::TEAMS)
             ->where('public_id', $teamPublicId)
             ->first(['name', 'display_name']));
     }

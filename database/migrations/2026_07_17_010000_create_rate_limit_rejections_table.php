@@ -2,8 +2,8 @@
 
 declare(strict_types=1);
 
+use App\Modules\Core\Identity\Application\Public\Persistence\IdentityDatabaseTable;
 use App\Shared\Infrastructure\Database\DatabaseSchema;
-use App\Shared\Infrastructure\Database\DatabaseTable;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -14,7 +14,7 @@ return new class extends Migration
     {
         DatabaseSchema::ensure(DatabaseSchema::CORE_IDENTITY);
 
-        Schema::create(DatabaseTable::RATE_LIMIT_REJECTIONS, function (Blueprint $table): void {
+        Schema::create(IdentityDatabaseTable::RATE_LIMIT_REJECTIONS, function (Blueprint $table): void {
             $table->id();
             $table->string('policy');
             $table->string('limiter_key_hash', 64);
@@ -32,6 +32,6 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::dropIfExists(DatabaseTable::RATE_LIMIT_REJECTIONS);
+        Schema::dropIfExists(IdentityDatabaseTable::RATE_LIMIT_REJECTIONS);
     }
 };

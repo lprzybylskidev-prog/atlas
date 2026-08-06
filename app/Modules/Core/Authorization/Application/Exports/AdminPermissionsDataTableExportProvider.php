@@ -7,13 +7,14 @@ namespace App\Modules\Core\Authorization\Application\Exports;
 use App\Modules\Core\Authorization\Application\Permissions\PermissionCatalogRegistry;
 use App\Modules\Core\Authorization\Application\Public\Contracts\EffectivePermissionChecker;
 use App\Modules\Core\Authorization\Application\Public\DTOs\EffectivePermissionRequest;
+use App\Modules\Core\Authorization\Application\Public\Persistence\AuthorizationDatabaseTable;
 use App\Modules\Core\Exports\Application\Public\AbstractAdminDataTableExportProvider;
 use App\Modules\Core\Exports\Application\Public\DTOs\ReportExportGenerationRequest;
 use App\Modules\Core\Exports\Application\Public\Permissions\ReportsPermissionCatalog;
+use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
 use App\Shared\Application\Modules\Activation\Contracts\ModuleActivationService;
 use App\Shared\Application\Modules\ModuleKeyResolver;
 use App\Shared\Application\Tables\AdminTableDefinitions;
-use App\Shared\Infrastructure\Database\DatabaseTable;
 use Illuminate\Support\Facades\DB;
 
 final readonly class AdminPermissionsDataTableExportProvider extends AbstractAdminDataTableExportProvider
@@ -72,7 +73,7 @@ final readonly class AdminPermissionsDataTableExportProvider extends AbstractAdm
 
     public function rows(ReportExportGenerationRequest $request): iterable
     {
-        $databasePermissions = DB::table(DatabaseTable::PERMISSIONS)
+        $databasePermissions = DB::table(AuthorizationDatabaseTable::PERMISSIONS)
             ->get(['id', 'public_id', 'name', 'display_name', 'guard_name', 'created_at', 'updated_at'])
             ->keyBy('name');
         $teamId = is_string($request->activeTeamPublicId) ? $this->teamId($request->activeTeamPublicId) : null;
@@ -145,7 +146,7 @@ final readonly class AdminPermissionsDataTableExportProvider extends AbstractAdm
 
     private function teamId(string $teamPublicId): ?int
     {
-        $teamId = DB::table(DatabaseTable::TEAMS)->where('public_id', $teamPublicId)->value('id');
+        $teamId = DB::table(TeamsDatabaseTable::TEAMS)->where('public_id', $teamPublicId)->value('id');
 
         return is_numeric($teamId) ? (int) $teamId : null;
     }

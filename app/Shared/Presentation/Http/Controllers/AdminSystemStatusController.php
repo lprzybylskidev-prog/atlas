@@ -4,7 +4,13 @@ declare(strict_types=1);
 
 namespace App\Shared\Presentation\Http\Controllers;
 
+use App\Modules\Core\Files\Application\Public\Persistence\FilesDatabaseTable;
 use App\Modules\Core\Health\Application\Readiness\Contracts\ReadinessChecker;
+use App\Modules\Core\Identity\Application\Public\Persistence\IdentityDatabaseTable;
+use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
+use App\Modules\Optional\Imports\Application\Public\Persistence\ImportsDatabaseTable;
+use App\Modules\Optional\Integrations\Application\Public\Persistence\IntegrationsDatabaseTable;
+use App\Modules\Optional\ManagedProcesses\Application\Public\Persistence\ManagedProcessesDatabaseTable;
 use App\Shared\Application\Modules\Activation\Contracts\ModuleActivationService;
 use App\Shared\Application\Modules\Contracts\ModuleDefinition;
 use App\Shared\Application\Modules\Contracts\ModuleGate;
@@ -333,7 +339,7 @@ final readonly class AdminSystemStatusController
      */
     private function fileIssues(): array
     {
-        $rows = DB::table(DatabaseTable::FILE_OBJECTS)
+        $rows = DB::table(FilesDatabaseTable::FILE_OBJECTS)
             ->selectRaw('scan_state, count(*) as total')
             ->whereNull('deleted_at')
             ->whereNull('acknowledged_at')
@@ -378,7 +384,7 @@ final readonly class AdminSystemStatusController
      */
     private function identityIssues(): array
     {
-        $rejections = (int) DB::table(DatabaseTable::RATE_LIMIT_REJECTIONS)
+        $rejections = (int) DB::table(IdentityDatabaseTable::RATE_LIMIT_REJECTIONS)
             ->where('created_at', '>=', now()->subDay())
             ->count();
 
@@ -399,8 +405,8 @@ final readonly class AdminSystemStatusController
      */
     private function integrationIssues(): array
     {
-        $openCircuits = (int) DB::table(DatabaseTable::INTEGRATION_CIRCUIT_BREAKERS)->where('state', 'open')->count();
-        $failedRuns = (int) DB::table(DatabaseTable::INTEGRATION_SYNC_RUNS)->where('status', 'failed')->where('started_at', '>=', now()->subDay())->count();
+        $openCircuits = (int) DB::table(IntegrationsDatabaseTable::CIRCUIT_BREAKERS)->where('state', 'open')->count();
+        $failedRuns = (int) DB::table(IntegrationsDatabaseTable::SYNC_RUNS)->where('status', 'failed')->where('started_at', '>=', now()->subDay())->count();
         $issues = [];
 
         if ($openCircuits > 0) {
@@ -429,7 +435,7 @@ final readonly class AdminSystemStatusController
      */
     private function managedProcessIssues(): array
     {
-        $active = (int) DB::table(DatabaseTable::MANAGED_PROCESS_RUNS)->whereIn('status', ['draft', 'queued', 'running', 'waiting'])->count();
+        $active = (int) DB::table(ManagedProcessesDatabaseTable::RUNS)->whereIn('status', ['draft', 'queued', 'running', 'waiting'])->count();
         $failed = (int) $this->unacknowledgedManagedProcessRunsQuery()->where('process_runs.status', 'failed')->where('process_runs.created_at', '>=', now()->subDay())->count();
         $warnings = (int) $this->unacknowledgedManagedProcessRunsQuery()->where('process_runs.status', 'succeeded_with_warnings')->where('process_runs.created_at', '>=', now()->subDay())->count();
         $issues = [];
@@ -451,8 +457,8 @@ final readonly class AdminSystemStatusController
 
     private function unacknowledgedManagedProcessRunsQuery(): Builder
     {
-        return DB::table(DatabaseTable::MANAGED_PROCESS_RUNS.' as process_runs')
-            ->leftJoin(DatabaseTable::MANAGED_PROCESS_RUN_ACKNOWLEDGEMENTS.' as acknowledgements', 'acknowledgements.process_run_id', '=', 'process_runs.id')
+        return DB::table(ManagedProcessesDatabaseTable::RUNS.' as process_runs')
+            ->leftJoin(ManagedProcessesDatabaseTable::RUN_ACKNOWLEDGEMENTS.' as acknowledgements', 'acknowledgements.process_run_id', '=', 'process_runs.id')
             ->whereNull('acknowledgements.process_run_id');
     }
 
@@ -461,8 +467,8 @@ final readonly class AdminSystemStatusController
      */
     private function importIssues(): array
     {
-        $rowWarnings = (int) DB::table(DatabaseTable::IMPORT_ROW_ERRORS)->where('severity', 'warning')->count();
-        $rowErrors = (int) DB::table(DatabaseTable::IMPORT_ROW_ERRORS)->where('severity', 'error')->count();
+        $rowWarnings = (int) DB::table(ImportsDatabaseTable::ROW_ERRORS)->where('severity', 'warning')->count();
+        $rowErrors = (int) DB::table(ImportsDatabaseTable::ROW_ERRORS)->where('severity', 'error')->count();
 
         if ($rowErrors > 0) {
             return [['severity' => 'degraded', 'label' => 'Import row errors', 'description' => 'Import row errors are available for operator review.', 'value' => $rowErrors]];
@@ -560,7 +566,7 @@ final readonly class AdminSystemStatusController
             return null;
         }
 
-        $teamId = DB::table(DatabaseTable::TEAMS)->where('public_id', $teamPublicId)->value('id');
+        $teamId = DB::table(TeamsDatabaseTable::TEAMS)->where('public_id', $teamPublicId)->value('id');
 
         return is_numeric($teamId) ? (int) $teamId : null;
     }

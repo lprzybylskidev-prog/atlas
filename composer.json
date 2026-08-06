@@ -86,9 +86,8 @@
             "pnpm stylelint"
         ],
         "analyse": [
-            "vendor/bin/phpstan analyse app/Modules/Core/Audit app/Modules/Core/Authorization app/Modules/Core/Exports app/Modules/Core/Files app/Modules/Core/Health app/Modules/Core/Identity/Application app/Modules/Core/Identity/Domain app/Modules/Core/Identity/Infrastructure app/Modules/Core/Identity/Presentation app/Modules/Core/Notifications app/Modules/Core/Settings app/Modules/Core/Teams app/Modules/Core/Users --memory-limit=512M",
-            "vendor/bin/phpstan analyse app/Modules/Optional app/Shared/Application app/Shared/Domain app/Shared/Infrastructure app/Shared/Presentation --memory-limit=512M",
-            "vendor/bin/phpstan analyse bootstrap config database routes tests --memory-limit=512M"
+            "bash tools/quality/run-phpstan.sh --verify-coverage",
+            "bash tools/quality/run-phpstan.sh"
         ],
         "test:unit": [
             "@php artisan test --testsuite=Unit"
@@ -102,10 +101,19 @@
             "@php artisan test --testsuite=Feature"
         ],
         "check": [
-            "@lint",
+            "vendor/bin/pint --test",
+            "pnpm format:check",
+            "pnpm lint",
+            "pnpm stylelint",
+            "pnpm check:secrets",
+            "pnpm check:unwanted",
+            "bash tools/quality/check-env-example.sh",
+            "bash tools/quality/check-playwright-version.sh",
             "@analyse",
             "@test",
-            "pnpm check"
+            "pnpm typecheck",
+            "pnpm test",
+            "pnpm build"
         ],
         "post-autoload-dump": [
             "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",

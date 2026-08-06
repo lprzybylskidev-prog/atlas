@@ -37,14 +37,16 @@ Do not replace this index after the initial technical foundation is completed. C
 
 ## Current phase
 
-- Phase: [Phase 27 — Optional TimeTracking module](docs/roadmap/phase-27-time-tracking.md)
-- Status: `complete`
+- Phase: [Phase 27b — Demo and test seeder invariant repair](docs/roadmap/phase-27b-demo-seeder-invariant-repair.md)
+- Status: `not started`
 
 ## Roadmap dependency repair note
 
 After Phase 7 completed, the roadmap was reordered because several shared foundations were already used before their full known contracts were scheduled. The repaired order preserves completed phase history, adds an immediate closure phase for partial foundations, splits table/saved-view work from later report/export/PDF generation, and moves audit, settings, sessions, module activation, notifications, health, and Admin foundations before modules that depend on them.
 
 Before Phase 15 starts, Phase 14a was added as a targeted dependency repair because module-owned PostgreSQL schemas must exist before additional module persistence is introduced.
+
+After Phase 27 completed, Phase 27a was inserted as a dependency-repair phase because the large TimeTracking implementation revealed or amplified cross-cutting issues in module boundaries, persistence ownership, configuration consistency, and quality-gate completeness. These repairs must land before the next foundation-hardening phases and before production deployment work.
 
 ## Phase index
 
@@ -306,27 +308,35 @@ Implement privacy, retention, hard deletion, anonymization orchestration, legal 
 
 ### Phase 27 — Optional TimeTracking module
 
-**Status:** `in progress`
+**Status:** `complete`
 
 Implement optional operational TimeTracking, breaks, other work, inactivity, corrections, settlement, reporting, and analysis-ready data after all known shared dependencies exist.
 
 [Open implementation contract and tasks](docs/roadmap/phase-27-time-tracking.md)
 
-### Phase 27a — Demo and test seeder invariant repair
+### Phase 27a — Foundation architecture and quality-gate hardening
+
+**Status:** `complete`
+
+Harden architecture boundaries, shared Inertia composition, module-owned persistence table names, high-risk reauthorization separation, and full local quality-gate coverage after the TimeTracking phase.
+
+[Open implementation contract and tasks](docs/roadmap/phase-27a-foundation-architecture-quality-hardening.md)
+
+### Phase 27b — Demo and test seeder invariant repair
 
 **Status:** `not started`
 
 Repair development demo, e2e, and bootstrap seed data so they preserve application invariants through public contracts or dedicated invariant-preserving fixture helpers.
 
-[Open implementation contract and tasks](docs/roadmap/phase-27a-demo-seeder-invariant-repair.md)
+[Open implementation contract and tasks](docs/roadmap/phase-27b-demo-seeder-invariant-repair.md)
 
-### Phase 27b — Bilingual email templates and notification mail audit
+### Phase 27c — Bilingual email templates and notification mail audit
 
 **Status:** `not started`
 
 Standardize every Atlas-owned outgoing email so mail content is localized, bilingual, consistently branded, and test-protected before production deployment.
 
-[Open implementation contract and tasks](docs/roadmap/phase-27b-bilingual-email-templates.md)
+[Open implementation contract and tasks](docs/roadmap/phase-27c-bilingual-email-templates.md)
 
 ### Phase 28 — Backend and database surface audit
 

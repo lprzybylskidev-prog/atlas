@@ -4,18 +4,20 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Integrations;
 
+use App\Modules\Core\Authorization\Application\Public\Persistence\AuthorizationDatabaseTable;
 use App\Modules\Core\Authorization\Application\Roles\InstallStarterRoles;
 use App\Modules\Core\Authorization\Application\Roles\StarterRoleName;
 use App\Modules\Core\Identity\Infrastructure\Persistence\User;
+use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
 use App\Modules\Core\Teams\Infrastructure\Persistence\Team;
 use App\Modules\Optional\Integrations\Application\Contracts\IntegrationAdapter;
 use App\Modules\Optional\Integrations\Application\DTOs\IntegrationDefinition;
 use App\Modules\Optional\Integrations\Application\DTOs\IntegrationTestResult;
+use App\Modules\Optional\Integrations\Application\Public\Persistence\IntegrationsDatabaseTable;
 use App\Shared\Application\Modules\Activation\Contracts\ModuleActivationService;
 use App\Shared\Application\Modules\Activation\ModuleActivationChange;
 use App\Shared\Application\Modules\Activation\ModuleActivationScope;
 use App\Shared\Application\Modules\Activation\ModuleActivationSource;
-use App\Shared\Infrastructure\Database\DatabaseTable;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Collection;
@@ -59,7 +61,7 @@ final class IntegrationsAdminTest extends TestCase
             ->post('/admin/integrations/crm/test')
             ->assertRedirect(route('admin.integrations.index'));
 
-        $this->assertDatabaseHas(DatabaseTable::INTEGRATION_CONNECTIONS, [
+        $this->assertDatabaseHas(IntegrationsDatabaseTable::CONNECTIONS, [
             'integration_key' => 'crm',
             'name' => 'CRM',
             'external_api_enabled' => false,
@@ -84,14 +86,14 @@ final class IntegrationsAdminTest extends TestCase
 
         $role = Role::query()->where('name', StarterRoleName::Administrator->value)->firstOrFail();
 
-        $this->app['db']->table(DatabaseTable::TEAM_USER_ASSIGNMENTS)->insert([
+        $this->app['db']->table(TeamsDatabaseTable::TEAM_USER_ASSIGNMENTS)->insert([
             'team_id' => $team->id,
             'user_id' => $admin->id,
             'created_at' => now(),
             'updated_at' => now(),
         ]);
 
-        $this->app['db']->table(DatabaseTable::MODEL_HAS_ROLES)->insert([
+        $this->app['db']->table(AuthorizationDatabaseTable::MODEL_HAS_ROLES)->insert([
             'role_id' => $role->id,
             'model_type' => config('auth.providers.users.model'),
             'model_id' => $admin->id,

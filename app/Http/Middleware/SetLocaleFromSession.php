@@ -5,15 +5,19 @@ declare(strict_types=1);
 namespace App\Http\Middleware;
 
 use App\Modules\Core\Settings\Application\Settings\EffectiveSettings;
-use App\Shared\Infrastructure\Database\DatabaseTable;
+use App\Modules\Core\Teams\Application\Public\Contracts\TeamLookup;
 use Closure;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpFoundation\Response;
 
-final class SetLocaleFromSession
+final readonly class SetLocaleFromSession
 {
     private const COOKIE_KEY = 'atlas_locale';
+
+    public function __construct(
+        private EffectiveSettings $settings,
+        private TeamLookup $teams,
+    ) {}
 
     /**
      * @param  Closure(Request): Response  $next
@@ -24,10 +28,7 @@ final class SetLocaleFromSession
         $userId = $request->user()?->getAuthIdentifier();
         $teamId = $this->activeTeamId($request);
 
-        /** @var EffectiveSettings $settings */
-        $settings = app(EffectiveSettings::class);
-
-        app()->setLocale($settings->locale(
+        app()->setLocale($this->settings->locale(
             userId: is_int($userId) ? $userId : null,
             teamId: $teamId,
             guestLocale: is_string($guestLocale) ? $guestLocale : null,
@@ -48,10 +49,6 @@ final class SetLocaleFromSession
             return null;
         }
 
-        $teamId = DB::table(DatabaseTable::TEAMS)
-            ->where('public_id', $teamPublicId)
-            ->value('id');
-
-        return is_int($teamId) ? $teamId : null;
+        return $this->teams->internalIdForPublicId($teamPublicId);
     }
 }

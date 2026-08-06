@@ -2,8 +2,9 @@
 
 declare(strict_types=1);
 
+use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
+use App\Modules\Optional\FeatureFlags\Application\Public\Persistence\FeatureFlagsDatabaseTable;
 use App\Shared\Infrastructure\Database\DatabaseSchema;
-use App\Shared\Infrastructure\Database\DatabaseTable;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -16,7 +17,7 @@ return new class extends Migration
 
         $this->dropModuleTables();
 
-        Schema::create(DatabaseTable::FEATURE_FLAG_GLOBAL_VALUES, function (Blueprint $table): void {
+        Schema::create(FeatureFlagsDatabaseTable::GLOBAL_VALUES, function (Blueprint $table): void {
             $table->bigIncrements('id');
             $table->ulid('public_id')->unique();
             $table->string('flag_key', 160)->unique();
@@ -28,11 +29,11 @@ return new class extends Migration
             $table->index('updated_at');
         });
 
-        Schema::create(DatabaseTable::FEATURE_FLAG_TEAM_VALUES, function (Blueprint $table): void {
+        Schema::create(FeatureFlagsDatabaseTable::TEAM_VALUES, function (Blueprint $table): void {
             $table->bigIncrements('id');
             $table->ulid('public_id')->unique();
             $table->string('flag_key', 160);
-            $table->foreignId('team_id')->constrained(DatabaseTable::TEAMS)->restrictOnDelete();
+            $table->foreignId('team_id')->constrained(TeamsDatabaseTable::TEAMS)->restrictOnDelete();
             $table->jsonb('value');
             $table->string('updated_by_public_id', 26);
             $table->text('updated_reason');
@@ -42,12 +43,12 @@ return new class extends Migration
             $table->index('updated_at');
         });
 
-        Schema::create(DatabaseTable::FEATURE_FLAG_HISTORY, function (Blueprint $table): void {
+        Schema::create(FeatureFlagsDatabaseTable::HISTORY, function (Blueprint $table): void {
             $table->bigIncrements('id');
             $table->ulid('public_id')->unique();
             $table->string('flag_key', 160);
             $table->string('scope', 20);
-            $table->foreignId('team_id')->nullable()->constrained(DatabaseTable::TEAMS)->restrictOnDelete();
+            $table->foreignId('team_id')->nullable()->constrained(TeamsDatabaseTable::TEAMS)->restrictOnDelete();
             $table->string('action', 120);
             $table->jsonb('before_value')->nullable();
             $table->jsonb('after_value')->nullable();
@@ -68,8 +69,8 @@ return new class extends Migration
 
     private function dropModuleTables(): void
     {
-        Schema::dropIfExists(DatabaseTable::FEATURE_FLAG_HISTORY);
-        Schema::dropIfExists(DatabaseTable::FEATURE_FLAG_TEAM_VALUES);
-        Schema::dropIfExists(DatabaseTable::FEATURE_FLAG_GLOBAL_VALUES);
+        Schema::dropIfExists(FeatureFlagsDatabaseTable::HISTORY);
+        Schema::dropIfExists(FeatureFlagsDatabaseTable::TEAM_VALUES);
+        Schema::dropIfExists(FeatureFlagsDatabaseTable::GLOBAL_VALUES);
     }
 };

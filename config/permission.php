@@ -2,8 +2,8 @@
 
 declare(strict_types=1);
 
+use App\Modules\Core\Authorization\Application\Public\Persistence\AuthorizationDatabaseTable;
 use App\Modules\Core\Teams\Infrastructure\Persistence\Team;
-use App\Shared\Infrastructure\Database\DatabaseTable;
 use Spatie\Permission\DefaultTeamResolver;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
@@ -17,11 +17,11 @@ return [
     ],
 
     'table_names' => [
-        'roles' => DatabaseTable::ROLES,
-        'permissions' => DatabaseTable::PERMISSIONS,
-        'model_has_permissions' => DatabaseTable::MODEL_HAS_PERMISSIONS,
-        'model_has_roles' => DatabaseTable::MODEL_HAS_ROLES,
-        'role_has_permissions' => DatabaseTable::ROLE_HAS_PERMISSIONS,
+        'roles' => AuthorizationDatabaseTable::ROLES,
+        'permissions' => AuthorizationDatabaseTable::PERMISSIONS,
+        'model_has_permissions' => AuthorizationDatabaseTable::MODEL_HAS_PERMISSIONS,
+        'model_has_roles' => AuthorizationDatabaseTable::MODEL_HAS_ROLES,
+        'role_has_permissions' => AuthorizationDatabaseTable::ROLE_HAS_PERMISSIONS,
     ],
 
     'column_names' => [

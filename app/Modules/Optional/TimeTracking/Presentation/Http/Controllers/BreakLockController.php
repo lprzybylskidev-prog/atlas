@@ -7,7 +7,7 @@ namespace App\Modules\Optional\TimeTracking\Presentation\Http\Controllers;
 use App\Modules\Core\Identity\Application\Public\Contracts\UserStepUpAuthentication;
 use App\Modules\Optional\TimeTracking\Application\BreakSessionCoordinator;
 use App\Modules\Optional\TimeTracking\Application\Contracts\BreakPolicyStore;
-use App\Shared\Infrastructure\Database\DatabaseTable;
+use App\Modules\Optional\TimeTracking\Application\Public\Persistence\TimeTrackingDatabaseTable;
 use App\Shared\Presentation\Support\FlashMessage;
 use DateTimeImmutable;
 use DateTimeZone;
@@ -94,7 +94,7 @@ final readonly class BreakLockController
 
     private function activeBreak(int $userId): ?object
     {
-        return DB::table(DatabaseTable::TIME_TRACKING_BREAKS)
+        return DB::table(TimeTrackingDatabaseTable::BREAKS)
             ->where('user_id', $userId)
             ->whereNull('ended_at')
             ->first(['public_id', 'team_id', 'started_at']);

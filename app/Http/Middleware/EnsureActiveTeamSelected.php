@@ -4,15 +4,17 @@ declare(strict_types=1);
 
 namespace App\Http\Middleware;
 
-use App\Shared\Infrastructure\Database\DatabaseTable;
+use App\Modules\Core\Teams\Application\Public\Contracts\UserTeamMembershipManager;
 use Closure;
-use Illuminate\Database\Query\Builder;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpFoundation\Response;
 
-final class EnsureActiveTeamSelected
+final readonly class EnsureActiveTeamSelected
 {
+    public function __construct(
+        private UserTeamMembershipManager $memberships,
+    ) {}
+
     /**
      * @param  Closure(Request): Response  $next
      */
@@ -58,24 +60,14 @@ final class EnsureActiveTeamSelected
     {
         $teams = [];
 
-        foreach (DB::table(DatabaseTable::TEAM_USER_ASSIGNMENTS)
-            ->join(DatabaseTable::USERS, 'team_user_assignments.user_id', '=', 'users.id')
-            ->join(DatabaseTable::TEAMS, 'team_user_assignments.team_id', '=', 'teams.id')
-            ->where('users.public_id', $userPublicId)
-            ->where('teams.is_active', true)
-            ->where(static function (Builder $query): void {
-                $query->whereNull('team_user_assignments.valid_from')->orWhere('team_user_assignments.valid_from', '<=', now());
-            })
-            ->where(static function (Builder $query): void {
-                $query->whereNull('team_user_assignments.valid_to')->orWhere('team_user_assignments.valid_to', '>', now());
-            })
-            ->orderBy('teams.display_name')
-            ->orderBy('teams.name')
-            ->get(['teams.public_id', 'teams.name', 'teams.display_name'])
-            ->all() as $team) {
+        foreach ($this->memberships->activeMembershipsForUser($userPublicId) as $team) {
+            if (! $team->teamActive) {
+                continue;
+            }
+
             $teams[] = [
-                'publicId' => self::stringValue($team, 'public_id'),
-                'name' => self::teamDisplayName($team),
+                'publicId' => $team->teamPublicId,
+                'name' => $team->teamName,
             ];
         }
 
@@ -84,32 +76,12 @@ final class EnsureActiveTeamSelected
 
     private function belongsToActiveTeam(string $userPublicId, string $teamPublicId): bool
     {
-        return DB::table(DatabaseTable::TEAM_USER_ASSIGNMENTS)
-            ->join(DatabaseTable::USERS, 'team_user_assignments.user_id', '=', 'users.id')
-            ->join(DatabaseTable::TEAMS, 'team_user_assignments.team_id', '=', 'teams.id')
-            ->where('users.public_id', $userPublicId)
-            ->where('teams.public_id', $teamPublicId)
-            ->where('teams.is_active', true)
-            ->where(static function (Builder $query): void {
-                $query->whereNull('team_user_assignments.valid_from')->orWhere('team_user_assignments.valid_from', '<=', now());
-            })
-            ->where(static function (Builder $query): void {
-                $query->whereNull('team_user_assignments.valid_to')->orWhere('team_user_assignments.valid_to', '>', now());
-            })
-            ->exists();
-    }
+        foreach ($this->memberships->activeMembershipsForUser($userPublicId) as $team) {
+            if ($team->teamActive && $team->teamPublicId === $teamPublicId) {
+                return true;
+            }
+        }
 
-    private static function stringValue(object $record, string $property): string
-    {
-        $value = $record->{$property} ?? '';
-
-        return is_scalar($value) ? (string) $value : '';
-    }
-
-    private static function teamDisplayName(object $record): string
-    {
-        $displayName = self::stringValue($record, 'display_name');
-
-        return $displayName !== '' ? $displayName : self::stringValue($record, 'name');
+        return false;
     }
 }

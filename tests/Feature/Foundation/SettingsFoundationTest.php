@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Foundation;
 
+use App\Modules\Core\Audit\Application\Public\Persistence\AuditDatabaseTable;
 use App\Modules\Core\Identity\Infrastructure\Persistence\User;
 use App\Modules\Core\Settings\Application\Contracts\SettingsStore;
 use App\Modules\Core\Settings\Application\Enums\GlobalSettingKey;
@@ -12,7 +13,6 @@ use App\Modules\Core\Settings\Application\Enums\TeamSettingKey;
 use App\Modules\Core\Settings\Application\Enums\UserSettingKey;
 use App\Modules\Core\Settings\Application\Settings\EffectiveSettings;
 use App\Modules\Core\Teams\Infrastructure\Persistence\Team;
-use App\Shared\Infrastructure\Database\DatabaseTable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use InvalidArgumentException;
@@ -92,7 +92,7 @@ final class SettingsFoundationTest extends TestCase
         $store->putSecurity(SecuritySettingKey::MfaRequired, true, $actor->public_id, 'Hardening login policy.');
 
         self::assertSame(true, $store->getSecurity(SecuritySettingKey::MfaRequired));
-        self::assertDatabaseHas(DatabaseTable::AUDIT_EVENTS, [
+        self::assertDatabaseHas(AuditDatabaseTable::AUDIT_EVENTS, [
             'module' => 'settings',
             'action' => 'settings.security.updated',
             'result' => 'succeeded',
@@ -102,7 +102,7 @@ final class SettingsFoundationTest extends TestCase
             'reason' => 'Hardening login policy.',
             'is_security' => true,
         ]);
-        self::assertDatabaseHas(DatabaseTable::AUDIT_SECURITY_EVENTS, [
+        self::assertDatabaseHas(AuditDatabaseTable::AUDIT_SECURITY_EVENTS, [
             'category' => 'settings',
             'action' => 'settings.security.updated',
             'actor_public_id' => $actor->public_id,

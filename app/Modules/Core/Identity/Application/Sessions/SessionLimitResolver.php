@@ -7,7 +7,7 @@ namespace App\Modules\Core\Identity\Application\Sessions;
 use App\Modules\Core\Identity\Application\Public\Contracts\UserSessionLimitResolver;
 use App\Modules\Core\Identity\Infrastructure\Persistence\User;
 use App\Modules\Core\Settings\Application\Public\Contracts\SecuritySessionSettings;
-use App\Shared\Infrastructure\Database\DatabaseTable;
+use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
 use Illuminate\Support\Facades\DB;
 
 final readonly class SessionLimitResolver implements UserSessionLimitResolver
@@ -60,7 +60,7 @@ final readonly class SessionLimitResolver implements UserSessionLimitResolver
             return ['inactivity' => null, 'maximum' => null];
         }
 
-        $team = DB::table(DatabaseTable::TEAMS)
+        $team = DB::table(TeamsDatabaseTable::TEAMS)
             ->where('public_id', $teamPublicId)
             ->first(['inactivity_timeout_minutes', 'session_max_lifetime_minutes']);
 
@@ -83,8 +83,8 @@ final readonly class SessionLimitResolver implements UserSessionLimitResolver
             return ['inactivity' => null, 'maximum' => null];
         }
 
-        $assignment = DB::table(DatabaseTable::TEAM_USER_ASSIGNMENTS)
-            ->join(DatabaseTable::TEAMS, 'team_user_assignments.team_id', '=', 'teams.id')
+        $assignment = DB::table(TeamsDatabaseTable::TEAM_USER_ASSIGNMENTS)
+            ->join(TeamsDatabaseTable::TEAMS, 'team_user_assignments.team_id', '=', 'teams.id')
             ->where('team_user_assignments.user_id', $userId)
             ->where('teams.public_id', $teamPublicId)
             ->whereNull('team_user_assignments.valid_to')

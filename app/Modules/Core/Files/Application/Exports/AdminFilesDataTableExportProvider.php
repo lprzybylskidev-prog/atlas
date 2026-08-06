@@ -7,8 +7,9 @@ namespace App\Modules\Core\Files\Application\Exports;
 use App\Modules\Core\Exports\Application\Public\AbstractAdminDataTableExportProvider;
 use App\Modules\Core\Exports\Application\Public\DTOs\ReportExportGenerationRequest;
 use App\Modules\Core\Exports\Application\Public\Permissions\ReportsPermissionCatalog;
+use App\Modules\Core\Files\Application\Public\Persistence\FilesDatabaseTable;
+use App\Modules\Core\Identity\Application\Public\Persistence\IdentityDatabaseTable;
 use App\Shared\Application\Tables\AdminTableDefinitions;
-use App\Shared\Infrastructure\Database\DatabaseTable;
 use Illuminate\Database\Query\JoinClause;
 use Illuminate\Support\Facades\DB;
 
@@ -67,13 +68,13 @@ final readonly class AdminFilesDataTableExportProvider extends AbstractAdminData
 
     public function rows(ReportExportGenerationRequest $request): iterable
     {
-        $rows = array_values(DB::table(DatabaseTable::FILE_OBJECTS.' as file_objects')
-            ->leftJoin(DatabaseTable::FILE_SCAN_EVIDENCE.' as file_scan_evidence', function (JoinClause $join): void {
+        $rows = array_values(DB::table(FilesDatabaseTable::FILE_OBJECTS.' as file_objects')
+            ->leftJoin(FilesDatabaseTable::FILE_SCAN_EVIDENCE.' as file_scan_evidence', function (JoinClause $join): void {
                 $join
                     ->on('file_scan_evidence.file_object_id', '=', 'file_objects.id')
-                    ->whereRaw('file_scan_evidence.id = (select max(evidence.id) from '.DatabaseTable::FILE_SCAN_EVIDENCE.' evidence where evidence.file_object_id = file_objects.id)');
+                    ->whereRaw('file_scan_evidence.id = (select max(evidence.id) from '.FilesDatabaseTable::FILE_SCAN_EVIDENCE.' evidence where evidence.file_object_id = file_objects.id)');
             })
-            ->leftJoin(DatabaseTable::USERS.' as acknowledged_users', 'acknowledged_users.id', '=', 'file_objects.acknowledged_by_user_id')
+            ->leftJoin(IdentityDatabaseTable::USERS.' as acknowledged_users', 'acknowledged_users.id', '=', 'file_objects.acknowledged_by_user_id')
             ->whereNull('file_objects.deleted_at')
             ->orderByDesc('file_objects.created_at')
             ->get([

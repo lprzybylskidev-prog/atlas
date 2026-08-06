@@ -7,8 +7,8 @@ namespace App\Modules\Core\Files\Infrastructure\Scanning;
 use App\Modules\Core\Files\Application\Contracts\MalwareScanner;
 use App\Modules\Core\Files\Application\Enums\FileScanState;
 use App\Modules\Core\Files\Application\Public\Contracts\FileScanner;
+use App\Modules\Core\Files\Application\Public\Persistence\FilesDatabaseTable;
 use App\Modules\Core\Files\Infrastructure\Persistence\DatabaseFileStorage;
-use App\Shared\Infrastructure\Database\DatabaseTable;
 use App\Shared\Infrastructure\Operations\OperationalModuleGuard;
 use Illuminate\Database\ConnectionInterface;
 use Illuminate\Support\Facades\Config;
@@ -62,7 +62,7 @@ final readonly class DatabaseFileScanner implements FileScanner
 
     private function fileObjectId(string $publicId): int
     {
-        $id = $this->db->table(DatabaseTable::FILE_OBJECTS)
+        $id = $this->db->table(FilesDatabaseTable::FILE_OBJECTS)
             ->where('public_id', $publicId)
             ->whereNull('deleted_at')
             ->value('id');
@@ -108,7 +108,7 @@ final readonly class DatabaseFileScanner implements FileScanner
 
     private function persistedScanState(int $fileObjectId): FileScanState
     {
-        return $this->scanState($this->db->table(DatabaseTable::FILE_OBJECTS)->where('id', $fileObjectId)->value('scan_state'));
+        return $this->scanState($this->db->table(FilesDatabaseTable::FILE_OBJECTS)->where('id', $fileObjectId)->value('scan_state'));
     }
 
     private function string(mixed $value): string

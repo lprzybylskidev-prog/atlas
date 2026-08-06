@@ -12,7 +12,7 @@ use App\Modules\Optional\TimeTracking\Application\Enums\CorrectionHistoryAction;
 use App\Modules\Optional\TimeTracking\Application\Enums\CorrectionRequestStatus;
 use App\Modules\Optional\TimeTracking\Application\Enums\CorrectionRequestType;
 use App\Modules\Optional\TimeTracking\Application\Enums\CorrectionSourceType;
-use App\Shared\Infrastructure\Database\DatabaseTable;
+use App\Modules\Optional\TimeTracking\Application\Public\Persistence\TimeTrackingDatabaseTable;
 use DateTimeImmutable;
 use Illuminate\Database\ConnectionInterface;
 use Illuminate\Support\Str;
@@ -249,7 +249,7 @@ final readonly class DatabaseCorrectionRequestStore implements CorrectionRequest
             );
             $now = now();
 
-            $this->database->table(DatabaseTable::TIME_TRACKING_CLOSED_PERIOD_OVERRIDES)->insert([
+            $this->database->table(TimeTrackingDatabaseTable::CLOSED_PERIOD_OVERRIDES)->insert([
                 'public_id' => (string) Str::ulid(),
                 'correction_request_id' => $request->id,
                 'actor_user_id' => $actorUserId,
@@ -292,7 +292,7 @@ final readonly class DatabaseCorrectionRequestStore implements CorrectionRequest
         return $this->database->transaction(function () use ($userId, $teamId, $workSessionId, $sourceType, $sourceId, $type, $description, $requestedAt, $actorUserId, $original, $proposed, $final, $historyAction, $status, $decidedAt, $decidedByUserId, $decisionReason): CorrectionRequest {
             $now = now();
             $publicId = (string) Str::ulid();
-            $requestId = (int) $this->database->table(DatabaseTable::TIME_TRACKING_CORRECTION_REQUESTS)->insertGetId([
+            $requestId = (int) $this->database->table(TimeTrackingDatabaseTable::CORRECTION_REQUESTS)->insertGetId([
                 'public_id' => $publicId,
                 'user_id' => $userId,
                 'team_id' => $teamId,
@@ -340,7 +340,7 @@ final readonly class DatabaseCorrectionRequestStore implements CorrectionRequest
         $this->assertReason($reason, 'Correction decision reason');
 
         return $this->database->transaction(function () use ($requestId, $actorUserId, $status, $action, $reason, $decidedAt, $final): bool {
-            $request = $this->database->table(DatabaseTable::TIME_TRACKING_CORRECTION_REQUESTS)
+            $request = $this->database->table(TimeTrackingDatabaseTable::CORRECTION_REQUESTS)
                 ->where('id', $requestId)
                 ->lockForUpdate()
                 ->first(['id', 'status']);
@@ -366,7 +366,7 @@ final readonly class DatabaseCorrectionRequestStore implements CorrectionRequest
                 $updates['decision_reason'] = null;
             }
 
-            $this->database->table(DatabaseTable::TIME_TRACKING_CORRECTION_REQUESTS)
+            $this->database->table(TimeTrackingDatabaseTable::CORRECTION_REQUESTS)
                 ->where('id', $requestId)
                 ->where('status', CorrectionRequestStatus::Pending->value)
                 ->update($updates);
@@ -387,7 +387,7 @@ final readonly class DatabaseCorrectionRequestStore implements CorrectionRequest
     {
         $now = now();
 
-        $this->database->table(DatabaseTable::TIME_TRACKING_CORRECTION_PROPOSALS)->insert([
+        $this->database->table(TimeTrackingDatabaseTable::CORRECTION_PROPOSALS)->insert([
             'public_id' => (string) Str::ulid(),
             'correction_request_id' => $requestId,
             'original_started_at' => $original?->startedAt,
@@ -406,7 +406,7 @@ final readonly class DatabaseCorrectionRequestStore implements CorrectionRequest
 
     private function updateFinalProposal(int $requestId, ExactTimeChange $final): void
     {
-        $existing = $this->database->table(DatabaseTable::TIME_TRACKING_CORRECTION_PROPOSALS)
+        $existing = $this->database->table(TimeTrackingDatabaseTable::CORRECTION_PROPOSALS)
             ->where('correction_request_id', $requestId)
             ->exists();
 
@@ -416,7 +416,7 @@ final readonly class DatabaseCorrectionRequestStore implements CorrectionRequest
             return;
         }
 
-        $this->database->table(DatabaseTable::TIME_TRACKING_CORRECTION_PROPOSALS)
+        $this->database->table(TimeTrackingDatabaseTable::CORRECTION_PROPOSALS)
             ->where('correction_request_id', $requestId)
             ->update([
                 'final_started_at' => $final->startedAt,
@@ -433,7 +433,7 @@ final readonly class DatabaseCorrectionRequestStore implements CorrectionRequest
     {
         $now = now();
 
-        $this->database->table(DatabaseTable::TIME_TRACKING_CORRECTION_HISTORY)->insert([
+        $this->database->table(TimeTrackingDatabaseTable::CORRECTION_HISTORY)->insert([
             'public_id' => (string) Str::ulid(),
             'correction_request_id' => $requestId,
             'actor_user_id' => $actorUserId,

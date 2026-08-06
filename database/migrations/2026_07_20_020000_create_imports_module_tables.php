@@ -2,8 +2,11 @@
 
 declare(strict_types=1);
 
+use App\Modules\Core\Files\Application\Public\Persistence\FilesDatabaseTable;
+use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
+use App\Modules\Optional\Imports\Application\Public\Persistence\ImportsDatabaseTable;
+use App\Modules\Optional\ManagedProcesses\Application\Public\Persistence\ManagedProcessesDatabaseTable;
 use App\Shared\Infrastructure\Database\DatabaseSchema;
-use App\Shared\Infrastructure\Database\DatabaseTable;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -16,13 +19,13 @@ return new class extends Migration
 
         $this->dropModuleTables();
 
-        Schema::create(DatabaseTable::IMPORT_EXECUTIONS, function (Blueprint $table): void {
+        Schema::create(ImportsDatabaseTable::EXECUTIONS, function (Blueprint $table): void {
             $table->id();
             $table->ulid('public_id')->unique();
-            $table->foreignId('process_run_id')->constrained(DatabaseTable::MANAGED_PROCESS_RUNS)->restrictOnDelete();
+            $table->foreignId('process_run_id')->constrained(ManagedProcessesDatabaseTable::RUNS)->restrictOnDelete();
             $table->string('import_key');
             $table->string('source_type', 32);
-            $table->foreignId('file_object_id')->nullable()->constrained(DatabaseTable::FILE_OBJECTS)->restrictOnDelete();
+            $table->foreignId('file_object_id')->nullable()->constrained(FilesDatabaseTable::FILE_OBJECTS)->restrictOnDelete();
             $table->string('api_reference')->nullable();
             $table->string('external_reference')->nullable();
             $table->jsonb('mapping_snapshot')->nullable();
@@ -37,10 +40,10 @@ return new class extends Migration
             $table->index(['idempotency_key', 'idempotency_state']);
         });
 
-        Schema::create(DatabaseTable::IMPORT_ROW_ERRORS, function (Blueprint $table): void {
+        Schema::create(ImportsDatabaseTable::ROW_ERRORS, function (Blueprint $table): void {
             $table->id();
             $table->ulid('public_id')->unique();
-            $table->foreignId('import_execution_id')->constrained(DatabaseTable::IMPORT_EXECUTIONS)->restrictOnDelete();
+            $table->foreignId('import_execution_id')->constrained(ImportsDatabaseTable::EXECUTIONS)->restrictOnDelete();
             $table->unsignedBigInteger('row_number')->nullable();
             $table->string('field_name')->nullable();
             $table->string('severity', 16);
@@ -53,13 +56,13 @@ return new class extends Migration
             $table->index(['severity', 'error_code']);
         });
 
-        Schema::create(DatabaseTable::IMPORT_IDEMPOTENCY_KEYS, function (Blueprint $table): void {
+        Schema::create(ImportsDatabaseTable::IDEMPOTENCY_KEYS, function (Blueprint $table): void {
             $table->id();
             $table->string('import_key');
             $table->string('idempotency_key');
             $table->string('request_hash', 64);
-            $table->foreignId('team_id')->nullable()->constrained(DatabaseTable::TEAMS)->restrictOnDelete();
-            $table->foreignId('process_run_id')->nullable()->constrained(DatabaseTable::MANAGED_PROCESS_RUNS)->nullOnDelete();
+            $table->foreignId('team_id')->nullable()->constrained(TeamsDatabaseTable::TEAMS)->restrictOnDelete();
+            $table->foreignId('process_run_id')->nullable()->constrained(ManagedProcessesDatabaseTable::RUNS)->nullOnDelete();
             $table->string('state', 32);
             $table->timestampTz('completed_at')->nullable();
             $table->timestampsTz();
@@ -76,8 +79,8 @@ return new class extends Migration
 
     private function dropModuleTables(): void
     {
-        Schema::dropIfExists(DatabaseTable::IMPORT_IDEMPOTENCY_KEYS);
-        Schema::dropIfExists(DatabaseTable::IMPORT_ROW_ERRORS);
-        Schema::dropIfExists(DatabaseTable::IMPORT_EXECUTIONS);
+        Schema::dropIfExists(ImportsDatabaseTable::IDEMPOTENCY_KEYS);
+        Schema::dropIfExists(ImportsDatabaseTable::ROW_ERRORS);
+        Schema::dropIfExists(ImportsDatabaseTable::EXECUTIONS);
     }
 };

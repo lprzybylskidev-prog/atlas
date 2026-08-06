@@ -6,7 +6,8 @@ namespace App\Modules\Core\Authorization\Infrastructure\Persistence;
 
 use App\Modules\Core\Authorization\Application\Contracts\OnboardingPackageStore;
 use App\Modules\Core\Authorization\Application\Packages\OnboardingPackageDefinition;
-use App\Shared\Infrastructure\Database\DatabaseTable;
+use App\Modules\Core\Authorization\Application\Public\Persistence\AuthorizationDatabaseTable;
+use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -16,8 +17,8 @@ final class DatabaseOnboardingPackageStore implements OnboardingPackageStore
     {
         $packages = [];
 
-        foreach (DB::table(DatabaseTable::AUTHORIZATION_ONBOARDING_PACKAGES)
-            ->join(DatabaseTable::TEAMS, 'authorization_onboarding_packages.team_id', '=', 'teams.id')
+        foreach (DB::table(AuthorizationDatabaseTable::AUTHORIZATION_ONBOARDING_PACKAGES)
+            ->join(TeamsDatabaseTable::TEAMS, 'authorization_onboarding_packages.team_id', '=', 'teams.id')
             ->where('authorization_onboarding_packages.is_active', true)
             ->when($teamPublicId !== null, static function ($query) use ($teamPublicId): void {
                 $query->where('teams.public_id', $teamPublicId);
@@ -44,8 +45,8 @@ final class DatabaseOnboardingPackageStore implements OnboardingPackageStore
 
     public function findByPublicId(string $publicId): ?OnboardingPackageDefinition
     {
-        $row = DB::table(DatabaseTable::AUTHORIZATION_ONBOARDING_PACKAGES)
-            ->join(DatabaseTable::TEAMS, 'authorization_onboarding_packages.team_id', '=', 'teams.id')
+        $row = DB::table(AuthorizationDatabaseTable::AUTHORIZATION_ONBOARDING_PACKAGES)
+            ->join(TeamsDatabaseTable::TEAMS, 'authorization_onboarding_packages.team_id', '=', 'teams.id')
             ->where('authorization_onboarding_packages.public_id', $publicId)
             ->first([
                 'authorization_onboarding_packages.public_id',
@@ -64,8 +65,8 @@ final class DatabaseOnboardingPackageStore implements OnboardingPackageStore
 
     public function findActiveForTeam(string $name, string $teamPublicId): ?OnboardingPackageDefinition
     {
-        $row = DB::table(DatabaseTable::AUTHORIZATION_ONBOARDING_PACKAGES)
-            ->join(DatabaseTable::TEAMS, 'authorization_onboarding_packages.team_id', '=', 'teams.id')
+        $row = DB::table(AuthorizationDatabaseTable::AUTHORIZATION_ONBOARDING_PACKAGES)
+            ->join(TeamsDatabaseTable::TEAMS, 'authorization_onboarding_packages.team_id', '=', 'teams.id')
             ->where('authorization_onboarding_packages.name', $name)
             ->where('authorization_onboarding_packages.is_active', true)
             ->where('teams.public_id', $teamPublicId)
@@ -92,7 +93,7 @@ final class DatabaseOnboardingPackageStore implements OnboardingPackageStore
         array $directPermissionNames,
         array $templatePermissionNames,
     ): void {
-        $teamId = DB::table(DatabaseTable::TEAMS)->where('public_id', $teamPublicId)->value('id');
+        $teamId = DB::table(TeamsDatabaseTable::TEAMS)->where('public_id', $teamPublicId)->value('id');
 
         if (! is_int($teamId)) {
             return;
@@ -107,8 +108,8 @@ final class DatabaseOnboardingPackageStore implements OnboardingPackageStore
             'updated_at' => now(),
         ];
 
-        if (DB::table(DatabaseTable::AUTHORIZATION_ONBOARDING_PACKAGES)->where('team_id', $teamId)->where('name', $name)->exists()) {
-            DB::table(DatabaseTable::AUTHORIZATION_ONBOARDING_PACKAGES)
+        if (DB::table(AuthorizationDatabaseTable::AUTHORIZATION_ONBOARDING_PACKAGES)->where('team_id', $teamId)->where('name', $name)->exists()) {
+            DB::table(AuthorizationDatabaseTable::AUTHORIZATION_ONBOARDING_PACKAGES)
                 ->where('team_id', $teamId)
                 ->where('name', $name)
                 ->update($values);
@@ -116,7 +117,7 @@ final class DatabaseOnboardingPackageStore implements OnboardingPackageStore
             return;
         }
 
-        DB::table(DatabaseTable::AUTHORIZATION_ONBOARDING_PACKAGES)->insert($values + [
+        DB::table(AuthorizationDatabaseTable::AUTHORIZATION_ONBOARDING_PACKAGES)->insert($values + [
             'public_id' => (string) Str::ulid(),
             'team_id' => $teamId,
             'name' => $name,
@@ -126,7 +127,7 @@ final class DatabaseOnboardingPackageStore implements OnboardingPackageStore
 
     public function deactivate(string $publicId): void
     {
-        DB::table(DatabaseTable::AUTHORIZATION_ONBOARDING_PACKAGES)
+        DB::table(AuthorizationDatabaseTable::AUTHORIZATION_ONBOARDING_PACKAGES)
             ->where('public_id', $publicId)
             ->update([
                 'is_active' => false,

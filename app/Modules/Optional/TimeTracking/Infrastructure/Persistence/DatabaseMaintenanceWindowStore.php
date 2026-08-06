@@ -12,7 +12,7 @@ use App\Modules\Optional\TimeTracking\Application\Enums\BreakClosureReason;
 use App\Modules\Optional\TimeTracking\Application\Enums\MaintenanceKind;
 use App\Modules\Optional\TimeTracking\Application\Enums\MaintenanceStatus;
 use App\Modules\Optional\TimeTracking\Application\Enums\OtherWorkClosureReason;
-use App\Shared\Infrastructure\Database\DatabaseTable;
+use App\Modules\Optional\TimeTracking\Application\Public\Persistence\TimeTrackingDatabaseTable;
 use DateInterval;
 use DateTimeImmutable;
 use Illuminate\Database\ConnectionInterface;
@@ -45,7 +45,7 @@ final readonly class DatabaseMaintenanceWindowStore implements MaintenanceWindow
     public function activate(int $maintenanceWindowId, DateTimeImmutable $startedAt): void
     {
         $this->database->transaction(function () use ($maintenanceWindowId, $startedAt): void {
-            $this->database->table(DatabaseTable::TIME_TRACKING_MAINTENANCE_WINDOWS)
+            $this->database->table(TimeTrackingDatabaseTable::MAINTENANCE_WINDOWS)
                 ->where('id', $maintenanceWindowId)
                 ->where('status', MaintenanceStatus::Scheduled->value)
                 ->update([
@@ -63,7 +63,7 @@ final readonly class DatabaseMaintenanceWindowStore implements MaintenanceWindow
         $deadline = $completedAt->add(new DateInterval('PT'.self::RETURN_GRACE_SECONDS.'S'));
 
         $this->database->transaction(function () use ($maintenanceWindowId, $completedAt, $deadline): void {
-            $this->database->table(DatabaseTable::TIME_TRACKING_MAINTENANCE_WINDOWS)
+            $this->database->table(TimeTrackingDatabaseTable::MAINTENANCE_WINDOWS)
                 ->where('id', $maintenanceWindowId)
                 ->where('status', MaintenanceStatus::Active->value)
                 ->update([
@@ -72,7 +72,7 @@ final readonly class DatabaseMaintenanceWindowStore implements MaintenanceWindow
                     'updated_at' => now(),
                 ]);
 
-            $this->database->table(DatabaseTable::TIME_TRACKING_MAINTENANCE_AFFECTED_SESSIONS)
+            $this->database->table(TimeTrackingDatabaseTable::MAINTENANCE_AFFECTED_SESSIONS)
                 ->where('maintenance_window_id', $maintenanceWindowId)
                 ->whereNull('return_deadline_at')
                 ->update([
@@ -84,7 +84,7 @@ final readonly class DatabaseMaintenanceWindowStore implements MaintenanceWindow
 
     public function recordReturn(int $userId, DateTimeImmutable $returnedAt): bool
     {
-        $updated = $this->database->table(DatabaseTable::TIME_TRACKING_MAINTENANCE_AFFECTED_SESSIONS)
+        $updated = $this->database->table(TimeTrackingDatabaseTable::MAINTENANCE_AFFECTED_SESSIONS)
             ->where('user_id', $userId)
             ->whereNull('returned_at')
             ->whereNotNull('return_deadline_at')
@@ -110,7 +110,7 @@ final readonly class DatabaseMaintenanceWindowStore implements MaintenanceWindow
 
         $now = now();
         $publicId = (string) Str::ulid();
-        $id = $this->database->table(DatabaseTable::TIME_TRACKING_MAINTENANCE_WINDOWS)->insertGetId([
+        $id = $this->database->table(TimeTrackingDatabaseTable::MAINTENANCE_WINDOWS)->insertGetId([
             'public_id' => $publicId,
             'kind' => $kind->value,
             'status' => $status->value,
@@ -128,7 +128,7 @@ final readonly class DatabaseMaintenanceWindowStore implements MaintenanceWindow
 
     private function snapshotActiveWork(int $maintenanceWindowId, DateTimeImmutable $startedAt): void
     {
-        $sessions = $this->database->table(DatabaseTable::TIME_TRACKING_WORK_SESSIONS)
+        $sessions = $this->database->table(TimeTrackingDatabaseTable::WORK_SESSIONS)
             ->whereNull('ended_at')
             ->orderBy('id')
             ->get(['id', 'user_id', 'team_id']);
@@ -137,7 +137,7 @@ final readonly class DatabaseMaintenanceWindowStore implements MaintenanceWindow
             $userId = $this->intValue($session->user_id ?? null);
             $now = now();
 
-            $this->database->table(DatabaseTable::TIME_TRACKING_MAINTENANCE_AFFECTED_SESSIONS)->upsert([
+            $this->database->table(TimeTrackingDatabaseTable::MAINTENANCE_AFFECTED_SESSIONS)->upsert([
                 [
                     'public_id' => (string) Str::ulid(),
                     'maintenance_window_id' => $maintenanceWindowId,

@@ -4,12 +4,13 @@ declare(strict_types=1);
 
 namespace App\Modules\Core\Audit\Presentation\Http\Controllers;
 
+use App\Modules\Core\Audit\Application\Public\Persistence\AuditDatabaseTable;
+use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
 use App\Shared\Application\Tables\AdminTableDefinitions;
 use App\Shared\Application\Tables\ArrayTableProcessor;
 use App\Shared\Application\Tables\TableRequestContext;
 use App\Shared\Application\Tables\TableSavedViewService;
 use App\Shared\Application\Tables\TableState;
-use App\Shared\Infrastructure\Database\DatabaseTable;
 use App\Shared\Presentation\Support\AdminDataTableExportMeta;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Http\Request;
@@ -32,7 +33,7 @@ final readonly class AuditBrowserController
         [$userId, $teamId] = $this->context->userTeam($request);
         $filters = $this->filters($request);
 
-        $query = DB::table(DatabaseTable::AUDIT_EVENTS)->orderByDesc('occurred_at');
+        $query = DB::table(AuditDatabaseTable::AUDIT_EVENTS)->orderByDesc('occurred_at');
         $this->applyFilters($query, $filters);
 
         $rows = array_values($query->limit(5000)->get()
@@ -58,7 +59,7 @@ final readonly class AuditBrowserController
         $definition = AdminTableDefinitions::get(AdminTableDefinitions::IMPERSONATION_SESSION_EVENTS);
         $state = TableState::fromRequest($request, $definition);
         [$userId, $teamId] = $this->context->userTeam($request);
-        $events = array_values(DB::table(DatabaseTable::AUDIT_EVENTS)
+        $events = array_values(DB::table(AuditDatabaseTable::AUDIT_EVENTS)
             ->where('impersonation_session_id', $session)
             ->orderBy('occurred_at')
             ->get()
@@ -244,7 +245,7 @@ final readonly class AuditBrowserController
     {
         $options = [];
 
-        foreach (DB::table(DatabaseTable::AUDIT_EVENTS)
+        foreach (DB::table(AuditDatabaseTable::AUDIT_EVENTS)
             ->whereNotNull($column)
             ->where($column, '<>', '')
             ->distinct()
@@ -272,8 +273,8 @@ final readonly class AuditBrowserController
     {
         $options = [];
 
-        foreach (DB::table(DatabaseTable::AUDIT_EVENTS)
-            ->leftJoin(DatabaseTable::TEAMS, 'audit_events.team_public_id', '=', 'teams.public_id')
+        foreach (DB::table(AuditDatabaseTable::AUDIT_EVENTS)
+            ->leftJoin(TeamsDatabaseTable::TEAMS, 'audit_events.team_public_id', '=', 'teams.public_id')
             ->whereNotNull('audit_events.team_public_id')
             ->where('audit_events.team_public_id', '<>', '')
             ->select('audit_events.team_public_id', 'teams.name', 'teams.display_name')

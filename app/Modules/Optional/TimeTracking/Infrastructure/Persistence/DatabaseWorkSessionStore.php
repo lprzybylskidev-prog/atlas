@@ -7,7 +7,7 @@ namespace App\Modules\Optional\TimeTracking\Infrastructure\Persistence;
 use App\Modules\Optional\TimeTracking\Application\Contracts\WorkSessionStore;
 use App\Modules\Optional\TimeTracking\Application\DTOs\ActiveWorkSession;
 use App\Modules\Optional\TimeTracking\Application\Enums\WorkSessionClosureReason;
-use App\Shared\Infrastructure\Database\DatabaseTable;
+use App\Modules\Optional\TimeTracking\Application\Public\Persistence\TimeTrackingDatabaseTable;
 use DateTimeImmutable;
 use Illuminate\Database\ConnectionInterface;
 use Illuminate\Support\Str;
@@ -43,7 +43,7 @@ final readonly class DatabaseWorkSessionStore implements WorkSessionStore
             $now = now();
 
             $publicId = (string) Str::ulid();
-            $id = $this->database->table(DatabaseTable::TIME_TRACKING_WORK_SESSIONS)->insertGetId([
+            $id = $this->database->table(TimeTrackingDatabaseTable::WORK_SESSIONS)->insertGetId([
                 'public_id' => $publicId,
                 'user_id' => $userId,
                 'team_id' => $teamId,
@@ -91,7 +91,7 @@ final readonly class DatabaseWorkSessionStore implements WorkSessionStore
         }
 
         $this->database->transaction(function () use ($workSessionId, $moduleKey, $contextKey, $startedAt): void {
-            $active = $this->database->table(DatabaseTable::TIME_TRACKING_MODULE_CONTEXT_SEGMENTS)
+            $active = $this->database->table(TimeTrackingDatabaseTable::MODULE_CONTEXT_SEGMENTS)
                 ->where('work_session_id', $workSessionId)
                 ->whereNull('ended_at')
                 ->lockForUpdate()
@@ -111,7 +111,7 @@ final readonly class DatabaseWorkSessionStore implements WorkSessionStore
 
             $now = now();
 
-            $this->database->table(DatabaseTable::TIME_TRACKING_MODULE_CONTEXT_SEGMENTS)->insert([
+            $this->database->table(TimeTrackingDatabaseTable::MODULE_CONTEXT_SEGMENTS)->insert([
                 'public_id' => (string) Str::ulid(),
                 'work_session_id' => $workSessionId,
                 'module_key' => $moduleKey,
@@ -127,7 +127,7 @@ final readonly class DatabaseWorkSessionStore implements WorkSessionStore
 
     private function activeSessionForUser(int $userId): ?object
     {
-        return $this->database->table(DatabaseTable::TIME_TRACKING_WORK_SESSIONS)
+        return $this->database->table(TimeTrackingDatabaseTable::WORK_SESSIONS)
             ->where('user_id', $userId)
             ->whereNull('ended_at')
             ->lockForUpdate()
@@ -140,7 +140,7 @@ final readonly class DatabaseWorkSessionStore implements WorkSessionStore
             return false;
         }
 
-        $session = $this->database->table(DatabaseTable::TIME_TRACKING_WORK_SESSIONS)
+        $session = $this->database->table(TimeTrackingDatabaseTable::WORK_SESSIONS)
             ->where('id', $sessionId)
             ->whereNull('ended_at')
             ->lockForUpdate()
@@ -153,7 +153,7 @@ final readonly class DatabaseWorkSessionStore implements WorkSessionStore
         $startedAt = new DateTimeImmutable($this->stringValue($session->started_at ?? null));
         $seconds = max(0, $endedAt->getTimestamp() - $startedAt->getTimestamp());
 
-        $activeSegment = $this->database->table(DatabaseTable::TIME_TRACKING_MODULE_CONTEXT_SEGMENTS)
+        $activeSegment = $this->database->table(TimeTrackingDatabaseTable::MODULE_CONTEXT_SEGMENTS)
             ->where('work_session_id', $sessionId)
             ->whereNull('ended_at')
             ->lockForUpdate()
@@ -163,7 +163,7 @@ final readonly class DatabaseWorkSessionStore implements WorkSessionStore
             $this->closeModuleContextSegment($this->intValue($activeSegment->id ?? null), $endedAt);
         }
 
-        $this->database->table(DatabaseTable::TIME_TRACKING_WORK_SESSIONS)
+        $this->database->table(TimeTrackingDatabaseTable::WORK_SESSIONS)
             ->where('id', $sessionId)
             ->whereNull('ended_at')
             ->update([
@@ -182,7 +182,7 @@ final readonly class DatabaseWorkSessionStore implements WorkSessionStore
             return;
         }
 
-        $segment = $this->database->table(DatabaseTable::TIME_TRACKING_MODULE_CONTEXT_SEGMENTS)
+        $segment = $this->database->table(TimeTrackingDatabaseTable::MODULE_CONTEXT_SEGMENTS)
             ->where('id', $segmentId)
             ->whereNull('ended_at')
             ->lockForUpdate()
@@ -195,7 +195,7 @@ final readonly class DatabaseWorkSessionStore implements WorkSessionStore
         $startedAt = new DateTimeImmutable($this->stringValue($segment->started_at ?? null));
         $seconds = max(0, $endedAt->getTimestamp() - $startedAt->getTimestamp());
 
-        $this->database->table(DatabaseTable::TIME_TRACKING_MODULE_CONTEXT_SEGMENTS)
+        $this->database->table(TimeTrackingDatabaseTable::MODULE_CONTEXT_SEGMENTS)
             ->where('id', $segmentId)
             ->whereNull('ended_at')
             ->update([

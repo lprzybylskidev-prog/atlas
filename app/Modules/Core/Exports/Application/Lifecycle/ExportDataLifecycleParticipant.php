@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Core\Exports\Application\Lifecycle;
 
 use App\Modules\Core\Exports\Application\Enums\ReportExportStatus;
+use App\Modules\Core\Exports\Application\Public\Persistence\ExportsDatabaseTable;
 use App\Modules\Core\Files\Application\Public\Contracts\FileLifecycle;
 use App\Shared\Application\DataLifecycle\Contracts\DataLifecycleParticipant;
 use App\Shared\Application\DataLifecycle\DataLifecycleBlocker;
@@ -14,7 +15,6 @@ use App\Shared\Application\DataLifecycle\DataLifecyclePreview;
 use App\Shared\Application\DataLifecycle\DataLifecycleResult;
 use App\Shared\Application\DataLifecycle\DataLifecycleStepResult;
 use App\Shared\Application\DataLifecycle\DataLifecycleSubject;
-use App\Shared\Infrastructure\Database\DatabaseTable;
 use Illuminate\Database\ConnectionInterface;
 use Illuminate\Database\Query\Builder;
 
@@ -125,7 +125,7 @@ final readonly class ExportDataLifecycleParticipant implements DataLifecyclePart
 
     private function matchingRequests(DataLifecycleSubject $subject): Builder
     {
-        return $this->db->table(DatabaseTable::REPORT_EXPORT_REQUESTS)
+        return $this->db->table(ExportsDatabaseTable::REPORT_EXPORT_REQUESTS)
             ->where(function (Builder $query) use ($subject): void {
                 $query
                     ->where('public_id', $subject->identifier)
@@ -144,8 +144,8 @@ final readonly class ExportDataLifecycleParticipant implements DataLifecyclePart
 
     private function matchingArtifacts(DataLifecycleSubject $subject): Builder
     {
-        return $this->db->table(DatabaseTable::REPORT_EXPORT_ARTIFACTS.' as artifacts')
-            ->join(DatabaseTable::REPORT_EXPORT_REQUESTS.' as requests', 'requests.id', '=', 'artifacts.export_request_id')
+        return $this->db->table(ExportsDatabaseTable::REPORT_EXPORT_ARTIFACTS.' as artifacts')
+            ->join(ExportsDatabaseTable::REPORT_EXPORT_REQUESTS.' as requests', 'requests.id', '=', 'artifacts.export_request_id')
             ->where(function (Builder $query) use ($subject): void {
                 $query
                     ->where('artifacts.public_id', $subject->identifier)
@@ -162,8 +162,8 @@ final readonly class ExportDataLifecycleParticipant implements DataLifecyclePart
 
     private function matchingRenderCredentials(DataLifecycleSubject $subject): Builder
     {
-        return $this->db->table(DatabaseTable::REPORT_RENDER_CREDENTIALS.' as credentials')
-            ->join(DatabaseTable::REPORT_EXPORT_REQUESTS.' as requests', 'requests.id', '=', 'credentials.export_request_id')
+        return $this->db->table(ExportsDatabaseTable::REPORT_RENDER_CREDENTIALS.' as credentials')
+            ->join(ExportsDatabaseTable::REPORT_EXPORT_REQUESTS.' as requests', 'requests.id', '=', 'credentials.export_request_id')
             ->where(function (Builder $query) use ($subject): void {
                 $this->orTextContains($query, 'requests.public_id', $subject->identifier);
                 $this->orTextContains($query, 'requests.active_team_public_id', $subject->identifier);

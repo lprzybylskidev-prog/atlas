@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Foundation;
 
+use App\Modules\Core\Identity\Application\Public\Persistence\IdentityDatabaseTable;
 use App\Modules\Core\Identity\Infrastructure\Persistence\User;
 use App\Modules\Core\Users\Application\Commands\CreateUserAccountCommand;
 use App\Modules\Core\Users\Application\CreateUserAccount;
 use App\Modules\Core\Users\Application\Exceptions\InvalidUserAccountData;
 use App\Modules\Core\Users\Infrastructure\Notifications\FirstPasswordSetupNotification;
-use App\Shared\Infrastructure\Database\DatabaseTable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Routing\Middleware\ThrottleRequests;
 use Illuminate\Support\Facades\Hash;
@@ -43,7 +43,7 @@ final class UserAccountCreationTest extends TestCase
         self::assertSame(User::DEFAULT_AVATAR_COLOR, $user->avatar_color);
         self::assertFalse(Hash::check('', $user->password));
 
-        $this->assertDatabaseHas(DatabaseTable::PASSWORD_RESET_TOKENS, [
+        $this->assertDatabaseHas(IdentityDatabaseTable::PASSWORD_RESET_TOKENS, [
             'email' => 'operations.user@example.test',
         ]);
 

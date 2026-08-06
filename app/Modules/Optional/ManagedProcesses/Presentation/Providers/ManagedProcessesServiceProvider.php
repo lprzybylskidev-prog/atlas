@@ -19,6 +19,7 @@ use App\Modules\Optional\ManagedProcesses\Infrastructure\Runtime\ConfiguredProce
 use App\Modules\Optional\ManagedProcesses\Infrastructure\Runtime\DatabaseManagedProcessRunInspector;
 use App\Modules\Optional\ManagedProcesses\Infrastructure\Runtime\ManagedProcessManager;
 use App\Modules\Optional\ManagedProcesses\Infrastructure\Runtime\ManagedProcessRunnerReporter;
+use App\Modules\Optional\ManagedProcesses\Presentation\Inertia\ManagedProcessesRouteAvailability;
 use Illuminate\Support\ServiceProvider;
 
 final class ManagedProcessesServiceProvider extends ServiceProvider
@@ -30,6 +31,7 @@ final class ManagedProcessesServiceProvider extends ServiceProvider
         $this->app->bind(ManagedProcessReporter::class, ManagedProcessRunnerReporter::class);
         $this->app->bind(ManagedProcessRunInspector::class, DatabaseManagedProcessRunInspector::class);
         $this->app->tag([ManagedProcessesPermissionCatalog::class], 'atlas.permission_catalogs');
+        $this->app->tag([ManagedProcessesRouteAvailability::class], 'atlas.inertia_route_availability');
         $this->app->tag([ManagedProcessesDeactivationGuard::class], 'atlas.module_deactivation_guards');
         $this->app->tag([ManagedProcessDataLifecycleParticipant::class], 'atlas.data_lifecycle_participants');
         $this->app->tag([

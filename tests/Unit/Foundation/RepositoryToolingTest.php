@@ -49,6 +49,53 @@ final class RepositoryToolingTest extends TestCase
         );
     }
 
+    public function test_env_example_does_not_define_duplicate_active_keys(): void
+    {
+        $basePath = dirname(__DIR__, 3);
+        $lines = file($basePath.'/.env.example');
+
+        self::assertIsArray($lines);
+
+        $seen = [];
+        $duplicates = [];
+
+        foreach ($lines as $lineNumber => $line) {
+            if (preg_match('/^([A-Z0-9_]+)=/', $line, $matches) !== 1) {
+                continue;
+            }
+
+            $key = $matches[1];
+            $seen[$key] ??= [];
+            $seen[$key][] = $lineNumber + 1;
+
+            if (count($seen[$key]) > 1) {
+                $duplicates[$key] = $seen[$key];
+            }
+        }
+
+        self::assertSame([], $duplicates, 'Duplicate active .env.example keys must be removed.');
+    }
+
+    public function test_public_phpstan_runner_covers_every_configured_php_path(): void
+    {
+        $basePath = dirname(__DIR__, 3);
+        $command = 'cd '.escapeshellarg($basePath).' && bash tools/quality/run-phpstan.sh --verify-coverage';
+
+        exec($command, $output, $exitCode);
+
+        self::assertSame(0, $exitCode, implode("\n", $output));
+    }
+
+    public function test_playwright_versions_stay_aligned_across_package_lockfile_and_dev_container(): void
+    {
+        $basePath = dirname(__DIR__, 3);
+        $command = 'cd '.escapeshellarg($basePath).' && bash tools/quality/check-playwright-version.sh';
+
+        exec($command, $output, $exitCode);
+
+        self::assertSame(0, $exitCode, implode("\n", $output));
+    }
+
     /**
      * @return list<string>
      */

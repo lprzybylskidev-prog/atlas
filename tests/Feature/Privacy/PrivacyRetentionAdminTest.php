@@ -4,11 +4,16 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Privacy;
 
+use App\Modules\Core\Audit\Application\Public\Persistence\AuditDatabaseTable;
+use App\Modules\Core\Authorization\Application\Public\Persistence\AuthorizationDatabaseTable;
 use App\Modules\Core\Authorization\Application\Roles\InstallStarterRoles;
 use App\Modules\Core\Authorization\Application\Roles\StarterRoleName;
+use App\Modules\Core\Files\Application\Public\Persistence\FilesDatabaseTable;
 use App\Modules\Core\Identity\Application\Admin\AdministrativeSessionManager;
 use App\Modules\Core\Identity\Infrastructure\Persistence\User;
+use App\Modules\Core\Privacy\Application\Public\Persistence\PrivacyDatabaseTable;
 use App\Modules\Core\Privacy\Application\Services\DataLifecycleParticipantRegistry;
+use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
 use App\Modules\Core\Teams\Infrastructure\Persistence\Team;
 use App\Modules\Optional\Search\Application\Contracts\SearchDocumentStore;
 use App\Modules\Optional\Search\Application\Contracts\SearchIndexRegistry;
@@ -21,7 +26,6 @@ use App\Shared\Application\DataLifecycle\DataLifecyclePreview;
 use App\Shared\Application\DataLifecycle\DataLifecycleResult;
 use App\Shared\Application\DataLifecycle\DataLifecycleStepResult;
 use App\Shared\Application\DataLifecycle\DataLifecycleSubject;
-use App\Shared\Infrastructure\Database\DatabaseTable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Collection;
 use Inertia\Testing\AssertableInertia;
@@ -94,7 +98,7 @@ final class PrivacyRetentionAdminTest extends TestCase
 
         $previewPublicId = (string) str($response->headers->get('Location'))->after('preview=');
 
-        $this->assertDatabaseHas(DatabaseTable::PRIVACY_OPERATION_REQUESTS, [
+        $this->assertDatabaseHas(PrivacyDatabaseTable::OPERATION_REQUESTS, [
             'public_id' => $previewPublicId,
             'operation' => 'hard_delete',
             'subject_type' => 'user',
@@ -105,10 +109,10 @@ final class PrivacyRetentionAdminTest extends TestCase
             'team_id' => $team->id,
             'confirmation_phrase' => 'HARD DELETE 01J00000000000000000000ABC',
         ]);
-        $this->assertDatabaseHas(DatabaseTable::PRIVACY_OPERATION_PREVIEWS, [
+        $this->assertDatabaseHas(PrivacyDatabaseTable::OPERATION_PREVIEWS, [
             'can_execute' => false,
         ]);
-        $this->assertDatabaseHas(DatabaseTable::AUDIT_EVENTS, [
+        $this->assertDatabaseHas(AuditDatabaseTable::AUDIT_EVENTS, [
             'module' => 'privacy',
             'action' => 'privacy.hard_delete_previewed',
             'result' => 'rejected',
@@ -117,7 +121,7 @@ final class PrivacyRetentionAdminTest extends TestCase
             'aggregate_public_id' => $previewPublicId,
             'is_security' => true,
         ]);
-        $this->assertDatabaseHas(DatabaseTable::AUDIT_SECURITY_EVENTS, [
+        $this->assertDatabaseHas(AuditDatabaseTable::AUDIT_SECURITY_EVENTS, [
             'category' => 'privacy',
             'action' => 'privacy.hard_delete_previewed',
             'result' => 'rejected',
@@ -278,7 +282,7 @@ final class PrivacyRetentionAdminTest extends TestCase
         [$admin, $team] = $this->adminWithTeam();
         $filePublicId = '01J00000000000000000000FIL';
 
-        $this->app['db']->table(DatabaseTable::FILE_OBJECTS)->insert([
+        $this->app['db']->table(FilesDatabaseTable::FILE_OBJECTS)->insert([
             'public_id' => $filePublicId,
             'disk' => 'atlas_files',
             'path' => 'privacy/test-file.txt',
@@ -309,8 +313,8 @@ final class PrivacyRetentionAdminTest extends TestCase
             ->assertSessionHas('flash.messages.0.key', 'flash.privacy.preview_blocked');
 
         $previewPublicId = (string) str($response->headers->get('Location'))->after('preview=');
-        $preview = $this->app['db']->table(DatabaseTable::PRIVACY_OPERATION_REQUESTS.' as requests')
-            ->join(DatabaseTable::PRIVACY_OPERATION_PREVIEWS.' as previews', 'previews.operation_request_id', '=', 'requests.id')
+        $preview = $this->app['db']->table(PrivacyDatabaseTable::OPERATION_REQUESTS.' as requests')
+            ->join(PrivacyDatabaseTable::OPERATION_PREVIEWS.' as previews', 'previews.operation_request_id', '=', 'requests.id')
             ->where('requests.public_id', $previewPublicId)
             ->firstOrFail(['previews.impacts']);
 
@@ -347,8 +351,8 @@ final class PrivacyRetentionAdminTest extends TestCase
             ->assertSessionHas('flash.messages.0.key', 'flash.privacy.preview_blocked');
 
         $previewPublicId = (string) str($response->headers->get('Location'))->after('preview=');
-        $preview = $this->app['db']->table(DatabaseTable::PRIVACY_OPERATION_REQUESTS.' as requests')
-            ->join(DatabaseTable::PRIVACY_OPERATION_PREVIEWS.' as previews', 'previews.operation_request_id', '=', 'requests.id')
+        $preview = $this->app['db']->table(PrivacyDatabaseTable::OPERATION_REQUESTS.' as requests')
+            ->join(PrivacyDatabaseTable::OPERATION_PREVIEWS.' as previews', 'previews.operation_request_id', '=', 'requests.id')
             ->where('requests.public_id', $previewPublicId)
             ->firstOrFail(['previews.impacts', 'previews.participant_count']);
 
@@ -379,13 +383,13 @@ final class PrivacyRetentionAdminTest extends TestCase
             ->assertRedirect('/admin/privacy-retention/legal-holds')
             ->assertSessionHas('flash.messages.0.key', 'flash.privacy.legal_hold_created');
 
-        $this->assertDatabaseHas(DatabaseTable::PRIVACY_LEGAL_HOLDS, [
+        $this->assertDatabaseHas(PrivacyDatabaseTable::LEGAL_HOLDS, [
             'subject_type' => 'user',
             'subject_identifier' => $subjectIdentifier,
             'created_by_user_id' => $admin->id,
             'team_id' => $team->id,
         ]);
-        $this->assertDatabaseHas(DatabaseTable::AUDIT_EVENTS, [
+        $this->assertDatabaseHas(AuditDatabaseTable::AUDIT_EVENTS, [
             'module' => 'privacy',
             'action' => 'privacy.legal_hold_created',
             'result' => 'succeeded',
@@ -516,7 +520,7 @@ final class PrivacyRetentionAdminTest extends TestCase
             ]),
         );
 
-        $operationRequestId = $this->app['db']->table(DatabaseTable::PRIVACY_OPERATION_REQUESTS)->insertGetId([
+        $operationRequestId = $this->app['db']->table(PrivacyDatabaseTable::OPERATION_REQUESTS)->insertGetId([
             'public_id' => $operationPublicId,
             'operation' => 'anonymization',
             'subject_type' => 'person',
@@ -534,7 +538,7 @@ final class PrivacyRetentionAdminTest extends TestCase
             'updated_at' => now(),
         ]);
 
-        $this->app['db']->table(DatabaseTable::PRIVACY_OPERATION_PREVIEWS)->insert([
+        $this->app['db']->table(PrivacyDatabaseTable::OPERATION_PREVIEWS)->insert([
             'operation_request_id' => $operationRequestId,
             'impacts' => json_encode([[
                 'dataSet' => 'tests.subject_records',
@@ -556,12 +560,12 @@ final class PrivacyRetentionAdminTest extends TestCase
             ->assertRedirect('/admin/privacy-retention/operations?operation=anonymization&status=executed')
             ->assertSessionHas('flash.messages.0.key', 'flash.privacy.execution_completed');
 
-        $this->assertDatabaseHas(DatabaseTable::PRIVACY_OPERATION_REQUESTS, [
+        $this->assertDatabaseHas(PrivacyDatabaseTable::OPERATION_REQUESTS, [
             'public_id' => $operationPublicId,
             'status' => 'executed',
             'dry_run' => false,
         ]);
-        $this->assertDatabaseHas(DatabaseTable::AUDIT_EVENTS, [
+        $this->assertDatabaseHas(AuditDatabaseTable::AUDIT_EVENTS, [
             'module' => 'privacy',
             'action' => 'privacy.anonymization_executed',
             'result' => 'succeeded',
@@ -572,7 +576,7 @@ final class PrivacyRetentionAdminTest extends TestCase
             'is_security' => true,
         ]);
 
-        $metadata = $this->app['db']->table(DatabaseTable::PRIVACY_OPERATION_REQUESTS)
+        $metadata = $this->app['db']->table(PrivacyDatabaseTable::OPERATION_REQUESTS)
             ->where('public_id', $operationPublicId)
             ->value('metadata');
 
@@ -648,13 +652,13 @@ final class PrivacyRetentionAdminTest extends TestCase
         ]);
         $role = Role::query()->where('name', StarterRoleName::Administrator->value)->firstOrFail();
 
-        $this->app['db']->table(DatabaseTable::TEAM_USER_ASSIGNMENTS)->insert([
+        $this->app['db']->table(TeamsDatabaseTable::TEAM_USER_ASSIGNMENTS)->insert([
             'team_id' => $team->id,
             'user_id' => $admin->id,
             'created_at' => now(),
             'updated_at' => now(),
         ]);
-        $this->app['db']->table(DatabaseTable::MODEL_HAS_ROLES)->insert([
+        $this->app['db']->table(AuthorizationDatabaseTable::MODEL_HAS_ROLES)->insert([
             'role_id' => $role->id,
             'model_type' => config('auth.providers.users.model'),
             'model_id' => $admin->id,

@@ -7,9 +7,9 @@ namespace App\Shared\Application\Modules\Exports;
 use App\Modules\Core\Exports\Application\Public\AbstractAdminDataTableExportProvider;
 use App\Modules\Core\Exports\Application\Public\DTOs\ReportExportGenerationRequest;
 use App\Modules\Core\Exports\Application\Public\Permissions\ReportsPermissionCatalog;
+use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
 use App\Shared\Application\Modules\Activation\Contracts\ModuleActivationService;
 use App\Shared\Application\Tables\AdminTableDefinitions;
-use App\Shared\Infrastructure\Database\DatabaseTable;
 use Illuminate\Support\Facades\DB;
 
 final readonly class AdminModuleDetailTeamsDataTableExportProvider extends AbstractAdminDataTableExportProvider
@@ -65,7 +65,7 @@ final readonly class AdminModuleDetailTeamsDataTableExportProvider extends Abstr
 
         $rows = [];
 
-        foreach (DB::table(DatabaseTable::TEAMS)->orderBy('display_name')->orderBy('name')->get(['id', 'public_id', 'name', 'display_name', 'is_active']) as $team) {
+        foreach (DB::table(TeamsDatabaseTable::TEAMS)->orderBy('display_name')->orderBy('name')->get(['id', 'public_id', 'name', 'display_name', 'is_active']) as $team) {
             $teamId = is_numeric($team->id ?? null) ? (int) $team->id : null;
 
             if ($teamId === null) {

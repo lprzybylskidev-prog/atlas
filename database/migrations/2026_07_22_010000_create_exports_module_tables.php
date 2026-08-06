@@ -2,8 +2,12 @@
 
 declare(strict_types=1);
 
+use App\Modules\Core\Exports\Application\Public\Persistence\ExportsDatabaseTable;
+use App\Modules\Core\Files\Application\Public\Persistence\FilesDatabaseTable;
+use App\Modules\Core\Identity\Application\Public\Persistence\IdentityDatabaseTable;
+use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
+use App\Modules\Optional\ManagedProcesses\Application\Public\Persistence\ManagedProcessesDatabaseTable;
 use App\Shared\Infrastructure\Database\DatabaseSchema;
-use App\Shared\Infrastructure\Database\DatabaseTable;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
@@ -19,16 +23,16 @@ return new class extends Migration
 
         $this->dropModuleTables();
 
-        Schema::create(DatabaseTable::REPORT_EXPORT_REQUESTS, function (Blueprint $table): void {
+        Schema::create(ExportsDatabaseTable::REPORT_EXPORT_REQUESTS, function (Blueprint $table): void {
             $table->id();
             $table->ulid('public_id')->unique();
             $table->string('report_key', 160);
             $table->string('report_name');
             $table->string('module_key');
             $table->string('format', 32);
-            $table->foreignId('team_id')->nullable()->constrained(DatabaseTable::TEAMS)->restrictOnDelete();
+            $table->foreignId('team_id')->nullable()->constrained(TeamsDatabaseTable::TEAMS)->restrictOnDelete();
             $table->string('active_team_public_id', 26)->nullable();
-            $table->foreignId('requested_by_user_id')->nullable()->constrained(DatabaseTable::USERS)->nullOnDelete();
+            $table->foreignId('requested_by_user_id')->nullable()->constrained(IdentityDatabaseTable::USERS)->nullOnDelete();
             $table->string('requesting_user_public_id', 26);
             $table->jsonb('filters');
             $table->jsonb('sorting');
@@ -44,7 +48,7 @@ return new class extends Migration
             $table->boolean('synchronous_allowed')->default(false);
             $table->boolean('audit_export')->default(false);
             $table->unsignedBigInteger('estimated_row_count')->nullable();
-            $table->foreignId('process_run_id')->nullable()->constrained(DatabaseTable::MANAGED_PROCESS_RUNS)->nullOnDelete();
+            $table->foreignId('process_run_id')->nullable()->constrained(ManagedProcessesDatabaseTable::RUNS)->nullOnDelete();
             $table->timestampTz('queued_at')->nullable();
             $table->timestampTz('started_at')->nullable();
             $table->timestampTz('finished_at')->nullable();
@@ -62,18 +66,18 @@ return new class extends Migration
             $table->index(['synchronous_allowed', 'format']);
         });
 
-        Schema::create(DatabaseTable::REPORT_EXPORT_ARTIFACTS, function (Blueprint $table): void {
+        Schema::create(ExportsDatabaseTable::REPORT_EXPORT_ARTIFACTS, function (Blueprint $table): void {
             $table->id();
             $table->ulid('public_id')->unique();
-            $table->foreignId('export_request_id')->constrained(DatabaseTable::REPORT_EXPORT_REQUESTS)->restrictOnDelete();
-            $table->foreignId('file_object_id')->nullable()->constrained(DatabaseTable::FILE_OBJECTS)->restrictOnDelete();
+            $table->foreignId('export_request_id')->constrained(ExportsDatabaseTable::REPORT_EXPORT_REQUESTS)->restrictOnDelete();
+            $table->foreignId('file_object_id')->nullable()->constrained(FilesDatabaseTable::FILE_OBJECTS)->restrictOnDelete();
             $table->string('file_object_public_id', 26)->nullable();
             $table->string('status', 32);
             $table->string('filename');
             $table->string('content_type');
             $table->unsignedBigInteger('size_bytes')->default(0);
             $table->string('checksum_sha256', 64)->nullable();
-            $table->foreignId('created_by_user_id')->nullable()->constrained(DatabaseTable::USERS)->nullOnDelete();
+            $table->foreignId('created_by_user_id')->nullable()->constrained(IdentityDatabaseTable::USERS)->nullOnDelete();
             $table->timestampTz('available_at')->nullable();
             $table->timestampTz('failed_at')->nullable();
             $table->timestampTz('expires_at');
@@ -88,20 +92,20 @@ return new class extends Migration
 
         DB::statement(sprintf(
             "alter table %s add constraint report_export_artifacts_available_complete_check check (status <> 'available' or (file_object_id is not null and file_object_public_id is not null and file_object_public_id <> '' and checksum_sha256 is not null and checksum_sha256 <> '' and size_bytes > 0 and available_at is not null and failed_at is null))",
-            DatabaseTable::REPORT_EXPORT_ARTIFACTS,
+            ExportsDatabaseTable::REPORT_EXPORT_ARTIFACTS,
         ));
         DB::statement(sprintf(
             "create unique index report_export_artifacts_one_available_per_request on %s (export_request_id) where status = 'available'",
-            DatabaseTable::REPORT_EXPORT_ARTIFACTS,
+            ExportsDatabaseTable::REPORT_EXPORT_ARTIFACTS,
         ));
 
-        Schema::create(DatabaseTable::REPORT_RENDER_CREDENTIALS, function (Blueprint $table): void {
+        Schema::create(ExportsDatabaseTable::REPORT_RENDER_CREDENTIALS, function (Blueprint $table): void {
             $table->id();
             $table->ulid('public_id')->unique();
-            $table->foreignId('export_request_id')->constrained(DatabaseTable::REPORT_EXPORT_REQUESTS)->restrictOnDelete();
+            $table->foreignId('export_request_id')->constrained(ExportsDatabaseTable::REPORT_EXPORT_REQUESTS)->restrictOnDelete();
             $table->string('token_hash', 64)->unique();
-            $table->foreignId('requested_by_user_id')->nullable()->constrained(DatabaseTable::USERS)->nullOnDelete();
-            $table->foreignId('team_id')->nullable()->constrained(DatabaseTable::TEAMS)->restrictOnDelete();
+            $table->foreignId('requested_by_user_id')->nullable()->constrained(IdentityDatabaseTable::USERS)->nullOnDelete();
+            $table->foreignId('team_id')->nullable()->constrained(TeamsDatabaseTable::TEAMS)->restrictOnDelete();
             $table->string('module_key');
             $table->string('report_key', 160);
             $table->jsonb('allowed_dataset');
@@ -123,9 +127,9 @@ return new class extends Migration
 
     private function dropModuleTables(): void
     {
-        Schema::dropIfExists(DatabaseTable::REPORT_RENDER_CREDENTIALS);
-        Schema::dropIfExists(DatabaseTable::REPORT_EXPORT_ARTIFACTS);
-        Schema::dropIfExists(DatabaseTable::REPORT_EXPORT_REQUESTS);
+        Schema::dropIfExists(ExportsDatabaseTable::REPORT_RENDER_CREDENTIALS);
+        Schema::dropIfExists(ExportsDatabaseTable::REPORT_EXPORT_ARTIFACTS);
+        Schema::dropIfExists(ExportsDatabaseTable::REPORT_EXPORT_REQUESTS);
     }
 
     private function renameLegacyReportsSchema(): void

@@ -10,7 +10,7 @@ use App\Modules\Optional\TimeTracking\Application\DTOs\ActiveOtherWorkSession;
 use App\Modules\Optional\TimeTracking\Application\DTOs\OtherWorkCategory;
 use App\Modules\Optional\TimeTracking\Application\Enums\OtherWorkApprovalStatus;
 use App\Modules\Optional\TimeTracking\Application\Enums\OtherWorkClosureReason;
-use App\Shared\Infrastructure\Database\DatabaseTable;
+use App\Modules\Optional\TimeTracking\Application\Public\Persistence\TimeTrackingDatabaseTable;
 use DateTimeImmutable;
 use Illuminate\Database\ConnectionInterface;
 use Illuminate\Support\Str;
@@ -35,7 +35,7 @@ final readonly class DatabaseOtherWorkSessionStore implements OtherWorkSessionSt
         }
 
         return $this->database->transaction(function () use ($userId, $categoryKey, $description, $startedAt): ActiveOtherWorkSession {
-            $workSession = $this->database->table(DatabaseTable::TIME_TRACKING_WORK_SESSIONS)
+            $workSession = $this->database->table(TimeTrackingDatabaseTable::WORK_SESSIONS)
                 ->where('user_id', $userId)
                 ->whereNull('ended_at')
                 ->lockForUpdate()
@@ -45,7 +45,7 @@ final readonly class DatabaseOtherWorkSessionStore implements OtherWorkSessionSt
                 throw new RuntimeException('Cannot start Other work without an active TimeTracking work session.');
             }
 
-            $existing = $this->database->table(DatabaseTable::TIME_TRACKING_OTHER_WORK)
+            $existing = $this->database->table(TimeTrackingDatabaseTable::OTHER_WORK)
                 ->where('user_id', $userId)
                 ->whereNull('ended_at')
                 ->lockForUpdate()
@@ -66,7 +66,7 @@ final readonly class DatabaseOtherWorkSessionStore implements OtherWorkSessionSt
             $now = now();
             $publicId = (string) Str::ulid();
             $workSessionId = $this->intValue($workSession->id ?? null);
-            $id = $this->database->table(DatabaseTable::TIME_TRACKING_OTHER_WORK)->insertGetId([
+            $id = $this->database->table(TimeTrackingDatabaseTable::OTHER_WORK)->insertGetId([
                 'public_id' => $publicId,
                 'work_session_id' => $workSessionId,
                 'user_id' => $userId,
@@ -99,7 +99,7 @@ final readonly class DatabaseOtherWorkSessionStore implements OtherWorkSessionSt
     public function closeActiveForUser(int $userId, OtherWorkClosureReason $reason, DateTimeImmutable $endedAt, ?string $endNote): void
     {
         $this->database->transaction(function () use ($userId, $reason, $endedAt, $endNote): void {
-            $active = $this->database->table(DatabaseTable::TIME_TRACKING_OTHER_WORK)
+            $active = $this->database->table(TimeTrackingDatabaseTable::OTHER_WORK)
                 ->where('user_id', $userId)
                 ->whereNull('ended_at')
                 ->lockForUpdate()
@@ -128,7 +128,7 @@ final readonly class DatabaseOtherWorkSessionStore implements OtherWorkSessionSt
             throw new InvalidArgumentException('Other work review reason cannot be empty.');
         }
 
-        $this->database->table(DatabaseTable::TIME_TRACKING_OTHER_WORK)
+        $this->database->table(TimeTrackingDatabaseTable::OTHER_WORK)
             ->where('user_id', $userId)
             ->whereNull('ended_at')
             ->where('approval_status', OtherWorkApprovalStatus::Approved->value)
@@ -150,7 +150,7 @@ final readonly class DatabaseOtherWorkSessionStore implements OtherWorkSessionSt
             return false;
         }
 
-        return $this->database->table(DatabaseTable::TIME_TRACKING_OTHER_WORK)
+        return $this->database->table(TimeTrackingDatabaseTable::OTHER_WORK)
             ->where('id', $otherWorkId)
             ->whereNotNull('ended_at')
             ->where('requires_manager_review', true)
@@ -195,7 +195,7 @@ final readonly class DatabaseOtherWorkSessionStore implements OtherWorkSessionSt
 
         $seconds = max(0, $endedAt->getTimestamp() - $startedAt->getTimestamp());
 
-        $this->database->table(DatabaseTable::TIME_TRACKING_OTHER_WORK)
+        $this->database->table(TimeTrackingDatabaseTable::OTHER_WORK)
             ->where('id', $otherWorkId)
             ->whereNull('ended_at')
             ->update(array_filter([

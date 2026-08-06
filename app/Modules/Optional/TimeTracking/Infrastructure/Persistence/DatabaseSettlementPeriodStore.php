@@ -7,7 +7,7 @@ namespace App\Modules\Optional\TimeTracking\Infrastructure\Persistence;
 use App\Modules\Optional\TimeTracking\Application\Contracts\SettlementPeriodStore;
 use App\Modules\Optional\TimeTracking\Application\DTOs\SettlementPeriod;
 use App\Modules\Optional\TimeTracking\Application\Enums\SettlementPeriodStatus;
-use App\Shared\Infrastructure\Database\DatabaseTable;
+use App\Modules\Optional\TimeTracking\Application\Public\Persistence\TimeTrackingDatabaseTable;
 use DateTimeImmutable;
 use DateTimeZone;
 use Illuminate\Database\ConnectionInterface;
@@ -20,7 +20,7 @@ final readonly class DatabaseSettlementPeriodStore implements SettlementPeriodSt
 
     public function startDay(): int
     {
-        $day = $this->database->table(DatabaseTable::TIME_TRACKING_SETTLEMENT_SETTINGS)
+        $day = $this->database->table(TimeTrackingDatabaseTable::SETTLEMENT_SETTINGS)
             ->orderBy('id')
             ->value('period_start_day');
 
@@ -33,11 +33,11 @@ final readonly class DatabaseSettlementPeriodStore implements SettlementPeriodSt
             throw new InvalidArgumentException('Settlement period start day must be between 1 and 28.');
         }
 
-        $existingId = $this->database->table(DatabaseTable::TIME_TRACKING_SETTLEMENT_SETTINGS)->orderBy('id')->value('id');
+        $existingId = $this->database->table(TimeTrackingDatabaseTable::SETTLEMENT_SETTINGS)->orderBy('id')->value('id');
         $now = now();
 
         if (is_numeric($existingId)) {
-            $this->database->table(DatabaseTable::TIME_TRACKING_SETTLEMENT_SETTINGS)
+            $this->database->table(TimeTrackingDatabaseTable::SETTLEMENT_SETTINGS)
                 ->where('id', (int) $existingId)
                 ->update([
                     'period_start_day' => $day,
@@ -47,7 +47,7 @@ final readonly class DatabaseSettlementPeriodStore implements SettlementPeriodSt
             return;
         }
 
-        $this->database->table(DatabaseTable::TIME_TRACKING_SETTLEMENT_SETTINGS)->insert([
+        $this->database->table(TimeTrackingDatabaseTable::SETTLEMENT_SETTINGS)->insert([
             'public_id' => (string) Str::ulid(),
             'period_start_day' => $day,
             'created_at' => $now,
@@ -58,7 +58,7 @@ final readonly class DatabaseSettlementPeriodStore implements SettlementPeriodSt
     public function periodFor(DateTimeImmutable $date): SettlementPeriod
     {
         [$startsOn, $endsOn] = $this->bounds($date, $this->startDay());
-        $row = $this->database->table(DatabaseTable::TIME_TRACKING_SETTLEMENT_PERIODS)
+        $row = $this->database->table(TimeTrackingDatabaseTable::SETTLEMENT_PERIODS)
             ->where('starts_on', $startsOn->format('Y-m-d'))
             ->where('ends_on', $endsOn->format('Y-m-d'))
             ->first(['id', 'public_id', 'starts_on', 'ends_on', 'status']);
@@ -69,7 +69,7 @@ final readonly class DatabaseSettlementPeriodStore implements SettlementPeriodSt
 
         $now = now();
         $publicId = (string) Str::ulid();
-        $id = $this->database->table(DatabaseTable::TIME_TRACKING_SETTLEMENT_PERIODS)->insertGetId([
+        $id = $this->database->table(TimeTrackingDatabaseTable::SETTLEMENT_PERIODS)->insertGetId([
             'public_id' => $publicId,
             'starts_on' => $startsOn->format('Y-m-d'),
             'ends_on' => $endsOn->format('Y-m-d'),
@@ -86,7 +86,7 @@ final readonly class DatabaseSettlementPeriodStore implements SettlementPeriodSt
     {
         $today = $now->setTimezone(new DateTimeZone('Europe/Warsaw'))->format('Y-m-d');
 
-        return $this->database->table(DatabaseTable::TIME_TRACKING_SETTLEMENT_PERIODS)
+        return $this->database->table(TimeTrackingDatabaseTable::SETTLEMENT_PERIODS)
             ->where('status', SettlementPeriodStatus::Open->value)
             ->where('ends_on', '<', $today)
             ->update([

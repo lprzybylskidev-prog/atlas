@@ -7,8 +7,8 @@ namespace App\Modules\Optional\Integrations\Application\Exports;
 use App\Modules\Core\Exports\Application\Public\AbstractAdminDataTableExportProvider;
 use App\Modules\Core\Exports\Application\Public\DTOs\ReportExportGenerationRequest;
 use App\Modules\Core\Exports\Application\Public\Permissions\ReportsPermissionCatalog;
+use App\Modules\Optional\Integrations\Application\Public\Persistence\IntegrationsDatabaseTable;
 use App\Shared\Application\Tables\AdminTableDefinitions;
-use App\Shared\Infrastructure\Database\DatabaseTable;
 use Illuminate\Support\Facades\DB;
 
 final readonly class AdminIntegrationRunsDataTableExportProvider extends AbstractAdminDataTableExportProvider
@@ -56,7 +56,7 @@ final readonly class AdminIntegrationRunsDataTableExportProvider extends Abstrac
     {
         $rows = [];
 
-        foreach (DB::table(DatabaseTable::INTEGRATION_SYNC_RUNS)
+        foreach (DB::table(IntegrationsDatabaseTable::SYNC_RUNS)
             ->orderByDesc('started_at')
             ->get(['integration_key', 'operation', 'correlation_id', 'status', 'started_at', 'finished_at', 'message']) as $index => $row) {
             $integrationKey = self::stringValue($row->integration_key ?? null);

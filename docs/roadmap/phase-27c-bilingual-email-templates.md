@@ -1,4 +1,4 @@
-# Phase 27b — Bilingual email templates and notification mail audit
+# Phase 27c — Bilingual email templates and notification mail audit
 
 **Status:** `not started`
 
@@ -41,7 +41,7 @@ Standardize every Atlas-owned outgoing email so mail content is localized, bilin
   - guest or routed-address mail falls back to `app.locale`;
   - `app.fallback_locale` is only a technical translation fallback, not the primary business language selector.
 - The two language sections must use the same Atlas mail layout and the same message structure. The lower section must not be a raw plain-text dump if the upper section is rendered with the branded template.
-- The existing accepted Atlas mail appearance is the canonical mail template for the whole application. After the Phase 27b rebuild, every Atlas-owned email must use it by default.
+- The existing accepted Atlas mail appearance is the canonical mail template for the whole application. After the Phase 27c rebuild, every Atlas-owned email must use it by default.
 - A new mail template variant may be introduced only for a real layout need, such as a wider report-oriented email, and must be documented, tested, reusable, and explicitly selected. One-off mail layouts are forbidden.
 - The standard mail template must include Atlas branding, a concise automatic-message notice, accessible button/action rendering, readable plain-text fallback content, and no unnecessary internal technical details.
 - Security-sensitive emails must keep safe wording:

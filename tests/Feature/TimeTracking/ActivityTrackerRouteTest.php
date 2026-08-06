@@ -5,15 +5,17 @@ declare(strict_types=1);
 namespace Tests\Feature\TimeTracking;
 
 use App\Modules\Core\Authorization\Application\Permissions\CoreAuthorizationPermissionCatalog;
+use App\Modules\Core\Authorization\Application\Public\Persistence\AuthorizationDatabaseTable;
 use App\Modules\Core\Authorization\Application\Roles\InstallStarterRoles;
 use App\Modules\Core\Identity\Infrastructure\Persistence\User;
+use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
 use App\Modules\Core\Teams\Infrastructure\Persistence\Team;
 use App\Modules\Optional\TimeTracking\Application\Permissions\TimeTrackingPermissionCatalog;
+use App\Modules\Optional\TimeTracking\Application\Public\Persistence\TimeTrackingDatabaseTable;
 use App\Shared\Application\Modules\Activation\Contracts\ModuleActivationService;
 use App\Shared\Application\Modules\Activation\ModuleActivationChange;
 use App\Shared\Application\Modules\Activation\ModuleActivationScope;
 use App\Shared\Application\Modules\Activation\ModuleActivationSource;
-use App\Shared\Infrastructure\Database\DatabaseTable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -59,12 +61,12 @@ final class ActivityTrackerRouteTest extends TestCase
                 'warningSeconds' => 30,
             ]);
 
-        $this->assertDatabaseHas(DatabaseTable::TIME_TRACKING_WORK_SESSIONS, [
+        $this->assertDatabaseHas(TimeTrackingDatabaseTable::WORK_SESSIONS, [
             'user_id' => $user->id,
             'team_id' => $team->id,
             'closure_reason' => 'inactivity',
         ]);
-        self::assertSame(0, DB::table(DatabaseTable::TIME_TRACKING_WORK_SESSIONS)->where('user_id', $user->id)->whereNull('ended_at')->count());
+        self::assertSame(0, DB::table(TimeTrackingDatabaseTable::WORK_SESSIONS)->where('user_id', $user->id)->whereNull('ended_at')->count());
     }
 
     /**
@@ -82,7 +84,7 @@ final class ActivityTrackerRouteTest extends TestCase
             'is_active' => true,
         ]);
 
-        $assignmentId = (int) DB::table(DatabaseTable::TEAM_USER_ASSIGNMENTS)->insertGetId([
+        $assignmentId = (int) DB::table(TeamsDatabaseTable::TEAM_USER_ASSIGNMENTS)->insertGetId([
             'team_id' => $team->id,
             'user_id' => $user->id,
             'is_head_manager' => false,
@@ -90,7 +92,7 @@ final class ActivityTrackerRouteTest extends TestCase
             'created_at' => now(),
             'updated_at' => now(),
         ]);
-        DB::table(DatabaseTable::TIME_TRACKING_USER_TEAM_SETTINGS)->insert([
+        DB::table(TimeTrackingDatabaseTable::USER_TEAM_SETTINGS)->insert([
             'public_id' => (string) Str::ulid(),
             'team_user_assignment_id' => $assignmentId,
             'tracking_enabled' => true,
@@ -103,7 +105,7 @@ final class ActivityTrackerRouteTest extends TestCase
 
     private function createActiveWork(User $user, Team $team): void
     {
-        DB::table(DatabaseTable::TIME_TRACKING_WORK_SESSIONS)->insert([
+        DB::table(TimeTrackingDatabaseTable::WORK_SESSIONS)->insert([
             'public_id' => (string) Str::ulid(),
             'user_id' => $user->id,
             'team_id' => $team->id,
@@ -118,7 +120,7 @@ final class ActivityTrackerRouteTest extends TestCase
     {
         $permission = Permission::query()->where('name', $permissionName)->firstOrFail();
 
-        DB::table(DatabaseTable::MODEL_HAS_PERMISSIONS)->insert([
+        DB::table(AuthorizationDatabaseTable::MODEL_HAS_PERMISSIONS)->insert([
             'permission_id' => $permission->id,
             'model_type' => config('auth.providers.users.model'),
             'model_id' => $user->id,

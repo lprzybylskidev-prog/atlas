@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Core\Identity\Application\RateLimiting;
 
-use App\Shared\Infrastructure\Database\DatabaseTable;
+use App\Modules\Core\Identity\Application\Public\Persistence\IdentityDatabaseTable;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -17,7 +17,7 @@ final readonly class RateLimitRejectionRecorder
         $hash = $this->hash($limiterKey);
         $preview = $this->preview($limiterKey);
 
-        $updated = DB::table(DatabaseTable::RATE_LIMIT_REJECTIONS)
+        $updated = DB::table(IdentityDatabaseTable::RATE_LIMIT_REJECTIONS)
             ->where('policy', $policy)
             ->where('limiter_key_hash', $hash)
             ->update([
@@ -32,7 +32,7 @@ final readonly class RateLimitRejectionRecorder
             return;
         }
 
-        DB::table(DatabaseTable::RATE_LIMIT_REJECTIONS)->insert([
+        DB::table(IdentityDatabaseTable::RATE_LIMIT_REJECTIONS)->insert([
             'policy' => $policy,
             'limiter_key_hash' => $hash,
             'limiter_key_preview' => $preview,

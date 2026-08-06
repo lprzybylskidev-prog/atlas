@@ -7,7 +7,7 @@ namespace App\Modules\Optional\TimeTracking\Infrastructure\Persistence;
 use App\Modules\Optional\TimeTracking\Application\Contracts\OtherWorkCategoryStore;
 use App\Modules\Optional\TimeTracking\Application\DTOs\OtherWorkCategory;
 use App\Modules\Optional\TimeTracking\Application\Enums\OtherWorkCategoryScope;
-use App\Shared\Infrastructure\Database\DatabaseTable;
+use App\Modules\Optional\TimeTracking\Application\Public\Persistence\TimeTrackingDatabaseTable;
 use Illuminate\Database\ConnectionInterface;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
@@ -18,7 +18,7 @@ final readonly class DatabaseOtherWorkCategoryStore implements OtherWorkCategory
 
     public function activeForTeam(int $teamId): array
     {
-        $rows = $this->database->table(DatabaseTable::TIME_TRACKING_OTHER_WORK_CATEGORIES)
+        $rows = $this->database->table(TimeTrackingDatabaseTable::OTHER_WORK_CATEGORIES)
             ->where('is_active', true)
             ->where('scope_type', OtherWorkCategoryScope::Team->value)
             ->where('scope_id', $teamId)
@@ -85,7 +85,7 @@ final readonly class DatabaseOtherWorkCategoryStore implements OtherWorkCategory
 
         $now = now();
 
-        $this->database->table(DatabaseTable::TIME_TRACKING_OTHER_WORK_CATEGORIES)->upsert([
+        $this->database->table(TimeTrackingDatabaseTable::OTHER_WORK_CATEGORIES)->upsert([
             [
                 'public_id' => (string) Str::ulid(),
                 'scope_type' => $scope->value,
@@ -117,7 +117,7 @@ final readonly class DatabaseOtherWorkCategoryStore implements OtherWorkCategory
     {
         $this->assertCategoryKey($categoryKey);
 
-        $this->database->table(DatabaseTable::TIME_TRACKING_OTHER_WORK_CATEGORIES)
+        $this->database->table(TimeTrackingDatabaseTable::OTHER_WORK_CATEGORIES)
             ->where('scope_type', $scope->value)
             ->where('scope_id', $scopeId)
             ->where('category_key', $categoryKey)

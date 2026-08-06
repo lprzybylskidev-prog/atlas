@@ -12,7 +12,7 @@ use App\Modules\Core\Exports\Application\Public\DTOs\IssuedReportRenderCredentia
 use App\Modules\Core\Exports\Application\Public\DTOs\ReportExportGenerationRequest;
 use App\Modules\Core\Exports\Application\Public\DTOs\ResolvedReportRenderCredential;
 use App\Modules\Core\Exports\Application\Public\Permissions\ReportsPermissionCatalog;
-use App\Shared\Infrastructure\Database\DatabaseTable;
+use App\Modules\Core\Exports\Application\Public\Persistence\ExportsDatabaseTable;
 use App\Shared\Infrastructure\Operations\OperationalModuleGuard;
 use DateTimeImmutable;
 use DateTimeInterface;
@@ -37,7 +37,7 @@ final readonly class ReportRenderCredentialService implements ReportRenderCreden
         $publicId = (string) Str::ulid();
         $expiresAt = $this->credentialExpiry($this->dateTime($request, 'expires_at'));
 
-        $this->database->table(DatabaseTable::REPORT_RENDER_CREDENTIALS)->insert([
+        $this->database->table(ExportsDatabaseTable::REPORT_RENDER_CREDENTIALS)->insert([
             'public_id' => $publicId,
             'export_request_id' => $this->intValue($request->id ?? null),
             'token_hash' => hash('sha256', $token),
@@ -68,8 +68,8 @@ final readonly class ReportRenderCredentialService implements ReportRenderCreden
 
     public function resolve(string $token): ResolvedReportRenderCredential
     {
-        $credential = $this->database->table(DatabaseTable::REPORT_RENDER_CREDENTIALS.' as credentials')
-            ->join(DatabaseTable::REPORT_EXPORT_REQUESTS.' as requests', 'credentials.export_request_id', '=', 'requests.id')
+        $credential = $this->database->table(ExportsDatabaseTable::REPORT_RENDER_CREDENTIALS.' as credentials')
+            ->join(ExportsDatabaseTable::REPORT_EXPORT_REQUESTS.' as requests', 'credentials.export_request_id', '=', 'requests.id')
             ->where('credentials.token_hash', hash('sha256', $token))
             ->whereNull('credentials.consumed_at')
             ->where('credentials.expires_at', '>', now('UTC'))
@@ -116,7 +116,7 @@ final readonly class ReportRenderCredentialService implements ReportRenderCreden
 
     public function consume(string $credentialPublicId): void
     {
-        $updated = $this->database->table(DatabaseTable::REPORT_RENDER_CREDENTIALS)
+        $updated = $this->database->table(ExportsDatabaseTable::REPORT_RENDER_CREDENTIALS)
             ->where('public_id', $credentialPublicId)
             ->whereNull('consumed_at')
             ->update([
@@ -131,7 +131,7 @@ final readonly class ReportRenderCredentialService implements ReportRenderCreden
 
     private function request(string $publicId): stdClass
     {
-        $request = $this->database->table(DatabaseTable::REPORT_EXPORT_REQUESTS)->where('public_id', $publicId)->first();
+        $request = $this->database->table(ExportsDatabaseTable::REPORT_EXPORT_REQUESTS)->where('public_id', $publicId)->first();
 
         if ($request instanceof stdClass) {
             return $request;

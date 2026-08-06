@@ -6,7 +6,7 @@ namespace App\Modules\Optional\TimeTracking\Presentation\Http\Controllers;
 
 use App\Modules\Core\Identity\Application\Public\Contracts\UserStepUpAuthentication;
 use App\Modules\Optional\TimeTracking\Application\OtherWorkSessionCoordinator;
-use App\Shared\Infrastructure\Database\DatabaseTable;
+use App\Modules\Optional\TimeTracking\Application\Public\Persistence\TimeTrackingDatabaseTable;
 use App\Shared\Presentation\Support\FlashMessage;
 use DateTimeImmutable;
 use DateTimeZone;
@@ -97,7 +97,7 @@ final readonly class OtherWorkLockController
 
     private function activeOtherWork(int $userId): ?object
     {
-        return DB::table(DatabaseTable::TIME_TRACKING_OTHER_WORK)
+        return DB::table(TimeTrackingDatabaseTable::OTHER_WORK)
             ->where('user_id', $userId)
             ->whereNull('ended_at')
             ->first(['public_id', 'team_id', 'category_key', 'description', 'approval_status', 'started_at']);
@@ -110,7 +110,7 @@ final readonly class OtherWorkLockController
         }
 
         $labelColumn = app()->getLocale() === 'pl' ? 'label_pl' : 'label_en';
-        $row = DB::table(DatabaseTable::TIME_TRACKING_OTHER_WORK_CATEGORIES)
+        $row = DB::table(TimeTrackingDatabaseTable::OTHER_WORK_CATEGORIES)
             ->where('category_key', $categoryKey)
             ->where('scope_type', 'team')
             ->where('scope_id', $teamId)

@@ -4,17 +4,20 @@ declare(strict_types=1);
 
 namespace Tests\Feature\FeatureFlags;
 
+use App\Modules\Core\Audit\Application\Public\Persistence\AuditDatabaseTable;
+use App\Modules\Core\Authorization\Application\Public\Persistence\AuthorizationDatabaseTable;
 use App\Modules\Core\Authorization\Application\Roles\InstallStarterRoles;
 use App\Modules\Core\Authorization\Application\Roles\StarterRoleName;
 use App\Modules\Core\Identity\Infrastructure\Persistence\User;
+use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
 use App\Modules\Core\Teams\Infrastructure\Persistence\Team;
 use App\Modules\Optional\FeatureFlags\Application\Enums\FeatureFlagKey;
 use App\Modules\Optional\FeatureFlags\Application\Public\Contracts\FeatureFlagEvaluator;
+use App\Modules\Optional\FeatureFlags\Application\Public\Persistence\FeatureFlagsDatabaseTable;
 use App\Shared\Application\Modules\Activation\Contracts\ModuleActivationService;
 use App\Shared\Application\Modules\Activation\ModuleActivationChange;
 use App\Shared\Application\Modules\Activation\ModuleActivationScope;
 use App\Shared\Application\Modules\Activation\ModuleActivationSource;
-use App\Shared\Infrastructure\Database\DatabaseTable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Collection;
 use Inertia\Testing\AssertableInertia;
@@ -85,22 +88,22 @@ final class FeatureFlagsAdminTest extends TestCase
 
         self::assertTrue($this->app->make(FeatureFlagEvaluator::class)->enabled('reports.preview', $team->public_id));
 
-        $this->assertDatabaseHas(DatabaseTable::FEATURE_FLAG_HISTORY, [
+        $this->assertDatabaseHas(FeatureFlagsDatabaseTable::HISTORY, [
             'flag_key' => 'reports.preview',
             'scope' => 'global',
             'action' => 'feature_flag.global_updated',
         ]);
-        $this->assertDatabaseHas(DatabaseTable::FEATURE_FLAG_HISTORY, [
+        $this->assertDatabaseHas(FeatureFlagsDatabaseTable::HISTORY, [
             'flag_key' => 'reports.preview',
             'scope' => 'team',
             'action' => 'feature_flag.team_updated',
         ]);
-        $this->assertDatabaseHas(DatabaseTable::FEATURE_FLAG_HISTORY, [
+        $this->assertDatabaseHas(FeatureFlagsDatabaseTable::HISTORY, [
             'flag_key' => 'reports.preview',
             'scope' => 'team',
             'action' => 'feature_flag.team_cleared',
         ]);
-        $this->assertDatabaseHas(DatabaseTable::AUDIT_EVENTS, [
+        $this->assertDatabaseHas(AuditDatabaseTable::AUDIT_EVENTS, [
             'module' => 'feature_flags',
             'action' => 'feature_flag.team_cleared',
             'target_public_id' => 'reports.preview',
@@ -123,13 +126,13 @@ final class FeatureFlagsAdminTest extends TestCase
         ]);
         $role = Role::query()->where('name', StarterRoleName::Administrator->value)->firstOrFail();
 
-        $this->app['db']->table(DatabaseTable::TEAM_USER_ASSIGNMENTS)->insert([
+        $this->app['db']->table(TeamsDatabaseTable::TEAM_USER_ASSIGNMENTS)->insert([
             'team_id' => $team->id,
             'user_id' => $admin->id,
             'created_at' => now(),
             'updated_at' => now(),
         ]);
-        $this->app['db']->table(DatabaseTable::MODEL_HAS_ROLES)->insert([
+        $this->app['db']->table(AuthorizationDatabaseTable::MODEL_HAS_ROLES)->insert([
             'role_id' => $role->id,
             'model_type' => config('auth.providers.users.model'),
             'model_id' => $admin->id,

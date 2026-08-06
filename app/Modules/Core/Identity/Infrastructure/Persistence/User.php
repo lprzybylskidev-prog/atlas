@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Modules\Core\Identity\Infrastructure\Persistence;
 
+use App\Modules\Core\Identity\Application\Public\Persistence\IdentityDatabaseTable;
 use App\Modules\Core\Identity\Domain\ValueObjects\UserPublicId;
 use App\Modules\Core\Identity\Infrastructure\Database\Factories\UserFactory;
 use App\Modules\Core\Identity\Infrastructure\Notifications\UserEmailVerificationNotification;
-use App\Shared\Infrastructure\Database\DatabaseTable;
 use Illuminate\Contracts\Auth\MustVerifyEmail as MustVerifyEmailContract;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -22,7 +22,7 @@ class User extends Authenticatable implements MustVerifyEmailContract
 
     public const DEFAULT_AVATAR_COLOR = '#0f766e';
 
-    protected $table = DatabaseTable::USERS;
+    protected $table = IdentityDatabaseTable::USERS;
 
     /** @var list<string> */
     protected $fillable = [

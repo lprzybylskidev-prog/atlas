@@ -7,7 +7,7 @@ namespace App\Modules\Core\Authorization\Presentation\Http\Controllers;
 use App\Modules\Core\Audit\Application\Public\Contracts\AuditRecorder;
 use App\Modules\Core\Audit\Application\Public\DTOs\AuditEvent;
 use App\Modules\Core\Audit\Application\Public\Enums\SecurityAuditCategory;
-use App\Shared\Infrastructure\Database\DatabaseTable;
+use App\Modules\Core\Authorization\Application\Public\Persistence\AuthorizationDatabaseTable;
 use App\Shared\Presentation\Support\FlashMessage;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -21,15 +21,15 @@ final readonly class DestroyRoleController
 
     public function __invoke(Request $request, string $role): RedirectResponse
     {
-        $record = DB::table(DatabaseTable::ROLES)->where('name', $role)->where('guard_name', 'web')->first(['id', 'public_id', 'name']);
+        $record = DB::table(AuthorizationDatabaseTable::ROLES)->where('name', $role)->where('guard_name', 'web')->first(['id', 'public_id', 'name']);
         $values = is_object($record) ? get_object_vars($record) : [];
         $roleId = $values['id'] ?? null;
         $rolePublicId = is_string($values['public_id'] ?? null) ? $values['public_id'] : $role;
         $permissions = is_numeric($roleId) ? $this->permissionNames((int) $roleId) : [];
 
-        if (is_int($roleId) && ! DB::table(DatabaseTable::MODEL_HAS_ROLES)->where('role_id', $roleId)->exists()) {
-            DB::table(DatabaseTable::ROLE_HAS_PERMISSIONS)->where('role_id', $roleId)->delete();
-            DB::table(DatabaseTable::ROLES)->where('id', $roleId)->delete();
+        if (is_int($roleId) && ! DB::table(AuthorizationDatabaseTable::MODEL_HAS_ROLES)->where('role_id', $roleId)->exists()) {
+            DB::table(AuthorizationDatabaseTable::ROLE_HAS_PERMISSIONS)->where('role_id', $roleId)->delete();
+            DB::table(AuthorizationDatabaseTable::ROLES)->where('id', $roleId)->delete();
 
             $this->recordAudit($request, 'authorization.role_deleted', 'succeeded', $rolePublicId, [
                 'name' => is_string($values['name'] ?? null) ? $values['name'] : $role,
@@ -52,8 +52,8 @@ final readonly class DestroyRoleController
      */
     private function permissionNames(int $roleId): array
     {
-        return array_values(DB::table(DatabaseTable::ROLE_HAS_PERMISSIONS)
-            ->join(DatabaseTable::PERMISSIONS, 'role_has_permissions.permission_id', '=', 'permissions.id')
+        return array_values(DB::table(AuthorizationDatabaseTable::ROLE_HAS_PERMISSIONS)
+            ->join(AuthorizationDatabaseTable::PERMISSIONS, 'role_has_permissions.permission_id', '=', 'permissions.id')
             ->where('role_has_permissions.role_id', $roleId)
             ->orderBy('permissions.name')
             ->pluck('permissions.name')

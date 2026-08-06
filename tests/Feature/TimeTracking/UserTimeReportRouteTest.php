@@ -4,20 +4,22 @@ declare(strict_types=1);
 
 namespace Tests\Feature\TimeTracking;
 
+use App\Modules\Core\Authorization\Application\Public\Persistence\AuthorizationDatabaseTable;
 use App\Modules\Core\Authorization\Application\Roles\InstallStarterRoles;
 use App\Modules\Core\Identity\Application\Admin\AdministrativeSessionManager;
 use App\Modules\Core\Identity\Application\Admin\ImpersonationManager;
 use App\Modules\Core\Identity\Application\Admin\ImpersonationSimulationStore;
 use App\Modules\Core\Identity\Infrastructure\Persistence\User;
+use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
 use App\Modules\Core\Teams\Infrastructure\Persistence\Team;
 use App\Modules\Core\Users\Application\Permissions\UserPermissionCatalog;
 use App\Modules\Optional\TimeTracking\Application\Contracts\UserTeamTrackingSettings;
 use App\Modules\Optional\TimeTracking\Application\Permissions\TimeTrackingPermissionCatalog;
+use App\Modules\Optional\TimeTracking\Application\Public\Persistence\TimeTrackingDatabaseTable;
 use App\Shared\Application\Modules\Activation\Contracts\ModuleActivationService;
 use App\Shared\Application\Modules\Activation\ModuleActivationChange;
 use App\Shared\Application\Modules\Activation\ModuleActivationScope;
 use App\Shared\Application\Modules\Activation\ModuleActivationSource;
-use App\Shared\Infrastructure\Database\DatabaseTable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -36,7 +38,7 @@ final class UserTimeReportRouteTest extends TestCase
         $this->enableTracking($user, $team);
         $this->assignDirectPermissionInTeam($user, $team, TimeTrackingPermissionCatalog::USER_REPORT);
 
-        DB::table(DatabaseTable::TIME_TRACKING_WORK_SESSIONS)->insert([
+        DB::table(TimeTrackingDatabaseTable::WORK_SESSIONS)->insert([
             'public_id' => (string) Str::ulid(),
             'user_id' => $user->id,
             'team_id' => $team->id,
@@ -76,7 +78,7 @@ final class UserTimeReportRouteTest extends TestCase
         $this->assignDirectPermissionInTeam($user, $team, TimeTrackingPermissionCatalog::USER_CORRECTION_REQUEST_STORE);
         $workSessionPublicId = (string) Str::ulid();
 
-        $workSessionId = DB::table(DatabaseTable::TIME_TRACKING_WORK_SESSIONS)->insertGetId([
+        $workSessionId = DB::table(TimeTrackingDatabaseTable::WORK_SESSIONS)->insertGetId([
             'public_id' => $workSessionPublicId,
             'user_id' => $user->id,
             'team_id' => $team->id,
@@ -102,7 +104,7 @@ final class UserTimeReportRouteTest extends TestCase
             ->assertRedirect('/user/work-time')
             ->assertSessionHas('flash.messages.0.key', 'flash.time_tracking.user_correction_requested');
 
-        $this->assertDatabaseHas(DatabaseTable::TIME_TRACKING_CORRECTION_REQUESTS, [
+        $this->assertDatabaseHas(TimeTrackingDatabaseTable::CORRECTION_REQUESTS, [
             'user_id' => $user->id,
             'team_id' => $team->id,
             'work_session_id' => $workSessionId,
@@ -111,10 +113,10 @@ final class UserTimeReportRouteTest extends TestCase
             'status' => 'pending',
             'request_type' => 'exact_change',
         ]);
-        $correctionId = DB::table(DatabaseTable::TIME_TRACKING_CORRECTION_REQUESTS)->where('source_id', $workSessionId)->value('id');
+        $correctionId = DB::table(TimeTrackingDatabaseTable::CORRECTION_REQUESTS)->where('source_id', $workSessionId)->value('id');
 
         self::assertIsNumeric($correctionId);
-        $this->assertDatabaseHas(DatabaseTable::TIME_TRACKING_CORRECTION_PROPOSALS, [
+        $this->assertDatabaseHas(TimeTrackingDatabaseTable::CORRECTION_PROPOSALS, [
             'correction_request_id' => (int) $correctionId,
             'original_exact_seconds' => 5400,
             'proposed_exact_seconds' => 7200,
@@ -128,7 +130,7 @@ final class UserTimeReportRouteTest extends TestCase
         $this->enableTracking($user, $team);
         $this->assignDirectPermissionInTeam($user, $team, TimeTrackingPermissionCatalog::USER_REPORT);
 
-        DB::table(DatabaseTable::TIME_TRACKING_BREAK_POLICIES)->insert([
+        DB::table(TimeTrackingDatabaseTable::BREAK_POLICIES)->insert([
             'public_id' => (string) Str::ulid(),
             'scope_type' => 'team',
             'scope_id' => $team->id,
@@ -138,7 +140,7 @@ final class UserTimeReportRouteTest extends TestCase
             'created_at' => now(),
             'updated_at' => now(),
         ]);
-        $workSessionId = DB::table(DatabaseTable::TIME_TRACKING_WORK_SESSIONS)->insertGetId([
+        $workSessionId = DB::table(TimeTrackingDatabaseTable::WORK_SESSIONS)->insertGetId([
             'public_id' => (string) Str::ulid(),
             'user_id' => $user->id,
             'team_id' => $team->id,
@@ -152,7 +154,7 @@ final class UserTimeReportRouteTest extends TestCase
         ]);
 
         foreach ([['09:00:00', '09:20:00'], ['10:00:00', '10:20:00']] as [$start, $end]) {
-            DB::table(DatabaseTable::TIME_TRACKING_BREAKS)->insert([
+            DB::table(TimeTrackingDatabaseTable::BREAKS)->insert([
                 'public_id' => (string) Str::ulid(),
                 'work_session_id' => $workSessionId,
                 'user_id' => $user->id,
@@ -239,7 +241,7 @@ final class UserTimeReportRouteTest extends TestCase
         $this->assignDirectPermissionInTeam($manager, $team, TimeTrackingPermissionCatalog::MANAGER_REPORT);
         $this->createManagerRelationship($manager, $report, $team);
 
-        DB::table(DatabaseTable::TIME_TRACKING_WORK_SESSIONS)->insert([
+        DB::table(TimeTrackingDatabaseTable::WORK_SESSIONS)->insert([
             [
                 'public_id' => (string) Str::ulid(),
                 'user_id' => $report->id,
@@ -305,7 +307,7 @@ final class UserTimeReportRouteTest extends TestCase
         $scopedSessionPublicId = (string) Str::ulid();
         $outsideSessionPublicId = (string) Str::ulid();
 
-        DB::table(DatabaseTable::TIME_TRACKING_WORK_SESSIONS)->insert([
+        DB::table(TimeTrackingDatabaseTable::WORK_SESSIONS)->insert([
             [
                 'public_id' => $scopedSessionPublicId,
                 'user_id' => $report->id,
@@ -460,7 +462,7 @@ final class UserTimeReportRouteTest extends TestCase
                 ->where('summary.totalSeconds', 0)
                 ->where('comparison', null));
 
-        $this->assertDatabaseMissing(DatabaseTable::TIME_TRACKING_WORK_SESSIONS, [
+        $this->assertDatabaseMissing(TimeTrackingDatabaseTable::WORK_SESSIONS, [
             'user_id' => $target->id,
             'team_id' => $team->id,
         ]);
@@ -488,7 +490,7 @@ final class UserTimeReportRouteTest extends TestCase
             ]);
 
         self::assertIsArray($this->app->make(ImpersonationSimulationStore::class)->get($sessionId, 'time-tracking.activity'));
-        $this->assertDatabaseMissing(DatabaseTable::TIME_TRACKING_WORK_SESSIONS, [
+        $this->assertDatabaseMissing(TimeTrackingDatabaseTable::WORK_SESSIONS, [
             'user_id' => $target->id,
             'team_id' => $team->id,
         ]);
@@ -509,7 +511,7 @@ final class UserTimeReportRouteTest extends TestCase
             'is_active' => true,
         ]);
 
-        DB::table(DatabaseTable::TEAM_USER_ASSIGNMENTS)->insert([
+        DB::table(TeamsDatabaseTable::TEAM_USER_ASSIGNMENTS)->insert([
             'team_id' => $team->id,
             'user_id' => $user->id,
             'created_at' => now(),
@@ -521,7 +523,7 @@ final class UserTimeReportRouteTest extends TestCase
 
     private function addUserToTeam(User $user, Team $team): void
     {
-        DB::table(DatabaseTable::TEAM_USER_ASSIGNMENTS)->insert([
+        DB::table(TeamsDatabaseTable::TEAM_USER_ASSIGNMENTS)->insert([
             'team_id' => $team->id,
             'user_id' => $user->id,
             'created_at' => now(),
@@ -531,7 +533,7 @@ final class UserTimeReportRouteTest extends TestCase
 
     private function createManagerRelationship(User $manager, User $report, Team $team): void
     {
-        DB::table(DatabaseTable::TEAM_MANAGER_RELATIONSHIPS)->insert([
+        DB::table(TeamsDatabaseTable::TEAM_MANAGER_RELATIONSHIPS)->insert([
             'public_id' => (string) Str::ulid(),
             'team_id' => $team->id,
             'manager_user_id' => $manager->id,
@@ -547,7 +549,7 @@ final class UserTimeReportRouteTest extends TestCase
     {
         $permission = Permission::query()->where('name', $permissionName)->firstOrFail();
 
-        DB::table(DatabaseTable::MODEL_HAS_PERMISSIONS)->insert([
+        DB::table(AuthorizationDatabaseTable::MODEL_HAS_PERMISSIONS)->insert([
             'permission_id' => $permission->id,
             'model_type' => config('auth.providers.users.model'),
             'model_id' => $user->id,
@@ -591,7 +593,7 @@ final class UserTimeReportRouteTest extends TestCase
 
     private function enableTracking(User $user, Team $team): void
     {
-        $assignmentId = DB::table(DatabaseTable::TEAM_USER_ASSIGNMENTS)
+        $assignmentId = DB::table(TeamsDatabaseTable::TEAM_USER_ASSIGNMENTS)
             ->where('team_id', $team->id)
             ->where('user_id', $user->id)
             ->value('id');

@@ -7,9 +7,9 @@ namespace App\Modules\Core\Teams\Application\Exports;
 use App\Modules\Core\Exports\Application\Public\AbstractAdminDataTableExportProvider;
 use App\Modules\Core\Exports\Application\Public\DTOs\ReportExportGenerationRequest;
 use App\Modules\Core\Exports\Application\Public\Permissions\ReportsPermissionCatalog;
+use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
 use App\Modules\Core\Teams\Infrastructure\Persistence\Team;
 use App\Shared\Application\Tables\AdminTableDefinitions;
-use App\Shared\Infrastructure\Database\DatabaseTable;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Facades\DB;
 
@@ -57,7 +57,7 @@ final readonly class AdminTeamsDataTableExportProvider extends AbstractAdminData
     public function rows(ReportExportGenerationRequest $request): iterable
     {
         $rows = array_values(Team::query()
-            ->from(DatabaseTable::TEAMS.' as teams')
+            ->from(TeamsDatabaseTable::TEAMS.' as teams')
             ->select([
                 'teams.id',
                 'teams.public_id',
@@ -68,7 +68,7 @@ final readonly class AdminTeamsDataTableExportProvider extends AbstractAdminData
                 'teams.updated_at',
             ])
             ->selectSub(
-                DB::table(DatabaseTable::TEAM_USER_ASSIGNMENTS)
+                DB::table(TeamsDatabaseTable::TEAM_USER_ASSIGNMENTS)
                     ->selectRaw('count(*)')
                     ->whereColumn('team_user_assignments.team_id', 'teams.id')
                     ->where(static function (Builder $query): void {

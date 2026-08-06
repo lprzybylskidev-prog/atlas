@@ -4,10 +4,11 @@ declare(strict_types=1);
 
 namespace App\Modules\Optional\TimeTracking\Infrastructure\Persistence;
 
+use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
 use App\Modules\Optional\TimeTracking\Application\Contracts\BreakPolicyStore;
 use App\Modules\Optional\TimeTracking\Application\DTOs\BreakPolicy;
 use App\Modules\Optional\TimeTracking\Application\Enums\BreakPolicyScope;
-use App\Shared\Infrastructure\Database\DatabaseTable;
+use App\Modules\Optional\TimeTracking\Application\Public\Persistence\TimeTrackingDatabaseTable;
 use Illuminate\Database\ConnectionInterface;
 use Illuminate\Support\Str;
 
@@ -65,7 +66,7 @@ final readonly class DatabaseBreakPolicyStore implements BreakPolicyStore
 
     public function clearUserTeamPolicy(int $teamUserAssignmentId): void
     {
-        $this->database->table(DatabaseTable::TIME_TRACKING_BREAK_POLICIES)
+        $this->database->table(TimeTrackingDatabaseTable::BREAK_POLICIES)
             ->where('scope_type', BreakPolicyScope::UserTeam->value)
             ->where('scope_id', $teamUserAssignmentId)
             ->delete();
@@ -73,7 +74,7 @@ final readonly class DatabaseBreakPolicyStore implements BreakPolicyStore
 
     private function activeAssignmentId(int $userId, int $teamId): ?int
     {
-        $id = $this->database->table(DatabaseTable::TEAM_USER_ASSIGNMENTS)
+        $id = $this->database->table(TeamsDatabaseTable::TEAM_USER_ASSIGNMENTS)
             ->where('user_id', $userId)
             ->where('team_id', $teamId)
             ->whereNull('valid_to')
@@ -84,7 +85,7 @@ final readonly class DatabaseBreakPolicyStore implements BreakPolicyStore
 
     private function policy(BreakPolicyScope $scope, int $scopeId): ?BreakPolicy
     {
-        $row = $this->database->table(DatabaseTable::TIME_TRACKING_BREAK_POLICIES)
+        $row = $this->database->table(TimeTrackingDatabaseTable::BREAK_POLICIES)
             ->where('scope_type', $scope->value)
             ->where('scope_id', $scopeId)
             ->first(['daily_limit_seconds', 'maximum_single_break_seconds', 'warning_before_maximum_seconds']);
@@ -116,7 +117,7 @@ final readonly class DatabaseBreakPolicyStore implements BreakPolicyStore
         );
         $now = now();
 
-        $this->database->table(DatabaseTable::TIME_TRACKING_BREAK_POLICIES)->upsert([
+        $this->database->table(TimeTrackingDatabaseTable::BREAK_POLICIES)->upsert([
             [
                 'public_id' => (string) Str::ulid(),
                 'scope_type' => $scope->value,

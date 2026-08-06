@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Foundation;
 
+use App\Modules\Core\Audit\Application\Public\Persistence\AuditDatabaseTable;
 use App\Modules\Core\Authorization\Application\Contracts\OnboardingPackageStore;
 use App\Modules\Core\Authorization\Application\Packages\ApplyOnboardingPackageToUser;
 use App\Modules\Core\Authorization\Application\Packages\PackageRoleManager;
 use App\Modules\Core\Authorization\Application\Permissions\CoreAuthorizationPermissionCatalog;
+use App\Modules\Core\Authorization\Application\Public\Persistence\AuthorizationDatabaseTable;
 use App\Modules\Core\Authorization\Application\Roles\InstallStarterRoles;
 use App\Modules\Core\Authorization\Application\Roles\StarterRoleName;
 use App\Modules\Core\Identity\Infrastructure\Persistence\User;
@@ -16,7 +18,6 @@ use App\Modules\Core\Teams\Infrastructure\Persistence\Team;
 use App\Modules\Core\Users\Application\Commands\CreateUserAccountCommand;
 use App\Modules\Core\Users\Application\CreateUserAccount;
 use App\Modules\Core\Users\Infrastructure\Notifications\FirstPasswordSetupNotification;
-use App\Shared\Infrastructure\Database\DatabaseTable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
 use InvalidArgumentException;
@@ -91,12 +92,12 @@ final class OnboardingPermissionPackageTest extends TestCase
         $applier = $this->app->make(ApplyOnboardingPackageToUser::class);
         $applier->apply('collections.team_leader', $user->public_id, $team->public_id, null, duringUserCreation: true);
 
-        self::assertDatabaseHas(DatabaseTable::USER_ONBOARDING_PACKAGES, [
+        self::assertDatabaseHas(AuthorizationDatabaseTable::USER_ONBOARDING_PACKAGES, [
             'user_id' => $user->id,
             'team_id' => $team->id,
             'package_name' => 'collections.team_leader',
         ]);
-        self::assertDatabaseHas(DatabaseTable::AUDIT_EVENTS, [
+        self::assertDatabaseHas(AuditDatabaseTable::AUDIT_EVENTS, [
             'action' => 'authorization.user_onboarding_package_applied',
             'target_public_id' => $user->public_id,
         ]);
@@ -130,12 +131,12 @@ final class OnboardingPermissionPackageTest extends TestCase
 
         $user = User::query()->where('public_id', $created->publicId)->firstOrFail();
 
-        self::assertDatabaseHas(DatabaseTable::USER_ONBOARDING_PACKAGES, [
+        self::assertDatabaseHas(AuthorizationDatabaseTable::USER_ONBOARDING_PACKAGES, [
             'user_id' => $user->id,
             'team_id' => $team->id,
             'package_name' => 'collections.team_leader',
         ]);
-        self::assertDatabaseHas(DatabaseTable::AUDIT_EVENTS, [
+        self::assertDatabaseHas(AuditDatabaseTable::AUDIT_EVENTS, [
             'action' => 'authorization.user_onboarding_package_applied',
             'target_public_id' => $created->publicId,
         ]);

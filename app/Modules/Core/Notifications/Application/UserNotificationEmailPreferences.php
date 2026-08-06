@@ -5,7 +5,8 @@ declare(strict_types=1);
 namespace App\Modules\Core\Notifications\Application;
 
 use App\Modules\Core\Notifications\Application\Public\Contracts\NotificationEmailPreferenceManager;
-use App\Shared\Infrastructure\Database\DatabaseTable;
+use App\Modules\Core\Notifications\Application\Public\Persistence\NotificationsDatabaseTable;
+use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
 use DateTimeInterface;
 use Illuminate\Mail\Message;
 use Illuminate\Support\Facades\DB;
@@ -30,7 +31,7 @@ final readonly class UserNotificationEmailPreferences implements NotificationEma
         $this->ensurePrimaryAddressForUser($userId, $primaryEmail, $primaryEmailVerifiedAt, $teamId);
         $this->ensureAllAddressPreferences($userId, $teamId);
 
-        $addresses = DB::table(DatabaseTable::NOTIFICATION_EMAIL_ADDRESSES.' as addresses')
+        $addresses = DB::table(NotificationsDatabaseTable::NOTIFICATION_EMAIL_ADDRESSES.' as addresses')
             ->where('addresses.user_id', $userId)
             ->where('addresses.team_id', $teamId)
             ->orderByDesc('addresses.primary')
@@ -39,7 +40,7 @@ final readonly class UserNotificationEmailPreferences implements NotificationEma
             ->map(function (object $address) use ($teamId): array {
                 $values = get_object_vars($address);
                 $addressId = $this->intValue($values['id'] ?? null);
-                $enabledTypes = DB::table(DatabaseTable::NOTIFICATION_EMAIL_PREFERENCES)
+                $enabledTypes = DB::table(NotificationsDatabaseTable::NOTIFICATION_EMAIL_PREFERENCES)
                     ->where('notification_email_address_id', $addressId)
                     ->where('team_id', $teamId)
                     ->where('enabled', true)
@@ -81,7 +82,7 @@ final readonly class UserNotificationEmailPreferences implements NotificationEma
 
         $now = now();
         $token = Str::random(64);
-        $existingId = DB::table(DatabaseTable::NOTIFICATION_EMAIL_ADDRESSES)
+        $existingId = DB::table(NotificationsDatabaseTable::NOTIFICATION_EMAIL_ADDRESSES)
             ->where('user_id', $userId)
             ->where('team_id', $teamId)
             ->where('email', $email)
@@ -89,7 +90,7 @@ final readonly class UserNotificationEmailPreferences implements NotificationEma
 
         if (is_numeric($existingId)) {
             $addressId = (int) $existingId;
-            $verified = DB::table(DatabaseTable::NOTIFICATION_EMAIL_ADDRESSES)
+            $verified = DB::table(NotificationsDatabaseTable::NOTIFICATION_EMAIL_ADDRESSES)
                 ->where('id', $addressId)
                 ->whereNotNull('verified_at')
                 ->exists();
@@ -100,7 +101,7 @@ final readonly class UserNotificationEmailPreferences implements NotificationEma
                 return;
             }
 
-            DB::table(DatabaseTable::NOTIFICATION_EMAIL_ADDRESSES)
+            DB::table(NotificationsDatabaseTable::NOTIFICATION_EMAIL_ADDRESSES)
                 ->where('id', $addressId)
                 ->update([
                     'verification_token_hash' => Hash::make($token),
@@ -108,7 +109,7 @@ final readonly class UserNotificationEmailPreferences implements NotificationEma
                     'updated_at' => $now,
                 ]);
         } else {
-            $addressId = DB::table(DatabaseTable::NOTIFICATION_EMAIL_ADDRESSES)->insertGetId([
+            $addressId = DB::table(NotificationsDatabaseTable::NOTIFICATION_EMAIL_ADDRESSES)->insertGetId([
                 'public_id' => (string) Str::ulid(),
                 'user_id' => $userId,
                 'team_id' => $teamId,
@@ -145,7 +146,7 @@ final readonly class UserNotificationEmailPreferences implements NotificationEma
         $knownTypes ??= $this->catalog->names();
         $enabled = array_values(array_intersect($knownTypes, $enabledTypes));
 
-        $address = DB::table(DatabaseTable::NOTIFICATION_EMAIL_ADDRESSES)
+        $address = DB::table(NotificationsDatabaseTable::NOTIFICATION_EMAIL_ADDRESSES)
             ->where('public_id', $addressPublicId)
             ->where('user_id', $userId)
             ->where('team_id', $teamId)
@@ -159,7 +160,7 @@ final readonly class UserNotificationEmailPreferences implements NotificationEma
         $this->insertDefaultPreferences($addressId, $teamId);
 
         foreach ($knownTypes as $type) {
-            DB::table(DatabaseTable::NOTIFICATION_EMAIL_PREFERENCES)
+            DB::table(NotificationsDatabaseTable::NOTIFICATION_EMAIL_PREFERENCES)
                 ->where('notification_email_address_id', $addressId)
                 ->where('team_id', $teamId)
                 ->where('notification_type', $type)
@@ -172,7 +173,7 @@ final readonly class UserNotificationEmailPreferences implements NotificationEma
 
     public function verifyForUser(int $userId, string $addressPublicId, string $token): bool
     {
-        $address = DB::table(DatabaseTable::NOTIFICATION_EMAIL_ADDRESSES)
+        $address = DB::table(NotificationsDatabaseTable::NOTIFICATION_EMAIL_ADDRESSES)
             ->where('public_id', $addressPublicId)
             ->where('user_id', $userId)
             ->first(['id', 'verification_token_hash']);
@@ -188,7 +189,7 @@ final readonly class UserNotificationEmailPreferences implements NotificationEma
             return false;
         }
 
-        DB::table(DatabaseTable::NOTIFICATION_EMAIL_ADDRESSES)
+        DB::table(NotificationsDatabaseTable::NOTIFICATION_EMAIL_ADDRESSES)
             ->where('id', $this->intValue($values['id'] ?? null))
             ->update([
                 'verified_at' => now(),
@@ -203,13 +204,13 @@ final readonly class UserNotificationEmailPreferences implements NotificationEma
     {
         $email = mb_strtolower($primaryEmail);
         $now = now();
-        $existingId = DB::table(DatabaseTable::NOTIFICATION_EMAIL_ADDRESSES)
+        $existingId = DB::table(NotificationsDatabaseTable::NOTIFICATION_EMAIL_ADDRESSES)
             ->where('user_id', $userId)
             ->where('team_id', $teamId)
             ->where('email', $email)
             ->value('id');
 
-        DB::table(DatabaseTable::NOTIFICATION_EMAIL_ADDRESSES)
+        DB::table(NotificationsDatabaseTable::NOTIFICATION_EMAIL_ADDRESSES)
             ->where('user_id', $userId)
             ->where('team_id', $teamId)
             ->where('email', '!=', $email)
@@ -220,7 +221,7 @@ final readonly class UserNotificationEmailPreferences implements NotificationEma
             ]);
 
         if (is_numeric($existingId)) {
-            DB::table(DatabaseTable::NOTIFICATION_EMAIL_ADDRESSES)
+            DB::table(NotificationsDatabaseTable::NOTIFICATION_EMAIL_ADDRESSES)
                 ->where('id', (int) $existingId)
                 ->update([
                     'primary' => true,
@@ -235,7 +236,7 @@ final readonly class UserNotificationEmailPreferences implements NotificationEma
             return;
         }
 
-        $addressId = DB::table(DatabaseTable::NOTIFICATION_EMAIL_ADDRESSES)->insertGetId([
+        $addressId = DB::table(NotificationsDatabaseTable::NOTIFICATION_EMAIL_ADDRESSES)->insertGetId([
             'public_id' => (string) Str::ulid(),
             'user_id' => $userId,
             'team_id' => $teamId,
@@ -253,7 +254,7 @@ final readonly class UserNotificationEmailPreferences implements NotificationEma
 
     private function ensureAllAddressPreferences(int $userId, ?int $teamId): void
     {
-        DB::table(DatabaseTable::NOTIFICATION_EMAIL_ADDRESSES)
+        DB::table(NotificationsDatabaseTable::NOTIFICATION_EMAIL_ADDRESSES)
             ->where('user_id', $userId)
             ->where('team_id', $teamId)
             ->pluck('id')
@@ -263,7 +264,7 @@ final readonly class UserNotificationEmailPreferences implements NotificationEma
     private function insertDefaultPreferences(int $addressId, ?int $teamId): void
     {
         foreach ($this->catalog->names() as $type) {
-            $exists = DB::table(DatabaseTable::NOTIFICATION_EMAIL_PREFERENCES)
+            $exists = DB::table(NotificationsDatabaseTable::NOTIFICATION_EMAIL_PREFERENCES)
                 ->where('notification_email_address_id', $addressId)
                 ->where('team_id', $teamId)
                 ->where('notification_type', $type)
@@ -273,7 +274,7 @@ final readonly class UserNotificationEmailPreferences implements NotificationEma
                 continue;
             }
 
-            DB::table(DatabaseTable::NOTIFICATION_EMAIL_PREFERENCES)->insert([
+            DB::table(NotificationsDatabaseTable::NOTIFICATION_EMAIL_PREFERENCES)->insert([
                 'notification_email_address_id' => $addressId,
                 'team_id' => $teamId,
                 'notification_type' => $type,
@@ -286,7 +287,7 @@ final readonly class UserNotificationEmailPreferences implements NotificationEma
 
     private function addressPublicId(int $addressId): string
     {
-        $publicId = DB::table(DatabaseTable::NOTIFICATION_EMAIL_ADDRESSES)
+        $publicId = DB::table(NotificationsDatabaseTable::NOTIFICATION_EMAIL_ADDRESSES)
             ->where('id', $addressId)
             ->value('public_id');
 
@@ -299,7 +300,7 @@ final readonly class UserNotificationEmailPreferences implements NotificationEma
             return null;
         }
 
-        $id = DB::table(DatabaseTable::TEAMS)->where('public_id', $teamPublicId)->value('id');
+        $id = DB::table(TeamsDatabaseTable::TEAMS)->where('public_id', $teamPublicId)->value('id');
 
         return is_numeric($id) ? (int) $id : null;
     }

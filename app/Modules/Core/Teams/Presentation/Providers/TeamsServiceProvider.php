@@ -10,12 +10,15 @@ use App\Modules\Core\Teams\Application\Lifecycle\TeamUserDataLifecycleParticipan
 use App\Modules\Core\Teams\Application\Permissions\TeamPermissionCatalog;
 use App\Modules\Core\Teams\Application\Public\Contracts\BootstrapTeamProvider;
 use App\Modules\Core\Teams\Application\Public\Contracts\ManagerHierarchy;
+use App\Modules\Core\Teams\Application\Public\Contracts\TeamLookup;
 use App\Modules\Core\Teams\Application\Public\Contracts\UserTeamMembershipManager;
 use App\Modules\Core\Teams\Application\Public\Contracts\UserTeamSessionLimitSettings;
 use App\Modules\Core\Teams\Infrastructure\Persistence\DatabaseManagerHierarchy;
 use App\Modules\Core\Teams\Infrastructure\Persistence\DatabaseUserTeamMembershipManager;
 use App\Modules\Core\Teams\Infrastructure\Persistence\DatabaseUserTeamSessionLimitSettings;
 use App\Modules\Core\Teams\Infrastructure\Persistence\EloquentBootstrapTeamProvider;
+use App\Modules\Core\Teams\Presentation\Inertia\TeamsInertiaData;
+use App\Modules\Core\Teams\Presentation\Inertia\TeamsRouteAvailability;
 use Illuminate\Support\ServiceProvider;
 
 final class TeamsServiceProvider extends ServiceProvider
@@ -23,10 +26,13 @@ final class TeamsServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->bind(BootstrapTeamProvider::class, EloquentBootstrapTeamProvider::class);
+        $this->app->bind(TeamLookup::class, DatabaseUserTeamMembershipManager::class);
         $this->app->bind(UserTeamMembershipManager::class, DatabaseUserTeamMembershipManager::class);
         $this->app->bind(UserTeamSessionLimitSettings::class, DatabaseUserTeamSessionLimitSettings::class);
         $this->app->bind(ManagerHierarchy::class, DatabaseManagerHierarchy::class);
         $this->app->tag([TeamPermissionCatalog::class], 'atlas.permission_catalogs');
+        $this->app->tag([TeamsInertiaData::class], 'atlas.inertia_shared_data');
+        $this->app->tag([TeamsRouteAvailability::class], 'atlas.inertia_route_availability');
         $this->app->tag([TeamUserDataLifecycleParticipant::class], 'atlas.data_lifecycle_participants');
         $this->app->tag([
             AdminManagerRelationshipHistoryDataTableExportProvider::class,

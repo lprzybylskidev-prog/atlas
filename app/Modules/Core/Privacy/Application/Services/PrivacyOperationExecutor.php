@@ -10,10 +10,10 @@ use App\Modules\Core\Audit\Application\Public\Enums\SecurityAuditCategory;
 use App\Modules\Core\Privacy\Application\DTOs\PrivacyExecutionResult;
 use App\Modules\Core\Privacy\Application\Enums\PrivacyOperation;
 use App\Modules\Core\Privacy\Application\Exceptions\PrivacyOperationExecutionException;
+use App\Modules\Core\Privacy\Application\Public\Persistence\PrivacyDatabaseTable;
 use App\Shared\Application\DataLifecycle\DataLifecycleBlocker;
 use App\Shared\Application\DataLifecycle\DataLifecycleStepResult;
 use App\Shared\Application\DataLifecycle\DataLifecycleSubject;
-use App\Shared\Infrastructure\Database\DatabaseTable;
 use Illuminate\Database\ConnectionInterface;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Str;
@@ -112,8 +112,8 @@ final readonly class PrivacyOperationExecutor
     private function reserveExecutableRequest(string $operationRequestPublicId, PrivacyOperation $expectedOperation, string $confirmationPhrase): array
     {
         return $this->db->transaction(function () use ($operationRequestPublicId, $expectedOperation, $confirmationPhrase): array {
-            $request = $this->db->table(DatabaseTable::PRIVACY_OPERATION_REQUESTS.' as requests')
-                ->join(DatabaseTable::PRIVACY_OPERATION_PREVIEWS.' as previews', 'previews.operation_request_id', '=', 'requests.id')
+            $request = $this->db->table(PrivacyDatabaseTable::OPERATION_REQUESTS.' as requests')
+                ->join(PrivacyDatabaseTable::OPERATION_PREVIEWS.' as previews', 'previews.operation_request_id', '=', 'requests.id')
                 ->where('requests.public_id', $operationRequestPublicId)
                 ->orderByDesc('previews.created_at')
                 ->lockForUpdate()
@@ -158,7 +158,7 @@ final readonly class PrivacyOperationExecutor
                 throw new PrivacyOperationExecutionException('privacy_execution_not_executable');
             }
 
-            $this->db->table(DatabaseTable::PRIVACY_OPERATION_REQUESTS)
+            $this->db->table(PrivacyDatabaseTable::OPERATION_REQUESTS)
                 ->where('id', $requestId)
                 ->update([
                     'status' => 'executing',
@@ -199,7 +199,7 @@ final readonly class PrivacyOperationExecutor
         int $affectedRecords,
     ): void {
         $this->db->transaction(function () use ($requestId, $publicId, $operation, $subject, $status, $completed, $actorUserId, $actorPublicId, $teamPublicId, $correlationId, $reason, $steps, $blockers, $affectedRecords): void {
-            $this->db->table(DatabaseTable::PRIVACY_OPERATION_REQUESTS)
+            $this->db->table(PrivacyDatabaseTable::OPERATION_REQUESTS)
                 ->where('id', $requestId)
                 ->update([
                     'status' => $status,
@@ -281,7 +281,7 @@ final readonly class PrivacyOperationExecutor
 
     private function hasActiveLegalHold(string $subjectType, string $subjectIdentifier): bool
     {
-        return $this->db->table(DatabaseTable::PRIVACY_LEGAL_HOLDS)
+        return $this->db->table(PrivacyDatabaseTable::LEGAL_HOLDS)
             ->where('subject_type', $subjectType)
             ->where('subject_identifier', $subjectIdentifier)
             ->whereNull('released_at')

@@ -6,7 +6,9 @@ namespace App\Modules\Optional\TimeTracking\Application;
 
 use App\Modules\Core\Audit\Application\Public\Contracts\AuditRecorder;
 use App\Modules\Core\Audit\Application\Public\DTOs\AuditEvent;
-use App\Shared\Infrastructure\Database\DatabaseTable;
+use App\Modules\Core\Identity\Application\Public\Persistence\IdentityDatabaseTable;
+use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
+use App\Modules\Optional\TimeTracking\Application\Public\Persistence\TimeTrackingDatabaseTable;
 use Illuminate\Database\ConnectionInterface;
 
 final readonly class TimeTrackingAudit
@@ -62,7 +64,7 @@ final readonly class TimeTrackingAudit
         string $reason,
         array $after,
     ): void {
-        $request = $this->database->table(DatabaseTable::TIME_TRACKING_CORRECTION_REQUESTS)
+        $request = $this->database->table(TimeTrackingDatabaseTable::CORRECTION_REQUESTS)
             ->where('id', $requestId)
             ->first(['public_id', 'user_id', 'team_id']);
 
@@ -80,12 +82,12 @@ final readonly class TimeTrackingAudit
 
     private function userPublicId(int $userId): ?string
     {
-        return $this->stringValue($this->database->table(DatabaseTable::USERS)->where('id', $userId)->value('public_id'));
+        return $this->stringValue($this->database->table(IdentityDatabaseTable::USERS)->where('id', $userId)->value('public_id'));
     }
 
     private function teamPublicId(int $teamId): ?string
     {
-        return $this->stringValue($this->database->table(DatabaseTable::TEAMS)->where('id', $teamId)->value('public_id'));
+        return $this->stringValue($this->database->table(TeamsDatabaseTable::TEAMS)->where('id', $teamId)->value('public_id'));
     }
 
     private function stringValue(mixed $value): ?string

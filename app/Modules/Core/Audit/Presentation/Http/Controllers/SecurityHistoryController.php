@@ -4,12 +4,13 @@ declare(strict_types=1);
 
 namespace App\Modules\Core\Audit\Presentation\Http\Controllers;
 
+use App\Modules\Core\Audit\Application\Public\Persistence\AuditDatabaseTable;
+use App\Modules\Core\Identity\Application\Public\Persistence\IdentityDatabaseTable;
 use App\Shared\Application\Tables\AdminTableDefinitions;
 use App\Shared\Application\Tables\ArrayTableProcessor;
 use App\Shared\Application\Tables\TableRequestContext;
 use App\Shared\Application\Tables\TableSavedViewService;
 use App\Shared\Application\Tables\TableState;
-use App\Shared\Infrastructure\Database\DatabaseTable;
 use App\Shared\Presentation\Support\AdminDataTableExportMeta;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Http\Request;
@@ -31,7 +32,7 @@ final readonly class SecurityHistoryController
         $state = TableState::fromRequest($request, $definition);
         [$userId, $teamId] = $this->context->userTeam($request);
         $filters = $this->filters($request);
-        $query = DB::table(DatabaseTable::AUDIT_EVENTS)
+        $query = DB::table(AuditDatabaseTable::AUDIT_EVENTS)
             ->where('is_security', true);
 
         if ($filters['user'] !== '' && $filters['user'] !== 'all') {
@@ -138,7 +139,7 @@ final readonly class SecurityHistoryController
 
         $users = [];
 
-        foreach (DB::table(DatabaseTable::USERS)
+        foreach (DB::table(IdentityDatabaseTable::USERS)
             ->whereIn('public_id', array_keys($publicIds))
             ->get(['public_id', 'name', 'email'])
             ->all() as $user) {
@@ -267,7 +268,7 @@ final readonly class SecurityHistoryController
     {
         $options = [];
 
-        foreach (DB::table(DatabaseTable::USERS)
+        foreach (DB::table(IdentityDatabaseTable::USERS)
             ->orderBy('name')
             ->orderBy('email')
             ->get(['public_id', 'name', 'email'])
@@ -302,7 +303,7 @@ final readonly class SecurityHistoryController
     {
         $options = [];
 
-        foreach (DB::table(DatabaseTable::AUDIT_EVENTS)
+        foreach (DB::table(AuditDatabaseTable::AUDIT_EVENTS)
             ->where('is_security', true)
             ->whereNotNull($column)
             ->where($column, '<>', '')

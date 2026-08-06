@@ -4,11 +4,16 @@ declare(strict_types=1);
 
 namespace Tests\Feature\ManagedProcesses;
 
+use App\Modules\Core\Audit\Application\Public\Persistence\AuditDatabaseTable;
+use App\Modules\Core\Authorization\Application\Public\Persistence\AuthorizationDatabaseTable;
 use App\Modules\Core\Authorization\Application\Roles\InstallStarterRoles;
 use App\Modules\Core\Authorization\Application\Roles\StarterRoleName;
 use App\Modules\Core\Exports\Application\Public\Permissions\ReportsPermissionCatalog;
 use App\Modules\Core\Identity\Infrastructure\Persistence\User;
+use App\Modules\Core\Notifications\Application\Public\Persistence\NotificationsDatabaseTable;
+use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
 use App\Modules\Core\Teams\Infrastructure\Persistence\Team;
+use App\Modules\Optional\Imports\Application\Public\Persistence\ImportsDatabaseTable;
 use App\Modules\Optional\ManagedProcesses\Application\Contracts\ManagedProcessHandler;
 use App\Modules\Optional\ManagedProcesses\Application\DTOs\ProcessDefinition;
 use App\Modules\Optional\ManagedProcesses\Application\DTOs\ProcessLogEntry;
@@ -18,11 +23,11 @@ use App\Modules\Optional\ManagedProcesses\Application\Enums\ProcessLogSeverity;
 use App\Modules\Optional\ManagedProcesses\Application\Enums\ProcessRunStatus;
 use App\Modules\Optional\ManagedProcesses\Application\Permissions\ManagedProcessesPermissionCatalog;
 use App\Modules\Optional\ManagedProcesses\Application\Public\Contracts\ManagedProcessRunner;
+use App\Modules\Optional\ManagedProcesses\Application\Public\Persistence\ManagedProcessesDatabaseTable;
 use App\Shared\Application\Modules\Activation\Contracts\ModuleActivationService;
 use App\Shared\Application\Modules\Activation\ModuleActivationChange;
 use App\Shared\Application\Modules\Activation\ModuleActivationScope;
 use App\Shared\Application\Modules\Activation\ModuleActivationSource;
-use App\Shared\Infrastructure\Database\DatabaseTable;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -81,17 +86,17 @@ final class ManagedProcessesAdminTest extends TestCase
 
         $runPublicId = basename((string) $response->headers->get('Location'));
 
-        $this->assertDatabaseHas(DatabaseTable::MANAGED_PROCESS_RUNS, [
+        $this->assertDatabaseHas(ManagedProcessesDatabaseTable::RUNS, [
             'public_id' => $runPublicId,
             'process_key' => 'test.maintenance.rebuild-risk-cache',
             'status' => 'succeeded_with_warnings',
         ]);
-        $this->assertDatabaseHas(DatabaseTable::MANAGED_PROCESS_LOG_EVENTS, [
+        $this->assertDatabaseHas(ManagedProcessesDatabaseTable::LOG_EVENTS, [
             'severity' => 'warning',
             'event_type' => 'stage',
             'stage' => 'normalize',
         ]);
-        $this->assertDatabaseHas(DatabaseTable::REALTIME_EVENTS, [
+        $this->assertDatabaseHas(NotificationsDatabaseTable::REALTIME_EVENTS, [
             'topic' => 'operation-progress',
             'event_type' => 'operation.progress',
         ]);
@@ -143,14 +148,14 @@ final class ManagedProcessesAdminTest extends TestCase
             ->assertRedirect(route('admin.managed-processes.index'))
             ->assertSessionHas('flash.messages.0.key', 'flash.managed_processes.acknowledge_single');
 
-        $runId = DB::table(DatabaseTable::MANAGED_PROCESS_RUNS)->where('public_id', $runPublicId)->value('id');
+        $runId = DB::table(ManagedProcessesDatabaseTable::RUNS)->where('public_id', $runPublicId)->value('id');
 
-        $this->assertDatabaseHas(DatabaseTable::MANAGED_PROCESS_RUN_ACKNOWLEDGEMENTS, [
+        $this->assertDatabaseHas(ManagedProcessesDatabaseTable::RUN_ACKNOWLEDGEMENTS, [
             'process_run_id' => $runId,
             'acknowledged_by_user_id' => $admin->id,
             'reason' => 'Reviewed warning output.',
         ]);
-        $this->assertDatabaseHas(DatabaseTable::AUDIT_EVENTS, [
+        $this->assertDatabaseHas(AuditDatabaseTable::AUDIT_EVENTS, [
             'module' => 'managed_processes',
             'action' => 'managed_process.run_acknowledge',
             'target_public_id' => $runPublicId,
@@ -186,9 +191,9 @@ final class ManagedProcessesAdminTest extends TestCase
             ->assertRedirect();
 
         $retryRunPublicId = basename((string) $retryResponse->headers->get('Location'));
-        $originalRunId = DB::table(DatabaseTable::MANAGED_PROCESS_RUNS)->where('public_id', $runPublicId)->value('id');
+        $originalRunId = DB::table(ManagedProcessesDatabaseTable::RUNS)->where('public_id', $runPublicId)->value('id');
 
-        $this->assertDatabaseHas(DatabaseTable::MANAGED_PROCESS_RUNS, [
+        $this->assertDatabaseHas(ManagedProcessesDatabaseTable::RUNS, [
             'public_id' => $retryRunPublicId,
             'source_type' => 'retry',
             'retry_of_run_id' => $originalRunId,
@@ -210,17 +215,17 @@ final class ManagedProcessesAdminTest extends TestCase
             ->assertRedirect();
         $runPublicId = basename((string) $response->headers->get('Location'));
 
-        $this->assertDatabaseHas(DatabaseTable::MANAGED_PROCESS_RUNS, [
+        $this->assertDatabaseHas(ManagedProcessesDatabaseTable::RUNS, [
             'public_id' => $runPublicId,
             'process_key' => 'test.imports.debtor-ledger',
             'status' => 'succeeded_with_warnings',
         ]);
-        $this->assertDatabaseHas(DatabaseTable::IMPORT_EXECUTIONS, [
+        $this->assertDatabaseHas(ImportsDatabaseTable::EXECUTIONS, [
             'source_type' => 'csv',
             'idempotency_key' => 'test-import-csv',
             'idempotency_state' => 'completed',
         ]);
-        $this->assertDatabaseHas(DatabaseTable::IMPORT_ROW_ERRORS, [
+        $this->assertDatabaseHas(ImportsDatabaseTable::ROW_ERRORS, [
             'field_name' => 'currency',
             'error_code' => 'currency.unsupported_test',
         ]);
@@ -260,19 +265,19 @@ final class ManagedProcessesAdminTest extends TestCase
             teamPublicId: (string) $team->public_id,
         );
 
-        $this->assertDatabaseHas(DatabaseTable::MANAGED_PROCESS_RUNS, [
+        $this->assertDatabaseHas(ManagedProcessesDatabaseTable::RUNS, [
             'public_id' => $runPublicId,
             'process_key' => 'test.exports.generate',
             'status' => ProcessRunStatus::Succeeded->value,
         ]);
-        $this->assertDatabaseHas(DatabaseTable::NOTIFICATIONS, [
+        $this->assertDatabaseHas(NotificationsDatabaseTable::NOTIFICATIONS, [
             'type' => 'managed_process.succeeded',
             'title' => 'notifications.managed_process.succeeded.title',
             'body' => 'notifications.managed_process.succeeded.body',
             'deep_link_url' => null,
         ]);
 
-        $notification = DB::table(DatabaseTable::NOTIFICATIONS)
+        $notification = DB::table(NotificationsDatabaseTable::NOTIFICATIONS)
             ->where('type', 'managed_process.succeeded')
             ->first(['data']);
 
@@ -319,7 +324,7 @@ final class ManagedProcessesAdminTest extends TestCase
             ])
             ->assertRedirect(route('admin.managed-processes.schedules.index'));
 
-        $schedule = $this->app['db']->table(DatabaseTable::MANAGED_PROCESS_SCHEDULES)->first();
+        $schedule = $this->app['db']->table(ManagedProcessesDatabaseTable::SCHEDULES)->first();
         $this->assertNotNull($schedule);
         $schedulePublicId = is_scalar($schedule->public_id ?? null) ? (string) $schedule->public_id : '';
 
@@ -330,7 +335,7 @@ final class ManagedProcessesAdminTest extends TestCase
             ])
             ->assertRedirect(route('admin.managed-processes.schedules.index'));
 
-        $this->assertDatabaseHas(DatabaseTable::MANAGED_PROCESS_SCHEDULES, [
+        $this->assertDatabaseHas(ManagedProcessesDatabaseTable::SCHEDULES, [
             'public_id' => $schedulePublicId,
             'enabled' => false,
             'cron_expression' => '15 2 * * 1-5',
@@ -384,7 +389,7 @@ final class ManagedProcessesAdminTest extends TestCase
         [$admin, $team] = $this->adminWithTeam();
         $runPublicId = (string) Str::ulid();
 
-        DB::table(DatabaseTable::MANAGED_PROCESS_RUNS)->insert([
+        DB::table(ManagedProcessesDatabaseTable::RUNS)->insert([
             'public_id' => $runPublicId,
             'process_key' => 'test.maintenance.rebuild-risk-cache',
             'module_key' => 'managed_processes',
@@ -419,7 +424,7 @@ final class ManagedProcessesAdminTest extends TestCase
             CarbonImmutable::setTestNow();
         }
 
-        $run = DB::table(DatabaseTable::MANAGED_PROCESS_RUNS)
+        $run = DB::table(ManagedProcessesDatabaseTable::RUNS)
             ->where('public_id', $runPublicId)
             ->first(['started_at', 'current_stage', 'progress_current']);
 
@@ -449,13 +454,13 @@ final class ManagedProcessesAdminTest extends TestCase
         ]);
         $role = Role::query()->where('name', StarterRoleName::Administrator->value)->firstOrFail();
 
-        $this->app['db']->table(DatabaseTable::TEAM_USER_ASSIGNMENTS)->insert([
+        $this->app['db']->table(TeamsDatabaseTable::TEAM_USER_ASSIGNMENTS)->insert([
             'team_id' => $team->id,
             'user_id' => $admin->id,
             'created_at' => now(),
             'updated_at' => now(),
         ]);
-        $this->app['db']->table(DatabaseTable::MODEL_HAS_ROLES)->insert([
+        $this->app['db']->table(AuthorizationDatabaseTable::MODEL_HAS_ROLES)->insert([
             'role_id' => $role->id,
             'model_type' => config('auth.providers.users.model'),
             'model_id' => $admin->id,
@@ -673,10 +678,10 @@ final readonly class TestImportProcessHandler implements ManagedProcessHandler
 
     public function handle(string $runPublicId): void
     {
-        $run = DB::table(DatabaseTable::MANAGED_PROCESS_RUNS)->where('public_id', $runPublicId)->firstOrFail();
+        $run = DB::table(ManagedProcessesDatabaseTable::RUNS)->where('public_id', $runPublicId)->firstOrFail();
         $input = is_string($run->input_snapshot ?? null) ? json_decode($run->input_snapshot, true) : [];
         $idempotencyKey = is_array($input) && is_string($input['idempotency_key'] ?? null) ? $input['idempotency_key'] : 'test-import';
-        $importExecutionId = DB::table(DatabaseTable::IMPORT_EXECUTIONS)->insertGetId([
+        $importExecutionId = DB::table(ImportsDatabaseTable::EXECUTIONS)->insertGetId([
             'public_id' => (string) Str::ulid(),
             'process_run_id' => $run->id,
             'import_key' => 'debtor-ledger-test',
@@ -694,7 +699,7 @@ final readonly class TestImportProcessHandler implements ManagedProcessHandler
         ]);
 
         foreach ([3, 4] as $rowNumber) {
-            DB::table(DatabaseTable::IMPORT_ROW_ERRORS)->insert([
+            DB::table(ImportsDatabaseTable::ROW_ERRORS)->insert([
                 'public_id' => (string) Str::ulid(),
                 'import_execution_id' => $importExecutionId,
                 'row_number' => $rowNumber,

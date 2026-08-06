@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Integration\Files;
 
+use App\Modules\Core\Audit\Application\Public\Persistence\AuditDatabaseTable;
 use App\Modules\Core\Files\Application\Contracts\MalwareScanner;
 use App\Modules\Core\Files\Application\DTOs\MalwareScanResult;
 use App\Modules\Core\Files\Application\Enums\FileScanState;
@@ -11,9 +12,9 @@ use App\Modules\Core\Files\Application\Public\Contracts\FileLifecycle;
 use App\Modules\Core\Files\Application\Public\Contracts\FileMaintenance;
 use App\Modules\Core\Files\Application\Public\Contracts\FileStorage;
 use App\Modules\Core\Files\Application\Public\Exceptions\FileNotAvailableForDownload;
+use App\Modules\Core\Files\Application\Public\Persistence\FilesDatabaseTable;
 use App\Modules\Core\Files\Infrastructure\Persistence\DatabaseFileStorage;
 use App\Modules\Core\Files\Presentation\Jobs\ScanFileForMalware;
-use App\Shared\Infrastructure\Database\DatabaseTable;
 use App\Shared\Infrastructure\Operations\OperationalModuleGuard;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -35,7 +36,7 @@ final class FilesModuleTest extends TestCase
 
         $stored = $this->app->make(FileStorage::class)->storeUpload($this->uploadFile('notice.txt'));
 
-        $this->assertDatabaseHas(DatabaseTable::FILE_OBJECTS, [
+        $this->assertDatabaseHas(FilesDatabaseTable::FILE_OBJECTS, [
             'public_id' => $stored->publicId,
             'scan_state' => FileScanState::Pending->value,
         ]);
@@ -52,12 +53,12 @@ final class FilesModuleTest extends TestCase
         $stored = $this->app->make(FileStorage::class)->storeUpload($this->uploadFile('notice.txt'));
         $this->scanStoredFile($stored->publicId);
 
-        $this->assertDatabaseHas(DatabaseTable::FILE_OBJECTS, [
+        $this->assertDatabaseHas(FilesDatabaseTable::FILE_OBJECTS, [
             'public_id' => $stored->publicId,
             'scan_state' => FileScanState::Clean->value,
             'checksum_sha256' => $stored->checksumSha256,
         ]);
-        $this->assertDatabaseHas(DatabaseTable::FILE_SCAN_EVIDENCE, [
+        $this->assertDatabaseHas(FilesDatabaseTable::FILE_SCAN_EVIDENCE, [
             'provider' => 'fake',
             'result' => FileScanState::Clean->value,
             'checksum_sha256' => $stored->checksumSha256,
@@ -75,7 +76,7 @@ final class FilesModuleTest extends TestCase
             $stored = $this->app->make(FileStorage::class)->storeUpload($this->uploadFile($state->value.'.txt'));
             $this->scanStoredFile($stored->publicId);
 
-            $this->assertDatabaseHas(DatabaseTable::FILE_OBJECTS, [
+            $this->assertDatabaseHas(FilesDatabaseTable::FILE_OBJECTS, [
                 'public_id' => $stored->publicId,
                 'scan_state' => $state->value,
             ]);
@@ -116,7 +117,7 @@ final class FilesModuleTest extends TestCase
             $this->scanStoredFile($stored->publicId);
             self::fail('Scanner failure did not throw.');
         } catch (RuntimeException) {
-            $this->assertDatabaseHas(DatabaseTable::FILE_OBJECTS, [
+            $this->assertDatabaseHas(FilesDatabaseTable::FILE_OBJECTS, [
                 'public_id' => $stored->publicId,
                 'scan_state' => FileScanState::Failed->value,
             ]);
@@ -141,7 +142,7 @@ final class FilesModuleTest extends TestCase
             scannedAt: CarbonImmutable::now('UTC'),
         ));
 
-        $this->assertDatabaseHas(DatabaseTable::FILE_OBJECTS, [
+        $this->assertDatabaseHas(FilesDatabaseTable::FILE_OBJECTS, [
             'public_id' => $stored->publicId,
             'scan_state' => FileScanState::Pending->value,
         ]);
@@ -163,7 +164,7 @@ final class FilesModuleTest extends TestCase
         $secondPath = $this->fileValue($second->publicId, 'path');
 
         self::assertSame($firstPath, $secondPath);
-        $this->assertDatabaseHas(DatabaseTable::FILE_SCAN_EVIDENCE, [
+        $this->assertDatabaseHas(FilesDatabaseTable::FILE_SCAN_EVIDENCE, [
             'provider' => 'deduplicated',
             'result' => FileScanState::Clean->value,
             'checksum_sha256' => $first->checksumSha256,
@@ -203,7 +204,7 @@ final class FilesModuleTest extends TestCase
         self::assertTrue($lifecycle->replace($second->publicId, $this->uploadFile('replacement.txt'), reason: 'Corrected file')->completed);
 
         foreach (['file.anonymized', 'file.retention_copy_created', 'file.retention_export_created', 'file.deleted', 'file.replaced'] as $action) {
-            $this->assertDatabaseHas(DatabaseTable::AUDIT_EVENTS, [
+            $this->assertDatabaseHas(AuditDatabaseTable::AUDIT_EVENTS, [
                 'module' => 'files',
                 'action' => $action,
                 'result' => 'succeeded',
@@ -223,7 +224,7 @@ final class FilesModuleTest extends TestCase
 
         self::assertSame(1, $result->deletedTemporaryFiles);
         self::assertFileDoesNotExist($path);
-        $this->assertDatabaseHas(DatabaseTable::AUDIT_EVENTS, [
+        $this->assertDatabaseHas(AuditDatabaseTable::AUDIT_EVENTS, [
             'module' => 'files',
             'action' => 'file.temporary_pruned',
             'result' => 'succeeded',
@@ -262,7 +263,7 @@ final class FilesModuleTest extends TestCase
 
     private function fileValue(string $publicId, string $column): mixed
     {
-        return $this->app['db']->table(DatabaseTable::FILE_OBJECTS)->where('public_id', $publicId)->value($column);
+        return $this->app['db']->table(FilesDatabaseTable::FILE_OBJECTS)->where('public_id', $publicId)->value($column);
     }
 
     private function fileStringValue(string $publicId, string $column): string

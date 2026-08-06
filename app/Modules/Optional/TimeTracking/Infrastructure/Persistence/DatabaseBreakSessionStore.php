@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Modules\Optional\TimeTracking\Infrastructure\Persistence;
 
+use App\Modules\Core\Identity\Application\Public\Persistence\IdentityDatabaseTable;
+use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
 use App\Modules\Optional\TimeTracking\Application\Contracts\BreakPolicyStore;
 use App\Modules\Optional\TimeTracking\Application\Contracts\BreakSessionStore;
 use App\Modules\Optional\TimeTracking\Application\Contracts\WorkSessionStore;
@@ -11,7 +13,7 @@ use App\Modules\Optional\TimeTracking\Application\DTOs\ActiveBreakSession;
 use App\Modules\Optional\TimeTracking\Application\Enums\BreakClosureReason;
 use App\Modules\Optional\TimeTracking\Application\Enums\BreakReminderType;
 use App\Modules\Optional\TimeTracking\Application\Enums\WorkSessionClosureReason;
-use App\Shared\Infrastructure\Database\DatabaseTable;
+use App\Modules\Optional\TimeTracking\Application\Public\Persistence\TimeTrackingDatabaseTable;
 use DateInterval;
 use DateTimeImmutable;
 use Illuminate\Database\ConnectionInterface;
@@ -29,7 +31,7 @@ final readonly class DatabaseBreakSessionStore implements BreakSessionStore
     public function startForActiveWorkSession(int $userId, DateTimeImmutable $startedAt): ActiveBreakSession
     {
         return $this->database->transaction(function () use ($userId, $startedAt): ActiveBreakSession {
-            $workSession = $this->database->table(DatabaseTable::TIME_TRACKING_WORK_SESSIONS)
+            $workSession = $this->database->table(TimeTrackingDatabaseTable::WORK_SESSIONS)
                 ->where('user_id', $userId)
                 ->whereNull('ended_at')
                 ->lockForUpdate()
@@ -39,7 +41,7 @@ final readonly class DatabaseBreakSessionStore implements BreakSessionStore
                 throw new RuntimeException('Cannot start a TimeTracking break without an active work session.');
             }
 
-            $existing = $this->database->table(DatabaseTable::TIME_TRACKING_BREAKS)
+            $existing = $this->database->table(TimeTrackingDatabaseTable::BREAKS)
                 ->where('user_id', $userId)
                 ->whereNull('ended_at')
                 ->lockForUpdate()
@@ -53,7 +55,7 @@ final readonly class DatabaseBreakSessionStore implements BreakSessionStore
             $publicId = (string) Str::ulid();
             $workSessionId = $this->intValue($workSession->id ?? null);
             $teamId = $this->intValue($workSession->team_id ?? null);
-            $id = $this->database->table(DatabaseTable::TIME_TRACKING_BREAKS)->insertGetId([
+            $id = $this->database->table(TimeTrackingDatabaseTable::BREAKS)->insertGetId([
                 'public_id' => $publicId,
                 'work_session_id' => $workSessionId,
                 'user_id' => $userId,
@@ -85,7 +87,7 @@ final readonly class DatabaseBreakSessionStore implements BreakSessionStore
         bool $requiresManagerReview,
     ): void {
         $this->database->transaction(function () use ($userId, $reason, $endedAt, $requiresManagerReview): void {
-            $active = $this->database->table(DatabaseTable::TIME_TRACKING_BREAKS)
+            $active = $this->database->table(TimeTrackingDatabaseTable::BREAKS)
                 ->where('user_id', $userId)
                 ->whereNull('ended_at')
                 ->lockForUpdate()
@@ -108,7 +110,7 @@ final readonly class DatabaseBreakSessionStore implements BreakSessionStore
     public function closeExpired(DateTimeImmutable $now): int
     {
         $closed = 0;
-        $activeBreaks = $this->database->table(DatabaseTable::TIME_TRACKING_BREAKS)
+        $activeBreaks = $this->database->table(TimeTrackingDatabaseTable::BREAKS)
             ->whereNull('ended_at')
             ->orderBy('started_at')
             ->get(['id', 'user_id', 'team_id', 'started_at']);
@@ -144,9 +146,9 @@ final readonly class DatabaseBreakSessionStore implements BreakSessionStore
     public function recordDueReminders(DateTimeImmutable $now): int
     {
         $recorded = 0;
-        $activeBreaks = $this->database->table(DatabaseTable::TIME_TRACKING_BREAKS.' as breaks')
-            ->join(DatabaseTable::USERS.' as users', 'breaks.user_id', '=', 'users.id')
-            ->join(DatabaseTable::TEAMS.' as teams', 'breaks.team_id', '=', 'teams.id')
+        $activeBreaks = $this->database->table(TimeTrackingDatabaseTable::BREAKS.' as breaks')
+            ->join(IdentityDatabaseTable::USERS.' as users', 'breaks.user_id', '=', 'users.id')
+            ->join(TeamsDatabaseTable::TEAMS.' as teams', 'breaks.team_id', '=', 'teams.id')
             ->whereNull('breaks.ended_at')
             ->orderBy('breaks.started_at')
             ->get([
@@ -191,7 +193,7 @@ final readonly class DatabaseBreakSessionStore implements BreakSessionStore
 
         $seconds = max(0, $endedAt->getTimestamp() - $startedAt->getTimestamp());
 
-        $this->database->table(DatabaseTable::TIME_TRACKING_BREAKS)
+        $this->database->table(TimeTrackingDatabaseTable::BREAKS)
             ->where('id', $breakId)
             ->whereNull('ended_at')
             ->update([
@@ -216,7 +218,7 @@ final readonly class DatabaseBreakSessionStore implements BreakSessionStore
                 return false;
             }
 
-            $active = $this->database->table(DatabaseTable::TIME_TRACKING_BREAKS)
+            $active = $this->database->table(TimeTrackingDatabaseTable::BREAKS)
                 ->where('id', $breakId)
                 ->whereNull('ended_at')
                 ->lockForUpdate()
@@ -226,7 +228,7 @@ final readonly class DatabaseBreakSessionStore implements BreakSessionStore
                 return false;
             }
 
-            $this->database->table(DatabaseTable::TIME_TRACKING_BREAK_REMINDERS)->insert([
+            $this->database->table(TimeTrackingDatabaseTable::BREAK_REMINDERS)->insert([
                 'public_id' => (string) Str::ulid(),
                 'break_id' => $breakId,
                 'reminder_type' => $type->value,
@@ -242,7 +244,7 @@ final readonly class DatabaseBreakSessionStore implements BreakSessionStore
 
     private function reminderExists(int $breakId, BreakReminderType $type): bool
     {
-        return $this->database->table(DatabaseTable::TIME_TRACKING_BREAK_REMINDERS)
+        return $this->database->table(TimeTrackingDatabaseTable::BREAK_REMINDERS)
             ->where('break_id', $breakId)
             ->where('reminder_type', $type->value)
             ->exists();

@@ -23,6 +23,7 @@ use App\Modules\Core\Identity\Application\Public\Contracts\SecurityAuditRecorder
 use App\Modules\Core\Identity\Application\Public\Contracts\UserCredentialAccountDirectory;
 use App\Modules\Core\Identity\Application\Public\Contracts\UserCredentialAccountStatusManager;
 use App\Modules\Core\Identity\Application\Public\Contracts\UserCredentialAccountStore;
+use App\Modules\Core\Identity\Application\Public\Contracts\UserLookup;
 use App\Modules\Core\Identity\Application\Public\Contracts\UserPasswordExpiration;
 use App\Modules\Core\Identity\Application\Public\Contracts\UserPasswordUpdater;
 use App\Modules\Core\Identity\Application\Public\Contracts\UserSessionLimitResolver;
@@ -49,6 +50,8 @@ use App\Modules\Core\Identity\Presentation\Fortify\Actions\CreateNewUser;
 use App\Modules\Core\Identity\Presentation\Fortify\Actions\ResetUserPassword;
 use App\Modules\Core\Identity\Presentation\Fortify\Actions\UpdateUserPassword;
 use App\Modules\Core\Identity\Presentation\Fortify\Actions\UpdateUserProfileInformation;
+use App\Modules\Core\Identity\Presentation\Inertia\IdentityInertiaData;
+use App\Modules\Core\Identity\Presentation\Inertia\IdentityRouteAvailability;
 use Illuminate\Auth\Events\Logout;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Event;
@@ -65,6 +68,7 @@ class FortifyServiceProvider extends ServiceProvider
         $this->app->bind(SuspiciousLoginNotifier::class, UserSuspiciousLoginNotifier::class);
         $this->app->bind(WebAuthnCredentialRepository::class, DatabaseWebAuthnCredentialRepository::class);
         $this->app->bind(UserCredentialAccountDirectory::class, EloquentUserCredentialAccountDirectory::class);
+        $this->app->bind(UserLookup::class, EloquentUserCredentialAccountDirectory::class);
         $this->app->bind(UserCredentialAccountStore::class, EloquentUserCredentialAccountStore::class);
         $this->app->bind(UserCredentialAccountStatusManager::class, EloquentUserCredentialAccountStatusManager::class);
         $this->app->bind(UserSessionRegistry::class, RedisUserSessionRegistry::class);
@@ -77,6 +81,8 @@ class FortifyServiceProvider extends ServiceProvider
         $this->app->bind(HighRiskAdministrativeAuthorization::class, AdministrativeSessionManager::class);
         $this->app->bind(UserStepUpAuthentication::class, CurrentUserStepUpAuthenticator::class);
         $this->app->bind(AuditActorContextProvider::class, SessionAuditActorContextProvider::class);
+        $this->app->tag([IdentityInertiaData::class], 'atlas.inertia_shared_data');
+        $this->app->tag([IdentityRouteAvailability::class], 'atlas.inertia_route_availability');
         $this->app->tag([AdminRateLimitPoliciesDataTableExportProvider::class], 'atlas.admin_data_table_export_providers');
     }
 

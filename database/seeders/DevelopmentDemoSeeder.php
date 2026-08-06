@@ -4,16 +4,18 @@ declare(strict_types=1);
 
 namespace Database\Seeders;
 
+use App\Modules\Core\Authorization\Application\Public\Persistence\AuthorizationDatabaseTable;
 use App\Modules\Core\Identity\Infrastructure\Persistence\User;
 use App\Modules\Core\Notifications\Application\Public\Permissions\NotificationPermissionNames;
+use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
 use App\Modules\Core\Teams\Infrastructure\Persistence\Team;
 use App\Modules\Core\Users\Application\Permissions\UserPermissionCatalog;
 use App\Modules\Optional\TimeTracking\Application\Permissions\TimeTrackingPermissionCatalog;
+use App\Modules\Optional\TimeTracking\Application\Public\Persistence\TimeTrackingDatabaseTable;
 use App\Shared\Application\Modules\Activation\Contracts\ModuleActivationService;
 use App\Shared\Application\Modules\Activation\ModuleActivationChange;
 use App\Shared\Application\Modules\Activation\ModuleActivationScope;
 use App\Shared\Application\Modules\Activation\ModuleActivationSource;
-use App\Shared\Infrastructure\Database\DatabaseTable;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
@@ -55,7 +57,7 @@ class DevelopmentDemoSeeder extends Seeder
 
     public function run(): void
     {
-        if (app()->isProduction() || ! Schema::hasTable(DatabaseTable::TIME_TRACKING_WORK_SESSIONS)) {
+        if (app()->isProduction() || ! Schema::hasTable(TimeTrackingDatabaseTable::WORK_SESSIONS)) {
             return;
         }
 
@@ -100,7 +102,7 @@ class DevelopmentDemoSeeder extends Seeder
                 $this->clearManagerRelationships($team, $teamUsers);
             }
 
-            DB::table(DatabaseTable::TIME_TRACKING_MAINTENANCE_WINDOWS)->where('reason', self::DEMO_MAINTENANCE_REASON)->delete();
+            DB::table(TimeTrackingDatabaseTable::MAINTENANCE_WINDOWS)->where('reason', self::DEMO_MAINTENANCE_REASON)->delete();
 
             $this->seedHierarchy($teams, $headManagers, $managers, $regularUsers);
             $this->seedTimeTrackingRows($teams, $allUsers);
@@ -182,14 +184,14 @@ class DevelopmentDemoSeeder extends Seeder
 
     private function assignToTeam(User $user, Team $team, bool $headManager): int
     {
-        $assignmentId = DB::table(DatabaseTable::TEAM_USER_ASSIGNMENTS)
+        $assignmentId = DB::table(TeamsDatabaseTable::TEAM_USER_ASSIGNMENTS)
             ->where('team_id', $team->id)
             ->where('user_id', $user->id)
             ->whereNull('valid_to')
             ->value('id');
 
         if (is_numeric($assignmentId)) {
-            DB::table(DatabaseTable::TEAM_USER_ASSIGNMENTS)
+            DB::table(TeamsDatabaseTable::TEAM_USER_ASSIGNMENTS)
                 ->where('id', $assignmentId)
                 ->update([
                     'is_head_manager' => $headManager,
@@ -200,7 +202,7 @@ class DevelopmentDemoSeeder extends Seeder
             return (int) $assignmentId;
         }
 
-        return (int) DB::table(DatabaseTable::TEAM_USER_ASSIGNMENTS)->insertGetId([
+        return (int) DB::table(TeamsDatabaseTable::TEAM_USER_ASSIGNMENTS)->insertGetId([
             'team_id' => $team->id,
             'user_id' => $user->id,
             'is_head_manager' => $headManager,
@@ -297,7 +299,7 @@ class DevelopmentDemoSeeder extends Seeder
             return;
         }
 
-        DB::table(DatabaseTable::MODEL_HAS_PERMISSIONS)->updateOrInsert([
+        DB::table(AuthorizationDatabaseTable::MODEL_HAS_PERMISSIONS)->updateOrInsert([
             'permission_id' => $permission->id,
             'model_type' => config('auth.providers.users.model'),
             'model_id' => $user->id,
@@ -340,7 +342,7 @@ class DevelopmentDemoSeeder extends Seeder
 
     private function createManagerRelationship(User $manager, User $report, Team $team): void
     {
-        DB::table(DatabaseTable::TEAM_MANAGER_RELATIONSHIPS)->updateOrInsert([
+        DB::table(TeamsDatabaseTable::TEAM_MANAGER_RELATIONSHIPS)->updateOrInsert([
             'team_id' => $team->id,
             'manager_user_id' => $manager->id,
             'report_user_id' => $report->id,
@@ -365,7 +367,7 @@ class DevelopmentDemoSeeder extends Seeder
             str_starts_with((string) $user->email, 'tt.head.manager.'),
         );
 
-        DB::table(DatabaseTable::TIME_TRACKING_USER_TEAM_SETTINGS)->updateOrInsert([
+        DB::table(TimeTrackingDatabaseTable::USER_TEAM_SETTINGS)->updateOrInsert([
             'team_user_assignment_id' => $assignmentId,
         ], [
             'public_id' => (string) Str::ulid(),
@@ -383,7 +385,7 @@ class DevelopmentDemoSeeder extends Seeder
             return;
         }
 
-        DB::table(DatabaseTable::TEAM_USER_ASSIGNMENTS)
+        DB::table(TeamsDatabaseTable::TEAM_USER_ASSIGNMENTS)
             ->where('id', $assignmentId)
             ->update([
                 'inactivity_timeout_minutes' => 1,
@@ -391,7 +393,7 @@ class DevelopmentDemoSeeder extends Seeder
                 'updated_at' => now(),
             ]);
 
-        DB::table(DatabaseTable::TIME_TRACKING_BREAK_POLICIES)->updateOrInsert([
+        DB::table(TimeTrackingDatabaseTable::BREAK_POLICIES)->updateOrInsert([
             'scope_type' => 'user_team',
             'scope_id' => $assignmentId,
         ], [
@@ -411,7 +413,7 @@ class DevelopmentDemoSeeder extends Seeder
     {
         $userIds = array_map(static fn (User $user): int => (int) $user->id, $users);
 
-        DB::table(DatabaseTable::TEAM_MANAGER_RELATIONSHIPS)
+        DB::table(TeamsDatabaseTable::TEAM_MANAGER_RELATIONSHIPS)
             ->where('team_id', $team->id)
             ->where(fn (Builder $query): Builder => $query
                 ->whereIn('manager_user_id', $userIds)
@@ -425,42 +427,42 @@ class DevelopmentDemoSeeder extends Seeder
     private function clearTimeTrackingRows(Team $team, array $users): void
     {
         $userIds = array_map(static fn (User $user): int => (int) $user->id, $users);
-        $workSessionIds = DB::table(DatabaseTable::TIME_TRACKING_WORK_SESSIONS)
+        $workSessionIds = DB::table(TimeTrackingDatabaseTable::WORK_SESSIONS)
             ->where('team_id', $team->id)
             ->whereIn('user_id', $userIds)
             ->pluck('id')
             ->all();
-        $correctionIds = DB::table(DatabaseTable::TIME_TRACKING_CORRECTION_REQUESTS)
+        $correctionIds = DB::table(TimeTrackingDatabaseTable::CORRECTION_REQUESTS)
             ->where('team_id', $team->id)
             ->whereIn('user_id', $userIds)
             ->pluck('id')
             ->all();
-        $breakIds = DB::table(DatabaseTable::TIME_TRACKING_BREAKS)
+        $breakIds = DB::table(TimeTrackingDatabaseTable::BREAKS)
             ->where('team_id', $team->id)
             ->whereIn('user_id', $userIds)
             ->pluck('id')
             ->all();
-        $otherWorkIds = DB::table(DatabaseTable::TIME_TRACKING_OTHER_WORK)
+        $otherWorkIds = DB::table(TimeTrackingDatabaseTable::OTHER_WORK)
             ->where('team_id', $team->id)
             ->whereIn('user_id', $userIds)
             ->pluck('id')
             ->all();
 
-        DB::table(DatabaseTable::TIME_TRACKING_CLOSED_PERIOD_OVERRIDES)->whereIn('correction_request_id', $correctionIds)->delete();
-        DB::table(DatabaseTable::TIME_TRACKING_CORRECTION_HISTORY)->whereIn('correction_request_id', $correctionIds)->delete();
-        DB::table(DatabaseTable::TIME_TRACKING_CORRECTION_PROPOSALS)->whereIn('correction_request_id', $correctionIds)->delete();
-        DB::table(DatabaseTable::TIME_TRACKING_CORRECTION_REQUESTS)->whereIn('id', $correctionIds)->delete();
-        DB::table(DatabaseTable::TIME_TRACKING_OTHER_WORK)->whereIn('id', $otherWorkIds)->delete();
-        DB::table(DatabaseTable::TIME_TRACKING_BREAK_REMINDERS)->whereIn('break_id', $breakIds)->delete();
-        DB::table(DatabaseTable::TIME_TRACKING_BREAKS)->whereIn('id', $breakIds)->delete();
-        DB::table(DatabaseTable::TIME_TRACKING_MAINTENANCE_AFFECTED_SESSIONS)->whereIn('work_session_id', $workSessionIds)->delete();
-        DB::table(DatabaseTable::TIME_TRACKING_MODULE_CONTEXT_SEGMENTS)->whereIn('work_session_id', $workSessionIds)->delete();
-        DB::table(DatabaseTable::TIME_TRACKING_WORK_SESSIONS)->whereIn('id', $workSessionIds)->delete();
+        DB::table(TimeTrackingDatabaseTable::CLOSED_PERIOD_OVERRIDES)->whereIn('correction_request_id', $correctionIds)->delete();
+        DB::table(TimeTrackingDatabaseTable::CORRECTION_HISTORY)->whereIn('correction_request_id', $correctionIds)->delete();
+        DB::table(TimeTrackingDatabaseTable::CORRECTION_PROPOSALS)->whereIn('correction_request_id', $correctionIds)->delete();
+        DB::table(TimeTrackingDatabaseTable::CORRECTION_REQUESTS)->whereIn('id', $correctionIds)->delete();
+        DB::table(TimeTrackingDatabaseTable::OTHER_WORK)->whereIn('id', $otherWorkIds)->delete();
+        DB::table(TimeTrackingDatabaseTable::BREAK_REMINDERS)->whereIn('break_id', $breakIds)->delete();
+        DB::table(TimeTrackingDatabaseTable::BREAKS)->whereIn('id', $breakIds)->delete();
+        DB::table(TimeTrackingDatabaseTable::MAINTENANCE_AFFECTED_SESSIONS)->whereIn('work_session_id', $workSessionIds)->delete();
+        DB::table(TimeTrackingDatabaseTable::MODULE_CONTEXT_SEGMENTS)->whereIn('work_session_id', $workSessionIds)->delete();
+        DB::table(TimeTrackingDatabaseTable::WORK_SESSIONS)->whereIn('id', $workSessionIds)->delete();
     }
 
     private function seedCategories(Team $team): void
     {
-        DB::table(DatabaseTable::TIME_TRACKING_OTHER_WORK_CATEGORIES)
+        DB::table(TimeTrackingDatabaseTable::OTHER_WORK_CATEGORIES)
             ->whereIn('category_key', self::OTHER_WORK_CATEGORY_KEYS)
             ->where(static fn (Builder $query): Builder => $query
                 ->where(static fn (Builder $nested): Builder => $nested->where('scope_type', 'team')->where('scope_id', $team->id))
@@ -472,7 +474,7 @@ class DevelopmentDemoSeeder extends Seeder
             ['court_call', 'Telefon do sądu', 'Court call', true, false],
             ['case_review', 'Przegląd spraw', 'Case review', false, true],
         ] as [$key, $labelPl, $labelEn, $requiresComment, $autoApproval]) {
-            DB::table(DatabaseTable::TIME_TRACKING_OTHER_WORK_CATEGORIES)->updateOrInsert([
+            DB::table(TimeTrackingDatabaseTable::OTHER_WORK_CATEGORIES)->updateOrInsert([
                 'scope_type' => 'team',
                 'scope_id' => $team->id,
                 'category_key' => $key,
@@ -542,7 +544,7 @@ class DevelopmentDemoSeeder extends Seeder
     private function seedSourceCorrectionExamples(array $teams): void
     {
         foreach ($teams as $team) {
-            $workSession = DB::table(DatabaseTable::TIME_TRACKING_WORK_SESSIONS)
+            $workSession = DB::table(TimeTrackingDatabaseTable::WORK_SESSIONS)
                 ->where('team_id', $team->id)
                 ->whereNotNull('ended_at')
                 ->orderBy('started_at')
@@ -552,7 +554,7 @@ class DevelopmentDemoSeeder extends Seeder
                 $this->sourceCorrection($team, $workSession, 'work_session', 'Development demo correction for a work session.');
             }
 
-            $break = DB::table(DatabaseTable::TIME_TRACKING_BREAKS)
+            $break = DB::table(TimeTrackingDatabaseTable::BREAKS)
                 ->where('team_id', $team->id)
                 ->whereNotNull('ended_at')
                 ->orderBy('started_at')
@@ -562,7 +564,7 @@ class DevelopmentDemoSeeder extends Seeder
                 $this->sourceCorrection($team, $break, 'break', 'Development demo correction for a break.');
             }
 
-            $otherWork = DB::table(DatabaseTable::TIME_TRACKING_OTHER_WORK)
+            $otherWork = DB::table(TimeTrackingDatabaseTable::OTHER_WORK)
                 ->where('team_id', $team->id)
                 ->whereNotNull('ended_at')
                 ->orderBy('started_at')
@@ -576,7 +578,7 @@ class DevelopmentDemoSeeder extends Seeder
 
     private function seedMaintenanceRows(): void
     {
-        $windowId = (int) DB::table(DatabaseTable::TIME_TRACKING_MAINTENANCE_WINDOWS)->insertGetId([
+        $windowId = (int) DB::table(TimeTrackingDatabaseTable::MAINTENANCE_WINDOWS)->insertGetId([
             'public_id' => (string) Str::ulid(),
             'kind' => 'scheduled',
             'status' => 'completed',
@@ -589,11 +591,11 @@ class DevelopmentDemoSeeder extends Seeder
             'updated_at' => now(),
         ]);
 
-        foreach (DB::table(DatabaseTable::TIME_TRACKING_WORK_SESSIONS)
+        foreach (DB::table(TimeTrackingDatabaseTable::WORK_SESSIONS)
             ->where('started_at', '<=', '2026-07-28 11:30:00+00')
             ->where('ended_at', '>=', '2026-07-28 11:30:00+00')
             ->get(['id', 'user_id', 'team_id']) as $session) {
-            DB::table(DatabaseTable::TIME_TRACKING_MAINTENANCE_AFFECTED_SESSIONS)->insert([
+            DB::table(TimeTrackingDatabaseTable::MAINTENANCE_AFFECTED_SESSIONS)->insert([
                 'public_id' => (string) Str::ulid(),
                 'maintenance_window_id' => $windowId,
                 'work_session_id' => $session->id,
@@ -610,7 +612,7 @@ class DevelopmentDemoSeeder extends Seeder
 
     private function workSession(Team $team, User $user, string $startedAt, ?string $endedAt, ?int $seconds, ?string $reason): int
     {
-        return (int) DB::table(DatabaseTable::TIME_TRACKING_WORK_SESSIONS)->insertGetId([
+        return (int) DB::table(TimeTrackingDatabaseTable::WORK_SESSIONS)->insertGetId([
             'public_id' => (string) Str::ulid(),
             'user_id' => $user->id,
             'team_id' => $team->id,
@@ -626,7 +628,7 @@ class DevelopmentDemoSeeder extends Seeder
 
     private function moduleSegment(int $workSessionId, string $startedAt, ?string $endedAt, ?int $seconds): void
     {
-        DB::table(DatabaseTable::TIME_TRACKING_MODULE_CONTEXT_SEGMENTS)->insert([
+        DB::table(TimeTrackingDatabaseTable::MODULE_CONTEXT_SEGMENTS)->insert([
             'public_id' => (string) Str::ulid(),
             'work_session_id' => $workSessionId,
             'module_key' => 'system',
@@ -655,7 +657,7 @@ class DevelopmentDemoSeeder extends Seeder
 
     private function breakSession(Team $team, User $user, int $workSessionId, string $startedAt, ?string $endedAt, ?int $seconds, ?string $reason, bool $review): int
     {
-        return (int) DB::table(DatabaseTable::TIME_TRACKING_BREAKS)->insertGetId([
+        return (int) DB::table(TimeTrackingDatabaseTable::BREAKS)->insertGetId([
             'public_id' => (string) Str::ulid(),
             'work_session_id' => $workSessionId,
             'user_id' => $user->id,
@@ -672,7 +674,7 @@ class DevelopmentDemoSeeder extends Seeder
 
     private function otherWork(Team $team, User $user, int $workSessionId, string $category, string $description, ?string $endNote, string $status, string $startedAt, ?string $endedAt, ?int $seconds, bool $review): int
     {
-        return (int) DB::table(DatabaseTable::TIME_TRACKING_OTHER_WORK)->insertGetId([
+        return (int) DB::table(TimeTrackingDatabaseTable::OTHER_WORK)->insertGetId([
             'public_id' => (string) Str::ulid(),
             'work_session_id' => $workSessionId,
             'user_id' => $user->id,
@@ -693,7 +695,7 @@ class DevelopmentDemoSeeder extends Seeder
 
     private function correction(Team $team, User $user, int $workSessionId, string $date, int $startHour): void
     {
-        $correctionId = (int) DB::table(DatabaseTable::TIME_TRACKING_CORRECTION_REQUESTS)->insertGetId([
+        $correctionId = (int) DB::table(TimeTrackingDatabaseTable::CORRECTION_REQUESTS)->insertGetId([
             'public_id' => (string) Str::ulid(),
             'user_id' => $user->id,
             'team_id' => $team->id,
@@ -735,7 +737,7 @@ class DevelopmentDemoSeeder extends Seeder
         $proposedStartedAt = (new \DateTimeImmutable($startedAt))->modify('+5 minutes');
         $proposedEndedAt = (new \DateTimeImmutable($endedAt))->modify('+5 minutes');
 
-        $correctionId = (int) DB::table(DatabaseTable::TIME_TRACKING_CORRECTION_REQUESTS)->insertGetId([
+        $correctionId = (int) DB::table(TimeTrackingDatabaseTable::CORRECTION_REQUESTS)->insertGetId([
             'public_id' => (string) Str::ulid(),
             'user_id' => $this->intValue(data_get($source, 'user_id')),
             'team_id' => $team->id,
@@ -770,7 +772,7 @@ class DevelopmentDemoSeeder extends Seeder
         string $proposedEndedAt,
         int $proposedSeconds,
     ): void {
-        DB::table(DatabaseTable::TIME_TRACKING_CORRECTION_PROPOSALS)->insert([
+        DB::table(TimeTrackingDatabaseTable::CORRECTION_PROPOSALS)->insert([
             'public_id' => (string) Str::ulid(),
             'correction_request_id' => $correctionId,
             'original_started_at' => $originalStartedAt,

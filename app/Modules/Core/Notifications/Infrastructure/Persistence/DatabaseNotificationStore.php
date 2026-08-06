@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Core\Notifications\Infrastructure\Persistence;
 
+use App\Modules\Core\Identity\Application\Public\Persistence\IdentityDatabaseTable;
 use App\Modules\Core\Notifications\Application\Public\Contracts\NotificationEmailPreferenceManager;
 use App\Modules\Core\Notifications\Application\Public\Contracts\NotificationInbox;
 use App\Modules\Core\Notifications\Application\Public\Contracts\NotificationMaintenance;
@@ -15,8 +16,9 @@ use App\Modules\Core\Notifications\Application\Public\DTOs\NotificationCleanupRe
 use App\Modules\Core\Notifications\Application\Public\DTOs\NotificationSummary;
 use App\Modules\Core\Notifications\Application\Public\DTOs\PublishRealtimeEvent;
 use App\Modules\Core\Notifications\Application\Public\DTOs\RealtimeEventSummary;
+use App\Modules\Core\Notifications\Application\Public\Persistence\NotificationsDatabaseTable;
 use App\Modules\Core\Notifications\Presentation\Jobs\DeliverNotification;
-use App\Shared\Infrastructure\Database\DatabaseTable;
+use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
 use Carbon\CarbonImmutable;
 use DateTimeInterface;
 use Illuminate\Database\Query\Builder;
@@ -42,7 +44,7 @@ final class DatabaseNotificationStore implements NotificationInbox, Notification
 
         $publicId = (string) Str::ulid();
         $recipientId = DB::transaction(function () use ($notification, $publicId, $userId, $teamId): int {
-            $notificationId = DB::table(DatabaseTable::NOTIFICATIONS)->insertGetId([
+            $notificationId = DB::table(NotificationsDatabaseTable::NOTIFICATIONS)->insertGetId([
                 'public_id' => $publicId,
                 'type' => $notification->type,
                 'severity' => $notification->severity,
@@ -54,7 +56,7 @@ final class DatabaseNotificationStore implements NotificationInbox, Notification
                 'updated_at' => now(),
             ]);
 
-            $recipientId = DB::table(DatabaseTable::NOTIFICATION_RECIPIENTS)->insertGetId([
+            $recipientId = DB::table(NotificationsDatabaseTable::NOTIFICATION_RECIPIENTS)->insertGetId([
                 'notification_id' => $notificationId,
                 'user_id' => $userId,
                 'team_id' => $teamId,
@@ -155,7 +157,7 @@ final class DatabaseNotificationStore implements NotificationInbox, Notification
             return 0;
         }
 
-        $query = DB::table(DatabaseTable::NOTIFICATION_RECIPIENTS)
+        $query = DB::table(NotificationsDatabaseTable::NOTIFICATION_RECIPIENTS)
             ->where('user_id', $userId)
             ->whereNull('read_at');
 
@@ -178,8 +180,8 @@ final class DatabaseNotificationStore implements NotificationInbox, Notification
             return;
         }
 
-        DB::table(DatabaseTable::NOTIFICATION_RECIPIENTS)
-            ->join(DatabaseTable::NOTIFICATIONS, 'notification_recipients.notification_id', '=', 'notifications.id')
+        DB::table(NotificationsDatabaseTable::NOTIFICATION_RECIPIENTS)
+            ->join(NotificationsDatabaseTable::NOTIFICATIONS, 'notification_recipients.notification_id', '=', 'notifications.id')
             ->where('notification_recipients.user_id', $userId)
             ->where('notifications.public_id', $notificationPublicId)
             ->whereNull('notification_recipients.read_at')
@@ -191,7 +193,7 @@ final class DatabaseNotificationStore implements NotificationInbox, Notification
 
     public function emailRequested(int $recipientId): bool
     {
-        return DB::table(DatabaseTable::NOTIFICATION_RECIPIENTS)
+        return DB::table(NotificationsDatabaseTable::NOTIFICATION_RECIPIENTS)
             ->where('id', $recipientId)
             ->where('email_status', 'pending')
             ->exists();
@@ -199,7 +201,7 @@ final class DatabaseNotificationStore implements NotificationInbox, Notification
 
     public function markDeliveredInApp(int $recipientId): void
     {
-        DB::table(DatabaseTable::NOTIFICATION_RECIPIENTS)
+        DB::table(NotificationsDatabaseTable::NOTIFICATION_RECIPIENTS)
             ->where('id', $recipientId)
             ->whereNull('delivered_in_app_at')
             ->update([
@@ -210,7 +212,7 @@ final class DatabaseNotificationStore implements NotificationInbox, Notification
 
     public function markEmailSkipped(int $recipientId): void
     {
-        DB::table(DatabaseTable::NOTIFICATION_RECIPIENTS)
+        DB::table(NotificationsDatabaseTable::NOTIFICATION_RECIPIENTS)
             ->where('id', $recipientId)
             ->update([
                 'email_status' => 'skipped',
@@ -223,9 +225,9 @@ final class DatabaseNotificationStore implements NotificationInbox, Notification
      */
     public function emailPayloads(int $recipientId): array
     {
-        $record = DB::table(DatabaseTable::NOTIFICATION_RECIPIENTS.' as recipients')
-            ->join(DatabaseTable::NOTIFICATIONS.' as notifications', 'recipients.notification_id', '=', 'notifications.id')
-            ->join(DatabaseTable::USERS.' as users', 'recipients.user_id', '=', 'users.id')
+        $record = DB::table(NotificationsDatabaseTable::NOTIFICATION_RECIPIENTS.' as recipients')
+            ->join(NotificationsDatabaseTable::NOTIFICATIONS.' as notifications', 'recipients.notification_id', '=', 'notifications.id')
+            ->join(IdentityDatabaseTable::USERS.' as users', 'recipients.user_id', '=', 'users.id')
             ->where('recipients.id', $recipientId)
             ->first([
                 'users.id as user_id',
@@ -251,7 +253,7 @@ final class DatabaseNotificationStore implements NotificationInbox, Notification
             return [];
         }
 
-        $user = DB::table(DatabaseTable::USERS)
+        $user = DB::table(IdentityDatabaseTable::USERS)
             ->where('id', (int) $userId)
             ->first(['id', 'email', 'email_verified_at']);
 
@@ -264,8 +266,8 @@ final class DatabaseNotificationStore implements NotificationInbox, Notification
             );
         }
 
-        $emails = DB::table(DatabaseTable::NOTIFICATION_EMAIL_ADDRESSES.' as addresses')
-            ->join(DatabaseTable::NOTIFICATION_EMAIL_PREFERENCES.' as preferences', 'preferences.notification_email_address_id', '=', 'addresses.id')
+        $emails = DB::table(NotificationsDatabaseTable::NOTIFICATION_EMAIL_ADDRESSES.' as addresses')
+            ->join(NotificationsDatabaseTable::NOTIFICATION_EMAIL_PREFERENCES.' as preferences', 'preferences.notification_email_address_id', '=', 'addresses.id')
             ->where('addresses.user_id', (int) $userId)
             ->where('addresses.team_id', is_numeric($teamId) ? (int) $teamId : null)
             ->whereNotNull('addresses.verified_at')
@@ -294,7 +296,7 @@ final class DatabaseNotificationStore implements NotificationInbox, Notification
 
     public function markEmailDelivered(int $recipientId): void
     {
-        DB::table(DatabaseTable::NOTIFICATION_RECIPIENTS)
+        DB::table(NotificationsDatabaseTable::NOTIFICATION_RECIPIENTS)
             ->where('id', $recipientId)
             ->update([
                 'email_status' => 'delivered',
@@ -312,10 +314,10 @@ final class DatabaseNotificationStore implements NotificationInbox, Notification
         }
 
         $teamId = $teamPublicId === null ? null : $this->teamId($teamPublicId);
-        $afterId = $afterPublicId === null ? null : DB::table(DatabaseTable::REALTIME_EVENTS)->where('public_id', $afterPublicId)->value('id');
+        $afterId = $afterPublicId === null ? null : DB::table(NotificationsDatabaseTable::REALTIME_EVENTS)->where('public_id', $afterPublicId)->value('id');
 
-        $query = DB::table(DatabaseTable::REALTIME_EVENTS)
-            ->leftJoin(DatabaseTable::TEAMS, 'realtime_events.team_id', '=', 'teams.id')
+        $query = DB::table(NotificationsDatabaseTable::REALTIME_EVENTS)
+            ->leftJoin(TeamsDatabaseTable::TEAMS, 'realtime_events.team_id', '=', 'teams.id')
             ->where(static function (Builder $query) use ($userId): void {
                 $query->whereNull('realtime_events.user_id')->orWhere('realtime_events.user_id', $userId);
             })
@@ -364,13 +366,13 @@ final class DatabaseNotificationStore implements NotificationInbox, Notification
         $readBefore = CarbonImmutable::now()->subDays(max(1, $readRetentionDays));
         $realtimeBefore = CarbonImmutable::now()->subHours(max(1, $realtimeRetentionHours));
 
-        $deletedRecipients = DB::table(DatabaseTable::NOTIFICATION_RECIPIENTS)
+        $deletedRecipients = DB::table(NotificationsDatabaseTable::NOTIFICATION_RECIPIENTS)
             ->whereNotNull('read_at')
             ->where('read_at', '<', $readBefore)
             ->delete();
 
-        $orphanNotificationIds = DB::table(DatabaseTable::NOTIFICATIONS)
-            ->leftJoin(DatabaseTable::NOTIFICATION_RECIPIENTS, 'notifications.id', '=', 'notification_recipients.notification_id')
+        $orphanNotificationIds = DB::table(NotificationsDatabaseTable::NOTIFICATIONS)
+            ->leftJoin(NotificationsDatabaseTable::NOTIFICATION_RECIPIENTS, 'notifications.id', '=', 'notification_recipients.notification_id')
             ->whereNull('notification_recipients.id')
             ->pluck('notifications.id')
             ->filter(static fn (mixed $id): bool => is_numeric($id))
@@ -378,9 +380,9 @@ final class DatabaseNotificationStore implements NotificationInbox, Notification
             ->all();
         $deletedNotifications = $orphanNotificationIds === []
             ? 0
-            : DB::table(DatabaseTable::NOTIFICATIONS)->whereIn('id', $orphanNotificationIds)->delete();
+            : DB::table(NotificationsDatabaseTable::NOTIFICATIONS)->whereIn('id', $orphanNotificationIds)->delete();
 
-        $deletedRealtimeEvents = DB::table(DatabaseTable::REALTIME_EVENTS)
+        $deletedRealtimeEvents = DB::table(NotificationsDatabaseTable::REALTIME_EVENTS)
             ->where('created_at', '<', $realtimeBefore)
             ->delete();
 
@@ -420,7 +422,7 @@ final class DatabaseNotificationStore implements NotificationInbox, Notification
     {
         $publicId = (string) Str::ulid();
 
-        DB::table(DatabaseTable::REALTIME_EVENTS)->insert([
+        DB::table(NotificationsDatabaseTable::REALTIME_EVENTS)->insert([
             'public_id' => $publicId,
             'topic' => $topic,
             'event_type' => $eventType,
@@ -445,9 +447,9 @@ final class DatabaseNotificationStore implements NotificationInbox, Notification
             return [];
         }
 
-        $query = DB::table(DatabaseTable::NOTIFICATION_RECIPIENTS)
-            ->join(DatabaseTable::NOTIFICATIONS, 'notification_recipients.notification_id', '=', 'notifications.id')
-            ->leftJoin(DatabaseTable::TEAMS, 'notification_recipients.team_id', '=', 'teams.id')
+        $query = DB::table(NotificationsDatabaseTable::NOTIFICATION_RECIPIENTS)
+            ->join(NotificationsDatabaseTable::NOTIFICATIONS, 'notification_recipients.notification_id', '=', 'notifications.id')
+            ->leftJoin(TeamsDatabaseTable::TEAMS, 'notification_recipients.team_id', '=', 'teams.id')
             ->where('notification_recipients.user_id', $userId)
             ->orderByDesc('notifications.created_at')
             ->select([
@@ -527,14 +529,14 @@ final class DatabaseNotificationStore implements NotificationInbox, Notification
 
     private function userId(string $userPublicId): ?int
     {
-        $id = DB::table(DatabaseTable::USERS)->where('public_id', $userPublicId)->value('id');
+        $id = DB::table(IdentityDatabaseTable::USERS)->where('public_id', $userPublicId)->value('id');
 
         return is_int($id) ? $id : (is_numeric($id) ? (int) $id : null);
     }
 
     private function teamId(string $teamPublicId): ?int
     {
-        $id = DB::table(DatabaseTable::TEAMS)->where('public_id', $teamPublicId)->value('id');
+        $id = DB::table(TeamsDatabaseTable::TEAMS)->where('public_id', $teamPublicId)->value('id');
 
         return is_int($id) ? $id : (is_numeric($id) ? (int) $id : null);
     }

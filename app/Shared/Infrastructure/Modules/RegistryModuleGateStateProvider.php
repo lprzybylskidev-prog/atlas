@@ -6,13 +6,13 @@ namespace App\Shared\Infrastructure\Modules;
 
 use App\Modules\Core\Authorization\Application\Public\Contracts\EffectivePermissionChecker;
 use App\Modules\Core\Authorization\Application\Public\DTOs\EffectivePermissionRequest;
+use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
 use App\Shared\Application\Modules\Activation\Contracts\ModuleActivationService;
 use App\Shared\Application\Modules\Contracts\ModuleGateStateProvider;
 use App\Shared\Application\Modules\ModuleAccessRequest;
 use App\Shared\Application\Modules\ModuleAccessState;
 use App\Shared\Application\Modules\ModuleKey;
 use App\Shared\Application\Modules\ModuleRegistry;
-use App\Shared\Infrastructure\Database\DatabaseTable;
 use Illuminate\Database\ConnectionInterface;
 
 final readonly class RegistryModuleGateStateProvider implements ModuleGateStateProvider
@@ -49,7 +49,7 @@ final readonly class RegistryModuleGateStateProvider implements ModuleGateStateP
             return true;
         }
 
-        $query = $this->database->table(DatabaseTable::TEAMS)->where('is_active', true);
+        $query = $this->database->table(TeamsDatabaseTable::TEAMS)->where('is_active', true);
 
         if ($request->activeTeamId !== null) {
             $query->where('id', $request->activeTeamId);
@@ -91,7 +91,7 @@ final readonly class RegistryModuleGateStateProvider implements ModuleGateStateP
             return null;
         }
 
-        $publicId = $this->database->table(DatabaseTable::TEAMS)
+        $publicId = $this->database->table(TeamsDatabaseTable::TEAMS)
             ->where('id', $teamId)
             ->value('public_id');
 
@@ -104,7 +104,7 @@ final readonly class RegistryModuleGateStateProvider implements ModuleGateStateP
             return null;
         }
 
-        $id = $this->database->table(DatabaseTable::TEAMS)
+        $id = $this->database->table(TeamsDatabaseTable::TEAMS)
             ->where('public_id', $teamPublicId)
             ->value('id');
 

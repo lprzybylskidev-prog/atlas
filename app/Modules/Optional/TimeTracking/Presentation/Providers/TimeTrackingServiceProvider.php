@@ -39,6 +39,8 @@ use App\Modules\Optional\TimeTracking\Infrastructure\Persistence\DatabaseUserTea
 use App\Modules\Optional\TimeTracking\Infrastructure\Persistence\DatabaseWorkSessionStore;
 use App\Modules\Optional\TimeTracking\Infrastructure\Persistence\EmptyTimeTrackingDeactivationReadiness;
 use App\Modules\Optional\TimeTracking\Presentation\Http\Middleware\SynchronizeWorkSession;
+use App\Modules\Optional\TimeTracking\Presentation\Inertia\TimeTrackingInertiaData;
+use App\Modules\Optional\TimeTracking\Presentation\Inertia\TimeTrackingRouteAvailability;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 
@@ -60,6 +62,8 @@ final class TimeTrackingServiceProvider extends ServiceProvider
         $this->app->bind(WorkSessionStore::class, DatabaseWorkSessionStore::class);
         $this->app->singleton(TimeTrackingModuleAccess::class);
         $this->app->tag([TimeTrackingPermissionCatalog::class], 'atlas.permission_catalogs');
+        $this->app->tag([TimeTrackingInertiaData::class], 'atlas.inertia_shared_data');
+        $this->app->tag([TimeTrackingRouteAvailability::class], 'atlas.inertia_route_availability');
         $this->app->tag([TimeTrackingDeactivationGuard::class], 'atlas.module_deactivation_guards');
         $this->app->tag([
             AdminTimeTrackingBreaksDataTableExportProvider::class,

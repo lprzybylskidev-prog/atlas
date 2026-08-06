@@ -4,11 +4,12 @@ declare(strict_types=1);
 
 namespace App\Modules\Core\Audit\Application\Exports;
 
+use App\Modules\Core\Audit\Application\Public\Persistence\AuditDatabaseTable;
 use App\Modules\Core\Exports\Application\Public\AbstractAdminDataTableExportProvider;
 use App\Modules\Core\Exports\Application\Public\DTOs\ReportExportGenerationRequest;
 use App\Modules\Core\Exports\Application\Public\Permissions\ReportsPermissionCatalog;
+use App\Modules\Core\Identity\Application\Public\Persistence\IdentityDatabaseTable;
 use App\Shared\Application\Tables\AdminTableDefinitions;
-use App\Shared\Infrastructure\Database\DatabaseTable;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Facades\DB;
 
@@ -59,7 +60,7 @@ final readonly class AdminSecurityHistoryDataTableExportProvider extends Abstrac
     public function rows(ReportExportGenerationRequest $request): iterable
     {
         $userPublicId = self::filterValue($request, 'user');
-        $query = DB::table(DatabaseTable::AUDIT_EVENTS)->where('is_security', true);
+        $query = DB::table(AuditDatabaseTable::AUDIT_EVENTS)->where('is_security', true);
 
         if ($userPublicId !== '' && $userPublicId !== 'all') {
             $query->where(static function (Builder $query) use ($userPublicId): void {
@@ -123,7 +124,7 @@ final readonly class AdminSecurityHistoryDataTableExportProvider extends Abstrac
 
         $users = [];
 
-        foreach (DB::table(DatabaseTable::USERS)
+        foreach (DB::table(IdentityDatabaseTable::USERS)
             ->whereIn('public_id', array_keys($publicIds))
             ->get(['public_id', 'name', 'email'])
             ->all() as $user) {

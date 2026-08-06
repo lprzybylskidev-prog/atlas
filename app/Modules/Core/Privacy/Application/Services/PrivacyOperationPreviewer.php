@@ -10,10 +10,10 @@ use App\Modules\Core\Audit\Application\Public\Enums\SecurityAuditCategory;
 use App\Modules\Core\Privacy\Application\DTOs\PrivacyPreviewCommand;
 use App\Modules\Core\Privacy\Application\DTOs\PrivacyPreviewResult;
 use App\Modules\Core\Privacy\Application\Enums\PrivacyOperation;
+use App\Modules\Core\Privacy\Application\Public\Persistence\PrivacyDatabaseTable;
 use App\Shared\Application\DataLifecycle\DataLifecycleBlocker;
 use App\Shared\Application\DataLifecycle\DataLifecycleImpact;
 use App\Shared\Application\DataLifecycle\DataLifecycleSubject;
-use App\Shared\Infrastructure\Database\DatabaseTable;
 use Illuminate\Database\ConnectionInterface;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Str;
@@ -101,7 +101,7 @@ final readonly class PrivacyOperationPreviewer
         $confirmationPhrase = $command->operation->confirmationPhrase($command->subjectIdentifier);
 
         $this->db->transaction(function () use ($command, $publicId, $confirmationPhrase, $status, $impactPayload, $blockerPayload, $participants, $estimatedRecords, $canExecute): void {
-            $requestId = $this->db->table(DatabaseTable::PRIVACY_OPERATION_REQUESTS)->insertGetId([
+            $requestId = $this->db->table(PrivacyDatabaseTable::OPERATION_REQUESTS)->insertGetId([
                 'public_id' => $publicId,
                 'operation' => $command->operation->value,
                 'subject_type' => $command->subjectType,
@@ -122,7 +122,7 @@ final readonly class PrivacyOperationPreviewer
                 'updated_at' => now(),
             ]);
 
-            $this->db->table(DatabaseTable::PRIVACY_OPERATION_PREVIEWS)->insert([
+            $this->db->table(PrivacyDatabaseTable::OPERATION_PREVIEWS)->insert([
                 'operation_request_id' => $requestId,
                 'impacts' => $this->json($impactPayload),
                 'blockers' => $this->json($blockerPayload),
@@ -211,7 +211,7 @@ final readonly class PrivacyOperationPreviewer
 
     private function hasActiveLegalHold(string $subjectType, string $subjectIdentifier): bool
     {
-        return $this->db->table(DatabaseTable::PRIVACY_LEGAL_HOLDS)
+        return $this->db->table(PrivacyDatabaseTable::LEGAL_HOLDS)
             ->where('subject_type', $subjectType)
             ->where('subject_identifier', $subjectIdentifier)
             ->whereNull('released_at')

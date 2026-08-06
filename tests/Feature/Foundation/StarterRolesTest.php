@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace Tests\Feature\Foundation;
 
 use App\Modules\Core\Authorization\Application\Permissions\PermissionCatalogRegistry;
+use App\Modules\Core\Authorization\Application\Public\Persistence\AuthorizationDatabaseTable;
 use App\Modules\Core\Authorization\Application\Roles\InstallStarterRoles;
 use App\Modules\Core\Authorization\Application\Roles\StarterRoleName;
-use App\Shared\Infrastructure\Database\DatabaseTable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
@@ -24,9 +24,9 @@ final class StarterRolesTest extends TestCase
             ->where('name', StarterRoleName::Administrator->value)
             ->firstOrFail();
 
-        self::assertDatabaseHas(DatabaseTable::ROLES, ['name' => StarterRoleName::WorkspaceAccess->value]);
-        self::assertDatabaseHas(DatabaseTable::ROLES, ['name' => StarterRoleName::TeamManagersRead->value]);
-        self::assertDatabaseHas(DatabaseTable::ROLES, ['name' => StarterRoleName::Administrator->value]);
+        self::assertDatabaseHas(AuthorizationDatabaseTable::ROLES, ['name' => StarterRoleName::WorkspaceAccess->value]);
+        self::assertDatabaseHas(AuthorizationDatabaseTable::ROLES, ['name' => StarterRoleName::TeamManagersRead->value]);
+        self::assertDatabaseHas(AuthorizationDatabaseTable::ROLES, ['name' => StarterRoleName::Administrator->value]);
         self::assertCount(
             count($this->app->make(PermissionCatalogRegistry::class)->names()),
             $administrator->permissions,
@@ -42,7 +42,7 @@ final class StarterRolesTest extends TestCase
             ->firstOrFail();
         $originalCount = $administrator->permissions()->count();
 
-        self::assertDatabaseMissing(DatabaseTable::PERMISSIONS, ['name' => 'future.permission']);
+        self::assertDatabaseMissing(AuthorizationDatabaseTable::PERMISSIONS, ['name' => 'future.permission']);
 
         Role::query()
             ->where('name', StarterRoleName::Administrator->value)

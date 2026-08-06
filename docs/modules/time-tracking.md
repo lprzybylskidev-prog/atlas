@@ -4,11 +4,11 @@ Canonical complete behavior of the optional TimeTracking module. Read this only 
 
 ## Current implementation status
 
-Phase 27 is in progress.
+Phase 27 and Phase 27a are complete. Shared integration concerns revealed by the TimeTracking implementation are now protected by foundation architecture guardrails without changing TimeTracking user-facing behavior.
 
 The current implementation provides the optional `time_tracking` module manifest, exact interval allocation primitives, user-team tracking enablement, official work-session persistence, module-context segments, break/Other work locks, policies and review states, maintenance handling, inactivity/offline reconciliation, correction and settlement flows, ModuleGate enforcement, public analytical contracts, user and manager reports, the initial Admin work-time records area, shared exports, report charts, period comparison, impersonation-safe simulation, development demo data, and deactivation guard integration.
 
-Remaining open Phase 27 work is governed by the roadmap tasks.
+Remaining TimeTracking evolution is governed by later roadmap phases.
 
 ## TimeTracking Optional Module
 
@@ -78,7 +78,9 @@ TimeTracking routes, jobs, reports, and live-status channels must use the `TimeT
 - tracked-to-tracked ends the old and starts a new one;
 - switching is blocked during break or other work.
 
-Current implementation owns `optional_time_tracking.work_sessions`. A work session stores user, team, Laravel session ID, exact `started_at`/`ended_at` instants, exact elapsed seconds at closure, and the technical closure reason. A partial unique index allows only one open official work session per user. The TimeTracking web middleware synchronizes work after authenticated requests with an active team and closes open work before logout.
+Current implementation owns `optional_time_tracking.work_sessions`, referenced in code through the module-owned `TimeTrackingDatabaseTable`. A work session stores user, team, Laravel session ID, exact `started_at`/`ended_at` instants, exact elapsed seconds at closure, and the technical closure reason. A partial unique index allows only one open official work session per user. The TimeTracking web middleware synchronizes work after authenticated requests with an active team and closes open work before logout.
+
+TimeTracking contributes shared Inertia activity settings and work-time route candidates through explicitly registered Presentation contributors. The global Inertia middleware does not import TimeTracking internals or query TimeTracking tables directly.
 
 Multiple browser tabs sharing the same Laravel session synchronize into the same active work session and move only the active module-context segment. If another browser session starts tracking the same user and team, the previous open work session is closed with `session_superseded` and the new session becomes authoritative.
 

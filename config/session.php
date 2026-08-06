@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use App\Shared\Infrastructure\Database\DatabaseTable;
+use App\Modules\Core\Identity\Application\Public\Persistence\IdentityDatabaseTable;
 
 return [
     'driver' => env('SESSION_DRIVER', 'redis'),
@@ -11,7 +11,7 @@ return [
     'encrypt' => (bool) env('SESSION_ENCRYPT', false),
     'files' => storage_path('framework/sessions'),
     'connection' => null,
-    'table' => DatabaseTable::SESSIONS,
+    'table' => IdentityDatabaseTable::SESSIONS,
     'store' => null,
     'lottery' => [2, 100],
     'cookie' => 'atlas_session',

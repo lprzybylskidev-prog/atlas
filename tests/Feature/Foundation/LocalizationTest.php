@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Foundation;
 
+use App\Modules\Core\Authorization\Application\Public\Persistence\AuthorizationDatabaseTable;
 use App\Modules\Core\Authorization\Application\Roles\InstallStarterRoles;
 use App\Modules\Core\Authorization\Application\Roles\StarterRoleName;
 use App\Modules\Core\Identity\Infrastructure\Persistence\User;
 use App\Modules\Core\Settings\Application\Enums\UserSettingKey;
+use App\Modules\Core\Settings\Application\Public\Persistence\SettingsDatabaseTable;
+use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
 use App\Modules\Core\Teams\Infrastructure\Persistence\Team;
-use App\Shared\Infrastructure\Database\DatabaseTable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -178,7 +180,7 @@ class LocalizationTest extends TestCase
             ->assertRedirect()
             ->assertCookie('atlas_locale', 'en');
 
-        self::assertDatabaseHas(DatabaseTable::SETTINGS_USER_VALUES, [
+        self::assertDatabaseHas(SettingsDatabaseTable::SETTINGS_USER_VALUES, [
             'user_id' => $user->id,
             'key' => UserSettingKey::UiLocale->value,
             'value' => '"en"',
@@ -195,7 +197,7 @@ class LocalizationTest extends TestCase
             ->assertOk()
             ->assertInertia(fn (AssertableInertia $page) => $page->where('locale', 'en'));
 
-        self::assertSame('"en"', DB::table(DatabaseTable::SETTINGS_USER_VALUES)->where('user_id', $user->id)->value('value'));
+        self::assertSame('"en"', DB::table(SettingsDatabaseTable::SETTINGS_USER_VALUES)->where('user_id', $user->id)->value('value'));
     }
 
     public function test_authenticated_theme_change_is_persisted_as_user_setting(): void
@@ -207,7 +209,7 @@ class LocalizationTest extends TestCase
             ->assertRedirect()
             ->assertCookie('atlas_theme', 'dark');
 
-        self::assertDatabaseHas(DatabaseTable::SETTINGS_USER_VALUES, [
+        self::assertDatabaseHas(SettingsDatabaseTable::SETTINGS_USER_VALUES, [
             'user_id' => $user->id,
             'key' => UserSettingKey::Theme->value,
             'value' => '"dark"',
@@ -281,14 +283,14 @@ class LocalizationTest extends TestCase
 
         $role = Role::query()->where('name', $roleName)->firstOrFail();
 
-        DB::table(DatabaseTable::TEAM_USER_ASSIGNMENTS)->insert([
+        DB::table(TeamsDatabaseTable::TEAM_USER_ASSIGNMENTS)->insert([
             'team_id' => $team->id,
             'user_id' => $user->id,
             'created_at' => now(),
             'updated_at' => now(),
         ]);
 
-        DB::table(DatabaseTable::MODEL_HAS_ROLES)->insert([
+        DB::table(AuthorizationDatabaseTable::MODEL_HAS_ROLES)->insert([
             'role_id' => $role->id,
             'model_type' => config('auth.providers.users.model'),
             'model_id' => $user->id,

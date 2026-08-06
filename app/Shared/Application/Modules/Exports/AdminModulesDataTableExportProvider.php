@@ -7,6 +7,7 @@ namespace App\Shared\Application\Modules\Exports;
 use App\Modules\Core\Exports\Application\Public\AbstractAdminDataTableExportProvider;
 use App\Modules\Core\Exports\Application\Public\DTOs\ReportExportGenerationRequest;
 use App\Modules\Core\Exports\Application\Public\Permissions\ReportsPermissionCatalog;
+use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
 use App\Shared\Application\Modules\Activation\Contracts\ModuleActivationService;
 use App\Shared\Application\Modules\Activation\ModuleActivationScheduleStatus;
 use App\Shared\Application\Modules\Contracts\ModuleDefinition;
@@ -156,7 +157,7 @@ final readonly class AdminModulesDataTableExportProvider extends AbstractAdminDa
 
     private function teamId(string $teamPublicId): ?int
     {
-        $teamId = DB::table(DatabaseTable::TEAMS)->where('public_id', $teamPublicId)->value('id');
+        $teamId = DB::table(TeamsDatabaseTable::TEAMS)->where('public_id', $teamPublicId)->value('id');
 
         return is_numeric($teamId) ? (int) $teamId : null;
     }

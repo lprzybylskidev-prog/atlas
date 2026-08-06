@@ -2,8 +2,12 @@
 
 declare(strict_types=1);
 
+use App\Modules\Core\Exports\Application\Public\Persistence\ExportsDatabaseTable;
+use App\Modules\Core\Identity\Application\Public\Persistence\IdentityDatabaseTable;
+use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
+use App\Modules\Optional\Imports\Application\Public\Persistence\ImportsDatabaseTable;
+use App\Modules\Optional\ManagedProcesses\Application\Public\Persistence\ManagedProcessesDatabaseTable;
 use App\Shared\Infrastructure\Database\DatabaseSchema;
-use App\Shared\Infrastructure\Database\DatabaseTable;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
@@ -17,15 +21,15 @@ return new class extends Migration
 
         $this->releaseLegacyReportProcessDependency();
 
-        Schema::dropIfExists(DatabaseTable::REPORT_RENDER_CREDENTIALS);
-        Schema::dropIfExists(DatabaseTable::REPORT_EXPORT_ARTIFACTS);
-        Schema::dropIfExists(DatabaseTable::REPORT_EXPORT_REQUESTS);
-        Schema::dropIfExists(DatabaseTable::IMPORT_IDEMPOTENCY_KEYS);
-        Schema::dropIfExists(DatabaseTable::IMPORT_ROW_ERRORS);
-        Schema::dropIfExists(DatabaseTable::IMPORT_EXECUTIONS);
+        Schema::dropIfExists(ExportsDatabaseTable::REPORT_RENDER_CREDENTIALS);
+        Schema::dropIfExists(ExportsDatabaseTable::REPORT_EXPORT_ARTIFACTS);
+        Schema::dropIfExists(ExportsDatabaseTable::REPORT_EXPORT_REQUESTS);
+        Schema::dropIfExists(ImportsDatabaseTable::IDEMPOTENCY_KEYS);
+        Schema::dropIfExists(ImportsDatabaseTable::ROW_ERRORS);
+        Schema::dropIfExists(ImportsDatabaseTable::EXECUTIONS);
         $this->dropModuleTables();
 
-        Schema::create(DatabaseTable::MANAGED_PROCESS_DEFINITIONS, function (Blueprint $table): void {
+        Schema::create(ManagedProcessesDatabaseTable::DEFINITIONS, function (Blueprint $table): void {
             $table->id();
             $table->ulid('public_id')->unique();
             $table->string('process_key')->unique();
@@ -52,14 +56,14 @@ return new class extends Migration
             $table->index(['schedule_supported', 'manual_start_supported']);
         });
 
-        Schema::create(DatabaseTable::MANAGED_PROCESS_RUNS, function (Blueprint $table): void {
+        Schema::create(ManagedProcessesDatabaseTable::RUNS, function (Blueprint $table): void {
             $table->id();
             $table->ulid('public_id')->unique();
             $table->string('process_key');
             $table->string('module_key');
             $table->string('scope', 32);
-            $table->foreignId('team_id')->nullable()->constrained(DatabaseTable::TEAMS)->restrictOnDelete();
-            $table->foreignId('actor_user_id')->nullable()->constrained(DatabaseTable::USERS)->nullOnDelete();
+            $table->foreignId('team_id')->nullable()->constrained(TeamsDatabaseTable::TEAMS)->restrictOnDelete();
+            $table->foreignId('actor_user_id')->nullable()->constrained(IdentityDatabaseTable::USERS)->nullOnDelete();
             $table->string('source_type', 32);
             $table->jsonb('input_snapshot')->nullable();
             $table->string('queue_connection')->nullable();
@@ -73,7 +77,7 @@ return new class extends Migration
             $table->jsonb('counters');
             $table->string('correlation_id');
             $table->string('causation_id')->nullable();
-            $table->foreignId('retry_of_run_id')->nullable()->constrained(DatabaseTable::MANAGED_PROCESS_RUNS)->restrictOnDelete();
+            $table->foreignId('retry_of_run_id')->nullable()->constrained(ManagedProcessesDatabaseTable::RUNS)->restrictOnDelete();
             $table->timestampTz('queued_at')->nullable();
             $table->timestampTz('started_at')->nullable();
             $table->timestampTz('finished_at')->nullable();
@@ -94,24 +98,24 @@ return new class extends Migration
             $table->index(['retry_of_run_id']);
         });
 
-        Schema::create(DatabaseTable::MANAGED_PROCESS_RUN_ACKNOWLEDGEMENTS, function (Blueprint $table): void {
+        Schema::create(ManagedProcessesDatabaseTable::RUN_ACKNOWLEDGEMENTS, function (Blueprint $table): void {
             $table->id();
             $table->ulid('public_id')->unique();
             $table->foreignId('process_run_id');
-            $table->foreignId('acknowledged_by_user_id')->nullable()->constrained(DatabaseTable::USERS)->nullOnDelete();
+            $table->foreignId('acknowledged_by_user_id')->nullable()->constrained(IdentityDatabaseTable::USERS)->nullOnDelete();
             $table->text('reason')->nullable();
             $table->timestampTz('acknowledged_at');
             $table->timestampsTz();
 
             $table->unique('process_run_id', 'mp_run_ack_run_id_unique');
-            $table->foreign('process_run_id', 'mp_run_ack_run_id_foreign')->references('id')->on(DatabaseTable::MANAGED_PROCESS_RUNS)->restrictOnDelete();
+            $table->foreign('process_run_id', 'mp_run_ack_run_id_foreign')->references('id')->on(ManagedProcessesDatabaseTable::RUNS)->restrictOnDelete();
             $table->index('acknowledged_at');
         });
 
-        Schema::create(DatabaseTable::MANAGED_PROCESS_LOG_EVENTS, function (Blueprint $table): void {
+        Schema::create(ManagedProcessesDatabaseTable::LOG_EVENTS, function (Blueprint $table): void {
             $table->id();
             $table->ulid('public_id')->unique();
-            $table->foreignId('process_run_id')->constrained(DatabaseTable::MANAGED_PROCESS_RUNS)->restrictOnDelete();
+            $table->foreignId('process_run_id')->constrained(ManagedProcessesDatabaseTable::RUNS)->restrictOnDelete();
             $table->timestampTz('occurred_at');
             $table->string('severity', 16);
             $table->string('event_type', 32);
@@ -135,23 +139,23 @@ return new class extends Migration
             $table->index(['correlation_id']);
         });
 
-        Schema::create(DatabaseTable::MANAGED_PROCESS_SCHEDULES, function (Blueprint $table): void {
+        Schema::create(ManagedProcessesDatabaseTable::SCHEDULES, function (Blueprint $table): void {
             $table->id();
             $table->ulid('public_id')->unique();
             $table->string('process_key');
             $table->string('module_key');
             $table->string('scope', 32);
-            $table->foreignId('team_id')->nullable()->constrained(DatabaseTable::TEAMS)->restrictOnDelete();
+            $table->foreignId('team_id')->nullable()->constrained(TeamsDatabaseTable::TEAMS)->restrictOnDelete();
             $table->string('timezone');
             $table->string('cron_expression')->nullable();
             $table->string('interval_key')->nullable();
             $table->jsonb('input_snapshot')->nullable();
             $table->boolean('enabled')->default(true);
             $table->timestampTz('next_due_at')->nullable();
-            $table->foreignId('last_run_id')->nullable()->constrained(DatabaseTable::MANAGED_PROCESS_RUNS)->nullOnDelete();
+            $table->foreignId('last_run_id')->nullable()->constrained(ManagedProcessesDatabaseTable::RUNS)->nullOnDelete();
             $table->string('overlap_policy', 32);
-            $table->foreignId('created_by_user_id')->nullable()->constrained(DatabaseTable::USERS)->nullOnDelete();
-            $table->foreignId('updated_by_user_id')->nullable()->constrained(DatabaseTable::USERS)->nullOnDelete();
+            $table->foreignId('created_by_user_id')->nullable()->constrained(IdentityDatabaseTable::USERS)->nullOnDelete();
+            $table->foreignId('updated_by_user_id')->nullable()->constrained(IdentityDatabaseTable::USERS)->nullOnDelete();
             $table->text('reason');
             $table->timestampsTz();
 
@@ -168,11 +172,11 @@ return new class extends Migration
 
     private function dropModuleTables(): void
     {
-        Schema::dropIfExists(DatabaseTable::MANAGED_PROCESS_SCHEDULES);
-        Schema::dropIfExists(DatabaseTable::MANAGED_PROCESS_LOG_EVENTS);
-        Schema::dropIfExists(DatabaseTable::MANAGED_PROCESS_RUN_ACKNOWLEDGEMENTS);
-        Schema::dropIfExists(DatabaseTable::MANAGED_PROCESS_RUNS);
-        Schema::dropIfExists(DatabaseTable::MANAGED_PROCESS_DEFINITIONS);
+        Schema::dropIfExists(ManagedProcessesDatabaseTable::SCHEDULES);
+        Schema::dropIfExists(ManagedProcessesDatabaseTable::LOG_EVENTS);
+        Schema::dropIfExists(ManagedProcessesDatabaseTable::RUN_ACKNOWLEDGEMENTS);
+        Schema::dropIfExists(ManagedProcessesDatabaseTable::RUNS);
+        Schema::dropIfExists(ManagedProcessesDatabaseTable::DEFINITIONS);
     }
 
     private function releaseLegacyReportProcessDependency(): void

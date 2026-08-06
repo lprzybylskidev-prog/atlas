@@ -7,13 +7,14 @@ namespace App\Modules\Core\Teams\Infrastructure\Persistence;
 use App\Modules\Core\Audit\Application\Public\Contracts\AuditRecorder;
 use App\Modules\Core\Audit\Application\Public\DTOs\AuditEvent;
 use App\Modules\Core\Audit\Application\Public\Enums\SecurityAuditCategory;
+use App\Modules\Core\Identity\Application\Public\Persistence\IdentityDatabaseTable;
 use App\Modules\Core\Teams\Application\Exceptions\ManagerHierarchyViolation;
 use App\Modules\Core\Teams\Application\Public\Contracts\ManagerHierarchy;
 use App\Modules\Core\Teams\Application\Public\DTOs\ManagerHierarchyNode;
 use App\Modules\Core\Teams\Application\Public\DTOs\ManagerImpactPreview;
 use App\Modules\Core\Teams\Application\Public\DTOs\ManagerRelationshipSummary;
 use App\Modules\Core\Teams\Application\Public\DTOs\ManagerScope;
-use App\Shared\Infrastructure\Database\DatabaseTable;
+use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -132,7 +133,7 @@ final class DatabaseManagerHierarchy implements ManagerHierarchy
         $publicId = (string) Str::ulid();
 
         DB::transaction(static function () use ($teamId, $managerUserId, $reportUserId, $actorUserId, $validFromAt, $reason, $publicId): void {
-            DB::table(DatabaseTable::TEAM_MANAGER_RELATIONSHIPS)->insert([
+            DB::table(TeamsDatabaseTable::TEAM_MANAGER_RELATIONSHIPS)->insert([
                 'public_id' => $publicId,
                 'team_id' => $teamId,
                 'manager_user_id' => $managerUserId,
@@ -168,7 +169,7 @@ final class DatabaseManagerHierarchy implements ManagerHierarchy
         $validToAt = Carbon::parse($validTo);
 
         DB::transaction(static function () use ($relationshipPublicId, $actorUserId, $validToAt, $reason): void {
-            DB::table(DatabaseTable::TEAM_MANAGER_RELATIONSHIPS)
+            DB::table(TeamsDatabaseTable::TEAM_MANAGER_RELATIONSHIPS)
                 ->where('public_id', $relationshipPublicId)
                 ->whereNull('valid_to')
                 ->update([
@@ -202,13 +203,13 @@ final class DatabaseManagerHierarchy implements ManagerHierarchy
             throw ManagerHierarchyViolation::inactiveMembership();
         }
 
-        $before = DB::table(DatabaseTable::TEAM_USER_ASSIGNMENTS)
+        $before = DB::table(TeamsDatabaseTable::TEAM_USER_ASSIGNMENTS)
             ->where('team_id', $teamId)
             ->where('user_id', $userId)
             ->where(fn (Builder $query) => $this->currentlyValidWhere($query))
             ->value('is_head_manager');
 
-        DB::table(DatabaseTable::TEAM_USER_ASSIGNMENTS)
+        DB::table(TeamsDatabaseTable::TEAM_USER_ASSIGNMENTS)
             ->where('team_id', $teamId)
             ->where('user_id', $userId)
             ->where(fn (Builder $query) => $this->currentlyValidWhere($query))
@@ -229,7 +230,7 @@ final class DatabaseManagerHierarchy implements ManagerHierarchy
     {
         $teamId = $this->teamId($teamPublicId);
         $managerUserId = $this->userId($managerUserPublicId);
-        $headManager = (bool) DB::table(DatabaseTable::TEAM_USER_ASSIGNMENTS)
+        $headManager = (bool) DB::table(TeamsDatabaseTable::TEAM_USER_ASSIGNMENTS)
             ->where('team_id', $teamId)
             ->where('user_id', $managerUserId)
             ->where(fn (Builder $query) => $this->currentlyValidWhere($query))
@@ -278,10 +279,10 @@ final class DatabaseManagerHierarchy implements ManagerHierarchy
 
     private function relationshipQuery(): Builder
     {
-        return DB::table(DatabaseTable::TEAM_MANAGER_RELATIONSHIPS.' as relationships')
-            ->join(DatabaseTable::TEAMS.' as teams', 'relationships.team_id', '=', 'teams.id')
-            ->join(DatabaseTable::USERS.' as manager', 'relationships.manager_user_id', '=', 'manager.id')
-            ->join(DatabaseTable::USERS.' as report', 'relationships.report_user_id', '=', 'report.id')
+        return DB::table(TeamsDatabaseTable::TEAM_MANAGER_RELATIONSHIPS.' as relationships')
+            ->join(TeamsDatabaseTable::TEAMS.' as teams', 'relationships.team_id', '=', 'teams.id')
+            ->join(IdentityDatabaseTable::USERS.' as manager', 'relationships.manager_user_id', '=', 'manager.id')
+            ->join(IdentityDatabaseTable::USERS.' as report', 'relationships.report_user_id', '=', 'report.id')
             ->select([
                 'relationships.public_id',
                 'relationships.valid_from',
@@ -317,8 +318,8 @@ final class DatabaseManagerHierarchy implements ManagerHierarchy
     {
         $members = [];
 
-        foreach (DB::table(DatabaseTable::TEAM_USER_ASSIGNMENTS.' as assignments')
-            ->join(DatabaseTable::USERS.' as users', 'assignments.user_id', '=', 'users.id')
+        foreach (DB::table(TeamsDatabaseTable::TEAM_USER_ASSIGNMENTS.' as assignments')
+            ->join(IdentityDatabaseTable::USERS.' as users', 'assignments.user_id', '=', 'users.id')
             ->where('assignments.team_id', $teamId)
             ->where(fn (Builder $query) => $this->currentlyValidWhere($query, 'assignments'))
             ->orderBy('users.name')
@@ -346,7 +347,7 @@ final class DatabaseManagerHierarchy implements ManagerHierarchy
     {
         $children = [];
 
-        foreach (DB::table(DatabaseTable::TEAM_MANAGER_RELATIONSHIPS)
+        foreach (DB::table(TeamsDatabaseTable::TEAM_MANAGER_RELATIONSHIPS)
             ->where('team_id', $teamId)
             ->where(fn (Builder $query) => $this->currentlyValidWhere($query))
             ->get(['manager_user_id', 'report_user_id']) as $row) {
@@ -452,7 +453,7 @@ final class DatabaseManagerHierarchy implements ManagerHierarchy
 
         return array_values(array_map(
             static fn (mixed $value): string => is_scalar($value) ? (string) $value : '',
-            DB::table(DatabaseTable::USERS)->whereIn('id', $userIds)->orderBy('name')->pluck('public_id')->all(),
+            DB::table(IdentityDatabaseTable::USERS)->whereIn('id', $userIds)->orderBy('name')->pluck('public_id')->all(),
         ));
     }
 
@@ -473,7 +474,7 @@ final class DatabaseManagerHierarchy implements ManagerHierarchy
      */
     private function relationshipByPublicId(string $publicId): ?array
     {
-        $row = DB::table(DatabaseTable::TEAM_MANAGER_RELATIONSHIPS)
+        $row = DB::table(TeamsDatabaseTable::TEAM_MANAGER_RELATIONSHIPS)
             ->where('public_id', $publicId)
             ->first(['team_id', 'manager_user_id', 'report_user_id', 'valid_to']);
 
@@ -500,7 +501,7 @@ final class DatabaseManagerHierarchy implements ManagerHierarchy
 
     private function activeRelationshipExists(int $teamId, int $managerUserId, int $reportUserId): bool
     {
-        return DB::table(DatabaseTable::TEAM_MANAGER_RELATIONSHIPS)
+        return DB::table(TeamsDatabaseTable::TEAM_MANAGER_RELATIONSHIPS)
             ->where('team_id', $teamId)
             ->where('manager_user_id', $managerUserId)
             ->where('report_user_id', $reportUserId)
@@ -510,7 +511,7 @@ final class DatabaseManagerHierarchy implements ManagerHierarchy
 
     private function hasActiveMembership(int $teamId, int $userId): bool
     {
-        return DB::table(DatabaseTable::TEAM_USER_ASSIGNMENTS)
+        return DB::table(TeamsDatabaseTable::TEAM_USER_ASSIGNMENTS)
             ->where('team_id', $teamId)
             ->where('user_id', $userId)
             ->where(fn (Builder $query) => $this->currentlyValidWhere($query))
@@ -533,7 +534,7 @@ final class DatabaseManagerHierarchy implements ManagerHierarchy
 
     private function teamId(string $teamPublicId): int
     {
-        $id = DB::table(DatabaseTable::TEAMS)->where('public_id', $teamPublicId)->value('id');
+        $id = DB::table(TeamsDatabaseTable::TEAMS)->where('public_id', $teamPublicId)->value('id');
 
         if (! is_int($id)) {
             abort(Response::HTTP_NOT_FOUND);
@@ -544,14 +545,14 @@ final class DatabaseManagerHierarchy implements ManagerHierarchy
 
     private function teamPublicId(int $teamId): string
     {
-        $publicId = DB::table(DatabaseTable::TEAMS)->where('id', $teamId)->value('public_id');
+        $publicId = DB::table(TeamsDatabaseTable::TEAMS)->where('id', $teamId)->value('public_id');
 
         return is_string($publicId) ? $publicId : '';
     }
 
     private function userId(string $userPublicId): int
     {
-        $id = DB::table(DatabaseTable::USERS)->where('public_id', $userPublicId)->value('id');
+        $id = DB::table(IdentityDatabaseTable::USERS)->where('public_id', $userPublicId)->value('id');
 
         if (! is_int($id)) {
             abort(Response::HTTP_NOT_FOUND);

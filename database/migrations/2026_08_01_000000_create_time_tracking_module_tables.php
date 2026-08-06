@@ -2,8 +2,10 @@
 
 declare(strict_types=1);
 
+use App\Modules\Core\Identity\Application\Public\Persistence\IdentityDatabaseTable;
+use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
+use App\Modules\Optional\TimeTracking\Application\Public\Persistence\TimeTrackingDatabaseTable;
 use App\Shared\Infrastructure\Database\DatabaseSchema;
-use App\Shared\Infrastructure\Database\DatabaseTable;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
@@ -15,15 +17,15 @@ return new class extends Migration
     {
         DatabaseSchema::ensure(DatabaseSchema::OPTIONAL_TIME_TRACKING);
 
-        if (Schema::hasTable(DatabaseTable::TIME_TRACKING_USER_TEAM_SETTINGS)) {
+        if (Schema::hasTable(TimeTrackingDatabaseTable::USER_TEAM_SETTINGS)) {
             DB::statement('drop schema if exists '.DatabaseSchema::OPTIONAL_TIME_TRACKING.' cascade');
             DatabaseSchema::ensure(DatabaseSchema::OPTIONAL_TIME_TRACKING);
         }
 
-        Schema::create(DatabaseTable::TIME_TRACKING_USER_TEAM_SETTINGS, static function (Blueprint $table): void {
+        Schema::create(TimeTrackingDatabaseTable::USER_TEAM_SETTINGS, static function (Blueprint $table): void {
             $table->id();
             $table->ulid('public_id')->unique();
-            $table->foreignId('team_user_assignment_id')->constrained(DatabaseTable::TEAM_USER_ASSIGNMENTS)->restrictOnDelete();
+            $table->foreignId('team_user_assignment_id')->constrained(TeamsDatabaseTable::TEAM_USER_ASSIGNMENTS)->restrictOnDelete();
             $table->boolean('tracking_enabled')->default(false);
             $table->timestamps();
 
@@ -31,11 +33,11 @@ return new class extends Migration
             $table->index('tracking_enabled');
         });
 
-        Schema::create(DatabaseTable::TIME_TRACKING_WORK_SESSIONS, static function (Blueprint $table): void {
+        Schema::create(TimeTrackingDatabaseTable::WORK_SESSIONS, static function (Blueprint $table): void {
             $table->id();
             $table->ulid('public_id')->unique();
-            $table->foreignId('user_id')->constrained(DatabaseTable::USERS)->restrictOnDelete();
-            $table->foreignId('team_id')->constrained(DatabaseTable::TEAMS)->restrictOnDelete();
+            $table->foreignId('user_id')->constrained(IdentityDatabaseTable::USERS)->restrictOnDelete();
+            $table->foreignId('team_id')->constrained(TeamsDatabaseTable::TEAMS)->restrictOnDelete();
             $table->string('laravel_session_id');
             $table->timestampTz('started_at');
             $table->timestampTz('ended_at')->nullable();
@@ -48,12 +50,12 @@ return new class extends Migration
             $table->index(['laravel_session_id', 'ended_at']);
         });
 
-        DB::statement('create unique index time_tracking_work_sessions_active_user_unique on '.DatabaseTable::TIME_TRACKING_WORK_SESSIONS.' (user_id) where ended_at is null');
+        DB::statement('create unique index time_tracking_work_sessions_active_user_unique on '.TimeTrackingDatabaseTable::WORK_SESSIONS.' (user_id) where ended_at is null');
 
-        Schema::create(DatabaseTable::TIME_TRACKING_MODULE_CONTEXT_SEGMENTS, static function (Blueprint $table): void {
+        Schema::create(TimeTrackingDatabaseTable::MODULE_CONTEXT_SEGMENTS, static function (Blueprint $table): void {
             $table->id();
             $table->ulid('public_id')->unique();
-            $table->foreignId('work_session_id')->constrained(DatabaseTable::TIME_TRACKING_WORK_SESSIONS)->restrictOnDelete();
+            $table->foreignId('work_session_id')->constrained(TimeTrackingDatabaseTable::WORK_SESSIONS)->restrictOnDelete();
             $table->string('module_key');
             $table->string('context_key');
             $table->timestampTz('started_at');
@@ -65,14 +67,14 @@ return new class extends Migration
             $table->index(['module_key', 'started_at']);
         });
 
-        DB::statement('create unique index time_tracking_module_segments_active_session_unique on '.DatabaseTable::TIME_TRACKING_MODULE_CONTEXT_SEGMENTS.' (work_session_id) where ended_at is null');
+        DB::statement('create unique index time_tracking_module_segments_active_session_unique on '.TimeTrackingDatabaseTable::MODULE_CONTEXT_SEGMENTS.' (work_session_id) where ended_at is null');
 
-        Schema::create(DatabaseTable::TIME_TRACKING_BREAKS, static function (Blueprint $table): void {
+        Schema::create(TimeTrackingDatabaseTable::BREAKS, static function (Blueprint $table): void {
             $table->id();
             $table->ulid('public_id')->unique();
-            $table->foreignId('work_session_id')->constrained(DatabaseTable::TIME_TRACKING_WORK_SESSIONS)->restrictOnDelete();
-            $table->foreignId('user_id')->constrained(DatabaseTable::USERS)->restrictOnDelete();
-            $table->foreignId('team_id')->constrained(DatabaseTable::TEAMS)->restrictOnDelete();
+            $table->foreignId('work_session_id')->constrained(TimeTrackingDatabaseTable::WORK_SESSIONS)->restrictOnDelete();
+            $table->foreignId('user_id')->constrained(IdentityDatabaseTable::USERS)->restrictOnDelete();
+            $table->foreignId('team_id')->constrained(TeamsDatabaseTable::TEAMS)->restrictOnDelete();
             $table->timestampTz('started_at');
             $table->timestampTz('ended_at')->nullable();
             $table->unsignedBigInteger('exact_seconds')->nullable();
@@ -84,12 +86,12 @@ return new class extends Migration
             $table->index(['user_id', 'started_at']);
         });
 
-        DB::statement('create unique index time_tracking_breaks_active_user_unique on '.DatabaseTable::TIME_TRACKING_BREAKS.' (user_id) where ended_at is null');
+        DB::statement('create unique index time_tracking_breaks_active_user_unique on '.TimeTrackingDatabaseTable::BREAKS.' (user_id) where ended_at is null');
 
-        Schema::create(DatabaseTable::TIME_TRACKING_BREAK_REMINDERS, static function (Blueprint $table): void {
+        Schema::create(TimeTrackingDatabaseTable::BREAK_REMINDERS, static function (Blueprint $table): void {
             $table->id();
             $table->ulid('public_id')->unique();
-            $table->foreignId('break_id')->constrained(DatabaseTable::TIME_TRACKING_BREAKS)->restrictOnDelete();
+            $table->foreignId('break_id')->constrained(TimeTrackingDatabaseTable::BREAKS)->restrictOnDelete();
             $table->string('reminder_type');
             $table->timestampTz('due_at');
             $table->timestampTz('recorded_at');
@@ -99,7 +101,7 @@ return new class extends Migration
             $table->index(['reminder_type', 'due_at']);
         });
 
-        Schema::create(DatabaseTable::TIME_TRACKING_OTHER_WORK_CATEGORIES, static function (Blueprint $table): void {
+        Schema::create(TimeTrackingDatabaseTable::OTHER_WORK_CATEGORIES, static function (Blueprint $table): void {
             $table->id();
             $table->ulid('public_id')->unique();
             $table->string('scope_type');
@@ -118,12 +120,12 @@ return new class extends Migration
             $table->index(['scope_type', 'scope_id', 'is_active']);
         });
 
-        Schema::create(DatabaseTable::TIME_TRACKING_OTHER_WORK, static function (Blueprint $table): void {
+        Schema::create(TimeTrackingDatabaseTable::OTHER_WORK, static function (Blueprint $table): void {
             $table->id();
             $table->ulid('public_id')->unique();
-            $table->foreignId('work_session_id')->constrained(DatabaseTable::TIME_TRACKING_WORK_SESSIONS)->restrictOnDelete();
-            $table->foreignId('user_id')->constrained(DatabaseTable::USERS)->restrictOnDelete();
-            $table->foreignId('team_id')->constrained(DatabaseTable::TEAMS)->restrictOnDelete();
+            $table->foreignId('work_session_id')->constrained(TimeTrackingDatabaseTable::WORK_SESSIONS)->restrictOnDelete();
+            $table->foreignId('user_id')->constrained(IdentityDatabaseTable::USERS)->restrictOnDelete();
+            $table->foreignId('team_id')->constrained(TeamsDatabaseTable::TEAMS)->restrictOnDelete();
             $table->string('category_key')->nullable();
             $table->text('description');
             $table->text('end_note')->nullable();
@@ -139,9 +141,9 @@ return new class extends Migration
             $table->index(['user_id', 'approval_status']);
         });
 
-        DB::statement('create unique index time_tracking_other_work_active_user_unique on '.DatabaseTable::TIME_TRACKING_OTHER_WORK.' (user_id) where ended_at is null');
+        DB::statement('create unique index time_tracking_other_work_active_user_unique on '.TimeTrackingDatabaseTable::OTHER_WORK.' (user_id) where ended_at is null');
 
-        Schema::create(DatabaseTable::TIME_TRACKING_BREAK_POLICIES, static function (Blueprint $table): void {
+        Schema::create(TimeTrackingDatabaseTable::BREAK_POLICIES, static function (Blueprint $table): void {
             $table->id();
             $table->ulid('public_id')->unique();
             $table->string('scope_type');
@@ -154,7 +156,7 @@ return new class extends Migration
             $table->unique(['scope_type', 'scope_id'], 'tt_break_policies_scope_unique');
         });
 
-        Schema::create(DatabaseTable::TIME_TRACKING_MAINTENANCE_WINDOWS, static function (Blueprint $table): void {
+        Schema::create(TimeTrackingDatabaseTable::MAINTENANCE_WINDOWS, static function (Blueprint $table): void {
             $table->id();
             $table->ulid('public_id')->unique();
             $table->string('kind');
@@ -170,13 +172,13 @@ return new class extends Migration
             $table->index(['started_at', 'completed_at']);
         });
 
-        Schema::create(DatabaseTable::TIME_TRACKING_MAINTENANCE_AFFECTED_SESSIONS, static function (Blueprint $table): void {
+        Schema::create(TimeTrackingDatabaseTable::MAINTENANCE_AFFECTED_SESSIONS, static function (Blueprint $table): void {
             $table->id();
             $table->ulid('public_id')->unique();
-            $table->foreignId('maintenance_window_id')->constrained(DatabaseTable::TIME_TRACKING_MAINTENANCE_WINDOWS)->restrictOnDelete();
-            $table->foreignId('work_session_id')->constrained(DatabaseTable::TIME_TRACKING_WORK_SESSIONS)->restrictOnDelete();
-            $table->foreignId('user_id')->constrained(DatabaseTable::USERS)->restrictOnDelete();
-            $table->foreignId('team_id')->constrained(DatabaseTable::TEAMS)->restrictOnDelete();
+            $table->foreignId('maintenance_window_id')->constrained(TimeTrackingDatabaseTable::MAINTENANCE_WINDOWS)->restrictOnDelete();
+            $table->foreignId('work_session_id')->constrained(TimeTrackingDatabaseTable::WORK_SESSIONS)->restrictOnDelete();
+            $table->foreignId('user_id')->constrained(IdentityDatabaseTable::USERS)->restrictOnDelete();
+            $table->foreignId('team_id')->constrained(TeamsDatabaseTable::TEAMS)->restrictOnDelete();
             $table->timestampTz('interrupted_at');
             $table->timestampTz('return_deadline_at')->nullable();
             $table->timestampTz('returned_at')->nullable();
@@ -186,12 +188,12 @@ return new class extends Migration
             $table->index(['user_id', 'return_deadline_at']);
         });
 
-        Schema::create(DatabaseTable::TIME_TRACKING_CORRECTION_REQUESTS, static function (Blueprint $table): void {
+        Schema::create(TimeTrackingDatabaseTable::CORRECTION_REQUESTS, static function (Blueprint $table): void {
             $table->id();
             $table->ulid('public_id')->unique();
-            $table->foreignId('user_id')->constrained(DatabaseTable::USERS)->restrictOnDelete();
-            $table->foreignId('team_id')->constrained(DatabaseTable::TEAMS)->restrictOnDelete();
-            $table->foreignId('work_session_id')->nullable()->constrained(DatabaseTable::TIME_TRACKING_WORK_SESSIONS)->restrictOnDelete();
+            $table->foreignId('user_id')->constrained(IdentityDatabaseTable::USERS)->restrictOnDelete();
+            $table->foreignId('team_id')->constrained(TeamsDatabaseTable::TEAMS)->restrictOnDelete();
+            $table->foreignId('work_session_id')->nullable()->constrained(TimeTrackingDatabaseTable::WORK_SESSIONS)->restrictOnDelete();
             $table->string('source_type')->nullable();
             $table->unsignedBigInteger('source_id')->nullable();
             $table->string('status');
@@ -199,10 +201,10 @@ return new class extends Migration
             $table->text('description');
             $table->timestampTz('requested_at');
             $table->timestampTz('cancelled_at')->nullable();
-            $table->foreignId('cancelled_by_user_id')->nullable()->constrained(DatabaseTable::USERS)->restrictOnDelete();
+            $table->foreignId('cancelled_by_user_id')->nullable()->constrained(IdentityDatabaseTable::USERS)->restrictOnDelete();
             $table->text('cancellation_reason')->nullable();
             $table->timestampTz('decided_at')->nullable();
-            $table->foreignId('decided_by_user_id')->nullable()->constrained(DatabaseTable::USERS)->restrictOnDelete();
+            $table->foreignId('decided_by_user_id')->nullable()->constrained(IdentityDatabaseTable::USERS)->restrictOnDelete();
             $table->text('decision_reason')->nullable();
             $table->timestamps();
 
@@ -211,10 +213,10 @@ return new class extends Migration
             $table->index(['source_type', 'source_id']);
         });
 
-        Schema::create(DatabaseTable::TIME_TRACKING_CORRECTION_PROPOSALS, static function (Blueprint $table): void {
+        Schema::create(TimeTrackingDatabaseTable::CORRECTION_PROPOSALS, static function (Blueprint $table): void {
             $table->id();
             $table->ulid('public_id')->unique();
-            $table->foreignId('correction_request_id')->constrained(DatabaseTable::TIME_TRACKING_CORRECTION_REQUESTS)->restrictOnDelete();
+            $table->foreignId('correction_request_id')->constrained(TimeTrackingDatabaseTable::CORRECTION_REQUESTS)->restrictOnDelete();
             $table->timestampTz('original_started_at')->nullable();
             $table->timestampTz('original_ended_at')->nullable();
             $table->unsignedBigInteger('original_exact_seconds')->nullable();
@@ -229,11 +231,11 @@ return new class extends Migration
             $table->unique('correction_request_id', 'tt_correction_proposals_request_unique');
         });
 
-        Schema::create(DatabaseTable::TIME_TRACKING_CORRECTION_HISTORY, static function (Blueprint $table): void {
+        Schema::create(TimeTrackingDatabaseTable::CORRECTION_HISTORY, static function (Blueprint $table): void {
             $table->id();
             $table->ulid('public_id')->unique();
-            $table->foreignId('correction_request_id')->constrained(DatabaseTable::TIME_TRACKING_CORRECTION_REQUESTS)->restrictOnDelete();
-            $table->foreignId('actor_user_id')->constrained(DatabaseTable::USERS)->restrictOnDelete();
+            $table->foreignId('correction_request_id')->constrained(TimeTrackingDatabaseTable::CORRECTION_REQUESTS)->restrictOnDelete();
+            $table->foreignId('actor_user_id')->constrained(IdentityDatabaseTable::USERS)->restrictOnDelete();
             $table->string('action');
             $table->text('reason')->nullable();
             $table->jsonb('payload')->nullable();
@@ -244,11 +246,11 @@ return new class extends Migration
             $table->index(['actor_user_id', 'occurred_at']);
         });
 
-        Schema::create(DatabaseTable::TIME_TRACKING_CLOSED_PERIOD_OVERRIDES, static function (Blueprint $table): void {
+        Schema::create(TimeTrackingDatabaseTable::CLOSED_PERIOD_OVERRIDES, static function (Blueprint $table): void {
             $table->id();
             $table->ulid('public_id')->unique();
-            $table->foreignId('correction_request_id')->constrained(DatabaseTable::TIME_TRACKING_CORRECTION_REQUESTS)->restrictOnDelete();
-            $table->foreignId('actor_user_id')->constrained(DatabaseTable::USERS)->restrictOnDelete();
+            $table->foreignId('correction_request_id')->constrained(TimeTrackingDatabaseTable::CORRECTION_REQUESTS)->restrictOnDelete();
+            $table->foreignId('actor_user_id')->constrained(IdentityDatabaseTable::USERS)->restrictOnDelete();
             $table->string('actor_scope');
             $table->boolean('admin_mode_confirmed')->default(false);
             $table->boolean('high_risk_reauthenticated')->default(false);
@@ -262,14 +264,14 @@ return new class extends Migration
             $table->index(['actor_user_id', 'authorized_at']);
         });
 
-        Schema::create(DatabaseTable::TIME_TRACKING_SETTLEMENT_SETTINGS, static function (Blueprint $table): void {
+        Schema::create(TimeTrackingDatabaseTable::SETTLEMENT_SETTINGS, static function (Blueprint $table): void {
             $table->id();
             $table->ulid('public_id')->unique();
             $table->unsignedTinyInteger('period_start_day')->default(10);
             $table->timestamps();
         });
 
-        Schema::create(DatabaseTable::TIME_TRACKING_SETTLEMENT_PERIODS, static function (Blueprint $table): void {
+        Schema::create(TimeTrackingDatabaseTable::SETTLEMENT_PERIODS, static function (Blueprint $table): void {
             $table->id();
             $table->ulid('public_id')->unique();
             $table->date('starts_on');

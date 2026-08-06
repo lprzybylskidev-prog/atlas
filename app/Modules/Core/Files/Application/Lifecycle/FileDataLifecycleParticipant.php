@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Core\Files\Application\Lifecycle;
 
 use App\Modules\Core\Files\Application\Public\Contracts\FileLifecycle;
+use App\Modules\Core\Files\Application\Public\Persistence\FilesDatabaseTable;
 use App\Shared\Application\DataLifecycle\Contracts\DataLifecycleParticipant;
 use App\Shared\Application\DataLifecycle\DataLifecycleImpact;
 use App\Shared\Application\DataLifecycle\DataLifecycleOperation;
@@ -12,7 +13,6 @@ use App\Shared\Application\DataLifecycle\DataLifecyclePreview;
 use App\Shared\Application\DataLifecycle\DataLifecycleResult;
 use App\Shared\Application\DataLifecycle\DataLifecycleStepResult;
 use App\Shared\Application\DataLifecycle\DataLifecycleSubject;
-use App\Shared\Infrastructure\Database\DatabaseTable;
 use Illuminate\Database\ConnectionInterface;
 
 final readonly class FileDataLifecycleParticipant implements DataLifecycleParticipant
@@ -66,7 +66,7 @@ final readonly class FileDataLifecycleParticipant implements DataLifecyclePartic
 
     private function liveFileCount(string $publicId): int
     {
-        return $this->db->table(DatabaseTable::FILE_OBJECTS)
+        return $this->db->table(FilesDatabaseTable::FILE_OBJECTS)
             ->where('public_id', $publicId)
             ->whereNull('deleted_at')
             ->count();
@@ -79,7 +79,7 @@ final readonly class FileDataLifecycleParticipant implements DataLifecyclePartic
     {
         $records = [];
 
-        foreach ($this->db->table(DatabaseTable::FILE_OBJECTS)
+        foreach ($this->db->table(FilesDatabaseTable::FILE_OBJECTS)
             ->where('public_id', $publicId)
             ->whereNull('deleted_at')
             ->get([

@@ -4,9 +4,12 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Foundation;
 
+use App\Modules\Core\Audit\Application\Public\Persistence\AuditDatabaseTable;
+use App\Modules\Core\Authorization\Application\Public\Persistence\AuthorizationDatabaseTable;
 use App\Modules\Core\Authorization\Application\Roles\InstallStarterRoles;
 use App\Modules\Core\Authorization\Application\Roles\StarterRoleName;
 use App\Modules\Core\Identity\Infrastructure\Persistence\User;
+use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
 use App\Modules\Core\Teams\Infrastructure\Persistence\Team;
 use App\Shared\Infrastructure\Database\DatabaseTable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -96,7 +99,7 @@ final class AdminQueuesTest extends TestCase
             'failed_job_uuid' => $handledUuid,
             'acknowledged_by_user_id' => $admin->id,
         ]);
-        self::assertDatabaseHas(DatabaseTable::AUDIT_EVENTS, [
+        self::assertDatabaseHas(AuditDatabaseTable::AUDIT_EVENTS, [
             'module' => 'authorization',
             'action' => 'queue.failed_job_acknowledge',
             'result' => 'succeeded',
@@ -185,7 +188,7 @@ final class AdminQueuesTest extends TestCase
             ->assertSessionHas('flash.messages.0.key', 'flash.queues.retry_single_queued')
             ->assertSessionMissing('success');
 
-        self::assertDatabaseHas(DatabaseTable::AUDIT_EVENTS, [
+        self::assertDatabaseHas(AuditDatabaseTable::AUDIT_EVENTS, [
             'module' => 'authorization',
             'action' => 'queue.failed_job_retry',
             'result' => 'succeeded',
@@ -193,7 +196,7 @@ final class AdminQueuesTest extends TestCase
             'target_type' => 'failed_job',
             'is_security' => true,
         ]);
-        self::assertDatabaseHas(DatabaseTable::AUDIT_SECURITY_EVENTS, [
+        self::assertDatabaseHas(AuditDatabaseTable::AUDIT_SECURITY_EVENTS, [
             'category' => 'queue_operations',
             'action' => 'queue.failed_job_retry',
             'result' => 'succeeded',
@@ -270,14 +273,14 @@ final class AdminQueuesTest extends TestCase
         $team = Team::query()->create(['name' => 'Operations']);
         $role = Role::query()->where('name', StarterRoleName::Administrator->value)->firstOrFail();
 
-        DB::table(DatabaseTable::TEAM_USER_ASSIGNMENTS)->insert([
+        DB::table(TeamsDatabaseTable::TEAM_USER_ASSIGNMENTS)->insert([
             'team_id' => $team->id,
             'user_id' => $user->id,
             'created_at' => now(),
             'updated_at' => now(),
         ]);
 
-        DB::table(DatabaseTable::MODEL_HAS_ROLES)->insert([
+        DB::table(AuthorizationDatabaseTable::MODEL_HAS_ROLES)->insert([
             'role_id' => $role->id,
             'model_type' => config('auth.providers.users.model'),
             'model_id' => $user->id,

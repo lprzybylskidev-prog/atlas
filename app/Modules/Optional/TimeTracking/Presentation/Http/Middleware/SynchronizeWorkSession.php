@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace App\Modules\Optional\TimeTracking\Presentation\Http\Middleware;
 
 use App\Modules\Core\Identity\Application\Public\Contracts\ImpersonationSessionState;
+use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
 use App\Modules\Optional\TimeTracking\Application\Contracts\ActiveTimeLockStore;
 use App\Modules\Optional\TimeTracking\Application\Permissions\TimeTrackingPermissionCatalog;
 use App\Modules\Optional\TimeTracking\Application\TimeTrackingModuleAccess;
 use App\Modules\Optional\TimeTracking\Application\WorkSessionCoordinator;
-use App\Shared\Infrastructure\Database\DatabaseTable;
 use Closure;
 use DateTimeImmutable;
 use Illuminate\Http\RedirectResponse;
@@ -103,7 +103,7 @@ final readonly class SynchronizeWorkSession
             return null;
         }
 
-        $id = DB::table(DatabaseTable::TEAMS)
+        $id = DB::table(TeamsDatabaseTable::TEAMS)
             ->where('public_id', $teamPublicId)
             ->value('id');
 

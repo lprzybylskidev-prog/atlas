@@ -6,11 +6,11 @@ namespace Tests\Feature\Exports;
 
 use App\Modules\Core\Exports\Application\Enums\ReportExportStatus;
 use App\Modules\Core\Exports\Application\Lifecycle\ExportDataLifecycleParticipant;
+use App\Modules\Core\Exports\Application\Public\Persistence\ExportsDatabaseTable;
 use App\Modules\Core\Files\Application\Public\Contracts\FileLifecycle;
 use App\Modules\Core\Files\Application\Public\DTOs\FileLifecycleResult;
 use App\Shared\Application\DataLifecycle\DataLifecycleOperation;
 use App\Shared\Application\DataLifecycle\DataLifecycleSubject;
-use App\Shared\Infrastructure\Database\DatabaseTable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -53,14 +53,14 @@ final class ExportPrivacyLifecycleTest extends TestCase
 
         self::assertTrue($result->completed());
         self::assertSame([$subject->identifier], $files->deleted);
-        $this->assertDatabaseHas(DatabaseTable::REPORT_EXPORT_REQUESTS, [
+        $this->assertDatabaseHas(ExportsDatabaseTable::REPORT_EXPORT_REQUESTS, [
             'id' => $requestId,
             'filters' => '{"privacy":"redacted"}',
             'authorization_snapshot' => '{"privacy":"redacted"}',
             'status' => ReportExportStatus::Expired->value,
             'safe_error_summary' => null,
         ]);
-        $this->assertDatabaseHas(DatabaseTable::REPORT_EXPORT_ARTIFACTS, [
+        $this->assertDatabaseHas(ExportsDatabaseTable::REPORT_EXPORT_ARTIFACTS, [
             'public_id' => $artifactPublicId,
             'status' => ReportExportStatus::Expired->value,
             'file_object_id' => null,
@@ -69,14 +69,14 @@ final class ExportPrivacyLifecycleTest extends TestCase
             'size_bytes' => 0,
             'checksum_sha256' => null,
         ]);
-        $this->assertDatabaseMissing(DatabaseTable::REPORT_RENDER_CREDENTIALS, [
+        $this->assertDatabaseMissing(ExportsDatabaseTable::REPORT_RENDER_CREDENTIALS, [
             'export_request_id' => $requestId,
         ]);
     }
 
     private function insertRequest(string $subjectIdentifier, ReportExportStatus $status): int
     {
-        return (int) DB::table(DatabaseTable::REPORT_EXPORT_REQUESTS)->insertGetId([
+        return (int) DB::table(ExportsDatabaseTable::REPORT_EXPORT_REQUESTS)->insertGetId([
             'public_id' => (string) Str::ulid(),
             'report_key' => 'privacy.export.test',
             'report_name' => 'Privacy export test',
@@ -116,7 +116,7 @@ final class ExportPrivacyLifecycleTest extends TestCase
     {
         $publicId = (string) Str::ulid();
 
-        DB::table(DatabaseTable::REPORT_EXPORT_ARTIFACTS)->insert([
+        DB::table(ExportsDatabaseTable::REPORT_EXPORT_ARTIFACTS)->insert([
             'public_id' => $publicId,
             'export_request_id' => $requestId,
             'file_object_id' => null,
@@ -139,7 +139,7 @@ final class ExportPrivacyLifecycleTest extends TestCase
 
     private function insertRenderCredential(int $requestId, string $subjectIdentifier): void
     {
-        DB::table(DatabaseTable::REPORT_RENDER_CREDENTIALS)->insert([
+        DB::table(ExportsDatabaseTable::REPORT_RENDER_CREDENTIALS)->insert([
             'public_id' => (string) Str::ulid(),
             'export_request_id' => $requestId,
             'token_hash' => hash('sha256', 'token-'.$subjectIdentifier),

@@ -2,8 +2,9 @@
 
 declare(strict_types=1);
 
+use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
+use App\Modules\Optional\Integrations\Application\Public\Persistence\IntegrationsDatabaseTable;
 use App\Shared\Infrastructure\Database\DatabaseSchema;
-use App\Shared\Infrastructure\Database\DatabaseTable;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -16,7 +17,7 @@ return new class extends Migration
 
         $this->dropModuleTables();
 
-        Schema::create(DatabaseTable::INTEGRATION_CONNECTIONS, function (Blueprint $table): void {
+        Schema::create(IntegrationsDatabaseTable::CONNECTIONS, function (Blueprint $table): void {
             $table->id();
             $table->ulid('public_id')->unique();
             $table->string('integration_key')->unique();
@@ -34,11 +35,11 @@ return new class extends Migration
             $table->index(['last_success_at', 'last_error_at']);
         });
 
-        Schema::create(DatabaseTable::INTEGRATION_CREDENTIALS, function (Blueprint $table): void {
+        Schema::create(IntegrationsDatabaseTable::CREDENTIALS, function (Blueprint $table): void {
             $table->id();
-            $table->foreignId('connection_id')->constrained(DatabaseTable::INTEGRATION_CONNECTIONS)->restrictOnDelete();
+            $table->foreignId('connection_id')->constrained(IntegrationsDatabaseTable::CONNECTIONS)->restrictOnDelete();
             $table->string('client_key');
-            $table->foreignId('team_id')->nullable()->constrained(DatabaseTable::TEAMS)->restrictOnDelete();
+            $table->foreignId('team_id')->nullable()->constrained(TeamsDatabaseTable::TEAMS)->restrictOnDelete();
             $table->jsonb('scopes');
             $table->jsonb('allowed_modules')->nullable();
             $table->boolean('external_api_enabled')->default(false);
@@ -50,26 +51,26 @@ return new class extends Migration
             $table->index(['team_id', 'revoked_at']);
         });
 
-        Schema::create(DatabaseTable::INTEGRATION_EXTERNAL_ID_MAPPINGS, function (Blueprint $table): void {
+        Schema::create(IntegrationsDatabaseTable::EXTERNAL_ID_MAPPINGS, function (Blueprint $table): void {
             $table->id();
             $table->string('integration_key');
             $table->string('source_system');
             $table->string('entity_type');
             $table->string('external_id');
             $table->string('internal_public_id');
-            $table->foreignId('team_id')->nullable()->constrained(DatabaseTable::TEAMS)->restrictOnDelete();
+            $table->foreignId('team_id')->nullable()->constrained(TeamsDatabaseTable::TEAMS)->restrictOnDelete();
             $table->timestampsTz();
 
             $table->unique(['integration_key', 'source_system', 'entity_type', 'external_id', 'team_id'], 'integration_external_id_unique');
             $table->index(['entity_type', 'internal_public_id']);
         });
 
-        Schema::create(DatabaseTable::INTEGRATION_SYNC_RUNS, function (Blueprint $table): void {
+        Schema::create(IntegrationsDatabaseTable::SYNC_RUNS, function (Blueprint $table): void {
             $table->id();
             $table->string('integration_key');
             $table->string('operation');
             $table->string('correlation_id');
-            $table->foreignId('team_id')->nullable()->constrained(DatabaseTable::TEAMS)->restrictOnDelete();
+            $table->foreignId('team_id')->nullable()->constrained(TeamsDatabaseTable::TEAMS)->restrictOnDelete();
             $table->string('status', 32);
             $table->timestampTz('started_at');
             $table->timestampTz('finished_at')->nullable();
@@ -82,13 +83,13 @@ return new class extends Migration
             $table->index(['correlation_id']);
         });
 
-        Schema::create(DatabaseTable::INTEGRATION_IDEMPOTENCY_KEYS, function (Blueprint $table): void {
+        Schema::create(IntegrationsDatabaseTable::IDEMPOTENCY_KEYS, function (Blueprint $table): void {
             $table->id();
             $table->string('integration_key');
             $table->string('operation');
             $table->string('idempotency_key');
             $table->string('request_hash', 64);
-            $table->foreignId('team_id')->nullable()->constrained(DatabaseTable::TEAMS)->restrictOnDelete();
+            $table->foreignId('team_id')->nullable()->constrained(TeamsDatabaseTable::TEAMS)->restrictOnDelete();
             $table->boolean('completed')->default(false);
             $table->boolean('successful')->nullable();
             $table->jsonb('response_summary')->nullable();
@@ -99,7 +100,7 @@ return new class extends Migration
             $table->index(['team_id', 'created_at']);
         });
 
-        Schema::create(DatabaseTable::INTEGRATION_CIRCUIT_BREAKERS, function (Blueprint $table): void {
+        Schema::create(IntegrationsDatabaseTable::CIRCUIT_BREAKERS, function (Blueprint $table): void {
             $table->id();
             $table->string('integration_key');
             $table->string('operation');
@@ -123,11 +124,11 @@ return new class extends Migration
 
     private function dropModuleTables(): void
     {
-        Schema::dropIfExists(DatabaseTable::INTEGRATION_CIRCUIT_BREAKERS);
-        Schema::dropIfExists(DatabaseTable::INTEGRATION_IDEMPOTENCY_KEYS);
-        Schema::dropIfExists(DatabaseTable::INTEGRATION_SYNC_RUNS);
-        Schema::dropIfExists(DatabaseTable::INTEGRATION_EXTERNAL_ID_MAPPINGS);
-        Schema::dropIfExists(DatabaseTable::INTEGRATION_CREDENTIALS);
-        Schema::dropIfExists(DatabaseTable::INTEGRATION_CONNECTIONS);
+        Schema::dropIfExists(IntegrationsDatabaseTable::CIRCUIT_BREAKERS);
+        Schema::dropIfExists(IntegrationsDatabaseTable::IDEMPOTENCY_KEYS);
+        Schema::dropIfExists(IntegrationsDatabaseTable::SYNC_RUNS);
+        Schema::dropIfExists(IntegrationsDatabaseTable::EXTERNAL_ID_MAPPINGS);
+        Schema::dropIfExists(IntegrationsDatabaseTable::CREDENTIALS);
+        Schema::dropIfExists(IntegrationsDatabaseTable::CONNECTIONS);
     }
 };

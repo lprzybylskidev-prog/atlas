@@ -11,9 +11,11 @@ use App\Modules\Core\Exports\Application\Public\Contracts\ReportExportMaintenanc
 use App\Modules\Core\Exports\Application\Public\DTOs\DownloadableReportArtifact;
 use App\Modules\Core\Exports\Application\Public\DTOs\ReportExportCleanupResult;
 use App\Modules\Core\Exports\Application\Public\Permissions\ReportsPermissionCatalog;
+use App\Modules\Core\Exports\Application\Public\Persistence\ExportsDatabaseTable;
 use App\Modules\Core\Files\Application\Public\Contracts\FileLifecycle;
 use App\Modules\Core\Files\Application\Public\Contracts\FileStorage;
-use App\Shared\Infrastructure\Database\DatabaseTable;
+use App\Modules\Core\Identity\Application\Public\Persistence\IdentityDatabaseTable;
+use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
 use App\Shared\Infrastructure\Operations\OperationalModuleGuard;
 use DateTimeImmutable;
 use Illuminate\Database\ConnectionInterface;
@@ -76,7 +78,7 @@ final readonly class ReportExportArtifactService implements ReportExportArtifact
 
     public function cleanupExpired(DateTimeImmutable $now): ReportExportCleanupResult
     {
-        $expiredArtifacts = $this->database->table(DatabaseTable::REPORT_EXPORT_ARTIFACTS)
+        $expiredArtifacts = $this->database->table(ExportsDatabaseTable::REPORT_EXPORT_ARTIFACTS)
             ->where('expires_at', '<=', $now)
             ->where('status', '!=', ReportExportStatus::Expired->value)
             ->get(['id', 'file_object_public_id', 'created_by_user_id'])
@@ -106,7 +108,7 @@ final readonly class ReportExportArtifactService implements ReportExportArtifact
             }
         }
 
-        $expiredArtifactCount = $this->database->table(DatabaseTable::REPORT_EXPORT_ARTIFACTS)
+        $expiredArtifactCount = $this->database->table(ExportsDatabaseTable::REPORT_EXPORT_ARTIFACTS)
             ->where('expires_at', '<=', $now)
             ->where('status', '!=', ReportExportStatus::Expired->value)
             ->update([
@@ -114,7 +116,7 @@ final readonly class ReportExportArtifactService implements ReportExportArtifact
                 'updated_at' => now('UTC'),
             ]);
 
-        $expiredRequestCount = $this->database->table(DatabaseTable::REPORT_EXPORT_REQUESTS)
+        $expiredRequestCount = $this->database->table(ExportsDatabaseTable::REPORT_EXPORT_REQUESTS)
             ->where('expires_at', '<=', $now)
             ->whereNotIn('status', [ReportExportStatus::Expired->value, ReportExportStatus::Cancelled->value])
             ->update([
@@ -132,8 +134,8 @@ final readonly class ReportExportArtifactService implements ReportExportArtifact
 
     private function artifactWithRequest(string $artifactPublicId): stdClass
     {
-        $row = $this->database->table(DatabaseTable::REPORT_EXPORT_ARTIFACTS.' as artifacts')
-            ->join(DatabaseTable::REPORT_EXPORT_REQUESTS.' as requests', 'artifacts.export_request_id', '=', 'requests.id')
+        $row = $this->database->table(ExportsDatabaseTable::REPORT_EXPORT_ARTIFACTS.' as artifacts')
+            ->join(ExportsDatabaseTable::REPORT_EXPORT_REQUESTS.' as requests', 'artifacts.export_request_id', '=', 'requests.id')
             ->where('artifacts.public_id', $artifactPublicId)
             ->first([
                 'artifacts.public_id as artifact_public_id',
@@ -162,12 +164,12 @@ final readonly class ReportExportArtifactService implements ReportExportArtifact
 
     private function userId(string $publicId): ?int
     {
-        return $this->idForPublicId(DatabaseTable::USERS, $publicId);
+        return $this->idForPublicId(IdentityDatabaseTable::USERS, $publicId);
     }
 
     private function teamId(?string $publicId): ?int
     {
-        return $publicId === null ? null : $this->idForPublicId(DatabaseTable::TEAMS, $publicId);
+        return $publicId === null ? null : $this->idForPublicId(TeamsDatabaseTable::TEAMS, $publicId);
     }
 
     private function idForPublicId(string $table, string $publicId): ?int
