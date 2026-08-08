@@ -2,6 +2,14 @@
 
 Canonical testing environment strategy for backend tests, frontend tests, browser tests, local development, and future CI.
 
+## Phase 28 target
+
+Current state: PHPUnit, Vitest, and Playwright lanes are documented and isolated. Phase 28 adds a foundation-level gate and guardrails for architecture graph validation, audit coverage, frontend contracts, migration/schema rules, seeders, bilingual mail rendering, container smoke, ClamAV/PDF smoke, worker smoke, and scheduler smoke.
+
+Target state: `composer check` remains the standard local gate; `composer check:foundation` becomes the full Phase 28 gate; Phase 30 later owns the final release gate after production deployment, backup, restore, and rollback are implemented.
+
+Tracked issue IDs: `P28-GUARD-001`, `P28-GUARD-002`, `P28-GUARD-003`.
+
 ## Test Layers
 
 Atlas uses separate test layers with different responsibilities.

@@ -92,3 +92,10 @@ Permissions:
 - `exports.audit-export` allows detailed audit/history exports instead of ordinary final-value exports.
 - `admin.exports.index` allows viewing export lifecycle status in Admin operations.
 - `admin.exports.data-table` allows requesting exports from registered Admin DataTables.
+# Phase 28 foundation repair target
+
+Current state: Core Exports owns export artifacts and render credentials, but Phase 28 tracks Core dependency on Optional ManagedProcesses, Audit/Exports dependency direction, PDF/Chromium runtime contract, async/sync limits, notifications/mail, and Admin provider boundaries.
+
+Target state: Exports has explicit dependency classification, owner-approved integration with Files/ManagedProcesses/Reports/Audit, reproducible PDF runtime support, bilingual completion mail where applicable, and complete technical availability tests.
+
+Tracked issue IDs: `P28-ARCH-002`, `P28-ARCH-003`, `P28-RUNTIME-009`, `P28-MAIL-001`, `P28-MODAUD-010`.

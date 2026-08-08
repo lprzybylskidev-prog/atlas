@@ -6,6 +6,8 @@ Canonical commands and repository workflow for local quality gates, hooks, commi
 
 Provide project-level commands.
 
+Phase 28 target: add `composer check:foundation` as the full foundation gate after implementation. It must run `composer check`, fresh PostgreSQL migration, migration/schema guardrails, deterministic seeders, seeder idempotency, PL-first and EN-first mail rendering, architecture graph validation, audit coverage validation, full Playwright, container config validation, production image builds, production smoke stack, ClamAV smoke, Chromium/PDF smoke, worker smoke, and scheduler smoke. Phase 28 cannot close until that command passes.
+
 ### Composer
 
 - `composer format`
@@ -111,7 +113,7 @@ Hooks call the same public project commands. Do not hide duplicate logic inside 
 
 ### Commits
 
-The agent creates commits.
+The agent does not create commits automatically. A commit is created only after explicit user approval for the exact reviewed change.
 
 Use English Conventional Commits:
 

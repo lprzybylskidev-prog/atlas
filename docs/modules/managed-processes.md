@@ -170,3 +170,10 @@ The participant covers process runs, structured process logs, process schedules,
 Active process runs (`draft`, `queued`, `running`, or `waiting`) add the `managed_process_active_run` blocker so destructive privacy execution cannot mutate or remove process context while work is in flight.
 
 For completed records, privacy execution preserves operational history and redacts controlled subject references from process run snapshots/summaries, process log messages/context/entity references, and schedule input/reason fields. Matching queued jobs are removed because they are pending derived work under project control. The participant is idempotent and does not delete completed run or schedule records.
+# Phase 28 foundation repair target
+
+Current state: ManagedProcesses owns runs, logs, retry/cancel, schedules, queues, and Admin visibility, but Phase 28 tracks direct Identity/Teams/Files/Imports SQL, queue/scheduler parity, deactivation guards, input-file boundaries, audit, notifications, and table/action consistency.
+
+Target state: ManagedProcesses is boundary-safe through public contracts, has real queue/scheduler/readiness behavior, audits run state transitions, and provides consistent Admin workflows through canonical tables/actions/statuses.
+
+Tracked issue IDs: `P28-ARCH-010`, `P28-RUNTIME-005`, `P28-RUNTIME-006`, `P28-MOD-005`, `P28-MODAUD-014`.

@@ -115,3 +115,10 @@ Execution is coordinated by `PrivacyOperationExecutor`. It reserves an executabl
 Financial, audit, legal, and retention-controlled records generally cannot be hard deleted. They must either block the operation, be preserved as neutral technical records, or be de-identified only where legally permitted by an explicit anonymization workflow.
 
 An active legal hold is any `legal_holds` record for the preview subject with no release timestamp and either no expiry date or an expiry date on or after the current UTC date. Active legal holds add an `active_legal_hold` blocker to hard-delete and anonymization previews.
+# Phase 28 foundation repair target
+
+Current state: Privacy owns retention/legal-hold/preview foundations, but Phase 28 tracks dependency classification, direct Identity/Teams SQL, rejected-attempt audit gaps, atomicity with lifecycle participants, Files/Search/Exports integration, high-risk continuation, and UI copy.
+
+Target state: Privacy uses owner-owned public contracts, audits every high-risk success/rejection/failure path atomically, keeps lifecycle participant boundaries explicit, and has clear localized Admin workflows.
+
+Tracked issue IDs: `P28-ARCH-003`, `P28-ARCH-009`, `P28-AUDIT-007`, `P28-AUDIT-009`, `P28-MODAUD-011`.

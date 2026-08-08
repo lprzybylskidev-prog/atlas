@@ -6,6 +6,8 @@ Canonical current rules for Atlas frontend UI usage, themes, layout, routing, fr
 
 Frontend views are product surfaces, not thin delivery wrappers for backend features. A change is not complete merely because routes, props, permissions, tables, and tests exist; the rendered workflow must be understandable, actionable, localized, accessible, and reviewable by the target user.
 
+Phase 28 target: Atlas must converge on one canonical UI/UX contract, one PL/EN glossary, one navigation registry, one action contract, one confirmation system, one CRUD/form contract, one DataTable contract, one status catalog, and executable frontend guardrails. Current known noncompliance is tracked by `P28-UI-*`, `P28-ACTION-*`, `P28-FORM-*`, `P28-TABLE-*`, `P28-LOC-*`, `P28-AUTH-*`, and `P28-TT-*` issue IDs in [Phase 28](../roadmap/phase-28-foundation-repair-and-consolidation.md).
+
 Do not patch a structurally poor view with more cards, explanatory text, warnings, or page-local styling. If a view needs long copy to explain why it shows partial data, where the real workflow lives, or what an operator should infer, redesign the view contract with proper ownership, navigation, filters, pagination, drill-down, states, and actions.
 
 When an existing view is visibly incoherent, noisy, mixed-language, duplicated, or misleading, do not use it as the design baseline. Inspect it only to recover route contracts, props, permissions, data ownership, actions, edge cases, and regression risks, then rebuild the view around accepted shared primitives and a clear workflow.

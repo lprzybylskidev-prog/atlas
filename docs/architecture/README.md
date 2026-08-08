@@ -10,3 +10,4 @@ Read these documents only when the task touches the described cross-module mecha
 - [Tables, reports, exports, charts, and print](tables-reports-exports-and-print.md) — shared reporting and document-generation behavior.
 - [Data contracts, formatting, validation, errors, and concurrency](data-contracts-validation-and-concurrency.md) — transport and application boundary conventions.
 - [Security baseline](security-baseline.md) — cross-system security, rate limits, and malware-scanning rules.
+- [Foundation repair target contracts](foundation-repair-target-contracts.md) — accepted Phase 28 target contracts for module graph, audit, UI, migrations, seeders, mail, runtime, and guardrails.

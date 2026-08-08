@@ -110,3 +110,10 @@ Public health endpoints are intentionally unauthenticated but minimal.
 Admin diagnostics may include operational detail, but still must not expose secrets, full exception traces, credentials, arbitrary files, or raw service responses.
 
 ---
+# Phase 28 foundation repair target
+
+Current state: Health exposes liveness/readiness and diagnostics, but Phase 28 tracks technical availability drift, ModuleGate not consuming real health requirements, incomplete queue/scheduler/storage/Meilisearch/ClamAV/Chromium/runtime checks, and backup boundary clarity.
+
+Target state: Health provides real dependency-chain checks for module technical availability and runtime readiness across development, test, production, and manual server modes, without leaking secrets.
+
+Tracked issue IDs: `P28-MOD-002`, `P28-MOD-003`, `P28-RUNTIME-007`, `P28-RUNTIME-012`, `P28-MODAUD-008`.

@@ -106,3 +106,10 @@ Impersonation session detail is available at `/admin/audit/impersonation/{sessio
 Administrators may view security history for all users at `/admin/audit/security-history` with permission `admin.audit.security-history.index`. The screen reads the append-only audit records owned by the Audit module and shows recent security events across actors, actual actors, impersonated users, targets, teams, actions, results, reasons, and impersonation session IDs. Admin can filter the screen by a selected user; the filter matches events where that user is the actor, actual actor, impersonated user, or target. Audit events and security history use the Core Exports Admin DataTable provider contract for CSV, XLSX, PDF, and browser print exports. Ordinary Audit events exports include safe final/list values and metadata key summaries only; raw metadata is reserved for a separate detailed audit-export path requiring `exports.audit-export`.
 
 Impersonation events appear here without sending a real-time user notification by default.
+# Phase 28 foundation repair target
+
+Current state: Core Audit owns append-only audit/security records and Admin browsing, but Phase 28 tracks loose string catalogs, incomplete operation coverage, direct foreign SQL in browser/export paths, incomplete atomicity guarantees, in-memory bounded browser processing, and stale producer documentation.
+
+Target state: Audit uses registered module action catalogs, canonical result/source values, secret-safe metadata validation, transactionally atomic critical evidence, DB-backed browser/export read models with owner-owned labels, and executable coverage guardrails for success/rejection/failure.
+
+Tracked issue IDs: `P28-ARCH-001`, `P28-ARCH-002`, `P28-ARCH-005`, `P28-ARCH-006`, `P28-AUDIT-001`, `P28-AUDIT-002`, `P28-AUDIT-003`, `P28-AUDIT-008`, `P28-AUDIT-009`, `P28-AUDIT-010`, `P28-AUDIT-011`, `P28-MODAUD-005`.

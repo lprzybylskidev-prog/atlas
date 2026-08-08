@@ -95,4 +95,6 @@ Maintain a separate security audit for authentication, impersonation, sessions, 
 
 Security audit producers provide an explicit typed category. Runtime category fallback based on action-name fragments is not allowed; old migration-time mapping may exist only to import legacy local records.
 
+Phase 28 target: every module with meaningful mutating operations registers a typed audit action catalog; hardcoded action/result/source values outside catalogs are forbidden; success, rejection, and failure coverage is enforced for security-sensitive and irreversible operations; mandatory audit rows and critical business changes are atomic; and the Audit browser uses DB-backed query/read models with owner-owned display providers. Known noncompliance is tracked by `P28-AUDIT-001` through `P28-AUDIT-011`.
+
 ---

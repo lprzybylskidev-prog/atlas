@@ -73,3 +73,10 @@ Security-setting changes are recorded through the Audit module as security audit
 - use typed configuration for complex structures.
 
 ---
+# Phase 28 foundation repair target
+
+Current state: Settings owns typed scoped values, but Phase 28 requires review of Audit dependency, global/team/user/security settings, locale/theme behavior, cache invalidation, validation, settings surfaces, public contracts, and current-versus-target documentation.
+
+Target state: Settings exposes only owner-approved public contracts, uses the target audit catalog and atomicity rules for changes, keeps locale/theme values aligned with frontend/mail formatting contracts, and has clear surface, cache, validation, docs, and tests.
+
+Tracked issue IDs: `P28-AUDIT-003`, `P28-LOC-001`, `P28-MODAUD-006`.

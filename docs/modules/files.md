@@ -122,3 +122,10 @@ Permissions:
 ## Remaining phase work
 
 Phase 19 implementation is complete except for the repository commit step, which requires explicit user approval under the Atlas git workflow.
+# Phase 28 foundation repair target
+
+Current state: Files owns private storage and scanning, but Phase 28 tracks direct Identity/Teams SQL, fake-versus-real scanner risk, missing audit for scan failure and rejected operations, ClamAV production parity, scan queues, temp lifecycle, retention copy failures, and UI/status token issues.
+
+Target state: Files uses owner-owned user/team contracts, never runs production with a fake scanner, exposes real ClamAV readiness, audits scan/rescan/delete/retention outcomes consistently, and uses canonical table/action/status UI.
+
+Tracked issue IDs: `P28-ARCH-008`, `P28-AUDIT-006`, `P28-AUDIT-007`, `P28-RUNTIME-008`, `P28-TABLE-009`, `P28-MODAUD-009`.

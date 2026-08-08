@@ -53,3 +53,10 @@ Keep original import files according to retention policy.
 Row and field errors are structured import error records and may also appear in the process timeline as warning or error events. They must not bypass the managed-process log redaction and safe-context rules.
 
 Automated tests use isolated fixtures for import executions and row errors; development reset does not seed artificial import records.
+# Phase 28 foundation repair target
+
+Current state: Imports is implemented through ManagedProcesses, Files, and Integrations, but Phase 28 tracks missing explicit frontend entrypoints, surface ownership through ManagedProcesses, idempotency/row-error visibility, audit/notification coverage, queue/module-gate behavior, and seed fixture consistency.
+
+Target state: Imports has explicit metadata for its accepted surfaces, safe reduced/degraded module behavior, audited import execution states, deterministic fixtures, and canonical Admin table/process visibility.
+
+Tracked issue IDs: `P28-MOD-004`, `P28-ARCH-010`, `P28-SEED-001`, `P28-MODAUD-015`.

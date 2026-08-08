@@ -2,6 +2,14 @@
 
 Canonical shared rules for transport formats, dates, money, enums, null handling, formatters, validation layers, exceptions, and concurrency.
 
+## Phase 28 target
+
+Current state: shared data-contract and validation rules exist, but Phase 28 tracks locale-source drift, missing-translation fallback behavior, save-scope ambiguity, stale-write coverage in authorization/team workflows, audit before/after requirements, and owner-owned public contract boundaries.
+
+Target state: public contracts are small typed owner-owned capabilities; formatters use one effective locale source; missing Atlas-owned translations fail gates; every form save scope is explicit; stale writes are rejected and audited; and validation errors never expose implementation identifiers.
+
+Tracked issue IDs: `P28-ARCH-004`, `P28-FORM-002`, `P28-FORM-003`, `P28-AUTH-004`, `P28-LOC-001`, `P28-LOC-002`.
+
 ## Data Transport and Formatting
 
 ### Dates

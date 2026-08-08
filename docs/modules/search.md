@@ -55,3 +55,10 @@ Meilisearch readiness is degraded by default and becomes blocking only when Atla
 Search outages must not block core business writes. Search UI and Admin operations must show an unavailable state rather than issuing unrestricted broad PostgreSQL fallback queries against large tables.
 
 The Admin Search page reports missing Meilisearch configuration as degraded by default or unhealthy when `ATLAS_HEALTH_MEILISEARCH_CRITICAL=true`. Full runtime reachability remains visible in Admin System Status.
+# Phase 28 foundation repair target
+
+Current state: Search owns Meilisearch projections, Outbox indexing, rebuilds, and Admin status, but Phase 28 tracks technical availability, authorization-filtering evidence, technical-token UI copy, audit, privacy lifecycle, and runtime smoke parity.
+
+Target state: Search has real health/readiness, audited rebuild/indexing operations, privacy lifecycle participation, safe UI labels, and production smoke coverage for Meilisearch.
+
+Tracked issue IDs: `P28-RUNTIME-007`, `P28-RUNTIME-014`, `P28-UI-002`, `P28-MODAUD-016`.

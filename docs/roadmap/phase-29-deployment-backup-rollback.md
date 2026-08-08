@@ -13,6 +13,7 @@ Finalize production topology, deployment, backup, restore, readiness, release me
 - [Phase 22 — Search](phase-22-search.md)
 - [Phase 24 — Reports, exports, PDF, charts, and print](phase-24-reports-exports-print.md)
 - [Phase 26 — Security, privacy, deletion, and anonymization](phase-26-security-privacy.md)
+- [Phase 28 — Foundation repair and consolidation](phase-28-foundation-repair-and-consolidation.md)
 - [Production deployment, backup, and recovery](../operations/production-deployment-backup-and-recovery.md)
 - [Health, observability, and maintenance](../operations/health-observability-and-maintenance.md)
 
@@ -70,6 +71,7 @@ Finalize production topology, deployment, backup, restore, readiness, release me
 - Required environments are local/development and production.
 - Staging is optional and enabled per customer/project need.
 - Kubernetes, Docker Swarm, and distributed clustering are outside the baseline scope.
+- Phase 28 must first provide reproducible production images, typed production runtime configuration, real readiness foundations, queue/scheduler parity, ClamAV/PDF/Search/File runtime smoke coverage, and an internal HTTP smoke stack. Phase 29 then adds public HTTPS, certificates, release routing, deployment commands, production backup/restore, monitoring, and rollback.
 
 ## Tasks
 

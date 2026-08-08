@@ -2,6 +2,14 @@
 
 Canonical runtime rules for health, readiness, maintenance, logging, correlation, alerts, diagnostics, and administrative operational visibility.
 
+## Phase 28 target
+
+Current state: health/readiness and Admin diagnostics exist, but Phase 28 tracks the need for real technical availability checks used by ModuleGate and runtime smoke coverage for nginx, php-fpm, application readiness, worker, Horizon, scheduler, PostgreSQL, Redis, Meilisearch, ClamAV, storage, Chromium, queues, and backup boundary metadata.
+
+Target state: health checks verify real dependency chains, report actionable non-secret degraded metadata, and distinguish technical unavailability from administrative module deactivation.
+
+Tracked issue IDs: `P28-MOD-003`, `P28-RUNTIME-007`, `P28-RUNTIME-014`, `P28-MODAUD-008`.
+
 ## Logging and Observability
 
 - Laravel Telescope and Laravel Debugbar are development-only diagnostics tools.

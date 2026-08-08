@@ -235,3 +235,10 @@ Administrators can view recent security events for all users, including imperson
 TimeTracking UI simulation state for impersonation is stored only through `ImpersonationSimulationStore` under an impersonation-session-scoped ephemeral cache namespace. It is deleted when impersonation ends and is not written to official TimeTracking records, events, manager feeds, settlements, or reports.
 
 ---
+# Phase 28 foundation repair target
+
+Current state: Identity/authentication/sessions are implemented, but Phase 28 records known foundation drift around the Audit dependency cycle, authentication lifecycle audit coverage, password reset visibility, MFA UI/network handling, session/admin/impersonation context, public lookup contracts, seeder user creation, and bilingual mail flows.
+
+Target state: Identity exposes owner-owned public account and user lookup contracts, does not leak Eloquent or persistence structure, uses the target audit catalog and atomicity rules, provides coherent profile/security/password/MFA/reset workflows, and is covered by PL/EN mail, feature, frontend, seeder, and architecture tests.
+
+Tracked issue IDs: `P28-ARCH-001`, `P28-ARCH-004`, `P28-ARCH-006`, `P28-FORM-004`, `P28-FORM-005`, `P28-FORM-006`, `P28-SEED-001`, `P28-MAIL-001`, `P28-MAIL-002`, `P28-MODAUD-001`.

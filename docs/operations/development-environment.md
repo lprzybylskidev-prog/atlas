@@ -2,6 +2,14 @@
 
 Canonical operational rules for Dev Containers, Docker development services, VS Code integration, rebuild restrictions, and local workflow.
 
+## Phase 28 target
+
+Current state: the Dev Container is the privileged development workspace and local runtime services support normal development. Phase 28 tracks reproducibility and parity hardening for pinned `pnpm`, Playwright alignment, PHP/Node/Composer version checks, base-image update policy, and clear documentation that Docker socket access, docker group membership, and passwordless sudo are development-only privileges equivalent to host Docker daemon access.
+
+Target state: development, test, e2e, production image, and manual server runtime expectations are comparable through the Phase 28 runtime parity matrix. No production configuration may copy Dev Container privileges.
+
+Tracked issue IDs: `P28-INV-005`, `P28-RUNTIME-010`.
+
 ## Development Environment
 
 The first project action is:

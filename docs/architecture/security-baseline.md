@@ -2,6 +2,14 @@
 
 Canonical security baseline that applies across Atlas. Read together with the affected module and operations documentation.
 
+## Phase 28 target
+
+Current state: Atlas has a security baseline, but Phase 28 tracks additional durable enforcement for audit catalogs, critical-change audit atomicity, no raw technical tokens in user/manager UI, hardcoded mail-copy rejection, secret-safe runtime configuration, no production fake scanner, real readiness, and guarded high-risk workflows.
+
+Target state: security-sensitive operations are cataloged, audited for success/rejection/failure, transactionally evidenced, localized safely, and backed by executable guardrails across application, mail, frontend, runtime, and operations.
+
+Tracked issue IDs: `P28-AUDIT-*`, `P28-UI-002`, `P28-MAIL-*`, `P28-RUNTIME-003`, `P28-RUNTIME-008`, `P28-GUARD-*`.
+
 ## Security
 
 - least privilege;

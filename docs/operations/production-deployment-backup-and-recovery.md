@@ -2,6 +2,14 @@
 
 Canonical production topology and operational procedures. This document complements the binding deployment roadmap phase.
 
+## Phase 28 prerequisite boundary
+
+Current state: production deployment is planned for Phase 29. Phase 28 must first repair production image build prerequisites, runtime configuration, `.dockerignore`/COPY boundaries, secrets handling, internal HTTP smoke stack, queue/scheduler parity, ClamAV/PDF/Search/File readiness, PostgreSQL volume verification, and backup-image buildability.
+
+Target state before Phase 29: application and nginx production images are reproducible and smoke-tested; production runtime secrets are externalized; broad `DB_SEARCH_PATH` masking is removed; non-HTTP services remain private; and Phase 29 can build HTTPS, deployment, backup, restore, and rollback on a verified runtime foundation.
+
+Tracked issue IDs: `P28-RUNTIME-001` through `P28-RUNTIME-014`.
+
 ## Production Topology
 
 - The baseline production topology is one application host or VM running Docker Compose.

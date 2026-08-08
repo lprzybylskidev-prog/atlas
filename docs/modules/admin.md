@@ -101,3 +101,10 @@ Audit browser supports filtering by actor, actual actor, impersonated user, enti
 Logs and storage browsing must be secure and must not allow arbitrary server manipulation.
 
 ---
+# Phase 28 foundation repair target
+
+Current state: Admin contains many foundation surfaces, but Phase 28 tracks duplicated navigation/action/table/status patterns, technical-token exposure, inconsistent CRUD/action placement, incomplete operational surface inventory, and the legacy Managers area.
+
+Target state: Admin surfaces use the canonical glossary, navigation registry, action contract, confirmation system, CRUD/form contract, DataTable contract, status catalog, route/view matrix, and technical-data rules. Admin may expose operational identifiers only when necessary and clearly labeled.
+
+Tracked issue IDs: `P28-INV-002`, `P28-INV-003`, `P28-UI-001`, `P28-UI-002`, `P28-UI-004`, `P28-UI-006`, `P28-ACTION-001`, `P28-FORM-001`, `P28-TABLE-001`, `P28-TABLE-009`, `P28-LEGACY-001`, `P28-MODAUD-019`.

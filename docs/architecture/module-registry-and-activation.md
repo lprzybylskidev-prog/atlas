@@ -35,6 +35,8 @@ The initial deployed manifests are registered explicitly in `config/modules.php`
 
 Optional dependencies may be absent from the deployed registry, but the consuming module must enter a documented reduced mode when using behavior that depends on them.
 
+Phase 28 target: the registry and ModuleGate must validate the real dependency graph, optional-dependency reduced modes, technical availability, activation state, and metadata execution. Known noncompliance is tracked by `P28-MOD-001` through `P28-MOD-005`.
+
 ### Central module enforcement
 
 One central `ModuleGate`/module-access service is the source of truth for effective module access.

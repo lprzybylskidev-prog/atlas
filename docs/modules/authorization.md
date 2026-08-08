@@ -91,3 +91,10 @@ Presets:
 Authorization registers `UserAuthorizationDataLifecycleParticipant` for `user` subjects. Privacy execution removes the user's team-scoped role assignments, direct permission assignments, and onboarding-package snapshots. It does not delete role definitions, permission definitions, role-permission mappings, onboarding package definitions, or module activation state because those records are system configuration rather than personal controlled copies.
 
 ---
+# Phase 28 foundation repair target
+
+Current state: Authorization is implemented, but Phase 28 tracks dependency drift with Teams/Audit, direct Identity/Teams SQL, team-membership ownership drift, duplicated assignment workflows, incomplete assignment provenance, stale-write risks, audit gaps, UI parity issues, and seeder bypasses.
+
+Target state: Authorization depends only through owner-owned public contracts, delegates membership mutation to the Teams owner, uses one user-team assignment workflow from both user and team contexts, persists truthful manual/preset/copy provenance, and has complete audit, authorization, UI, seeder, and architecture coverage.
+
+Tracked issue IDs: `P28-ARCH-001`, `P28-ARCH-004`, `P28-ARCH-011`, `P28-AUTH-003`, `P28-AUTH-004`, `P28-AUTH-005`, `P28-SEED-001`, `P28-MODAUD-002`.

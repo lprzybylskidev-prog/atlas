@@ -72,3 +72,10 @@ Granular permissions include `admin.managers.index`, `admin.managers.create`, `a
 Development reset does not seed generic representative manager hierarchies after Phase 25 cleanup. The Phase 27 TimeTracking development demo is the current explicit exception: it creates a small manager hierarchy only for TimeTracking review data. Tests and future business modules must create their own explicit manager fixtures.
 
 ---
+# Phase 28 foundation repair target
+
+Current state: Teams and manager hierarchy exist, but Phase 28 tracks direct Audit usage, team/member lookup boundary issues, active-team validation ownership, demo seeder bypasses, and the duplicated separate Admin Managers area.
+
+Target state: Teams owns team membership, active-team validation, public team summaries, manager DAG, head-manager protection, and the integrated team structure editor. The separate Managers CRUD/Admin area is removed while manager panel and manager scope remain.
+
+Tracked issue IDs: `P28-ARCH-001`, `P28-ARCH-004`, `P28-ARCH-005`, `P28-ARCH-012`, `P28-AUTH-001`, `P28-AUTH-002`, `P28-AUTH-005`, `P28-SEED-001`, `P28-MODAUD-003`.

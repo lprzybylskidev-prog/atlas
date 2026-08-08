@@ -93,3 +93,10 @@ Use the module for:
 - jobs;
 - security events;
 - system alerts.
+# Phase 28 foundation repair target
+
+Current state: Notifications owns typed in-app delivery and preferences, but Phase 28 tracks bilingual email conversion, notification type catalog completeness, PL/EN labels, additional verified email flows, deep-link safety, queue behavior, audit coverage, and technical-token exposure.
+
+Target state: Notifications has complete type catalogs with PL/EN labels and preference defaults, in-app and email delivery share safe localized payloads, every mail follows the bilingual branded template, and notification surfaces use canonical navigation/table/status/action contracts.
+
+Tracked issue IDs: `P28-MAIL-001`, `P28-MAIL-002`, `P28-UI-002`, `P28-TABLE-003`, `P28-MODAUD-007`.

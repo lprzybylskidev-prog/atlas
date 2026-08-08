@@ -2,6 +2,14 @@
 
 Canonical operational rules for mandatory technical seeders and development-only demo data.
 
+## Phase 28 target
+
+Current state: demo and e2e seeders include deterministic development fixtures, but Phase 28 tracks known invariant bypasses such as `forceFill` user creation, direct team membership and manager relationship writes, direct role/permission writes, direct TimeTracking fixture writes, direct managed-process/import rows, and mixed raw SQL/public contracts.
+
+Target state: seeders are deterministic, idempotent, invariant-preserving, explicitly non-production where appropriate, and use public Application contracts or owning-module fixture builders. Direct writes require a documented reason and tests proving all relevant invariants remain preserved.
+
+Tracked issue ID: `P28-SEED-001`.
+
 ## Technical seeders
 
 Technical seeders create only system records required for Atlas to operate safely.

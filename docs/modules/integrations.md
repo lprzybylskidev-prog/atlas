@@ -122,3 +122,10 @@ An adapter may declare optional modules. If an optional module is inactive, the 
 Every concrete integration must document the source of truth per synchronized data type before data is exchanged. When Atlas is not the source of truth, incoming data must still pass request-boundary validation and Application/Domain invariants before persistence.
 
 ---
+# Phase 28 foundation repair target
+
+Current state: Integrations owns adapter, retry, idempotency, circuit-breaker, credential, and status foundations, but Phase 28 tracks missing audit for connection tests, health/technical availability, environment/runtime configuration, UI copy, and table/action consistency.
+
+Target state: Integrations audits test-connection and state changes, reports technical availability through Health/ModuleGate, keeps secrets externalized, and uses canonical UI contracts.
+
+Tracked issue IDs: `P28-AUDIT-004`, `P28-MOD-003`, `P28-RUNTIME-003`, `P28-TABLE-001`, `P28-MODAUD-013`.

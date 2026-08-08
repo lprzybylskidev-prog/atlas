@@ -77,3 +77,10 @@ Every global/team change stores append-only feature flag history with:
 Every change also records an Audit module event under module `feature_flags`.
 
 Feature flag history is operational configuration evidence. It does not contain secrets.
+# Phase 28 foundation repair target
+
+Current state: FeatureFlags is implemented, but Phase 28 tracks local status/localization maps, route availability, activation interaction, audit coverage, health visibility, permission gating, and frontend table consistency.
+
+Target state: FeatureFlags uses the canonical status catalog, localization, route/navigation registry, DataTable/action contracts, and audit coverage for every flag value change.
+
+Tracked issue IDs: `P28-TABLE-008`, `P28-TABLE-009`, `P28-MODAUD-012`.

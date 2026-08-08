@@ -485,3 +485,10 @@ TimeTracking live manager status uses the shared Notifications realtime foundati
 `Database\Seeders\DevelopmentDemoSeeder` creates a development-only TimeTracking scenario after real TimeTracking tables exist. It is idempotent, skips production, and no-ops when the TimeTracking tables have not been migrated yet. The scenario creates `TT Demo Team North` and `TT Demo Team South`, 2 head managers named `TT Head Manager ...`, 3 regular managers named `TT Manager ...`, and 50 regular users named `TT User ...`, all with the local demo password `password`. It activates TimeTracking for both teams, assigns only the scoped application, notification, user-panel, manager-panel, report, activity, break, and Other-work permissions needed by the demo role, creates manager relationships where head managers see manager subtrees and regular managers see direct reports, enables tracking, and seeds historical and active work sessions, module-context segments, breaks, approved and under-review Other work, and pending correction requests for report review. Each demo team includes at least one source-backed correction for a work session, break, and work outside the computer.
 
 ---
+# Phase 28 foundation repair target
+
+Current state: TimeTracking is complete as Phase 27 history, but Phase 28 tracks route/navigation duplication, a large mixed-responsibility report component, manager/Admin parity issues, direct Identity/Teams SQL, incomplete audit before/security-category handling, and transaction coverage for decisions and corrections.
+
+Target state: TimeTracking uses one route-backed user/manager/Admin work-time model, owner-owned user/team contracts, shared UI/status/action/table/formatter foundations, manager/Admin parity, and complete atomic audit for corrections, decisions, sessions, breaks, other work, categories, and maintenance.
+
+Tracked issue IDs: `P28-ARCH-007`, `P28-AUDIT-005`, `P28-TT-001`, `P28-TT-002`, `P28-TT-003`, `P28-TT-004`, `P28-MODAUD-018`.

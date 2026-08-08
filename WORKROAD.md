@@ -12,6 +12,8 @@ Rules:
 - use the first unfinished item in the relevant phase file;
 - never delete or rewrite completed phase tasks;
 - unfinished phase work may be split or expanded;
+- do not create new phases with letter suffixes; large scopes may use workstreams, packages, and issue IDs inside one phase;
+- unstarted phases may be merged or replaced only after their scope is moved without loss;
 - substantial later evolution of completed work receives a new sequential phase;
 - update this index when a phase is added, reordered, split, merged, or its status changes;
 - keep detailed contracts and checkboxes out of this index;
@@ -37,7 +39,7 @@ Do not replace this index after the initial technical foundation is completed. C
 
 ## Current phase
 
-- Phase: [Phase 27b — Demo and test seeder invariant repair](docs/roadmap/phase-27b-demo-seeder-invariant-repair.md)
+- Phase: [Phase 28 — Foundation repair and consolidation](docs/roadmap/phase-28-foundation-repair-and-consolidation.md)
 - Status: `not started`
 
 ## Roadmap dependency repair note
@@ -47,6 +49,8 @@ After Phase 7 completed, the roadmap was reordered because several shared founda
 Before Phase 15 starts, Phase 14a was added as a targeted dependency repair because module-owned PostgreSQL schemas must exist before additional module persistence is introduced.
 
 After Phase 27 completed, Phase 27a was inserted as a dependency-repair phase because the large TimeTracking implementation revealed or amplified cross-cutting issues in module boundaries, persistence ownership, configuration consistency, and quality-gate completeness. These repairs must land before the next foundation-hardening phases and before production deployment work.
+
+After Phase 27a completed, further foundation review consolidated the unstarted Phase 27b, Phase 27c, and former Phase 28 scopes into a single Phase 28 repair contract. Phase 27 and Phase 27a remain completed historical phases. Phase 28 is the first unfinished phase and must close all known foundation repair work before Phase 29 production deployment and Phase 30 final release verification.
 
 ## Phase index
 
@@ -322,35 +326,21 @@ Harden architecture boundaries, shared Inertia composition, module-owned persist
 
 [Open implementation contract and tasks](docs/roadmap/phase-27a-foundation-architecture-quality-hardening.md)
 
-### Phase 27b — Demo and test seeder invariant repair
+### Phase 28 — Foundation repair and consolidation
 
 **Status:** `not started`
 
-Repair development demo, e2e, and bootstrap seed data so they preserve application invariants through public contracts or dedicated invariant-preserving fixture helpers.
+Repair and consolidate known foundation drift across module boundaries, ModuleGate, audit, UI/UX, authorization/team workflows, TimeTracking, PostgreSQL migrations, seeders, bilingual mail, runtime images, queues, scheduler, health, and guardrails before production deployment.
 
-[Open implementation contract and tasks](docs/roadmap/phase-27b-demo-seeder-invariant-repair.md)
-
-### Phase 27c — Bilingual email templates and notification mail audit
-
-**Status:** `not started`
-
-Standardize every Atlas-owned outgoing email so mail content is localized, bilingual, consistently branded, and test-protected before production deployment.
-
-[Open implementation contract and tasks](docs/roadmap/phase-27c-bilingual-email-templates.md)
-
-### Phase 28 — Backend and database surface audit
-
-**Status:** `not started`
-
-Audit all completed foundation modules for backend/database capabilities that lack an appropriate frontend, Admin, manager, user, CLI, automated, or documented operational surface, then expose, remove, or explicitly defer them.
-
-[Open implementation contract and tasks](docs/roadmap/phase-28-backend-surface-audit.md)
+[Open implementation contract and tasks](docs/roadmap/phase-28-foundation-repair-and-consolidation.md)
 
 ### Phase 29 — Production deployment, backup, restore, and rollback
 
 **Status:** `not started`
 
 Implement the single-host production Docker topology, HTTPS, deployment releases, PostgreSQL backups, restore, readiness, and rollback.
+
+Depends on Phase 28 for reproducible images, runtime configuration, dependency readiness, queue/scheduler parity, ClamAV/PDF/Search/File smoke foundations, and an internal HTTP smoke stack. Production HTTPS, deployment, backup, restore, and rollback remain Phase 29 scope.
 
 [Open implementation contract and tasks](docs/roadmap/phase-29-deployment-backup-rollback.md)
 
@@ -359,5 +349,7 @@ Implement the single-host production Docker topology, HTTPS, deployment releases
 **Status:** `not started`
 
 Perform a full test-suite audit, browser-level E2E review of the whole application, architecture/security/documentation verification, restore/deployment checks, and final technical-foundation hardening before debt collection business modules begin.
+
+Depends on Phases 28 and 29. Phase 30 remains the final full-app release verification and does not replace Phase 28 foundation repair or Phase 29 deployment/recovery work.
 
 [Open implementation contract and tasks](docs/roadmap/phase-30-final-verification.md)

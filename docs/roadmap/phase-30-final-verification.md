@@ -8,6 +8,7 @@ Verify the complete technical foundation after every prerequisite phase is finis
 
 ## Dependencies
 
+- [Phase 28 — Foundation repair and consolidation](phase-28-foundation-repair-and-consolidation.md)
 - [Phase 29 — Production deployment, backup, restore, and rollback](phase-29-deployment-backup-rollback.md)
 - [Quality gates and git](../operations/quality-gates-and-git.md)
 - [Testing environment](../operations/testing-environment.md)

@@ -56,7 +56,12 @@ Do not ask questions whose answers already follow unambiguously from accepted co
 - Chat history must never be required to understand accepted behavior.
 - Before adding, splitting, merging, or reordering roadmap phases, analyze dependencies across existing implementation, completed phase history, future phase contracts, module documentation, architecture documentation, and operational documentation.
 - A capability, contract, shared component, infrastructure mechanism, or operational process must be fully implemented, tested, and documented before the first phase that knowingly depends on it.
+- Do not create new roadmap phases with letter suffixes such as `28a`, `29b`, or similar. Large phases may contain workstreams, packages, and issue IDs, but they remain one phase.
+- Unstarted phases may be merged or replaced only after their scope is moved without loss into the new accepted phase.
+- Completed historical phases remain completed history; later findings are tracked in a new sequential phase or the current accepted repair phase without rewriting completed work.
 - Do not intentionally defer known requirements of a shared capability until after an earlier phase has started using that capability. If genuinely new requirements appear later and could not reasonably have been known, add a new sequential evolution phase instead of rewriting history.
+- Known foundation debt assigned to a repair phase must be closed in that phase and must not be pushed to a later phase merely because the current phase is large.
+- Phase checkboxes must reflect the actual repository state after each work package.
 
 ## Repository objective
 
@@ -75,7 +80,11 @@ Shared Core and technical modules must not absorb business rules owned by a debt
 
 ## Technology policy
 
-Use the latest stable mutually compatible versions selected at implementation time.
+Use stable mutually compatible versions selected deliberately for the project.
+
+Runtime and build-tool versions must be pinned by lockfiles, explicit build arguments, or documented image tags. Do not use floating tool versions such as `pnpm@latest` in reproducible build paths.
+
+Dependency and base-image upgrades are separate intentional changes with documented compatibility checks.
 
 Do not introduce replacements for approved technologies without an explicit architectural decision.
 
@@ -92,7 +101,6 @@ Backend:
 - Spatie Laravel Permission with teams;
 - Laravel Scout and Meilisearch;
 - Sentry;
-- `owen-it/laravel-auditing`.
 
 Frontend:
 
@@ -122,6 +130,11 @@ Infrastructure and quality:
 ### Runtime environment parity
 
 - External mechanisms and runtime dependencies must be designed, implemented, checked, and documented for all supported Atlas execution modes: the VS Code Dev Container used for application development, the production Docker image/Compose stack, and a manual Ubuntu/Debian-style server installation without containers.
+- Dev Container, production images, Compose runtime, and manual server installation must stay behaviorally aligned for required extensions, binaries, queues, scheduler, storage, health checks, and operational commands.
+- Production runtime artifacts must be reproducible and immutable. Build artifacts must come from repository source and lockfiles, not from host `vendor`, host `node_modules`, or local build leftovers.
+- Runtime services run as non-root wherever supported. Secrets must never be baked into images or committed Compose files.
+- Atlas uses one accepted worker model and one accepted scheduler model per environment; queue names, priorities, timeouts, `retry_after`, graceful shutdown, and readiness must stay synchronized.
+- Fake malware scanners are forbidden in production. A production Files runtime must use real ClamAV or a documented external scanner endpoint.
 - Health and readiness checks must verify the real dependency chain used by the application, not only one convenient binary or local development artifact. Checks must read explicit environment/configuration first, then use documented auto-discovery for common Linux/container paths, and report actionable non-secret metadata when degraded.
 - When adding or changing an external dependency, update the matching Dev Container/runtime image setup, production image or deployment documentation, manual server installation guidance, health/readiness checks, tests, and canonical operations/module documentation in the same change.
 - From inside the active VS Code Dev Container, do not rebuild the `app` Dev Container as normal task execution. If a Dev Container rebuild is required, finish all repository changes and runtime-container validation first, then give the user one concise outside-container prompt/command explaining why the rebuild is needed, what it applies, and what should work afterward.
@@ -167,10 +180,18 @@ Read [`docs/architecture/modular-monolith.md`](docs/architecture/modular-monolit
 ### Module boundaries
 
 - A module owns its Domain, Application, Infrastructure, Presentation, PostgreSQL schema, database tables, permissions, settings, and events.
+- A module's formal dependency graph must match real imports, service-provider registrations, configuration references, middleware references, migrations, and table access. Declared dependencies must be used or removed, and used dependencies must be declared.
 - Cross-module synchronous access uses only typed contracts exposed from `Application/Public`.
 - Cross-module asynchronous communication uses versioned Integration Events.
 - Never import another module's Domain internals, Eloquent models, repositories, or Infrastructure.
 - Never query or mutate another module's tables directly.
+- Public table-name constants and schema-qualified table names are not business APIs and do not grant permission for cross-module SQL.
+- Public contracts are owned by the provider module and must be small, typed, capability-specific, and free of Eloquent models, query builders, Laravel paginator types, and persistence structure.
+- Core modules must not depend on Optional modules unless an explicit architectural decision changes the classification or extracts a required shared capability.
+- Optional dependencies must be genuinely optional and must have a safe reduced mode when absent.
+- Module metadata must be executable and tested, or removed when it is only unmaintained decoration.
+- Global providers and global middleware must not import module internals, module Infrastructure, internal Eloquent models, or foreign module tables.
+- Every new module must declare its public surfaces, permissions, audit events, health and technical availability requirements, activation behavior, tests, and canonical documentation.
 - Avoid generic repositories and generic business abstractions.
 - Prefer small capability-specific interfaces.
 
@@ -192,6 +213,7 @@ Read [`docs/architecture/modular-monolith.md`](docs/architecture/modular-monolit
 
 - Define transaction boundaries in Application use cases.
 - Persist business state and Outbox records atomically.
+- Mandatory audit records and the critical business changes they evidence must share an application transaction. If mandatory audit persistence fails, the critical change must not commit.
 - Consumers must be idempotent.
 - Jobs and integrations must tolerate at-least-once delivery.
 - External side effects must not occur before the owning database transaction commits.
@@ -209,6 +231,8 @@ Read [`docs/architecture/modular-monolith.md`](docs/architecture/modular-monolit
 - Use `BIGINT` internal identifiers and ULID public identifiers where resources are exposed.
 - Use `Europe/Warsaw` for business time unless a documented contract says otherwise.
 - Before the first production deployment, migrations may be edited in place.
+- Before the first production deployment, fix an incorrect not-yet-deployed create migration in its canonical create migration instead of adding a follow-up repair migration.
+- Do not use PostgreSQL column-position clauses such as `after`.
 - After production deployment, migrations are forward-only.
 - Never edit an already deployed migration.
 
@@ -231,6 +255,10 @@ Read affected canonical documents before changing authentication, authorization,
 - Never log secrets, raw credentials, authentication tokens, full sensitive payloads, or unnecessary personal data.
 - Redact sensitive context before logs and Sentry.
 - Audit security-sensitive and irreversible operations.
+- Each module that performs meaningful mutating, security-sensitive, or irreversible operations must register a typed audit event catalog. Hardcoded audit action/result/source strings outside catalogs are forbidden.
+- Security-sensitive and irreversible operations must have success, rejection, and failure audit coverage unless a documented catalog entry explicitly states why an outcome is impossible.
+- Audit records must consider actor, actual actor, impersonated actor, impersonation session, active team, correlation, reason, before/after values, result, source, target, and aggregate.
+- Audit browser and export surfaces must use database-backed read models with stable pagination and owner-owned display providers, not in-memory bounded arrays or joins to foreign module tables.
 - Use least privilege.
 - Keep public and internal services explicitly separated.
 - Every Atlas-owned user upload must go through the Core Files module storage, validation, quarantine, malware scanning, metadata, and audit workflow. Do not store uploaded user files directly on public or private filesystem disks unless an explicit documented exception exists for a generated non-user-upload artifact.
@@ -242,15 +270,24 @@ Read [`docs/architecture/security-baseline.md`](docs/architecture/security-basel
 ## Frontend rules
 
 - Frontend views are product surfaces, not thin delivery wrappers for backend features; visible workflows must be understandable, actionable, localized, accessible, and reviewable by the target user.
+- Atlas frontend work must follow one canonical UI contract, one glossary, one action system, one modal/confirmation system, one status catalog, one DataTable contract, one CRUD/form contract, and one navigation registry.
 - Before creating or materially changing a view, read and follow the canonical frontend contract in [`docs/architecture/frontend-ui.md`](docs/architecture/frontend-ui.md): identify the view contract, inspect accepted nearby patterns, compose shared primitives first, and preserve navigation, breadcrumbs, authorization, module gates, active-team behavior, states, localization, and review data.
 - Do not patch structurally poor or incoherent screens with local styling, explanatory copy, or duplicated components. Redesign the workflow around accepted shared primitives and documented ownership.
 - Authenticated application, user, manager, and administrator screens use the shared `AppLayout` with an explicit shell mode. Do not introduce separate shell layout wrappers such as `AdminLayout` when they only pass through to the same layout.
 - Page components must not contain reusable design-system decisions. Shared components, composables, services, formatters, forms, dialogs, toasts, tables, tooltips, cards, layouts, loading/empty/error states, and display primitives belong in the shared frontend layer.
 - Advanced form controls such as money/currency inputs, color pickers, file uploaders, image croppers, rich text editors, date/time pickers, tag selectors, and autocomplete inputs must be generic shared form components under `resources/js/Components/Form/`. Do not create feature-named controls such as `DebtEuroInput`, `AvatarColorPicker`, `ProfileUpload`, or case-specific pickers/croppers unless they only compose generic shared controls and contain no reusable design-system behavior.
 - Repeated frontend option builders, status/token labelers, dialog/form action footers, report/chart formatters, and relation-assignment previews must be extracted to shared components, composables, or utilities before a second page copies the pattern.
+- Do not copy local maps for statuses, actions, formatters, labels, fallback translations, or generic option builders into pages.
+- Desktop and mobile navigation must have route, label, active-state, permission, and module-gate parity.
+- Create/edit and list/show/edit workflows must use the same shared contract where they expose the same resource.
+- Regular user and manager UI must not expose raw technical tokens. Admin UI may expose technical values only where they are operationally necessary and clearly labeled.
+- Missing Atlas-owned translations must fail quality gates instead of being automatically humanized into plausible UI text.
+- The regular-user and manager dashboards are intentionally empty until an accepted product decision adds real content; do not fill them with placeholder cards or artificial metrics.
 - New or materially changed frontend views must pass a component inventory check: search existing shared components, composables, formatters, and utilities first; extend them when a recurring primitive is missing; create page-local UI structure only for genuinely one-off composition.
 - Maintain light and dark themes together, meet WCAG 2.2 AA where applicable, preserve keyboard/focus/screen-reader behavior, and never use native `alert`, `confirm`, or title-only tooltips.
 - Keep business decisions and authorization on the backend. Frontend visibility may improve ergonomics, but it must not duplicate or replace backend permission, module-gate, team-scope, or invariant enforcement.
+- User-team authorization assignment uses one canonical workflow from the user and team sides. Assignment provenance for manual, preset, and copy sources must be persisted truthfully.
+- Manager hierarchy belongs to Teams. A separate Managers CRUD/Admin area is forbidden; the canonical surface is the team structure editor.
 - Loading, empty, error, offline, and permission-denied states are first-class UI states. User feedback must have one clear owner and must avoid duplicate flashes, toast storms, and raw technical status spam.
 - Query-string state must be deterministic and shareable where applicable. Tables, reports, exports, and bounded datasets must also follow [`docs/architecture/tables-reports-exports-and-print.md`](docs/architecture/tables-reports-exports-and-print.md).
 - Explicitly tell the user when a change introduces or materially changes visible frontend UI so they can review it in the browser. For user-reviewed UI work, prepare deterministic review data and remove temporary review fixtures before completion unless the active phase explicitly keeps them.
@@ -282,6 +319,14 @@ For frontend-heavy work, tests must protect the accepted user experience, not ju
 Do not reduce strictness, skip failing checks, delete tests, or weaken assertions merely to make a task pass.
 
 Run the relevant commands documented in [`docs/operations/quality-gates-and-git.md`](docs/operations/quality-gates-and-git.md).
+
+## Seeding and mail
+
+- Technical seeders are production-safe and idempotent.
+- Demo and e2e seeders are deterministic, idempotent, invariant-preserving, and unavailable in production.
+- Seeders use public Application contracts or owning-module fixture builders. Direct writes are allowed only with explicit justification and tests proving invariants are preserved.
+- Fixture builders centralize invariants, are clearly marked as test/demo infrastructure, and must not be registered in production runtime.
+- Atlas-owned outgoing mail uses the shared branded template, Laravel translation keys, Polish and English sections in one message, effective locale first, render tests for both language orders, and no hardcoded user-facing copy, secrets, raw tokens, internal IDs, or unnecessary diagnostics.
 
 ## Documentation map
 
@@ -392,7 +437,7 @@ A task is complete only when all applicable conditions are satisfied:
 - roadmap checkboxes and phase status are updated accurately;
 - no completed historical item is deleted or rewritten;
 - no secret or sensitive data is exposed;
-- the change is committed as the smallest logical Conventional Commit.
+- when a commit was requested and explicitly approved, the change is committed as the smallest logical Conventional Commit.
 
 If an applicable condition cannot be satisfied, report the exact blocker instead of silently weakening the result.
 

@@ -2,6 +2,8 @@
 
 Read the operational document relevant to the environment or runtime capability being changed.
 
+Phase 28 adds accepted target contracts for reproducible runtime parity, production image prerequisites, queues/Horizon, scheduler, Files/ClamAV, Chromium/PDF, seeding, bilingual mail testing, migration reset after squash, and `composer check:foundation`. These targets are tracked in [Phase 28 — Foundation repair and consolidation](../roadmap/phase-28-foundation-repair-and-consolidation.md) and summarized in the relevant operational documents below; the implementation is not started yet.
+
 - [Development environment](development-environment.md) — Dev Containers, Docker development services, VS Code, and rebuild rules.
 - [Project identity and lifecycle](project-identity-and-lifecycle.md) — Atlas naming, repository, Docker/database identity, and production deployment lifecycle.
 - [Seeding and demo data](seeding-and-demo-data.md) — production-safe technical seeders and development-only demo data.

@@ -8,6 +8,8 @@ The current roadmap begins with the technical and operational foundation require
 
 The current foundation includes a Core Audit module with append-only application and security audit records plus a read-only Admin audit browser. Earlier security-audit producers now write through this shared audit foundation instead of a separate legacy table.
 
+The current roadmap focus is [Phase 28 — Foundation repair and consolidation](docs/roadmap/phase-28-foundation-repair-and-consolidation.md). Phase 28 is not implementation-complete; it is the accepted repair contract for known foundation drift before production deployment.
+
 ## Core principles
 
 - **Explicit over magic**
@@ -76,7 +78,7 @@ Atlas is implemented from the ordered roadmap in [`WORKROAD.md`](WORKROAD.md). A
 
 Each roadmap phase has its own file under [`docs/roadmap/`](docs/roadmap/). Phase files contain the binding implementation contract and executable checklist. Completed history is never removed or rewritten.
 
-New significant business modules, capabilities, migrations, and later initiatives receive new sequential phase files.
+Unstarted repair scopes may be consolidated without loss. Phase 28 consolidates the former unstarted seeder repair, bilingual mail audit, and backend/database surface audit scopes into one foundation repair phase. New significant business modules, capabilities, migrations, and later initiatives receive new sequential phase files.
 
 ## Module architecture
 
@@ -190,7 +192,7 @@ The Search foundation is available as an optional module for module-owned Meilis
 
 The Feature Flags foundation is available as an optional module for typed rollout flags. Current contracts cover code-owned boolean flag definitions, global and per-team values, effective-value precedence, append-only history, Audit events, Admin management at `/admin/feature-flags`, and the rule that flags cannot replace module activation or authorization.
 
-The implementation status and first unfinished phase are always shown in [`WORKROAD.md`](WORKROAD.md). The current roadmap focus is finishing shared foundations in dependency order before the first debt collection business modules are introduced.
+The implementation status and first unfinished phase are always shown in [`WORKROAD.md`](WORKROAD.md). The current roadmap focus is Phase 28 foundation repair, followed by Phase 29 production deployment/recovery and Phase 30 final whole-application verification before the first debt collection business modules are introduced.
 
 As the project grows, this README must present the current high-level system scope, major modules, supported workflows, setup entry points, and operational expectations.
 
