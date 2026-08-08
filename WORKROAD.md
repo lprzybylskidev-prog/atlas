@@ -40,7 +40,7 @@ Do not replace this index after the initial technical foundation is completed. C
 ## Current phase
 
 - Phase: [Phase 28 — Foundation repair and consolidation](docs/roadmap/phase-28-foundation-repair-and-consolidation.md)
-- Status: `not started`
+- Status: `in progress`
 
 ## Roadmap dependency repair note
 

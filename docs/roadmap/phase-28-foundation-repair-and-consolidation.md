@@ -1,6 +1,6 @@
 # Phase 28 — Foundation repair and consolidation
 
-**Status:** `not started`
+**Status:** `in progress`
 
 ## Objective
 
@@ -48,6 +48,8 @@ Known foundation debt must not be deferred beyond this phase. A later phase may 
 - A later prompt must not implement "the whole phase" in one pass. Each implementation prompt covers one closed package.
 - Before a package starts, read this phase file, relevant canonical documentation, and evidence from previous Phase 28 packages.
 - Each package must finish code, tests, documentation, legacy removal, and quality evidence for its scope.
+- Each completed package must leave the repository in a coherent commit-ready state: one logical diff, no unrelated churn, updated evidence, relevant quality results, and a proposed Conventional Commit message.
+- After every completed package, report the remaining Phase 28 work as an approximate percentage to the project owner. The percentage is a planning signal based on completed workstreams, issue risk, tests, docs, and legacy-removal state; it is not a substitute for the completion criteria.
 - A package is not complete if it leaves old and new implementations running in parallel without an explicit temporary migration boundary tracked in this file.
 - Checkbox status must reflect the actual repository state after each package.
 - The phase remains `in progress` until all completion criteria are satisfied.
@@ -56,11 +58,90 @@ Known foundation debt must not be deferred beyond this phase. A later phase may 
 
 ## Mandatory inventories
 
+Phase 28 inventory work is tracked in this file. The temporary scanner at `tools/phase28/generate-inventory.php` can regenerate working evidence while this phase is active, but generated snapshots are not canonical roadmap files. The first baseline and scanner packages have started the inventories, but the checkboxes below remain open until the required matrices are complete and traceable to implementation, tests, documentation, and legacy-removal evidence.
+
+Use `php tools/phase28/generate-inventory.php --prep-report-markdown` for the current consolidated preparation report.
+
 - [ ] **P28-INV-001 Module inventory:** create a matrix row for Identity, Authorization, Teams, Users, Audit, Settings, Notifications, Health, Files, Exports, Privacy, FeatureFlags, Integrations, ManagedProcesses, Imports, Search, Reports, TimeTracking, ModuleRegistry, ModuleGate, module activation, module deactivation guards, Outbox, saved table views, DataTable, Inertia shared-data registry, route availability contributions, breadcrumbs, observability, sensitive-data redaction, data lifecycle, and queue/scheduler foundations. Each row records owner, category, declared required dependencies, declared optional dependencies, actual imports, exported public contracts, consumers, direct foreign-table reads/writes, provider, permission catalogs, routes, commands, jobs, scheduler entries, managed processes, settings, audit events, notifications, health checks, integrations, activation support, frontend entrypoints, user/Admin/manager/CLI/automatic surfaces, migrations, seeders, tests, documentation, dead/duplicated elements, and target decision: keep, repair, move, merge, or remove.
 - [ ] **P28-INV-002 Backend surface inventory:** inventory every table, field, index, status, enum, setting, permission, policy, public contract, DTO, queue, job, command, schedule, managed process, notification type, mail, export provider, report, route, controller, and frontend page. Assign exactly one surface: regular user, manager, administrator, CLI/operations, worker/scheduler, or internal-only mechanism. Every item without a surface receives one decision: expose, connect to automation, document as internal-only with diagnostics/tests, or remove.
 - [ ] **P28-INV-003 Frontend route/view matrix:** for every Inertia page record route name, URL, Vue page, layout mode, canonical page name, browser title, breadcrumb, sidebar entry, mobile navigation entry, shell subnavigation entry, permission, module gate, active-team behavior, controller/provider, primary user task, primary/secondary/row/bulk actions, create/edit/show/index counterparts, loading/empty/no-results/error/permission-denied/offline states, PL/EN copy, mobile/desktop review, light/dark theme, keyboard and screen-reader behavior, deterministic seeder fixture, Vitest coverage, Playwright coverage, and migration status to the target UI contract.
 - [ ] **P28-INV-004 Audit event matrix:** for every material process record owning module, action key, security category, source, success/rejection/failure result, actor, actual actor, impersonated user, target, aggregate, team, correlation, reason requirement, required before/after values, allowed metadata, transaction owner, test, browser visibility, and retention class.
 - [ ] **P28-INV-005 Runtime parity matrix:** compare Dev Container workspace, development php-fpm, development worker, development scheduler, PHPUnit, Playwright, production php-fpm, production worker, production scheduler, nginx, PostgreSQL, Redis, Meilisearch, ClamAV, Chromium/PDF, backup container, and manual Ubuntu/Debian installation. For each record PHP version, extensions, Composer dependencies, Node/pnpm version, frontend assets, source, configuration, secrets, queues, timeouts, storage, healthchecks, readiness, logging, shutdown, migrations, cache preparation, required binaries, non-root user, network exposure, and persistent volumes.
+
+### Current inventory evidence
+
+The current Phase 28 scanner reports these working totals:
+
+- modules: 18;
+- module PHP files: 662;
+- controllers: 79;
+- command classes: 14;
+- jobs: 1;
+- Vue pages: 62;
+- migrations: 31;
+- seeders: 5;
+- public persistence table classes: 14;
+- uses of public persistence table classes in `app`: 204;
+- raw frontend `fetch(` calls: 8;
+- mail signals: 31;
+- seeder direct-write signals: 88;
+- runtime matrix signals: 183;
+- backend surface signals: 410;
+- audit matrix signals: 294;
+- frontend consistency signals: 1493;
+- orphan module roots: 1, currently `app/Modules/Application/Demo`;
+- migration table operations: 100;
+- migration column signals: 899;
+- migration index/unique/primary signals: 193;
+- migration foreign-key signals: 103;
+- PostgreSQL `after` usages in migrations: 13;
+- global provider/middleware/shared module imports: 75.
+
+Current module dependency drift evidence: 11 modules have 30 observed undeclared import edges. The affected modules are Audit, Authorization, FeatureFlags, Files, Identity, Integrations, ManagedProcesses, Privacy, Search, Teams, and Users.
+
+Current backend surface buckets: administrator 186, regular user 54, manager 24, CLI/operations 8, worker/scheduler 45, operations 4, mail 31, mail/realtime 5, seed/test/demo 5, internal application 45, internal route signals 3. Signal types include 195 HTTP routes, 79 controllers, 36 export providers, 14 command classes, 1 job class, 12 queue signals, 3 schedule signals, 31 mail signals, 5 notification classes, 29 managed-process signals, and 5 seeder classes.
+
+Current framework route/view buckets: administrator 137, regular user 33, manager 20, internal 3, operations 2. Static extraction does not infer indirect render helpers, so TimeTracking operation-list helpers and similar patterns still need manual confirmation.
+
+Current persistence evidence: 100 `Schema::create/table` operations, 899 column signals, 193 index/unique/primary signals, 103 foreign-key signals, 13 PostgreSQL `after` usages, 5 unresolved dynamic Spatie permission table operations, and 3 public/vendor Pulse table operations.
+
+Current runtime evidence: package manager, queue/Horizon, scheduler, PostgreSQL/search-path, Redis, Meilisearch, ClamAV, Chromium/PDF, network exposure, secrets, storage, and backup signals across `.env.example`, config files, Dockerfiles, Compose files, package manifests, and Playwright config. Static extraction cannot prove runtime behavior, image buildability, smoke readiness, queue execution, scheduler heartbeat, ClamAV reachability, Chromium/PDF rendering, or PostgreSQL volume durability.
+
+Current audit evidence: 294 static audit signals across 15 owners: 46 recorder-contract consumers, 50 event constructors, 76 `action` arguments, 54 `result` arguments, and 68 `source` arguments. The scanner found 55 dynamic audit values such as `$action`, `$result`, and `$event->source`; these require owner confirmation before they can become typed catalog values or explicit exceptions.
+
+Current frontend evidence: 62 Vue pages exist across auth, regular user, manager, administrator, notifications, teams, and TimeTracking surfaces. The temporary scanner now provides `--frontend-consistency-markdown` as an inspection aid and reports 1493 frontend consistency signals: 49 `AppLayout` usages, 7 `AuthLayout` usages, 62 `<Head>` title bindings, 49 page title icons, 147 DataTable/action-type signals, 47 record/action signals, 29 form-action signals, 86 SurfaceCard signals, 22 large pages, 140 local option-builder signals, 136 local status-label/status-logic signals, 222 navigation registry signals, 434 technical-token column/value signals, and 1 raw `fetch(` signal. These are not all defects one by one; they identify places that Phase 28 must compare manually.
+
+`P28-W01D` manual frontend product consistency baseline is recorded here so this does not get lost outside the phase file. Static scanner output is not enough to close frontend prep because Phase 28 frontend consistency is a product review problem, not only a code-shape problem. The review must compare naming, placement, layout parity, create/edit/show/list parity, field presence, action placement, icon usage, sidebar/topbar/subnavigation logic, breadcrumbs, title/browser-title alignment, status labels, table/filter behavior, empty/error/offline states, light/dark/mobile behavior, and whether similar workflows expose the same controls in the same way.
+
+The frontend baseline found these repair groups:
+
+- Separate Admin Managers pages/routes/breadcrumbs/navigation still exist under `Admin/Managers/*` and `/admin/managers`, while the target contract says manager hierarchy belongs inside Teams. This affects `P28-AUTH-001`, `P28-AUTH-002`, `P28-NAV-*`, `P28-FORM-*`, and legacy-removal evidence.
+- Desktop and mobile navigation are not obviously parity-safe: desktop sidebar already has route-backed manager work-time groups, while mobile still exposes the legacy `/time-tracking/manager-report` route path. Navigation labels, active-state rules, route permissions, sidebar groups, mobile groups, and shell subnavigation need one registry-backed contract.
+- TimeTracking has very large user/manager/admin pages and partially shared controller/view patterns. `UserReport`, `ManagerReport`, `AdminOperations`, and admin detail pages need side-by-side product comparison for tab names, filters, columns, action availability, dialogs, status labels, source labels, detail links, empty/error states, and manager/admin scope differences.
+- User profile is an overloaded page that combines profile, avatar, password, MFA, additional notification emails, and notification preferences. MFA still uses raw `fetch` for QR/recovery-code retrieval. The repair target is a coherent profile/security/password/MFA/email/preferences workflow with shared network, loading, error, high-risk action, and secure recovery-code handling.
+- Create/edit/show/list parity is uneven across Users, Teams, Roles, Packages, Modules, Managers, ManagedProcesses, Privacy, Files, Integrations, Search, Queues, FeatureFlags, and TimeTracking. Similar resources need the same structure for titles, breadcrumbs, icon choice, primary/secondary/back/cancel/save actions, dirty-state handling, object summaries, status badges, filters, and row actions unless a view contract documents the difference.
+- Table and status presentation is fragmented: many pages define local columns, actions, options, status labels, hidden technical columns, and fallback labels. The repair target is one DataTable/action/status/filter/state contract with role-aware safe columns and no accidental raw tokens in regular or manager UI.
+- Breadcrumb, page-title, browser-title, navigation-label, and title-icon parity must be verified as a product rule, not merely by checking that `<Head>` and `:title-icon` exist. The final breadcrumb/link label, browser title, visible page title, active navigation entry, and icon must line up for each user, manager, and administrator surface.
+- UI review during implementation must include browser-rendered light/dark/mobile checks and Playwright/console-clean coverage for changed critical workflows. Prep records the source-level baseline; visual acceptance belongs to the relevant frontend repair packages.
+
+### Prep closure for code changes
+
+Phase 28 preparation is complete as of the `P28-W01D` entry in the evidence log. Automated backend/runtime/audit inventories are repeatable, and the manual frontend product consistency baseline is recorded in this single phase file. This preparation does not complete any repair work.
+
+Preparation readiness: `100%`. Automated backend/runtime/audit inventory readiness: `ready`. Frontend product consistency review: `recorded`. Foundation repair implementation completion: `0%`.
+
+The first real code package after prep is `P28-W02A`:
+
+- strengthen the existing architecture test foundation around `CrossModuleArchitectureTest`, `PublicQueryContractArchitectureTest`, `ModuleRegistryTest`, and related foundation tests;
+- make the module graph check non-vacuous against real deployed modules, declared dependencies, actual imports, cycles, global provider/middleware imports, and public persistence table-constant usage;
+- record known current violations as explicit failing or quarantined Phase 28 expectations before replacing implementations;
+- avoid broad module rewrites until the guard proves it can see the real dependency drift.
+
+The next implementation packages after `P28-W02A` are:
+
+1. `P28-W02B` neutral owner-owned lookup/display contracts for Identity, Teams, and Audit labels.
+2. `P28-W02C` first cross-module SQL/table-constant removal slice, starting with low-risk read-only display paths.
+3. `P28-W03A` ModuleRegistry and ModuleGate metadata validation once the graph guard is reliable.
 
 ## Workstream dependency order
 
@@ -203,6 +284,8 @@ Each issue below is mandatory. The `Task`, `Test`, `Guardrail`, and `Done` colum
 
 ### P28-W01 — Inventory and traceability
 
+- [x] Complete automated backend/runtime/audit scanner gate: Phase 28 has one canonical roadmap file, inline current-state evidence, a temporary repeatable scanner, tested scanner output, and a selected first real code package.
+- [x] Complete `P28-W01D` frontend product consistency review; this cannot be closed by static script output alone.
 - [ ] Create `P28-INV-001` module inventory.
 - [ ] Create `P28-INV-002` backend surface inventory.
 - [ ] Create `P28-INV-003` frontend route/view matrix.
@@ -304,6 +387,7 @@ Each issue below is mandatory. The `Task`, `Test`, `Guardrail`, and `Done` colum
 
 - [ ] Complete `P28-GUARD-001` through `P28-GUARD-003`.
 - [ ] Complete `P28-LEGACY-001`.
+- [ ] Remove temporary Phase 28 inventory scaffolding (`tools/phase28/generate-inventory.php`, `Phase28InventoryGeneratorTest`, and generated inventory snapshots) or replace it with accepted permanent guardrails before final Phase 28 closure.
 - [ ] Add and run `composer check:foundation`.
 - [ ] Confirm all guardrails are non-vacuous and include fixture inputs.
 
@@ -369,6 +453,7 @@ Each issue below is mandatory. The `Task`, `Test`, `Guardrail`, and `Done` colum
 - [ ] Remove old migrations after squash.
 - [ ] Remove legacy seed helpers.
 - [ ] Remove documentation describing removed solutions.
+- [ ] Remove temporary Phase 28 inventory scaffolding after its data has been converted into permanent inventories or executable guardrails.
 - [ ] Provide no-reference evidence for every removal.
 
 ## Required documentation updates
@@ -382,7 +467,7 @@ Each issue below is mandatory. The `Task`, `Test`, `Guardrail`, and `Done` colum
 
 ## Required evidence
 
-Each implementation package must append evidence here or in a linked evidence record:
+Each implementation package must append evidence in this file:
 
 - package ID and issue IDs closed;
 - changed files summary;
@@ -436,7 +521,24 @@ Each implementation package must append evidence here or in a linked evidence re
 8. Run relevant quality gates.
 9. Record evidence.
 10. Update checkboxes truthfully.
+11. Report the approximate remaining Phase 28 work percentage.
+12. Present the final diff summary, quality commands, and proposed Conventional Commit message so the completed package can be committed as one coherent change after owner approval.
 
 ## Final quality-gate record
 
-This section is intentionally empty until Phase 28 implementation starts.
+Phase 28 preparation and scanner work has started. Final foundation-repair implementation and quality-gate evidence remain open until Phase 28 closure.
+
+## Phase 28 evidence log
+
+| Date | Package | Issue IDs | Evidence | Quality commands | Remaining risks |
+| --- | --- | --- | --- | --- | --- |
+| 2026-08-08 | `P28-W01A` inventory baseline and traceability start | Partial `P28-INV-001` through `P28-INV-005`; maps all issue families to future packages | Recorded the first inline baseline in this phase file. Confirmed representative current-state findings: 14 public persistence table classes, 204 `Application/Public/Persistence/*DatabaseTable` uses in `app`, 133 App-owned admin routes in the initial route aggregation, 62 Vue pages, 31 migrations, 5 seeders, hardcoded/raw mail paths, direct seeder writes, broad `DB_SEARCH_PATH`, `pnpm@latest`, worker model drift, and missing production ClamAV service evidence. | `php artisan route:list --json`; PHP route aggregation one-liner; `find`/`rg` inventory commands used for the baseline. | This package is a baseline only. Mandatory inventory checkboxes remain open until `P28-W01B` completes full generated matrices for modules, backend surfaces, frontend routes/views, audit events, and runtime parity. |
+| 2026-08-08 | `P28-W01B` repeatable inventory scanner, first slice | Partial `P28-INV-001` through `P28-INV-005`; supports future `P28-ARCH-014`, `P28-GUARD-001`, and `P28-GUARD-002` | Added `tools/phase28/generate-inventory.php` and `Phase28InventoryGeneratorTest`. The scanner reports deployed modules, dependency declarations, actual module imports, public persistence class usage, static route prefixes, framework-resolved route/view surface buckets, frontend pages, direct Inertia render pages, audit action/result strings, mail signals, seeder direct-write signals, runtime drift signals, global provider/middleware/shared module imports, migration schema operations, PostgreSQL `after` usage, and orphan module roots such as `app/Modules/Application/Demo`. | `php -l tools/phase28/generate-inventory.php`; `vendor/bin/pint --test tools/phase28/generate-inventory.php tests/Unit/Foundation/Phase28InventoryGeneratorTest.php`; `php artisan test --filter=Phase28InventoryGeneratorTest`; `php tools/phase28/generate-inventory.php --json`; `php tools/phase28/generate-inventory.php --markdown`; `php tools/phase28/generate-inventory.php --framework-routes-markdown`; `git diff --check`. | Mandatory inventory checkboxes remain open. |
+| 2026-08-09 | `P28-W01B` persistence matrix expansion | Partial `P28-INV-002`, `P28-MIG-001` through `P28-MIG-003`; supports future `P28-ARCH-004` and `P28-GUARD-002` | Extended the scanner/test coverage with `--persistence-markdown` and recorded the current persistence totals inline in this file: 100 `Schema::create/table` operations, 899 column signals, 193 index/unique/primary signals, 103 foreign-key signals, 13 PostgreSQL `after` usages, 5 unresolved dynamic Spatie permission table operations, and 3 public/vendor Pulse tables. | `php -l tools/phase28/generate-inventory.php`; `php artisan test --filter=Phase28InventoryGeneratorTest`; `php tools/phase28/generate-inventory.php --persistence-markdown`. | Static extraction still requires manual confirmation for dynamic config-backed tables, indirect migration logic, and final fresh PostgreSQL schema evidence during W11. Mandatory inventory checkboxes remain open. |
+| 2026-08-09 | `P28-W01B` runtime/config matrix expansion | Partial `P28-INV-005`; supports future `P28-RUNTIME-001` through `P28-RUNTIME-014`, `P28-MOD-003`, and `P28-GUARD-003` | Extended the scanner/test coverage with `--runtime-markdown` and recorded the current runtime totals inline in this file. The scanner records package manager, queue/Horizon, scheduler, PostgreSQL/search-path, Redis, Meilisearch, ClamAV, Chromium/PDF, network exposure, secrets, storage, and backup signals across `.env.example`, config files, Dockerfiles, Compose files, package manifests, and Playwright config. | `php -l tools/phase28/generate-inventory.php`; `php artisan test --filter=Phase28InventoryGeneratorTest`; `php tools/phase28/generate-inventory.php --runtime-markdown`. | Static extraction cannot prove runtime behavior, container buildability, smoke readiness, queue execution, scheduler heartbeat, ClamAV reachability, Chromium/PDF rendering, or PostgreSQL volume durability. Mandatory inventory checkboxes remain open. |
+| 2026-08-09 | `P28-W01B` audit event matrix expansion | Partial `P28-INV-004`; supports future `P28-AUDIT-001` through `P28-AUDIT-011` and `P28-MODAUD-*` | Extended the scanner/test coverage with `--audit-markdown` and recorded the current audit totals inline in this file: 294 static audit signals across 15 owners, including 46 recorder-contract consumers, 50 event constructors, 76 `action` arguments, 54 `result` arguments, and 68 `source` arguments. | `php -l tools/phase28/generate-inventory.php`; `php artisan test --filter=Phase28InventoryGeneratorTest`; `php tools/phase28/generate-inventory.php --audit-markdown`; `php tools/phase28/generate-inventory.php --markdown`. | Static extraction cannot prove complete success/rejection/failure coverage, transaction atomicity, actor/target/team/correlation metadata, browser visibility, retention class, or dynamic expression catalog values. Mandatory inventory checkboxes remain open. |
+| 2026-08-09 | `P28-W01B` backend surface matrix expansion | Partial `P28-INV-002`; supports future `P28-GUARD-001`, `P28-GUARD-002`, `P28-MAIL-*`, `P28-SEED-001`, and `P28-RUNTIME-005`/`006` | Extended the scanner/test coverage with `--backend-surfaces-markdown` and recorded the current backend surface totals inline in this file: 410 static backend surface signals, including 195 HTTP routes, 79 controllers, 36 export providers, 14 command classes, 1 job class, 12 queue signals, 3 schedule signals, 31 mail signals, 5 notification classes, 29 managed-process signals, and 5 seeder classes. | `php -l tools/phase28/generate-inventory.php`; `php artisan test --filter=Phase28InventoryGeneratorTest`; `php tools/phase28/generate-inventory.php --backend-surfaces-markdown`; `php tools/phase28/generate-inventory.php --markdown`. | Static extraction cannot prove exact authorization, module-gate behavior, operation ownership, UI state coverage, mail locale behavior, queue execution, or whether each internal item should remain internal, be exposed, be automated, or be removed. Mandatory inventory checkboxes remain open. |
+| 2026-08-09 | `P28-W01C` automated prep consolidation | Automated scanner gate for backend/runtime/audit; keeps `P28-INV-*` open for final traceability | Consolidated all Phase 28 roadmap evidence into this single phase file, removed separate generated roadmap snapshots, kept the temporary scanner as a local Phase 28 work aid, added `--prep-report-markdown`, and selected `P28-W02A` as the first real code package after prep. | `php tools/phase28/generate-inventory.php --json`; `php tools/phase28/generate-inventory.php --prep-report-markdown`; `php artisan test --filter=Phase28InventoryGeneratorTest`; `git diff --check`. | Automated backend/runtime/audit prep is ready, but full prep remains open because `P28-W01D` must perform manual frontend product consistency review. Phase 28 implementation remains at 0%. |
+| 2026-08-09 | `P28-W01D` frontend product consistency baseline | Partial `P28-INV-003`; supports future `P28-UI-*`, `P28-NAV-*`, `P28-ACTION-*`, `P28-FORM-*`, `P28-TABLE-*`, `P28-LOC-*`, `P28-TT-*`, and `P28-AUTH-*` | Extended the temporary scanner/test coverage with `--frontend-consistency-markdown` and recorded the manual product review baseline inline in this file. The review identifies separate Admin Managers CRUD/navigation, desktop/mobile navigation drift, TimeTracking user/manager/admin parity risk, overloaded user profile/MFA raw fetch, create/edit/show/list parity risk, fragmented table/status/action/filter/state patterns, technical-token exposure risk, and breadcrumb/title/icon parity requirements. | `php -l tools/phase28/generate-inventory.php`; `php tools/phase28/generate-inventory.php --frontend-consistency-markdown`; `php tools/phase28/generate-inventory.php --prep-report-markdown`; `php artisan test --filter=Phase28InventoryGeneratorTest`; `git diff --check`. | This package closes Phase 28 preparation only. It does not repair UI. Browser-rendered light/dark/mobile review and Playwright/console-clean evidence remain required in the relevant frontend implementation packages. |
+
+Temporary scaffolding note: `tools/phase28/generate-inventory.php` and `tests/Unit/Foundation/Phase28InventoryGeneratorTest.php` are Phase 28 working aids only. Before final Phase 28 closure, convert any still-needed checks into permanent guardrails and remove the temporary Phase 28-specific files so they do not remain as long-term repository noise.

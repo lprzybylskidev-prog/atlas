@@ -6,7 +6,6 @@ This document records accepted Phase 28 target contracts for the Atlas foundatio
 
 - Current implementation: Phases 27 and 27a are complete, but later review found known foundation noncompliance tracked by Phase 28 issue IDs.
 - Target implementation: Phase 28 repairs the known drift before production deployment.
-- Phase 28 implementation status: not started.
 
 ## Module graph and public contracts
 
