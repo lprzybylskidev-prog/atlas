@@ -27,6 +27,8 @@ At the frontend foundation checkpoint, `composer lint` also runs `pnpm lint` and
 
 `composer analyse` runs PHPStan/Larastan at the configured maximum practical level through `tools/quality/run-phpstan.sh`. The script discovers targets deterministically from `phpstan.neon`, expands modules automatically, includes global `app` directories such as `Http` and `Providers`, and verifies that every configured PHP file is covered by the public command. The chunking is operational only: it avoids PHP worker segmentation faults on large aggregate batches while preserving the same analysed paths from `phpstan.neon`.
 
+The public PHPStan script disables PHPStan parallel workers by default because the current PHPStan/Larastan/PHP runtime combination can intermittently terminate a child worker with exit code 139 during otherwise clean analysis. Keep the public target discovery and coverage verification intact; do not work around this by skipping PHPStan or bypassing Git hooks.
+
 ### pnpm
 
 - `pnpm format`
