@@ -77,7 +77,7 @@ watch(flashSignature, pushFlashMessages);
 <template>
     <Teleport to="body">
         <div
-            class="pointer-events-none fixed right-4 bottom-4 z-[90] flex w-[min(24rem,calc(100vw-2rem))] flex-col gap-3"
+            class="pointer-events-none fixed right-4 bottom-4 z-90 flex w-[min(24rem,calc(100vw-2rem))] flex-col gap-3"
             role="status"
             aria-live="polite"
             aria-relevant="additions removals"

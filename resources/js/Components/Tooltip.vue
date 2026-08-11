@@ -172,7 +172,7 @@ watch(
                 :id="tooltipId"
                 ref="tooltip"
                 role="tooltip"
-                class="pointer-events-none fixed select-none rounded-md bg-zinc-950 px-2 py-1 text-xs font-medium whitespace-normal text-white shadow-lg break-words dark:bg-zinc-100 dark:text-zinc-950"
+                class="pointer-events-none fixed select-none rounded-md bg-zinc-950 px-2 py-1 text-xs font-medium whitespace-normal text-white shadow-lg wrap-break-word dark:bg-zinc-100 dark:text-zinc-950"
                 :style="[baseTooltipStyle, tooltipStyle]"
             >
                 {{ text }}

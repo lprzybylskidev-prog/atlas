@@ -57,7 +57,7 @@ function optionDescription(option: string | CheckboxListOption): string | undefi
                 align="start"
             >
                 <span class="flex min-w-0 flex-col gap-0.5">
-                    <span class="break-words text-xs font-medium text-zinc-800 dark:text-zinc-100">{{ optionLabel(option) }}</span>
+                    <span class="wrap-break-word text-xs font-medium text-zinc-800 dark:text-zinc-100">{{ optionLabel(option) }}</span>
                     <span
                         v-if="optionDescription(option)"
                         class="break-all text-[0.6875rem] text-zinc-500 dark:text-zinc-400"

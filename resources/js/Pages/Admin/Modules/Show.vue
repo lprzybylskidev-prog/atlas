@@ -337,7 +337,7 @@ function statusTone(value: boolean): MetricTone {
                             <IconTile :icon="dependency.icon" :tone="dependency.tone" size="sm" />
                             <span class="min-w-0">
                                 <p class="text-xs font-semibold text-zinc-500 dark:text-zinc-400">{{ dependency.label }}</p>
-                                <p class="mt-1 break-words text-zinc-950 dark:text-zinc-50">{{ dependency.value }}</p>
+                                <p class="mt-1 wrap-break-word text-zinc-950 dark:text-zinc-50">{{ dependency.value }}</p>
                             </span>
                         </div>
                     </div>

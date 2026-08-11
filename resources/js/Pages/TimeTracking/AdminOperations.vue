@@ -835,7 +835,7 @@ function correctionTypeLabel(type: string): string {
 
 function exceededBreakRowClass(row: LocalizedBreakRow): string {
     return row.excessBreakSeconds > 0 || row.breakLimitStatus === 'exceeded'
-        ? 'bg-rose-50/80 dark:bg-rose-950/25 [&>td]:!text-rose-950 dark:[&>td]:!text-rose-100'
+        ? 'bg-rose-50/80 dark:bg-rose-950/25 [&>td]:text-rose-950! dark:[&>td]:text-rose-100!'
         : '';
 }
 

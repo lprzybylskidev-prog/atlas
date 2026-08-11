@@ -547,7 +547,7 @@ describe('shared UI guardrails', () => {
         expect(codeViewer).toContain("language?: 'json' | 'log' | 'stack' | 'text' | 'toml'");
         expect(codeViewer).toContain('font-mono text-xs leading-5');
         expect(codeViewer).toContain("wrapLines ? 'w-full min-w-0' : 'min-w-max'");
-        expect(codeViewer).toContain("wrapLines ? 'whitespace-pre-wrap break-words' : 'whitespace-pre'");
+        expect(codeViewer).toContain("wrapLines ? 'whitespace-pre-wrap wrap-break-word' : 'whitespace-pre'");
         expect(uiState).toBeDefined();
         expect(uiState).toContain("size?: 'default' | 'compact'");
         expect(uiState).toContain("'loading-initial'");

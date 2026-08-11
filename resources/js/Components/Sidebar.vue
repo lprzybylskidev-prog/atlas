@@ -28,7 +28,7 @@ function updateExpandedNavigationState(key: string, event: Event): void {
 <template>
     <aside
         class="hidden min-h-screen shrink-0 overflow-visible border-r border-zinc-200 bg-white transition-[width] duration-300 ease-in-out lg:block dark:border-zinc-800 dark:bg-zinc-950"
-        :class="isSidebarCollapsed ? 'w-[5.25rem]' : 'w-72'"
+        :class="isSidebarCollapsed ? 'w-21' : 'w-72'"
     >
         <div class="flex h-16 items-center justify-start border-b border-zinc-200 px-4 dark:border-zinc-800">
             <AtlasLogo

@@ -296,8 +296,8 @@ function detailContent(log: LogEntry | null): string {
                     {{ t('pages.admin.logs.viewer.empty') }}
                 </div>
 
-                <div v-else class="grid min-h-[34rem] gap-4 xl:grid-cols-[minmax(20rem,28rem)_1fr]">
-                    <div class="max-h-[42rem] overflow-auto rounded-lg border border-zinc-200 dark:border-zinc-800">
+                <div v-else class="grid min-h-136 gap-4 xl:grid-cols-[minmax(20rem,28rem)_1fr]">
+                    <div class="max-h-168 overflow-auto rounded-lg border border-zinc-200 dark:border-zinc-800">
                         <button
                             v-for="log in displayLogs"
                             :key="log.publicId"
@@ -361,7 +361,7 @@ function detailContent(log: LogEntry | null): string {
                             :title="t('pages.admin.logs.details.payload')"
                             :content="detailContent(selectedLog)"
                             language="log"
-                            max-height="max-h-[34rem]"
+                            max-height="max-h-136"
                             :copy-label="t('actions.copy')"
                             :copied-label="t('actions.copied')"
                             :wrap-label="t('actions.wrap_lines')"

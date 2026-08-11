@@ -20,7 +20,7 @@ defineProps<{
                 <p class="text-xs font-semibold text-zinc-500 dark:text-zinc-400">
                     {{ rolesLabel }}
                 </p>
-                <p class="mt-1 break-words text-sm text-zinc-700 dark:text-zinc-200">
+                <p class="mt-1 wrap-break-word text-sm text-zinc-700 dark:text-zinc-200">
                     {{ roles }}
                 </p>
             </div>
@@ -28,7 +28,7 @@ defineProps<{
                 <p class="text-xs font-semibold text-zinc-500 dark:text-zinc-400">
                     {{ directPermissionsLabel }}
                 </p>
-                <p class="mt-1 break-words text-sm text-zinc-700 dark:text-zinc-200">
+                <p class="mt-1 wrap-break-word text-sm text-zinc-700 dark:text-zinc-200">
                     {{ directPermissions }}
                 </p>
             </div>
@@ -36,7 +36,7 @@ defineProps<{
                 <p class="text-xs font-semibold text-zinc-500 dark:text-zinc-400">
                     {{ effectivePermissionsLabel }}
                 </p>
-                <p class="mt-1 break-words text-sm text-zinc-700 dark:text-zinc-200">
+                <p class="mt-1 wrap-break-word text-sm text-zinc-700 dark:text-zinc-200">
                     {{ effectivePermissions }}
                 </p>
             </div>

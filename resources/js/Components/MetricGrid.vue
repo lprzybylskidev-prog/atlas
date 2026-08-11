@@ -43,7 +43,7 @@ function toneClass(tone: string | undefined): string {
                 <component :is="item.icon" aria-hidden="true" class="h-4 w-4" :stroke-width="1.8" />
             </span>
             <span class="min-w-0">
-                <p class="text-xs leading-4 font-semibold uppercase text-zinc-500 [overflow-wrap:anywhere] dark:text-zinc-400">
+                <p class="text-xs leading-4 font-semibold uppercase text-zinc-500 wrap-anywhere dark:text-zinc-400">
                     {{ item.label }}
                 </p>
                 <p class="mt-1 truncate text-sm font-medium text-zinc-950 dark:text-zinc-50">{{ item.value }}</p>

@@ -122,7 +122,7 @@ onBeforeUnmount(() => {
 
 <template>
     <Teleport to="body">
-        <div v-if="open" class="fixed inset-0 z-[80] flex items-center justify-center p-4" role="presentation">
+        <div v-if="open" class="fixed inset-0 z-80 flex items-center justify-center p-4" role="presentation">
             <button type="button" class="absolute inset-0 cursor-default bg-zinc-950/60" :aria-label="closeLabel" @click="close" />
             <section
                 ref="dialog"

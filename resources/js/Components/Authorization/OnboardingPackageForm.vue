@@ -145,7 +145,7 @@ function listLabel(values: string[], labels: Map<string, string>): string {
                         <p class="text-xs font-semibold text-zinc-500 dark:text-zinc-400">
                             {{ t('pages.admin.packages.form.roles') }}
                         </p>
-                        <p class="mt-1 break-words text-sm text-zinc-700 dark:text-zinc-200">
+                        <p class="mt-1 wrap-break-word text-sm text-zinc-700 dark:text-zinc-200">
                             {{ listLabel(initialRoles, roleLabelByValue) }}
                         </p>
                     </div>
@@ -153,7 +153,7 @@ function listLabel(values: string[], labels: Map<string, string>): string {
                         <p class="text-xs font-semibold text-zinc-500 dark:text-zinc-400">
                             {{ t('pages.admin.packages.form.permissions') }}
                         </p>
-                        <p class="mt-1 break-words text-sm text-zinc-700 dark:text-zinc-200">
+                        <p class="mt-1 wrap-break-word text-sm text-zinc-700 dark:text-zinc-200">
                             {{ listLabel(directPermissions, permissionLabelByValue) }}
                         </p>
                     </div>
@@ -161,7 +161,7 @@ function listLabel(values: string[], labels: Map<string, string>): string {
                         <p class="text-xs font-semibold text-zinc-500 dark:text-zinc-400">
                             {{ t('pages.admin.packages.form.effective_permissions') }}
                         </p>
-                        <p class="mt-1 break-words text-sm text-zinc-700 dark:text-zinc-200">
+                        <p class="mt-1 wrap-break-word text-sm text-zinc-700 dark:text-zinc-200">
                             {{ listLabel(effectivePermissions, permissionLabelByValue) }}
                         </p>
                     </div>

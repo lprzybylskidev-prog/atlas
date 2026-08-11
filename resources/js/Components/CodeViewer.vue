@@ -145,7 +145,7 @@ async function copyContent(): Promise<void> {
                 <span
                     class="min-w-0 px-3 py-1"
                     :class="[
-                        wrapLines ? 'whitespace-pre-wrap break-words' : 'whitespace-pre',
+                        wrapLines ? 'whitespace-pre-wrap wrap-break-word' : 'whitespace-pre',
                         {
                             'font-semibold text-teal-700 dark:text-teal-300': line.kind === 'heading',
                             'pl-6 text-zinc-600 dark:text-zinc-300': line.kind === 'frame',

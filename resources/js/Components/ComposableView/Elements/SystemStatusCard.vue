@@ -181,7 +181,7 @@ const statusIcon = (status: string) => {
         <dl v-if="detailItems.length > 0" class="mt-4 grid gap-2 text-xs sm:grid-cols-2">
             <div v-for="item in detailItems" :key="item.label" class="min-w-0 rounded-md bg-zinc-50 p-2 dark:bg-zinc-900/70">
                 <dt class="font-semibold uppercase text-zinc-500 dark:text-zinc-400">{{ item.label }}</dt>
-                <dd class="mt-1 break-words text-zinc-800 dark:text-zinc-200" :class="{ 'font-mono': item.mono }">
+                <dd class="mt-1 wrap-break-word text-zinc-800 dark:text-zinc-200" :class="{ 'font-mono': item.mono }">
                     {{ item.value }}
                 </dd>
             </div>
@@ -205,7 +205,7 @@ const statusIcon = (status: string) => {
                     {{ item.targetEnabled ? 'Enable' : 'Disable' }} {{ item.scope ?? 'scope' }} at
                     {{ item.effectiveAt ?? 'scheduled time' }}
                 </p>
-                <p v-if="item.failureReason" class="mt-2 break-words font-mono text-rose-700 dark:text-rose-300">
+                <p v-if="item.failureReason" class="mt-2 wrap-break-word font-mono text-rose-700 dark:text-rose-300">
                     {{ item.failureReason }}
                 </p>
             </li>

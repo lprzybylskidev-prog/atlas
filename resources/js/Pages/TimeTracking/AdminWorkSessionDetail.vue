@@ -210,7 +210,7 @@ function maintenanceEnd(row: Record<string, string>): string {
                         <dl class="grid gap-3 md:grid-cols-2">
                             <div v-for="field in overviewFields" :key="field.key">
                                 <dt class="text-xs font-semibold uppercase text-zinc-500 dark:text-zinc-400">{{ field.label }}</dt>
-                                <dd class="mt-1 break-words text-sm font-medium text-zinc-950 dark:text-zinc-50">
+                                <dd class="mt-1 wrap-break-word text-sm font-medium text-zinc-950 dark:text-zinc-50">
                                     {{ field.formattedValue }}
                                 </dd>
                             </div>
@@ -346,7 +346,7 @@ function maintenanceEnd(row: Record<string, string>): string {
                         >
                             <div class="flex flex-wrap items-start justify-between gap-3">
                                 <div class="min-w-0">
-                                    <div class="break-words text-sm font-semibold text-zinc-950 dark:text-zinc-50">
+                                    <div class="wrap-break-word text-sm font-semibold text-zinc-950 dark:text-zinc-50">
                                         {{ otherWorkTitle(row) }}
                                     </div>
                                     <div class="mt-1 text-sm text-zinc-600 dark:text-zinc-300">
@@ -354,7 +354,7 @@ function maintenanceEnd(row: Record<string, string>): string {
                                     </div>
                                     <div
                                         v-if="row.description"
-                                        class="mt-3 whitespace-pre-wrap break-words text-sm text-zinc-600 dark:text-zinc-300"
+                                        class="mt-3 whitespace-pre-wrap wrap-break-word text-sm text-zinc-600 dark:text-zinc-300"
                                     >
                                         {{ row.description }}
                                     </div>
@@ -385,7 +385,7 @@ function maintenanceEnd(row: Record<string, string>): string {
                                     <dt class="text-xs font-semibold uppercase text-zinc-500 dark:text-zinc-400">
                                         {{ detailFieldLabel('end_note', t) }}
                                     </dt>
-                                    <dd class="mt-1 break-words text-sm font-medium text-zinc-950 dark:text-zinc-50">
+                                    <dd class="mt-1 wrap-break-word text-sm font-medium text-zinc-950 dark:text-zinc-50">
                                         {{ row.end_note }}
                                     </dd>
                                 </div>
@@ -415,7 +415,7 @@ function maintenanceEnd(row: Record<string, string>): string {
                                 </div>
                                 <div
                                     v-if="row.description"
-                                    class="mt-2 whitespace-pre-wrap break-words text-sm text-zinc-600 dark:text-zinc-300"
+                                    class="mt-2 whitespace-pre-wrap wrap-break-word text-sm text-zinc-600 dark:text-zinc-300"
                                 >
                                     {{ row.description }}
                                 </div>
@@ -480,12 +480,12 @@ function maintenanceEnd(row: Record<string, string>): string {
                         >
                             <div class="flex flex-wrap items-start justify-between gap-3">
                                 <div class="min-w-0">
-                                    <div class="break-words text-sm font-semibold text-zinc-950 dark:text-zinc-50">
+                                    <div class="wrap-break-word text-sm font-semibold text-zinc-950 dark:text-zinc-50">
                                         {{ detailValue('action', row.action, t, locale) }}
                                     </div>
                                     <div
                                         v-if="row.reason"
-                                        class="mt-2 whitespace-pre-wrap break-words text-sm text-zinc-600 dark:text-zinc-300"
+                                        class="mt-2 whitespace-pre-wrap wrap-break-word text-sm text-zinc-600 dark:text-zinc-300"
                                     >
                                         {{ row.reason }}
                                     </div>
@@ -516,7 +516,7 @@ function maintenanceEnd(row: Record<string, string>): string {
                         <dt class="text-xs font-semibold uppercase text-zinc-500 dark:text-zinc-400">
                             {{ detailFieldLabel(field.key, t) }}
                         </dt>
-                        <dd class="mt-1 break-words text-sm text-zinc-950 dark:text-zinc-50">{{ field.formattedValue }}</dd>
+                        <dd class="mt-1 wrap-break-word text-sm text-zinc-950 dark:text-zinc-50">{{ field.formattedValue }}</dd>
                     </div>
                 </dl>
             </SurfaceCard>

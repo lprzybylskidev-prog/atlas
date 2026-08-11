@@ -31,7 +31,7 @@ const { t } = useTranslator();
             :description="t('pages.admin.teams.structure.tree.empty_description')"
         />
         <div v-else class="overflow-x-auto">
-            <ul class="min-w-[28rem] space-y-2" :aria-label="t('pages.admin.teams.structure.tree.aria')">
+            <ul class="min-w-md space-y-2" :aria-label="t('pages.admin.teams.structure.tree.aria')">
                 <li v-for="node in nodes" :key="node.userPublicId">
                     <ManagerHierarchyTreeNode :node="node" />
                 </li>

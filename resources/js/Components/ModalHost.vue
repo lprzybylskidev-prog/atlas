@@ -122,7 +122,7 @@ onBeforeUnmount(() => {
 
 <template>
     <Teleport to="body">
-        <div v-if="activeModal" class="fixed inset-0 z-[80] flex items-center justify-center p-4" role="presentation">
+        <div v-if="activeModal" class="fixed inset-0 z-80 flex items-center justify-center p-4" role="presentation">
             <button
                 v-if="activeModal.variant === 'confirm'"
                 class="absolute inset-0 cursor-default bg-zinc-950/60"
@@ -170,7 +170,7 @@ onBeforeUnmount(() => {
                     >
                         <div v-if="activeModal.subject" class="flex gap-2">
                             <dt class="shrink-0 font-medium text-zinc-500 dark:text-zinc-400">{{ t('modal.subject') }}</dt>
-                            <dd class="min-w-0 break-words text-zinc-800 dark:text-zinc-100">{{ activeModal.subject }}</dd>
+                            <dd class="min-w-0 wrap-break-word text-zinc-800 dark:text-zinc-100">{{ activeModal.subject }}</dd>
                         </div>
                         <div v-if="activeModal.affectedCount !== undefined" class="flex gap-2">
                             <dt class="shrink-0 font-medium text-zinc-500 dark:text-zinc-400">{{ t('modal.affected_count') }}</dt>

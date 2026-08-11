@@ -539,7 +539,7 @@ function relationshipDate(value: string): string {
                                         <p class="font-semibold text-zinc-500 dark:text-zinc-400">
                                             {{ t('pages.admin.teams.structure.table.reason') }}
                                         </p>
-                                        <p class="mt-1 break-words">{{ relationship.reason }}</p>
+                                        <p class="mt-1 wrap-break-word">{{ relationship.reason }}</p>
                                     </div>
                                 </div>
                             </div>

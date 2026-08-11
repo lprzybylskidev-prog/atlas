@@ -183,10 +183,10 @@ const issueIcon = (severity: string) => {
 
                 <div class="min-w-0 text-xs text-zinc-500 dark:text-zinc-400">
                     <p>Technical: {{ module.technicallyAvailable ? 'available' : 'unavailable' }}</p>
-                    <p v-if="module.requiredDependencies.length > 0" class="mt-1 break-words">
+                    <p v-if="module.requiredDependencies.length > 0" class="mt-1 wrap-break-word">
                         Required: {{ module.requiredDependencies.join(', ') }}
                     </p>
-                    <p v-if="module.optionalDependencies.length > 0" class="mt-1 break-words">
+                    <p v-if="module.optionalDependencies.length > 0" class="mt-1 wrap-break-word">
                         Optional: {{ module.optionalDependencies.join(', ') }}
                     </p>
                 </div>

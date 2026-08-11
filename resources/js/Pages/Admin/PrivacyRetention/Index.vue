@@ -466,7 +466,7 @@ function blockerMessage(blocker: PrivacyPreviewBlocker): string {
                                     "
                                     @click="openImpactDetails(impact)"
                                 >
-                                    <p class="break-words font-medium text-zinc-950 dark:text-zinc-50">{{ impact.dataSet }}</p>
+                                    <p class="wrap-break-word font-medium text-zinc-950 dark:text-zinc-50">{{ impact.dataSet }}</p>
                                     <p class="mt-2 text-xs text-zinc-500 dark:text-zinc-400">
                                         {{
                                             t('pages.admin.privacy_retention.preview_result.impact_records', {

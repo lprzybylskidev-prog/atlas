@@ -250,7 +250,7 @@ function actionButtonClass(action: DetailAction): string {
                         <dl class="grid gap-3 md:grid-cols-2">
                             <div v-for="field in overviewFields" :key="field.key">
                                 <dt class="text-xs font-semibold uppercase text-zinc-500 dark:text-zinc-400">{{ field.label }}</dt>
-                                <dd class="mt-1 break-words text-sm font-medium text-zinc-950 dark:text-zinc-50">
+                                <dd class="mt-1 wrap-break-word text-sm font-medium text-zinc-950 dark:text-zinc-50">
                                     {{ field.formattedValue }}
                                 </dd>
                             </div>
@@ -281,7 +281,7 @@ function actionButtonClass(action: DetailAction): string {
                 <dl class="grid gap-3 md:grid-cols-2">
                     <div v-for="field in noteFields" :key="field.key" class="rounded-lg border border-zinc-200 p-3 dark:border-zinc-800">
                         <dt class="text-xs font-semibold uppercase text-zinc-500 dark:text-zinc-400">{{ field.label }}</dt>
-                        <dd class="mt-1 whitespace-pre-wrap break-words text-sm text-zinc-950 dark:text-zinc-50">
+                        <dd class="mt-1 whitespace-pre-wrap wrap-break-word text-sm text-zinc-950 dark:text-zinc-50">
                             {{ field.formattedValue }}
                         </dd>
                     </div>
@@ -315,7 +315,7 @@ function actionButtonClass(action: DetailAction): string {
                         class="min-w-0 rounded-lg border border-zinc-200 p-3 dark:border-zinc-800"
                     >
                         <dt class="text-xs font-semibold uppercase text-zinc-500 dark:text-zinc-400">{{ field.label }}</dt>
-                        <dd class="mt-1 break-words text-sm text-zinc-950 dark:text-zinc-50">{{ field.formattedValue }}</dd>
+                        <dd class="mt-1 wrap-break-word text-sm text-zinc-950 dark:text-zinc-50">{{ field.formattedValue }}</dd>
                     </div>
                 </dl>
             </SurfaceCard>
