@@ -73,7 +73,8 @@ Security-setting changes are recorded through the Audit module as security audit
 - use typed configuration for complex structures.
 
 ---
-# Phase 28 foundation repair target
+
+## Phase 28 foundation repair target
 
 Current state: Settings owns typed global/team/user values, security-setting public contracts, locale/theme behavior, validation, cache invalidation, and audited mutation paths without leaking persistence across module boundaries.
 

@@ -95,7 +95,8 @@ Permissions:
 - `exports.audit-export` allows detailed audit/history exports instead of ordinary final-value exports.
 - `admin.exports.index` allows viewing export lifecycle status in Admin operations.
 - `admin.exports.data-table` allows requesting exports from registered Admin DataTables.
-# Phase 28 foundation repair target
+
+## Phase 28 foundation repair target
 
 Current state: Core Exports owns immutable requests, artifacts, render credentials, authorization, retention, bilingual completion/failure notifications, Admin providers, detailed Audit exports, safe optional ManagedProcesses collaboration through neutral shared ports, and verified Chromium/worker runtime smoke coverage.
 

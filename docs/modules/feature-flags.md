@@ -79,7 +79,8 @@ Every change also records an Audit module event under module `feature_flags`.
 Feature flag history is operational configuration evidence. It does not contain secrets.
 
 FeatureFlags resolves Admin team options, selected-team override validation, team-value lookup, and recent-history team labels through Teams `TeamLookup`. The module may query its own flag tables, but it must not read Teams persistence directly for cross-module team state or display labels.
-# Phase 28 foundation repair target
+
+## Phase 28 foundation repair target
 
 Current state: FeatureFlags uses shared status/localization, route availability, activation, permission, audit, health, table, and action contracts. Its initially empty flag catalog is the accepted mode for business modules that have not yet contributed explicit flags.
 

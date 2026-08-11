@@ -178,7 +178,8 @@ The participant covers process runs, structured process logs, process schedules,
 Active process runs (`draft`, `queued`, `running`, or `waiting`) add the `managed_process_active_run` blocker so destructive privacy execution cannot mutate or remove process context while work is in flight.
 
 For completed records, privacy execution preserves operational history and redacts controlled subject references from process run snapshots/summaries, process log messages/context/entity references, and schedule input/reason fields. Matching queued jobs are removed because they are pending derived work under project control. The participant is idempotent and does not delete completed run or schedule records.
-# Phase 28 foundation repair target
+
+## Phase 28 foundation repair target
 
 Current state: ManagedProcesses owns boundary-safe definitions, runs, logs, retry/cancel, schedules, acknowledgements, input-file/import visibility, deactivation guards, audit/notifications, canonical Admin tables/actions, and verified cross-environment worker/scheduler parity.
 

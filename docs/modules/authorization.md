@@ -100,7 +100,7 @@ Permission catalog Admin read surfaces and exports resolve active-team context t
 
 ---
 
-# Phase 28 foundation repair target
+## Phase 28 foundation repair target
 
 Current state: Authorization uses owner-owned Identity/Teams lookups and membership provisioning. Phase 28 consolidated user/team assignment administration into one workflow/use case, added truthful persisted provenance and stale-write protection, and retained atomic security audit evidence for assignment replacement.
 

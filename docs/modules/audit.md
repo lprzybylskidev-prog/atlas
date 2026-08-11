@@ -138,7 +138,8 @@ The Audit recorder enriches an omitted effective actor and correlation ID from p
 ## Enforcement and required tests
 
 `AuditCatalogArchitectureTest` scans application producers, rejects legacy results and uncataloged event shapes, verifies a non-vacuous module/action catalog, and requires every critical-operation matrix entry to name a real outcome test. Feature and integration tests cover connection-test success/rejection/failure, Files terminal/rejected/retention failures, Privacy success/rejection/participant failure, TimeTracking decision before/after/security context and rollback, module deactivation outcomes, context propagation, request-less recording, append-only triggers, redaction, and primary/security pair rollback. The Audit browser regression fixture exceeds 5,000 rows and proves both old-page reachability and complete streaming export traversal.
-# Phase 28 foundation repair target
+
+## Phase 28 foundation repair target
 
 Current state: Core Audit owns append-only audit/security records, registered producer catalogs, context completion, redaction, DB-backed Admin browsing/security and impersonation history, and complete filtered export traversal. Critical operation coverage and atomicity are protected by executable catalog, outcome-matrix, large-dataset, and rollback tests. Audit browser team labels and security-history user labels use Identity/Teams public lookup contracts, while the bounded `AuditEventLookup` reader lets TimeTracking detail screens show recent Audit-owned evidence without reading Audit tables directly.
 

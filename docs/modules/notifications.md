@@ -102,7 +102,8 @@ Use the module for:
 - jobs;
 - security events;
 - system alerts.
-# Phase 28 foundation repair target
+
+## Phase 28 foundation repair target
 
 Current state: Notifications owns the complete type catalog, typed in-app/realtime delivery, PL/EN labels, per-address preferences, additional verified addresses, safe deep links, queue/audit behavior, canonical user surfaces through Identity/Teams public lookups, and shared bilingual branded e-mail delivery.
 

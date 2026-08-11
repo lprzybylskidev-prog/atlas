@@ -82,7 +82,8 @@
         "lint": [
             "vendor/bin/pint --test",
             "pnpm lint",
-            "pnpm stylelint"
+            "pnpm stylelint",
+            "pnpm lint:markdown"
         ],
         "analyse": [
             "bash tools/quality/run-phpstan.sh --verify-coverage",
@@ -117,6 +118,7 @@
             "pnpm format:check",
             "pnpm lint",
             "pnpm stylelint",
+            "pnpm lint:markdown",
             "pnpm check:secrets",
             "pnpm check:unwanted",
             "bash tools/quality/check-env-example.sh",

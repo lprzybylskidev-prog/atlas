@@ -241,7 +241,8 @@ Administrators can view recent security events for all users, including imperson
 TimeTracking UI simulation state for impersonation is stored only through `ImpersonationSimulationStore` under an impersonation-session-scoped ephemeral cache namespace. It is deleted when impersonation ends and is not written to official TimeTracking records, events, manager feeds, settlements, or reports.
 
 ---
-# Phase 28 foundation repair target
+
+## Phase 28 foundation repair target
 
 Current state: Identity/authentication/sessions expose owner-owned account/lookups, registered lifecycle audit, password/reset/session/Admin/impersonation flows, coherent TOTP profile/browser ceremonies, and bilingual mail. Configured MFA scopes are enforced, and unused WebAuthn was removed. The non-production `VerifiedUserFixtureBuilder` owns deterministic verified demo credentials and resets password lifecycle, active/lock, avatar, MFA, reset-token, password-history, and session defaults without replacing an existing public ID.
 

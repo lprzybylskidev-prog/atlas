@@ -126,7 +126,8 @@ Public health endpoints are intentionally unauthenticated but minimal.
 Admin diagnostics may include operational detail, but still must not expose secrets, full exception traces, credentials, arbitrary files, or raw service responses.
 
 ---
-# Phase 28 foundation repair target
+
+## Phase 28 foundation repair target
 
 Current state: Health exposes real liveness/readiness and operator diagnostics, and ModuleGate consumes declared readiness requirements through technical availability. The production foundation smoke verifies queue/Horizon, scheduler heartbeat, storage, Meilisearch, ClamAV/EICAR, Chromium/PDF, and the backup/storage boundary.
 

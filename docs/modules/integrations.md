@@ -126,7 +126,8 @@ An adapter may declare optional modules. If an optional module is inactive, the 
 Every concrete integration must document the source of truth per synchronized data type before data is exchanged. When Atlas is not the source of truth, incoming data must still pass request-boundary validation and Application/Domain invariants before persistence.
 
 ---
-# Phase 28 foundation repair target
+
+## Phase 28 foundation repair target
 
 Current state: Integrations owns explicit adapters, credentials, retry/idempotency/circuit behavior, status/readiness, module gating, canonical Admin tables/actions, and secret-safe connection-test evidence for success, rejection, and failure. With no selected adapter or public API it operates in the documented empty reduced mode.
 

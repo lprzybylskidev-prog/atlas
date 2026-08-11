@@ -493,7 +493,8 @@ TimeTracking live manager status uses the shared Notifications realtime foundati
 The scenario creates `TT Demo Team North` and `TT Demo Team South`, 2 head managers named `TT Head Manager ...`, 3 regular managers named `TT Manager ...`, and 50 regular users named `TT User ...`, all with the local demo password `password`. It activates TimeTracking for both teams, assigns only the scoped application, notification, user-panel, manager-panel, report, activity, break, and Other-work permissions needed by the demo role, creates manager relationships where head managers see manager subtrees and regular managers see direct reports, enables tracking, and seeds historical and active work sessions, module-context segments, breaks, approved and under-review Other work, and pending correction requests for report review. Each demo team includes at least one source-backed correction for a work session, break, and work outside the computer.
 
 ---
-# Phase 28 foundation repair target
+
+## Phase 28 foundation repair target
 
 Current state: TimeTracking uses one route-backed user/manager/Admin work-time model, owner-owned user/team contracts, shared typed UI/status/action/table/formatter foundations, manager/Admin operational parity, and complete atomic audit for corrections, decisions, sessions, breaks, Other work, categories, and maintenance. Stale duplicate decisions record rejection evidence, mandatory audit failure rolls back the owning transition, and the legacy manager-report surface is permanently absent.
 

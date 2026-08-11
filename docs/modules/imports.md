@@ -57,7 +57,8 @@ Row and field errors are structured import error records and may also appear in 
 Imports registers a module-owned `ModuleOperationalDiagnostics` contributor for Admin System Status row warning/error signals. Import execution visibility remains owned by the combined Managed Processes Admin surface.
 
 Automated tests use isolated fixtures for import executions and row errors; development reset does not seed artificial import records.
-# Phase 28 foundation repair target
+
+## Phase 28 foundation repair target
 
 Current state: Imports is delivered through ManagedProcesses with explicit Files/Integrations boundaries, idempotency, row-error visibility, audit/notification coverage, queue/module gates, and canonical Admin process surfaces. Its non-production owner fixture builder creates the fixed E2E execution and row warnings around a ManagedProcesses-owned run, with a stable idempotency key and repeated-seed coverage. It creates no fake uploaded File object.
 

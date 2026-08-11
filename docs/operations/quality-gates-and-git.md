@@ -39,6 +39,7 @@ The public PHPStan script disables PHPStan parallel workers by default because t
 - `pnpm format`
 - `pnpm format:check`
 - `pnpm lint`
+- `pnpm lint:markdown`
 - `pnpm test`
 - `pnpm test:e2e`
 - `pnpm build`
@@ -46,7 +47,7 @@ The public PHPStan script disables PHPStan parallel workers by default because t
 - `pnpm check:unwanted`
 - `pnpm check`
 
-`pnpm check` runs TypeScript checking, ESLint, Stylelint, Vitest, and the production Vite build.
+`pnpm check` runs TypeScript checking, ESLint, Stylelint, Markdownlint across every repository Markdown file, Vitest, and the production Vite build. `pnpm lint:markdown` uses the same pinned Markdownlint CLI version as the recommended VS Code extension and excludes dependency/cache trees.
 
 `pnpm check:config` runs repository configuration guardrails. The current checks reject duplicate active keys in `.env.example`, fail when the Playwright package versions drift from the Dev Container `PLAYWRIGHT_VERSION` browser-install argument, and execute the production runtime contract check.
 

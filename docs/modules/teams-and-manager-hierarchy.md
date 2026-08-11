@@ -81,7 +81,7 @@ The exception uses Teams membership and `ManagerHierarchy` contracts. Repeated s
 
 ---
 
-# Phase 28 foundation repair target
+## Phase 28 foundation repair target
 
 Current state: Teams owns membership and the integrated team structure editor. Phase 28 removed the duplicated separate Admin Managers area after route, permission, UI, DAG, audit, concurrency, and legacy-reference coverage was moved to the Teams surface.
 

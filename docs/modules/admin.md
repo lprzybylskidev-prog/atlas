@@ -106,7 +106,7 @@ Logs and storage browsing must be secure and must not allow arbitrary server man
 
 ---
 
-# Phase 28 foundation repair target
+## Phase 28 foundation repair target
 
 Current state: Admin foundation surfaces use the canonical navigation, action, confirmation, CRUD/form, DataTable, status, localization, and route-availability contracts. The operational inventory is complete, user-facing technical tokens were removed or labeled where operationally necessary, and the legacy Managers area was removed after Team Structure reached parity.
 

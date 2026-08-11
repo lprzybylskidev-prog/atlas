@@ -128,7 +128,8 @@ Permissions:
 ## Remaining phase work
 
 Phase 19 implementation is complete except for the repository commit step, which requires explicit user approval under the Atlas git workflow.
-# Phase 28 foundation repair target
+
+## Phase 28 foundation repair target
 
 Current state: Files owns private quarantine/storage/scanning/lifecycle, temporary cleanup, owner lookups, canonical Admin status/actions, and registered success/rejection/failure evidence. Production forbids a fake scanner, uses the pinned private ClamAV service with persisted signatures, and the foundation smoke proves daemon readiness plus EICAR rejection. File scan queues are covered by the canonical Horizon all-queue probe.
 

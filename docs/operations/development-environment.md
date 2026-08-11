@@ -210,6 +210,8 @@ Do not install Vetur.
 
 Avoid extension packs and duplicate formatters.
 
+Run the `Atlas: Lint all Markdown` workspace task to populate VS Code's Problems panel with diagnostics from every repository Markdown file, including files that are not currently open. The same scan runs in the project quality gates through `pnpm lint:markdown`.
+
 ---
 
 ## Dev Container Rebuild Scope
