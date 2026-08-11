@@ -25,7 +25,7 @@ final readonly class PlaywrightReportPdfRenderer implements ReportPdfRenderer
         $process->setEnv(array_filter([
             'ATLAS_CHROMIUM_BINARY' => $this->chromiumBinary(),
         ]));
-        $process->setTimeout(60);
+        $process->setTimeout(max(10, config()->integer('atlas.exports.pdf_render_timeout_seconds', 120)));
         $process->run();
 
         try {

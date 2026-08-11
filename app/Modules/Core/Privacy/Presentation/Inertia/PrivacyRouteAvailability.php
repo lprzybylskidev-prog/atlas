@@ -21,6 +21,7 @@ final class PrivacyRouteAvailability implements InertiaRouteAvailabilityContribu
             PrivacyPermissionCatalog::ADMIN_INDEX,
             PrivacyPermissionCatalog::LEGAL_HOLDS_INDEX,
             PrivacyPermissionCatalog::LEGAL_HOLDS_CREATE,
+            PrivacyPermissionCatalog::LEGAL_HOLDS_RELEASE,
             PrivacyPermissionCatalog::OPERATIONS_INDEX,
         ];
     }

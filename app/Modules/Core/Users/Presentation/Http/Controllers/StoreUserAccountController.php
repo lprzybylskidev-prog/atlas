@@ -5,14 +5,14 @@ declare(strict_types=1);
 namespace App\Modules\Core\Users\Presentation\Http\Controllers;
 
 use App\Modules\Core\Authorization\Application\Public\Contracts\OnboardingPackageDirectory;
-use App\Modules\Core\Authorization\Application\Public\Contracts\UserOnboardingPackageApplier;
-use App\Modules\Core\Authorization\Application\Public\Contracts\UserTeamAuthorizationManager;
+use App\Modules\Core\Authorization\Application\Public\DTOs\OnboardingPackagePreview;
 use App\Modules\Core\Identity\Application\Public\Contracts\UserCredentialAccountDirectory;
-use App\Modules\Core\Teams\Application\Public\Contracts\UserTeamMembershipManager;
-use App\Modules\Core\Teams\Application\Public\Contracts\UserTeamSessionLimitSettings;
 use App\Modules\Core\Users\Application\Commands\CreateUserAccountCommand;
 use App\Modules\Core\Users\Application\CreateUserAccount;
-use App\Modules\Optional\TimeTracking\Application\Public\Contracts\UserBreakPolicySettings;
+use App\Shared\Application\Authorization\Contracts\UserTeamAuthorizationManager;
+use App\Shared\Application\Teams\Contracts\UserTeamMembershipManager;
+use App\Shared\Application\Teams\Contracts\UserTeamSessionLimitSettings;
+use App\Shared\Application\TimeTracking\Contracts\UserBreakPolicySettings;
 use App\Shared\Presentation\Support\FlashMessage;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -24,7 +24,6 @@ final readonly class StoreUserAccountController
         private CreateUserAccount $users,
         private UserTeamMembershipManager $memberships,
         private UserTeamAuthorizationManager $authorization,
-        private UserOnboardingPackageApplier $onboardingPackages,
         private OnboardingPackageDirectory $packageDirectory,
         private UserCredentialAccountDirectory $accounts,
         private UserTeamSessionLimitSettings $sessionLimits,
@@ -74,20 +73,32 @@ final readonly class StoreUserAccountController
             foreach ($teamAssignments as $assignment) {
                 $this->memberships->addAccess($actorPublicId, $account->publicId, $assignment['team_public_id']);
 
-                if ($assignment['source'] === 'package') {
-                    $this->onboardingPackages->applyDuringUserCreation(
-                        packageName: $assignment['onboarding_package'],
-                        userPublicId: $account->publicId,
-                        teamPublicId: $assignment['team_public_id'],
-                        actorPublicId: $actorPublicId,
-                    );
-                    $this->applyTeamPolicyOverrides($account->publicId, $assignment);
-
-                    continue;
-                }
-
                 $roleNames = $assignment['role_names'];
                 $directPermissionNames = $assignment['direct_permission_names'];
+                $sourcePublicId = null;
+                $sourceDisplayName = null;
+                $copiedFromUserPublicId = null;
+                $presetSnapshot = null;
+
+                if ($assignment['source'] === 'package') {
+                    $package = $this->packageForTeam($assignment['onboarding_package'], $assignment['team_public_id']);
+
+                    if ($package === null) {
+                        throw new \LogicException('Validated authorization preset is unavailable.');
+                    }
+
+                    $roleNames = $package->initialRoleNames;
+                    $directPermissionNames = $package->directPermissionNames;
+                    $sourcePublicId = $package->publicId;
+                    $sourceDisplayName = $package->label;
+                    $presetSnapshot = [
+                        'name' => $package->name,
+                        'label' => $package->label,
+                        'roles' => $package->initialRoleNames,
+                        'direct_permissions' => $package->directPermissionNames,
+                        'template_permissions' => $package->templatePermissionNames,
+                    ];
+                }
 
                 if ($assignment['source'] === 'copy') {
                     $source = $this->authorization->assignmentsForUserTeam(
@@ -96,6 +107,9 @@ final readonly class StoreUserAccountController
                     );
                     $roleNames = $source->roleNames;
                     $directPermissionNames = $source->directPermissionNames;
+                    $copiedFromUserPublicId = $assignment['copy_authorization_from_user'];
+                    $sourcePublicId = $assignment['copy_authorization_from_user'];
+                    $sourceDisplayName = $this->accounts->findAdminRow($assignment['copy_authorization_from_user'])?->name;
                 }
 
                 $this->authorization->replaceAssignmentsForUserTeam(
@@ -105,6 +119,13 @@ final readonly class StoreUserAccountController
                     roleNames: $roleNames,
                     directPermissionNames: $directPermissionNames,
                     reason: 'Initial user team assignment.',
+                    sourceType: $assignment['source'] === 'package' ? 'preset' : $assignment['source'],
+                    sourcePublicId: $sourcePublicId,
+                    sourceDisplayNameSnapshot: $sourceDisplayName,
+                    copiedFromUserPublicId: $copiedFromUserPublicId,
+                    presetVersion: $presetSnapshot === null ? null : 1,
+                    presetSnapshot: $presetSnapshot,
+                    resultingLimits: $this->resultingLimits($assignment),
                 );
                 $this->applyTeamPolicyOverrides($account->publicId, $assignment);
             }
@@ -281,6 +302,31 @@ final readonly class StoreUserAccountController
         }
 
         return false;
+    }
+
+    private function packageForTeam(string $packageName, string $teamPublicId): ?OnboardingPackagePreview
+    {
+        foreach ($this->packageDirectory->all() as $package) {
+            if ($package->name === $packageName && $package->teamPublicId === $teamPublicId) {
+                return $package;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @param  array{inactivity_timeout_minutes: ?int, session_max_lifetime_minutes: ?int, break_daily_limit_minutes: ?int, break_maximum_single_minutes: ?int}  $assignment
+     * @return array<string, int|null>
+     */
+    private function resultingLimits(array $assignment): array
+    {
+        return [
+            'inactivity_timeout_minutes' => $assignment['inactivity_timeout_minutes'],
+            'session_max_lifetime_minutes' => $assignment['session_max_lifetime_minutes'],
+            'break_daily_limit_minutes' => $assignment['break_daily_limit_minutes'],
+            'break_maximum_single_minutes' => $assignment['break_maximum_single_minutes'],
+        ];
     }
 
     /**

@@ -4,21 +4,21 @@ declare(strict_types=1);
 
 namespace App\Modules\Core\Files\Presentation\Http\Controllers;
 
-use App\Modules\Core\Audit\Application\Public\Contracts\AuditRecorder;
-use App\Modules\Core\Audit\Application\Public\DTOs\AuditEvent;
-use App\Modules\Core\Audit\Application\Public\Enums\SecurityAuditCategory;
 use App\Modules\Core\Files\Application\Enums\FileScanState;
-use App\Modules\Core\Files\Application\Public\Persistence\FilesDatabaseTable;
 use App\Modules\Core\Files\Infrastructure\Persistence\DatabaseFileStorage;
-use App\Modules\Core\Identity\Application\Public\Persistence\IdentityDatabaseTable;
-use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
-use App\Shared\Application\Tables\AdminTableDefinitions;
+use App\Modules\Core\Files\Infrastructure\Persistence\TableNames\FilesDatabaseTable;
+use App\Modules\Core\Identity\Application\Public\Contracts\UserLookup;
+use App\Shared\Application\Audit\Contracts\AuditRecorder;
+use App\Shared\Application\Audit\DTOs\AuditEvent;
+use App\Shared\Application\Audit\Enums\SecurityAuditCategory;
 use App\Shared\Application\Tables\ArrayTableProcessor;
+use App\Shared\Application\Tables\RegisteredTables;
 use App\Shared\Application\Tables\TableDefinition;
 use App\Shared\Application\Tables\TableRequestContext;
 use App\Shared\Application\Tables\TableResult;
 use App\Shared\Application\Tables\TableSavedViewService;
 use App\Shared\Application\Tables\TableState;
+use App\Shared\Application\Teams\Contracts\TeamLookup;
 use App\Shared\Presentation\Support\AdminDataTableExportMeta;
 use App\Shared\Presentation\Support\FlashMessage;
 use Illuminate\Database\Query\JoinClause;
@@ -28,6 +28,7 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
+use stdClass;
 
 final readonly class AdminFilesController
 {
@@ -37,11 +38,13 @@ final readonly class AdminFilesController
         private TableSavedViewService $views,
         private TableRequestContext $context,
         private AuditRecorder $audit,
+        private UserLookup $users,
+        private TeamLookup $teams,
     ) {}
 
     public function index(Request $request): Response
     {
-        $definition = AdminTableDefinitions::get(AdminTableDefinitions::FILES);
+        $definition = RegisteredTables::get(RegisteredTables::FILES);
         $allRows = $this->rows();
         $filters = $this->filters($request, $allRows);
         $filteredRows = $this->filteredRows($allRows, $filters);
@@ -52,7 +55,7 @@ final readonly class AdminFilesController
         return Inertia::render('Admin/Files/Index', [
             'files' => $result->rows,
             'scanEvidence' => $result->rows,
-            'summary' => $this->summary($allRows, $result->total),
+            'summary' => $this->summary($result->filteredRows),
             'filterOptions' => $this->filterOptions($allRows),
             'table' => $table,
         ]);
@@ -63,13 +66,12 @@ final readonly class AdminFilesController
      */
     private function rows(): array
     {
-        return array_values(DB::table(FilesDatabaseTable::FILE_OBJECTS.' as file_objects')
+        $records = DB::table(FilesDatabaseTable::FILE_OBJECTS.' as file_objects')
             ->leftJoin(FilesDatabaseTable::FILE_SCAN_EVIDENCE.' as file_scan_evidence', function (JoinClause $join): void {
                 $join
                     ->on('file_scan_evidence.file_object_id', '=', 'file_objects.id')
                     ->whereRaw('file_scan_evidence.id = (select max(evidence.id) from '.FilesDatabaseTable::FILE_SCAN_EVIDENCE.' evidence where evidence.file_object_id = file_objects.id)');
             })
-            ->leftJoin(IdentityDatabaseTable::USERS.' as acknowledged_users', 'acknowledged_users.id', '=', 'file_objects.acknowledged_by_user_id')
             ->whereNull('file_objects.deleted_at')
             ->orderByDesc('file_objects.created_at')
             ->get([
@@ -84,19 +86,49 @@ final readonly class AdminFilesController
                 'file_objects.quarantined_at',
                 'file_objects.available_at',
                 'file_objects.acknowledged_at',
+                'file_objects.acknowledged_by_user_id',
                 'file_objects.acknowledgement_reason',
                 'file_objects.created_at',
-                'acknowledged_users.name as acknowledged_by',
                 'file_scan_evidence.provider',
                 'file_scan_evidence.engine_version',
                 'file_scan_evidence.signature_version',
                 'file_scan_evidence.scanned_at',
                 'file_scan_evidence.result',
                 'file_scan_evidence.threat_name',
-            ])
+            ]);
+
+        return array_values(collect($this->enrichRowsWithAcknowledgedBy($records->all()))
             ->map(fn (object $row): array => $this->fileRow($row))
             ->values()
             ->all());
+    }
+
+    /**
+     * @param  array<int, stdClass>  $rows
+     * @return list<stdClass>
+     */
+    private function enrichRowsWithAcknowledgedBy(array $rows): array
+    {
+        $rows = array_values($rows);
+        $userIds = [];
+
+        foreach ($rows as $row) {
+            $userId = $this->nullableInt($row->acknowledged_by_user_id ?? null);
+
+            if ($userId !== null) {
+                $userIds[] = $userId;
+            }
+        }
+
+        $summaries = $this->users->displaySummariesForInternalIds(array_values(array_unique($userIds)));
+
+        foreach ($rows as $row) {
+            $userId = $this->nullableInt($row->acknowledged_by_user_id ?? null);
+            $summary = $userId === null ? null : ($summaries[$userId] ?? null);
+            $row->acknowledged_by = $summary?->name;
+        }
+
+        return $rows;
     }
 
     public function rescan(Request $request, string $file): RedirectResponse
@@ -104,7 +136,7 @@ final readonly class AdminFilesController
         $actorId = data_get($request->user(), 'id');
         $teamPublicId = $request->hasSession() ? $request->session()->get('active_team_public_id') : null;
         $teamId = is_string($teamPublicId)
-            ? DB::table(TeamsDatabaseTable::TEAMS)->where('public_id', $teamPublicId)->value('id')
+            ? $this->teams->activeInternalIdForPublicId($teamPublicId)
             : null;
 
         $requested = $this->files->rescan(
@@ -158,10 +190,10 @@ final readonly class AdminFilesController
     }
 
     /**
-     * @param  list<array<string, scalar|null>>  $rows
+     * @param  list<array<string, mixed>>  $rows
      * @return array{total: int, pending: int, scanning: int, clean: int, infected: int, failed: int, unsupported: int, blocked: int, queued: int, handled: int, visible: int}
      */
-    private function summary(array $rows, int $visible): array
+    private function summary(array $rows): array
     {
         $counts = array_fill_keys(['pending', 'scanning', 'clean', 'infected', 'failed', 'unsupported'], 0);
         $handled = 0;
@@ -195,7 +227,7 @@ final readonly class AdminFilesController
             'blocked' => $blocked,
             'queued' => $counts['pending'] + $counts['scanning'],
             'handled' => $handled,
-            'visible' => $visible,
+            'visible' => count($rows),
         ];
     }
 
@@ -483,6 +515,11 @@ final readonly class AdminFilesController
         $date = $this->string($value);
 
         return $date !== null && preg_match('/^\d{4}-\d{2}-\d{2}$/', $date) === 1 ? $date : '';
+    }
+
+    private function nullableInt(mixed $value): ?int
+    {
+        return is_numeric($value) ? (int) $value : null;
     }
 
     /**

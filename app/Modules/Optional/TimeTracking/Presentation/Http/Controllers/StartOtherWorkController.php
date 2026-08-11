@@ -4,16 +4,15 @@ declare(strict_types=1);
 
 namespace App\Modules\Optional\TimeTracking\Presentation\Http\Controllers;
 
-use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
 use App\Modules\Optional\TimeTracking\Application\Contracts\OtherWorkCategoryStore;
 use App\Modules\Optional\TimeTracking\Application\OtherWorkSessionCoordinator;
 use App\Modules\Optional\TimeTracking\Application\Permissions\TimeTrackingPermissionCatalog;
+use App\Shared\Application\Teams\Contracts\TeamLookup;
 use App\Shared\Presentation\Support\FlashMessage;
 use DateTimeImmutable;
 use DateTimeZone;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 use InvalidArgumentException;
@@ -24,6 +23,7 @@ final readonly class StartOtherWorkController
     public function __construct(
         private OtherWorkSessionCoordinator $otherWork,
         private OtherWorkCategoryStore $categories,
+        private TeamLookup $teams,
     ) {}
 
     public function create(Request $request): Response
@@ -95,9 +95,7 @@ final readonly class StartOtherWorkController
             return null;
         }
 
-        $id = DB::table(TeamsDatabaseTable::TEAMS)->where('public_id', $teamPublicId)->value('id');
-
-        return is_numeric($id) ? (int) $id : null;
+        return $this->teams->internalIdForPublicId($teamPublicId);
     }
 
     private function userId(Request $request): ?int

@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Modules\Core\Authorization\Application\Packages;
 
-use App\Modules\Core\Audit\Application\Public\Enums\SecurityAuditCategory;
 use App\Modules\Core\Authorization\Application\Contracts\PermissionRoleStore;
 use App\Modules\Core\Identity\Application\Public\Contracts\SecurityAuditRecorder;
 use App\Modules\Core\Identity\Application\Public\DTOs\SecurityAuditEvent;
+use App\Shared\Application\Audit\Enums\SecurityAuditCategory;
 use InvalidArgumentException;
 
 final readonly class ApplyOnboardingPackageToUser

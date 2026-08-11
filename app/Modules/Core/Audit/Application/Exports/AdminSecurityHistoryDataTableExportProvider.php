@@ -4,20 +4,25 @@ declare(strict_types=1);
 
 namespace App\Modules\Core\Audit\Application\Exports;
 
-use App\Modules\Core\Audit\Application\Public\Persistence\AuditDatabaseTable;
-use App\Modules\Core\Exports\Application\Public\AbstractAdminDataTableExportProvider;
-use App\Modules\Core\Exports\Application\Public\DTOs\ReportExportGenerationRequest;
-use App\Modules\Core\Exports\Application\Public\Permissions\ReportsPermissionCatalog;
-use App\Modules\Core\Identity\Application\Public\Persistence\IdentityDatabaseTable;
-use App\Shared\Application\Tables\AdminTableDefinitions;
+use App\Modules\Core\Audit\Infrastructure\Persistence\TableNames\AuditDatabaseTable;
+use App\Modules\Core\Identity\Application\Public\Contracts\UserLookup;
+use App\Modules\Core\Identity\Application\Public\DTOs\UserDisplaySummary;
+use App\Shared\Application\Exports\AbstractAdminDataTableExportProvider;
+use App\Shared\Application\Exports\DTOs\ReportExportGenerationRequest;
+use App\Shared\Application\Exports\ExportPermissions;
+use App\Shared\Application\Tables\RegisteredTables;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Facades\DB;
 
 final readonly class AdminSecurityHistoryDataTableExportProvider extends AbstractAdminDataTableExportProvider
 {
+    public function __construct(
+        private UserLookup $users,
+    ) {}
+
     public function tableKey(): string
     {
-        return AdminTableDefinitions::SECURITY_HISTORY;
+        return RegisteredTables::SECURITY_HISTORY;
     }
 
     public function tableName(): string
@@ -32,7 +37,7 @@ final readonly class AdminSecurityHistoryDataTableExportProvider extends Abstrac
 
     public function requestPermission(): string
     {
-        return ReportsPermissionCatalog::REQUEST;
+        return ExportPermissions::REQUEST;
     }
 
     public function ruleVersion(): string
@@ -102,7 +107,7 @@ final readonly class AdminSecurityHistoryDataTableExportProvider extends Abstrac
 
     /**
      * @param  list<object>  $records
-     * @return array<string, array{name: string, email: string}>
+     * @return array<string, UserDisplaySummary>
      */
     private function usersForEvents(array $records): array
     {
@@ -122,29 +127,11 @@ final readonly class AdminSecurityHistoryDataTableExportProvider extends Abstrac
             return [];
         }
 
-        $users = [];
-
-        foreach (DB::table(IdentityDatabaseTable::USERS)
-            ->whereIn('public_id', array_keys($publicIds))
-            ->get(['public_id', 'name', 'email'])
-            ->all() as $user) {
-            $publicId = self::stringValue($user->public_id ?? '');
-
-            if ($publicId === '') {
-                continue;
-            }
-
-            $users[$publicId] = [
-                'name' => self::stringValue($user->name ?? ''),
-                'email' => self::stringValue($user->email ?? ''),
-            ];
-        }
-
-        return $users;
+        return $this->users->displaySummariesForPublicIds(array_keys($publicIds));
     }
 
     /**
-     * @param  array<string, array{name: string, email: string}>  $users
+     * @param  array<string, UserDisplaySummary>  $users
      * @return array<string, scalar|\Stringable|null>
      */
     private function row(object $record, array $users): array
@@ -167,7 +154,7 @@ final readonly class AdminSecurityHistoryDataTableExportProvider extends Abstrac
     }
 
     /**
-     * @param  array<string, array{name: string, email: string}>  $users
+     * @param  array<string, UserDisplaySummary>  $users
      * @return array{publicId: string, name: string, email: string, context: string}
      */
     private function eventUser(object $record, array $users): array
@@ -188,8 +175,8 @@ final readonly class AdminSecurityHistoryDataTableExportProvider extends Abstrac
 
             return [
                 'publicId' => $publicId,
-                'name' => $user === null ? $publicId : $user['name'],
-                'email' => $user === null ? '' : $user['email'],
+                'name' => $user === null ? $publicId : $user->name,
+                'email' => $user === null ? '' : $user->email,
                 'context' => $context,
             ];
         }

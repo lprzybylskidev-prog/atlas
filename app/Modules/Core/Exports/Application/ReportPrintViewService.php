@@ -10,7 +10,7 @@ use App\Modules\Core\Exports\Application\Public\Contracts\ReportPrintViewAccess;
 use App\Modules\Core\Exports\Application\Public\Contracts\ReportRenderCredentialAccess;
 use App\Modules\Core\Exports\Application\Public\Contracts\ReportRenderCredentialIssuer;
 use App\Modules\Core\Exports\Application\Public\Permissions\ReportsPermissionCatalog;
-use App\Modules\Core\Exports\Application\Public\Persistence\ExportsDatabaseTable;
+use App\Modules\Core\Exports\Infrastructure\Persistence\TableNames\ExportsDatabaseTable;
 use App\Shared\Infrastructure\Operations\OperationalModuleGuard;
 use DateTimeImmutable;
 use DateTimeInterface;
@@ -43,7 +43,7 @@ final readonly class ReportPrintViewService implements ReportPrintViewAccess
             throw ReportRenderCredentialInvalid::blocked();
         }
 
-        $this->modules->ensureAllowed('exports', $teamPublicId, $actorPublicId, ReportsPermissionCatalog::PRINT);
+        $this->modules->ensureAllowed('exports', $teamPublicId, $actorPublicId, ReportsPermissionCatalog::PRINT_EXPORT);
         $this->modules->ensureAllowed($this->requiredString($request, 'module_key'), $teamPublicId, $actorPublicId);
         if ((bool) ($request->audit_export ?? false)) {
             $this->modules->ensureAllowed('exports', $teamPublicId, $actorPublicId, ReportsPermissionCatalog::AUDIT_EXPORT);

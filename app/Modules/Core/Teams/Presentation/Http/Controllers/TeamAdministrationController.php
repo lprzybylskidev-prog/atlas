@@ -4,28 +4,28 @@ declare(strict_types=1);
 
 namespace App\Modules\Core\Teams\Presentation\Http\Controllers;
 
-use App\Modules\Core\Audit\Application\Public\Contracts\AuditRecorder;
-use App\Modules\Core\Audit\Application\Public\DTOs\AuditEvent;
-use App\Modules\Core\Audit\Application\Public\Enums\SecurityAuditCategory;
-use App\Modules\Core\Authorization\Application\Public\Contracts\UserTeamAuthorizationManager;
 use App\Modules\Core\Identity\Application\Public\Contracts\UserCredentialAccountDirectory;
-use App\Modules\Core\Settings\Application\Public\Contracts\SecuritySessionSettings;
-use App\Modules\Core\Teams\Application\Public\Contracts\UserTeamMembershipManager;
-use App\Modules\Core\Teams\Application\Public\Contracts\UserTeamSessionLimitSettings;
-use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
+use App\Modules\Core\Teams\Infrastructure\Persistence\TableNames\TeamsDatabaseTable;
 use App\Modules\Core\Teams\Infrastructure\Persistence\Team;
-use App\Modules\Optional\TimeTracking\Application\Public\Contracts\UserBreakPolicySettings;
+use App\Shared\Application\Audit\Contracts\AuditRecorder;
+use App\Shared\Application\Audit\DTOs\AuditEvent;
+use App\Shared\Application\Audit\Enums\SecurityAuditCategory;
+use App\Shared\Application\Authorization\Contracts\UserTeamAuthorizationManager;
 use App\Shared\Application\Modules\Activation\Contracts\ModuleActivationService;
 use App\Shared\Application\Modules\Activation\ModuleActivationChange;
 use App\Shared\Application\Modules\Activation\ModuleActivationException;
 use App\Shared\Application\Modules\Activation\ModuleActivationScope;
 use App\Shared\Application\Modules\ModuleCategory;
 use App\Shared\Application\Modules\ModuleRegistry;
-use App\Shared\Application\Tables\AdminTableDefinitions;
+use App\Shared\Application\Security\Contracts\SecuritySessionSettings;
 use App\Shared\Application\Tables\ArrayTableProcessor;
+use App\Shared\Application\Tables\RegisteredTables;
 use App\Shared\Application\Tables\TableRequestContext;
 use App\Shared\Application\Tables\TableSavedViewService;
 use App\Shared\Application\Tables\TableState;
+use App\Shared\Application\Teams\Contracts\UserTeamMembershipManager;
+use App\Shared\Application\Teams\Contracts\UserTeamSessionLimitSettings;
+use App\Shared\Application\TimeTracking\Contracts\UserBreakPolicySettings;
 use App\Shared\Presentation\Support\AdminDataTableExportMeta;
 use App\Shared\Presentation\Support\FlashMessage;
 use Illuminate\Database\Query\Builder;
@@ -56,7 +56,7 @@ final class TeamAdministrationController
 
     public function __invoke(Request $request): Response
     {
-        $definition = AdminTableDefinitions::get(AdminTableDefinitions::TEAMS);
+        $definition = RegisteredTables::get(RegisteredTables::TEAMS);
         $state = TableState::fromRequest($request, $definition);
         $filters = $this->filters($request);
         [$userId, $teamId] = $this->context->userTeam($request);
@@ -204,6 +204,11 @@ final class TeamAdministrationController
                     'sessionMaxLifetimeMinutes' => $hasUserTeamSessionOverride ? $sessionLimits['sessionMaxLifetimeMinutes'] : null,
                     'breakDailyLimitMinutes' => $hasUserTeamBreakOverride ? $breakLimits['dailyLimitMinutes'] : null,
                     'breakMaximumSingleMinutes' => $hasUserTeamBreakOverride ? $breakLimits['maximumSingleBreakMinutes'] : null,
+                    'provenancePublicId' => $assignments->provenancePublicId,
+                    'provenanceSourceType' => $assignments->sourceType,
+                    'provenanceSourceLabel' => $assignments->sourceDisplayNameSnapshot,
+                    'provenanceDivergedAt' => $assignments->divergedAt,
+                    'provenanceVersion' => $assignments->version,
                 ];
             }, $this->memberships->activeMembershipsForTeam((string) $record->public_id)),
             'assignableUsers' => $this->memberships->assignableUsersForTeam((string) $record->public_id),
@@ -285,6 +290,12 @@ final class TeamAdministrationController
                     roleNames: $assignment['role_names'],
                     directPermissionNames: $assignment['direct_permission_names'],
                     reason: 'Initial team member assignment.',
+                    resultingLimits: [
+                        'inactivity_timeout_minutes' => $assignment['inactivity_timeout_minutes'],
+                        'session_max_lifetime_minutes' => $assignment['session_max_lifetime_minutes'],
+                        'break_daily_limit_minutes' => $assignment['break_daily_limit_minutes'],
+                        'break_maximum_single_minutes' => $assignment['break_maximum_single_minutes'],
+                    ],
                 );
                 $this->sessionLimits->setUserTeamOverrides(
                     $assignment['user_public_id'],
@@ -496,6 +507,7 @@ final class TeamAdministrationController
             'session_max_lifetime_minutes' => ['nullable', 'integer', 'min:1'],
             'break_daily_limit_minutes' => ['nullable', 'integer', 'min:1'],
             'break_maximum_single_minutes' => ['nullable', 'integer', 'min:1'],
+            'expected_version' => ['sometimes', 'integer', 'min:0'],
         ]);
         $validated = is_array($validated) ? $validated : [];
         $teamLimits = $this->sessionLimits->resolvedForTeam((string) $record->public_id);
@@ -515,6 +527,13 @@ final class TeamAdministrationController
                 roleNames: $this->stringList($validated['role_names'] ?? []),
                 directPermissionNames: $this->stringList($validated['direct_permission_names'] ?? []),
                 reason: is_string($validated['reason'] ?? null) ? $validated['reason'] : null,
+                resultingLimits: [
+                    'inactivity_timeout_minutes' => $this->nullableIntValue($validated, 'inactivity_timeout_minutes'),
+                    'session_max_lifetime_minutes' => $this->nullableIntValue($validated, 'session_max_lifetime_minutes'),
+                    'break_daily_limit_minutes' => $this->nullableIntValue($validated, 'break_daily_limit_minutes'),
+                    'break_maximum_single_minutes' => $this->nullableIntValue($validated, 'break_maximum_single_minutes'),
+                ],
+                expectedVersion: is_numeric($validated['expected_version'] ?? null) ? (int) $validated['expected_version'] : null,
             );
             $this->sessionLimits->setUserTeamOverrides(
                 $user,

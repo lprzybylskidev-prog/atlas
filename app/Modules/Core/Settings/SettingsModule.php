@@ -24,7 +24,6 @@ final class SettingsModule implements ModuleDefinition
     public function requiredDependencies(): array
     {
         return [
-            new ModuleKey('identity'),
             new ModuleKey('teams'),
             new ModuleKey('audit'),
         ];
@@ -50,17 +49,7 @@ final class SettingsModule implements ModuleDefinition
         return false;
     }
 
-    public function integrations(): array
-    {
-        return [];
-    }
-
     public function healthChecks(): array
-    {
-        return [];
-    }
-
-    public function frontendEntrypoints(): array
     {
         return [];
     }

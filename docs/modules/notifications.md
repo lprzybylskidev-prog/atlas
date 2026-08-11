@@ -35,6 +35,9 @@ Email delivery:
 - each notification email address has its own enabled/disabled preset for every registered notification type in the active team context;
 - new notification email addresses default to all currently registered notification types enabled for that team context;
 - `App\Modules\Core\Notifications\Application\NotificationTypeCatalog` is the canonical registry for user-configurable notification types, their localization keys, body-preview keys, and the permissions that make each type relevant to a user.
+- additional-address verification and queued notification delivery use the shared bilingual branded template with Polish and English sections, a plain-text part, and deterministic recipient/team locale ordering;
+- keyed Exports, ManagedProcesses, and TimeTracking notification copy is translated independently for both mail sections; manually dispatched notifications preserve explicit `--title-pl`/`--title-en` and `--body-pl`/`--body-en` values;
+- unverified addresses and disabled per-address, per-team notification-type preferences never receive e-mail.
 
 When adding a new notification type, update `NotificationTypeCatalog`, add Polish and English labels/descriptions, and make sure default email preferences are created for that type. Existing user addresses receive the new type as enabled the next time their notification-email preferences are loaded or delivery prepares an email payload.
 
@@ -45,7 +48,7 @@ Application UI:
 - the avatar shows an unread-count badge;
 - a notification sound is available at `/sounds/notification.wav` and is played when the browser receives a higher unread count after user interaction allows audio playback;
 - the dropdown links to the full notification center;
-- the full notification center uses the shared datatable foundation with page metrics, backend-applied status/severity/scope/type/link/date filters, saved views, row and bulk mark-as-read actions, and deep-link opening for notifications that carry a link;
+- the full notification center uses the shared datatable foundation with page metrics, backend-applied status/severity/scope/type/link/date filters, private and active-team-shared saved views through the shell-neutral table contract, row and bulk mark-as-read actions, and deep-link opening for notifications that carry a link;
 - the user profile panel lets a user add verified notification email addresses and decide which concrete notification types should be emailed to each address for the currently active team;
 - the user profile panel shows only notification types the current user can realistically receive through their current permissions and active team state, so Admin-only or module-specific notification types are hidden from users without the matching access;
 - when the current user has no visible notification types, the whole email notifications card is hidden in the user profile panel;
@@ -61,6 +64,12 @@ php artisan notifications:send --email=admin@example.test --severity=info --titl
 The command accepts either `--user=PUBLIC_ID` or `--email=EMAIL`. Locale-specific title/body options are selected from the configured default application locale, not from the current browser language. This keeps stored and emailed notification content stable after delivery.
 
 Avoid sensitive email content.
+
+Boundary rules:
+
+- user and team public/internal identifier resolution uses the Identity `UserLookup` and Teams `TeamLookup` public contracts;
+- primary notification contact data for account email delivery is read through Identity's `UserLookup`;
+- Notifications owns and queries only the `core_notifications` notification, recipient, email-address, preference, and realtime tables.
 
 Maintenance command:
 
@@ -95,8 +104,13 @@ Use the module for:
 - system alerts.
 # Phase 28 foundation repair target
 
-Current state: Notifications owns typed in-app delivery and preferences, but Phase 28 tracks bilingual email conversion, notification type catalog completeness, PL/EN labels, additional verified email flows, deep-link safety, queue behavior, audit coverage, and technical-token exposure.
+Current state: Notifications owns the complete type catalog, typed in-app/realtime delivery, PL/EN labels, per-address preferences, additional verified addresses, safe deep links, queue/audit behavior, canonical user surfaces through Identity/Teams public lookups, and shared bilingual branded e-mail delivery.
 
-Target state: Notifications has complete type catalogs with PL/EN labels and preference defaults, in-app and email delivery share safe localized payloads, every mail follows the bilingual branded template, and notification surfaces use canonical navigation/table/status/action contracts.
+The canonical mail architecture is documented in [`docs/architecture/mail.md`](../architecture/mail.md).
 
 Tracked issue IDs: `P28-MAIL-001`, `P28-MAIL-002`, `P28-UI-002`, `P28-TABLE-003`, `P28-MODAUD-007`.
+Shared permission-name values:
+
+- `App\Shared\Application\Notifications\Permissions\NotificationPermissionNames`.
+
+Notifications remains the owner of permission registration, notification preferences, realtime event delivery, and notification read state. Other modules may reference the shared permission-name values when composing role presets without importing Notifications internals.

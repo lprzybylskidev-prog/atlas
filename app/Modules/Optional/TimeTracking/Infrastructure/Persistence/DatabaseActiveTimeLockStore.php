@@ -6,7 +6,7 @@ namespace App\Modules\Optional\TimeTracking\Infrastructure\Persistence;
 
 use App\Modules\Optional\TimeTracking\Application\Contracts\ActiveTimeLockStore;
 use App\Modules\Optional\TimeTracking\Application\DTOs\ActiveTimeLock;
-use App\Modules\Optional\TimeTracking\Application\Public\Persistence\TimeTrackingDatabaseTable;
+use App\Modules\Optional\TimeTracking\Infrastructure\Persistence\TableNames\TimeTrackingDatabaseTable;
 use Illuminate\Database\ConnectionInterface;
 
 final readonly class DatabaseActiveTimeLockStore implements ActiveTimeLockStore

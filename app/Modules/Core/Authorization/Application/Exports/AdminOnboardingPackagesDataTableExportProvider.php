@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace App\Modules\Core\Authorization\Application\Exports;
 
 use App\Modules\Core\Authorization\Application\Packages\OnboardingPackageCatalog;
-use App\Modules\Core\Authorization\Application\Public\Persistence\AuthorizationDatabaseTable;
-use App\Modules\Core\Exports\Application\Public\AbstractAdminDataTableExportProvider;
-use App\Modules\Core\Exports\Application\Public\DTOs\ReportExportGenerationRequest;
-use App\Modules\Core\Exports\Application\Public\Permissions\ReportsPermissionCatalog;
-use App\Shared\Application\Tables\AdminTableDefinitions;
+use App\Modules\Core\Authorization\Infrastructure\Persistence\TableNames\AuthorizationDatabaseTable;
+use App\Shared\Application\Exports\AbstractAdminDataTableExportProvider;
+use App\Shared\Application\Exports\DTOs\ReportExportGenerationRequest;
+use App\Shared\Application\Exports\ExportPermissions;
+use App\Shared\Application\Tables\RegisteredTables;
 use Illuminate\Support\Facades\DB;
 
 final readonly class AdminOnboardingPackagesDataTableExportProvider extends AbstractAdminDataTableExportProvider
@@ -18,7 +18,7 @@ final readonly class AdminOnboardingPackagesDataTableExportProvider extends Abst
 
     public function tableKey(): string
     {
-        return AdminTableDefinitions::PACKAGES;
+        return RegisteredTables::PACKAGES;
     }
 
     public function tableName(): string
@@ -33,7 +33,7 @@ final readonly class AdminOnboardingPackagesDataTableExportProvider extends Abst
 
     public function requestPermission(): string
     {
-        return ReportsPermissionCatalog::REQUEST;
+        return ExportPermissions::REQUEST;
     }
 
     public function ruleVersion(): string

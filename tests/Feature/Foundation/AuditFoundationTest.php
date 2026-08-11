@@ -4,19 +4,24 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Foundation;
 
-use App\Modules\Core\Audit\Application\Public\Contracts\AuditRecorder;
-use App\Modules\Core\Audit\Application\Public\DTOs\AuditEvent;
-use App\Modules\Core\Audit\Application\Public\Enums\SecurityAuditCategory;
-use App\Modules\Core\Audit\Application\Public\Persistence\AuditDatabaseTable;
-use App\Modules\Core\Authorization\Application\Public\Persistence\AuthorizationDatabaseTable;
+use App\Modules\Core\Audit\Application\Exports\AdminAuditEventsDataTableExportProvider;
+use App\Modules\Core\Audit\Infrastructure\Persistence\TableNames\AuditDatabaseTable;
 use App\Modules\Core\Authorization\Application\Roles\InstallStarterRoles;
 use App\Modules\Core\Authorization\Application\Roles\StarterRoleName;
+use App\Modules\Core\Authorization\Infrastructure\Persistence\TableNames\AuthorizationDatabaseTable;
 use App\Modules\Core\Identity\Application\Admin\ImpersonationManager;
 use App\Modules\Core\Identity\Application\Public\Contracts\SecurityAuditRecorder;
 use App\Modules\Core\Identity\Application\Public\DTOs\SecurityAuditEvent;
 use App\Modules\Core\Identity\Infrastructure\Persistence\User;
-use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
+use App\Modules\Core\Teams\Infrastructure\Persistence\TableNames\TeamsDatabaseTable;
 use App\Modules\Core\Teams\Infrastructure\Persistence\Team;
+use App\Shared\Application\Audit\ConfiguredAuditCatalog;
+use App\Shared\Application\Audit\Contracts\AuditRecorder;
+use App\Shared\Application\Audit\DTOs\AuditEvent;
+use App\Shared\Application\Audit\Enums\SecurityAuditCategory;
+use App\Shared\Application\Exports\DTOs\ReportExportGenerationRequest;
+use App\Shared\Application\Exports\Enums\ReportExportFormat;
+use DateTimeImmutable;
 use Illuminate\Auth\Events\Logout;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -218,6 +223,122 @@ final class AuditFoundationTest extends TestCase
             source: 'test',
             security: true,
         );
+    }
+
+    public function test_audit_catalog_rejects_unknown_results_sources_and_non_namespaced_actions(): void
+    {
+        /** @var array<string, array{actions: list<string>, sources: list<string>, target_types: list<string>, aggregate_types: list<string>, metadata_keys: list<string>, security_categories: list<string>}> $modules */
+        $modules = config('audit.modules');
+        $catalog = new ConfiguredAuditCatalog($modules);
+
+        $rejections = 0;
+        foreach ([
+            new AuditEvent('tests', 'not_namespaced', 'succeeded', 'test'),
+            new AuditEvent('tests', 'audit.unknown_result', 'unknown', 'test'),
+            new AuditEvent('tests', 'audit.unknown_source', 'succeeded', 'unknown'),
+        ] as $event) {
+            try {
+                $catalog->assertRegistered($event);
+                self::fail('Invalid audit catalog value was accepted.');
+            } catch (\ValueError|InvalidArgumentException) {
+                $rejections++;
+            }
+        }
+
+        self::assertSame(3, $rejections);
+    }
+
+    public function test_audit_catalog_rejects_namespaced_but_unregistered_actions_and_metadata(): void
+    {
+        /** @var array<string, array{actions: list<string>, sources: list<string>, target_types: list<string>, aggregate_types: list<string>, metadata_keys: list<string>, security_categories: list<string>}> $modules */
+        $modules = config('audit.modules');
+        $catalog = new ConfiguredAuditCatalog($modules);
+
+        $rejections = 0;
+        foreach ([
+            new AuditEvent('identity', 'auth.not_registered', 'succeeded', 'web'),
+            new AuditEvent('identity', 'auth.login', 'succeeded', 'web', metadata: ['password' => 'never-store']),
+        ] as $event) {
+            try {
+                $catalog->assertRegistered($event);
+                self::fail('Unregistered audit event shape was accepted.');
+            } catch (InvalidArgumentException) {
+                $rejections++;
+            }
+        }
+
+        self::assertSame(2, $rejections);
+    }
+
+    public function test_security_event_pair_is_committed_atomically(): void
+    {
+        $this->app->make(AuditRecorder::class)->record(new AuditEvent(
+            module: 'tests',
+            action: 'audit.atomicity_probe',
+            result: 'succeeded',
+            source: 'test',
+            security: true,
+            securityCategory: SecurityAuditCategory::Security,
+        ));
+
+        $event = DB::table(AuditDatabaseTable::AUDIT_EVENTS)->where('action', 'audit.atomicity_probe')->first();
+        self::assertNotNull($event);
+        self::assertDatabaseHas(AuditDatabaseTable::AUDIT_SECURITY_EVENTS, [
+            'audit_event_public_id' => $event->public_id,
+            'result' => 'succeeded',
+        ]);
+    }
+
+    public function test_security_event_primary_record_rolls_back_when_security_projection_fails(): void
+    {
+        DB::statement(<<<'SQL'
+            create function core_audit.reject_security_projection_probe()
+            returns trigger
+            language plpgsql
+            as $$
+            begin
+                if new.action = 'audit.atomicity_probe' then
+                    raise exception 'Security projection failure probe.';
+                end if;
+
+                return new;
+            end;
+            $$
+            SQL);
+        DB::statement(sprintf(
+            'create trigger reject_security_projection_probe before insert on %s for each row execute function core_audit.reject_security_projection_probe()',
+            AuditDatabaseTable::AUDIT_SECURITY_EVENTS,
+        ));
+
+        $failures = 0;
+        try {
+            $this->app->make(AuditRecorder::class)->record(new AuditEvent(
+                module: 'tests',
+                action: 'audit.atomicity_probe',
+                result: 'succeeded',
+                source: 'test',
+                security: true,
+                securityCategory: SecurityAuditCategory::Security,
+            ));
+            self::fail('The security projection failure probe did not reject the insert.');
+        } catch (QueryException) {
+            $failures++;
+        } finally {
+            DB::statement(sprintf(
+                'drop trigger if exists reject_security_projection_probe on %s',
+                AuditDatabaseTable::AUDIT_SECURITY_EVENTS,
+            ));
+            DB::statement('drop function if exists core_audit.reject_security_projection_probe()');
+        }
+
+        self::assertSame(1, $failures);
+
+        self::assertDatabaseMissing(AuditDatabaseTable::AUDIT_EVENTS, [
+            'action' => 'audit.atomicity_probe',
+        ]);
+        self::assertDatabaseMissing(AuditDatabaseTable::AUDIT_SECURITY_EVENTS, [
+            'action' => 'audit.atomicity_probe',
+        ]);
     }
 
     public function test_non_security_audit_events_reject_security_category(): void
@@ -430,6 +551,74 @@ final class AuditFoundationTest extends TestCase
                 ->where('table.key', 'admin.audit.impersonation-session-events')
                 ->where('table.state.filters.session', $sessionId)
                 ->has('events', 1));
+    }
+
+    public function test_audit_browser_and_export_reach_records_beyond_the_legacy_five_thousand_limit(): void
+    {
+        $actor = User::factory()->create();
+        $activeTeam = Team::query()->create(['name' => 'Operations']);
+        $this->assignStarterRoleInTeam($actor, $activeTeam);
+        $rows = [];
+        $base = now()->subDays(2);
+
+        for ($index = 0; $index < 5001; $index++) {
+            $rows[] = [
+                'public_id' => (string) Str::ulid(),
+                'occurred_at' => $base->copy()->addSeconds($index),
+                'module' => 'tests',
+                'action' => 'audit.pagination_probe',
+                'result' => 'succeeded',
+                'source' => 'test',
+                'before_values' => '{}',
+                'after_values' => '{}',
+                'metadata' => '{}',
+                'is_security' => false,
+            ];
+
+            if (count($rows) === 500) {
+                DB::table(AuditDatabaseTable::AUDIT_EVENTS)->insert($rows);
+                $rows = [];
+            }
+        }
+
+        DB::table(AuditDatabaseTable::AUDIT_EVENTS)->insert($rows);
+
+        $this->actingAs($actor)
+            ->withSession([
+                'active_team_public_id' => $activeTeam->public_id,
+                'auth.password_confirmed_at' => now()->unix(),
+                'atlas_admin_mode_entered_at' => now()->toIso8601String(),
+                'atlas_admin_mode_last_activity_at' => now()->toIso8601String(),
+                'atlas_admin_high_risk_confirmed_at' => now()->toIso8601String(),
+            ])
+            ->get('/admin/audit?module=tests&page=201&per_page=25&sort=occurredAt&direction=desc')
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('table.pagination.total', 5001)
+                ->where('table.pagination.page', 201)
+                ->has('events', 1)
+                ->where('events.0.action', 'audit.pagination_probe'));
+
+        $request = new ReportExportGenerationRequest(
+            publicId: (string) Str::ulid(),
+            reportKey: 'admin.audit',
+            reportName: 'Audit events',
+            moduleKey: 'audit',
+            format: ReportExportFormat::Csv,
+            activeTeamPublicId: $activeTeam->public_id,
+            requestingUserPublicId: $actor->public_id,
+            filters: ['module' => 'tests'],
+            sorting: [],
+            visibleColumns: ['action'],
+            columnOrder: ['action'],
+            allowedColumns: ['action'],
+            timeRange: null,
+            releaseVersion: 'test',
+            ruleVersion: 'admin-audit-events-export-v1',
+            expiresAt: new DateTimeImmutable('+1 hour'),
+        );
+
+        self::assertCount(5001, iterator_to_array($this->app->make(AdminAuditEventsDataTableExportProvider::class)->rows($request), false));
     }
 
     private function assignStarterRoleInTeam(User $user, Team $team): void

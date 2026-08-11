@@ -1,10 +1,8 @@
 <script setup lang="ts">
-import { IconArrowLeft, IconDeviceFloppy, IconShieldLock } from '@tabler/icons-vue';
+import { IconShieldLock } from '@tabler/icons-vue';
 import { computed } from 'vue';
 
-import ActionLink from '../ActionLink.vue';
 import AtlasForm from '../Form/AtlasForm.vue';
-import FormButton from '../Form/FormButton.vue';
 import FormInput from '../Form/FormInput.vue';
 import FormActions from '../FormActions.vue';
 import SearchableCheckboxList from '../SearchableCheckboxList.vue';
@@ -23,10 +21,12 @@ const props = withDefaults(
         submitLabel: string;
         processingLabel: string;
         backHref: string;
+        dirty?: boolean;
     }>(),
     {
         errors: () => ({}),
         processing: false,
+        dirty: false,
     },
 );
 
@@ -76,13 +76,13 @@ const selectedCountLabel = computed(() =>
             />
         </SurfaceCard>
 
-        <FormActions>
-            <FormButton type="submit" :icon="IconDeviceFloppy" :loading="processing">
-                {{ processing ? processingLabel : submitLabel }}
-            </FormButton>
-            <ActionLink :href="backHref" :icon="IconArrowLeft">
-                {{ t('pages.admin.roles.actions.back_to_roles') }}
-            </ActionLink>
-        </FormActions>
+        <FormActions
+            :submit-label="submitLabel"
+            :processing-label="processingLabel"
+            :processing="processing"
+            :dirty="dirty"
+            :cancel-href="backHref"
+            :scope-label="t('pages.admin.roles.form.identity_title')"
+        />
     </AtlasForm>
 </template>

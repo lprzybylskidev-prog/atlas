@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace App\Modules\Core\Identity\Application;
 
 use App\Modules\Core\Identity\Application\Public\Contracts\UserPasswordExpiration;
-use App\Modules\Core\Identity\Application\Public\Persistence\IdentityDatabaseTable;
+use App\Modules\Core\Identity\Infrastructure\Persistence\TableNames\IdentityDatabaseTable;
 use App\Modules\Core\Identity\Infrastructure\Persistence\User;
-use App\Modules\Core\Settings\Application\Public\Contracts\PasswordSecuritySettings;
+use App\Shared\Application\Security\Contracts\PasswordSecuritySettings;
 use Carbon\CarbonImmutable;
 use DateTimeInterface;
 use Illuminate\Support\Facades\DB;

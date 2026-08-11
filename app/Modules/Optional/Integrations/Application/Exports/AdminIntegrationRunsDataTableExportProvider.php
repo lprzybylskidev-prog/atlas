@@ -4,18 +4,18 @@ declare(strict_types=1);
 
 namespace App\Modules\Optional\Integrations\Application\Exports;
 
-use App\Modules\Core\Exports\Application\Public\AbstractAdminDataTableExportProvider;
-use App\Modules\Core\Exports\Application\Public\DTOs\ReportExportGenerationRequest;
-use App\Modules\Core\Exports\Application\Public\Permissions\ReportsPermissionCatalog;
-use App\Modules\Optional\Integrations\Application\Public\Persistence\IntegrationsDatabaseTable;
-use App\Shared\Application\Tables\AdminTableDefinitions;
+use App\Modules\Optional\Integrations\Infrastructure\Persistence\TableNames\IntegrationsDatabaseTable;
+use App\Shared\Application\Exports\AbstractAdminDataTableExportProvider;
+use App\Shared\Application\Exports\DTOs\ReportExportGenerationRequest;
+use App\Shared\Application\Exports\ExportPermissions;
+use App\Shared\Application\Tables\RegisteredTables;
 use Illuminate\Support\Facades\DB;
 
 final readonly class AdminIntegrationRunsDataTableExportProvider extends AbstractAdminDataTableExportProvider
 {
     public function tableKey(): string
     {
-        return AdminTableDefinitions::INTEGRATION_RUNS;
+        return RegisteredTables::INTEGRATION_RUNS;
     }
 
     public function tableName(): string
@@ -30,7 +30,7 @@ final readonly class AdminIntegrationRunsDataTableExportProvider extends Abstrac
 
     public function requestPermission(): string
     {
-        return ReportsPermissionCatalog::REQUEST;
+        return ExportPermissions::REQUEST;
     }
 
     public function ruleVersion(): string

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head, router } from '@inertiajs/vue3';
-import { IconAlertTriangle, IconCircleCheck, IconListDetails, IconRoute, IconServerCog } from '@tabler/icons-vue';
+import { IconAlertTriangle, IconCircleCheck, IconListDetails, IconRoute } from '@tabler/icons-vue';
 import { computed, ref, watch } from 'vue';
 
 import CodeViewer from '../../../Components/CodeViewer.vue';
@@ -44,7 +44,7 @@ interface QueueSummary {
     oldestFailedAt: string | null;
 }
 
-interface KnownQueue {
+interface KnownQueue extends Record<string, unknown> {
     queue: string;
     configured: boolean;
     failedJobs: number;
@@ -83,6 +83,15 @@ const filterDefaults = {
 const filters = ref({ ...filterDefaults, ...filterValues() });
 
 const rows = computed<FailedJobRow[]>(() => props.jobs.map((job) => displayJob(job)));
+const queueRows = computed<KnownQueue[]>(() =>
+    props.queueOperations.knownQueues.map((queue) => ({ ...queue, queue: queueLabel(queue.queue) })),
+);
+const queueColumns = computed<DataTableColumn<KnownQueue>[]>(() => [
+    { key: 'queue', label: t('pages.admin.queues.queue') },
+    { key: 'configured', label: t('pages.admin.queues.configured'), format: 'boolean' },
+    { key: 'failedJobs', label: t('pages.admin.queues.table.needs_attention'), format: 'number' },
+    { key: 'handledJobs', label: t('pages.admin.queues.table.handled'), format: 'number' },
+]);
 const detailRows = computed<FailedJobRow[]>(() => props.jobDetails.map((job) => displayJob(job)));
 const columns = computed<DataTableColumn<FailedJobRow>[]>(() => [
     { key: 'uuid', label: t('pages.admin.queues.table.uuid') },
@@ -229,36 +238,13 @@ function handleBulkAction(payload: { action: DataTableBulkAction; rowIds: string
                 />
             </div>
 
-            <SurfaceCard :title="t('pages.admin.queues.operations_snapshot')" :icon="IconServerCog" tone="sky">
-                <div class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-zinc-200 text-sm dark:divide-zinc-800">
-                        <thead class="text-left text-xs font-semibold text-zinc-500 uppercase dark:text-zinc-400">
-                            <tr>
-                                <th class="px-0 py-2 pr-3">{{ t('pages.admin.queues.queue') }}</th>
-                                <th class="px-3 py-2">{{ t('pages.admin.queues.configured') }}</th>
-                                <th class="px-3 py-2 text-right">{{ t('pages.admin.queues.table.needs_attention') }}</th>
-                                <th class="px-3 py-2 text-right">{{ t('pages.admin.queues.table.handled') }}</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-zinc-100 dark:divide-zinc-800">
-                            <tr v-for="knownQueue in queueOperations.knownQueues" :key="knownQueue.queue">
-                                <td class="px-0 py-2 pr-3 font-medium text-zinc-950 dark:text-zinc-50">
-                                    {{ queueLabel(knownQueue.queue) }}
-                                </td>
-                                <td class="px-3 py-2 text-zinc-600 dark:text-zinc-300">
-                                    {{ knownQueue.configured ? t('datatable.boolean.yes') : t('datatable.boolean.no') }}
-                                </td>
-                                <td class="px-3 py-2 text-right tabular-nums text-zinc-700 dark:text-zinc-200">
-                                    {{ knownQueue.failedJobs }}
-                                </td>
-                                <td class="px-3 py-2 text-right tabular-nums text-zinc-700 dark:text-zinc-200">
-                                    {{ knownQueue.handledJobs }}
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </SurfaceCard>
+            <DataTable
+                :title="t('pages.admin.queues.operations_snapshot')"
+                :rows="queueRows"
+                :columns="queueColumns"
+                row-key="queue"
+                :ui-locale="locale"
+            />
 
             <FilterPanel
                 :title="t('pages.admin.queues.filters.title')"

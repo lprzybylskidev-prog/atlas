@@ -25,19 +25,17 @@ final class ExportsModule implements ModuleDefinition
     {
         return [
             new ModuleKey('identity'),
-            new ModuleKey('authorization'),
             new ModuleKey('teams'),
-            new ModuleKey('audit'),
             new ModuleKey('notifications'),
-            new ModuleKey('health'),
             new ModuleKey('files'),
-            new ModuleKey('managed_processes'),
         ];
     }
 
     public function optionalDependencies(): array
     {
-        return [];
+        return [
+            new ModuleKey('managed_processes'),
+        ];
     }
 
     public function serviceProvider(): string
@@ -55,17 +53,7 @@ final class ExportsModule implements ModuleDefinition
         return false;
     }
 
-    public function integrations(): array
-    {
-        return [];
-    }
-
     public function healthChecks(): array
-    {
-        return ['exports'];
-    }
-
-    public function frontendEntrypoints(): array
     {
         return [];
     }

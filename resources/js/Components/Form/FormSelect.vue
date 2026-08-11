@@ -2,13 +2,21 @@
 import { IconCheck, IconChevronDown } from '@tabler/icons-vue';
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 
+import type { StatusBadgeTone } from '../../Utils/statusBadge';
+import StatusBadge from '../StatusBadge.vue';
 import TruncatedText from '../TruncatedText.vue';
+
+export interface FormSelectOptionBadge {
+    label: string;
+    tone?: StatusBadgeTone;
+}
 
 export interface FormSelectOption {
     value: string | number;
     label: string;
     description?: string;
     meta?: string[];
+    badge?: FormSelectOptionBadge;
 }
 
 const model = defineModel<string | number>({ required: true });
@@ -143,12 +151,21 @@ function toggleOpen(): void {
             @click="toggleOpen"
             @keydown="handleButtonKeydown"
         >
-            <span class="min-w-0">
-                <TruncatedText
-                    :text="selectedOption?.label ?? placeholder"
-                    text-class="min-h-5 text-inherit"
-                    :class="{ 'text-zinc-500 dark:text-zinc-400': selectedOption === null }"
-                />
+            <span class="min-w-0 flex-1">
+                <span class="flex min-w-0 items-center gap-2">
+                    <TruncatedText
+                        :text="selectedOption?.label ?? placeholder"
+                        text-class="min-h-5 text-inherit"
+                        class="min-w-0 flex-1"
+                        :class="{ 'text-zinc-500 dark:text-zinc-400': selectedOption === null }"
+                    />
+                    <StatusBadge
+                        v-if="selectedOption?.badge"
+                        class="shrink-0"
+                        :label="selectedOption.badge.label"
+                        :tone="selectedOption.badge.tone"
+                    />
+                </span>
                 <TruncatedText
                     v-if="selectedOption?.meta?.length"
                     :text="selectedOption.meta.join(' · ')"
@@ -185,7 +202,10 @@ function toggleOpen(): void {
                 @keydown="handleOptionKeydown($event, index)"
             >
                 <span class="min-w-0">
-                    <TruncatedText :text="option.label" text-class="text-inherit" />
+                    <span class="flex min-w-0 items-center gap-2">
+                        <TruncatedText :text="option.label" text-class="text-inherit" class="min-w-0 flex-1" />
+                        <StatusBadge v-if="option.badge" class="shrink-0" :label="option.badge.label" :tone="option.badge.tone" />
+                    </span>
                     <TruncatedText
                         v-if="option.meta?.length"
                         :text="option.meta.join(' · ')"

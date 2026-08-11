@@ -20,6 +20,7 @@ final class ArrayTableProcessor
             rows: array_slice($sorted, $offset, $state->perPage),
             total: $total,
             state: $state,
+            filteredRows: $filtered,
         );
     }
 

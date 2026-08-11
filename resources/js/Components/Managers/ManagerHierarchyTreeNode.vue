@@ -40,7 +40,9 @@ const { t } = useTranslator();
                 </div>
             </div>
             <StatusBadge
-                :label="node.headManager ? t('pages.admin.managers.tree.head_manager') : t('pages.admin.managers.tree.manager')"
+                :label="
+                    node.headManager ? t('pages.admin.teams.structure.tree.head_manager') : t('pages.admin.teams.structure.tree.manager')
+                "
                 :tone="node.headManager ? 'warning' : 'info'"
             />
         </div>

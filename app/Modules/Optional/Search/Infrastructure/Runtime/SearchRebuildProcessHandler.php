@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace App\Modules\Optional\Search\Infrastructure\Runtime;
 
-use App\Modules\Optional\ManagedProcesses\Application\Public\Contracts\ManagedProcessHandler;
-use App\Modules\Optional\ManagedProcesses\Application\Public\Contracts\ManagedProcessReporter;
-use App\Modules\Optional\ManagedProcesses\Application\Public\Contracts\ManagedProcessRunInspector;
 use App\Modules\Optional\Search\Application\Contracts\SearchIndexRegistry;
 use App\Modules\Optional\Search\Application\Public\Contracts\SearchRebuildDocumentProvider;
 use App\Modules\Optional\Search\Application\Rebuild\SearchIndexMaintenanceService;
 use App\Modules\Optional\Search\Application\SearchRebuildProcess;
+use App\Shared\Application\ManagedProcesses\Contracts\ManagedProcessHandler;
+use App\Shared\Application\ManagedProcesses\Contracts\ManagedProcessReporter;
+use App\Shared\Application\ManagedProcesses\Contracts\ManagedProcessRunInspector;
 use App\Shared\Infrastructure\Operations\OperationalModuleGuard;
 
 final readonly class SearchRebuildProcessHandler implements ManagedProcessHandler

@@ -2,8 +2,8 @@
 
 declare(strict_types=1);
 
-use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
-use App\Modules\Optional\Integrations\Application\Public\Persistence\IntegrationsDatabaseTable;
+use App\Modules\Core\Teams\Infrastructure\Persistence\TableNames\TeamsDatabaseTable;
+use App\Modules\Optional\Integrations\Infrastructure\Persistence\TableNames\IntegrationsDatabaseTable;
 use App\Shared\Infrastructure\Database\DatabaseSchema;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;

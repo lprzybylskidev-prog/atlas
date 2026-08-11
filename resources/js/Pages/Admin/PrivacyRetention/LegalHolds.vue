@@ -1,19 +1,22 @@
 <script setup lang="ts">
-import { Head } from '@inertiajs/vue3';
-import { IconCalendarTime, IconListDetails, IconLock, IconPlus, IconScale, IconShieldCheck } from '@tabler/icons-vue';
+import { Head, useForm } from '@inertiajs/vue3';
+import { IconCalendarTime, IconListDetails, IconLock, IconLockOpen, IconPlus, IconScale, IconShieldCheck } from '@tabler/icons-vue';
 import { computed, ref, watch } from 'vue';
 
 import ActionLink from '../../../Components/ActionLink.vue';
+import DialogPanel from '../../../Components/DialogPanel.vue';
+import AtlasForm from '../../../Components/Form/AtlasForm.vue';
+import FormButton from '../../../Components/Form/FormButton.vue';
 import DataTable from '../../../Components/DataTable.vue';
 import FilterPanel from '../../../Components/FilterPanel.vue';
 import FormSelect, { type FormSelectOption } from '../../../Components/Form/FormSelect.vue';
+import FormTextarea from '../../../Components/Form/FormTextarea.vue';
 import OperationalMetricTile from '../../../Components/OperationalMetricTile.vue';
 import PageStack from '../../../Components/PageStack.vue';
-import { usePrivacyRetentionSubnavigation } from '../../../Composables/usePrivacyRetentionSubnavigation';
 import { applyTableFilters, clearTableFilters } from '../../../Composables/useTableFilterControls';
 import AppLayout from '../../../Layouts/AppLayout.vue';
 import { useTranslator } from '../../../Localization/translator';
-import type { DataTableColumn, DataTableMeta } from '../../../Types/data-table';
+import type { DataTableAction, DataTableColumn, DataTableMeta } from '../../../Types/data-table';
 import { optionsWithAll } from '../../../Utils/filterOptions';
 import { formatStatus } from '../../../Utils/formatters';
 
@@ -49,10 +52,10 @@ const props = defineProps<{
         teams: string[];
     };
     table: DataTableMeta;
+    canRelease: boolean;
 }>();
 
 const { locale, t } = useTranslator();
-const subnavigation = usePrivacyRetentionSubnavigation('/admin/privacy-retention/legal-holds', t);
 const filterKeys = ['status', 'subject_type', 'team'];
 const filterDefaults = {
     status: 'all',
@@ -61,6 +64,9 @@ const filterDefaults = {
 };
 const filters = ref({ ...filterDefaults, ...filterValues() });
 const tableFilters = computed(() => filterValues());
+const releaseDialogOpen = ref(false);
+const selectedHold = ref<PrivacyLegalHoldRow | null>(null);
+const releaseForm = useForm<{ reason: string }>({ reason: '' });
 
 const columns = computed<DataTableColumn<PrivacyLegalHoldRow>[]>(() => [
     { key: 'subjectType', label: t('pages.admin.privacy_retention.legal_holds.table.subject_type'), format: 'status' },
@@ -90,6 +96,15 @@ const subjectTypeOptions = computed<FormSelectOption[]>(() => [
 ]);
 const teamOptions = computed<FormSelectOption[]>(() => [
     ...optionsWithAll(props.filterOptions.teams, t('pages.admin.privacy_retention.legal_holds.filters.any_team'), teamLabel),
+]);
+const actions = computed<DataTableAction<PrivacyLegalHoldRow>[]>(() => [
+    {
+        key: 'release',
+        label: t('pages.admin.privacy_retention.legal_holds.actions.release'),
+        tone: 'warning',
+        visible: (row) => props.canRelease && row.status === 'active',
+        onAction: (row) => openReleaseDialog(row),
+    },
 ]);
 
 watch(
@@ -133,6 +148,28 @@ function subjectTypeLabel(value: string): string {
 function teamLabel(value: string): string {
     return props.holds.find((hold) => hold.teamPublicId === value)?.teamName || value;
 }
+
+function openReleaseDialog(row: PrivacyLegalHoldRow): void {
+    selectedHold.value = row;
+    releaseForm.reset();
+    releaseForm.clearErrors();
+    releaseDialogOpen.value = true;
+}
+
+function releaseHold(): void {
+    if (selectedHold.value === null) {
+        return;
+    }
+
+    releaseForm.post(`/admin/privacy-retention/legal-holds/${selectedHold.value.publicId}/release`, {
+        preserveScroll: true,
+        onSuccess: () => {
+            releaseDialogOpen.value = false;
+            selectedHold.value = null;
+            releaseForm.reset();
+        },
+    });
+}
 </script>
 
 <template>
@@ -141,8 +178,7 @@ function teamLabel(value: string): string {
         mode="admin"
         :title="t('pages.admin.privacy_retention.title')"
         :title-icon="IconShieldCheck"
-        :subnavigation="subnavigation"
-        :subnavigation-label="t('pages.admin.privacy_retention.nav.label')"
+        navigation-section="privacy-retention"
     >
         <PageStack>
             <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-6">
@@ -223,9 +259,35 @@ function teamLabel(value: string): string {
                 row-key="publicId"
                 :table="table"
                 :filters="tableFilters"
+                :actions="actions"
                 :ui-locale="locale"
                 :empty-label="t('pages.admin.privacy_retention.legal_holds.table.empty')"
             />
+
+            <DialogPanel
+                v-model:open="releaseDialogOpen"
+                :title="t('pages.admin.privacy_retention.legal_holds.release.title')"
+                :icon="IconLockOpen"
+                tone="amber"
+                :close-label="t('modal.close')"
+            >
+                <AtlasForm :processing="releaseForm.processing" @submit="releaseHold">
+                    <div class="space-y-4">
+                        <p class="text-sm text-zinc-600 dark:text-zinc-300">
+                            {{ t('pages.admin.privacy_retention.legal_holds.release.description') }}
+                        </p>
+                        <FormTextarea
+                            v-model="releaseForm.reason"
+                            :label="t('pages.admin.privacy_retention.legal_holds.release.reason')"
+                            :error="releaseForm.errors.reason"
+                            required
+                        />
+                        <FormButton type="submit" tone="danger" :icon="IconLockOpen" :loading="releaseForm.processing">
+                            {{ t('pages.admin.privacy_retention.legal_holds.actions.release') }}
+                        </FormButton>
+                    </div>
+                </AtlasForm>
+            </DialogPanel>
         </PageStack>
     </AppLayout>
 </template>

@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Modules\Optional\Search\Application;
 
-use App\Modules\Optional\ManagedProcesses\Application\Public\DTOs\ProcessDefinition;
-use App\Modules\Optional\ManagedProcesses\Application\Public\DTOs\ProcessPermissions;
-use App\Modules\Optional\ManagedProcesses\Application\Public\DTOs\RetryPolicy;
 use App\Modules\Optional\Search\Application\Permissions\SearchPermissionCatalog;
+use App\Shared\Application\ManagedProcesses\DTOs\ProcessDefinition;
+use App\Shared\Application\ManagedProcesses\DTOs\ProcessPermissions;
+use App\Shared\Application\ManagedProcesses\DTOs\RetryPolicy;
 
 final class SearchRebuildProcess
 {

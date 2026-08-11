@@ -50,14 +50,14 @@ This inventory is binding for Phase 24a export integration. Every listed surface
 
 | Surface | Route | Vue page | Backend table state | Owning module | Export classification | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
-| Users | `admin.users.index` | `Admin/Users/Index` | `AdminTableDefinitions::USERS` | `users` | Exportable | Final account list values; exclude secrets and action-only state. |
-| Teams | `admin.teams.index` | `Admin/Teams/Index` | `AdminTableDefinitions::TEAMS` | `teams` | Exportable | Final team list values. |
-| Roles | `admin.authorization.roles.index` | `Admin/Authorization/Roles` | `AdminTableDefinitions::ROLES` | `authorization` | Exportable | Final role catalog values and counts. |
-| Authorization presets | `admin.authorization.packages.index` | `Admin/Authorization/Packages` | `AdminTableDefinitions::PACKAGES` | `authorization` | Exportable | Final onboarding package values. |
-| Permissions | `admin.authorization.permissions.index` | `Admin/Authorization/Permissions` | `AdminTableDefinitions::PERMISSIONS` | `authorization` | Exportable | Permission catalog values; no mutable action state. |
-| Audit events | `admin.audit.index` | `Admin/Audit/Index` | `AdminTableDefinitions::AUDIT` | `audit` | Exportable with audit-export distinction | Ordinary export shows final/safe values; detailed metadata requires `exports.audit-export`. |
-| Rate-limit policies | `admin.rate-limits.index` | `Admin/RateLimits/Index` | `AdminTableDefinitions::RATE_LIMITS` | `identity` | Exportable | Policy and aggregate rejection statistics only; no limiter reset action state. |
-| Module activation overview | `admin.modules.index` | `Admin/Modules/Index` | `AdminTableDefinitions::MODULES` | `authorization` | Exportable | Deployed module state and activation support summary. |
+| Users | `admin.users.index` | `Admin/Users/Index` | `RegisteredTables::USERS` | `users` | Exportable | Final account list values; exclude secrets and action-only state. |
+| Teams | `admin.teams.index` | `Admin/Teams/Index` | `RegisteredTables::TEAMS` | `teams` | Exportable | Final team list values. |
+| Roles | `admin.authorization.roles.index` | `Admin/Authorization/Roles` | `RegisteredTables::ROLES` | `authorization` | Exportable | Final role catalog values and counts. |
+| Authorization presets | `admin.authorization.packages.index` | `Admin/Authorization/Packages` | `RegisteredTables::PACKAGES` | `authorization` | Exportable | Final onboarding package values. |
+| Permissions | `admin.authorization.permissions.index` | `Admin/Authorization/Permissions` | `RegisteredTables::PERMISSIONS` | `authorization` | Exportable | Permission catalog values; no mutable action state. |
+| Audit events | `admin.audit.index` | `Admin/Audit/Index` | `RegisteredTables::AUDIT` | `audit` | Exportable with audit-export distinction | Ordinary export shows final/safe values; detailed metadata requires `exports.audit-export`. |
+| Rate-limit policies | `admin.rate-limits.index` | `Admin/RateLimits/Index` | `RegisteredTables::RATE_LIMITS` | `identity` | Exportable | Policy and aggregate rejection statistics only; no limiter reset action state. |
+| Module activation overview | `admin.modules.index` | `Admin/Modules/Index` | `RegisteredTables::MODULES` | `authorization` | Exportable | Deployed module state and activation support summary. |
 | Manager relationship history | `admin.managers.index` | `Admin/Managers/Index` | Page-local table data | `teams` | Exportable | Relationship history table; create/preview/end forms are not exportable. |
 | Security history | `admin.audit.security-history.index` | `Admin/Audit/SecurityHistory` | Page-local filtered rows | `audit` | Exportable with audit-export distinction | Security event rows; detailed context requires `exports.audit-export`. |
 | Impersonation session events | `admin.audit.impersonation.show` | `Admin/Audit/ImpersonationSession` | Page-local rows | `audit` | Exportable with audit-export distinction | Session event rows; session summary card is not tabular. |

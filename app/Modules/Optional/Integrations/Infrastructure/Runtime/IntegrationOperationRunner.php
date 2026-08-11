@@ -4,17 +4,17 @@ declare(strict_types=1);
 
 namespace App\Modules\Optional\Integrations\Infrastructure\Runtime;
 
-use App\Modules\Core\Audit\Application\Public\Contracts\AuditRecorder;
-use App\Modules\Core\Audit\Application\Public\DTOs\AuditEvent;
-use App\Modules\Core\Audit\Application\Public\Enums\SecurityAuditCategory;
-use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
 use App\Modules\Optional\Integrations\Application\DTOs\IntegrationExecutionResult;
 use App\Modules\Optional\Integrations\Application\DTOs\IntegrationRetryPolicy;
 use App\Modules\Optional\Integrations\Application\Enums\IntegrationCircuitState;
 use App\Modules\Optional\Integrations\Application\Enums\IntegrationRunStatus;
 use App\Modules\Optional\Integrations\Application\Public\Contracts\IntegrationIdempotencyStore;
 use App\Modules\Optional\Integrations\Application\Public\Contracts\SynchronizationHistory;
-use App\Modules\Optional\Integrations\Application\Public\Persistence\IntegrationsDatabaseTable;
+use App\Modules\Optional\Integrations\Infrastructure\Persistence\TableNames\IntegrationsDatabaseTable;
+use App\Shared\Application\Audit\Contracts\AuditRecorder;
+use App\Shared\Application\Audit\DTOs\AuditEvent;
+use App\Shared\Application\Audit\Enums\SecurityAuditCategory;
+use App\Shared\Application\Teams\Contracts\TeamLookup;
 use App\Shared\Infrastructure\Operations\OperationalModuleGuard;
 use Closure;
 use Illuminate\Database\ConnectionInterface;
@@ -31,6 +31,7 @@ final readonly class IntegrationOperationRunner
         private IntegrationIdempotencyStore $idempotency,
         private SynchronizationHistory $history,
         private AuditRecorder $audit,
+        private TeamLookup $teams,
     ) {}
 
     /**
@@ -217,7 +218,7 @@ final readonly class IntegrationOperationRunner
      */
     private function audit(string $integrationKey, string $action, string $result, ?int $teamId, array $context = []): void
     {
-        $teamPublicId = $teamId === null ? null : $this->publicId(TeamsDatabaseTable::TEAMS, $teamId);
+        $teamPublicId = $teamId === null ? null : $this->teams->activePublicIdForInternalId($teamId);
 
         $this->audit->record(new AuditEvent(
             module: 'integrations',
@@ -233,12 +234,5 @@ final readonly class IntegrationOperationRunner
             security: true,
             securityCategory: SecurityAuditCategory::Integrations,
         ));
-    }
-
-    private function publicId(string $table, int $id): ?string
-    {
-        $value = $this->db->table($table)->where('id', $id)->value('public_id');
-
-        return is_scalar($value) ? (string) $value : null;
     }
 }

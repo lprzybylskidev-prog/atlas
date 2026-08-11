@@ -4,7 +4,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 PHPSTAN_CONFIG="${ROOT_DIR}/phpstan.neon"
 MEMORY_LIMIT="${PHPSTAN_MEMORY_LIMIT:-512M}"
-DISABLE_PARALLEL="${PHPSTAN_DISABLE_PARALLEL:-1}"
+DISABLE_PARALLEL="${PHPSTAN_DISABLE_PARALLEL:-0}"
 
 configured_paths() {
   awk '
@@ -136,12 +136,10 @@ if [[ ${#targets[@]} -eq 0 ]]; then
   exit 1
 fi
 
-for target in "${targets[@]}"; do
-  args=(analyse "${target}" --memory-limit="${MEMORY_LIMIT}")
+args=(analyse "${targets[@]}" --memory-limit="${MEMORY_LIMIT}")
 
-  if [[ "${DISABLE_PARALLEL}" == "1" ]]; then
-    args+=(--debug)
-  fi
+if [[ "${DISABLE_PARALLEL}" == "1" ]]; then
+  args+=(--debug)
+fi
 
-  vendor/bin/phpstan "${args[@]}"
-done
+vendor/bin/phpstan "${args[@]}"

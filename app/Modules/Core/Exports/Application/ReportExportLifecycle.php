@@ -59,6 +59,7 @@ final readonly class ReportExportLifecycle implements ReportExportRequestRecorde
             synchronousAllowed: $this->executionPolicy->canRunSynchronously($snapshot),
             auditExport: $snapshot->auditExport,
             estimatedRowCount: $snapshot->estimatedRowCount,
+            locale: $snapshot->locale,
         );
     }
 }

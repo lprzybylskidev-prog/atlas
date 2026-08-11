@@ -23,9 +23,7 @@ final class HealthModule implements ModuleDefinition
 
     public function requiredDependencies(): array
     {
-        return [
-            new ModuleKey('authorization'),
-        ];
+        return [];
     }
 
     public function optionalDependencies(): array
@@ -48,27 +46,7 @@ final class HealthModule implements ModuleDefinition
         return false;
     }
 
-    public function integrations(): array
-    {
-        return [];
-    }
-
     public function healthChecks(): array
-    {
-        return [
-            'postgresql',
-            'redis',
-            'queues',
-            'scheduler',
-            'storage',
-            'critical-configuration',
-            'meilisearch',
-            'clamav',
-            'chromium-pdf',
-        ];
-    }
-
-    public function frontendEntrypoints(): array
     {
         return [];
     }

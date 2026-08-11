@@ -4,22 +4,28 @@ declare(strict_types=1);
 
 namespace App\Modules\Optional\ManagedProcesses\Application\Exports;
 
-use App\Modules\Core\Exports\Application\Public\AbstractAdminDataTableExportProvider;
-use App\Modules\Core\Exports\Application\Public\DTOs\ReportExportGenerationRequest;
-use App\Modules\Core\Exports\Application\Public\Permissions\ReportsPermissionCatalog;
-use App\Modules\Core\Files\Application\Public\Persistence\FilesDatabaseTable;
-use App\Modules\Core\Identity\Application\Public\Persistence\IdentityDatabaseTable;
-use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
-use App\Modules\Optional\Imports\Application\Public\Persistence\ImportsDatabaseTable;
-use App\Modules\Optional\ManagedProcesses\Application\Public\Persistence\ManagedProcessesDatabaseTable;
-use App\Shared\Application\Tables\AdminTableDefinitions;
+use App\Modules\Core\Identity\Application\Public\Contracts\UserLookup;
+use App\Modules\Optional\ManagedProcesses\Infrastructure\Persistence\TableNames\ManagedProcessesDatabaseTable;
+use App\Shared\Application\Exports\AbstractAdminDataTableExportProvider;
+use App\Shared\Application\Exports\DTOs\ReportExportGenerationRequest;
+use App\Shared\Application\Exports\ExportPermissions;
+use App\Shared\Application\Imports\Contracts\ImportAdminVisibility;
+use App\Shared\Application\Tables\RegisteredTables;
+use App\Shared\Application\Teams\Contracts\TeamLookup;
 use Illuminate\Support\Facades\DB;
+use stdClass;
 
 final readonly class AdminManagedProcessRunsDataTableExportProvider extends AbstractAdminDataTableExportProvider
 {
+    public function __construct(
+        private UserLookup $users,
+        private TeamLookup $teams,
+        private ImportAdminVisibility $imports,
+    ) {}
+
     public function tableKey(): string
     {
-        return AdminTableDefinitions::MANAGED_PROCESS_RUNS;
+        return RegisteredTables::MANAGED_PROCESS_RUNS;
     }
 
     public function tableName(): string
@@ -34,7 +40,7 @@ final readonly class AdminManagedProcessRunsDataTableExportProvider extends Abst
 
     public function requestPermission(): string
     {
-        return ReportsPermissionCatalog::REQUEST;
+        return ExportPermissions::REQUEST;
     }
 
     public function ruleVersion(): string
@@ -74,27 +80,16 @@ final readonly class AdminManagedProcessRunsDataTableExportProvider extends Abst
 
     public function rows(ReportExportGenerationRequest $request): iterable
     {
-        $rows = array_values(DB::table(ManagedProcessesDatabaseTable::RUNS.' as process_runs')
-            ->leftJoin(IdentityDatabaseTable::USERS, 'process_runs.actor_user_id', '=', 'users.id')
-            ->leftJoin(TeamsDatabaseTable::TEAMS, 'process_runs.team_id', '=', 'teams.id')
-            ->leftJoin(ImportsDatabaseTable::EXECUTIONS, 'import_executions.process_run_id', '=', 'process_runs.id')
-            ->leftJoin(FilesDatabaseTable::FILE_OBJECTS, 'import_executions.file_object_id', '=', 'file_objects.id')
+        $records = DB::table(ManagedProcessesDatabaseTable::RUNS.' as process_runs')
             ->leftJoin(ManagedProcessesDatabaseTable::RUN_ACKNOWLEDGEMENTS.' as acknowledgements', 'acknowledgements.process_run_id', '=', 'process_runs.id')
-            ->leftJoin(IdentityDatabaseTable::USERS.' as acknowledged_users', 'acknowledged_users.id', '=', 'acknowledgements.acknowledged_by_user_id')
             ->orderByDesc('process_runs.created_at')
             ->limit(80)
             ->get([
                 'process_runs.*',
-                'users.email as actor_email',
-                'teams.name as team_name',
                 'acknowledgements.acknowledged_at',
-                'acknowledged_users.email as acknowledged_by',
-                'import_executions.import_key',
-                'import_executions.source_type as import_source_type',
-                'import_executions.idempotency_key',
-                'import_executions.idempotency_state',
-                'file_objects.original_name as import_file',
-            ])
+                'acknowledgements.acknowledged_by_user_id',
+            ]);
+        $rows = array_values(collect($this->enrichRunRecords($records->all()))
             ->map(static function (object $run): array {
                 $status = self::stringValue($run->status ?? null);
                 $acknowledgedAt = self::stringValue($run->acknowledged_at ?? null);
@@ -131,6 +126,73 @@ final readonly class AdminManagedProcessRunsDataTableExportProvider extends Abst
         foreach ($this->sorted($this->filtered($this->filteredByControls($rows, $request), $request), $request) as $row) {
             yield $row;
         }
+    }
+
+    /**
+     * @param  array<int, stdClass>  $records
+     * @return list<stdClass>
+     */
+    private function enrichRunRecords(array $records): array
+    {
+        $records = array_values($records);
+        $actorIds = [];
+        $acknowledgedByIds = [];
+        $teamIds = [];
+        $runIds = [];
+
+        foreach ($records as $record) {
+            $actorId = self::nullableInt($record->actor_user_id ?? null);
+            $acknowledgedById = self::nullableInt($record->acknowledged_by_user_id ?? null);
+            $teamId = self::nullableInt($record->team_id ?? null);
+            $runId = self::nullableInt($record->id ?? null);
+
+            if ($actorId !== null) {
+                $actorIds[] = $actorId;
+            }
+
+            if ($acknowledgedById !== null) {
+                $acknowledgedByIds[] = $acknowledgedById;
+            }
+
+            if ($teamId !== null) {
+                $teamIds[] = $teamId;
+            }
+
+            if ($runId !== null) {
+                $runIds[] = $runId;
+            }
+        }
+
+        $userSummaries = $this->users->displaySummariesForInternalIds(array_values(array_unique(array_merge($actorIds, $acknowledgedByIds))));
+        $teamSummaries = $this->teams->summariesForInternalIds(array_values(array_unique($teamIds)));
+        $importSummaries = $this->imports->summariesForProcessRunIds(array_values(array_unique($runIds)));
+
+        foreach ($records as $record) {
+            $actorId = self::nullableInt($record->actor_user_id ?? null);
+            $acknowledgedById = self::nullableInt($record->acknowledged_by_user_id ?? null);
+            $teamId = self::nullableInt($record->team_id ?? null);
+            $runId = self::nullableInt($record->id ?? null);
+            $actor = $actorId === null ? null : ($userSummaries[$actorId] ?? null);
+            $acknowledgedBy = $acknowledgedById === null ? null : ($userSummaries[$acknowledgedById] ?? null);
+            $team = $teamId === null ? null : ($teamSummaries[$teamId] ?? null);
+            $import = $runId === null ? null : ($importSummaries[$runId] ?? null);
+
+            $record->actor_email = $actor?->email;
+            $record->team_name = $team?->name;
+            $record->acknowledged_by = $acknowledgedBy?->email;
+            $record->import_key = $import?->importKey;
+            $record->import_source_type = $import?->sourceType;
+            $record->import_file = $import?->fileOriginalName;
+            $record->idempotency_key = $import?->idempotencyKey;
+            $record->idempotency_state = $import?->idempotencyState;
+        }
+
+        return $records;
+    }
+
+    private static function nullableInt(mixed $value): ?int
+    {
+        return is_numeric($value) ? (int) $value : null;
     }
 
     /**

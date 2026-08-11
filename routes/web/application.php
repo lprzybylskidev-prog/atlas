@@ -25,13 +25,13 @@ use App\Modules\Optional\TimeTracking\Presentation\Http\Controllers\AdminTimeTra
 use App\Modules\Optional\TimeTracking\Presentation\Http\Controllers\AdminTimeTrackingOperationDetailController;
 use App\Modules\Optional\TimeTracking\Presentation\Http\Controllers\BreakLockController;
 use App\Modules\Optional\TimeTracking\Presentation\Http\Controllers\ManagerPanelController;
-use App\Modules\Optional\TimeTracking\Presentation\Http\Controllers\ManagerTimeReportController;
 use App\Modules\Optional\TimeTracking\Presentation\Http\Controllers\ManagerTimeTrackingOperationsController;
 use App\Modules\Optional\TimeTracking\Presentation\Http\Controllers\OtherWorkLockController;
 use App\Modules\Optional\TimeTracking\Presentation\Http\Controllers\StartBreakController;
 use App\Modules\Optional\TimeTracking\Presentation\Http\Controllers\StartOtherWorkController;
 use App\Modules\Optional\TimeTracking\Presentation\Http\Controllers\UserCorrectionRequestController;
 use App\Modules\Optional\TimeTracking\Presentation\Http\Controllers\UserTimeReportController;
+use App\Shared\Presentation\Http\Controllers\TableSavedViewController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -42,6 +42,11 @@ Route::middleware('auth')->group(function (): void {
     Route::get('/user/notification-emails/{email}/verify/{token}', VerifyNotificationEmailAddressController::class)
         ->middleware('signed')
         ->name('users.profile.notification-emails.verify');
+    Route::post('/table-views', [TableSavedViewController::class, 'store'])->name('table-views.store');
+    Route::patch('/table-views/{view}', [TableSavedViewController::class, 'update'])->name('table-views.update');
+    Route::delete('/table-views/{view}', [TableSavedViewController::class, 'destroy'])->name('table-views.destroy');
+    Route::post('/table-views/{view}/copy', [TableSavedViewController::class, 'copy'])->name('table-views.copy');
+    Route::post('/table-views/{view}/default', [TableSavedViewController::class, 'default'])->name('table-views.default');
 });
 
 Route::middleware(['auth', 'route.permission'])->group(function (): void {
@@ -70,7 +75,6 @@ Route::middleware(['auth', 'route.permission'])->group(function (): void {
     Route::post('/time-tracking/activity', ActivityTrackerController::class)->name('time-tracking.activity.record');
     Route::get('/user/work-time', UserTimeReportController::class)->name(TimeTrackingPermissionCatalog::USER_REPORT);
     Route::post('/user/work-time/corrections', [UserCorrectionRequestController::class, 'store'])->name(TimeTrackingPermissionCatalog::USER_CORRECTION_REQUEST_STORE);
-    Route::get('/time-tracking/manager-report', ManagerTimeReportController::class)->name('time-tracking.reports.manager');
     Route::get('/manager/work-time/summary', [ManagerTimeTrackingOperationsController::class, 'daily'])->name(TimeTrackingPermissionCatalog::MANAGER_WORK_TIME_SUMMARY);
     Route::get('/manager/work-time/other-work', [ManagerTimeTrackingOperationsController::class, 'otherWork'])->name(TimeTrackingPermissionCatalog::MANAGER_WORK_TIME_OTHER_WORK);
     Route::get('/manager/work-time/breaks', [ManagerTimeTrackingOperationsController::class, 'breaks'])->name(TimeTrackingPermissionCatalog::MANAGER_WORK_TIME_BREAKS);

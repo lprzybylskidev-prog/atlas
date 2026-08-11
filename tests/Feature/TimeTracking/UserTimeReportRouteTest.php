@@ -4,18 +4,18 @@ declare(strict_types=1);
 
 namespace Tests\Feature\TimeTracking;
 
-use App\Modules\Core\Authorization\Application\Public\Persistence\AuthorizationDatabaseTable;
 use App\Modules\Core\Authorization\Application\Roles\InstallStarterRoles;
+use App\Modules\Core\Authorization\Infrastructure\Persistence\TableNames\AuthorizationDatabaseTable;
 use App\Modules\Core\Identity\Application\Admin\AdministrativeSessionManager;
 use App\Modules\Core\Identity\Application\Admin\ImpersonationManager;
 use App\Modules\Core\Identity\Application\Admin\ImpersonationSimulationStore;
 use App\Modules\Core\Identity\Infrastructure\Persistence\User;
-use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
+use App\Modules\Core\Teams\Infrastructure\Persistence\TableNames\TeamsDatabaseTable;
 use App\Modules\Core\Teams\Infrastructure\Persistence\Team;
 use App\Modules\Core\Users\Application\Permissions\UserPermissionCatalog;
 use App\Modules\Optional\TimeTracking\Application\Contracts\UserTeamTrackingSettings;
 use App\Modules\Optional\TimeTracking\Application\Permissions\TimeTrackingPermissionCatalog;
-use App\Modules\Optional\TimeTracking\Application\Public\Persistence\TimeTrackingDatabaseTable;
+use App\Modules\Optional\TimeTracking\Infrastructure\Persistence\TableNames\TimeTrackingDatabaseTable;
 use App\Shared\Application\Modules\Activation\Contracts\ModuleActivationService;
 use App\Shared\Application\Modules\Activation\ModuleActivationChange;
 use App\Shared\Application\Modules\Activation\ModuleActivationScope;
@@ -58,15 +58,27 @@ final class UserTimeReportRouteTest extends TestCase
             ->assertInertia(fn (AssertableInertia $page) => $page
                 ->component('TimeTracking/UserReport')
                 ->where('dailyTable.key', 'users.work-time.daily')
+                ->where('dailyTable.capabilities.savedViews', true)
+                ->where('workSessionsTable.capabilities.savedViews', true)
                 ->where('workSessionsTable.key', 'users.work-time.work-sessions')
                 ->where('breaksTable.key', 'users.work-time.breaks')
                 ->where('correctionsTable.key', 'users.work-time.corrections')
                 ->where('filters.range', 'custom')
+                ->where('section', 'daily')
                 ->where('summary.totalSeconds', 5400)
                 ->has('dailyRows', 1)
-                ->has('workSessionRows', 1)
+                ->has('workSessionRows', 0)
                 ->where('dailyRows.0.workSeconds', 5400)
                 ->where('dailyRows.0.countedSeconds', 5400));
+
+        $this->actingAs($user)
+            ->withSession(['active_team_public_id' => $team->public_id])
+            ->get('/user/work-time?section=work_sessions&range=custom&from=2026-08-01&to=2026-08-01')
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('section', 'work_sessions')
+                ->has('dailyRows', 0)
+                ->has('workSessionRows', 1));
     }
 
     public function test_user_can_request_correction_for_own_visible_work_session(): void
@@ -171,7 +183,7 @@ final class UserTimeReportRouteTest extends TestCase
 
         $this->actingAs($user)
             ->withSession(['active_team_public_id' => $team->public_id])
-            ->get('/user/work-time?range=custom&from=2026-08-01&to=2026-08-01')
+            ->get('/user/work-time?section=breaks&range=custom&from=2026-08-01&to=2026-08-01')
             ->assertOk()
             ->assertInertia(fn (AssertableInertia $page) => $page
                 ->component('TimeTracking/UserReport')
@@ -230,64 +242,9 @@ final class UserTimeReportRouteTest extends TestCase
                 ->has('profile.notificationTypes'));
     }
 
-    public function test_manager_can_view_time_report_for_hierarchy_scope(): void
+    public function test_legacy_manager_report_route_is_removed(): void
     {
-        [$manager, $team] = $this->userWithTeam();
-        $report = User::factory()->create(['name' => 'Scoped Report']);
-        $outside = User::factory()->create(['name' => 'Outside User']);
-        $this->addUserToTeam($report, $team);
-        $this->addUserToTeam($outside, $team);
-        $this->activateTimeTracking($team);
-        $this->assignDirectPermissionInTeam($manager, $team, TimeTrackingPermissionCatalog::MANAGER_REPORT);
-        $this->createManagerRelationship($manager, $report, $team);
-
-        DB::table(TimeTrackingDatabaseTable::WORK_SESSIONS)->insert([
-            [
-                'public_id' => (string) Str::ulid(),
-                'user_id' => $report->id,
-                'team_id' => $team->id,
-                'laravel_session_id' => 'report-session',
-                'started_at' => '2026-08-01 08:00:00+00',
-                'ended_at' => '2026-08-01 09:00:00+00',
-                'exact_seconds' => 3600,
-                'closure_reason' => 'logout',
-                'created_at' => now(),
-                'updated_at' => now(),
-            ],
-            [
-                'public_id' => (string) Str::ulid(),
-                'user_id' => $outside->id,
-                'team_id' => $team->id,
-                'laravel_session_id' => 'outside-session',
-                'started_at' => '2026-08-01 08:00:00+00',
-                'ended_at' => '2026-08-01 10:00:00+00',
-                'exact_seconds' => 7200,
-                'closure_reason' => 'logout',
-                'created_at' => now(),
-                'updated_at' => now(),
-            ],
-        ]);
-
-        $this->actingAs($manager)
-            ->withSession(['active_team_public_id' => $team->public_id])
-            ->get('/time-tracking/manager-report?range=custom&from=2026-08-01&to=2026-08-01')
-            ->assertOk()
-            ->assertInertia(fn (AssertableInertia $page) => $page
-                ->component('TimeTracking/ManagerReport')
-                ->where('table.key', 'time-tracking.manager-report')
-                ->where('table.exports.endpoint', route('exports.data-table'))
-                ->where('scope.visibleUsers', 1)
-                ->where('scope.headManager', false)
-                ->where('teamSummary.visibleUsers', 1)
-                ->where('teamSummary.working', 0)
-                ->where('teamSummary.noSession', 1)
-                ->has('statusFeed', 2)
-                ->where('statusFeed.0.userName', 'Scoped Report')
-                ->where('statusFeed.0.status', 'logout')
-                ->where('summary.totalSeconds', 3600)
-                ->has('rows', 1)
-                ->where('rows.0.userName', 'Scoped Report')
-                ->where('rows.0.type', 'work'));
+        $this->get('/time-tracking/manager-report')->assertNotFound();
     }
 
     public function test_manager_can_view_scoped_work_time_operations_with_work_sessions(): void
@@ -342,6 +299,8 @@ final class UserTimeReportRouteTest extends TestCase
                 ->component('TimeTracking/AdminOperations')
                 ->where('surface', 'manager')
                 ->where('section', 'work_sessions')
+                ->where('workSessionsTable.key', 'manager.work-time.operations.work-sessions')
+                ->where('workSessionsTable.capabilities.savedViews', true)
                 ->where('filters.team', (string) $team->public_id)
                 ->where('teamOptions.0.publicId', (string) $team->public_id)
                 ->where('userOptions.0.name', 'Scoped Operations Report')
@@ -365,7 +324,7 @@ final class UserTimeReportRouteTest extends TestCase
             ->assertForbidden();
     }
 
-    public function test_manager_report_requires_route_permission(): void
+    public function test_manager_operations_require_route_permission_and_legacy_report_stays_absent(): void
     {
         [$user, $team] = $this->userWithTeam();
         $this->activateTimeTracking($team);
@@ -373,11 +332,32 @@ final class UserTimeReportRouteTest extends TestCase
         $this->actingAs($user)
             ->withSession(['active_team_public_id' => $team->public_id])
             ->get('/time-tracking/manager-report')
-            ->assertForbidden();
+            ->assertNotFound();
 
         $this->actingAs($user)
             ->withSession(['active_team_public_id' => $team->public_id])
             ->get('/manager/work-time/summary')
+            ->assertForbidden();
+    }
+
+    public function test_saved_view_mutation_requires_the_registered_table_module_gate(): void
+    {
+        [$user, $team] = $this->userWithTeam();
+        $this->assignDirectPermissionInTeam($user, $team, TimeTrackingPermissionCatalog::USER_REPORT);
+
+        $this->actingAs($user)
+            ->withSession(['active_team_public_id' => $team->public_id])
+            ->post('/table-views', [
+                'table_key' => 'users.work-time.daily',
+                'name' => 'Unavailable report',
+                'type' => 'private',
+                'state' => [
+                    'sort' => 'date',
+                    'direction' => 'desc',
+                    'columns' => ['date', 'countedDuration'],
+                    'columnOrder' => ['date', 'countedDuration'],
+                ],
+            ])
             ->assertForbidden();
     }
 
@@ -387,7 +367,7 @@ final class UserTimeReportRouteTest extends TestCase
         $this->activateTimeTracking($team);
         $this->assignDirectPermissionInTeam($user, $team, UserPermissionCatalog::USERS_PROFILE);
         $this->assignDirectPermissionInTeam($user, $team, TimeTrackingPermissionCatalog::MANAGER_PANEL);
-        $this->assignDirectPermissionInTeam($user, $team, TimeTrackingPermissionCatalog::MANAGER_REPORT);
+        $this->assignDirectPermissionInTeam($user, $team, TimeTrackingPermissionCatalog::MANAGER_WORK_TIME_SUMMARY);
 
         $this->actingAs($user)
             ->withSession(['active_team_public_id' => $team->public_id])
@@ -416,7 +396,7 @@ final class UserTimeReportRouteTest extends TestCase
 
         $this->actingAs($user)
             ->withSession(['active_team_public_id' => $team->public_id])
-            ->get('/time-tracking/manager-report')
+            ->get('/manager/work-time/summary')
             ->assertForbidden();
 
         $this->actingAs($user)
@@ -574,21 +554,23 @@ final class UserTimeReportRouteTest extends TestCase
 
     private function activateTimeTracking(Team $team): void
     {
-        $this->app->make(ModuleActivationService::class)->change(new ModuleActivationChange(
-            moduleKey: 'time_tracking',
-            scope: ModuleActivationScope::Global,
-            enabled: true,
-            reason: 'Feature test setup',
-            source: ModuleActivationSource::Manual,
-        ));
-        $this->app->make(ModuleActivationService::class)->change(new ModuleActivationChange(
-            moduleKey: 'time_tracking',
-            scope: ModuleActivationScope::Team,
-            enabled: true,
-            reason: 'Feature test setup',
-            teamId: $team->id,
-            source: ModuleActivationSource::Manual,
-        ));
+        foreach (['feature_flags', 'managed_processes', 'reports', 'time_tracking'] as $moduleKey) {
+            $this->app->make(ModuleActivationService::class)->change(new ModuleActivationChange(
+                moduleKey: $moduleKey,
+                scope: ModuleActivationScope::Global,
+                enabled: true,
+                reason: 'Feature test setup',
+                source: ModuleActivationSource::Manual,
+            ));
+            $this->app->make(ModuleActivationService::class)->change(new ModuleActivationChange(
+                moduleKey: $moduleKey,
+                scope: ModuleActivationScope::Team,
+                enabled: true,
+                reason: 'Feature test setup',
+                teamId: $team->id,
+                source: ModuleActivationSource::Manual,
+            ));
+        }
     }
 
     private function enableTracking(User $user, Team $team): void

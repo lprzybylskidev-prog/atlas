@@ -1,14 +1,45 @@
+# Source-control and local configuration
 .git
+.github
+.gitignore
+.gitattributes
 .env
 .env.*
+!.env.example
+.devcontainer
+.vscode
+
+# Host dependency/build output (images always rebuild from lockfiles)
+vendor
 node_modules
-storage/logs
-storage/framework/cache
-storage/framework/sessions
-storage/framework/testing
-storage/framework/views
-storage/app/private/report-render
-tests/e2e/test-results
+.pnpm-store
+public/build
+bootstrap/cache/*.php
+
+# Tests, reports, documentation, and development-only tooling
+tests
+coverage
 test-results
 playwright-report
-coverage
+storage
+docs
+*.md
+phpunit.xml
+playwright.config.ts
+vitest.config.*
+lefthook.yml
+.phpunit.cache
+.phpunit.result.cache
+.phpstan.cache
+.eslintcache
+
+# Runtime secrets, private exports, logs, and editor/OS artifacts
+docker/production/secrets/*.txt
+storage/app/private
+storage/logs
+*.log
+*.dump
+*.sql
+*.bak
+*.swp
+.DS_Store

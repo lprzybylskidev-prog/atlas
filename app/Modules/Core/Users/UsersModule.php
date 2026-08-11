@@ -27,6 +27,8 @@ final class UsersModule implements ModuleDefinition
             new ModuleKey('identity'),
             new ModuleKey('authorization'),
             new ModuleKey('teams'),
+            new ModuleKey('files'),
+            new ModuleKey('notifications'),
         ];
     }
 
@@ -50,17 +52,7 @@ final class UsersModule implements ModuleDefinition
         return false;
     }
 
-    public function integrations(): array
-    {
-        return [];
-    }
-
     public function healthChecks(): array
-    {
-        return [];
-    }
-
-    public function frontendEntrypoints(): array
     {
         return [];
     }

@@ -55,6 +55,10 @@ export interface AtlasPageProps {
             available: AtlasTeam[];
         };
         impersonation: AtlasImpersonationState;
+        adminMode: {
+            active: boolean;
+            highRiskFresh: boolean;
+        };
     };
     locale: string;
     supportedLocales: string[];

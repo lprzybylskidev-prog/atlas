@@ -44,6 +44,8 @@ Import-specific records include:
 
 Every import execution is linked to a managed process run and is visible in the combined `/admin/managed-processes` run list and the corresponding `/admin/managed-processes/{run}` detail screen.
 
+`App\Shared\Application\Imports\Contracts\ImportAdminVisibility` owns import execution visibility for that combined Admin surface. It provides process-run import summaries, import detail payloads, row-error export rows, execution counts, and import filter values to Managed Processes without exposing Imports persistence tables. File display names inside these summaries are resolved through the Files-owned `FileLookup` contract.
+
 File-backed import definitions may expose both a watched-directory source and a manual upload start form. Manual uploads must use the Files module first and pass the resulting file public ID into the managed-process input snapshot; directory-backed starts store the directory reference as safe import source metadata.
 
 Large imports use managed-process queues and may run as long single jobs. Import implementations are responsible for idempotency and deduplication so rerunning the same file or API import can recognize work already accepted by the import contract. Atlas does not force large imports to split into multiple visible process runs or multiple technical queue jobs.
@@ -52,10 +54,12 @@ Keep original import files according to retention policy.
 
 Row and field errors are structured import error records and may also appear in the process timeline as warning or error events. They must not bypass the managed-process log redaction and safe-context rules.
 
+Imports registers a module-owned `ModuleOperationalDiagnostics` contributor for Admin System Status row warning/error signals. Import execution visibility remains owned by the combined Managed Processes Admin surface.
+
 Automated tests use isolated fixtures for import executions and row errors; development reset does not seed artificial import records.
 # Phase 28 foundation repair target
 
-Current state: Imports is implemented through ManagedProcesses, Files, and Integrations, but Phase 28 tracks missing explicit frontend entrypoints, surface ownership through ManagedProcesses, idempotency/row-error visibility, audit/notification coverage, queue/module-gate behavior, and seed fixture consistency.
+Current state: Imports is delivered through ManagedProcesses with explicit Files/Integrations boundaries, idempotency, row-error visibility, audit/notification coverage, queue/module gates, and canonical Admin process surfaces. Its non-production owner fixture builder creates the fixed E2E execution and row warnings around a ManagedProcesses-owned run, with a stable idempotency key and repeated-seed coverage. It creates no fake uploaded File object.
 
 Target state: Imports has explicit metadata for its accepted surfaces, safe reduced/degraded module behavior, audited import execution states, deterministic fixtures, and canonical Admin table/process visibility.
 

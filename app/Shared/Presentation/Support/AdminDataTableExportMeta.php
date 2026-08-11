@@ -4,16 +4,16 @@ declare(strict_types=1);
 
 namespace App\Shared\Presentation\Support;
 
-use App\Modules\Core\Exports\Application\Enums\ReportExportFormat;
+use App\Shared\Application\Exports\Enums\ReportExportFormat;
 
 final class AdminDataTableExportMeta
 {
     /**
-     * @return array{endpoint: string, formats: list<string>}
+     * @return array{endpoint: string, formats: list<string>, detailedAudit?: bool}
      */
-    public static function defaults(?string $endpoint = null): array
+    public static function defaults(?string $endpoint = null, bool $detailedAudit = false): array
     {
-        return [
+        $meta = [
             'endpoint' => $endpoint ?? route('admin.exports.data-table'),
             'formats' => [
                 ReportExportFormat::Csv->value,
@@ -22,5 +22,11 @@ final class AdminDataTableExportMeta
                 ReportExportFormat::BrowserPrint->value,
             ],
         ];
+
+        if ($detailedAudit) {
+            $meta['detailedAudit'] = true;
+        }
+
+        return $meta;
     }
 }

@@ -22,7 +22,6 @@ import StatusBadge from '../../Components/StatusBadge.vue';
 import SurfaceCard from '../../Components/SurfaceCard.vue';
 import {
     adminDetailIcon,
-    adminDetailSubnavigation,
     detailFields,
     detailValue,
     recordMap,
@@ -131,8 +130,7 @@ function submitAction(): void {
         :title="pageTitle"
         :title-icon="adminDetailIcon('break')"
         :mode="surface"
-        :subnavigation="isManagerSurface ? [] : adminDetailSubnavigation('breaks', t)"
-        :subnavigation-label="t('navigation.group.work_time')"
+        :navigation-section="isManagerSurface ? undefined : 'work-time'"
     >
         <PageStack>
             <div>

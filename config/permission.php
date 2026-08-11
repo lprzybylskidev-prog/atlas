@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use App\Modules\Core\Authorization\Application\Public\Persistence\AuthorizationDatabaseTable;
+use App\Modules\Core\Authorization\Infrastructure\Persistence\TableNames\AuthorizationDatabaseTable;
 use App\Modules\Core\Teams\Infrastructure\Persistence\Team;
 use Spatie\Permission\DefaultTeamResolver;
 use Spatie\Permission\Models\Permission;

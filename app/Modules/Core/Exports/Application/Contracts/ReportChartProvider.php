@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Core\Exports\Application\Contracts;
 
 use App\Modules\Core\Exports\Application\DTOs\ReportChartDefinition;
-use App\Modules\Core\Exports\Application\Public\DTOs\ReportExportGenerationRequest;
+use App\Shared\Application\Exports\DTOs\ReportExportGenerationRequest;
 
 interface ReportChartProvider
 {

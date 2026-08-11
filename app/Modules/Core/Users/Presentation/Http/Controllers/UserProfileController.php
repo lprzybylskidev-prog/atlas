@@ -4,18 +4,19 @@ declare(strict_types=1);
 
 namespace App\Modules\Core\Users\Presentation\Http\Controllers;
 
-use App\Modules\Core\Authorization\Application\Public\Contracts\EffectivePermissionChecker;
-use App\Modules\Core\Authorization\Application\Public\DTOs\EffectivePermissionRequest;
-use App\Modules\Core\Files\Application\Public\Persistence\FilesDatabaseTable;
+use App\Modules\Core\Identity\Application\Public\Contracts\MfaRequirementChecker;
 use App\Modules\Core\Identity\Application\Public\Contracts\UserPasswordExpiration;
 use App\Modules\Core\Identity\Application\Public\Contracts\UserSessionLimitResolver;
+use App\Modules\Core\Identity\Application\Public\DTOs\MfaRequirementContext;
 use App\Modules\Core\Notifications\Application\Public\Contracts\NotificationEmailPreferenceManager;
 use App\Modules\Core\Notifications\Application\Public\Contracts\NotificationTypeDirectory;
-use App\Modules\Optional\TimeTracking\Application\Public\Contracts\UserBreakPolicySettings;
-use App\Modules\Optional\TimeTracking\Application\Public\Permissions\TimeTrackingPermissionNames;
+use App\Shared\Application\Authorization\Contracts\EffectivePermissionChecker;
+use App\Shared\Application\Authorization\DTOs\EffectivePermissionRequest;
+use App\Shared\Application\Files\Contracts\FileAvailability;
+use App\Shared\Application\TimeTracking\Contracts\UserBreakPolicySettings;
+use App\Shared\Application\TimeTracking\Permissions\TimeTrackingPermissionNames;
 use DateTimeInterface;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -29,6 +30,8 @@ final class UserProfileController
         NotificationEmailPreferenceManager $emails,
         EffectivePermissionChecker $permissions,
         UserBreakPolicySettings $breakPolicies,
+        FileAvailability $files,
+        MfaRequirementChecker $mfaRequirements,
     ): Response {
         $user = $request->user();
         $userId = $this->intValue(data_get($user, 'id'));
@@ -55,10 +58,16 @@ final class UserProfileController
                     'enabled' => data_get($user, 'two_factor_confirmed_at') !== null,
                     'pendingConfirmation' => data_get($user, 'two_factor_secret') !== null && data_get($user, 'two_factor_confirmed_at') === null,
                     'confirmedAt' => $this->dateTimeString(data_get($user, 'two_factor_confirmed_at')),
+                    'required' => $mfaRequirements->isRequired(new MfaRequirementContext(
+                        userPublicId: $userPublicId,
+                        teamPublicId: $this->activeTeamPublicId($request),
+                        operation: 'users.profile',
+                        permissions: ['users.profile'],
+                    )),
                 ],
                 'avatar' => [
                     'color' => $this->stringValue(data_get($user, 'avatar_color')),
-                    'imageUrl' => $this->avatarImageUrl(data_get($user, 'avatar_image_file_public_id')),
+                    'imageUrl' => $this->avatarImageUrl($files, data_get($user, 'avatar_image_file_public_id')),
                 ],
                 'notificationEmails' => $emails->addressesForUser(
                     $userId,
@@ -164,18 +173,12 @@ final class UserProfileController
         return $value instanceof DateTimeInterface ? $value->format(DateTimeInterface::ATOM) : null;
     }
 
-    private function avatarImageUrl(mixed $filePublicId): ?string
+    private function avatarImageUrl(FileAvailability $files, mixed $filePublicId): ?string
     {
         if (! is_string($filePublicId) || $filePublicId === '') {
             return null;
         }
 
-        $clean = DB::table(FilesDatabaseTable::FILE_OBJECTS)
-            ->where('public_id', $filePublicId)
-            ->where('scan_state', 'clean')
-            ->whereNull('deleted_at')
-            ->exists();
-
-        return $clean ? route('users.profile.avatar-image', absolute: false) : null;
+        return $files->clean($filePublicId) ? route('users.profile.avatar-image', absolute: false) : null;
     }
 }

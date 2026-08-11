@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Core\Files\Application\Lifecycle;
 
 use App\Modules\Core\Files\Application\Public\Contracts\FileLifecycle;
-use App\Modules\Core\Files\Application\Public\Persistence\FilesDatabaseTable;
+use App\Modules\Core\Files\Infrastructure\Persistence\TableNames\FilesDatabaseTable;
 use App\Shared\Application\DataLifecycle\Contracts\DataLifecycleParticipant;
 use App\Shared\Application\DataLifecycle\DataLifecycleImpact;
 use App\Shared\Application\DataLifecycle\DataLifecycleOperation;
@@ -21,6 +21,11 @@ final readonly class FileDataLifecycleParticipant implements DataLifecyclePartic
         private ConnectionInterface $db,
         private FileLifecycle $files,
     ) {}
+
+    public function key(): string
+    {
+        return 'files';
+    }
 
     public function preview(DataLifecycleSubject $subject, DataLifecycleOperation $operation): DataLifecyclePreview
     {

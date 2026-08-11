@@ -4,21 +4,23 @@ declare(strict_types=1);
 
 namespace App\Shared\Application\Modules\Exports;
 
-use App\Modules\Core\Exports\Application\Public\AbstractAdminDataTableExportProvider;
-use App\Modules\Core\Exports\Application\Public\DTOs\ReportExportGenerationRequest;
-use App\Modules\Core\Exports\Application\Public\Permissions\ReportsPermissionCatalog;
-use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
+use App\Shared\Application\Exports\AbstractAdminDataTableExportProvider;
+use App\Shared\Application\Exports\DTOs\ReportExportGenerationRequest;
+use App\Shared\Application\Exports\ExportPermissions;
 use App\Shared\Application\Modules\Activation\Contracts\ModuleActivationService;
-use App\Shared\Application\Tables\AdminTableDefinitions;
-use Illuminate\Support\Facades\DB;
+use App\Shared\Application\Tables\RegisteredTables;
+use App\Shared\Application\Teams\Contracts\TeamLookup;
 
 final readonly class AdminModuleDetailTeamsDataTableExportProvider extends AbstractAdminDataTableExportProvider
 {
-    public function __construct(private ModuleActivationService $activation) {}
+    public function __construct(
+        private ModuleActivationService $activation,
+        private TeamLookup $teams,
+    ) {}
 
     public function tableKey(): string
     {
-        return AdminTableDefinitions::MODULE_DETAIL_TEAMS;
+        return RegisteredTables::MODULE_DETAIL_TEAMS;
     }
 
     public function tableName(): string
@@ -33,7 +35,7 @@ final readonly class AdminModuleDetailTeamsDataTableExportProvider extends Abstr
 
     public function requestPermission(): string
     {
-        return ReportsPermissionCatalog::REQUEST;
+        return ExportPermissions::REQUEST;
     }
 
     public function ruleVersion(): string
@@ -65,19 +67,13 @@ final readonly class AdminModuleDetailTeamsDataTableExportProvider extends Abstr
 
         $rows = [];
 
-        foreach (DB::table(TeamsDatabaseTable::TEAMS)->orderBy('display_name')->orderBy('name')->get(['id', 'public_id', 'name', 'display_name', 'is_active']) as $team) {
-            $teamId = is_numeric($team->id ?? null) ? (int) $team->id : null;
-
-            if ($teamId === null) {
-                continue;
-            }
-
-            $effective = $this->activation->effectiveState($module, $teamId);
+        foreach ($this->teams->allSummaries() as $team) {
+            $effective = $this->activation->effectiveState($module, $team->internalId);
             $rows[] = [
-                'publicId' => self::stringValue($team->public_id ?? ''),
+                'publicId' => $team->publicId,
                 'moduleKey' => $module,
-                'name' => self::teamDisplayName($team),
-                'isActive' => (bool) ($team->is_active ?? false),
+                'name' => $team->name,
+                'isActive' => $team->active,
                 'teamEnabled' => $effective->teamEnabled,
                 'effectiveEnabled' => $effective->effectiveEnabled,
                 'source' => $effective->source,
@@ -88,12 +84,5 @@ final readonly class AdminModuleDetailTeamsDataTableExportProvider extends Abstr
         foreach ($this->sorted($this->filtered($rows, $request), $request) as $row) {
             yield $row;
         }
-    }
-
-    private static function teamDisplayName(object $team): string
-    {
-        $displayName = self::stringValue($team->display_name ?? '');
-
-        return $displayName === '' ? self::stringValue($team->name ?? '') : $displayName;
     }
 }

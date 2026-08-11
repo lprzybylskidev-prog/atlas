@@ -25,10 +25,14 @@ import FormActions from '../../Components/FormActions.vue';
 import OperationalTile from '../../Components/OperationalTile.vue';
 import PageStack from '../../Components/PageStack.vue';
 import SurfaceCard from '../../Components/SurfaceCard.vue';
+import UiState from '../../Components/UiState.vue';
+import NoticeBanner from '../../Components/NoticeBanner.vue';
+import CodeViewer from '../../Components/CodeViewer.vue';
 import Tooltip from '../../Components/Tooltip.vue';
 import AppLayout from '../../Layouts/AppLayout.vue';
 import { useTranslator } from '../../Localization/translator';
 import { beginFullscreenTransitionLoading } from '../../Services/fullscreenTransitionLoading';
+import { requestJson } from '../../Services/networkHandling';
 import { DEFAULT_AVATAR_COLOR, readableAvatarTextColor } from '../../Utils/avatar';
 import { formatDateTime as formatSharedDateTime } from '../../Utils/formatters';
 
@@ -69,6 +73,7 @@ const props = defineProps<{
             enabled: boolean;
             pendingConfirmation: boolean;
             confirmedAt: string | null;
+            required: boolean;
         };
         avatar: {
             color: string | null;
@@ -88,6 +93,8 @@ const enabledNotificationTypes = ref<string[]>(selectedEmail.value?.enabledTypes
 const qrCodeSvg = ref('');
 const recoveryCodes = ref<string[]>([]);
 const mfaArtifactsVisible = ref(false);
+const mfaArtifactsLoading = ref(false);
+const mfaArtifactsError = ref(false);
 
 const passwordForm = useForm({
     current_password: '',
@@ -274,17 +281,38 @@ async function toggleMfaArtifacts(): Promise<void> {
 }
 
 async function loadMfaArtifacts(): Promise<void> {
-    const [qrResponse, codesResponse] = await Promise.all([fetch('/user/two-factor-qr-code'), fetch('/user/two-factor-recovery-codes')]);
+    mfaArtifactsLoading.value = true;
+    mfaArtifactsError.value = false;
 
-    if (qrResponse.ok && qrResponse.headers.get('content-type')?.includes('application/json')) {
-        const qr = await qrResponse.json();
+    try {
+        const [qr, codes] = await Promise.all([
+            requestJson<{ svg?: unknown }>('/user/two-factor-qr-code'),
+            requestJson<unknown>('/user/two-factor-recovery-codes'),
+        ]);
+
         qrCodeSvg.value = typeof qr.svg === 'string' ? qr.svg : '';
-    }
-
-    if (codesResponse.ok && codesResponse.headers.get('content-type')?.includes('application/json')) {
-        const codes = await codesResponse.json();
         recoveryCodes.value = Array.isArray(codes) ? codes.filter((code): code is string => typeof code === 'string') : [];
+    } catch {
+        qrCodeSvg.value = '';
+        recoveryCodes.value = [];
+        mfaArtifactsError.value = true;
+    } finally {
+        mfaArtifactsLoading.value = false;
     }
+}
+
+function regenerateRecoveryCodes(): void {
+    router.post(
+        '/user/two-factor-recovery-codes',
+        {},
+        {
+            preserveScroll: true,
+            onSuccess: () => loadMfaArtifacts(),
+            onError: () => {
+                mfaArtifactsError.value = true;
+            },
+        },
+    );
 }
 </script>
 
@@ -337,6 +365,24 @@ async function loadMfaArtifacts(): Promise<void> {
                             :error="passwordForm.errors.password_confirmation"
                         />
                         <FormActions class="justify-end">
+                            <FormButton type="submit" :loading="passwordForm.processing" :icon="IconKey">
+                                {{ t('pages.user_panel.password.save') }}
+                            </FormButton>
+                        </FormActions>
+                    </AtlasForm>
+                </SurfaceCard>
+
+                <SurfaceCard :title="t('pages.user_panel.mfa.title')" :icon="IconShieldLock" tone="zinc">
+                    <div class="space-y-4">
+                        <NoticeBanner
+                            v-if="profile.mfa.required"
+                            :title="t('pages.user_panel.mfa.required_title')"
+                            tone="warning"
+                            role="status"
+                        >
+                            {{ t('pages.user_panel.mfa.required_description') }}
+                        </NoticeBanner>
+                        <FormActions class="justify-end">
                             <FormButton
                                 v-if="!profile.mfa.enabled && !profile.mfa.pendingConfirmation"
                                 type="button"
@@ -346,15 +392,8 @@ async function loadMfaArtifacts(): Promise<void> {
                             >
                                 {{ t('pages.user_panel.mfa.enable') }}
                             </FormButton>
-                            <FormButton type="submit" :loading="passwordForm.processing" :icon="IconKey">
-                                {{ t('pages.user_panel.password.save') }}
-                            </FormButton>
-                        </FormActions>
-                    </AtlasForm>
-                    <div class="mt-5 border-t border-zinc-200 pt-4 dark:border-zinc-800">
-                        <FormActions class="justify-end">
                             <FormButton
-                                v-if="profile.mfa.enabled || profile.mfa.pendingConfirmation"
+                                v-if="(profile.mfa.enabled || profile.mfa.pendingConfirmation) && !profile.mfa.required"
                                 tone="neutral"
                                 :icon="IconQrcode"
                                 @click="toggleMfaArtifacts"
@@ -386,16 +425,56 @@ async function loadMfaArtifacts(): Promise<void> {
                                 {{ t('pages.user_panel.mfa.confirm') }}
                             </FormButton>
                         </AtlasForm>
-                        <div
-                            v-if="mfaArtifactsVisible && (qrCodeSvg || recoveryCodes.length > 0)"
-                            class="mt-4 space-y-3 border-t border-zinc-200 pt-4 dark:border-zinc-800"
-                        >
+                        <div v-if="mfaArtifactsVisible" class="mt-4 space-y-3 border-t border-zinc-200 pt-4 dark:border-zinc-800">
+                            <UiState
+                                v-if="mfaArtifactsLoading"
+                                variant="loading-refresh"
+                                size="compact"
+                                :title="t('pages.user_panel.mfa.loading')"
+                            />
+                            <NoticeBanner
+                                v-else-if="mfaArtifactsError"
+                                :title="t('pages.user_panel.mfa.load_error_title')"
+                                tone="danger"
+                                role="alert"
+                            >
+                                {{ t('pages.user_panel.mfa.load_error') }}
+                                <template #actions>
+                                    <FormButton type="button" tone="neutral" @click="loadMfaArtifacts">
+                                        {{ t('pages.user_panel.mfa.retry') }}
+                                    </FormButton>
+                                </template>
+                            </NoticeBanner>
+                            <NoticeBanner
+                                v-else-if="recoveryCodes.length > 0"
+                                :title="t('pages.user_panel.mfa.recovery_warning_title')"
+                                tone="warning"
+                                role="status"
+                            >
+                                {{ t('pages.user_panel.mfa.recovery_warning') }}
+                            </NoticeBanner>
                             <div v-if="qrCodeDataUrl" class="max-w-48 bg-white p-2">
                                 <img :src="qrCodeDataUrl" :alt="t('pages.user_panel.mfa.qr_alt')" class="h-auto w-full" />
                             </div>
-                            <div v-if="recoveryCodes.length > 0" class="grid gap-2 font-mono text-xs text-zinc-700 dark:text-zinc-200">
-                                <span v-for="code in recoveryCodes" :key="code">{{ code }}</span>
-                            </div>
+                            <CodeViewer
+                                v-if="recoveryCodes.length > 0"
+                                :content="recoveryCodes.join('\n')"
+                                :title="t('pages.user_panel.mfa.recovery_codes')"
+                                :copy-label="t('actions.copy')"
+                                :copied-label="t('actions.copied')"
+                                :wrap-label="t('actions.wrap_lines')"
+                                :unwrap-label="t('actions.unwrap_lines')"
+                                :show-line-numbers="false"
+                            />
+                            <FormButton
+                                v-if="profile.mfa.enabled && recoveryCodes.length > 0"
+                                type="button"
+                                tone="danger"
+                                :icon="IconKey"
+                                @click="regenerateRecoveryCodes"
+                            >
+                                {{ t('pages.user_panel.mfa.regenerate') }}
+                            </FormButton>
                         </div>
                     </div>
                 </SurfaceCard>

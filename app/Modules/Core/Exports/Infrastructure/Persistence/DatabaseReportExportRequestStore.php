@@ -8,14 +8,16 @@ use App\Modules\Core\Exports\Application\Contracts\ReportExportRequestStore;
 use App\Modules\Core\Exports\Application\DTOs\ReportExportRequestSnapshot;
 use App\Modules\Core\Exports\Application\Enums\ReportExportStatus;
 use App\Modules\Core\Exports\Application\Public\DTOs\ReportExportRequestRecord;
-use App\Modules\Core\Exports\Application\Public\Persistence\ExportsDatabaseTable;
+use App\Modules\Core\Exports\Infrastructure\Persistence\TableNames\ExportsDatabaseTable;
 use App\Modules\Core\Files\Application\Public\DTOs\StoredFile;
-use App\Modules\Optional\ManagedProcesses\Application\Public\Persistence\ManagedProcessesDatabaseTable;
+use App\Shared\Application\ManagedProcesses\Contracts\ManagedProcessRunInspector;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 final class DatabaseReportExportRequestStore implements ReportExportRequestStore
 {
+    public function __construct(private readonly ManagedProcessRunInspector $processRuns) {}
+
     public function createFromSnapshot(ReportExportRequestSnapshot $snapshot): ReportExportRequestRecord
     {
         $requestFingerprint = $snapshot->requestFingerprint();
@@ -56,6 +58,7 @@ final class DatabaseReportExportRequestStore implements ReportExportRequestStore
             'synchronous_allowed' => $snapshot->synchronousAllowed,
             'audit_export' => $snapshot->auditExport,
             'estimated_row_count' => $snapshot->estimatedRowCount,
+            'locale' => $snapshot->locale,
             'expires_at' => $snapshot->expiresAt,
             'created_at' => $now,
             'updated_at' => $now,
@@ -72,11 +75,9 @@ final class DatabaseReportExportRequestStore implements ReportExportRequestStore
 
     public function linkProcessRun(string $requestPublicId, string $processRunPublicId): void
     {
-        $processRunId = DB::table(ManagedProcessesDatabaseTable::RUNS)
-            ->where('public_id', $processRunPublicId)
-            ->value('id');
+        $processRunId = $this->processRuns->internalIdForPublicId($processRunPublicId);
 
-        if (! is_numeric($processRunId)) {
+        if ($processRunId === null) {
             throw new \RuntimeException('Report export generation process run was not found.');
         }
 
@@ -84,7 +85,7 @@ final class DatabaseReportExportRequestStore implements ReportExportRequestStore
             ->where('public_id', $requestPublicId)
             ->whereIn('status', [ReportExportStatus::Requested->value, ReportExportStatus::Queued->value])
             ->update([
-                'process_run_id' => (int) $processRunId,
+                'process_run_id' => $processRunId,
                 'status' => ReportExportStatus::Queued->value,
                 'queued_at' => now('UTC'),
                 'updated_at' => now('UTC'),

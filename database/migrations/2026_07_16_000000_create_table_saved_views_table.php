@@ -2,8 +2,8 @@
 
 declare(strict_types=1);
 
-use App\Modules\Core\Identity\Application\Public\Persistence\IdentityDatabaseTable;
-use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
+use App\Modules\Core\Identity\Infrastructure\Persistence\TableNames\IdentityDatabaseTable;
+use App\Modules\Core\Teams\Infrastructure\Persistence\TableNames\TeamsDatabaseTable;
 use App\Shared\Infrastructure\Database\DatabaseSchema;
 use App\Shared\Infrastructure\Database\DatabaseTable;
 use Illuminate\Database\Migrations\Migration;

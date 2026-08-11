@@ -9,7 +9,7 @@ Use Meilisearch only for justified large full-text search.
 Do not use it for ordinary filters, reports, or small lookup lists.
 
 The optional `Search` module is deployed as an explicit Atlas module with the key `search`.
-It depends on identity, authorization, teams, audit, notifications, health, and managed processes.
+Its only formal module dependency is ManagedProcesses, evidenced through the neutral shared managed-process port used for rebuild execution and inspection. Identity, Teams, Authorization, Audit, Notifications, and health collaboration use neutral shared or owner-public capabilities and do not create decorative manifest edges.
 It participates in global and team activation.
 
 Search indexes:
@@ -35,7 +35,7 @@ Current foundation contracts:
 - Search permissions are registered as `search.query`, `admin.search.index`, and `admin.search.rebuild`.
 - `search.rebuild` is registered as a managed process on the `search` queue. With no registered index descriptors it succeeds as a safe no-op; concrete modules add descriptors before rebuild orchestration can index their documents.
 - `search:rebuild` starts the `search.rebuild` managed process from CLI. It requires `--actor` and `--team` so rebuilds remain authorized and audited, and accepts optional `--module` and `--index` filters.
-- `/admin/search` shows Meilisearch readiness, registered index descriptors in the shared Admin DataTable, backend-applied module/sensitivity/deletion/anonymization filters, DataTable exports, recent rebuild managed-process runs, and confirmed global or single-index rebuild actions. Rebuild actions require the `REBUILD SEARCH` confirmation phrase and redirect to the managed-process run details.
+- `/admin/search` shows Meilisearch readiness, registered index descriptors in the shared Admin DataTable, backend-applied module/sensitivity/deletion/anonymization filters, DataTable exports, recent rebuild managed-process runs, and confirmed global or single-index rebuild actions. Rebuild-run visibility uses ManagedProcesses `ManagedProcessRunInspector` summaries instead of reading ManagedProcesses tables. Rebuild actions require the `REBUILD SEARCH` confirmation phrase and redirect to the managed-process run details.
 
 ## Full-Text Search
 
@@ -57,7 +57,7 @@ Search outages must not block core business writes. Search UI and Admin operatio
 The Admin Search page reports missing Meilisearch configuration as degraded by default or unhealthy when `ATLAS_HEALTH_MEILISEARCH_CRITICAL=true`. Full runtime reachability remains visible in Admin System Status.
 # Phase 28 foundation repair target
 
-Current state: Search owns Meilisearch projections, Outbox indexing, rebuilds, and Admin status, but Phase 28 tracks technical availability, authorization-filtering evidence, technical-token UI copy, audit, privacy lifecycle, and runtime smoke parity.
+Current state: Search owns Meilisearch projections, Outbox indexing, rebuilds, authorization filtering, audit/privacy lifecycle, readiness/module gates, canonical Admin status/actions, and verified Meilisearch runtime smoke parity.
 
 Target state: Search has real health/readiness, audited rebuild/indexing operations, privacy lifecycle participation, safe UI labels, and production smoke coverage for Meilisearch.
 

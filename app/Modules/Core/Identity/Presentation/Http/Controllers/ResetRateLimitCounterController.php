@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace App\Modules\Core\Identity\Presentation\Http\Controllers;
 
-use App\Modules\Core\Audit\Application\Public\Contracts\AuditRecorder;
-use App\Modules\Core\Audit\Application\Public\DTOs\AuditEvent;
-use App\Modules\Core\Audit\Application\Public\Enums\SecurityAuditCategory;
-use App\Modules\Core\Identity\Application\Public\Persistence\IdentityDatabaseTable;
 use App\Modules\Core\Identity\Application\RateLimiting\RateLimitPolicyCatalog;
 use App\Modules\Core\Identity\Application\RateLimiting\RateLimitRejectionRecorder;
+use App\Modules\Core\Identity\Infrastructure\Persistence\TableNames\IdentityDatabaseTable;
+use App\Shared\Application\Audit\Contracts\AuditRecorder;
+use App\Shared\Application\Audit\DTOs\AuditEvent;
+use App\Shared\Application\Audit\Enums\SecurityAuditCategory;
 use App\Shared\Presentation\Support\FlashMessage;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;

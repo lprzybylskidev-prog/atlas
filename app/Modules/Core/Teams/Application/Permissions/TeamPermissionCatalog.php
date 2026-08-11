@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Modules\Core\Teams\Application\Permissions;
 
-use App\Modules\Core\Teams\Application\Public\Permissions\TeamPermissionNames;
 use App\Shared\Application\Modules\Contributions\Contracts\ModulePermissionContribution;
 use App\Shared\Application\Modules\Contributions\ModulePermissionDefinition;
+use App\Shared\Application\Teams\Permissions\TeamPermissionNames;
 
 final class TeamPermissionCatalog implements ModulePermissionContribution
 {
@@ -42,17 +42,13 @@ final class TeamPermissionCatalog implements ModulePermissionContribution
 
     public const MANAGERS_VIEW = TeamPermissionNames::MANAGERS_VIEW;
 
-    public const ADMIN_MANAGERS_INDEX = 'admin.managers.index';
+    public const ADMIN_TEAMS_STRUCTURE_SHOW = 'admin.teams.structure.show';
 
-    public const ADMIN_MANAGERS_CREATE = 'admin.managers.create';
+    public const ADMIN_TEAMS_STRUCTURE_RELATIONSHIPS_STORE = 'admin.teams.structure.relationships.store';
 
-    public const ADMIN_MANAGERS_EDIT = 'admin.managers.edit';
+    public const ADMIN_TEAMS_STRUCTURE_RELATIONSHIPS_END = 'admin.teams.structure.relationships.end';
 
-    public const ADMIN_MANAGERS_STORE = 'admin.managers.store';
-
-    public const ADMIN_MANAGERS_END = 'admin.managers.end';
-
-    public const ADMIN_MANAGERS_HEAD_UPDATE = 'admin.managers.head.update';
+    public const ADMIN_TEAMS_STRUCTURE_HEAD_MANAGER_UPDATE = 'admin.teams.structure.head-manager.update';
 
     public const MANAGERS_CREATE = TeamPermissionNames::MANAGERS_CREATE;
 
@@ -85,12 +81,10 @@ final class TeamPermissionCatalog implements ModulePermissionContribution
             new ModulePermissionDefinition(self::TEAMS_UPDATE, 'Update teams.'),
             new ModulePermissionDefinition(self::TEAMS_DELETE, 'Delete teams.'),
             new ModulePermissionDefinition(self::MANAGERS_VIEW, 'View manager hierarchy.'),
-            new ModulePermissionDefinition(self::ADMIN_MANAGERS_INDEX, 'View manager administration.'),
-            new ModulePermissionDefinition(self::ADMIN_MANAGERS_CREATE, 'Open manager relationship creation.'),
-            new ModulePermissionDefinition(self::ADMIN_MANAGERS_EDIT, 'Open manager hierarchy details.'),
-            new ModulePermissionDefinition(self::ADMIN_MANAGERS_STORE, 'Create manager relationships through Admin UI.'),
-            new ModulePermissionDefinition(self::ADMIN_MANAGERS_END, 'End manager relationships through Admin UI.'),
-            new ModulePermissionDefinition(self::ADMIN_MANAGERS_HEAD_UPDATE, 'Update head manager status through Admin UI.'),
+            new ModulePermissionDefinition(self::ADMIN_TEAMS_STRUCTURE_SHOW, 'View the integrated team structure editor.'),
+            new ModulePermissionDefinition(self::ADMIN_TEAMS_STRUCTURE_RELATIONSHIPS_STORE, 'Create manager relationships through Admin UI.'),
+            new ModulePermissionDefinition(self::ADMIN_TEAMS_STRUCTURE_RELATIONSHIPS_END, 'End manager relationships through Admin UI.'),
+            new ModulePermissionDefinition(self::ADMIN_TEAMS_STRUCTURE_HEAD_MANAGER_UPDATE, 'Update head manager status through Admin UI.'),
             new ModulePermissionDefinition(self::MANAGERS_CREATE, 'Create manager relationships.'),
             new ModulePermissionDefinition(self::MANAGERS_UPDATE, 'Update manager hierarchy.'),
             new ModulePermissionDefinition(self::MANAGERS_TERMINATE, 'End manager relationships.'),

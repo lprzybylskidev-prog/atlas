@@ -4,32 +4,26 @@ declare(strict_types=1);
 
 namespace App\Modules\Core\Identity\Application\Admin;
 
-use App\Modules\Core\Audit\Application\Public\Contracts\AuditRecorder;
-use App\Modules\Core\Audit\Application\Public\DTOs\AuditEvent;
-use App\Modules\Core\Audit\Application\Public\Enums\SecurityAuditCategory;
-use App\Modules\Core\Authorization\Application\Public\Contracts\EffectivePermissionChecker;
-use App\Modules\Core\Authorization\Application\Public\DTOs\EffectivePermissionRequest;
-use App\Modules\Core\Authorization\Application\Public\Persistence\AuthorizationDatabaseTable;
 use App\Modules\Core\Identity\Application\Public\Contracts\ImpersonationEligibilityChecker;
 use App\Modules\Core\Identity\Application\Public\Contracts\ImpersonationSessionState;
 use App\Modules\Core\Identity\Application\Public\Contracts\UserSessionRegistry;
 use App\Modules\Core\Identity\Application\Public\DTOs\ImpersonationEligibility;
-use App\Modules\Core\Identity\Application\Public\Persistence\IdentityDatabaseTable;
 use App\Modules\Core\Identity\Domain\AccountSensitivity;
 use App\Modules\Core\Identity\Infrastructure\Persistence\User;
-use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
-use Illuminate\Database\Query\Builder;
+use App\Shared\Application\Audit\Contracts\AuditRecorder;
+use App\Shared\Application\Audit\DTOs\AuditEvent;
+use App\Shared\Application\Audit\Enums\SecurityAuditCategory;
+use App\Shared\Application\Authorization\Contracts\AdministratorAccessLookup;
+use App\Shared\Application\Authorization\Contracts\EffectivePermissionChecker;
+use App\Shared\Application\Authorization\DTOs\EffectivePermissionRequest;
+use App\Shared\Application\Teams\Contracts\TeamLookup;
+use App\Shared\Application\Teams\Contracts\UserTeamMembershipManager;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 final readonly class ImpersonationManager implements ImpersonationEligibilityChecker, ImpersonationSessionState
 {
-    private const ADMINISTRATOR_ROLE_NAME = 'system.administrator';
-
-    private const ADMIN_MODE_ENTER_PERMISSION = 'admin-mode.enter';
-
     private const IMPERSONATION_START_PERMISSION = 'impersonation.start';
 
     private const IMPERSONATION_SENSITIVE_OVERRIDE_PERMISSION = 'impersonation.sensitive.override';
@@ -57,6 +51,9 @@ final readonly class ImpersonationManager implements ImpersonationEligibilityChe
         private AdministrativeSessionManager $adminMode,
         private ImpersonationSimulationStore $simulation,
         private AuditRecorder $audit,
+        private AdministratorAccessLookup $administratorAccess,
+        private TeamLookup $teams,
+        private UserTeamMembershipManager $memberships,
     ) {}
 
     public function active(Request $request): bool
@@ -169,10 +166,7 @@ final readonly class ImpersonationManager implements ImpersonationEligibilityChe
             ]);
         }
 
-        $team = DB::table(TeamsDatabaseTable::TEAMS)
-            ->where('public_id', $teamPublicId)
-            ->first(['name', 'display_name']);
-        $teamName = $this->teamDisplayName($team);
+        $teamName = $this->teamDisplayNameForPublicId($teamPublicId);
         $sessionId = (string) Str::ulid();
 
         $request->session()->put(self::SESSION_ID, $sessionId);
@@ -325,85 +319,29 @@ final readonly class ImpersonationManager implements ImpersonationEligibilityChe
 
     private function hasAdministratorLevelAccess(string $userPublicId): bool
     {
-        $user = DB::table(IdentityDatabaseTable::USERS)->where('public_id', $userPublicId)->first(['id']);
-
-        if ($user === null || ! property_exists($user, 'id') || ! is_int($user->id)) {
-            return false;
-        }
-
-        $roleName = self::ADMINISTRATOR_ROLE_NAME;
-        $modelType = config('auth.providers.users.model');
-        $modelType = is_string($modelType) && $modelType !== '' ? $modelType : User::class;
-
-        if (DB::table(AuthorizationDatabaseTable::MODEL_HAS_ROLES)
-            ->join(AuthorizationDatabaseTable::ROLES, 'model_has_roles.role_id', '=', 'roles.id')
-            ->where('model_has_roles.model_id', $user->id)
-            ->where('model_has_roles.model_type', $modelType)
-            ->where('roles.name', $roleName)
-            ->exists()) {
-            return true;
-        }
-
-        return DB::table(AuthorizationDatabaseTable::MODEL_HAS_PERMISSIONS)
-            ->join(AuthorizationDatabaseTable::PERMISSIONS, 'model_has_permissions.permission_id', '=', 'permissions.id')
-            ->where('model_has_permissions.model_id', $user->id)
-            ->where('model_has_permissions.model_type', $modelType)
-            ->where('permissions.name', self::ADMIN_MODE_ENTER_PERMISSION)
-            ->exists();
+        return $this->administratorAccess->hasAdministratorLevelAccess($userPublicId);
     }
 
     private function targetBelongsToTeam(string $userPublicId, string $teamPublicId): bool
     {
-        return DB::table(TeamsDatabaseTable::TEAM_USER_ASSIGNMENTS)
-            ->join(IdentityDatabaseTable::USERS, 'team_user_assignments.user_id', '=', 'users.id')
-            ->join(TeamsDatabaseTable::TEAMS, 'team_user_assignments.team_id', '=', 'teams.id')
-            ->where('users.public_id', $userPublicId)
-            ->where('teams.public_id', $teamPublicId)
-            ->where('teams.is_active', true)
-            ->where(static function (Builder $query): void {
-                $query->whereNull('team_user_assignments.valid_from')->orWhere('team_user_assignments.valid_from', '<=', now());
-            })
-            ->where(static function (Builder $query): void {
-                $query->whereNull('team_user_assignments.valid_to')->orWhere('team_user_assignments.valid_to', '>', now());
-            })
-            ->exists();
+        return $this->teams->activeInternalIdForPublicId($teamPublicId) !== null
+            && $this->memberships->hasActiveMembership($userPublicId, $teamPublicId);
     }
 
     private function targetHasAvailableTeam(string $userPublicId): bool
     {
-        return DB::table(TeamsDatabaseTable::TEAM_USER_ASSIGNMENTS)
-            ->join(IdentityDatabaseTable::USERS, 'team_user_assignments.user_id', '=', 'users.id')
-            ->join(TeamsDatabaseTable::TEAMS, 'team_user_assignments.team_id', '=', 'teams.id')
-            ->where('users.public_id', $userPublicId)
-            ->where('teams.is_active', true)
-            ->where(static function (Builder $query): void {
-                $query->whereNull('team_user_assignments.valid_from')->orWhere('team_user_assignments.valid_from', '<=', now());
-            })
-            ->where(static function (Builder $query): void {
-                $query->whereNull('team_user_assignments.valid_to')->orWhere('team_user_assignments.valid_to', '>', now());
-            })
-            ->exists();
-    }
-
-    private function teamDisplayName(mixed $team): string
-    {
-        if (! is_object($team)) {
-            return '';
+        foreach ($this->memberships->activeMembershipsForUser($userPublicId) as $membership) {
+            if ($membership->teamActive) {
+                return true;
+            }
         }
 
-        $displayName = $team->display_name ?? null;
-        $name = $team->name ?? null;
-
-        return is_string($displayName) && $displayName !== ''
-            ? $displayName
-            : (is_string($name) ? $name : '');
+        return false;
     }
 
     private function teamDisplayNameForPublicId(string $teamPublicId): string
     {
-        return $this->teamDisplayName(DB::table(TeamsDatabaseTable::TEAMS)
-            ->where('public_id', $teamPublicId)
-            ->first(['name', 'display_name']));
+        return $this->teams->displaySummariesForPublicIds([$teamPublicId])[$teamPublicId]->name ?? '';
     }
 
     /**

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Core\Exports\Application\DTOs;
 
-use App\Modules\Core\Exports\Application\Enums\ReportExportFormat;
+use App\Shared\Application\Exports\Enums\ReportExportFormat;
 use DateTimeImmutable;
 
 final readonly class ReportExportRequestSnapshot
@@ -37,6 +37,7 @@ final readonly class ReportExportRequestSnapshot
         public bool $synchronousAllowed = false,
         public bool $auditExport = false,
         public ?int $estimatedRowCount = null,
+        public string $locale = 'pl',
     ) {}
 
     public function requestFingerprint(): string
@@ -57,6 +58,7 @@ final readonly class ReportExportRequestSnapshot
             'rule_version' => $this->ruleVersion,
             'audit_export' => $this->auditExport,
             'estimated_row_count' => $this->estimatedRowCount,
+            'locale' => $this->locale,
         ], JSON_THROW_ON_ERROR));
     }
 }

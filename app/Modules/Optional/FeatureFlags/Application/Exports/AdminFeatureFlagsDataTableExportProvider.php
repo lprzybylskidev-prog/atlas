@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace App\Modules\Optional\FeatureFlags\Application\Exports;
 
-use App\Modules\Core\Exports\Application\Public\AbstractAdminDataTableExportProvider;
-use App\Modules\Core\Exports\Application\Public\DTOs\ReportExportGenerationRequest;
-use App\Modules\Core\Exports\Application\Public\Permissions\ReportsPermissionCatalog;
 use App\Modules\Optional\FeatureFlags\Application\Contracts\FeatureFlagRegistry;
 use App\Modules\Optional\FeatureFlags\Application\Contracts\FeatureFlagStore;
-use App\Shared\Application\Tables\AdminTableDefinitions;
+use App\Shared\Application\Exports\AbstractAdminDataTableExportProvider;
+use App\Shared\Application\Exports\DTOs\ReportExportGenerationRequest;
+use App\Shared\Application\Exports\ExportPermissions;
+use App\Shared\Application\Tables\RegisteredTables;
 
 final readonly class AdminFeatureFlagsDataTableExportProvider extends AbstractAdminDataTableExportProvider
 {
@@ -20,7 +20,7 @@ final readonly class AdminFeatureFlagsDataTableExportProvider extends AbstractAd
 
     public function tableKey(): string
     {
-        return AdminTableDefinitions::FEATURE_FLAGS;
+        return RegisteredTables::FEATURE_FLAGS;
     }
 
     public function tableName(): string
@@ -35,7 +35,7 @@ final readonly class AdminFeatureFlagsDataTableExportProvider extends AbstractAd
 
     public function requestPermission(): string
     {
-        return ReportsPermissionCatalog::REQUEST;
+        return ExportPermissions::REQUEST;
     }
 
     public function ruleVersion(): string

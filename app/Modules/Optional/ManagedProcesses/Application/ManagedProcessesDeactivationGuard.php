@@ -6,13 +6,14 @@ namespace App\Modules\Optional\ManagedProcesses\Application;
 
 use App\Modules\Optional\ManagedProcesses\Application\Contracts\ProcessDefinitionRegistry;
 use App\Modules\Optional\ManagedProcesses\Application\Enums\ProcessRunStatus;
-use App\Modules\Optional\ManagedProcesses\Application\Public\Persistence\ManagedProcessesDatabaseTable;
+use App\Modules\Optional\ManagedProcesses\Infrastructure\Persistence\TableNames\ManagedProcessesDatabaseTable;
 use App\Shared\Application\Modules\Contracts\ModuleDeactivationGuard;
 use App\Shared\Application\Modules\ModuleDeactivationAssessment;
 use App\Shared\Application\Modules\ModuleDeactivationBlocker;
 use App\Shared\Application\Modules\ModuleDeactivationRequest;
 use App\Shared\Application\Modules\ModuleDeactivationSafeAction;
 use Illuminate\Database\ConnectionInterface;
+use Illuminate\Database\Query\Builder;
 
 final readonly class ManagedProcessesDeactivationGuard implements ModuleDeactivationGuard
 {
@@ -28,18 +29,45 @@ final readonly class ManagedProcessesDeactivationGuard implements ModuleDeactiva
             array_filter($this->definitions->all(), static fn ($definition): bool => $definition->moduleKey === $request->moduleKey->value && $definition->blocksModuleDeactivation),
         );
 
-        if ($blockingKeys === []) {
-            return ModuleDeactivationAssessment::allow();
+        $schedule = $this->database->table(ManagedProcessesDatabaseTable::SCHEDULES)
+            ->where(static function (Builder $query) use ($blockingKeys, $request): void {
+                $query->where('module_key', $request->moduleKey->value);
+
+                if ($blockingKeys !== []) {
+                    $query->orWhereIn('process_key', $blockingKeys);
+                }
+            })
+            ->where('enabled', true)
+            ->when($request->teamId !== null, static fn (Builder $query): Builder => $query->where('team_id', $request->teamId))
+            ->orderByDesc('created_at')
+            ->first();
+
+        if (is_object($schedule)) {
+            return ModuleDeactivationAssessment::block(
+                new ModuleDeactivationBlocker(
+                    processType: 'managed_process_schedule',
+                    processIdentifier: $this->stringValue($schedule->public_id ?? null),
+                    reason: sprintf('Enabled managed process schedule %s must be disabled before module deactivation.', $this->stringValue($schedule->public_id ?? null)),
+                ),
+                [new ModuleDeactivationSafeAction('managed_process.disable_schedule', 'Disable the managed process schedule before deactivation.')],
+            );
         }
 
         $run = $this->database->table(ManagedProcessesDatabaseTable::RUNS)
-            ->whereIn('process_key', $blockingKeys)
+            ->where(static function (Builder $query) use ($blockingKeys, $request): void {
+                $query->where('module_key', $request->moduleKey->value);
+
+                if ($blockingKeys !== []) {
+                    $query->orWhereIn('process_key', $blockingKeys);
+                }
+            })
             ->whereIn('status', [
                 ProcessRunStatus::Draft->value,
                 ProcessRunStatus::Queued->value,
                 ProcessRunStatus::Running->value,
                 ProcessRunStatus::Waiting->value,
             ])
+            ->when($request->teamId !== null, static fn (Builder $query): Builder => $query->where('team_id', $request->teamId))
             ->orderByDesc('created_at')
             ->first();
 

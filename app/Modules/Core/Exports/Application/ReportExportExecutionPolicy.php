@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Core\Exports\Application;
 
 use App\Modules\Core\Exports\Application\DTOs\ReportExportRequestSnapshot;
-use App\Modules\Core\Exports\Application\Enums\ReportExportFormat;
+use App\Shared\Application\Exports\Enums\ReportExportFormat;
 use Illuminate\Support\Facades\Config;
 
 final class ReportExportExecutionPolicy

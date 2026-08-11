@@ -4,19 +4,21 @@ declare(strict_types=1);
 
 namespace App\Modules\Optional\Search\Application\Exports;
 
-use App\Modules\Core\Exports\Application\Public\AbstractAdminDataTableExportProvider;
-use App\Modules\Core\Exports\Application\Public\DTOs\ReportExportGenerationRequest;
-use App\Modules\Core\Exports\Application\Public\Permissions\ReportsPermissionCatalog;
-use App\Modules\Optional\ManagedProcesses\Application\Public\Persistence\ManagedProcessesDatabaseTable;
 use App\Modules\Optional\Search\Application\SearchRebuildProcess;
-use App\Shared\Application\Tables\AdminTableDefinitions;
-use Illuminate\Support\Facades\DB;
+use App\Shared\Application\Exports\AbstractAdminDataTableExportProvider;
+use App\Shared\Application\Exports\DTOs\ReportExportGenerationRequest;
+use App\Shared\Application\Exports\ExportPermissions;
+use App\Shared\Application\ManagedProcesses\Contracts\ManagedProcessRunInspector;
+use App\Shared\Application\ManagedProcesses\DTOs\ManagedProcessRunSummary;
+use App\Shared\Application\Tables\RegisteredTables;
 
 final readonly class AdminSearchRebuildsDataTableExportProvider extends AbstractAdminDataTableExportProvider
 {
+    public function __construct(private ManagedProcessRunInspector $runs) {}
+
     public function tableKey(): string
     {
-        return AdminTableDefinitions::SEARCH_REBUILDS;
+        return RegisteredTables::SEARCH_REBUILDS;
     }
 
     public function tableName(): string
@@ -31,7 +33,7 @@ final readonly class AdminSearchRebuildsDataTableExportProvider extends Abstract
 
     public function requestPermission(): string
     {
-        return ReportsPermissionCatalog::REQUEST;
+        return ExportPermissions::REQUEST;
     }
 
     public function ruleVersion(): string
@@ -56,22 +58,20 @@ final readonly class AdminSearchRebuildsDataTableExportProvider extends Abstract
 
     public function rows(ReportExportGenerationRequest $request): iterable
     {
-        $rows = array_values(DB::table(ManagedProcessesDatabaseTable::RUNS)
-            ->where('process_key', SearchRebuildProcess::KEY)
-            ->orderByDesc('created_at')
-            ->get(['public_id', 'status', 'current_stage', 'progress_current', 'progress_total', 'progress_label', 'created_at', 'started_at', 'finished_at'])
-            ->map(static fn (object $row): array => [
-                'publicId' => self::stringValue($row->public_id ?? null),
-                'status' => self::stringValue($row->status ?? null),
-                'currentStage' => self::stringValue($row->current_stage ?? null),
-                'progressCurrent' => is_numeric($row->progress_current ?? null) ? (int) $row->progress_current : 0,
-                'progressTotal' => is_numeric($row->progress_total ?? null) ? (int) $row->progress_total : null,
-                'progressLabel' => self::stringValue($row->progress_label ?? null),
-                'createdAt' => self::stringValue($row->created_at ?? null),
-                'startedAt' => self::stringValue($row->started_at ?? null),
-                'finishedAt' => self::stringValue($row->finished_at ?? null),
-            ])
-            ->all());
+        $rows = array_map(
+            static fn (ManagedProcessRunSummary $run): array => [
+                'publicId' => $run->publicId,
+                'status' => $run->status,
+                'currentStage' => $run->currentStage,
+                'progressCurrent' => $run->progressCurrent,
+                'progressTotal' => $run->progressTotal,
+                'progressLabel' => $run->progressLabel,
+                'createdAt' => $run->createdAt,
+                'startedAt' => $run->startedAt,
+                'finishedAt' => $run->finishedAt,
+            ],
+            $this->runs->recentRunsForProcess(SearchRebuildProcess::KEY, 80),
+        );
 
         foreach ($this->sorted($this->filtered($rows, $request), $request) as $row) {
             yield $row;

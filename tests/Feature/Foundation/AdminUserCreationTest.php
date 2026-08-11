@@ -6,17 +6,18 @@ namespace Tests\Feature\Foundation;
 
 use App\Modules\Core\Authorization\Application\Contracts\OnboardingPackageStore;
 use App\Modules\Core\Authorization\Application\Permissions\CoreAuthorizationPermissionCatalog;
-use App\Modules\Core\Authorization\Application\Public\Persistence\AuthorizationDatabaseTable;
 use App\Modules\Core\Authorization\Application\Roles\InstallStarterRoles;
 use App\Modules\Core\Authorization\Application\Roles\StarterRoleName;
-use App\Modules\Core\Identity\Application\Public\Persistence\IdentityDatabaseTable;
+use App\Modules\Core\Authorization\Infrastructure\Persistence\TableNames\AuthorizationDatabaseTable;
 use App\Modules\Core\Identity\Infrastructure\Notifications\UserEmailVerificationNotification;
+use App\Modules\Core\Identity\Infrastructure\Persistence\TableNames\IdentityDatabaseTable;
 use App\Modules\Core\Identity\Infrastructure\Persistence\User;
-use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
+use App\Modules\Core\Teams\Infrastructure\Persistence\TableNames\TeamsDatabaseTable;
 use App\Modules\Core\Teams\Infrastructure\Persistence\Team;
 use App\Modules\Core\Users\Infrastructure\Notifications\FirstPasswordSetupNotification;
 use App\Modules\Optional\TimeTracking\Application\Permissions\TimeTrackingPermissionCatalog;
-use App\Modules\Optional\TimeTracking\Application\Public\Persistence\TimeTrackingDatabaseTable;
+use App\Modules\Optional\TimeTracking\Infrastructure\Persistence\TableNames\TimeTrackingDatabaseTable;
+use App\Shared\Application\Authorization\Contracts\UserTeamAuthorizationManager;
 use DateTimeInterface;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -62,6 +63,34 @@ final class AdminUserCreationTest extends TestCase
             'team_id' => $team->id,
             'package_name' => 'collections.agent',
         ]);
+        self::assertDatabaseHas(AuthorizationDatabaseTable::USER_TEAM_ASSIGNMENT_PROVENANCE, [
+            'user_id' => $created->id,
+            'team_id' => $team->id,
+            'source_type' => 'preset',
+            'source_display_name_snapshot' => 'collections.agent',
+            'preset_version' => 1,
+            'version' => 1,
+            'diverged_at' => null,
+        ]);
+
+        $this->app->make(UserTeamAuthorizationManager::class)->replaceAssignmentsForUserTeam(
+            actorPublicId: (string) $actor->public_id,
+            userPublicId: (string) $created->public_id,
+            teamPublicId: (string) $team->public_id,
+            roleNames: [],
+            directPermissionNames: [],
+            reason: 'Approved departure from the original preset.',
+            expectedVersion: 1,
+        );
+
+        $provenance = DB::table(AuthorizationDatabaseTable::USER_TEAM_ASSIGNMENT_PROVENANCE)
+            ->where('user_id', $created->id)
+            ->where('team_id', $team->id)
+            ->first();
+        self::assertIsObject($provenance);
+        self::assertSame('preset', get_object_vars($provenance)['source_type'] ?? null);
+        self::assertSame(2, get_object_vars($provenance)['version'] ?? null);
+        self::assertNotNull(get_object_vars($provenance)['diverged_at'] ?? null);
         Notification::assertSentOnDemand(FirstPasswordSetupNotification::class);
     }
 
@@ -313,6 +342,14 @@ final class AdminUserCreationTest extends TestCase
         ]);
         self::assertDatabaseMissing(AuthorizationDatabaseTable::USER_ONBOARDING_PACKAGES, [
             'user_id' => $created->id,
+        ]);
+        self::assertDatabaseHas(AuthorizationDatabaseTable::USER_TEAM_ASSIGNMENT_PROVENANCE, [
+            'user_id' => $created->id,
+            'team_id' => $team->id,
+            'source_type' => 'copy',
+            'copied_from_user_id' => $source->id,
+            'source_public_id' => $source->public_id,
+            'version' => 1,
         ]);
         Notification::assertSentOnDemand(FirstPasswordSetupNotification::class);
     }

@@ -10,7 +10,7 @@ use App\Modules\Optional\TimeTracking\Application\DTOs\ActiveOtherWorkSession;
 use App\Modules\Optional\TimeTracking\Application\DTOs\OtherWorkCategory;
 use App\Modules\Optional\TimeTracking\Application\Enums\OtherWorkApprovalStatus;
 use App\Modules\Optional\TimeTracking\Application\Enums\OtherWorkClosureReason;
-use App\Modules\Optional\TimeTracking\Application\Public\Persistence\TimeTrackingDatabaseTable;
+use App\Modules\Optional\TimeTracking\Infrastructure\Persistence\TableNames\TimeTrackingDatabaseTable;
 use DateTimeImmutable;
 use Illuminate\Database\ConnectionInterface;
 use Illuminate\Support\Str;

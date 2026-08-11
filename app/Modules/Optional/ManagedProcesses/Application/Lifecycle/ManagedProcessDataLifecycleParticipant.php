@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Optional\ManagedProcesses\Application\Lifecycle;
 
 use App\Modules\Optional\ManagedProcesses\Application\Enums\ProcessRunStatus;
-use App\Modules\Optional\ManagedProcesses\Application\Public\Persistence\ManagedProcessesDatabaseTable;
+use App\Modules\Optional\ManagedProcesses\Infrastructure\Persistence\TableNames\ManagedProcessesDatabaseTable;
 use App\Shared\Application\DataLifecycle\Contracts\DataLifecycleParticipant;
 use App\Shared\Application\DataLifecycle\DataLifecycleBlocker;
 use App\Shared\Application\DataLifecycle\DataLifecycleImpact;
@@ -21,6 +21,11 @@ use Illuminate\Database\Query\Builder;
 final readonly class ManagedProcessDataLifecycleParticipant implements DataLifecycleParticipant
 {
     public function __construct(private ConnectionInterface $db) {}
+
+    public function key(): string
+    {
+        return 'managed_processes';
+    }
 
     public function preview(DataLifecycleSubject $subject, DataLifecycleOperation $operation): DataLifecyclePreview
     {

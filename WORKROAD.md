@@ -39,8 +39,8 @@ Do not replace this index after the initial technical foundation is completed. C
 
 ## Current phase
 
-- Phase: [Phase 28 — Foundation repair and consolidation](docs/roadmap/phase-28-foundation-repair-and-consolidation.md)
-- Status: `in progress`
+- Phase: [Phase 29 — Production deployment, backup, restore, and rollback](docs/roadmap/phase-29-deployment-backup-rollback.md)
+- Status: `not started`
 
 ## Roadmap dependency repair note
 
@@ -328,7 +328,7 @@ Harden architecture boundaries, shared Inertia composition, module-owned persist
 
 ### Phase 28 — Foundation repair and consolidation
 
-**Status:** `not started`
+**Status:** `complete`
 
 Repair and consolidate known foundation drift across module boundaries, ModuleGate, audit, UI/UX, authorization/team workflows, TimeTracking, PostgreSQL migrations, seeders, bilingual mail, runtime images, queues, scheduler, health, and guardrails before production deployment.
 

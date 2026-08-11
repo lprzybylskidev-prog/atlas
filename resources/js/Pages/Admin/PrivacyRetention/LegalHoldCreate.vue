@@ -11,7 +11,6 @@ import FormSelect, { type FormSelectOption } from '../../../Components/Form/Form
 import FormTextarea from '../../../Components/Form/FormTextarea.vue';
 import PageStack from '../../../Components/PageStack.vue';
 import SurfaceCard from '../../../Components/SurfaceCard.vue';
-import { usePrivacyRetentionSubnavigation } from '../../../Composables/usePrivacyRetentionSubnavigation';
 import AppLayout from '../../../Layouts/AppLayout.vue';
 import { useTranslator } from '../../../Localization/translator';
 
@@ -26,7 +25,6 @@ const props = defineProps<{
 }>();
 
 const { t } = useTranslator();
-const subnavigation = usePrivacyRetentionSubnavigation('/admin/privacy-retention/legal-holds', t);
 const form = useForm({
     subject_type: props.formDefaults.subject_type,
     subject_identifier: props.formDefaults.subject_identifier,
@@ -47,8 +45,7 @@ function createHold(): void {
         mode="admin"
         :title="t('pages.admin.privacy_retention.title')"
         :title-icon="IconShieldCheck"
-        :subnavigation="subnavigation"
-        :subnavigation-label="t('pages.admin.privacy_retention.nav.label')"
+        navigation-section="privacy-retention"
     >
         <PageStack>
             <div class="flex justify-start">

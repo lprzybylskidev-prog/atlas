@@ -22,6 +22,11 @@ final readonly class SearchDataLifecycleParticipant implements DataLifecyclePart
         private SearchDocumentStore $documents,
     ) {}
 
+    public function key(): string
+    {
+        return 'search';
+    }
+
     public function preview(DataLifecycleSubject $subject, DataLifecycleOperation $operation): DataLifecyclePreview
     {
         return new DataLifecyclePreview([

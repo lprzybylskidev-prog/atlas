@@ -1,21 +1,45 @@
 <script setup lang="ts">
-import { IconAlertCircle, IconInbox, IconLoader2, IconSearchOff } from '@tabler/icons-vue';
+import { IconAlertCircle, IconCloudOff, IconInbox, IconLoader2, IconLock, IconRefresh, IconSearchOff } from '@tabler/icons-vue';
 import { computed } from 'vue';
 
 const props = defineProps<{
-    variant: 'loading' | 'empty' | 'error' | 'no-results';
+    variant:
+        | 'loading'
+        | 'loading-initial'
+        | 'loading-refresh'
+        | 'empty'
+        | 'error'
+        | 'error-recoverable'
+        | 'error-fatal'
+        | 'no-results'
+        | 'permission-denied'
+        | 'module-unavailable'
+        | 'offline'
+        | 'stale';
     title: string;
     description?: string;
     size?: 'default' | 'compact';
 }>();
 
 const icon = computed(() => {
-    if (props.variant === 'loading') {
+    if (props.variant.startsWith('loading')) {
         return IconLoader2;
     }
 
-    if (props.variant === 'error') {
+    if (props.variant.startsWith('error') || props.variant === 'module-unavailable') {
         return IconAlertCircle;
+    }
+
+    if (props.variant === 'permission-denied') {
+        return IconLock;
+    }
+
+    if (props.variant === 'offline') {
+        return IconCloudOff;
+    }
+
+    if (props.variant === 'stale') {
+        return IconRefresh;
     }
 
     if (props.variant === 'no-results') {
@@ -30,13 +54,14 @@ const icon = computed(() => {
     <section
         class="flex flex-col items-center justify-center rounded-lg border border-dashed border-zinc-300 bg-white text-center dark:border-zinc-700 dark:bg-zinc-950"
         :class="size === 'compact' ? 'min-h-24 px-4 py-4' : 'min-h-40 px-6 py-8'"
-        :aria-busy="variant === 'loading'"
+        :aria-busy="variant.startsWith('loading')"
+        :role="variant.startsWith('error') || variant === 'offline' ? 'alert' : 'status'"
     >
         <component
             :is="icon"
             aria-hidden="true"
             class="text-zinc-400 dark:text-zinc-500"
-            :class="[size === 'compact' ? 'h-6 w-6' : 'h-8 w-8', { 'animate-spin': variant === 'loading' }]"
+            :class="[size === 'compact' ? 'h-6 w-6' : 'h-8 w-8', { 'animate-spin': variant.startsWith('loading') }]"
             :stroke-width="1.8"
         />
         <h2 class="mt-3 text-sm font-semibold text-zinc-950 dark:text-zinc-50">{{ title }}</h2>

@@ -2,11 +2,11 @@
 
 Canonical runtime rules for health, readiness, maintenance, logging, correlation, alerts, diagnostics, and administrative operational visibility.
 
-## Phase 28 target
+## Phase 28 closure state
 
-Current state: health/readiness and Admin diagnostics exist, but Phase 28 tracks the need for real technical availability checks used by ModuleGate and runtime smoke coverage for nginx, php-fpm, application readiness, worker, Horizon, scheduler, PostgreSQL, Redis, Meilisearch, ClamAV, storage, Chromium, queues, and backup boundary metadata.
+Current state: health/readiness and Admin diagnostics use real technical availability checks consumed by ModuleGate. The Phase 28 foundation smoke covers nginx, php-fpm, application readiness, Horizon and every configured queue, scheduler heartbeat, PostgreSQL, Redis, Meilisearch, ClamAV/EICAR, storage, Chromium/PDF, clean teardown, and persisted PostgreSQL data.
 
-Target state: health checks verify real dependency chains, report actionable non-secret degraded metadata, and distinguish technical unavailability from administrative module deactivation.
+Health checks verify real dependency chains, report actionable non-secret degraded metadata, and distinguish technical unavailability from administrative module deactivation.
 
 Tracked issue IDs: `P28-MOD-003`, `P28-RUNTIME-007`, `P28-RUNTIME-014`, `P28-MODAUD-008`.
 
@@ -40,6 +40,7 @@ Tracked issue IDs: `P28-MOD-003`, `P28-RUNTIME-007`, `P28-RUNTIME-014`, `P28-MOD
 - Alert channels:
   - email recipients from `ATLAS_ALERTS_EMAIL_TO`, comma-separated;
   - webhook endpoint from `ATLAS_ALERTS_WEBHOOK_URL`.
+- Alert e-mail uses the canonical branded bilingual template and translation keys. It deliberately excludes exception text, request payloads, diagnostic context, internal identifiers, and secrets; operators inspect details through protected Atlas diagnostics. The webhook receives the existing sanitized structured operational payload.
 - Alert deduplication and throttling use cache keys controlled by `ATLAS_ALERTS_DEDUPE_SECONDS` and `ATLAS_ALERTS_THROTTLE_SECONDS`.
 - Baseline alert checks cover readiness failures, scheduler heartbeat failure, repeated failed jobs, backup failure signal, persistent integration failure signal, and critical Sentry signal. Backup, integration, and Sentry signals are configuration-driven until their owning modules/integrations provide concrete runtime status inputs.
 - Module-owned operational execution is guarded by ModuleGate for existing queued notification delivery, scheduled module activation application, and failed-job retry actions.
@@ -80,6 +81,8 @@ Public health endpoint exposes no sensitive details.
 Admin panel may show detailed status.
 
 Docker health checks must use readiness.
+
+Horizon is the only accepted managed worker model. Its canonical ordered queues are `managed-processes`, `imports`, `exports`, `search`, `files`, `files-large`, and `default`. Worker containers are healthy only when `horizon:status` succeeds. Scheduler containers are healthy only when `system:scheduler-status` observes a fresh successful database-backed heartbeat; process existence alone is insufficient. Graceful deployments use `horizon:terminate` and allow the service manager to restart the worker.
 
 Deploy succeeds only after readiness passes.
 

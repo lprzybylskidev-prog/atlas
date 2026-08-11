@@ -15,7 +15,7 @@ const users = {
 
 async function signIn(page: Page, user: { email: string; password: string }): Promise<void> {
     await page.goto('/login');
-    await page.getByLabel('Email').fill(user.email);
+    await page.getByLabel(/Adres e-mail|Email address/).fill(user.email);
     await page.getByLabel(/Hasło|Password/).fill(user.password);
     await page.getByRole('button', { name: /Zaloguj|Log in/ }).click();
 

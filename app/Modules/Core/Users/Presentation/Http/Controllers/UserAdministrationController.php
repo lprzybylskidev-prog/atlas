@@ -7,8 +7,8 @@ namespace App\Modules\Core\Users\Presentation\Http\Controllers;
 use App\Modules\Core\Identity\Application\Public\Contracts\ImpersonationEligibilityChecker;
 use App\Modules\Core\Identity\Application\Public\Contracts\UserCredentialAccountDirectory;
 use App\Modules\Core\Identity\Application\Public\DTOs\AdminUserCredentialAccount;
-use App\Shared\Application\Tables\AdminTableDefinitions;
 use App\Shared\Application\Tables\ArrayTableProcessor;
+use App\Shared\Application\Tables\RegisteredTables;
 use App\Shared\Application\Tables\TableRequestContext;
 use App\Shared\Application\Tables\TableSavedViewService;
 use App\Shared\Application\Tables\TableState;
@@ -30,7 +30,7 @@ final readonly class UserAdministrationController
 
     public function __invoke(Request $request): Response
     {
-        $definition = AdminTableDefinitions::get(AdminTableDefinitions::USERS);
+        $definition = RegisteredTables::get(RegisteredTables::USERS);
         $state = TableState::fromRequest($request, $definition);
         [$userId, $teamId] = $this->context->userTeam($request);
         $actorPublicId = $this->actorPublicId($request);

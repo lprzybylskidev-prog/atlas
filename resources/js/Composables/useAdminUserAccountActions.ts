@@ -1,8 +1,8 @@
 import { computed } from 'vue';
 
 import { useTranslator } from '../Localization/translator';
-import type { RecordAction } from '../Components/RecordActions.vue';
 import type { DataTableAction, DataTableBulkAction } from '../Types/data-table';
+import type { AtlasAction } from '../Types/actions';
 
 export interface AdminUserActionState {
     publicId: string;
@@ -145,7 +145,7 @@ export function useAdminUserAccountActions() {
     );
 
     function recordActions(user: AdminUserActionState) {
-        return computed<RecordAction[]>(() =>
+        return computed<AtlasAction<undefined>[]>(() =>
             accountActionDefinitions
                 .filter((action) => action.visible?.(user) ?? true)
                 .map((action) => ({
@@ -154,6 +154,17 @@ export function useAdminUserAccountActions() {
                     method: action.method,
                     href: `/admin/users/${user.publicId}/${action.endpoint}`,
                     tone: action.tone === 'info' ? 'neutral' : action.tone,
+                    semantic: action.key === 'deactivate' ? 'deactivate' : undefined,
+                    confirm:
+                        action.key === 'deactivate'
+                            ? {
+                                  titleKey: 'modal.action.deactivate.title',
+                                  descriptionKey: 'modal.action.deactivate.description',
+                                  confirmKey: 'modal.action.deactivate.confirm',
+                                  subject: user.publicId,
+                                  tone: 'danger',
+                              }
+                            : undefined,
                     disabled: action.disabled?.(user) ?? false,
                     disabledReason: action.disabledReasonKey === undefined ? undefined : t(action.disabledReasonKey),
                 })),

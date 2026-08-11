@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Core\Identity\Infrastructure\Persistence;
 
 use App\Modules\Core\Identity\Application\Contracts\PasswordHistoryRepository;
-use App\Modules\Core\Identity\Application\Public\Persistence\IdentityDatabaseTable;
+use App\Modules\Core\Identity\Infrastructure\Persistence\TableNames\IdentityDatabaseTable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 

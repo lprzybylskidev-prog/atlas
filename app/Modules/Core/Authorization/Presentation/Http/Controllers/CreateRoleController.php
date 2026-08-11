@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Core\Authorization\Presentation\Http\Controllers;
 
-use App\Modules\Core\Authorization\Application\Public\Contracts\UserTeamAuthorizationManager;
+use App\Shared\Application\Authorization\Contracts\UserTeamAuthorizationManager;
 use Inertia\Inertia;
 use Inertia\Response;
 

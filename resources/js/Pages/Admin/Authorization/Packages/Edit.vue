@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Head, useForm } from '@inertiajs/vue3';
 import { IconPackage } from '@tabler/icons-vue';
+import { computed } from 'vue';
 
 import OnboardingPackageForm from '../../../../Components/Authorization/OnboardingPackageForm.vue';
 import PageStack from '../../../../Components/PageStack.vue';
@@ -24,6 +25,7 @@ const props = defineProps<{
 }>();
 
 const { t } = useTranslator();
+const pageTitle = computed(() => t('pages.admin.packages.edit.title', { object: props.package.label || props.package.name }));
 const form = useForm({
     team_public_id: props.package.teamPublicId,
     name: props.package.name,
@@ -38,8 +40,8 @@ function submit(): void {
 </script>
 
 <template>
-    <Head :title="t('pages.admin.packages.edit.head_title')" />
-    <AppLayout mode="admin" :title="t('pages.admin.packages.edit.title')" :title-icon="IconPackage">
+    <Head :title="pageTitle" />
+    <AppLayout mode="admin" :title="pageTitle" :title-icon="IconPackage">
         <PageStack>
             <OnboardingPackageForm
                 v-model:team-public-id="form.team_public_id"
@@ -54,6 +56,7 @@ function submit(): void {
                 :role-permission-map="rolePermissionMap"
                 :errors="form.errors"
                 :processing="form.processing"
+                :dirty="form.isDirty"
                 :submit-label="t('pages.admin.packages.actions.save')"
                 :processing-label="t('pages.admin.packages.actions.saving')"
                 back-href="/admin/authorization/packages"

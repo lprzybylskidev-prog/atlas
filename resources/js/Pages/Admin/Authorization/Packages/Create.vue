@@ -51,6 +51,7 @@ function submit(): void {
                 :role-permission-map="rolePermissionMap"
                 :errors="form.errors"
                 :processing="form.processing"
+                :dirty="form.isDirty"
                 :submit-label="t('pages.admin.packages.actions.create')"
                 :processing-label="t('pages.admin.packages.actions.creating')"
                 back-href="/admin/authorization/packages"

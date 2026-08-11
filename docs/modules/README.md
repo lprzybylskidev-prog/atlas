@@ -2,7 +2,7 @@
 
 Each file is the canonical current-state description of one Atlas module or tightly related module group.
 
-During Phase 28, each module document also contains a short "Phase 28 foundation repair target" note that distinguishes current implemented behavior from accepted target behavior and links the module to concrete Phase 28 issue IDs. The binding checklist remains in [Phase 28 — Foundation repair and consolidation](../roadmap/phase-28-foundation-repair-and-consolidation.md).
+Each module document contains a Phase 28 closure note recording the implemented foundation-repair state and the concrete Phase 28 issue IDs it satisfies. The completed binding contract and evidence remain in [Phase 28 — Foundation repair and consolidation](../roadmap/phase-28-foundation-repair-and-consolidation.md).
 
 - [Identity, authentication, users, and sessions](identity-authentication-and-sessions.md) — account lifecycle, password, MFA, login, and session behavior.
 - [Authorization](authorization.md) — permissions, roles, framework boundary, and enforcement.

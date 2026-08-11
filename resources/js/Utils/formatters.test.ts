@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
+import { setEffectiveLocale } from '../Localization/effectiveLocale';
 import { formatEmpty, formatFileSize, formatMoney, formatStatus, formatTimestamp, majorToMinor, minorToMajor } from './formatters';
 
 describe('shared formatters', () => {
@@ -31,5 +32,14 @@ describe('shared formatters', () => {
 
         expect(formatTimestamp(timestamp, 'en')).toBe('Jul 17, 2026, 9:03 AM');
         expect(formatTimestamp(timestamp, 'pl')).toBe('17.07.2026, 09:03');
+    });
+
+    it('uses the effective Atlas locale when a caller does not override it', () => {
+        const timestamp = '2026-07-17T09:03:00+02:00';
+
+        setEffectiveLocale('en');
+        expect(formatTimestamp(timestamp)).toBe('Jul 17, 2026, 9:03 AM');
+        setEffectiveLocale('pl');
+        expect(formatTimestamp(timestamp)).toBe('17.07.2026, 09:03');
     });
 });

@@ -36,8 +36,20 @@ final class OperationalAlertsTest extends TestCase
 
         $dispatcher = $this->app->make(OperationalAlertDispatcher::class);
 
-        self::assertTrue($dispatcher->send('readiness.failure', 'Readiness failure', 'Blocking checks failed.', 'error'));
-        self::assertFalse($dispatcher->send('readiness.failure', 'Readiness failure', 'Blocking checks failed.', 'error'));
+        self::assertTrue($dispatcher->send(
+            'readiness.failure',
+            'mail.operational_alert.readiness.subject',
+            'mail.operational_alert.readiness.body',
+            'error',
+            ['count' => 1],
+        ));
+        self::assertFalse($dispatcher->send(
+            'readiness.failure',
+            'mail.operational_alert.readiness.subject',
+            'mail.operational_alert.readiness.body',
+            'error',
+            ['count' => 1],
+        ));
 
         Mail::assertSent(OperationalAlertMail::class, 1);
         Http::assertSentCount(1);

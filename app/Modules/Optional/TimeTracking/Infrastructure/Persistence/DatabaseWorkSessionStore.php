@@ -7,7 +7,7 @@ namespace App\Modules\Optional\TimeTracking\Infrastructure\Persistence;
 use App\Modules\Optional\TimeTracking\Application\Contracts\WorkSessionStore;
 use App\Modules\Optional\TimeTracking\Application\DTOs\ActiveWorkSession;
 use App\Modules\Optional\TimeTracking\Application\Enums\WorkSessionClosureReason;
-use App\Modules\Optional\TimeTracking\Application\Public\Persistence\TimeTrackingDatabaseTable;
+use App\Modules\Optional\TimeTracking\Infrastructure\Persistence\TableNames\TimeTrackingDatabaseTable;
 use DateTimeImmutable;
 use Illuminate\Database\ConnectionInterface;
 use Illuminate\Support\Str;

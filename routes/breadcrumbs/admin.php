@@ -54,22 +54,16 @@ Breadcrumbs::for('admin.teams.edit', function (Generator $breadcrumbs, string $t
     $breadcrumbs->push(atlas_breadcrumb_resource_action('breadcrumbs.teams_edit', $team));
 });
 
-Breadcrumbs::for('admin.managers.index', function (Generator $breadcrumbs): void {
+Breadcrumbs::for('admin.teams.structure.show', function (Generator $breadcrumbs, string $team): void {
     atlas_admin_panel_root($breadcrumbs);
-    $breadcrumbs->push(__('breadcrumbs.managers'));
+    $breadcrumbs->push(__('breadcrumbs.teams'), route('admin.teams.index'));
+    $breadcrumbs->push(atlas_breadcrumb_resource_action('breadcrumbs.teams_edit', $team), route('admin.teams.edit', ['team' => $team]));
+    $breadcrumbs->push(__('breadcrumbs.team_structure'));
 });
 
-Breadcrumbs::for('admin.managers.create', function (Generator $breadcrumbs): void {
-    atlas_admin_panel_root($breadcrumbs);
-    $breadcrumbs->push(__('breadcrumbs.managers'), route('admin.managers.index'));
-    $breadcrumbs->push(__('breadcrumbs.managers_create'));
-});
-
-Breadcrumbs::for('admin.managers.edit', function (Generator $breadcrumbs, string $user): void {
-    atlas_admin_panel_root($breadcrumbs);
-    $breadcrumbs->push(__('breadcrumbs.managers'), route('admin.managers.index'));
-    $breadcrumbs->push(atlas_breadcrumb_resource_action('breadcrumbs.managers_edit', $user));
-});
+Breadcrumbs::for('admin.teams.structure.relationships.store', fn (Generator $breadcrumbs, string $team) => $breadcrumbs->parent('admin.teams.structure.show', $team));
+Breadcrumbs::for('admin.teams.structure.head-manager.update', fn (Generator $breadcrumbs, string $team) => $breadcrumbs->parent('admin.teams.structure.show', $team));
+Breadcrumbs::for('admin.teams.structure.relationships.end', fn (Generator $breadcrumbs, string $team) => $breadcrumbs->parent('admin.teams.structure.show', $team));
 
 Breadcrumbs::for('admin.work-time.summary.index', function (Generator $breadcrumbs): void {
     atlas_admin_panel_root($breadcrumbs);

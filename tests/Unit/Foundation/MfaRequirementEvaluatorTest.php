@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Foundation;
 
-use App\Modules\Core\Identity\Application\Mfa\MfaRequirementContext;
 use App\Modules\Core\Identity\Application\Mfa\MfaRequirementEvaluator;
+use App\Modules\Core\Identity\Application\Public\DTOs\MfaRequirementContext;
 use Illuminate\Support\Facades\Config;
 use Tests\TestCase;
 

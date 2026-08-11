@@ -19,6 +19,10 @@ The module provides:
 - secret-safe audit and operational visibility;
 - an Admin status and test-connection screen.
 
+Integrations registers a module-owned `ModuleOperationalDiagnostics` contributor for Admin System Status open-circuit and recent failed synchronization-run signals.
+
+Integrations runtime audit uses Identity and Teams lookup contracts for actor/team public-ID resolution. The Integrations module may query its own persistence tables for connections, credentials, idempotency, synchronization runs, external ID mappings, and circuit breakers, but cross-module actor/team display and audit context comes from owner-owned contracts.
+
 ## API Boundaries
 
 First-party browser traffic continues to use Laravel session authentication, CSRF protection, active-team context, permissions, Admin mode where required, and ModuleGate.
@@ -124,7 +128,7 @@ Every concrete integration must document the source of truth per synchronized da
 ---
 # Phase 28 foundation repair target
 
-Current state: Integrations owns adapter, retry, idempotency, circuit-breaker, credential, and status foundations, but Phase 28 tracks missing audit for connection tests, health/technical availability, environment/runtime configuration, UI copy, and table/action consistency.
+Current state: Integrations owns explicit adapters, credentials, retry/idempotency/circuit behavior, status/readiness, module gating, canonical Admin tables/actions, and secret-safe connection-test evidence for success, rejection, and failure. With no selected adapter or public API it operates in the documented empty reduced mode.
 
 Target state: Integrations audits test-connection and state changes, reports technical availability through Health/ModuleGate, keeps secrets externalized, and uses canonical UI contracts.
 

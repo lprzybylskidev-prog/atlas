@@ -13,7 +13,7 @@ export function formatEmpty(value: unknown, fallback = '-'): string {
     return isEmptyValue(value) ? fallback : String(value);
 }
 
-export function formatNumber(value: number | EmptyValue, locale = 'pl-PL', options: Intl.NumberFormatOptions = {}): string {
+export function formatNumber(value: number | EmptyValue, locale: string = intlLocale(), options: Intl.NumberFormatOptions = {}): string {
     if (isEmptyValue(value)) {
         return formatEmpty(value);
     }
@@ -21,7 +21,7 @@ export function formatNumber(value: number | EmptyValue, locale = 'pl-PL', optio
     return new Intl.NumberFormat(locale, options).format(value);
 }
 
-export function formatPercent(value: number | EmptyValue, locale = 'pl-PL'): string {
+export function formatPercent(value: number | EmptyValue, locale: string = intlLocale()): string {
     if (isEmptyValue(value)) {
         return formatEmpty(value);
     }
@@ -29,7 +29,7 @@ export function formatPercent(value: number | EmptyValue, locale = 'pl-PL'): str
     return new Intl.NumberFormat(locale, { maximumFractionDigits: 2, style: 'percent' }).format(value);
 }
 
-export function formatFileSize(value: number | EmptyValue, locale = 'pl-PL'): string {
+export function formatFileSize(value: number | EmptyValue, locale: string = intlLocale()): string {
     if (isEmptyValue(value)) {
         return formatEmpty(value);
     }
@@ -56,7 +56,7 @@ export function majorToMinor(amountMajor: number): number {
     return Math.round(amountMajor * 100);
 }
 
-export function formatMoney(value: MoneyValue | EmptyValue, locale = 'pl-PL'): string {
+export function formatMoney(value: MoneyValue | EmptyValue, locale: string = intlLocale()): string {
     if (isEmptyValue(value)) {
         return formatEmpty(value);
     }
@@ -67,7 +67,7 @@ export function formatMoney(value: MoneyValue | EmptyValue, locale = 'pl-PL'): s
     }).format(minorToMajor(value.amountMinor));
 }
 
-export function formatDate(value: string | Date | EmptyValue, locale = 'pl-PL'): string {
+export function formatDate(value: string | Date | EmptyValue, locale: string = intlLocale()): string {
     if (isEmptyValue(value)) {
         return formatEmpty(value);
     }
@@ -75,7 +75,7 @@ export function formatDate(value: string | Date | EmptyValue, locale = 'pl-PL'):
     return new Intl.DateTimeFormat(locale, { dateStyle: 'medium' }).format(new Date(value));
 }
 
-export function formatTime(value: string | Date | EmptyValue, locale = 'pl-PL'): string {
+export function formatTime(value: string | Date | EmptyValue, locale: string = intlLocale()): string {
     if (isEmptyValue(value)) {
         return formatEmpty(value);
     }
@@ -83,7 +83,7 @@ export function formatTime(value: string | Date | EmptyValue, locale = 'pl-PL'):
     return new Intl.DateTimeFormat(locale, { timeStyle: 'short' }).format(new Date(value));
 }
 
-export function formatDateTime(value: string | Date | EmptyValue, locale = 'pl-PL'): string {
+export function formatDateTime(value: string | Date | EmptyValue, locale: string = intlLocale()): string {
     if (isEmptyValue(value)) {
         return formatEmpty(value);
     }
@@ -91,7 +91,7 @@ export function formatDateTime(value: string | Date | EmptyValue, locale = 'pl-P
     return new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value));
 }
 
-export function formatTimestamp(value: string | Date | EmptyValue, locale = 'pl'): string {
+export function formatTimestamp(value: string | Date | EmptyValue, locale: string = getEffectiveLocale()): string {
     if (isEmptyValue(value)) {
         return formatEmpty(value);
     }
@@ -126,3 +126,18 @@ export function formatStatus(value: string | EmptyValue): string {
         .map((part) => `${part.charAt(0).toUpperCase()}${part.slice(1)}`)
         .join(' ');
 }
+
+export function formatDuration(totalSeconds: number | EmptyValue, locale: string = intlLocale()): string {
+    if (isEmptyValue(totalSeconds)) {
+        return formatEmpty(totalSeconds);
+    }
+
+    const seconds = Math.max(0, Math.floor(totalSeconds));
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const remainder = seconds % 60;
+    const number = new Intl.NumberFormat(locale, { minimumIntegerDigits: 2, useGrouping: false });
+
+    return `${number.format(hours)}:${number.format(minutes)}:${number.format(remainder)}`;
+}
+import { getEffectiveLocale, intlLocale } from '../Localization/effectiveLocale';

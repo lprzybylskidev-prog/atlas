@@ -40,6 +40,7 @@ import {
 import AppLayout from '../../../Layouts/AppLayout.vue';
 import { useTranslator } from '../../../Localization/translator';
 import { formatTimestamp } from '../../../Utils/formatters';
+import { moduleLabel as resolveModuleLabel } from '../../../Utils/moduleLabels';
 import type { DataTableAction, DataTableColumn, DataTableExportMeta } from '../../../Types/data-table';
 
 interface ModuleRow extends Record<string, unknown> {
@@ -112,6 +113,8 @@ const props = defineProps<{
 }>();
 
 const { locale, t } = useTranslator();
+const moduleDisplayName = computed(() => resolveModuleLabel(props.module.moduleKey, t));
+const pageTitle = computed(() => t('pages.admin.modules.show_title', { module: moduleDisplayName.value }));
 const canEditGlobal = computed(() => !props.module.readOnly && props.module.supportsGlobalActivation);
 const canEditTeam = computed(() => !props.module.readOnly && props.module.supportsTeamActivation);
 const canEditModule = computed(() => canEditGlobal.value || canEditTeam.value);
@@ -280,8 +283,8 @@ function statusTone(value: boolean): MetricTone {
 </script>
 
 <template>
-    <Head :title="t('pages.admin.modules.show_title', { module: module.moduleKey })" />
-    <AppLayout mode="admin" :title="t('pages.admin.modules.show_title', { module: module.moduleKey })" :title-icon="IconPuzzle">
+    <Head :title="pageTitle" />
+    <AppLayout mode="admin" :title="pageTitle" :title-icon="IconPuzzle">
         <PageStack>
             <div class="flex justify-start">
                 <ActionLink href="/admin/modules" :icon="IconArrowLeft">
@@ -289,7 +292,7 @@ function statusTone(value: boolean): MetricTone {
                 </ActionLink>
             </div>
 
-            <SurfaceCard :title="module.moduleKey" :subtitle="moduleCategoryLabel(module.category)" :icon="IconPuzzle" tone="teal">
+            <SurfaceCard :title="moduleDisplayName" :subtitle="moduleCategoryLabel(module.category)" :icon="IconPuzzle" tone="teal">
                 <div class="mb-4 flex flex-wrap gap-2">
                     <StatusBadge
                         :label="canEditModule ? t('pages.admin.modules.configurable') : t('pages.admin.modules.noneditable')"

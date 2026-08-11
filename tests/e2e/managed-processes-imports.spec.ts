@@ -4,7 +4,7 @@ import { expect, test } from './support/test';
 
 async function signIn(page: Page): Promise<void> {
     await page.goto('/login');
-    await page.getByLabel('Email').fill('admin@example.test');
+    await page.getByLabel(/Adres e-mail|Email address/).fill('admin@example.test');
     await page.getByLabel(/Hasło|Password/).fill('password');
     await page.getByRole('button', { name: /Zaloguj|Log in/ }).click();
 
@@ -35,8 +35,10 @@ test.describe('Managed processes and imports Admin UI', () => {
             await confirmAdministratorAccess(page);
         }
 
+        const sections = page.getByLabel(/Sekcje procesów zarządzanych|Managed process sections/);
+
         await expect(page.getByRole('heading', { name: /Procesy|Managed processes/ })).toBeVisible();
-        await expect(page.getByRole('link', { name: /Uruchomienia|Runs/ })).toHaveAttribute('aria-current', 'page');
+        await expect(sections.getByRole('link', { name: /Uruchomienia|Runs/ })).toHaveAttribute('aria-current', 'page');
         await expect(page.getByText(/Filtry uruchomień|Run filters/)).toBeVisible();
         await page.getByLabel(/Rozpoczęto od|Started from/).click();
         await expect(page.getByRole('button', { name: /Poprzedni miesiąc|Previous month/ })).toBeVisible();
@@ -55,12 +57,12 @@ test.describe('Managed processes and imports Admin UI', () => {
 
         await page.goto('/admin/managed-processes/definitions');
         await expect(page.getByRole('heading', { name: /Definicje procesów|Process definitions/ })).toBeVisible();
-        await expect(page.getByRole('link', { name: /Definicje|Definitions/ })).toHaveAttribute('aria-current', 'page');
+        await expect(sections.getByRole('link', { name: /Definicje|Definitions/ })).toHaveAttribute('aria-current', 'page');
         await expect(page.getByText(/Filtry definicji|Definition filters/)).toBeVisible();
 
-        await page.getByRole('link', { name: /Harmonogramy|Schedules/ }).click();
+        await sections.getByRole('link', { name: /Harmonogramy|Schedules/ }).click();
         await expect(page.getByRole('heading', { name: /Harmonogramy|Schedules/ })).toBeVisible();
-        await expect(page.getByRole('link', { name: /Harmonogramy|Schedules/ })).toHaveAttribute('aria-current', 'page');
+        await expect(sections.getByRole('link', { name: /Harmonogramy|Schedules/ })).toHaveAttribute('aria-current', 'page');
         await expect(page.getByText(/Utwórz harmonogram|Create schedule/)).toBeVisible();
         await page.getByRole('link', { name: /Utwórz harmonogram|Create schedule/ }).click();
         await expect(page.getByRole('heading', { name: /Utwórz harmonogram|Create schedule/, level: 1 })).toBeVisible();

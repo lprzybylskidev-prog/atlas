@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Modules\Core\Users\Application;
 
-use App\Modules\Core\Audit\Application\Public\Enums\SecurityAuditCategory;
 use App\Modules\Core\Identity\Application\Public\Contracts\SecurityAuditRecorder;
 use App\Modules\Core\Identity\Application\Public\Contracts\UserCredentialAccountStatusManager;
 use App\Modules\Core\Identity\Application\Public\DTOs\SecurityAuditEvent;
@@ -12,6 +11,7 @@ use App\Modules\Core\Users\Application\Commands\UnlockUserAccountCommand;
 use App\Modules\Core\Users\Application\DTOs\UserAccountStatus;
 use App\Modules\Core\Users\Application\Exceptions\InvalidUserAccountUnlock;
 use App\Modules\Core\Users\Application\Exceptions\UserAccountNotFound;
+use App\Shared\Application\Audit\Enums\SecurityAuditCategory;
 
 final readonly class UnlockUserAccount
 {

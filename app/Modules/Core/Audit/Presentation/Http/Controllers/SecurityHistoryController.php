@@ -4,10 +4,11 @@ declare(strict_types=1);
 
 namespace App\Modules\Core\Audit\Presentation\Http\Controllers;
 
-use App\Modules\Core\Audit\Application\Public\Persistence\AuditDatabaseTable;
-use App\Modules\Core\Identity\Application\Public\Persistence\IdentityDatabaseTable;
-use App\Shared\Application\Tables\AdminTableDefinitions;
+use App\Modules\Core\Audit\Infrastructure\Persistence\TableNames\AuditDatabaseTable;
+use App\Modules\Core\Identity\Application\Public\Contracts\UserLookup;
+use App\Modules\Core\Identity\Application\Public\DTOs\UserDisplaySummary;
 use App\Shared\Application\Tables\ArrayTableProcessor;
+use App\Shared\Application\Tables\RegisteredTables;
 use App\Shared\Application\Tables\TableRequestContext;
 use App\Shared\Application\Tables\TableSavedViewService;
 use App\Shared\Application\Tables\TableState;
@@ -24,11 +25,12 @@ final readonly class SecurityHistoryController
         private ArrayTableProcessor $tables,
         private TableRequestContext $context,
         private TableSavedViewService $views,
+        private UserLookup $users,
     ) {}
 
     public function __invoke(Request $request): Response
     {
-        $definition = AdminTableDefinitions::get(AdminTableDefinitions::SECURITY_HISTORY);
+        $definition = RegisteredTables::get(RegisteredTables::SECURITY_HISTORY);
         $state = TableState::fromRequest($request, $definition);
         [$userId, $teamId] = $this->context->userTeam($request);
         $filters = $this->filters($request);
@@ -104,7 +106,7 @@ final readonly class SecurityHistoryController
 
         return Inertia::render('Admin/Audit/SecurityHistory', [
             'events' => $result->rows,
-            'summary' => $this->summary($rows),
+            'summary' => $this->summary($result->filteredRows),
             'table' => $table,
             'filters' => $filters,
             'filterOptions' => [
@@ -117,7 +119,7 @@ final readonly class SecurityHistoryController
 
     /**
      * @param  list<object>  $records
-     * @return array<string, array{name: string, email: string}>
+     * @return array<string, UserDisplaySummary>
      */
     private function usersForEvents(array $records): array
     {
@@ -137,29 +139,11 @@ final readonly class SecurityHistoryController
             return [];
         }
 
-        $users = [];
-
-        foreach (DB::table(IdentityDatabaseTable::USERS)
-            ->whereIn('public_id', array_keys($publicIds))
-            ->get(['public_id', 'name', 'email'])
-            ->all() as $user) {
-            $publicId = self::stringValue($user, 'public_id');
-
-            if ($publicId === '') {
-                continue;
-            }
-
-            $users[$publicId] = [
-                'name' => self::stringValue($user, 'name'),
-                'email' => self::stringValue($user, 'email'),
-            ];
-        }
-
-        return $users;
+        return $this->users->displaySummariesForPublicIds(array_keys($publicIds));
     }
 
     /**
-     * @param  array<string, array{name: string, email: string}>  $users
+     * @param  array<string, UserDisplaySummary>  $users
      * @return array{publicId: string, name: string, email: string, context: string}
      */
     private function eventUser(object $record, array $users): array
@@ -180,8 +164,8 @@ final readonly class SecurityHistoryController
 
             return [
                 'publicId' => $publicId,
-                'name' => $user === null ? $publicId : $user['name'],
-                'email' => $user === null ? '' : $user['email'],
+                'name' => $user === null ? $publicId : $user->name,
+                'email' => $user === null ? '' : $user->email,
                 'context' => $context,
             ];
         }
@@ -268,19 +252,10 @@ final readonly class SecurityHistoryController
     {
         $options = [];
 
-        foreach (DB::table(IdentityDatabaseTable::USERS)
-            ->orderBy('name')
-            ->orderBy('email')
-            ->get(['public_id', 'name', 'email'])
-            ->all() as $user) {
-            $publicId = self::stringValue($user, 'public_id');
-
-            if ($publicId === '') {
-                continue;
-            }
-
-            $name = self::stringValue($user, 'name');
-            $email = self::stringValue($user, 'email');
+        foreach ($this->users->allDisplaySummaries() as $user) {
+            $publicId = $user->publicId;
+            $name = $user->name;
+            $email = $user->email;
             $label = trim($name) !== '' ? $name : $publicId;
 
             if (trim($email) !== '') {

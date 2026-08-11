@@ -25,9 +25,7 @@ final class NotificationsModule implements ModuleDefinition
     {
         return [
             new ModuleKey('identity'),
-            new ModuleKey('authorization'),
             new ModuleKey('teams'),
-            new ModuleKey('settings'),
         ];
     }
 
@@ -51,17 +49,7 @@ final class NotificationsModule implements ModuleDefinition
         return false;
     }
 
-    public function integrations(): array
-    {
-        return [];
-    }
-
     public function healthChecks(): array
-    {
-        return [];
-    }
-
-    public function frontendEntrypoints(): array
     {
         return [];
     }

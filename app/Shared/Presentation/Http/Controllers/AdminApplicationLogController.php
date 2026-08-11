@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Shared\Presentation\Http\Controllers;
 
-use App\Shared\Application\Tables\AdminTableDefinitions;
+use App\Shared\Application\Tables\RegisteredTables;
 use App\Shared\Infrastructure\Observability\ApplicationLogReader;
 use App\Shared\Presentation\Support\AdminDataTableExportMeta;
 use Illuminate\Http\Request;
@@ -30,10 +30,11 @@ final readonly class AdminApplicationLogController
             'logs' => $entries,
             'summary' => [
                 ...$log['summary'],
+                'rows' => count($entries),
                 'visible' => count($entries),
-                'errors' => count(array_filter($log['entries'], static fn (array $entry): bool => in_array($entry['level'] ?? '', ['critical', 'error', 'emergency', 'alert'], true))),
-                'warnings' => count(array_filter($log['entries'], static fn (array $entry): bool => ($entry['level'] ?? '') === 'warning')),
-                'withDetails' => count(array_filter($log['entries'], static fn (array $entry): bool => trim((string) ($entry['details'] ?? '')) !== '')),
+                'errors' => count(array_filter($entries, static fn (array $entry): bool => in_array($entry['level'] ?? '', ['critical', 'error', 'emergency', 'alert'], true))),
+                'warnings' => count(array_filter($entries, static fn (array $entry): bool => ($entry['level'] ?? '') === 'warning')),
+                'withDetails' => count(array_filter($entries, static fn (array $entry): bool => trim((string) ($entry['details'] ?? '')) !== '')),
                 'files' => count($logFiles),
             ],
             'filters' => $filters,
@@ -41,7 +42,7 @@ final readonly class AdminApplicationLogController
                 ...$this->filterOptions($log['entries']),
                 'files' => $logFiles,
             ],
-            'tableKey' => AdminTableDefinitions::APPLICATION_LOGS,
+            'tableKey' => RegisteredTables::APPLICATION_LOGS,
             'exports' => AdminDataTableExportMeta::defaults(),
         ]);
     }

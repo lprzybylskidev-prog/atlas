@@ -177,6 +177,7 @@ return [
 
     'custom' => [
         'team_assignments' => [
+            'active_structure' => 'Przed odebraniem dostępu do zespołu zakończ aktywne relacje służbowe i przekaż rolę głównego managera.',
             'copy_source_team' => 'Wybrany użytkownik źródłowy musi mieć aktywny dostęp do wskazanego zespołu.',
             'preset_team' => 'Wybrany preset musi należeć do wskazanego zespołu.',
         ],
@@ -185,6 +186,9 @@ return [
         ],
         'session_limits' => [
             'inactivity_not_greater_than_maximum' => 'Czas bezczynności do wylogowania nie może być dłuższy niż maksymalny czas trwania sesji.',
+        ],
+        'authorization_assignment' => [
+            'stale' => 'To przypisanie uprawnień zmieniło się po otwarciu strony. Odśwież stronę i sprawdź aktualne wartości przed ponownym zapisem.',
         ],
     ],
 

@@ -2,27 +2,30 @@
 
 declare(strict_types=1);
 
-use App\Http\Middleware\ApplyImpersonationContext;
 use App\Http\Middleware\ApplySecurityHeaders;
 use App\Http\Middleware\AttachRequestId;
-use App\Http\Middleware\BlockProhibitedImpersonationOperations;
-use App\Http\Middleware\EnforceUserSessionSecurity;
 use App\Http\Middleware\EnsureActiveTeamSelected;
 use App\Http\Middleware\HandleInertiaRequests;
-use App\Http\Middleware\RequireAdministrativeMode;
-use App\Http\Middleware\RequireHighRiskAdministrativeAuthorization;
-use App\Http\Middleware\RequireImpersonationExternalEffectAcknowledgement;
-use App\Http\Middleware\SetLocaleFromSession;
 use App\Modules\Core\Authorization\Presentation\Http\Middleware\AuthorizeRoutePermission;
 use App\Modules\Core\Files\Presentation\Console\PruneTemporaryFilesCommand;
+use App\Modules\Core\Identity\Presentation\Http\Middleware\ApplyImpersonationContext;
+use App\Modules\Core\Identity\Presentation\Http\Middleware\BlockProhibitedImpersonationOperations;
+use App\Modules\Core\Identity\Presentation\Http\Middleware\EnforceConfiguredMfaRequirement;
+use App\Modules\Core\Identity\Presentation\Http\Middleware\EnforceUserSessionSecurity;
+use App\Modules\Core\Identity\Presentation\Http\Middleware\RequireAdministrativeMode;
+use App\Modules\Core\Identity\Presentation\Http\Middleware\RequireHighRiskAdministrativeAuthorization;
+use App\Modules\Core\Identity\Presentation\Http\Middleware\RequireImpersonationExternalEffectAcknowledgement;
 use App\Modules\Core\Notifications\Presentation\Console\PruneNotificationsCommand;
 use App\Modules\Core\Notifications\Presentation\Console\PublishRealtimeEventCommand;
 use App\Modules\Core\Notifications\Presentation\Console\SendNotificationCommand;
+use App\Modules\Core\Settings\Presentation\Http\Middleware\SetLocaleFromSession;
 use App\Modules\Optional\Search\Presentation\Console\RebuildSearchIndexesCommand;
 use App\Shared\Infrastructure\Console\ResetDemoEnvironment;
 use App\Shared\Presentation\Console\ApplyDueModuleActivationSchedules;
 use App\Shared\Presentation\Console\DispatchOperationalAlertsCommand;
 use App\Shared\Presentation\Console\RecordSchedulerHeartbeatCommand;
+use App\Shared\Presentation\Console\RuntimeQueueSmokeCommand;
+use App\Shared\Presentation\Console\SchedulerStatusCommand;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -48,6 +51,8 @@ return Application::configure(basePath: dirname(__DIR__))
         PruneNotificationsCommand::class,
         PublishRealtimeEventCommand::class,
         RecordSchedulerHeartbeatCommand::class,
+        SchedulerStatusCommand::class,
+        RuntimeQueueSmokeCommand::class,
         RebuildSearchIndexesCommand::class,
         ResetDemoEnvironment::class,
         SendNotificationCommand::class,
@@ -72,6 +77,7 @@ return Application::configure(basePath: dirname(__DIR__))
             EnforceUserSessionSecurity::class,
             ApplyImpersonationContext::class,
             EnsureActiveTeamSelected::class,
+            EnforceConfiguredMfaRequirement::class,
             BlockProhibitedImpersonationOperations::class,
             HandleInertiaRequests::class,
         ]);

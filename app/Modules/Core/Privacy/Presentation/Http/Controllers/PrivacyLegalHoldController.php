@@ -4,17 +4,20 @@ declare(strict_types=1);
 
 namespace App\Modules\Core\Privacy\Presentation\Http\Controllers;
 
-use App\Modules\Core\Audit\Application\Public\Contracts\AuditRecorder;
-use App\Modules\Core\Audit\Application\Public\DTOs\AuditEvent;
-use App\Modules\Core\Audit\Application\Public\Enums\SecurityAuditCategory;
-use App\Modules\Core\Identity\Application\Public\Persistence\IdentityDatabaseTable;
-use App\Modules\Core\Privacy\Application\Public\Persistence\PrivacyDatabaseTable;
-use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
-use App\Shared\Application\Tables\AdminTableDefinitions;
+use App\Modules\Core\Identity\Application\Public\Contracts\UserLookup;
+use App\Modules\Core\Privacy\Application\Permissions\PrivacyPermissionCatalog;
+use App\Modules\Core\Privacy\Infrastructure\Persistence\TableNames\PrivacyDatabaseTable;
+use App\Shared\Application\Audit\Contracts\AuditRecorder;
+use App\Shared\Application\Audit\DTOs\AuditEvent;
+use App\Shared\Application\Audit\Enums\SecurityAuditCategory;
+use App\Shared\Application\Authorization\Contracts\EffectivePermissionChecker;
+use App\Shared\Application\Authorization\DTOs\EffectivePermissionRequest;
 use App\Shared\Application\Tables\ArrayTableProcessor;
+use App\Shared\Application\Tables\RegisteredTables;
 use App\Shared\Application\Tables\TableRequestContext;
 use App\Shared\Application\Tables\TableSavedViewService;
 use App\Shared\Application\Tables\TableState;
+use App\Shared\Application\Teams\Contracts\TeamLookup;
 use App\Shared\Presentation\Support\FlashMessage;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -23,6 +26,7 @@ use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
+use stdClass;
 
 final readonly class PrivacyLegalHoldController
 {
@@ -31,36 +35,40 @@ final readonly class PrivacyLegalHoldController
         private TableRequestContext $context,
         private TableSavedViewService $views,
         private AuditRecorder $audit,
+        private UserLookup $users,
+        private TeamLookup $teams,
+        private EffectivePermissionChecker $permissions,
     ) {}
 
     public function index(Request $request): Response
     {
-        $definition = AdminTableDefinitions::get(AdminTableDefinitions::PRIVACY_LEGAL_HOLDS);
+        $definition = RegisteredTables::get(RegisteredTables::PRIVACY_LEGAL_HOLDS);
         $state = TableState::fromRequest($request, $definition);
         [$userId, $teamId] = $this->context->userTeam($request);
         $rows = $this->rows();
         $filters = $this->filters($request, $rows);
         $filteredRows = $this->filteredRows($rows, $filters);
         $result = $this->tables->process($filteredRows, $definition, $state)
-            ->withSavedViews($this->views->listFor(AdminTableDefinitions::PRIVACY_LEGAL_HOLDS, $userId, $teamId));
-        $table = $result->tableMeta(AdminTableDefinitions::PRIVACY_LEGAL_HOLDS);
+            ->withSavedViews($this->views->listFor(RegisteredTables::PRIVACY_LEGAL_HOLDS, $userId, $teamId));
+        $table = $result->tableMeta(RegisteredTables::PRIVACY_LEGAL_HOLDS);
         $table['state']['filters'] = $filters;
 
         return Inertia::render('Admin/PrivacyRetention/LegalHolds', [
             'holds' => $result->rows,
             'summary' => [
-                'total' => count($rows),
+                'total' => count($result->filteredRows),
                 'visible' => $result->total,
-                'active' => count(array_filter($rows, static fn (array $row): bool => ($row['status'] ?? null) === 'active')),
-                'expired' => count(array_filter($rows, static fn (array $row): bool => ($row['status'] ?? null) === 'expired')),
-                'released' => count(array_filter($rows, static fn (array $row): bool => ($row['status'] ?? null) === 'released')),
-                'withExpiry' => count(array_filter($rows, static fn (array $row): bool => ($row['expiresOn'] ?? '') !== '')),
+                'active' => count(array_filter($result->filteredRows, static fn (array $row): bool => ($row['status'] ?? null) === 'active')),
+                'expired' => count(array_filter($result->filteredRows, static fn (array $row): bool => ($row['status'] ?? null) === 'expired')),
+                'released' => count(array_filter($result->filteredRows, static fn (array $row): bool => ($row['status'] ?? null) === 'released')),
+                'withExpiry' => count(array_filter($result->filteredRows, static fn (array $row): bool => ($row['expiresOn'] ?? '') !== '')),
             ],
             'filterOptions' => [
                 'subjectTypes' => $this->uniqueValues($rows, 'subjectType'),
                 'teams' => $this->uniqueValues($rows, 'teamPublicId'),
             ],
             'table' => $table,
+            'canRelease' => $this->canRelease($request),
         ]);
     }
 
@@ -139,14 +147,112 @@ final readonly class PrivacyLegalHoldController
             ->with('flash.messages', [FlashMessage::success('flash.privacy.legal_hold_created')]);
     }
 
+    public function release(Request $request, string $hold): RedirectResponse
+    {
+        $validated = $request->validate([
+            'reason' => ['required', 'string', 'min:12', 'max:2000'],
+        ], [], [
+            'reason' => __('validation.attributes.reason'),
+        ]);
+        $reason = $this->stringValue($this->arrayValue($validated, 'reason'));
+        [$userId, $teamId, $actorPublicId] = $this->context->userTeam($request);
+        $teamPublicId = $request->hasSession() ? $request->session()->get('active_team_public_id') : null;
+
+        $release = DB::transaction(function () use ($hold, $reason, $userId, $teamId, $actorPublicId, $teamPublicId): string {
+            $record = DB::table(PrivacyDatabaseTable::LEGAL_HOLDS)
+                ->where('public_id', $hold)
+                ->where('team_id', $teamId)
+                ->lockForUpdate()
+                ->first();
+
+            if ($record === null) {
+                return 'not_found';
+            }
+
+            if ($record->released_at !== null) {
+                return 'already_released';
+            }
+
+            DB::table(PrivacyDatabaseTable::LEGAL_HOLDS)
+                ->where('id', $record->id)
+                ->update([
+                    'released_at' => now(),
+                    'released_by_user_id' => $userId,
+                    'release_reason' => $reason,
+                    'updated_at' => now(),
+                ]);
+
+            $subjectType = $this->stringValue($record->subject_type ?? 'subject');
+            $subjectIdentifier = $this->stringValue($record->subject_identifier ?? '');
+            $this->audit->record(new AuditEvent(
+                module: 'privacy',
+                action: 'privacy.legal_hold_released',
+                result: 'succeeded',
+                source: 'ui',
+                actorPublicId: $actorPublicId,
+                targetType: $subjectType,
+                targetPublicId: Str::isUlid($subjectIdentifier) ? $subjectIdentifier : null,
+                aggregateType: 'privacy_legal_hold',
+                aggregatePublicId: $hold,
+                teamPublicId: is_string($teamPublicId) ? $teamPublicId : null,
+                reason: $reason,
+                before: ['status' => 'active'],
+                after: ['status' => 'released'],
+                metadata: [
+                    'subject_type' => $subjectType,
+                    'subject_identifier' => $subjectIdentifier,
+                ],
+                security: true,
+                securityCategory: SecurityAuditCategory::Privacy,
+            ));
+
+            return 'released';
+        });
+
+        if ($release !== 'released') {
+            $this->audit->record(new AuditEvent(
+                module: 'privacy',
+                action: 'privacy.legal_hold_released',
+                result: 'rejected',
+                source: 'ui',
+                actorPublicId: $actorPublicId,
+                aggregateType: 'privacy_legal_hold',
+                aggregatePublicId: $hold,
+                teamPublicId: is_string($teamPublicId) ? $teamPublicId : null,
+                reason: $reason,
+                metadata: ['rejection' => $release],
+                security: true,
+                securityCategory: SecurityAuditCategory::Privacy,
+            ));
+
+            abort($release === 'not_found' ? 404 : 409);
+        }
+
+        return redirect()
+            ->route('admin.privacy-retention.legal-holds.index')
+            ->with('flash.messages', [FlashMessage::success('flash.privacy.legal_hold_released')]);
+    }
+
+    private function canRelease(Request $request): bool
+    {
+        $userPublicId = data_get($request->user(), 'public_id');
+        $teamPublicId = $request->hasSession() ? $request->session()->get('active_team_public_id') : null;
+
+        return is_string($userPublicId)
+            && is_string($teamPublicId)
+            && $this->permissions->check(new EffectivePermissionRequest(
+                userPublicId: $userPublicId,
+                permission: PrivacyPermissionCatalog::LEGAL_HOLDS_RELEASE,
+                teamPublicId: $teamPublicId,
+            ))->allowed;
+    }
+
     /**
      * @return list<array<string, mixed>>
      */
     private function rows(): array
     {
-        return array_values(DB::table(PrivacyDatabaseTable::LEGAL_HOLDS.' as holds')
-            ->leftJoin(IdentityDatabaseTable::USERS.' as creators', 'creators.id', '=', 'holds.created_by_user_id')
-            ->leftJoin(TeamsDatabaseTable::TEAMS.' as teams', 'teams.id', '=', 'holds.team_id')
+        $records = DB::table(PrivacyDatabaseTable::LEGAL_HOLDS.' as holds')
             ->orderByDesc('holds.created_at')
             ->get([
                 'holds.public_id',
@@ -156,13 +262,53 @@ final readonly class PrivacyLegalHoldController
                 'holds.expires_on',
                 'holds.released_at',
                 'holds.release_reason',
+                'holds.created_by_user_id',
+                'holds.team_id',
                 'holds.created_at',
-                'creators.public_id as created_by_public_id',
-                'teams.public_id as team_public_id',
-                'teams.name as team_name',
             ])
-            ->map(fn (object $row): array => $this->row($row))
-            ->all());
+            ->all();
+
+        return array_map(fn (object $row): array => $this->row($row), $this->enrichRecords($records));
+    }
+
+    /**
+     * @param  array<int, stdClass>  $records
+     * @return list<stdClass>
+     */
+    private function enrichRecords(array $records): array
+    {
+        $records = array_values($records);
+        $userIds = [];
+        $teamIds = [];
+
+        foreach ($records as $record) {
+            $userId = $this->nullableIntValue($record->created_by_user_id ?? null);
+            $teamId = $this->nullableIntValue($record->team_id ?? null);
+
+            if ($userId !== null) {
+                $userIds[] = $userId;
+            }
+
+            if ($teamId !== null) {
+                $teamIds[] = $teamId;
+            }
+        }
+
+        $users = $this->users->displaySummariesForInternalIds(array_values(array_unique($userIds)));
+        $teams = $this->teams->summariesForInternalIds(array_values(array_unique($teamIds)));
+
+        foreach ($records as $record) {
+            $userId = $this->nullableIntValue($record->created_by_user_id ?? null);
+            $teamId = $this->nullableIntValue($record->team_id ?? null);
+            $user = $userId === null ? null : ($users[$userId] ?? null);
+            $team = $teamId === null ? null : ($teams[$teamId] ?? null);
+
+            $record->created_by_public_id = $user?->publicId;
+            $record->team_public_id = $team?->publicId;
+            $record->team_name = $team?->name;
+        }
+
+        return $records;
     }
 
     private function arrayValue(mixed $values, string $key): mixed
@@ -319,5 +465,10 @@ final readonly class PrivacyLegalHoldController
         $value = $this->stringValue($value);
 
         return $value === '' ? null : $value;
+    }
+
+    private function nullableIntValue(mixed $value): ?int
+    {
+        return is_numeric($value) ? (int) $value : null;
     }
 }

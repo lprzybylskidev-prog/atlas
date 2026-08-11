@@ -4,21 +4,20 @@ declare(strict_types=1);
 
 namespace App\Modules\Optional\FeatureFlags\Presentation\Http\Controllers;
 
-use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
 use App\Modules\Optional\FeatureFlags\Application\Contracts\FeatureFlagRegistry;
 use App\Modules\Optional\FeatureFlags\Application\Contracts\FeatureFlagStore;
-use App\Shared\Application\Tables\AdminTableDefinitions;
 use App\Shared\Application\Tables\ArrayTableProcessor;
+use App\Shared\Application\Tables\RegisteredTables;
 use App\Shared\Application\Tables\TableDefinition;
 use App\Shared\Application\Tables\TableRequestContext;
 use App\Shared\Application\Tables\TableResult;
 use App\Shared\Application\Tables\TableSavedViewService;
 use App\Shared\Application\Tables\TableState;
+use App\Shared\Application\Teams\Contracts\TeamLookup;
 use App\Shared\Presentation\Support\AdminDataTableExportMeta;
 use App\Shared\Presentation\Support\FlashMessage;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 use InvalidArgumentException;
@@ -31,6 +30,7 @@ final readonly class AdminFeatureFlagsController
         private ArrayTableProcessor $tables,
         private TableSavedViewService $views,
         private TableRequestContext $context,
+        private TeamLookup $teams,
     ) {}
 
     public function index(Request $request): Response
@@ -45,7 +45,7 @@ final readonly class AdminFeatureFlagsController
         $flagFilters = $this->flagFilters($request, $flags, $teams);
         $flagFilters['team'] = $selectedTeamPublicId ?? 'all';
         $filteredFlags = $this->filteredFlags($flags, $flagFilters);
-        $flagDefinition = AdminTableDefinitions::get(AdminTableDefinitions::FEATURE_FLAGS);
+        $flagDefinition = RegisteredTables::get(RegisteredTables::FEATURE_FLAGS);
         $flagResult = $this->tableResult($request, $flagDefinition, $filteredFlags);
         $flagTable = $flagResult->tableMeta($flagDefinition->key, AdminDataTableExportMeta::defaults());
         $flagTable['state']['filters'] = $flagFilters;
@@ -56,11 +56,11 @@ final readonly class AdminFeatureFlagsController
             'teams' => $teams,
             'selectedTeamPublicId' => $selectedTeamPublicId,
             'summary' => [
-                'registered' => count($flags),
+                'registered' => count($flagResult->filteredRows),
                 'visible' => $flagResult->total,
-                'effectiveEnabled' => count(array_filter($flags, static fn (array $flag): bool => ($flag['effectiveEnabled'] ?? false) === true)),
-                'globalValues' => count(array_filter($flags, static fn (array $flag): bool => array_key_exists('globalEnabled', $flag) && $flag['globalEnabled'] !== null)),
-                'teamOverrides' => count(array_filter($flags, static fn (array $flag): bool => array_key_exists('teamEnabled', $flag) && $flag['teamEnabled'] !== null)),
+                'effectiveEnabled' => count(array_filter($flagResult->filteredRows, static fn (array $flag): bool => ($flag['effectiveEnabled'] ?? false) === true)),
+                'globalValues' => count(array_filter($flagResult->filteredRows, static fn (array $flag): bool => array_key_exists('globalEnabled', $flag) && $flag['globalEnabled'] !== null)),
+                'teamOverrides' => count(array_filter($flagResult->filteredRows, static fn (array $flag): bool => array_key_exists('teamEnabled', $flag) && $flag['teamEnabled'] !== null)),
                 'historyRows' => count($history),
             ],
             'filterOptions' => $this->filterOptions($flags, $teams),
@@ -172,17 +172,12 @@ final readonly class AdminFeatureFlagsController
      */
     private function teams(): array
     {
-        $teams = DB::table(TeamsDatabaseTable::TEAMS)
-            ->where('is_active', true)
-            ->orderBy('name')
-            ->get(['public_id', 'name'])
-            ->map(fn (object $team): array => [
-                'publicId' => $this->scalarString($team->public_id ?? null),
-                'name' => $this->scalarString($team->name ?? null),
-            ])
-            ->all();
+        $teams = array_map(static fn ($team): array => [
+            'publicId' => $team->publicId,
+            'name' => $team->name,
+        ], $this->teams->allSummaries());
 
-        return array_values($teams);
+        return $teams;
     }
 
     /**
@@ -355,7 +350,7 @@ final readonly class AdminFeatureFlagsController
 
     private function teamExists(string $teamPublicId): bool
     {
-        return DB::table(TeamsDatabaseTable::TEAMS)->where('public_id', $teamPublicId)->exists();
+        return $this->teams->activeInternalIdForPublicId($teamPublicId) !== null;
     }
 
     private function redirectToIndex(mixed $teamPublicId): RedirectResponse
@@ -384,10 +379,5 @@ final readonly class AdminFeatureFlagsController
         $value = $request->input($key);
 
         return is_string($value) && $value !== '' ? $value : null;
-    }
-
-    private function scalarString(mixed $value): string
-    {
-        return is_scalar($value) ? (string) $value : '';
     }
 }

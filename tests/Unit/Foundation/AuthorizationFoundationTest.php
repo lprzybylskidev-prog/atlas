@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace Tests\Unit\Foundation;
 
 use App\Modules\Core\Authorization\Application\Permissions\PermissionCatalogRegistry;
-use App\Modules\Core\Authorization\Application\Public\Contracts\EffectivePermissionChecker;
-use App\Modules\Core\Authorization\Application\Public\DTOs\EffectivePermissionRequest;
 use App\Modules\Core\Authorization\Infrastructure\Persistence\SpatieEffectivePermissionChecker;
 use App\Modules\Core\Teams\Application\Permissions\TeamPermissionCatalog;
 use App\Modules\Core\Users\Application\Permissions\UserPermissionCatalog;
+use App\Shared\Application\Authorization\Contracts\EffectivePermissionChecker;
+use App\Shared\Application\Authorization\DTOs\EffectivePermissionRequest;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Route;
 use RecursiveDirectoryIterator;
@@ -114,6 +114,11 @@ final class AuthorizationFoundationTest extends TestCase
             'team.select.store',
             'team.switch',
             'theme.update',
+            'table-views.store',
+            'table-views.update',
+            'table-views.destroy',
+            'table-views.copy',
+            'table-views.default',
             'users.profile.notification-emails.verify',
         ];
 
@@ -136,5 +141,29 @@ final class AuthorizationFoundationTest extends TestCase
                 sprintf('Protected route [%s] must require the route-name permission middleware.', $name),
             );
         }
+    }
+
+    public function test_legacy_separate_manager_administration_area_cannot_return(): void
+    {
+        $basePath = dirname(__DIR__, 3);
+        $roots = [$basePath.'/app', $basePath.'/resources/js', $basePath.'/routes'];
+
+        foreach ($roots as $root) {
+            $iterator = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($root));
+
+            foreach ($iterator as $candidate) {
+                if (! $candidate instanceof SplFileInfo || ! $candidate->isFile() || ! in_array($candidate->getExtension(), ['php', 'ts', 'vue'], true)) {
+                    continue;
+                }
+
+                $contents = file_get_contents($candidate->getPathname());
+                self::assertIsString($contents);
+                self::assertStringNotContainsString('/admin/managers', $contents, $candidate->getPathname());
+                self::assertStringNotContainsString('admin.managers.', $contents, $candidate->getPathname());
+                self::assertStringNotContainsString('Admin/Managers', $contents, $candidate->getPathname());
+            }
+        }
+
+        self::assertDirectoryDoesNotExist($basePath.'/resources/js/Pages/Admin/Managers');
     }
 }

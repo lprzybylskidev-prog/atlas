@@ -7,8 +7,8 @@ namespace App\Modules\Optional\TimeTracking\Presentation\Http\Controllers;
 use App\Modules\Optional\TimeTracking\Application\Permissions\TimeTrackingPermissionCatalog;
 use App\Modules\Optional\TimeTracking\Application\TimeTrackingModuleAccess;
 use App\Modules\Optional\TimeTracking\Application\UserTimeReportService;
-use App\Shared\Application\Tables\AdminTableDefinitions;
 use App\Shared\Application\Tables\ArrayTableProcessor;
+use App\Shared\Application\Tables\RegisteredTables;
 use App\Shared\Application\Tables\TableRequestContext;
 use App\Shared\Application\Tables\TableSavedViewService;
 use App\Shared\Application\Tables\TableState;
@@ -54,20 +54,20 @@ final readonly class AdminTimeTrackingOperationsController
 
     private function render(Request $request, string $section, string $permission): Response
     {
-        $dailyDefinition = AdminTableDefinitions::get(AdminTableDefinitions::TIME_TRACKING_ADMIN_OPERATIONS_DAILY);
-        $otherWorkDefinition = AdminTableDefinitions::get(AdminTableDefinitions::TIME_TRACKING_ADMIN_OPERATIONS_OTHER_WORK);
-        $workSessionsDefinition = AdminTableDefinitions::get(AdminTableDefinitions::TIME_TRACKING_ADMIN_OPERATIONS_WORK_SESSIONS);
-        $breaksDefinition = AdminTableDefinitions::get(AdminTableDefinitions::TIME_TRACKING_ADMIN_OPERATIONS_BREAKS);
-        $correctionsDefinition = AdminTableDefinitions::get(AdminTableDefinitions::TIME_TRACKING_ADMIN_OPERATIONS_CORRECTIONS);
-        $dailyState = TableState::fromRequest($request, $dailyDefinition);
-        $otherWorkState = TableState::fromPayload([], $otherWorkDefinition);
-        $workSessionsState = TableState::fromPayload([], $workSessionsDefinition);
-        $breaksState = TableState::fromPayload([], $breaksDefinition);
-        $correctionsState = TableState::fromPayload([], $correctionsDefinition);
+        $dailyDefinition = RegisteredTables::get(RegisteredTables::TIME_TRACKING_ADMIN_OPERATIONS_DAILY);
+        $otherWorkDefinition = RegisteredTables::get(RegisteredTables::TIME_TRACKING_ADMIN_OPERATIONS_OTHER_WORK);
+        $workSessionsDefinition = RegisteredTables::get(RegisteredTables::TIME_TRACKING_ADMIN_OPERATIONS_WORK_SESSIONS);
+        $breaksDefinition = RegisteredTables::get(RegisteredTables::TIME_TRACKING_ADMIN_OPERATIONS_BREAKS);
+        $correctionsDefinition = RegisteredTables::get(RegisteredTables::TIME_TRACKING_ADMIN_OPERATIONS_CORRECTIONS);
         [$userId, $teamId] = $this->context->userTeam($request);
         $userPublicId = data_get($request->user(), 'public_id');
         $teamPublicId = $request->hasSession() ? $request->session()->get('active_team_public_id') : null;
         $filterRequest = $this->requestForSectionFilters($request, $section);
+        $dailyState = TableState::fromRequest($filterRequest, $dailyDefinition);
+        $otherWorkState = TableState::fromRequest($filterRequest, $otherWorkDefinition);
+        $workSessionsState = TableState::fromRequest($filterRequest, $workSessionsDefinition);
+        $breaksState = TableState::fromRequest($filterRequest, $breaksDefinition);
+        $correctionsState = TableState::fromRequest($filterRequest, $correctionsDefinition);
 
         $this->access->ensureAllowed(
             activeTeamId: $teamId,
@@ -77,18 +77,28 @@ final readonly class AdminTimeTrackingOperationsController
         );
 
         $report = $this->reports->workTimeForAdminRequest($filterRequest);
-        $workSessionRows = $this->reports->adminWorkSessionRows($filterRequest);
-        $breakRows = $this->reports->adminBreakRows($filterRequest);
-        $correctionRows = $this->reports->adminCorrectionRows($filterRequest);
+        $dailyRows = $section === 'daily' ? $report->dailyRows : [];
+        $otherWorkRows = $section === 'other_work' ? $report->otherWorkRows : [];
+        $workSessionRows = $section === 'work_sessions' ? $this->reports->adminWorkSessionRows($filterRequest) : [];
+        $breakRows = $section === 'breaks' ? $this->reports->adminBreakRows($filterRequest) : [];
+        $correctionRows = $section === 'corrections' ? $this->reports->adminCorrectionRows($filterRequest) : [];
 
-        $dailyResult = $this->tables->process($report->dailyRows, $dailyDefinition, $dailyState)
+        $dailyResult = $this->tables->process($dailyRows, $dailyDefinition, $dailyState)
             ->withSavedViews($this->views->listFor($dailyDefinition->key, $userId, $teamId));
-        $otherWorkResult = $this->tables->process($report->otherWorkRows, $otherWorkDefinition, $otherWorkState);
+        $otherWorkResult = $this->tables->process($otherWorkRows, $otherWorkDefinition, $otherWorkState);
         $workSessionsResult = $this->tables->process($workSessionRows, $workSessionsDefinition, $workSessionsState);
         $breaksResult = $this->tables->process($breakRows, $breaksDefinition, $breaksState);
         $correctionsResult = $this->tables->process($correctionRows, $correctionsDefinition, $correctionsState);
         $dailyTable = $dailyResult->tableMeta($dailyDefinition->key, AdminDataTableExportMeta::defaults());
         $dailyTable['state']['filters'] = $report->filters;
+        $summaryRows = match ($section) {
+            'daily' => $dailyResult->filteredRows,
+            'other_work' => $otherWorkResult->filteredRows,
+            'work_sessions' => $workSessionsResult->filteredRows,
+            'breaks' => $breaksResult->filteredRows,
+            'corrections' => $correctionsResult->filteredRows,
+            default => [],
+        };
 
         return Inertia::render('TimeTracking/AdminOperations', [
             'section' => $section,
@@ -104,7 +114,7 @@ final readonly class AdminTimeTrackingOperationsController
             'workSessionRows' => $workSessionsResult->rows,
             'breakRows' => $breaksResult->rows,
             'correctionRows' => $correctionsResult->rows,
-            'summary' => $report->summary,
+            'summary' => $this->reports->summaryForOperationRows($section, $summaryRows),
             'filters' => $report->filters,
             'dailyTable' => $dailyTable,
             'otherWorkTable' => $otherWorkResult->tableMeta($otherWorkDefinition->key, AdminDataTableExportMeta::defaults()),
@@ -116,7 +126,7 @@ final readonly class AdminTimeTrackingOperationsController
 
     private function requestForSectionFilters(Request $request, string $section): Request
     {
-        $common = ['team', 'user', 'range', 'from', 'to'];
+        $common = ['team', 'user', 'range', 'from', 'to', 'page', 'per_page', 'sort', 'direction', 'search', 'columns', 'column_order', 'view'];
         $sectionKeys = match ($section) {
             'daily' => [...$common, 'compare'],
             'other_work' => [...$common, 'category', 'status', 'decision_state', 'closure_reason', 'review'],

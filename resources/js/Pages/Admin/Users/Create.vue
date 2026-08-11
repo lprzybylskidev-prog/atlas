@@ -1,16 +1,14 @@
 <script setup lang="ts">
 import { Head, useForm } from '@inertiajs/vue3';
-import { IconArrowLeft, IconUserPlus } from '@tabler/icons-vue';
+import { IconUserPlus } from '@tabler/icons-vue';
 
-import ActionLink from '../../../Components/ActionLink.vue';
 import AtlasForm from '../../../Components/Form/AtlasForm.vue';
-import FormButton from '../../../Components/Form/FormButton.vue';
 import FormInput from '../../../Components/Form/FormInput.vue';
 import FormSelect, { type FormSelectOption } from '../../../Components/Form/FormSelect.vue';
 import FormActions from '../../../Components/FormActions.vue';
 import PageStack from '../../../Components/PageStack.vue';
 import SurfaceCard from '../../../Components/SurfaceCard.vue';
-import UserTeamAccessWorkflow from '../../../Components/Users/UserTeamAccessWorkflow.vue';
+import UserTeamAuthorizationWorkflow from '../../../Components/Authorization/UserTeamAuthorizationWorkflow.vue';
 import { useAccountSensitivityOptions } from '../../../Composables/useAccountSensitivityOptions';
 import AppLayout from '../../../Layouts/AppLayout.vue';
 import { useTranslator } from '../../../Localization/translator';
@@ -101,7 +99,7 @@ function submit(): void {
                     </div>
                 </SurfaceCard>
 
-                <UserTeamAccessWorkflow
+                <UserTeamAuthorizationWorkflow
                     mode="create"
                     :assignments="form.team_assignments"
                     :team-options="teamOptions"
@@ -118,14 +116,15 @@ function submit(): void {
                     @remove="removeTeamAssignment($event.index)"
                 />
 
-                <FormActions>
-                    <FormButton type="submit" :icon="IconUserPlus" :loading="form.processing">
-                        {{ form.processing ? t('pages.admin.users.actions.creating') : t('pages.admin.users.actions.create') }}
-                    </FormButton>
-                    <ActionLink href="/admin/users" :icon="IconArrowLeft">
-                        {{ t('pages.admin.users.actions.back_to_users') }}
-                    </ActionLink>
-                </FormActions>
+                <FormActions
+                    :submit-label="t('pages.admin.users.actions.create')"
+                    :processing-label="t('pages.admin.users.actions.creating')"
+                    :submit-icon="IconUserPlus"
+                    :processing="form.processing"
+                    :dirty="form.isDirty"
+                    cancel-href="/admin/users"
+                    :scope-label="t('pages.admin.users.identity.title')"
+                />
             </AtlasForm>
         </PageStack>
     </AppLayout>

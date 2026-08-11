@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-use App\Modules\Core\Exports\Application\Public\Persistence\ExportsDatabaseTable;
-use App\Modules\Core\Files\Application\Public\Persistence\FilesDatabaseTable;
-use App\Modules\Core\Identity\Application\Public\Persistence\IdentityDatabaseTable;
-use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
-use App\Modules\Optional\ManagedProcesses\Application\Public\Persistence\ManagedProcessesDatabaseTable;
+use App\Modules\Core\Exports\Infrastructure\Persistence\TableNames\ExportsDatabaseTable;
+use App\Modules\Core\Files\Infrastructure\Persistence\TableNames\FilesDatabaseTable;
+use App\Modules\Core\Identity\Infrastructure\Persistence\TableNames\IdentityDatabaseTable;
+use App\Modules\Core\Teams\Infrastructure\Persistence\TableNames\TeamsDatabaseTable;
+use App\Modules\Optional\ManagedProcesses\Infrastructure\Persistence\TableNames\ManagedProcessesDatabaseTable;
 use App\Shared\Infrastructure\Database\DatabaseSchema;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
@@ -17,11 +17,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        $this->renameLegacyReportsSchema();
-
         DatabaseSchema::ensure(DatabaseSchema::CORE_EXPORTS);
-
-        $this->dropModuleTables();
 
         Schema::create(ExportsDatabaseTable::REPORT_EXPORT_REQUESTS, function (Blueprint $table): void {
             $table->id();
@@ -44,6 +40,7 @@ return new class extends Migration
             $table->string('request_fingerprint', 64)->unique();
             $table->string('release_version');
             $table->string('rule_version');
+            $table->string('locale', 5)->default('pl');
             $table->string('status', 32);
             $table->boolean('synchronous_allowed')->default(false);
             $table->boolean('audit_export')->default(false);
@@ -130,32 +127,5 @@ return new class extends Migration
         Schema::dropIfExists(ExportsDatabaseTable::REPORT_RENDER_CREDENTIALS);
         Schema::dropIfExists(ExportsDatabaseTable::REPORT_EXPORT_ARTIFACTS);
         Schema::dropIfExists(ExportsDatabaseTable::REPORT_EXPORT_REQUESTS);
-    }
-
-    private function renameLegacyReportsSchema(): void
-    {
-        $legacyExists = DB::table('information_schema.schemata')
-            ->where('schema_name', 'optional_reports')
-            ->exists();
-
-        if (! $legacyExists) {
-            return;
-        }
-
-        $coreExists = DB::table('information_schema.schemata')
-            ->where('schema_name', DatabaseSchema::CORE_EXPORTS)
-            ->exists();
-
-        if (! $coreExists) {
-            DB::statement(sprintf(
-                'alter schema %s rename to %s',
-                DatabaseSchema::quoteIdentifier('optional_reports'),
-                DatabaseSchema::quoteIdentifier(DatabaseSchema::CORE_EXPORTS),
-            ));
-
-            return;
-        }
-
-        DB::statement(sprintf('drop schema if exists %s', DatabaseSchema::quoteIdentifier('optional_reports')));
     }
 };

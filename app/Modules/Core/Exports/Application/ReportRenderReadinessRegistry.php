@@ -6,7 +6,7 @@ namespace App\Modules\Core\Exports\Application;
 
 use App\Modules\Core\Exports\Application\Contracts\ReportRenderReadinessProbe;
 use App\Modules\Core\Exports\Application\Exceptions\ReportRenderVisualsNotReady;
-use App\Modules\Core\Exports\Application\Public\DTOs\ReportExportGenerationRequest;
+use App\Shared\Application\Exports\DTOs\ReportExportGenerationRequest;
 
 final readonly class ReportRenderReadinessRegistry
 {

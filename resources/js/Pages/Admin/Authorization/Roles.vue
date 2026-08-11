@@ -39,11 +39,11 @@ const filterDefaults = {
 const filters = ref({ ...filterDefaults, ...filterValues() });
 
 const columns = computed<DataTableColumn<RoleRow>[]>(() => [
-    { key: 'publicId', label: t('pages.admin.roles.table.public_id') },
-    { key: 'id', label: t('pages.admin.roles.table.internal_id'), hidden: true },
     { key: 'displayName', label: t('pages.admin.roles.table.display_name') },
+    { key: 'publicId', label: t('pages.admin.roles.table.public_id'), hidden: true },
+    { key: 'id', label: t('pages.admin.roles.table.internal_id'), hidden: true },
     { key: 'name', label: t('pages.admin.roles.table.technical_name'), hidden: true },
-    { key: 'guard', label: t('pages.admin.roles.table.guard') },
+    { key: 'guard', label: t('pages.admin.roles.table.guard'), hidden: true },
     { key: 'permissionsCount', label: t('pages.admin.roles.table.permissions_count'), format: 'number' },
     { key: 'assignedUsersCount', label: t('pages.admin.roles.table.assigned_users_count'), format: 'number', hidden: true },
     { key: 'createdAt', label: t('pages.admin.roles.table.created_at'), format: 'datetime', hidden: true },

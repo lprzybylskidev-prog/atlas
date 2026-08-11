@@ -8,15 +8,18 @@ use App\Modules\Core\Identity\Application\Public\Contracts\HighRiskAdministrativ
 use App\Modules\Core\Privacy\Application\DTOs\PrivacyPreviewCommand;
 use App\Modules\Core\Privacy\Application\Enums\PrivacyOperation;
 use App\Modules\Core\Privacy\Application\Exceptions\PrivacyOperationExecutionException;
-use App\Modules\Core\Privacy\Application\Public\Persistence\PrivacyDatabaseTable;
+use App\Modules\Core\Privacy\Application\Permissions\PrivacyPermissionCatalog;
 use App\Modules\Core\Privacy\Application\Services\DataLifecycleParticipantRegistry;
 use App\Modules\Core\Privacy\Application\Services\PrivacyOperationExecutor;
 use App\Modules\Core\Privacy\Application\Services\PrivacyOperationPreviewer;
 use App\Modules\Core\Privacy\Application\Services\PrivacyRetentionCoverageCatalog;
+use App\Modules\Core\Privacy\Infrastructure\Persistence\TableNames\PrivacyDatabaseTable;
 use App\Modules\Core\Privacy\Presentation\Http\PrivacyHighRiskContinuation;
 use App\Modules\Core\Privacy\Presentation\Http\PrivacyPreviewInput;
-use App\Shared\Application\Tables\AdminTableDefinitions;
+use App\Shared\Application\Authorization\Contracts\EffectivePermissionChecker;
+use App\Shared\Application\Authorization\DTOs\EffectivePermissionRequest;
 use App\Shared\Application\Tables\ArrayTableProcessor;
+use App\Shared\Application\Tables\RegisteredTables;
 use App\Shared\Application\Tables\TableRequestContext;
 use App\Shared\Application\Tables\TableSavedViewService;
 use App\Shared\Application\Tables\TableState;
@@ -40,36 +43,42 @@ final readonly class PrivacyRetentionController
         private PrivacyOperationPreviewer $previewer,
         private PrivacyOperationExecutor $executor,
         private HighRiskAdministrativeAuthorization $adminMode,
+        private EffectivePermissionChecker $permissions,
     ) {}
 
     public function __invoke(Request $request): Response
     {
-        $definition = AdminTableDefinitions::get(AdminTableDefinitions::PRIVACY_RETENTION_COVERAGE);
+        $definition = RegisteredTables::get(RegisteredTables::PRIVACY_RETENTION_COVERAGE);
         $state = TableState::fromRequest($request, $definition);
         [$userId, $teamId] = $this->context->userTeam($request);
-        $participantCount = $this->participants->count();
         $rows = array_map(
             static fn ($item): array => $item->toArray(),
-            $this->coverage->items($this->participants->classNames()),
+            $this->coverage->items($this->participants->keys()),
         );
         $filters = $this->filters($request, $rows);
         $filteredRows = $this->filteredRows($rows, $filters);
         $result = $this->tables->process($filteredRows, $definition, $state)
-            ->withSavedViews($this->views->listFor(AdminTableDefinitions::PRIVACY_RETENTION_COVERAGE, $userId, $teamId));
-        $table = $result->tableMeta(AdminTableDefinitions::PRIVACY_RETENTION_COVERAGE);
+            ->withSavedViews($this->views->listFor(RegisteredTables::PRIVACY_RETENTION_COVERAGE, $userId, $teamId));
+        $table = $result->tableMeta(RegisteredTables::PRIVACY_RETENTION_COVERAGE);
         $table['state']['filters'] = $filters;
+
+        $latestPreview = $this->latestPreview($request);
+
+        if ($latestPreview !== null) {
+            $latestPreview['executeAllowed'] = $this->canExecute($request, $latestPreview['operation']);
+        }
 
         return Inertia::render('Admin/PrivacyRetention/Index', [
             'coverage' => $result->rows,
             'summary' => [
-                'areas' => count($rows),
+                'areas' => count($result->filteredRows),
                 'visible' => $result->total,
-                'implemented' => count(array_filter($rows, static fn (array $row): bool => ($row['coverage'] ?? null) === 'implemented')),
-                'partial' => count(array_filter($rows, static fn (array $row): bool => ($row['coverage'] ?? null) === 'partial')),
-                'blockedHardDelete' => count(array_filter($rows, static fn (array $row): bool => ($row['hardDeletePolicy'] ?? null) === 'blocked')),
-                'participants' => $participantCount,
+                'implemented' => count(array_filter($result->filteredRows, static fn (array $row): bool => ($row['coverage'] ?? null) === 'implemented')),
+                'partial' => count(array_filter($result->filteredRows, static fn (array $row): bool => ($row['coverage'] ?? null) === 'partial')),
+                'blockedHardDelete' => count(array_filter($result->filteredRows, static fn (array $row): bool => ($row['hardDeletePolicy'] ?? null) === 'blocked')),
+                'participants' => count($this->uniqueValues($result->filteredRows, 'ownerModule')),
             ],
-            'latestPreview' => $this->latestPreview($request),
+            'latestPreview' => $latestPreview,
             'previewFormDefaults' => $this->previewFormDefaults($request),
             'autoSubmitPreview' => $this->shouldAutoSubmitRecoveredPreview($request),
             'subjectTypeOptions' => $this->subjectTypeOptions(),
@@ -79,6 +88,23 @@ final readonly class PrivacyRetentionController
             ],
             'table' => $table,
         ]);
+    }
+
+    private function canExecute(Request $request, mixed $operation): bool
+    {
+        $userPublicId = data_get($request->user(), 'public_id');
+        $teamPublicId = $request->hasSession() ? $request->session()->get('active_team_public_id') : null;
+        $permission = $operation === PrivacyOperation::HardDelete->value
+            ? PrivacyPermissionCatalog::HARD_DELETE_EXECUTE
+            : PrivacyPermissionCatalog::ANONYMIZATION_EXECUTE;
+
+        return is_string($userPublicId)
+            && is_string($teamPublicId)
+            && $this->permissions->check(new EffectivePermissionRequest(
+                userPublicId: $userPublicId,
+                permission: $permission,
+                teamPublicId: $teamPublicId,
+            ))->allowed;
     }
 
     public function previewHardDelete(Request $request): RedirectResponse

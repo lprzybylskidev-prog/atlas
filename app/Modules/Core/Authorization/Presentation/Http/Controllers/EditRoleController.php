@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Modules\Core\Authorization\Presentation\Http\Controllers;
 
-use App\Modules\Core\Authorization\Application\Public\Contracts\UserTeamAuthorizationManager;
-use App\Modules\Core\Authorization\Application\Public\Persistence\AuthorizationDatabaseTable;
+use App\Modules\Core\Authorization\Infrastructure\Persistence\TableNames\AuthorizationDatabaseTable;
+use App\Shared\Application\Authorization\Contracts\UserTeamAuthorizationManager;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;

@@ -2,15 +2,12 @@
 
 declare(strict_types=1);
 
-use App\Modules\Core\Exports\Application\Public\Persistence\ExportsDatabaseTable;
-use App\Modules\Core\Identity\Application\Public\Persistence\IdentityDatabaseTable;
-use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
-use App\Modules\Optional\Imports\Application\Public\Persistence\ImportsDatabaseTable;
-use App\Modules\Optional\ManagedProcesses\Application\Public\Persistence\ManagedProcessesDatabaseTable;
+use App\Modules\Core\Identity\Infrastructure\Persistence\TableNames\IdentityDatabaseTable;
+use App\Modules\Core\Teams\Infrastructure\Persistence\TableNames\TeamsDatabaseTable;
+use App\Modules\Optional\ManagedProcesses\Infrastructure\Persistence\TableNames\ManagedProcessesDatabaseTable;
 use App\Shared\Infrastructure\Database\DatabaseSchema;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
@@ -18,16 +15,6 @@ return new class extends Migration
     public function up(): void
     {
         DatabaseSchema::ensure(DatabaseSchema::OPTIONAL_MANAGED_PROCESSES);
-
-        $this->releaseLegacyReportProcessDependency();
-
-        Schema::dropIfExists(ExportsDatabaseTable::REPORT_RENDER_CREDENTIALS);
-        Schema::dropIfExists(ExportsDatabaseTable::REPORT_EXPORT_ARTIFACTS);
-        Schema::dropIfExists(ExportsDatabaseTable::REPORT_EXPORT_REQUESTS);
-        Schema::dropIfExists(ImportsDatabaseTable::IDEMPOTENCY_KEYS);
-        Schema::dropIfExists(ImportsDatabaseTable::ROW_ERRORS);
-        Schema::dropIfExists(ImportsDatabaseTable::EXECUTIONS);
-        $this->dropModuleTables();
 
         Schema::create(ManagedProcessesDatabaseTable::DEFINITIONS, function (Blueprint $table): void {
             $table->id();
@@ -177,15 +164,5 @@ return new class extends Migration
         Schema::dropIfExists(ManagedProcessesDatabaseTable::RUN_ACKNOWLEDGEMENTS);
         Schema::dropIfExists(ManagedProcessesDatabaseTable::RUNS);
         Schema::dropIfExists(ManagedProcessesDatabaseTable::DEFINITIONS);
-    }
-
-    private function releaseLegacyReportProcessDependency(): void
-    {
-        if (! Schema::hasTable('optional_reports.export_requests')) {
-            return;
-        }
-
-        DB::statement('alter table optional_reports.export_requests drop constraint if exists optional_reports_export_requests_process_run_id_foreign');
-        DB::statement('update optional_reports.export_requests set process_run_id = null');
     }
 };

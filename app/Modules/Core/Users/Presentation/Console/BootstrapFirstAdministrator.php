@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace App\Modules\Core\Users\Presentation\Console;
 
-use App\Modules\Core\Audit\Application\Public\Enums\SecurityAuditCategory;
 use App\Modules\Core\Authorization\Application\Public\Contracts\AdministratorAccessManager;
 use App\Modules\Core\Identity\Application\Public\Contracts\SecurityAuditRecorder;
 use App\Modules\Core\Identity\Application\Public\DTOs\SecurityAuditEvent;
 use App\Modules\Core\Teams\Application\Public\Contracts\BootstrapTeamProvider;
 use App\Modules\Core\Users\Application\Public\Commands\CreateUserAccountRequest;
 use App\Modules\Core\Users\Application\Public\Contracts\UserAccountCreator;
+use App\Shared\Application\Audit\Enums\SecurityAuditCategory;
 use Illuminate\Console\Command;
 
 final class BootstrapFirstAdministrator extends Command

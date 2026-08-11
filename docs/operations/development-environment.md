@@ -2,11 +2,11 @@
 
 Canonical operational rules for Dev Containers, Docker development services, VS Code integration, rebuild restrictions, and local workflow.
 
-## Phase 28 target
+## Phase 28 closure state
 
-Current state: the Dev Container is the privileged development workspace and local runtime services support normal development. Phase 28 tracks reproducibility and parity hardening for pinned `pnpm`, Playwright alignment, PHP/Node/Composer version checks, base-image update policy, and clear documentation that Docker socket access, docker group membership, and passwordless sudo are development-only privileges equivalent to host Docker daemon access.
+The Dev Container is the privileged development workspace and local runtime services support normal development. Phase 28 completed reproducibility and parity hardening for pinned `pnpm`, Playwright alignment, PHP/Node/Composer version checks, base-image update policy, and clear documentation that Docker socket access, docker group membership, and passwordless sudo are development-only privileges equivalent to host Docker daemon access.
 
-Target state: development, test, e2e, production image, and manual server runtime expectations are comparable through the Phase 28 runtime parity matrix. No production configuration may copy Dev Container privileges.
+Development, test, e2e, production image, and manual server runtime expectations are aligned through permanent runtime contracts and smoke checks. No production configuration may copy Dev Container privileges.
 
 Tracked issue IDs: `P28-INV-005`, `P28-RUNTIME-010`.
 
@@ -42,6 +42,10 @@ It uses Docker-outside-of-Docker by mounting the host Docker socket at `/var/run
 This is development-only tooling for inspecting and controlling the local Atlas Compose stack from inside VS Code.
 VS Code sets `ATLAS_WORKSPACE_SOURCE` inside Dev Container terminals to the repository path as seen by the Docker host. Keep this value in place when running Compose commands from inside the Dev Container so newly created runtime services mount the real working tree rather than the container-local `/workspace` path.
 The application Dev Container also includes Python 3, `pip`, and `venv` as development tooling for local automation, scripts, and future AI-adjacent experiments. Python is not part of the Atlas application runtime unless a later accepted phase explicitly adds it.
+
+The reproducible development toolchain is pinned in `docker/dev/app/Dockerfile`: PHP `8.5.8`, Node.js `24.15.0`, Composer `2.9.7`, pnpm `11.18.0`, and Playwright `1.61.1`. `package.json` pins the same pnpm and Playwright versions, and the Dev Container Compose build argument pins pnpm independently. Never install `pnpm@latest` in a reproducible build path. Upgrade a runtime or base-image tag only as an intentional dependency change: update every matching build argument and package pin, rebuild the affected image, run the configuration guardrails and relevant tests, and record compatibility results. Do not mix such an upgrade into unrelated work.
+
+The mounted Docker socket, membership in its owning group, and passwordless `sudo` give the development user effective root-level control over the Docker host. Treat them as trusted-workstation privileges: do not mount the socket into production services, do not reuse the development user or sudoers policy in runtime images, and do not execute untrusted repository code in this workspace. Production commands drop to the dedicated `www-data` user before application code runs.
 
 ## Initial Dev Container start
 
@@ -86,6 +90,8 @@ Forwarded/local development ports:
 - `5050` for pgAdmin;
 - `5540` for RedisInsight.
 
+The default development-only pgAdmin sign-in is `admin@atlas.example.com`; its password comes from `PGADMIN_DEFAULT_PASSWORD`. This account is unrelated to the Atlas demo administrator at `admin@example.test`.
+
 Run static validation from the host with:
 
 ```text
@@ -115,6 +121,8 @@ HTTP traffic goes through the development `nginx` service and the separate `php-
 
 The `php-fpm`, `scheduler`, and `worker` runtime services use the production PHP image during local Compose development. That image includes Node.js and system Chromium so web readiness and queued PDF export execution validate the same PDF runtime chain that production uses. The separate VS Code `app` Dev Container still includes the broader Playwright browser set for E2E development.
 
+These three development runtime services run with `USER_UID` and `USER_GID` (both default to `1000`) so PHP-FPM, Horizon, the scheduler, and the Dev Container user share writable `storage` and `bootstrap/cache` bind mounts without broadening filesystem permissions. The production Compose stack does not use this development override and continues to run application commands as `www-data` against its owned runtime volume.
+
 The Dev Container image installs Playwright browsers for the Playwright version pinned by the repository. If a running Dev Container is missing a browser binary or the Playwright package version changes after dependency updates, repair the current container without rebuilding it by running:
 
 ```text
@@ -129,15 +137,15 @@ pnpm exec playwright install firefox
 
 When the pinned Playwright version changes in `package.json`, update the `PLAYWRIGHT_VERSION` build argument in `docker/dev/app/Dockerfile` in the same change so fresh Dev Containers include the matching browser revisions.
 
-The `worker` service runs the local Redis queue listener for Atlas runtime queues:
+The `worker` service runs Horizon as the single accepted Redis worker model in development and production for Atlas runtime queues:
 
 ```text
 managed-processes,imports,exports,search,files,files-large,default
 ```
 
-This worker must be running during normal Admin/UI development so queued exports, managed-process runs, search rebuilds, file scans, and default Laravel jobs do not remain stuck in `queued` state. Local development uses `queue:listen` instead of a long-lived `queue:work` process so queued jobs boot the current application code after edits.
+This worker must be running during normal Admin/UI development so queued exports, managed-process runs, search rebuilds, file scans, notifications, and default Laravel jobs do not remain stuck in `queued` state. After changing PHP code, run `php artisan horizon:terminate`; the managed service restarts Horizon gracefully with the new code.
 
-The local worker timeout is intentionally long: 43,200 seconds, or 12 hours. Managed-process and import jobs may represent large operational scripts, slow third-party API imports, or high-volume case processing. Atlas keeps those runs as one operational process in Admin; any finer-grained checkpointing, cursoring, or idempotent resume behavior belongs to the process implementation rather than being forced by the worker topology. The Redis queue `retry_after` value must remain greater than the worker timeout so long jobs are not released for duplicate execution while still running.
+The Horizon worker timeout is intentionally long: 43,200 seconds, or 12 hours. Managed-process and import jobs may represent large operational scripts, slow third-party API imports, or high-volume case processing. Atlas keeps those runs as one operational process in Admin; any finer-grained checkpointing, cursoring, or idempotent resume behavior belongs to the process implementation rather than being forced by the worker topology. The Redis queue `retry_after` value is 43,500 seconds and must remain greater than the worker timeout so long jobs are not released for duplicate execution while still running.
 
 To apply nginx/php-fpm service changes without rebuilding the Dev Container:
 

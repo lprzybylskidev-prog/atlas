@@ -24,11 +24,8 @@ final class FeatureFlagsModule implements ModuleDefinition
     public function requiredDependencies(): array
     {
         return [
-            new ModuleKey('identity'),
-            new ModuleKey('authorization'),
             new ModuleKey('teams'),
             new ModuleKey('audit'),
-            new ModuleKey('health'),
         ];
     }
 
@@ -52,18 +49,8 @@ final class FeatureFlagsModule implements ModuleDefinition
         return true;
     }
 
-    public function integrations(): array
-    {
-        return [];
-    }
-
     public function healthChecks(): array
     {
-        return ['feature_flags'];
-    }
-
-    public function frontendEntrypoints(): array
-    {
-        return ['admin.feature-flags.index'];
+        return [];
     }
 }

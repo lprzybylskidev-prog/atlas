@@ -6,14 +6,14 @@ namespace App\Modules\Core\Users\Presentation\Http\Controllers;
 
 use App\Modules\Core\Authorization\Application\Public\Contracts\OnboardingPackageDirectory;
 use App\Modules\Core\Authorization\Application\Public\Contracts\UserAuthorizationAssignmentPreviewer;
-use App\Modules\Core\Authorization\Application\Public\Contracts\UserTeamAuthorizationManager;
 use App\Modules\Core\Authorization\Application\Public\DTOs\UserAuthorizationPreview;
 use App\Modules\Core\Identity\Application\Public\Contracts\UserCredentialAccountDirectory;
 use App\Modules\Core\Identity\Application\Public\DTOs\UserCredentialAccountOption;
-use App\Modules\Core\Settings\Application\Public\Contracts\SecuritySessionSettings;
-use App\Modules\Core\Teams\Application\Public\Contracts\UserTeamMembershipManager;
-use App\Modules\Core\Teams\Application\Public\Contracts\UserTeamSessionLimitSettings;
-use App\Modules\Optional\TimeTracking\Application\Public\Contracts\UserBreakPolicySettings;
+use App\Shared\Application\Authorization\Contracts\UserTeamAuthorizationManager;
+use App\Shared\Application\Security\Contracts\SecuritySessionSettings;
+use App\Shared\Application\Teams\Contracts\UserTeamMembershipManager;
+use App\Shared\Application\Teams\Contracts\UserTeamSessionLimitSettings;
+use App\Shared\Application\TimeTracking\Contracts\UserBreakPolicySettings;
 use Inertia\Inertia;
 use Inertia\Response;
 

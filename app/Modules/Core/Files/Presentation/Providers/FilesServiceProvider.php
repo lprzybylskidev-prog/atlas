@@ -8,16 +8,18 @@ use App\Modules\Core\Files\Application\Contracts\MalwareScanner;
 use App\Modules\Core\Files\Application\Exports\AdminFilesDataTableExportProvider;
 use App\Modules\Core\Files\Application\Lifecycle\FileDataLifecycleParticipant;
 use App\Modules\Core\Files\Application\Permissions\FilesPermissionCatalog;
-use App\Modules\Core\Files\Application\Public\Contracts\FileAvailability;
 use App\Modules\Core\Files\Application\Public\Contracts\FileLifecycle;
+use App\Modules\Core\Files\Application\Public\Contracts\FileLookup;
 use App\Modules\Core\Files\Application\Public\Contracts\FileMaintenance;
 use App\Modules\Core\Files\Application\Public\Contracts\FileScanner;
 use App\Modules\Core\Files\Application\Public\Contracts\FileStorage;
+use App\Modules\Core\Files\Infrastructure\Diagnostics\FileModuleOperationalDiagnostics;
 use App\Modules\Core\Files\Infrastructure\Persistence\DatabaseFileStorage;
 use App\Modules\Core\Files\Infrastructure\Scanning\ClamAvMalwareScanner;
 use App\Modules\Core\Files\Infrastructure\Scanning\DatabaseFileScanner;
 use App\Modules\Core\Files\Infrastructure\Scanning\FakeMalwareScanner;
 use App\Modules\Core\Files\Presentation\Inertia\FilesRouteAvailability;
+use App\Shared\Application\Files\Contracts\FileAvailability;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\ServiceProvider;
 use RuntimeException;
@@ -29,6 +31,7 @@ final class FilesServiceProvider extends ServiceProvider
         $this->app->bind(FileStorage::class, DatabaseFileStorage::class);
         $this->app->bind(FileAvailability::class, DatabaseFileStorage::class);
         $this->app->bind(FileLifecycle::class, DatabaseFileStorage::class);
+        $this->app->bind(FileLookup::class, DatabaseFileStorage::class);
         $this->app->bind(FileMaintenance::class, DatabaseFileStorage::class);
         $this->app->bind(FileScanner::class, DatabaseFileScanner::class);
         $this->app->bind(MalwareScanner::class, function (): MalwareScanner {
@@ -56,5 +59,6 @@ final class FilesServiceProvider extends ServiceProvider
         $this->app->tag([FilesRouteAvailability::class], 'atlas.inertia_route_availability');
         $this->app->tag([AdminFilesDataTableExportProvider::class], 'atlas.admin_data_table_export_providers');
         $this->app->tag([FileDataLifecycleParticipant::class], 'atlas.data_lifecycle_participants');
+        $this->app->tag([FileModuleOperationalDiagnostics::class], 'atlas.module_operational_diagnostics');
     }
 }

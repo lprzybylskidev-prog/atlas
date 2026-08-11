@@ -1,8 +1,7 @@
-import { IconBriefcase, IconClockHour4, IconDatabase, IconFilePencil, IconPlayerPause } from '@tabler/icons-vue';
+import { IconBriefcase, IconClockHour4, IconFilePencil, IconPlayerPause } from '@tabler/icons-vue';
 import type { Component } from 'vue';
 
 import { formatTimeTrackingDuration, timeTrackingContextLabel, timeTrackingStatusLabel } from './useTimeTrackingReportUi';
-import type { ShellSubnavigationItem } from '../Types/navigation';
 import { formatStatus, formatTimestamp } from '../Utils/formatters';
 
 export interface SummaryItem {
@@ -133,49 +132,6 @@ export function translatedToken(key: string, value: string, t: Translator): stri
     const translated = t(key);
 
     return translated === key ? formatStatus(value) : translated;
-}
-
-export function adminDetailSubnavigation(
-    active: 'breaks' | 'corrections' | 'other_work' | 'work_sessions',
-    t: Translator,
-): ShellSubnavigationItem[] {
-    return [
-        {
-            key: 'daily',
-            label: t('navigation.work_time_daily'),
-            href: '/admin/work-time/summary',
-            icon: IconClockHour4,
-            active: false,
-        },
-        {
-            key: 'other_work',
-            label: t('navigation.work_time_other_work'),
-            href: '/admin/work-time/other-work',
-            icon: IconBriefcase,
-            active: active === 'other_work',
-        },
-        {
-            key: 'breaks',
-            label: t('navigation.work_time_breaks'),
-            href: '/admin/work-time/breaks',
-            icon: IconPlayerPause,
-            active: active === 'breaks',
-        },
-        {
-            key: 'corrections',
-            label: t('navigation.work_time_corrections'),
-            href: '/admin/work-time/corrections',
-            icon: IconFilePencil,
-            active: active === 'corrections',
-        },
-        {
-            key: 'work_sessions',
-            label: t('navigation.work_time_sessions'),
-            href: '/admin/work-time/work-sessions',
-            icon: IconDatabase,
-            active: active === 'work_sessions',
-        },
-    ];
 }
 
 export function adminDetailIcon(kind: 'break' | 'correction' | 'other_work' | 'work_session'): Component {

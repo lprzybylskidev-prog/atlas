@@ -11,6 +11,9 @@ if (!inputPath || !outputPath) {
 const html = await readFile(inputPath, 'utf8');
 const launchOptions = {
     headless: true,
+    // Docker's default seccomp profile blocks Chromium user namespaces. The
+    // browser still runs as the unprivileged runtime user in a private service.
+    chromiumSandbox: false,
 };
 
 if (process.env.ATLAS_CHROMIUM_BINARY) {

@@ -1,10 +1,8 @@
 <script setup lang="ts">
-import { IconArrowLeft, IconDeviceFloppy, IconPackage, IconUsersGroup } from '@tabler/icons-vue';
+import { IconPackage, IconUsersGroup } from '@tabler/icons-vue';
 import { computed } from 'vue';
 
-import ActionLink from '../ActionLink.vue';
 import AtlasForm from '../Form/AtlasForm.vue';
-import FormButton from '../Form/FormButton.vue';
 import FormInput from '../Form/FormInput.vue';
 import FormSelect from '../Form/FormSelect.vue';
 import FormActions from '../FormActions.vue';
@@ -37,12 +35,14 @@ const props = withDefaults(
         submitLabel: string;
         processingLabel: string;
         backHref: string;
+        dirty?: boolean;
     }>(),
     {
         teamOptions: () => [],
         teamName: '',
         errors: () => ({}),
         processing: false,
+        dirty: false,
     },
 );
 
@@ -169,13 +169,13 @@ function listLabel(values: string[], labels: Map<string, string>): string {
             </section>
         </SurfaceCard>
 
-        <FormActions>
-            <FormButton type="submit" :icon="IconDeviceFloppy" :loading="processing">
-                {{ processing ? processingLabel : submitLabel }}
-            </FormButton>
-            <ActionLink :href="backHref" :icon="IconArrowLeft">
-                {{ t('pages.admin.packages.actions.back_to_packages') }}
-            </ActionLink>
-        </FormActions>
+        <FormActions
+            :submit-label="submitLabel"
+            :processing-label="processingLabel"
+            :processing="processing"
+            :dirty="dirty"
+            :cancel-href="backHref"
+            :scope-label="t('pages.admin.packages.form.identity_title')"
+        />
     </AtlasForm>
 </template>

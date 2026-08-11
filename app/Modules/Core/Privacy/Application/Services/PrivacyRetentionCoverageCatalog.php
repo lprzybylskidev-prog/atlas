@@ -8,36 +8,20 @@ use App\Modules\Core\Privacy\Application\DTOs\PrivacyCoverageItem;
 
 final class PrivacyRetentionCoverageCatalog
 {
-    private const AUTHORIZATION_PARTICIPANT_CLASS = 'App\Modules\Core\Authorization\Application\Lifecycle\UserAuthorizationDataLifecycleParticipant';
-
-    private const EXPORT_PARTICIPANT_CLASS = 'App\Modules\Core\Exports\Application\Lifecycle\ExportDataLifecycleParticipant';
-
-    private const FILE_PARTICIPANT_CLASS = 'App\Modules\Core\Files\Application\Lifecycle\FileDataLifecycleParticipant';
-
-    private const SEARCH_PARTICIPANT_CLASS = 'App\Modules\Optional\Search\Application\Lifecycle\SearchDataLifecycleParticipant';
-
-    private const MANAGED_PROCESS_PARTICIPANT_CLASS = 'App\Modules\Optional\ManagedProcesses\Application\Lifecycle\ManagedProcessDataLifecycleParticipant';
-
-    private const SHARED_DERIVED_DATA_PARTICIPANT_CLASS = 'App\Shared\Infrastructure\DataLifecycle\SharedDerivedDataLifecycleParticipant';
-
-    private const TEAM_PARTICIPANT_CLASS = 'App\Modules\Core\Teams\Application\Lifecycle\TeamUserDataLifecycleParticipant';
-
-    private const USER_PARTICIPANT_CLASS = 'App\Modules\Core\Users\Application\Lifecycle\UserAccountDataLifecycleParticipant';
-
     /**
-     * @param  list<class-string>  $participantClasses
+     * @param  list<string>  $participantKeys
      * @return list<PrivacyCoverageItem>
      */
-    public function items(array $participantClasses): array
+    public function items(array $participantKeys): array
     {
-        $hasFileParticipant = in_array(self::FILE_PARTICIPANT_CLASS, $participantClasses, true);
-        $hasSearchParticipant = in_array(self::SEARCH_PARTICIPANT_CLASS, $participantClasses, true);
-        $hasManagedProcessParticipant = in_array(self::MANAGED_PROCESS_PARTICIPANT_CLASS, $participantClasses, true);
-        $hasSharedDerivedDataParticipant = in_array(self::SHARED_DERIVED_DATA_PARTICIPANT_CLASS, $participantClasses, true);
-        $hasExportParticipant = in_array(self::EXPORT_PARTICIPANT_CLASS, $participantClasses, true);
-        $hasUserParticipant = in_array(self::USER_PARTICIPANT_CLASS, $participantClasses, true);
-        $hasTeamParticipant = in_array(self::TEAM_PARTICIPANT_CLASS, $participantClasses, true);
-        $hasAuthorizationParticipant = in_array(self::AUTHORIZATION_PARTICIPANT_CLASS, $participantClasses, true);
+        $hasFileParticipant = in_array('files', $participantKeys, true);
+        $hasSearchParticipant = in_array('search', $participantKeys, true);
+        $hasManagedProcessParticipant = in_array('managed_processes', $participantKeys, true);
+        $hasSharedDerivedDataParticipant = in_array('shared', $participantKeys, true);
+        $hasExportParticipant = in_array('exports', $participantKeys, true);
+        $hasUserParticipant = in_array('identity', $participantKeys, true);
+        $hasTeamParticipant = in_array('teams', $participantKeys, true);
+        $hasAuthorizationParticipant = in_array('authorization', $participantKeys, true);
 
         return [
             new PrivacyCoverageItem('identity-users', 'identity.users', 'identity', $hasUserParticipant ? 'implemented' : 'planned', 'restricted', 'implemented', true, $hasUserParticipant),

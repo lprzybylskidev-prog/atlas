@@ -4,30 +4,29 @@ declare(strict_types=1);
 
 namespace App\Modules\Optional\TimeTracking\Infrastructure\Persistence;
 
-use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
 use App\Modules\Optional\TimeTracking\Application\Contracts\UserTeamTrackingSettings;
-use App\Modules\Optional\TimeTracking\Application\Public\Persistence\TimeTrackingDatabaseTable;
+use App\Modules\Optional\TimeTracking\Infrastructure\Persistence\TableNames\TimeTrackingDatabaseTable;
+use App\Shared\Application\Teams\Contracts\TeamLookup;
 use Illuminate\Database\ConnectionInterface;
 use Illuminate\Support\Str;
 
 final readonly class DatabaseUserTeamTrackingSettings implements UserTeamTrackingSettings
 {
-    public function __construct(private ConnectionInterface $database) {}
+    public function __construct(
+        private ConnectionInterface $database,
+        private TeamLookup $teams,
+    ) {}
 
     public function isEnabledForUserTeam(int $userId, int $teamId): bool
     {
-        $assignment = $this->database->table(TeamsDatabaseTable::TEAM_USER_ASSIGNMENTS)
-            ->where('user_id', $userId)
-            ->where('team_id', $teamId)
-            ->whereNull('valid_to')
-            ->first(['id']);
+        $assignmentId = $this->teams->activeAssignmentInternalIdForUserTeam($userId, $teamId);
 
-        if (! is_object($assignment)) {
+        if ($assignmentId === null) {
             return false;
         }
 
         return $this->database->table(TimeTrackingDatabaseTable::USER_TEAM_SETTINGS)
-            ->where('team_user_assignment_id', $this->intValue($assignment->id ?? null))
+            ->where('team_user_assignment_id', $assignmentId)
             ->where('tracking_enabled', true)
             ->exists();
     }
@@ -45,10 +44,5 @@ final readonly class DatabaseUserTeamTrackingSettings implements UserTeamTrackin
                 'updated_at' => $now,
             ],
         ], ['team_user_assignment_id'], ['tracking_enabled', 'updated_at']);
-    }
-
-    private function intValue(mixed $value): int
-    {
-        return is_numeric($value) ? (int) $value : 0;
     }
 }

@@ -4,15 +4,16 @@ declare(strict_types=1);
 
 namespace App\Modules\Optional\FeatureFlags\Infrastructure\Persistence;
 
-use App\Modules\Core\Audit\Application\Public\Contracts\AuditRecorder;
-use App\Modules\Core\Audit\Application\Public\DTOs\AuditEvent;
-use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
 use App\Modules\Optional\FeatureFlags\Application\Contracts\FeatureFlagRegistry;
 use App\Modules\Optional\FeatureFlags\Application\Contracts\FeatureFlagStore;
 use App\Modules\Optional\FeatureFlags\Application\DTOs\FeatureFlagDefinition;
 use App\Modules\Optional\FeatureFlags\Application\DTOs\FeatureFlagState;
 use App\Modules\Optional\FeatureFlags\Application\Enums\FeatureFlagKey;
-use App\Modules\Optional\FeatureFlags\Application\Public\Persistence\FeatureFlagsDatabaseTable;
+use App\Modules\Optional\FeatureFlags\Infrastructure\Persistence\TableNames\FeatureFlagsDatabaseTable;
+use App\Shared\Application\Audit\Contracts\AuditRecorder;
+use App\Shared\Application\Audit\DTOs\AuditEvent;
+use App\Shared\Application\Teams\Contracts\TeamLookup;
+use App\Shared\Application\Teams\DTOs\TeamLookupSummary;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
@@ -22,6 +23,7 @@ final readonly class DatabaseFeatureFlagStore implements FeatureFlagStore
     public function __construct(
         private FeatureFlagRegistry $registry,
         private AuditRecorder $audit,
+        private TeamLookup $teams,
     ) {}
 
     public function state(FeatureFlagKey|string $key, ?string $teamPublicId = null): FeatureFlagState
@@ -115,35 +117,41 @@ final readonly class DatabaseFeatureFlagStore implements FeatureFlagStore
     public function recentHistory(int $limit = 50): array
     {
         $history = DB::table(FeatureFlagsDatabaseTable::HISTORY)
-            ->leftJoin(TeamsDatabaseTable::TEAMS, 'feature_flag_history.team_id', '=', 'teams.id')
             ->orderByDesc('feature_flag_history.created_at')
             ->limit($limit)
             ->get([
                 'feature_flag_history.public_id',
                 'feature_flag_history.flag_key',
                 'feature_flag_history.scope',
-                'teams.public_id as team_public_id',
-                'teams.name as team_name',
+                'feature_flag_history.team_id',
                 'feature_flag_history.action',
                 'feature_flag_history.reason',
                 'feature_flag_history.before_value',
                 'feature_flag_history.after_value',
                 'feature_flag_history.actor_public_id',
                 'feature_flag_history.created_at',
-            ])
-            ->map(fn (object $row): array => [
-                'publicId' => $this->scalarString($row->public_id ?? null),
-                'flagKey' => $this->scalarString($row->flag_key ?? null),
-                'scope' => $this->scalarString($row->scope ?? null),
-                'teamPublicId' => is_string($row->team_public_id ?? null) ? $row->team_public_id : null,
-                'teamName' => is_string($row->team_name ?? null) ? $row->team_name : null,
-                'action' => $this->scalarString($row->action ?? null),
-                'reason' => $this->scalarString($row->reason ?? null),
-                'before' => $this->decode($row->before_value ?? null),
-                'after' => $this->decode($row->after_value ?? null),
-                'actorPublicId' => $this->scalarString($row->actor_public_id ?? null),
-                'createdAt' => $this->scalarString($row->created_at ?? null),
-            ])
+            ]);
+        $teamSummaries = $this->teamSummaries($history->pluck('team_id')->all());
+
+        $history = $history
+            ->map(function (object $row) use ($teamSummaries): array {
+                $teamId = $this->int($row->team_id ?? null);
+                $team = $teamId === null ? null : ($teamSummaries[$teamId] ?? null);
+
+                return [
+                    'publicId' => $this->scalarString($row->public_id ?? null),
+                    'flagKey' => $this->scalarString($row->flag_key ?? null),
+                    'scope' => $this->scalarString($row->scope ?? null),
+                    'teamPublicId' => $team?->publicId,
+                    'teamName' => $team?->name,
+                    'action' => $this->scalarString($row->action ?? null),
+                    'reason' => $this->scalarString($row->reason ?? null),
+                    'before' => $this->decode($row->before_value ?? null),
+                    'after' => $this->decode($row->after_value ?? null),
+                    'actorPublicId' => $this->scalarString($row->actor_public_id ?? null),
+                    'createdAt' => $this->scalarString($row->created_at ?? null),
+                ];
+            })
             ->all();
 
         return array_values($history);
@@ -177,22 +185,42 @@ final readonly class DatabaseFeatureFlagStore implements FeatureFlagStore
      */
     private function teamValue(FeatureFlagDefinition $definition, string $teamPublicId): ?array
     {
+        $teamId = $this->teamId($teamPublicId);
+
         return $this->decode(DB::table(FeatureFlagsDatabaseTable::TEAM_VALUES)
-            ->join(TeamsDatabaseTable::TEAMS, 'feature_flag_team_values.team_id', '=', 'teams.id')
             ->where('feature_flag_team_values.flag_key', $definition->key->value)
-            ->where('teams.public_id', $teamPublicId)
+            ->where('feature_flag_team_values.team_id', $teamId)
             ->value('feature_flag_team_values.value'));
     }
 
     private function teamId(string $teamPublicId): int
     {
-        $teamId = DB::table(TeamsDatabaseTable::TEAMS)->where('public_id', $teamPublicId)->value('id');
+        $teamId = $this->teams->activeInternalIdForPublicId($teamPublicId);
 
-        if (! is_int($teamId)) {
+        if ($teamId === null) {
             throw new InvalidArgumentException('Team was not found.');
         }
 
         return $teamId;
+    }
+
+    /**
+     * @param  array<mixed>  $teamIds
+     * @return array<int, TeamLookupSummary>
+     */
+    private function teamSummaries(array $teamIds): array
+    {
+        $ids = [];
+
+        foreach ($teamIds as $teamId) {
+            $id = $this->int($teamId);
+
+            if ($id !== null) {
+                $ids[] = $id;
+            }
+        }
+
+        return $this->teams->summariesForInternalIds(array_values(array_unique($ids)));
     }
 
     private function reason(string $reason): string
@@ -209,6 +237,11 @@ final readonly class DatabaseFeatureFlagStore implements FeatureFlagStore
     private function scalarString(mixed $value): string
     {
         return is_scalar($value) ? (string) $value : '';
+    }
+
+    private function int(mixed $value): ?int
+    {
+        return is_numeric($value) ? (int) $value : null;
     }
 
     /**
@@ -284,7 +317,7 @@ final readonly class DatabaseFeatureFlagStore implements FeatureFlagStore
         $this->audit->record(new AuditEvent(
             module: 'feature_flags',
             action: $action,
-            result: 'success',
+            result: 'succeeded',
             source: 'admin',
             actorPublicId: $actorPublicId,
             targetType: 'feature_flag',

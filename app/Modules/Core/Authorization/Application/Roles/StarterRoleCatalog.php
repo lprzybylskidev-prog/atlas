@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace App\Modules\Core\Authorization\Application\Roles;
 
 use App\Modules\Core\Authorization\Application\Permissions\CoreAuthorizationPermissionCatalog;
-use App\Modules\Core\Notifications\Application\Public\Permissions\NotificationPermissionNames;
-use App\Modules\Core\Teams\Application\Public\Permissions\TeamPermissionNames;
-use App\Modules\Core\Users\Application\Public\Permissions\UserPermissionNames;
+use App\Shared\Application\Notifications\Permissions\NotificationPermissionNames;
+use App\Shared\Application\Teams\Permissions\TeamPermissionNames;
+use App\Shared\Application\Users\Permissions\UserPermissionNames;
 
 final class StarterRoleCatalog
 {
@@ -101,19 +101,16 @@ final class StarterRoleCatalog
                 CoreAuthorizationPermissionCatalog::PERMISSIONS_VIEW,
             ]),
             new StarterRoleDefinition(StarterRoleName::TeamManagersRead, [
-                'admin.managers.index',
-                'admin.managers.edit',
+                'admin.teams.structure.show',
                 TeamPermissionNames::MANAGERS_VIEW,
                 TeamPermissionNames::MANAGERS_TREE,
                 TeamPermissionNames::MANAGERS_HISTORY,
             ]),
             new StarterRoleDefinition(StarterRoleName::TeamManagersManage, [
-                'admin.managers.index',
-                'admin.managers.create',
-                'admin.managers.edit',
-                'admin.managers.store',
-                'admin.managers.end',
-                'admin.managers.head.update',
+                'admin.teams.structure.show',
+                'admin.teams.structure.relationships.store',
+                'admin.teams.structure.relationships.end',
+                'admin.teams.structure.head-manager.update',
                 TeamPermissionNames::MANAGERS_VIEW,
                 TeamPermissionNames::MANAGERS_CREATE,
                 TeamPermissionNames::MANAGERS_UPDATE,

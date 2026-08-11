@@ -25,11 +25,10 @@ final class ManagedProcessesModule implements ModuleDefinition
     {
         return [
             new ModuleKey('identity'),
-            new ModuleKey('authorization'),
             new ModuleKey('teams'),
             new ModuleKey('audit'),
+            new ModuleKey('files'),
             new ModuleKey('notifications'),
-            new ModuleKey('health'),
         ];
     }
 
@@ -53,23 +52,8 @@ final class ManagedProcessesModule implements ModuleDefinition
         return true;
     }
 
-    public function integrations(): array
-    {
-        return [];
-    }
-
     public function healthChecks(): array
     {
-        return ['managed_processes'];
-    }
-
-    public function frontendEntrypoints(): array
-    {
-        return [
-            'admin.managed-processes.index',
-            'admin.managed-processes.definitions.index',
-            'admin.managed-processes.schedules.index',
-            'admin.managed-processes.schedules.create',
-        ];
+        return [];
     }
 }

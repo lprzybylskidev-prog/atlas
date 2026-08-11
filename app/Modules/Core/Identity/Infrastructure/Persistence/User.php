@@ -4,10 +4,11 @@ declare(strict_types=1);
 
 namespace App\Modules\Core\Identity\Infrastructure\Persistence;
 
-use App\Modules\Core\Identity\Application\Public\Persistence\IdentityDatabaseTable;
 use App\Modules\Core\Identity\Domain\ValueObjects\UserPublicId;
 use App\Modules\Core\Identity\Infrastructure\Database\Factories\UserFactory;
+use App\Modules\Core\Identity\Infrastructure\Notifications\AtlasPasswordResetNotification;
 use App\Modules\Core\Identity\Infrastructure\Notifications\UserEmailVerificationNotification;
+use App\Modules\Core\Identity\Infrastructure\Persistence\TableNames\IdentityDatabaseTable;
 use Illuminate\Contracts\Auth\MustVerifyEmail as MustVerifyEmailContract;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -120,6 +121,11 @@ class User extends Authenticatable implements MustVerifyEmailContract
     public function sendEmailVerificationNotification(): void
     {
         $this->notify(new UserEmailVerificationNotification);
+    }
+
+    public function sendPasswordResetNotification($token): void
+    {
+        $this->notify(new AtlasPasswordResetNotification((string) $token));
     }
 
     /** @return array<string, string> */

@@ -15,8 +15,6 @@ final class TimeTrackingPermissionCatalog implements ModulePermissionContributio
 
     public const USER_CORRECTION_REQUEST_STORE = 'users.work-time.corrections.store';
 
-    public const MANAGER_REPORT = 'time-tracking.reports.manager';
-
     public const MANAGER_WORK_TIME_SUMMARY = 'manager.work-time.summary.index';
 
     public const MANAGER_WORK_TIME_OTHER_WORK = 'manager.work-time.other-work.index';
@@ -121,7 +119,6 @@ final class TimeTrackingPermissionCatalog implements ModulePermissionContributio
             new ModulePermissionDefinition(self::MANAGER_PANEL, 'View the manager TimeTracking panel for the active team.'),
             new ModulePermissionDefinition(self::USER_REPORT, 'View own TimeTracking report for the active team.'),
             new ModulePermissionDefinition(self::USER_CORRECTION_REQUEST_STORE, 'Request a correction for own visible TimeTracking records.'),
-            new ModulePermissionDefinition(self::MANAGER_REPORT, 'View TimeTracking report for users in the manager hierarchy scope.'),
             new ModulePermissionDefinition(self::MANAGER_WORK_TIME_SUMMARY, 'View manager-scoped work-time summaries.'),
             new ModulePermissionDefinition(self::MANAGER_WORK_TIME_OTHER_WORK, 'View manager-scoped work outside the computer records.'),
             new ModulePermissionDefinition(self::MANAGER_WORK_TIME_WORK_SESSIONS, 'View manager-scoped work sessions.'),

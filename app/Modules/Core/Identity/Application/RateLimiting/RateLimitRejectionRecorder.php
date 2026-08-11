@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Core\Identity\Application\RateLimiting;
 
-use App\Modules\Core\Identity\Application\Public\Persistence\IdentityDatabaseTable;
+use App\Modules\Core\Identity\Infrastructure\Persistence\TableNames\IdentityDatabaseTable;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;

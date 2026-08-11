@@ -1,12 +1,13 @@
-FROM node:24-bookworm AS node
+FROM node:24.15.0-bookworm AS node
 
-FROM php:8.5-cli-bookworm
+FROM php:8.5.8-cli-bookworm
 
 ARG USERNAME=vscode
 ARG USER_UID=1000
 ARG USER_GID=1000
 ARG DOCKER_GID=998
 ARG PLAYWRIGHT_VERSION=1.61.1
+ARG PNPM_VERSION=11.18.0
 
 ENV APP_TIMEZONE=Europe/Warsaw \
     TZ=Europe/Warsaw \
@@ -15,7 +16,7 @@ ENV APP_TIMEZONE=Europe/Warsaw \
     PATH="/home/${USERNAME}/.composer/vendor/bin:/workspace/node_modules/.bin:${PATH}"
 
 COPY --from=node /usr/local /usr/local
-COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+COPY --from=composer:2.9.7 /usr/bin/composer /usr/bin/composer
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
@@ -65,7 +66,7 @@ RUN apt-get update \
     && docker-php-ext-install -j"$(nproc)" zip \
     && pecl install redis \
     && docker-php-ext-enable redis \
-    && npm install -g pnpm@latest \
+    && npm install --global "pnpm@${PNPM_VERSION}" \
     && npx -y "playwright@${PLAYWRIGHT_VERSION}" install --with-deps chromium firefox webkit \
     && groupadd --gid "${USER_GID}" "${USERNAME}" \
     && if getent group docker >/dev/null; then groupmod --gid "${DOCKER_GID}" docker; elif getent group "${DOCKER_GID}" >/dev/null; then groupadd --non-unique --gid "${DOCKER_GID}" docker; else groupadd --gid "${DOCKER_GID}" docker; fi \

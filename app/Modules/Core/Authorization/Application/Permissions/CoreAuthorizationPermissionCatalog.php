@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Core\Authorization\Application\Permissions;
 
 use App\Modules\Core\Authorization\Application\Public\Permissions\CoreAuthorizationPermissionNames;
+use App\Shared\Application\Authorization\Permissions\OperationalPermissionNames;
 use App\Shared\Application\Modules\Contributions\Contracts\ModulePermissionContribution;
 use App\Shared\Application\Modules\Contributions\ModulePermissionDefinition;
 
@@ -66,9 +67,9 @@ final class CoreAuthorizationPermissionCatalog implements ModulePermissionContri
 
     public const ADMIN_QUEUES_ACKNOWLEDGE = 'admin.queues.acknowledge';
 
-    public const ADMIN_PULSE_VIEW = 'admin.pulse.view';
+    public const ADMIN_PULSE_VIEW = OperationalPermissionNames::PULSE_VIEW;
 
-    public const ADMIN_TELESCOPE_VIEW = 'admin.telescope.view';
+    public const ADMIN_TELESCOPE_VIEW = OperationalPermissionNames::TELESCOPE_VIEW;
 
     public const ADMIN_MODULES_SHOW = 'admin.modules.show';
 

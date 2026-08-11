@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-use App\Modules\Core\Identity\Application\Public\Persistence\IdentityDatabaseTable;
-use App\Modules\Core\Privacy\Application\Public\Persistence\PrivacyDatabaseTable;
-use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
+use App\Modules\Core\Identity\Infrastructure\Persistence\TableNames\IdentityDatabaseTable;
+use App\Modules\Core\Privacy\Infrastructure\Persistence\TableNames\PrivacyDatabaseTable;
+use App\Modules\Core\Teams\Infrastructure\Persistence\TableNames\TeamsDatabaseTable;
 use App\Shared\Infrastructure\Database\DatabaseSchema;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
@@ -15,10 +15,6 @@ return new class extends Migration
     public function up(): void
     {
         DatabaseSchema::ensure(DatabaseSchema::CORE_PRIVACY);
-
-        Schema::dropIfExists(PrivacyDatabaseTable::LEGAL_HOLDS);
-        Schema::dropIfExists(PrivacyDatabaseTable::OPERATION_PREVIEWS);
-        Schema::dropIfExists(PrivacyDatabaseTable::OPERATION_REQUESTS);
 
         Schema::create(PrivacyDatabaseTable::OPERATION_REQUESTS, function (Blueprint $table): void {
             $table->id();
@@ -54,6 +50,7 @@ return new class extends Migration
             $table->unsignedInteger('participant_count');
             $table->unsignedInteger('estimated_records');
             $table->boolean('can_execute');
+            $table->char('snapshot_hash', 64);
             $table->timestampTz('created_at');
 
             $table->index(['operation_request_id', 'created_at']);

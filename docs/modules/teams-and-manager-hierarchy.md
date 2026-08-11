@@ -14,8 +14,10 @@ Current implementation foundation:
 - `App\Modules\Core\Teams\Domain\ValueObjects\TeamPublicId` is the typed domain identifier for team public IDs;
 - `team_user_assignments` stores the current team membership foundation used by active-team authorization checks.
 - `App\Modules\Core\Teams\Application\Public\Contracts\BootstrapTeamProvider` exposes the narrow public bootstrap contract used by first-administrator, system bootstrap, and development bootstrap flows.
-- `App\Modules\Core\Teams\Application\Public\Contracts\UserTeamMembershipManager` exposes Admin user-team membership operations for adding and removing user-team access from User and Team administration workflows.
-- `App\Modules\Core\Teams\Application\Public\Contracts\ManagerHierarchy` exposes stable manager hierarchy reads, impact previews, relationship changes, head-manager changes, and direct-report/subtree scopes for TimeTracking and later modules.
+- `App\Shared\Application\Teams\Contracts\TeamLookup` exposes owner-owned public ID/internal ID resolution, active-team validation lookups, active user-team assignment ID/summary lookups, active head-manager existence checks, all-team cache invalidation IDs, all-team lookup summaries, internal-ID summary maps, and display summaries for cross-module read/runtime surfaces that need team labels, assignment labels, head-manager eligibility, active-team state, authorization context, or impersonation/session display without querying Teams tables.
+- `App\Shared\Application\Teams\Contracts\UserTeamMembershipManager` exposes Admin user-team membership operations for adding and removing user-team access from User and Team administration workflows. Teams resolves user public IDs, names, and email labels through Identity `UserLookup`; membership reads do not query Identity tables directly.
+- `App\Shared\Application\Teams\Contracts\UserTeamMembershipProvisioner` exposes the narrow owner-owned membership provisioning operation used by Authorization assignment/bootstrap/copy flows that must ensure a team assignment exists before assigning team-scoped roles or permissions.
+- `App\Modules\Core\Teams\Application\Public\Contracts\ManagerHierarchy` exposes stable manager hierarchy reads, impact previews, relationship changes, head-manager changes, and direct-report/subtree scopes for TimeTracking and later modules. Manager hierarchy persistence reads Teams-owned relationship rows first and enriches user display data through Identity `UserLookup`.
 
 Admin user-team access management:
 
@@ -51,7 +53,7 @@ A normal manager sees direct reports only.
 
 A head manager sees the entire subtree under them, still constrained by permissions.
 
-Admin manager administration starts at `/admin/managers`. The index lists users who are managers in the selected team, exposes filters for manager type and direct/subtree report presence, and links to `/admin/managers/create?team={team}` for adding a new manager relationship. Manager create and detail pages at `/admin/managers/create?team={team}` and `/admin/managers/{user}/edit?team={team}` support:
+Manager hierarchy administration is integrated into the owning team at `/admin/teams/{team}/structure`. The Team Edit action opens this editor; there is no separate Managers Admin area. The editor supports:
 
 - selecting a manager context and adding multiple direct-report relationships with one effective date and reason;
 - ending manager relationships;
@@ -63,19 +65,26 @@ Admin manager administration starts at `/admin/managers`. The index lists users 
 - cycle validation;
 - impact preview;
 - mandatory reason;
-- audit.
+- audit;
+- optimistic concurrency through a structure version;
+- protection against removing the last active head manager;
+- membership-removal blocking while the member is a head manager or participates in active manager relationships;
+- one responsive and keyboard-accessible team-context surface with an explicit empty state.
 
 Audited manager hierarchy actions include `team.manager_relationship.created`, `team.manager_relationship.ended`, and `team.head_manager.updated`.
 
-Granular permissions include `admin.managers.index`, `admin.managers.create`, `admin.managers.edit`, `admin.managers.store`, `admin.managers.end`, `admin.managers.head.update`, `teams.managers.view`, `teams.managers.create`, `teams.managers.update`, `teams.managers.terminate`, `teams.managers.tree`, `teams.managers.history`, and `teams.managers.head.update`.
+Granular Admin route permissions are `admin.teams.structure.show`, `admin.teams.structure.relationships.store`, `admin.teams.structure.relationships.end`, and `admin.teams.structure.head-manager.update`. Manager application/scope permissions remain `teams.managers.view`, `teams.managers.create`, `teams.managers.update`, `teams.managers.terminate`, `teams.managers.tree`, `teams.managers.history`, and `teams.managers.head.update`.
 
 Development reset does not seed generic representative manager hierarchies after Phase 25 cleanup. The Phase 27 TimeTracking development demo is the current explicit exception: it creates a small manager hierarchy only for TimeTracking review data. Tests and future business modules must create their own explicit manager fixtures.
 
+The exception uses Teams membership and `ManagerHierarchy` contracts. Repeated seeding preserves active membership validity, the two head-manager assignments, the 54-edge acyclic hierarchy, and existing relationship public IDs; seeder classes do not write Teams tables.
+
 ---
+
 # Phase 28 foundation repair target
 
-Current state: Teams and manager hierarchy exist, but Phase 28 tracks direct Audit usage, team/member lookup boundary issues, active-team validation ownership, demo seeder bypasses, and the duplicated separate Admin Managers area.
+Current state: Teams owns membership and the integrated team structure editor. Phase 28 removed the duplicated separate Admin Managers area after route, permission, UI, DAG, audit, concurrency, and legacy-reference coverage was moved to the Teams surface.
 
-Target state: Teams owns team membership, active-team validation, public team summaries, manager DAG, head-manager protection, and the integrated team structure editor. The separate Managers CRUD/Admin area is removed while manager panel and manager scope remain.
+Target state: Teams owns team membership, active-team validation, public team summaries, manager DAG, head-manager protection, and the integrated team structure editor. The separate Managers CRUD/Admin area is removed while manager panel and manager scope remain. Phase 28 boundary slices added `TeamLookup` display summaries, public/internal ID resolution, active-team validation, active user-team assignment ID/summary lookups, active head-manager checks, all-team internal ID enumeration, all-team summaries, and internal-ID summary maps so Audit browser filters, Notifications delivery/realtime paths, ModuleGate, module activation cache invalidation, Admin System Status active-team resolution, TimeTracking tracked assignment/report/break-policy reads, TimeTracking closed-period eligibility, and Admin module activation team/history/schedule surfaces no longer query Teams tables directly. Teams membership, session-limit, privacy lifecycle, and manager hierarchy surfaces now use Identity `UserLookup` for user ID/display enrichment instead of importing Identity persistence table constants.
 
 Tracked issue IDs: `P28-ARCH-001`, `P28-ARCH-004`, `P28-ARCH-005`, `P28-ARCH-012`, `P28-AUTH-001`, `P28-AUTH-002`, `P28-AUTH-005`, `P28-SEED-001`, `P28-MODAUD-003`.

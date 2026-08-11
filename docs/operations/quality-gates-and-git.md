@@ -6,7 +6,7 @@ Canonical commands and repository workflow for local quality gates, hooks, commi
 
 Provide project-level commands.
 
-Phase 28 target: add `composer check:foundation` as the full foundation gate after implementation. It must run `composer check`, fresh PostgreSQL migration, migration/schema guardrails, deterministic seeders, seeder idempotency, PL-first and EN-first mail rendering, architecture graph validation, audit coverage validation, full Playwright, container config validation, production image builds, production smoke stack, ClamAV smoke, Chromium/PDF smoke, worker smoke, and scheduler smoke. Phase 28 cannot close until that command passes.
+`composer check:foundation` is the public aggregate foundation gate. It runs `composer check` (including fresh test-database preparation, migration/schema, seeder, bilingual mail, architecture, audit, frontend, and static guardrails), then the full isolated Playwright suite, and finally the isolated production runtime smoke. This order keeps stateful PHPUnit and Playwright sequential. The runtime lane builds production images and covers Compose validation, fresh migration, HTTP/assets, Horizon and every configured queue, scheduler heartbeat, ClamAV/EICAR, Meilisearch, Chromium/PDF, clean teardown, and restart with persisted PostgreSQL data.
 
 ### Composer
 
@@ -17,15 +17,20 @@ Phase 28 target: add `composer check:foundation` as the full foundation gate aft
 - `composer test:unit`
 - `composer test:integration`
 - `composer test:feature`
+- `composer runtime:check`
+- `composer runtime:smoke`
+- `composer check:foundation`
 - `composer check`
 
 `composer format` formats backend and frontend.
 
-`composer check` runs full verification and must not silently modify code. It includes Pint check mode, Prettier check mode, ESLint, Stylelint, secret checks, unwanted-file checks, configuration guardrails, PHPStan/Larastan, PHPUnit, TypeScript typechecking, Vitest, and the production Vite build.
+`composer runtime:check` validates pinned package-manager versions, production Docker COPY and ignore boundaries, environment/search-path contracts, external secret registration, Compose structure, PostgreSQL 18 storage, internal HTTP exposure, and nginx asset behavior. `composer runtime:smoke` additionally builds the production PHP, nginx, and preliminary backup images; checks their contents and runtime user; migrates an isolated Compose stack; exercises HTTP and a built asset; and proves PostgreSQL data survives container recreation. It uses an isolated project name, temporary owner-only secret files, and removes its containers and volumes on exit.
+
+`composer check` runs full verification and must not silently modify code. It includes Pint check mode, Prettier check mode, ESLint, Stylelint, secret checks, unwanted-file checks, configuration and runtime-contract guardrails, PHPStan/Larastan, PHPUnit, TypeScript typechecking, Vitest, and the production Vite build. The heavier image-building `composer runtime:smoke` remains an explicit runtime gate until the aggregate Phase 28 foundation command owns it.
 
 At the frontend foundation checkpoint, `composer lint` also runs `pnpm lint` and `pnpm stylelint`, while `composer check` delegates frontend verification to `pnpm check`.
 
-`composer analyse` runs PHPStan/Larastan at the configured maximum practical level through `tools/quality/run-phpstan.sh`. The script discovers targets deterministically from `phpstan.neon`, expands modules automatically, includes global `app` directories such as `Http` and `Providers`, and verifies that every configured PHP file is covered by the public command. The chunking is operational only: it avoids PHP worker segmentation faults on large aggregate batches while preserving the same analysed paths from `phpstan.neon`.
+`composer analyse` runs PHPStan/Larastan at the configured maximum practical level through `tools/quality/run-phpstan.sh`. The script discovers targets deterministically from `phpstan.neon`, expands modules automatically, includes global `app` directories such as `Http` and `Providers`, verifies that every configured PHP file is covered by the public command, and submits the deterministic target set in one PHPStan invocation. A single invocation avoids cumulative worker lifecycle faults between sequential module processes while preserving the same analysed paths from `phpstan.neon`; set `PHPSTAN_DISABLE_PARALLEL=1` for one-process debug execution when diagnosing an environment-specific worker failure.
 
 The public PHPStan script disables PHPStan parallel workers by default because the current PHPStan/Larastan/PHP runtime combination can intermittently terminate a child worker with exit code 139 during otherwise clean analysis. Keep the public target discovery and coverage verification intact; do not work around this by skipping PHPStan or bypassing Git hooks.
 
@@ -43,7 +48,7 @@ The public PHPStan script disables PHPStan parallel workers by default because t
 
 `pnpm check` runs TypeScript checking, ESLint, Stylelint, Vitest, and the production Vite build.
 
-`pnpm check:config` runs repository configuration guardrails. The current checks reject duplicate active keys in `.env.example` and fail when the Playwright package versions drift from the Dev Container `PLAYWRIGHT_VERSION` browser-install argument.
+`pnpm check:config` runs repository configuration guardrails. The current checks reject duplicate active keys in `.env.example`, fail when the Playwright package versions drift from the Dev Container `PLAYWRIGHT_VERSION` browser-install argument, and execute the production runtime contract check.
 
 PHPUnit uses separate `Unit`, `Integration`, and `Feature` test suites. `Integration` is reserved for persistence, Redis, queues, cache, search, filesystem adapters, module providers, transaction boundaries, and other infrastructure behavior. `Feature` is reserved for HTTP, middleware, validation and authorization boundaries, Inertia responses, and protected backend workflows.
 

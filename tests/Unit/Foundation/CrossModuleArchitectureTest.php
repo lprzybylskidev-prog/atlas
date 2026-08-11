@@ -24,7 +24,7 @@ final class CrossModuleArchitectureTest extends TestCase
 
     public function test_generic_high_risk_middleware_does_not_depend_on_privacy_presentation(): void
     {
-        $path = dirname(__DIR__, 3).'/app/Http/Middleware/RequireHighRiskAdministrativeAuthorization.php';
+        $path = dirname(__DIR__, 3).'/app/Modules/Core/Identity/Presentation/Http/Middleware/RequireHighRiskAdministrativeAuthorization.php';
         $contents = file_get_contents($path);
 
         self::assertIsString($contents);

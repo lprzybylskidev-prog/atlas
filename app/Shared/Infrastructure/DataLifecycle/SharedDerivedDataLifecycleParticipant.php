@@ -19,6 +19,11 @@ final readonly class SharedDerivedDataLifecycleParticipant implements DataLifecy
 {
     public function __construct(private ConnectionInterface $db) {}
 
+    public function key(): string
+    {
+        return 'shared';
+    }
+
     public function preview(DataLifecycleSubject $subject, DataLifecycleOperation $operation): DataLifecyclePreview
     {
         $impacts = array_values(array_filter([

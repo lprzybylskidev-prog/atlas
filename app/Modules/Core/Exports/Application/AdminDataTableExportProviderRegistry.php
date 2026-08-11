@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Modules\Core\Exports\Application;
 
-use App\Modules\Core\Exports\Application\Contracts\AdminDataTableExportProvider;
 use App\Modules\Core\Exports\Application\Exceptions\ReportExportDataProviderMissing;
+use App\Shared\Application\Exports\Contracts\AdminDataTableExportProvider;
 
 final class AdminDataTableExportProviderRegistry
 {

@@ -4,14 +4,22 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Foundation;
 
+use App\Modules\Core\Audit\Infrastructure\Persistence\TableNames\AuditDatabaseTable;
 use App\Modules\Core\Identity\Infrastructure\Persistence\User;
-use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
+use App\Modules\Core\Teams\Infrastructure\Persistence\TableNames\TeamsDatabaseTable;
+use App\Modules\Optional\ManagedProcesses\Infrastructure\Persistence\TableNames\ManagedProcessesDatabaseTable;
+use App\Shared\Application\Modules\Activation\Contracts\ModuleActivationService;
+use App\Shared\Application\Modules\Activation\ModuleActivationChange;
 use App\Shared\Application\Modules\Activation\ModuleActivationScheduleStatus;
+use App\Shared\Application\Modules\Activation\ModuleActivationScope;
+use App\Shared\Application\Modules\Contracts\ModuleDefinition;
+use App\Shared\Application\Modules\Contracts\ModuleTechnicalAvailability;
 use App\Shared\Infrastructure\Database\DatabaseTable;
 use Database\Seeders\E2eVisibilitySeeder;
 use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Inertia\Testing\AssertableInertia;
 use Tests\TestCase;
 
@@ -163,6 +171,13 @@ final class ModuleActivationAdministrationTest extends TestCase
             'atlas_admin_high_risk_confirmed_at' => now()->toIso8601String(),
         ];
 
+        app(ModuleActivationService::class)->change(new ModuleActivationChange(
+            moduleKey: 'time_tracking',
+            scope: ModuleActivationScope::Global,
+            enabled: false,
+            reason: 'Prepare dependency-safe activation test.',
+        ));
+
         $this->actingAs($admin)
             ->withSession($session)
             ->patch('/admin/modules/feature_flags/teams/'.$teamPublicId, [
@@ -219,6 +234,72 @@ final class ModuleActivationAdministrationTest extends TestCase
         ]);
     }
 
+    public function test_admin_cannot_enable_technically_unavailable_module(): void
+    {
+        $this->seed(E2eVisibilitySeeder::class);
+        $admin = User::query()->where('email', E2eVisibilitySeeder::ADMIN_EMAIL)->firstOrFail();
+        $team = DB::table(TeamsDatabaseTable::TEAMS)->first();
+
+        self::assertIsObject($team);
+
+        $activation = app(ModuleActivationService::class);
+        $activation->change(new ModuleActivationChange(
+            moduleKey: 'time_tracking',
+            scope: ModuleActivationScope::Global,
+            enabled: false,
+            reason: 'Prepare dependency-safe technical availability test.',
+        ));
+        $activation->change(new ModuleActivationChange(
+            moduleKey: 'feature_flags',
+            scope: ModuleActivationScope::Global,
+            enabled: false,
+            reason: 'Prepare unavailable activation rejection test.',
+        ));
+
+        $this->bindUnavailableModule('feature_flags');
+
+        $this->actingAs($admin)
+            ->withSession($this->adminSession($team->public_id))
+            ->patch('/admin/modules/feature_flags/global', [
+                'enabled' => true,
+                'reason' => 'Try enabling unavailable module.',
+            ])
+            ->assertUnprocessable()
+            ->assertSee('Technically unavailable module [feature_flags] cannot be activated.', false);
+
+        self::assertDatabaseHas(DatabaseTable::MODULE_GLOBAL_STATES, [
+            'module_key' => 'feature_flags',
+            'enabled' => false,
+        ]);
+    }
+
+    public function test_admin_cannot_schedule_enable_for_technically_unavailable_module(): void
+    {
+        $this->seed(E2eVisibilitySeeder::class);
+        $admin = User::query()->where('email', E2eVisibilitySeeder::ADMIN_EMAIL)->firstOrFail();
+        $team = DB::table(TeamsDatabaseTable::TEAMS)->first();
+
+        self::assertIsObject($team);
+
+        $this->bindUnavailableModule('feature_flags');
+
+        $this->actingAs($admin)
+            ->withSession($this->adminSession($team->public_id))
+            ->post('/admin/modules/feature_flags/global/schedules', [
+                'enabled' => true,
+                'effective_at' => now()->addDay()->toIso8601String(),
+                'reason' => 'Try scheduling unavailable module.',
+            ])
+            ->assertUnprocessable()
+            ->assertSee('Technically unavailable module [feature_flags] cannot be activated.', false);
+
+        self::assertDatabaseMissing(DatabaseTable::MODULE_ACTIVATION_SCHEDULES, [
+            'module_key' => 'feature_flags',
+            'target_enabled' => true,
+            'status' => ModuleActivationScheduleStatus::Scheduled->value,
+        ]);
+    }
+
     public function test_direct_module_activation_endpoint_requires_permission(): void
     {
         $this->seed(E2eVisibilitySeeder::class);
@@ -239,6 +320,141 @@ final class ModuleActivationAdministrationTest extends TestCase
             ->assertForbidden();
     }
 
+    public function test_required_enabled_dependent_blocks_deactivation_and_audits_attempt_and_rejection(): void
+    {
+        $this->seed(E2eVisibilitySeeder::class);
+        $activation = app(ModuleActivationService::class);
+
+        $activation->change(new ModuleActivationChange(
+            moduleKey: 'managed_processes',
+            scope: ModuleActivationScope::Global,
+            enabled: true,
+            reason: 'Enable process runtime for dependency test.',
+        ));
+        $activation->change(new ModuleActivationChange(
+            moduleKey: 'imports',
+            scope: ModuleActivationScope::Global,
+            enabled: true,
+            reason: 'Enable required dependent for dependency test.',
+        ));
+
+        try {
+            $activation->change(new ModuleActivationChange(
+                moduleKey: 'managed_processes',
+                scope: ModuleActivationScope::Global,
+                enabled: false,
+                reason: 'Unsafe dependency deactivation attempt.',
+            ));
+            self::fail('Expected the enabled required dependent to block deactivation.');
+        } catch (\Throwable $exception) {
+            self::assertSame(
+                'Module [managed_processes] cannot be disabled while required dependent module [imports] is enabled.',
+                $exception->getMessage(),
+            );
+        }
+
+        self::assertDatabaseHas(AuditDatabaseTable::AUDIT_EVENTS, [
+            'action' => 'module.deactivation_attempted',
+            'result' => 'succeeded',
+            'target_public_id' => 'managed_processes',
+        ]);
+        self::assertDatabaseHas(AuditDatabaseTable::AUDIT_EVENTS, [
+            'action' => 'module.deactivation',
+            'result' => 'rejected',
+            'target_public_id' => 'managed_processes',
+        ]);
+        self::assertFalse($activation->effectiveState('managed_processes')->globallyEnabled === false);
+    }
+
+    public function test_safe_deactivation_is_audited_as_attempted_and_succeeded(): void
+    {
+        $this->seed(E2eVisibilitySeeder::class);
+        $activation = app(ModuleActivationService::class);
+
+        $activation->change(new ModuleActivationChange(
+            moduleKey: 'reports',
+            scope: ModuleActivationScope::Global,
+            enabled: true,
+            reason: 'Enable reports for safe deactivation test.',
+        ));
+        $activation->change(new ModuleActivationChange(
+            moduleKey: 'reports',
+            scope: ModuleActivationScope::Global,
+            enabled: false,
+            reason: 'Safe deactivation test.',
+        ));
+
+        self::assertDatabaseHas(AuditDatabaseTable::AUDIT_EVENTS, [
+            'action' => 'module.deactivation_attempted',
+            'result' => 'succeeded',
+            'target_public_id' => 'reports',
+        ]);
+        self::assertDatabaseHas(AuditDatabaseTable::AUDIT_EVENTS, [
+            'action' => 'module.deactivation',
+            'result' => 'succeeded',
+            'target_public_id' => 'reports',
+        ]);
+        self::assertFalse($activation->effectiveState('reports')->globallyEnabled);
+    }
+
+    public function test_enabled_managed_process_schedule_blocks_owner_module_deactivation(): void
+    {
+        $this->seed(E2eVisibilitySeeder::class);
+        $activation = app(ModuleActivationService::class);
+
+        $activation->change(new ModuleActivationChange(
+            moduleKey: 'managed_processes',
+            scope: ModuleActivationScope::Global,
+            enabled: true,
+            reason: 'Enable managed processes for schedule guard test.',
+        ));
+        $activation->change(new ModuleActivationChange(
+            moduleKey: 'search',
+            scope: ModuleActivationScope::Global,
+            enabled: true,
+            reason: 'Enable search for schedule guard test.',
+        ));
+
+        $schedulePublicId = (string) Str::ulid();
+        DB::table(ManagedProcessesDatabaseTable::SCHEDULES)->insert([
+            'public_id' => $schedulePublicId,
+            'process_key' => 'search.rebuild',
+            'module_key' => 'search',
+            'scope' => 'team',
+            'team_id' => null,
+            'timezone' => 'Europe/Warsaw',
+            'cron_expression' => '0 2 * * *',
+            'interval_key' => null,
+            'input_snapshot' => json_encode([], JSON_THROW_ON_ERROR),
+            'enabled' => true,
+            'next_due_at' => now()->addDay(),
+            'last_run_id' => null,
+            'overlap_policy' => 'skip_if_active',
+            'created_by_user_id' => null,
+            'updated_by_user_id' => null,
+            'reason' => 'Schedule guard fixture.',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->expectExceptionMessage('Module [search] cannot be disabled while unsafe processes are active.');
+
+        try {
+            $activation->change(new ModuleActivationChange(
+                moduleKey: 'search',
+                scope: ModuleActivationScope::Global,
+                enabled: false,
+                reason: 'Schedule must block deactivation.',
+            ));
+        } finally {
+            self::assertDatabaseHas(AuditDatabaseTable::AUDIT_EVENTS, [
+                'action' => 'module.deactivation',
+                'result' => 'rejected',
+                'target_public_id' => 'search',
+            ]);
+        }
+    }
+
     private function stringListContains(mixed $values, string $value): bool
     {
         $values = self::arrayValue($values);
@@ -250,6 +466,33 @@ final class ModuleActivationAdministrationTest extends TestCase
         }
 
         return false;
+    }
+
+    private function bindUnavailableModule(string $moduleKey): void
+    {
+        $this->app->bind(ModuleTechnicalAvailability::class, static fn () => new class($moduleKey) implements ModuleTechnicalAvailability
+        {
+            public function __construct(private readonly string $unavailableModuleKey) {}
+
+            public function available(ModuleDefinition $module): bool
+            {
+                return $module->key()->value !== $this->unavailableModuleKey;
+            }
+        });
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function adminSession(mixed $teamPublicId): array
+    {
+        return [
+            'active_team_public_id' => $teamPublicId,
+            'auth.password_confirmed_at' => now()->unix(),
+            'atlas_admin_mode_entered_at' => now()->toIso8601String(),
+            'atlas_admin_mode_last_activity_at' => now()->toIso8601String(),
+            'atlas_admin_high_risk_confirmed_at' => now()->toIso8601String(),
+        ];
     }
 
     /**

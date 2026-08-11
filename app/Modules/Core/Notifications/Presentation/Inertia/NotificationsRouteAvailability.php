@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Core\Notifications\Presentation\Inertia;
 
-use App\Modules\Core\Notifications\Application\Public\Permissions\NotificationPermissionNames;
+use App\Shared\Application\Notifications\Permissions\NotificationPermissionNames;
 use App\Shared\Presentation\Inertia\Contracts\InertiaRouteAvailabilityContributor;
 use Illuminate\Http\Request;
 

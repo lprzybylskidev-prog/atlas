@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Foundation;
 
-use App\Modules\Core\Audit\Application\Public\Persistence\AuditDatabaseTable;
+use App\Modules\Core\Audit\Infrastructure\Persistence\TableNames\AuditDatabaseTable;
 use App\Modules\Core\Identity\Infrastructure\Persistence\User;
 use App\Modules\Core\Users\Application\Commands\ResetUserMfaCommand;
 use App\Modules\Core\Users\Application\Exceptions\InvalidUserMfaReset;

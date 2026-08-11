@@ -27,8 +27,8 @@ use App\Modules\Core\Identity\Presentation\Http\Controllers\ResetRateLimitCounte
 use App\Modules\Core\Privacy\Presentation\Http\Controllers\PrivacyLegalHoldController;
 use App\Modules\Core\Privacy\Presentation\Http\Controllers\PrivacyOperationHistoryController;
 use App\Modules\Core\Privacy\Presentation\Http\Controllers\PrivacyRetentionController;
-use App\Modules\Core\Teams\Presentation\Http\Controllers\ManagerHierarchyAdministrationController;
 use App\Modules\Core\Teams\Presentation\Http\Controllers\TeamAdministrationController;
+use App\Modules\Core\Teams\Presentation\Http\Controllers\TeamStructureController;
 use App\Modules\Core\Teams\Presentation\Http\Controllers\UserTeamAuthorizationController;
 use App\Modules\Core\Teams\Presentation\Http\Controllers\UserTeamMembershipController;
 use App\Modules\Core\Users\Presentation\Http\Controllers\CreateUserAccountController;
@@ -51,7 +51,6 @@ use App\Shared\Presentation\Http\Controllers\AdminApplicationLogController;
 use App\Shared\Presentation\Http\Controllers\AdminFailedJobController;
 use App\Shared\Presentation\Http\Controllers\AdminSystemStatusController;
 use App\Shared\Presentation\Http\Controllers\Modules\ModuleActivationController;
-use App\Shared\Presentation\Http\Controllers\TableSavedViewController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth', 'route.permission'])->group(function (): void {
@@ -98,12 +97,10 @@ Route::middleware(['auth', 'admin.mode', 'route.permission'])->group(function ()
     Route::post('/admin/teams/{team}/users', [TeamAdministrationController::class, 'addUser'])->name('admin.teams.users.store');
     Route::delete('/admin/teams/{team}/users/{user}', [TeamAdministrationController::class, 'removeUser'])->name('admin.teams.users.destroy');
     Route::patch('/admin/teams/{team}/users/{user}/authorization', [TeamAdministrationController::class, 'updateUserAuthorization'])->name('admin.teams.users.authorization.update');
-    Route::get('/admin/managers', [ManagerHierarchyAdministrationController::class, 'index'])->name('admin.managers.index');
-    Route::get('/admin/managers/create', [ManagerHierarchyAdministrationController::class, 'create'])->name('admin.managers.create');
-    Route::get('/admin/managers/{user}/edit', [ManagerHierarchyAdministrationController::class, 'edit'])->name('admin.managers.edit');
-    Route::post('/admin/managers', [ManagerHierarchyAdministrationController::class, 'store'])->name('admin.managers.store');
-    Route::patch('/admin/managers/head', [ManagerHierarchyAdministrationController::class, 'head'])->name('admin.managers.head.update');
-    Route::patch('/admin/managers/{relationship}/end', [ManagerHierarchyAdministrationController::class, 'end'])->name('admin.managers.end');
+    Route::get('/admin/teams/{team}/structure', [TeamStructureController::class, 'show'])->name('admin.teams.structure.show');
+    Route::post('/admin/teams/{team}/structure/relationships', [TeamStructureController::class, 'store'])->name('admin.teams.structure.relationships.store');
+    Route::patch('/admin/teams/{team}/structure/head-manager', [TeamStructureController::class, 'head'])->name('admin.teams.structure.head-manager.update');
+    Route::patch('/admin/teams/{team}/structure/relationships/{relationship}/end', [TeamStructureController::class, 'end'])->name('admin.teams.structure.relationships.end');
     Route::get('/admin/authorization/roles', RoleAdministrationController::class)->name('admin.authorization.roles.index');
     Route::get('/admin/authorization/roles/create', CreateRoleController::class)->name('admin.authorization.roles.create');
     Route::post('/admin/authorization/roles', StoreRoleController::class)->name('admin.authorization.roles.store');
@@ -172,6 +169,7 @@ Route::middleware(['auth', 'admin.mode', 'route.permission'])->group(function ()
     Route::get('/admin/privacy-retention/legal-holds', [PrivacyLegalHoldController::class, 'index'])->name('admin.privacy-retention.legal-holds.index');
     Route::get('/admin/privacy-retention/legal-holds/create', [PrivacyLegalHoldController::class, 'create'])->name('admin.privacy-retention.legal-holds.create');
     Route::post('/admin/privacy-retention/legal-holds', [PrivacyLegalHoldController::class, 'store'])->name('admin.privacy-retention.legal-holds.store');
+    Route::post('/admin/privacy-retention/legal-holds/{hold}/release', [PrivacyLegalHoldController::class, 'release'])->name('admin.privacy-retention.legal-holds.release');
     Route::get('/admin/privacy-retention/operations', PrivacyOperationHistoryController::class)->name('admin.privacy-retention.operations.index');
     Route::get('/admin/logs', AdminApplicationLogController::class)->name('admin.logs.index');
     Route::get('/admin/feature-flags', [AdminFeatureFlagsController::class, 'index'])->name('admin.feature-flags.index');
@@ -196,11 +194,6 @@ Route::middleware(['auth', 'admin.mode', 'route.permission'])->group(function ()
     Route::get('/admin/managed-processes/{run}', [AdminManagedProcessesController::class, 'show'])->name('admin.managed-processes.show');
     Route::post('/admin/managed-processes/{run}/retry', [AdminManagedProcessesController::class, 'retry'])->name('admin.managed-processes.retry');
     Route::post('/admin/managed-processes/{run}/cancel', [AdminManagedProcessesController::class, 'cancel'])->name('admin.managed-processes.cancel');
-    Route::post('/admin/table-views', [TableSavedViewController::class, 'store'])->name('admin.table-views.store');
-    Route::patch('/admin/table-views/{view}', [TableSavedViewController::class, 'update'])->name('admin.table-views.update');
-    Route::delete('/admin/table-views/{view}', [TableSavedViewController::class, 'destroy'])->name('admin.table-views.destroy');
-    Route::post('/admin/table-views/{view}/copy', [TableSavedViewController::class, 'copy'])->name('admin.table-views.copy');
-    Route::post('/admin/table-views/{view}/default', [TableSavedViewController::class, 'default'])->name('admin.table-views.default');
     Route::post('/admin/exports/data-table', AdminDataTableExportController::class)->name('admin.exports.data-table');
     Route::post('/admin/time-tracking/closed-period-corrections', [AdminClosedPeriodCorrectionController::class, 'store'])
         ->middleware('admin.high-risk:'.HighRiskAdministrativeOperation::ClosedPeriodTimeTrackingCorrection->value)

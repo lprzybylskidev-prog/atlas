@@ -8,7 +8,7 @@ The current roadmap begins with the technical and operational foundation require
 
 The current foundation includes a Core Audit module with append-only application and security audit records plus a read-only Admin audit browser. Earlier security-audit producers now write through this shared audit foundation instead of a separate legacy table.
 
-The current roadmap focus is [Phase 28 — Foundation repair and consolidation](docs/roadmap/phase-28-foundation-repair-and-consolidation.md). Phase 28 is not implementation-complete; it is the accepted repair contract for known foundation drift before production deployment.
+The foundation repair and consolidation work in [Phase 28](docs/roadmap/phase-28-foundation-repair-and-consolidation.md) is complete. The current roadmap focus is [Phase 29 — Production deployment, backup, restore, and rollback](docs/roadmap/phase-29-deployment-backup-rollback.md); Phase 30 remains the later final whole-application release audit.
 
 ## Core principles
 
@@ -161,6 +161,8 @@ Staging is optional when operationally useful.
 
 The baseline production topology uses one host or VM with Docker Compose. PostgreSQL runs inside the production Compose stack with durable storage. Only the reverse proxy exposes public ports.
 
+Phase 28 provides reproducible production PHP/nginx images and an isolated loopback-only HTTP smoke stack. `composer runtime:check` validates the static runtime contract, while `composer runtime:smoke` builds the locked artifacts, migrates the isolated stack, exercises Laravel and Vite assets through nginx, and proves PostgreSQL 18 volume persistence. This is a runtime foundation only; HTTPS, host deployment, scheduled/off-host backups, restore, and rollback remain Phase 29.
+
 The Dev Container no-rebuild restriction applies only to the development Dev Container after its first successful start. It does not restrict normal rebuilding of production images and containers.
 
 The development application container includes Docker CLI and the Docker Compose plugin through a development-only host Docker socket mount, allowing the local Atlas Compose stack to be inspected from inside VS Code.
@@ -192,7 +194,7 @@ The Search foundation is available as an optional module for module-owned Meilis
 
 The Feature Flags foundation is available as an optional module for typed rollout flags. Current contracts cover code-owned boolean flag definitions, global and per-team values, effective-value precedence, append-only history, Audit events, Admin management at `/admin/feature-flags`, and the rule that flags cannot replace module activation or authorization.
 
-The implementation status and first unfinished phase are always shown in [`WORKROAD.md`](WORKROAD.md). The current roadmap focus is Phase 28 foundation repair, followed by Phase 29 production deployment/recovery and Phase 30 final whole-application verification before the first debt collection business modules are introduced.
+The implementation status and first unfinished phase are always shown in [`WORKROAD.md`](WORKROAD.md). Phase 28 foundation repair is complete; the current roadmap focus is Phase 29 production deployment/recovery, followed by Phase 30 final whole-application verification before the first debt collection business modules are introduced.
 
 As the project grows, this README must present the current high-level system scope, major modules, supported workflows, setup entry points, and operational expectations.
 

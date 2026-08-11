@@ -5,11 +5,9 @@ declare(strict_types=1);
 namespace Database\Seeders;
 
 use App\Modules\Core\Authorization\Application\Public\Contracts\AdministratorAccessManager;
-use App\Modules\Core\Identity\Domain\AccountSensitivity;
-use App\Modules\Core\Identity\Infrastructure\Persistence\User;
+use App\Modules\Core\Identity\Application\Public\Contracts\VerifiedUserFixtureBuilder;
 use App\Modules\Core\Teams\Application\Public\Contracts\BootstrapTeamProvider;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\Hash;
 
 class DevelopmentBootstrapSeeder extends Seeder
 {
@@ -19,24 +17,20 @@ class DevelopmentBootstrapSeeder extends Seeder
 
     public function run(): void
     {
-        $team = app(BootstrapTeamProvider::class)->provide(SystemBootstrapSeeder::ADMINISTRATION_TEAM_NAME);
-        $admin = User::query()->firstOrNew([
-            'email' => self::PREVIEW_EMAIL,
-        ]);
+        if (app()->isProduction()) {
+            return;
+        }
 
-        $admin->forceFill([
-            'name' => 'Admin',
-            'password' => Hash::make(self::PREVIEW_PASSWORD),
-            'email_verified_at' => now(),
-            'first_password_set_at' => now(),
-            'is_active' => true,
-            'deactivated_at' => null,
-            'account_sensitivity' => AccountSensitivity::Sensitive->value,
-            'avatar_color' => User::DEFAULT_AVATAR_COLOR,
-        ])->save();
+        $team = app(BootstrapTeamProvider::class)->provide(SystemBootstrapSeeder::ADMINISTRATION_TEAM_NAME);
+        $admin = app(VerifiedUserFixtureBuilder::class)->provide(
+            name: 'Admin',
+            email: self::PREVIEW_EMAIL,
+            plainPassword: self::PREVIEW_PASSWORD,
+            accountSensitivity: 'sensitive',
+        );
 
         app(AdministratorAccessManager::class)->assignAdministrator(
-            userPublicId: (string) $admin->public_id,
+            userPublicId: $admin->publicId,
             teamPublicId: $team->publicId,
         );
     }

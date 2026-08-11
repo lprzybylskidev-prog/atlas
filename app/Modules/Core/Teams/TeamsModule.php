@@ -49,17 +49,7 @@ final class TeamsModule implements ModuleDefinition
         return false;
     }
 
-    public function integrations(): array
-    {
-        return [];
-    }
-
     public function healthChecks(): array
-    {
-        return [];
-    }
-
-    public function frontendEntrypoints(): array
     {
         return [];
     }

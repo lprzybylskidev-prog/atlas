@@ -77,6 +77,20 @@ The Chromium/PDF readiness check verifies the real PDF rendering runtime, not on
 
 When `ATLAS_HEALTH_CHROMIUM_BINARY` is not set, Atlas auto-discovers common runtime locations, including Playwright browsers under `/ms-playwright`, system `chromium`/`chromium-browser`/Google Chrome on `PATH`, and common `/usr/bin/*` browser paths.
 
+## Module Technical Availability
+
+Phase 28 connects readiness to module activation through `App\Shared\Application\Modules\Contracts\ModuleTechnicalAvailability`.
+
+Current module availability rules:
+
+- modules without declared `ModuleDefinition::healthChecks()` are technically available when deployed;
+- modules with declared health checks are technically available only when every named readiness check is present and not unhealthy;
+- degraded readiness remains visible to operators but does not block ModuleGate unless the underlying check reports an unhealthy state;
+- stale decorative health-check names are invalid for current manifests and must be removed or backed by a real readiness check before use;
+- the Health module reports the readiness graph but does not declare all checks as requirements for its own availability.
+
+Module activation validates this contract before enabling a module immediately or scheduling a future enablement. Disabling an unavailable module remains allowed so operators can move the system to a safer state.
+
 ## Admin Diagnostics
 
 Admin System Status includes a Readiness card loaded from `GET /admin/system-status/readiness`.
@@ -84,6 +98,8 @@ Admin System Status includes a Readiness card loaded from `GET /admin/system-sta
 The Admin card includes per-check labels, blocking/degraded classification, status, safe descriptions, and non-secret metadata such as scheduler freshness thresholds.
 
 Admin System Status also includes a Release card loaded from `GET /admin/system-status/release`.
+
+Module issue rows inside Admin System Status are not Health-owned readiness checks. They are collected from module-owned `ModuleOperationalDiagnostics` contributors, while Health continues to own liveness/readiness and technical availability input.
 
 The Release card includes:
 
@@ -112,7 +128,7 @@ Admin diagnostics may include operational detail, but still must not expose secr
 ---
 # Phase 28 foundation repair target
 
-Current state: Health exposes liveness/readiness and diagnostics, but Phase 28 tracks technical availability drift, ModuleGate not consuming real health requirements, incomplete queue/scheduler/storage/Meilisearch/ClamAV/Chromium/runtime checks, and backup boundary clarity.
+Current state: Health exposes real liveness/readiness and operator diagnostics, and ModuleGate consumes declared readiness requirements through technical availability. The production foundation smoke verifies queue/Horizon, scheduler heartbeat, storage, Meilisearch, ClamAV/EICAR, Chromium/PDF, and the backup/storage boundary.
 
 Target state: Health provides real dependency-chain checks for module technical availability and runtime readiness across development, test, production, and manual server modes, without leaking secrets.
 

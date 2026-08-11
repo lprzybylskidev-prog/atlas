@@ -12,7 +12,7 @@ use App\Modules\Optional\TimeTracking\Application\Enums\CorrectionHistoryAction;
 use App\Modules\Optional\TimeTracking\Application\Enums\CorrectionRequestStatus;
 use App\Modules\Optional\TimeTracking\Application\Enums\CorrectionRequestType;
 use App\Modules\Optional\TimeTracking\Application\Enums\CorrectionSourceType;
-use App\Modules\Optional\TimeTracking\Application\Public\Persistence\TimeTrackingDatabaseTable;
+use App\Modules\Optional\TimeTracking\Infrastructure\Persistence\TableNames\TimeTrackingDatabaseTable;
 use DateTimeImmutable;
 use Illuminate\Database\ConnectionInterface;
 use Illuminate\Support\Str;

@@ -23,7 +23,7 @@ import { useTranslator } from '../../../Localization/translator';
 import type { DataTableAction, DataTableColumn, DataTableMeta } from '../../../Types/data-table';
 import { moduleLabel } from '../../../Utils/moduleLabels';
 import { optionsWithAll } from '../../../Utils/filterOptions';
-import { formatDateTime, formatStatus } from '../../../Utils/formatters';
+import { formatStatus } from '../../../Utils/formatters';
 
 interface IntegrationRow extends Record<string, unknown> {
     key: string;
@@ -43,7 +43,8 @@ interface IntegrationRow extends Record<string, unknown> {
     lastRunAt: string | null;
 }
 
-interface IntegrationRunRow {
+interface IntegrationRunRow extends Record<string, unknown> {
+    key: string;
     integrationKey: string | null;
     operation: string | null;
     correlationId: string | null;
@@ -91,6 +92,19 @@ const rows = computed<IntegrationRow[]>(() =>
         optionalModules: integration.optionalModules.map((module) => moduleLabel(module, t)),
     })),
 );
+const runRows = computed<IntegrationRunRow[]>(() =>
+    props.recentRuns.map((run) => ({
+        ...run,
+        key: `${run.integrationKey ?? 'integration'}-${run.correlationId ?? run.startedAt ?? 'run'}`,
+    })),
+);
+const runColumns = computed<DataTableColumn<IntegrationRunRow>[]>(() => [
+    { key: 'integrationKey', label: t('pages.admin.integrations.table.integration') },
+    { key: 'operation', label: t('pages.admin.integrations.table.operation') },
+    { key: 'status', label: t('pages.admin.integrations.table.status'), format: 'status-badge' },
+    { key: 'startedAt', label: t('pages.admin.integrations.table.started'), format: 'datetime' },
+    { key: 'message', label: t('pages.admin.integrations.table.message') },
+]);
 const columns = computed<DataTableColumn<IntegrationRow>[]>(() => [
     { key: 'name', label: t('pages.admin.integrations.table.integration') },
     { key: 'key', label: t('pages.admin.integrations.table.key') },
@@ -181,29 +195,11 @@ function circuitLabel(value: string | null): string {
     return keys[value] === undefined ? formatStatus(value) : t(keys[value]);
 }
 
-function statusLabel(value: string | null): string {
-    if (value === null || value === '') {
-        return '';
-    }
-
-    const keys: Record<string, string> = {
-        failed: 'statuses.failed',
-        running: 'statuses.running',
-        succeeded: 'statuses.succeeded',
-    };
-
-    return keys[value] === undefined ? formatStatus(value) : t(keys[value]);
-}
-
 function scopeLabel(value: string): string {
     const key = `pages.admin.integrations.scopes.${value.replaceAll('-', '_')}`;
     const translated = t(key);
 
     return translated === key ? formatStatus(value) : translated;
-}
-
-function runStartedAtLabel(run: IntegrationRunRow): string {
-    return formatDateTime(run.startedAt, locale.value);
 }
 </script>
 
@@ -303,36 +299,14 @@ function runStartedAtLabel(run: IntegrationRunRow): string {
                 :empty-label="t('pages.admin.integrations.adapters.empty')"
             />
 
-            <SurfaceCard :title="t('pages.admin.integrations.runs.title')" :icon="IconRefresh" tone="zinc">
-                <div v-if="recentRuns.length === 0" class="text-sm text-zinc-500 dark:text-zinc-400">
-                    {{ t('pages.admin.integrations.runs.empty') }}
-                </div>
-                <div v-else class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-zinc-200 text-sm dark:divide-zinc-800">
-                        <thead class="text-left text-xs font-semibold text-zinc-500 uppercase dark:text-zinc-400">
-                            <tr>
-                                <th class="px-0 py-2 pr-3">{{ t('pages.admin.integrations.table.integration') }}</th>
-                                <th class="px-3 py-2">{{ t('pages.admin.integrations.table.operation') }}</th>
-                                <th class="px-3 py-2">{{ t('pages.admin.integrations.table.status') }}</th>
-                                <th class="px-3 py-2">{{ t('pages.admin.integrations.table.started') }}</th>
-                                <th class="px-3 py-2">{{ t('pages.admin.integrations.table.message') }}</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-zinc-100 dark:divide-zinc-800">
-                            <tr
-                                v-for="run in recentRuns"
-                                :key="`${run.integrationKey ?? 'integration'}-${run.correlationId ?? run.startedAt}`"
-                            >
-                                <td class="px-0 py-2 pr-3 font-medium text-zinc-900 dark:text-zinc-100">{{ run.integrationKey ?? '-' }}</td>
-                                <td class="px-3 py-2 text-zinc-700 dark:text-zinc-200">{{ run.operation ?? '-' }}</td>
-                                <td class="px-3 py-2 text-zinc-700 dark:text-zinc-200">{{ statusLabel(run.status) }}</td>
-                                <td class="px-3 py-2 text-zinc-600 dark:text-zinc-300">{{ runStartedAtLabel(run) }}</td>
-                                <td class="px-3 py-2 text-zinc-600 dark:text-zinc-300">{{ run.message ?? '-' }}</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </SurfaceCard>
+            <DataTable
+                :title="t('pages.admin.integrations.runs.title')"
+                :rows="runRows"
+                :columns="runColumns"
+                row-key="key"
+                :ui-locale="locale"
+                :empty-label="t('pages.admin.integrations.runs.empty')"
+            />
         </PageStack>
     </AppLayout>
 </template>

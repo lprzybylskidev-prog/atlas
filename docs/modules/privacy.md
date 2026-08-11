@@ -6,7 +6,7 @@ Canonical current behavior for privacy, retention, hard-delete, anonymization, l
 
 `App\Modules\Core\Privacy\PrivacyModule` owns the cross-module privacy and retention orchestration surface.
 
-The module is a Core module with the key `privacy`. It depends on Identity, Authorization, Teams, Audit, Files, Managed Processes, and Exports, and treats Search as an optional participant because search projections can be absent from a deployed environment.
+The module is a Core module with the key `privacy`. Its formal dependencies are Identity, Teams, and Audit. Authorization, Files, Exports, ManagedProcesses, Search, and shared infrastructure contribute lifecycle participants through the neutral shared lifecycle contract; Privacy does not import their internals or require Optional modules to be deployed.
 
 ## Admin operations
 
@@ -30,18 +30,21 @@ The current screen exposes:
 - modal preview results with non-zero impact rows and a CodeViewer drill-down of sanitized record details for each impacted dataset;
 - legal-hold creation and visibility for subjects blocked by legal or retention obligations;
 - persisted operation history for hard-delete and anonymization previews, including blockers, estimated records, participants, actor/team context, and typed confirmation phrases;
+- permission-gated final execution from an executable preview after the operator types the exact confirmation phrase;
 - a shared DataTable of controlled-copy coverage with backend-applied owner, coverage, retention, and lifecycle-participant filters;
 - saved-view support through the shared Admin DataTable foundation.
 
-The current screens do not expose an execute button yet. The backend execution routes exist for saved executable previews and require the full Phase 26 guardrail chain: separate permission, fresh high-risk reauthentication, typed confirmation phrase, mandatory reason from the approved preview, exact impact preview, retention/legal blocker evaluation, idempotent participant execution, and audit.
+Privacy Admin history and legal-hold list surfaces read Privacy-owned persistence and resolve actor/team labels through Identity `UserLookup` and Teams `TeamLookup`. They must not join Identity or Teams tables directly for display labels.
+
+The preview result exposes final execution only when the saved preview is executable and the active actor/team has the matching hard-delete or anonymization execute permission. The execution routes require the full guardrail chain: separate permission, fresh high-risk reauthentication, configured MFA when required, exact typed confirmation phrase, mandatory reason from the approved preview, current impact snapshot, retention/legal blocker evaluation, idempotent participant execution, and audit.
 
 ## Persistence
 
 Privacy persistence uses the `core_privacy` PostgreSQL schema:
 
 - `operation_requests` stores the requested operation, subject, dry-run flag, status, requesting user/team, reason, typed confirmation phrase, correlation ID, and lifecycle timestamps;
-- `operation_previews` stores the preview impacts, blockers, participant count, estimated record count, and whether the current preview could execute;
-- `legal_holds` stores subject-level legal/retention blockers, creator, team context, mandatory reason, optional expiry date, and release metadata reserved for the later release workflow.
+- `operation_previews` stores the preview impacts, blockers, participant count, estimated record count, deterministic snapshot hash, and whether the current preview could execute;
+- `legal_holds` stores subject-level legal/retention blockers, creator, team context, mandatory reason, optional expiry date, and reasoned release metadata. An authorized operator can release an active team-scoped hold from the legal-hold table; the locked state change and mandatory security audit commit atomically, while missing or already released targets produce rejected security evidence without overwriting the hold.
 
 Foreign keys use `RESTRICT`.
 
@@ -59,7 +62,7 @@ Current Privacy permissions:
 - `admin.privacy-retention.legal-holds.store`;
 - `admin.privacy-retention.operations.index`.
 
-The execute permissions are intentionally separate from preview and Admin visibility permissions. Hard delete and irreversible anonymization remain high-risk operations and must use the existing high-risk administrative operation classes before execution routes are introduced.
+The execute permissions are intentionally separate from preview and Admin visibility permissions. Hard delete and irreversible anonymization remain high-risk operations. Execution is available only from an executable saved preview and revalidates authorization, confirmation, stale-write, lifecycle-participant, transaction, and audit contracts at the final request.
 
 Preview routes already require the matching high-risk administrative operation freshness:
 
@@ -92,7 +95,7 @@ Current known controlled-copy areas are:
 - shared cache and queued derived data;
 - Export artifacts.
 
-Users/Identity provides a registered lifecycle participant for `user` subjects. It reports and executes against the user account row, password history, reset tokens, WebAuthn credentials, and database-backed sessions. Execution removes credential/session-derived rows and redacts the user account into an inactive neutral record so existing audit and foreign-key references keep a non-personal technical anchor.
+Users/Identity provides a registered lifecycle participant for `user` subjects. It reports and executes against the user account row, password history, reset tokens, and database-backed sessions. Execution removes credential/session-derived rows and redacts the user account into an inactive neutral record so existing audit and foreign-key references keep a non-personal technical anchor.
 
 Teams and Authorization provide registered lifecycle participants for `user` subjects. Teams ends active team assignments, clears head-manager status, ends active manager relationships involving the user, and removes creator/ender references where they are only actor metadata. Authorization removes the user's role assignments, direct permission assignments, and onboarding-package snapshots while leaving role, permission, and package definitions intact.
 
@@ -106,9 +109,11 @@ Exports provides a registered privacy lifecycle participant for export request s
 
 Search registers a data-lifecycle participant for projected documents when the optional Search module is loaded. Privacy previews include `search.indexes` impact for lifecycle subjects mapped by Search projectors, and execution removes projected documents idempotently through the Search document store. Remaining areas are tracked by Phase 26.
 
+Privacy has no dependency on Optional ManagedProcesses or Search. Every lifecycle participant exposes a stable owner key through the shared `DataLifecycleParticipant` contract and contributes through the `atlas.data_lifecycle_participants` tag. Privacy derives coverage from those keys without class strings or imports of provider-module internals. Missing optional participants therefore produce an explicit reduced coverage row without making the Core module undeployable or changing its startup graph.
+
 Preview creation records a `privacy` security audit event with the operation, dry-run flag, participant count, estimated records, blocker codes, subject, aggregate privacy request ID, team, actor, and reason.
 
-Execution is coordinated by `PrivacyOperationExecutor`. It reserves an executable preview by moving the request to `executing`, verifies the exact typed confirmation phrase and operation type, rechecks active legal holds, calls each registered lifecycle participant through the shared idempotent `execute` contract, then stores `executed` or `blocked` with affected-record and step metadata. Completed and blocked execution attempts record `privacy.hard_delete_executed` or `privacy.anonymization_executed` security audit events.
+Execution is coordinated by `PrivacyOperationExecutor`. Inside one database transaction it locks and reserves an executable preview, verifies the exact typed confirmation phrase and operation type, recomputes every registered participant preview, rechecks active legal holds, participant count, blockers, estimated records, and the deterministic impact snapshot hash, then calls each participant through the shared idempotent `execute` contract. Any stale preview or participant failure rolls back all participant mutations. Successful execution state and mandatory audit evidence commit atomically; rejected and failed attempts are persisted in a separate failure-evidence transaction only after the owning transaction has rolled back.
 
 ## Retention
 
@@ -117,7 +122,7 @@ Financial, audit, legal, and retention-controlled records generally cannot be ha
 An active legal hold is any `legal_holds` record for the preview subject with no release timestamp and either no expiry date or an expiry date on or after the current UTC date. Active legal holds add an `active_legal_hold` blocker to hard-delete and anonymization previews.
 # Phase 28 foundation repair target
 
-Current state: Privacy owns retention/legal-hold/preview foundations, but Phase 28 tracks dependency classification, direct Identity/Teams SQL, rejected-attempt audit gaps, atomicity with lifecycle participants, Files/Search/Exports integration, high-risk continuation, and UI copy.
+Current state: Privacy owns retention/legal-hold/preview/execution workflows, Admin history/legal-hold labels use owner-owned Identity/Teams lookups, optional lifecycle coverage is discovered through stable shared participant keys without Optional module dependencies, and execution success/rejection/failure evidence, stale-preview protection, rollback, and terminal-state atomicity are enforced.
 
 Target state: Privacy uses owner-owned public contracts, audits every high-risk success/rejection/failure path atomically, keeps lifecycle participant boundaries explicit, and has clear localized Admin workflows.
 

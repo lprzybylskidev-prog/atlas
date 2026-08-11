@@ -7,7 +7,7 @@ namespace App\Modules\Optional\TimeTracking\Infrastructure\Persistence;
 use App\Modules\Optional\TimeTracking\Application\Contracts\SettlementPeriodStore;
 use App\Modules\Optional\TimeTracking\Application\DTOs\SettlementPeriod;
 use App\Modules\Optional\TimeTracking\Application\Enums\SettlementPeriodStatus;
-use App\Modules\Optional\TimeTracking\Application\Public\Persistence\TimeTrackingDatabaseTable;
+use App\Modules\Optional\TimeTracking\Infrastructure\Persistence\TableNames\TimeTrackingDatabaseTable;
 use DateTimeImmutable;
 use DateTimeZone;
 use Illuminate\Database\ConnectionInterface;

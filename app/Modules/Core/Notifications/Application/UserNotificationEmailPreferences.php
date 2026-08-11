@@ -5,10 +5,12 @@ declare(strict_types=1);
 namespace App\Modules\Core\Notifications\Application;
 
 use App\Modules\Core\Notifications\Application\Public\Contracts\NotificationEmailPreferenceManager;
-use App\Modules\Core\Notifications\Application\Public\Persistence\NotificationsDatabaseTable;
-use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
+use App\Modules\Core\Notifications\Infrastructure\Persistence\TableNames\NotificationsDatabaseTable;
+use App\Shared\Application\Mail\DTOs\BilingualMailContent;
+use App\Shared\Application\Teams\Contracts\TeamLookup;
+use App\Shared\Infrastructure\Mail\AtlasBilingualMail;
+use App\Shared\Infrastructure\Mail\AtlasBilingualMailFactory;
 use DateTimeInterface;
-use Illuminate\Mail\Message;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
@@ -20,6 +22,7 @@ final readonly class UserNotificationEmailPreferences implements NotificationEma
 {
     public function __construct(
         private NotificationTypeCatalog $catalog,
+        private TeamLookup $teams,
     ) {}
 
     /**
@@ -131,9 +134,16 @@ final readonly class UserNotificationEmailPreferences implements NotificationEma
             ['email' => $this->addressPublicId($addressId), 'token' => $token],
         );
 
-        Mail::raw(__('mail.notification_email_verification.body', ['url' => $verificationUrl]), function (Message $message) use ($email): void {
-            $message->to($email)->subject(__('mail.notification_email_verification.subject'));
-        });
+        $content = BilingualMailContent::fromTranslationKeys(
+            subjectKey: 'mail.notification_email_verification.subject',
+            headingKey: 'mail.notification_email_verification.heading',
+            bodyKeys: ['mail.notification_email_verification.body', 'mail.notification_email_verification.guidance'],
+            actionKey: 'mail.notification_email_verification.action',
+            actionUrl: $verificationUrl,
+        );
+        $order = app(AtlasBilingualMailFactory::class)->localeOrder($userId, $teamId);
+
+        Mail::to($email)->send(new AtlasBilingualMail($content, $order));
     }
 
     /**
@@ -300,9 +310,7 @@ final readonly class UserNotificationEmailPreferences implements NotificationEma
             return null;
         }
 
-        $id = DB::table(TeamsDatabaseTable::TEAMS)->where('public_id', $teamPublicId)->value('id');
-
-        return is_numeric($id) ? (int) $id : null;
+        return $this->teams->internalIdForPublicId($teamPublicId);
     }
 
     private function stringValue(mixed $value): string

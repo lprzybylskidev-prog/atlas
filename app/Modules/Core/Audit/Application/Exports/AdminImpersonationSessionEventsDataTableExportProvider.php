@@ -4,18 +4,18 @@ declare(strict_types=1);
 
 namespace App\Modules\Core\Audit\Application\Exports;
 
-use App\Modules\Core\Audit\Application\Public\Persistence\AuditDatabaseTable;
-use App\Modules\Core\Exports\Application\Public\AbstractAdminDataTableExportProvider;
-use App\Modules\Core\Exports\Application\Public\DTOs\ReportExportGenerationRequest;
-use App\Modules\Core\Exports\Application\Public\Permissions\ReportsPermissionCatalog;
-use App\Shared\Application\Tables\AdminTableDefinitions;
+use App\Modules\Core\Audit\Infrastructure\Persistence\TableNames\AuditDatabaseTable;
+use App\Shared\Application\Exports\AbstractAdminDataTableExportProvider;
+use App\Shared\Application\Exports\DTOs\ReportExportGenerationRequest;
+use App\Shared\Application\Exports\ExportPermissions;
+use App\Shared\Application\Tables\RegisteredTables;
 use Illuminate\Support\Facades\DB;
 
 final readonly class AdminImpersonationSessionEventsDataTableExportProvider extends AbstractAdminDataTableExportProvider
 {
     public function tableKey(): string
     {
-        return AdminTableDefinitions::IMPERSONATION_SESSION_EVENTS;
+        return RegisteredTables::IMPERSONATION_SESSION_EVENTS;
     }
 
     public function tableName(): string
@@ -30,7 +30,7 @@ final readonly class AdminImpersonationSessionEventsDataTableExportProvider exte
 
     public function requestPermission(): string
     {
-        return ReportsPermissionCatalog::REQUEST;
+        return ExportPermissions::REQUEST;
     }
 
     public function ruleVersion(): string

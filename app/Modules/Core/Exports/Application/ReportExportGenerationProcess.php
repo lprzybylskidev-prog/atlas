@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace App\Modules\Core\Exports\Application;
 
 use App\Modules\Core\Exports\Application\Public\Permissions\ReportsPermissionCatalog;
-use App\Modules\Optional\ManagedProcesses\Application\Public\DTOs\ProcessDefinition;
-use App\Modules\Optional\ManagedProcesses\Application\Public\DTOs\ProcessPermissions;
-use App\Modules\Optional\ManagedProcesses\Application\Public\DTOs\RetryPolicy;
+use App\Shared\Application\ManagedProcesses\DTOs\ProcessDefinition;
+use App\Shared\Application\ManagedProcesses\DTOs\ProcessPermissions;
+use App\Shared\Application\ManagedProcesses\DTOs\RetryPolicy;
 
 final class ReportExportGenerationProcess
 {

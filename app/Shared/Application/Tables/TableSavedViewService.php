@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Shared\Application\Tables;
 
-use App\Modules\Core\Audit\Application\Public\Enums\SecurityAuditCategory;
 use App\Modules\Core\Identity\Application\Public\Contracts\SecurityAuditRecorder;
 use App\Modules\Core\Identity\Application\Public\DTOs\SecurityAuditEvent;
+use App\Shared\Application\Audit\Enums\SecurityAuditCategory;
 use App\Shared\Infrastructure\Database\DatabaseTable;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Facades\DB;
@@ -62,7 +62,7 @@ final readonly class TableSavedViewService
      */
     public function create(string $tableKey, string $name, string $type, array $state, int $userId, ?int $teamId, ?string $actorPublicId): string
     {
-        $definition = AdminTableDefinitions::get($tableKey);
+        $definition = RegisteredTables::get($tableKey);
         $type = $type === 'team' ? 'team' : 'private';
 
         if ($type === 'team' && $teamId === null) {
@@ -102,7 +102,7 @@ final readonly class TableSavedViewService
 
         $tableKey = self::stringValue($values['table_key'] ?? '');
         $type = self::stringValue($values['type'] ?? '');
-        $definition = AdminTableDefinitions::get($tableKey);
+        $definition = RegisteredTables::get($tableKey);
 
         DB::table(DatabaseTable::TABLE_SAVED_VIEWS)
             ->where('id', self::intValue($values['id'] ?? null))
@@ -151,7 +151,7 @@ final readonly class TableSavedViewService
         );
     }
 
-    public function setDefault(string $publicId, int $userId, ?int $teamId): void
+    public function setDefault(string $publicId, int $userId, ?int $teamId, ?string $actorPublicId): void
     {
         $view = $this->visibleView($publicId, $userId, $teamId);
         $values = get_object_vars($view);
@@ -168,6 +168,19 @@ final readonly class TableSavedViewService
                 'created_at' => now(),
             ],
         );
+
+        $this->recordAudit(
+            'table_saved_view.default_set',
+            self::stringValue($values['type'] ?? ''),
+            self::stringValue($values['table_key'] ?? ''),
+            $publicId,
+            $actorPublicId,
+        );
+    }
+
+    public function tableKeyForVisibleView(string $publicId, int $userId, ?int $teamId): string
+    {
+        return self::stringValue(get_object_vars($this->visibleView($publicId, $userId, $teamId))['table_key'] ?? '');
     }
 
     /**
@@ -291,8 +304,8 @@ final readonly class TableSavedViewService
         $this->audit->record(new SecurityAuditEvent(
             module: 'shared',
             action: $action,
-            result: 'success',
-            source: 'admin-ui',
+            result: 'succeeded',
+            source: 'ui',
             actorPublicId: $actorPublicId,
             targetPublicId: null,
             reason: null,

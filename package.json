@@ -6,7 +6,7 @@
     "type": "module",
     "scripts": {
         "build": "vite build",
-        "check:config": "bash tools/quality/check-env-example.sh && bash tools/quality/check-playwright-version.sh",
+        "check:config": "bash tools/quality/check-env-example.sh && bash tools/quality/check-playwright-version.sh && bash tools/quality/check-runtime-contract.sh",
         "check:secrets": "bash tools/quality/check-secrets.sh",
         "check:unwanted": "bash tools/quality/check-unwanted-files.sh",
         "check": "pnpm format:check && pnpm lint && pnpm stylelint && pnpm check:secrets && pnpm check:unwanted && pnpm check:config && pnpm typecheck && pnpm test && pnpm build",

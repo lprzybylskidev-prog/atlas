@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Head, useForm } from '@inertiajs/vue3';
 import { IconShieldLock } from '@tabler/icons-vue';
+import { computed } from 'vue';
 
 import RoleForm from '../../../../Components/Authorization/RoleForm.vue';
 import PageStack from '../../../../Components/PageStack.vue';
@@ -19,6 +20,7 @@ const props = defineProps<{
 }>();
 
 const { t } = useTranslator();
+const pageTitle = computed(() => t('pages.admin.roles.edit.title', { object: props.role.displayName || props.role.name }));
 const form = useForm({
     name: props.role.name,
     display_name: props.role.displayName,
@@ -31,8 +33,8 @@ function submit(): void {
 </script>
 
 <template>
-    <Head :title="t('pages.admin.roles.edit.head_title')" />
-    <AppLayout mode="admin" :title="t('pages.admin.roles.edit.title')" :title-icon="IconShieldLock">
+    <Head :title="pageTitle" />
+    <AppLayout mode="admin" :title="pageTitle" :title-icon="IconShieldLock">
         <PageStack>
             <RoleForm
                 v-model:name="form.name"
@@ -41,6 +43,7 @@ function submit(): void {
                 :permission-options="permissionOptions"
                 :errors="form.errors"
                 :processing="form.processing"
+                :dirty="form.isDirty"
                 :submit-label="t('pages.admin.roles.actions.save')"
                 :processing-label="t('pages.admin.roles.actions.saving')"
                 back-href="/admin/authorization/roles"

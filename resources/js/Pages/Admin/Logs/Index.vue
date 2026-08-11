@@ -89,6 +89,7 @@ const filterDefaults = computed(() => ({
     search: '',
 }));
 const filters = ref({ ...filterDefaults.value, ...props.filters });
+const appliedFilters = computed(() => ({ ...filterDefaults.value, ...props.filters }));
 const selectedLogId = ref(props.logs[0]?.publicId ?? '');
 const exportColumns = [
     'occurredAt',
@@ -279,7 +280,7 @@ function detailContent(log: LogEntry | null): string {
                         :exports="exports"
                         :columns="exportColumns"
                         :column-order="exportColumns"
-                        :filters="filters"
+                        :filters="appliedFilters"
                         sort="occurredAt"
                         direction="desc"
                         :ui-locale="locale"

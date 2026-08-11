@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Modules\Core\Audit\Infrastructure\Persistence;
 
-use App\Modules\Core\Audit\Application\Public\Contracts\AuditRecorder;
-use App\Modules\Core\Audit\Application\Public\DTOs\AuditEvent;
 use App\Modules\Core\Identity\Application\Public\Contracts\SecurityAuditRecorder;
 use App\Modules\Core\Identity\Application\Public\DTOs\SecurityAuditEvent;
+use App\Shared\Application\Audit\Contracts\AuditRecorder;
+use App\Shared\Application\Audit\DTOs\AuditEvent;
 
 final readonly class AuditSecurityAuditRecorder implements SecurityAuditRecorder
 {

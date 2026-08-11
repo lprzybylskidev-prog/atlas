@@ -4,15 +4,15 @@ declare(strict_types=1);
 
 namespace App\Modules\Core\Exports\Application;
 
-use App\Modules\Core\Exports\Application\Enums\ReportExportFormat;
 use App\Modules\Core\Exports\Application\Exceptions\ReportRenderCredentialInvalid;
 use App\Modules\Core\Exports\Application\Public\Contracts\ReportRenderCredentialAccess;
 use App\Modules\Core\Exports\Application\Public\Contracts\ReportRenderCredentialIssuer;
 use App\Modules\Core\Exports\Application\Public\DTOs\IssuedReportRenderCredential;
-use App\Modules\Core\Exports\Application\Public\DTOs\ReportExportGenerationRequest;
 use App\Modules\Core\Exports\Application\Public\DTOs\ResolvedReportRenderCredential;
 use App\Modules\Core\Exports\Application\Public\Permissions\ReportsPermissionCatalog;
-use App\Modules\Core\Exports\Application\Public\Persistence\ExportsDatabaseTable;
+use App\Modules\Core\Exports\Infrastructure\Persistence\TableNames\ExportsDatabaseTable;
+use App\Shared\Application\Exports\DTOs\ReportExportGenerationRequest;
+use App\Shared\Application\Exports\Enums\ReportExportFormat;
 use App\Shared\Infrastructure\Operations\OperationalModuleGuard;
 use DateTimeImmutable;
 use DateTimeInterface;
@@ -159,6 +159,8 @@ final readonly class ReportRenderCredentialService implements ReportRenderCreden
             releaseVersion: $this->requiredString($request, 'release_version'),
             ruleVersion: $this->requiredString($request, 'rule_version'),
             expiresAt: $this->dateTime($request, 'expires_at'),
+            locale: $this->nullableString($request, 'locale') ?? 'pl',
+            auditExport: (bool) ($request->audit_export ?? false),
         );
     }
 

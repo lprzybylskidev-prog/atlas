@@ -6,16 +6,15 @@ namespace App\Modules\Core\Exports\Presentation\Http\Controllers;
 
 use App\Modules\Core\Exports\Application\AdminDataTableExportProviderRegistry;
 use App\Modules\Core\Exports\Application\AdminDataTableExportSnapshotFactory;
-use App\Modules\Core\Exports\Application\Enums\ReportExportFormat;
 use App\Modules\Core\Exports\Application\Public\Contracts\ReportExportGenerationDispatcher;
-use App\Modules\Core\Exports\Application\Public\DTOs\AdminDataTableExportContext;
-use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
+use App\Shared\Application\Exports\DTOs\AdminDataTableExportContext;
+use App\Shared\Application\Exports\Enums\ReportExportFormat;
 use App\Shared\Application\Tables\TableState;
+use App\Shared\Application\Teams\Contracts\TeamLookup;
 use App\Shared\Presentation\Support\FlashMessage;
 use DateTimeImmutable;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use RuntimeException;
 
@@ -25,6 +24,7 @@ final readonly class AdminDataTableExportController
         private AdminDataTableExportProviderRegistry $providers,
         private AdminDataTableExportSnapshotFactory $snapshots,
         private ReportExportGenerationDispatcher $dispatcher,
+        private TeamLookup $teams,
     ) {}
 
     public function __invoke(Request $request): RedirectResponse
@@ -40,6 +40,7 @@ final readonly class AdminDataTableExportController
             'columns' => ['sometimes', 'nullable', 'string', 'max:4000'],
             'column_order' => ['sometimes', 'nullable', 'string', 'max:4000'],
             'view' => ['sometimes', 'nullable', 'string', 'max:64'],
+            'audit_export' => ['sometimes', 'boolean'],
         ]);
 
         $actor = $request->user();
@@ -52,19 +53,23 @@ final readonly class AdminDataTableExportController
             $tableKey = $request->string('table_key')->toString();
             $format = ReportExportFormat::from($request->string('format', ReportExportFormat::Csv->value)->toString());
             $provider = $this->providers->get($tableKey);
+            $auditExport = $request->boolean('audit_export');
+
+            abort_if($auditExport && ! $provider->supportsDetailedAuditExport(), 422);
             $teamPublicId = $request->hasSession() ? $request->session()->get('active_team_public_id') : null;
-            $teamId = is_string($teamPublicId) ? DB::table(TeamsDatabaseTable::TEAMS)->where('public_id', $teamPublicId)->value('id') : null;
+            $teamId = is_string($teamPublicId) ? $this->teams->internalIdForPublicId($teamPublicId) : null;
             $state = TableState::fromPayload($this->payload($request), $provider->tableDefinition());
             $context = new AdminDataTableExportContext(
                 state: $state,
                 requestingUserId: (int) $actorId,
                 requestingUserPublicId: $actorPublicId,
-                activeTeamId: is_numeric($teamId) ? (int) $teamId : null,
+                activeTeamId: $teamId,
                 activeTeamPublicId: is_string($teamPublicId) ? $teamPublicId : null,
                 filters: $this->filters($request),
                 timeRange: null,
                 estimatedRowCount: null,
                 expiresAt: new DateTimeImmutable('+7 days'),
+                auditExport: $auditExport,
             );
 
             abort_unless(in_array($format, $provider->supportedFormats($context), true), 422);
@@ -100,7 +105,7 @@ final readonly class AdminDataTableExportController
      */
     private function filters(Request $request): array
     {
-        $reserved = ['table_key', 'format', 'page', 'per_page', 'sort', 'direction', 'search', 'columns', 'column_order', 'view', '_token'];
+        $reserved = ['table_key', 'format', 'page', 'per_page', 'sort', 'direction', 'search', 'columns', 'column_order', 'view', 'audit_export', '_token'];
         $filters = [];
 
         foreach ($request->all() as $key => $value) {

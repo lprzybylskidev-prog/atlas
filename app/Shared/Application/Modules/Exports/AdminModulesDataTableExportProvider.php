@@ -4,16 +4,16 @@ declare(strict_types=1);
 
 namespace App\Shared\Application\Modules\Exports;
 
-use App\Modules\Core\Exports\Application\Public\AbstractAdminDataTableExportProvider;
-use App\Modules\Core\Exports\Application\Public\DTOs\ReportExportGenerationRequest;
-use App\Modules\Core\Exports\Application\Public\Permissions\ReportsPermissionCatalog;
-use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
+use App\Shared\Application\Exports\AbstractAdminDataTableExportProvider;
+use App\Shared\Application\Exports\DTOs\ReportExportGenerationRequest;
+use App\Shared\Application\Exports\ExportPermissions;
 use App\Shared\Application\Modules\Activation\Contracts\ModuleActivationService;
 use App\Shared\Application\Modules\Activation\ModuleActivationScheduleStatus;
 use App\Shared\Application\Modules\Contracts\ModuleDefinition;
 use App\Shared\Application\Modules\ModuleKey;
 use App\Shared\Application\Modules\ModuleRegistry;
-use App\Shared\Application\Tables\AdminTableDefinitions;
+use App\Shared\Application\Tables\RegisteredTables;
+use App\Shared\Application\Teams\Contracts\TeamLookup;
 use App\Shared\Infrastructure\Database\DatabaseTable;
 use Illuminate\Support\Facades\DB;
 
@@ -22,11 +22,12 @@ final readonly class AdminModulesDataTableExportProvider extends AbstractAdminDa
     public function __construct(
         private ModuleRegistry $registry,
         private ModuleActivationService $activation,
+        private TeamLookup $teams,
     ) {}
 
     public function tableKey(): string
     {
-        return AdminTableDefinitions::MODULES;
+        return RegisteredTables::MODULES;
     }
 
     public function tableName(): string
@@ -41,7 +42,7 @@ final readonly class AdminModulesDataTableExportProvider extends AbstractAdminDa
 
     public function requestPermission(): string
     {
-        return ReportsPermissionCatalog::REQUEST;
+        return ExportPermissions::REQUEST;
     }
 
     public function ruleVersion(): string
@@ -157,9 +158,7 @@ final readonly class AdminModulesDataTableExportProvider extends AbstractAdminDa
 
     private function teamId(string $teamPublicId): ?int
     {
-        $teamId = DB::table(TeamsDatabaseTable::TEAMS)->where('public_id', $teamPublicId)->value('id');
-
-        return is_numeric($teamId) ? (int) $teamId : null;
+        return $this->teams->internalIdForPublicId($teamPublicId);
     }
 
     private static function intValue(mixed $value): int

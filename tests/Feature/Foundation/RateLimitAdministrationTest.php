@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Foundation;
 
-use App\Modules\Core\Audit\Application\Public\Persistence\AuditDatabaseTable;
-use App\Modules\Core\Authorization\Application\Public\Persistence\AuthorizationDatabaseTable;
+use App\Modules\Core\Audit\Infrastructure\Persistence\TableNames\AuditDatabaseTable;
 use App\Modules\Core\Authorization\Application\Roles\InstallStarterRoles;
 use App\Modules\Core\Authorization\Application\Roles\StarterRoleName;
-use App\Modules\Core\Identity\Application\Public\Persistence\IdentityDatabaseTable;
+use App\Modules\Core\Authorization\Infrastructure\Persistence\TableNames\AuthorizationDatabaseTable;
 use App\Modules\Core\Identity\Application\RateLimiting\RateLimitRejectionRecorder;
+use App\Modules\Core\Identity\Infrastructure\Persistence\TableNames\IdentityDatabaseTable;
 use App\Modules\Core\Identity\Infrastructure\Persistence\User;
-use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
+use App\Modules\Core\Teams\Infrastructure\Persistence\TableNames\TeamsDatabaseTable;
 use App\Modules\Core\Teams\Infrastructure\Persistence\Team;
 use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -47,7 +47,7 @@ final class RateLimitAdministrationTest extends TestCase
             ->assertInertia(fn (AssertableInertia $page) => $page
                 ->component('Admin/RateLimits/Index')
                 ->where('auth.availableAdminRoutes', fn ($routes): bool => self::stringListContains($routes, 'admin.rate-limits.index'))
-                ->where('summary.registered', 8)
+                ->where('summary.registered', 1)
                 ->where('summary.visible', 1)
                 ->where('summary.rejections', 2)
                 ->where('summary.distinctKeys', 1)

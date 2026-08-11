@@ -4,14 +4,15 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Foundation;
 
-use App\Modules\Core\Authorization\Application\Public\Persistence\AuthorizationDatabaseTable;
 use App\Modules\Core\Authorization\Application\Roles\InstallStarterRoles;
 use App\Modules\Core\Authorization\Application\Roles\StarterRoleName;
+use App\Modules\Core\Authorization\Infrastructure\Persistence\TableNames\AuthorizationDatabaseTable;
 use App\Modules\Core\Identity\Infrastructure\Persistence\User;
 use App\Modules\Core\Settings\Application\Enums\UserSettingKey;
-use App\Modules\Core\Settings\Application\Public\Persistence\SettingsDatabaseTable;
-use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
+use App\Modules\Core\Settings\Infrastructure\Persistence\TableNames\SettingsDatabaseTable;
+use App\Modules\Core\Teams\Infrastructure\Persistence\TableNames\TeamsDatabaseTable;
 use App\Modules\Core\Teams\Infrastructure\Persistence\Team;
+use App\Shared\Presentation\Localization\AtlasUiGlossary;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -54,6 +55,78 @@ class LocalizationTest extends TestCase
         self::assertSame($englishKeys, $polishKeys);
     }
 
+    public function test_ui_glossary_is_complete_bilingual_and_bound_to_canonical_surface_labels(): void
+    {
+        $entries = AtlasUiGlossary::entries();
+
+        self::assertGreaterThanOrEqual(15, count($entries));
+
+        foreach (['pl', 'en'] as $locale) {
+            app()->setLocale($locale);
+
+            foreach ($entries as $concept => $entry) {
+                self::assertNotSame('', $entry['technical_name'], sprintf('Glossary concept [%s] needs a technical name.', $concept));
+                self::assertSame(['singular', 'plural', 'menu', 'page', 'form'], array_keys($entry['labels']));
+
+                foreach ([...array_values($entry['labels']), ...array_values($entry['action_verbs']), ...array_values($entry['status_labels'])] as $key) {
+                    self::assertNotSame($key, __($key), sprintf('Glossary key [%s] is missing for locale [%s].', $key, $locale));
+                }
+
+                foreach ($entry['bindings'] as $surfaceKey => $canonicalKey) {
+                    self::assertSame(
+                        __($canonicalKey),
+                        __($surfaceKey),
+                        sprintf('Surface key [%s] must follow glossary key [%s] for locale [%s].', $surfaceKey, $canonicalKey, $locale),
+                    );
+                }
+            }
+        }
+    }
+
+    public function test_language_catalogs_do_not_restore_known_defective_or_legacy_ui_copy(): void
+    {
+        $forbidden = [
+            'Pierwsze hasło oczekuje',
+            'MFA niepotwierdzone',
+            'Wszystkie liczby',
+            'drabinka',
+            'Próba usunięcia roli została wykonana',
+            'Obniżona sprawność',
+            'Dry-run',
+            'Hard delete',
+            'TimeTracking',
+        ];
+
+        foreach (['pl', 'en'] as $locale) {
+            $catalog = (string) file_get_contents(lang_path($locale.'.json'));
+
+            foreach ($forbidden as $copy) {
+                self::assertStringNotContainsString(
+                    mb_strtolower($copy),
+                    mb_strtolower($catalog),
+                    sprintf('Legacy UI copy [%s] remains in [%s].', $copy, $locale),
+                );
+            }
+
+            $translations = json_decode($catalog, true, 512, JSON_THROW_ON_ERROR);
+            self::assertIsArray($translations);
+
+            foreach ($translations as $key => $value) {
+                if (! is_string($key) || ! str_contains($key, '.') || ! is_string($value)) {
+                    continue;
+                }
+
+                self::assertStringNotContainsString('Public ID', $value, sprintf('Use the canonical public identifier label in [%s].', $key));
+                self::assertStringNotContainsString('Publiczne ID', $value, sprintf('Use the canonical public identifier label in [%s].', $key));
+
+                if ($locale === 'pl') {
+                    self::assertDoesNotMatchRegularExpression('/\b[Ee]mail\b/u', $value, sprintf('Use the canonical Polish e-mail address label in [%s].', $key));
+                    self::assertDoesNotMatchRegularExpression('/menedżer/u', $value, sprintf('Use the canonical manager label in [%s].', $key));
+                }
+            }
+        }
+    }
+
     public function test_atlas_owned_json_language_keys_are_stable_semantic_keys(): void
     {
         $atlasPrefixes = [
@@ -67,6 +140,7 @@ class LocalizationTest extends TestCase
             'errors',
             'flash',
             'form',
+            'glossary',
             'mail',
             'modal',
             'navigation',

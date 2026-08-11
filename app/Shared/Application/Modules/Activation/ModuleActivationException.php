@@ -42,4 +42,13 @@ final class ModuleActivationException extends RuntimeException
     {
         return new self(sprintf('Module [%s] cannot be disabled while unsafe processes are active.', $moduleKey));
     }
+
+    public static function requiredDependentBlocksDeactivation(string $moduleKey, string $dependentModuleKey): self
+    {
+        return new self(sprintf(
+            'Module [%s] cannot be disabled while required dependent module [%s] is enabled.',
+            $moduleKey,
+            $dependentModuleKey,
+        ));
+    }
 }

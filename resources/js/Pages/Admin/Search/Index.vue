@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Head, Link, useForm } from '@inertiajs/vue3';
+import { Head, useForm } from '@inertiajs/vue3';
 import {
     IconActivity,
     IconDatabaseSearch,
@@ -25,9 +25,10 @@ import SurfaceCard from '../../../Components/SurfaceCard.vue';
 import { applyTableFilters, clearTableFilters } from '../../../Composables/useTableFilterControls';
 import AppLayout from '../../../Layouts/AppLayout.vue';
 import { useTranslator } from '../../../Localization/translator';
+import { statusTranslationKey } from '../../../Services/statusCatalog';
 import type { DataTableAction, DataTableColumn, DataTableMeta } from '../../../Types/data-table';
 import { optionsWithAll } from '../../../Utils/filterOptions';
-import { formatDateTime, formatStatus } from '../../../Utils/formatters';
+import { formatStatus } from '../../../Utils/formatters';
 import { moduleLabel } from '../../../Utils/moduleLabels';
 
 interface SearchIndexRow extends Record<string, unknown> {
@@ -43,7 +44,7 @@ interface SearchIndexRow extends Record<string, unknown> {
     supportsAnonymization: boolean;
 }
 
-interface RebuildRunRow {
+interface RebuildRunRow extends Record<string, unknown> {
     publicId: string;
     status: string | null;
     currentStage: string | null;
@@ -146,6 +147,21 @@ const rows = computed<SearchIndexRow[]>(() =>
         moduleLabel: moduleLabel(index.moduleKey, t),
     })),
 );
+const rebuildColumns = computed<DataTableColumn<RebuildRunRow>[]>(() => [
+    { key: 'publicId', label: t('pages.admin.search.table.run') },
+    { key: 'status', label: t('pages.admin.search.table.status'), format: 'status-badge' },
+    { key: 'currentStage', label: t('pages.admin.search.table.stage') },
+    { key: 'progressLabel', label: t('pages.admin.search.table.progress') },
+    { key: 'createdAt', label: t('pages.admin.search.table.created'), format: 'datetime' },
+]);
+const rebuildRows = computed<RebuildRunRow[]>(() => props.recentRebuilds.map((run) => ({ ...run, progressLabel: progressLabel(run) })));
+const rebuildActions = computed<DataTableAction<RebuildRunRow>[]>(() => [
+    {
+        key: 'show',
+        label: t('pages.admin.search.actions.show_run'),
+        href: (run) => `/admin/managed-processes/${encodeURIComponent(run.publicId)}`,
+    },
+]);
 const readinessTone = computed(() => {
     if (props.readiness.status === 'healthy') {
         return 'emerald';
@@ -224,22 +240,9 @@ function statusLabel(value: string | null): string {
         return '';
     }
 
-    const keys: Record<string, string> = {
-        cancelled: 'statuses.cancelled',
-        degraded: 'statuses.degraded',
-        draft: 'statuses.draft',
-        expired: 'statuses.expired',
-        failed: 'statuses.failed',
-        healthy: 'statuses.healthy',
-        queued: 'statuses.queued',
-        running: 'statuses.running',
-        succeeded: 'statuses.succeeded',
-        succeeded_with_warnings: 'statuses.succeeded_with_warnings',
-        unhealthy: 'statuses.unhealthy',
-        waiting: 'statuses.waiting',
-    };
+    const key = statusTranslationKey(value);
 
-    return keys[value] === undefined ? formatStatus(value) : t(keys[value]);
+    return key === undefined ? formatStatus(value) : t(key);
 }
 
 function progressLabel(run: RebuildRunRow): string {
@@ -248,10 +251,6 @@ function progressLabel(run: RebuildRunRow): string {
     }
 
     return `${run.progressCurrent} / ${run.progressTotal}`;
-}
-
-function createdAtLabel(run: RebuildRunRow): string {
-    return formatDateTime(run.createdAt, locale.value);
 }
 </script>
 
@@ -351,42 +350,15 @@ function createdAtLabel(run: RebuildRunRow): string {
                 :empty-label="t('pages.admin.search.indexes.empty')"
             />
 
-            <SurfaceCard :title="t('pages.admin.search.rebuilds.title')" :icon="IconRefresh" tone="zinc">
-                <div v-if="recentRebuilds.length === 0" class="text-sm text-zinc-500 dark:text-zinc-400">
-                    {{ t('pages.admin.search.rebuilds.empty') }}
-                </div>
-                <div v-else class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-zinc-200 text-sm dark:divide-zinc-800">
-                        <thead class="text-left text-xs font-semibold text-zinc-500 uppercase dark:text-zinc-400">
-                            <tr>
-                                <th class="px-0 py-2 pr-3">{{ t('pages.admin.search.table.run') }}</th>
-                                <th class="px-3 py-2">{{ t('pages.admin.search.table.status') }}</th>
-                                <th class="px-3 py-2">{{ t('pages.admin.search.table.stage') }}</th>
-                                <th class="px-3 py-2 text-right">{{ t('pages.admin.search.table.progress') }}</th>
-                                <th class="px-3 py-2">{{ t('pages.admin.search.table.created') }}</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-zinc-100 dark:divide-zinc-800">
-                            <tr v-for="run in recentRebuilds" :key="run.publicId">
-                                <td class="px-0 py-2 pr-3 font-medium">
-                                    <Link
-                                        :href="`/admin/managed-processes/${encodeURIComponent(run.publicId)}`"
-                                        class="text-teal-700 hover:text-teal-900 dark:text-teal-300 dark:hover:text-teal-100"
-                                    >
-                                        {{ run.publicId }}
-                                    </Link>
-                                </td>
-                                <td class="px-3 py-2 text-zinc-700 dark:text-zinc-200">{{ statusLabel(run.status) }}</td>
-                                <td class="px-3 py-2 text-zinc-600 dark:text-zinc-300">{{ run.currentStage ?? '-' }}</td>
-                                <td class="px-3 py-2 text-right tabular-nums text-zinc-700 dark:text-zinc-200">
-                                    {{ progressLabel(run) }}
-                                </td>
-                                <td class="px-3 py-2 text-zinc-600 dark:text-zinc-300">{{ createdAtLabel(run) }}</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </SurfaceCard>
+            <DataTable
+                :title="t('pages.admin.search.rebuilds.title')"
+                :rows="rebuildRows"
+                :columns="rebuildColumns"
+                row-key="publicId"
+                :actions="rebuildActions"
+                :ui-locale="locale"
+                :empty-label="t('pages.admin.search.rebuilds.empty')"
+            />
         </PageStack>
 
         <DialogPanel

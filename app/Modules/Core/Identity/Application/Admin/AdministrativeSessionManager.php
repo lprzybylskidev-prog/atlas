@@ -4,14 +4,17 @@ declare(strict_types=1);
 
 namespace App\Modules\Core\Identity\Application\Admin;
 
-use App\Modules\Core\Audit\Application\Public\Contracts\AuditRecorder;
-use App\Modules\Core\Audit\Application\Public\DTOs\AuditEvent;
-use App\Modules\Core\Audit\Application\Public\Enums\SecurityAuditCategory;
-use App\Modules\Core\Authorization\Application\Public\Contracts\EffectivePermissionChecker;
-use App\Modules\Core\Authorization\Application\Public\DTOs\EffectivePermissionRequest;
 use App\Modules\Core\Identity\Application\Public\Contracts\HighRiskAdministrativeAuthorization;
+use App\Modules\Core\Identity\Application\Public\Contracts\MfaRequirementChecker;
+use App\Modules\Core\Identity\Application\Public\DTOs\MfaRequirementContext;
 use App\Modules\Core\Identity\Infrastructure\Persistence\User;
-use App\Modules\Core\Settings\Application\Public\Contracts\AdministrativeSecuritySettings;
+use App\Shared\Application\Audit\Contracts\AuditRecorder;
+use App\Shared\Application\Audit\DTOs\AuditEvent;
+use App\Shared\Application\Audit\Enums\SecurityAuditCategory;
+use App\Shared\Application\Authorization\Contracts\EffectivePermissionChecker;
+use App\Shared\Application\Authorization\DTOs\EffectivePermissionRequest;
+use App\Shared\Application\Security\Contracts\AdministrativeModeState;
+use App\Shared\Application\Security\Contracts\AdministrativeSecuritySettings;
 use Illuminate\Contracts\Session\Session;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -19,7 +22,7 @@ use Illuminate\Support\Facades\Hash;
 use Laravel\Fortify\Contracts\TwoFactorAuthenticationProvider;
 use Laravel\Fortify\Fortify;
 
-final readonly class AdministrativeSessionManager implements HighRiskAdministrativeAuthorization
+final readonly class AdministrativeSessionManager implements AdministrativeModeState, HighRiskAdministrativeAuthorization
 {
     private const ADMIN_MODE_ENTER_PERMISSION = 'admin-mode.enter';
 
@@ -28,6 +31,8 @@ final readonly class AdministrativeSessionManager implements HighRiskAdministrat
     public const PENDING_ENTER = 'enter';
 
     public const PENDING_HIGH_RISK = 'high_risk';
+
+    public const PENDING_HIGH_RISK_OPERATION = 'atlas_admin_pending_high_risk_operation';
 
     public const ENTERED_AT = 'atlas_admin_mode_entered_at';
 
@@ -40,6 +45,7 @@ final readonly class AdministrativeSessionManager implements HighRiskAdministrat
         private EffectivePermissionChecker $permissions,
         private AuditRecorder $audit,
         private TwoFactorAuthenticationProvider $twoFactor,
+        private MfaRequirementChecker $mfaRequirements,
     ) {}
 
     public function active(Request $request): bool
@@ -201,8 +207,15 @@ final readonly class AdministrativeSessionManager implements HighRiskAdministrat
     public function requiresMfa(Request $request, User $user): bool
     {
         $teamPublicId = $request->session()->get('active_team_public_id');
+        $operation = $request->session()->get(self::PENDING_HIGH_RISK_OPERATION);
+        $routeName = $request->route()?->getName();
 
-        return is_string($teamPublicId) && $this->requiresMfaForTeam($user, $teamPublicId);
+        return is_string($teamPublicId) && $this->requiresMfaForTeam(
+            $user,
+            $teamPublicId,
+            is_string($operation) ? $operation : null,
+            is_string($routeName) ? [$routeName] : [],
+        );
     }
 
     public function validMfa(User $user, ?string $code): bool
@@ -220,13 +233,19 @@ final readonly class AdministrativeSessionManager implements HighRiskAdministrat
         return is_string($decryptedTotpKey) && $this->twoFactor->verify($decryptedTotpKey, $code);
     }
 
-    private function requiresMfaForTeam(User $user, string $teamPublicId): bool
+    /** @param list<string> $permissions */
+    private function requiresMfaForTeam(User $user, string $teamPublicId, ?string $operation = null, array $permissions = []): bool
     {
         if ($user->two_factor_confirmed_at !== null) {
             return true;
         }
 
-        return $this->settings->mfaRequired();
+        return $this->settings->mfaRequired() || $this->mfaRequirements->isRequired(new MfaRequirementContext(
+            userPublicId: (string) $user->public_id,
+            teamPublicId: $teamPublicId,
+            operation: $operation,
+            permissions: $permissions,
+        ));
     }
 
     private function activate(Request $request): void

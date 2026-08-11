@@ -9,7 +9,7 @@ const admin = {
 
 async function signIn(page: Page): Promise<void> {
     await page.goto('/login');
-    await page.getByLabel('Email').fill(admin.email);
+    await page.getByLabel(/Adres e-mail|Email address/).fill(admin.email);
     await page.getByLabel(/Hasło|Password/).fill(admin.password);
     await page.getByRole('button', { name: /Zaloguj|Log in/ }).click();
 
@@ -125,7 +125,7 @@ async function openViews(page: Page): Promise<void> {
     await dismissToasts(page);
 
     const savedViewName = page.getByLabel(/Nazwa widoku|Saved view name/).filter({ visible: true });
-    const savedTableView = page.getByRole('combobox', { name: 'Saved table view' }).filter({ visible: true });
+    const savedTableView = page.getByRole('combobox', { name: /Zapisany widok tabeli|Saved table view/ }).filter({ visible: true });
     const viewsDetails = page
         .locator('details')
         .filter({ hasText: /Widoki|Views/ })
@@ -190,7 +190,7 @@ async function saveView(page: Page, name: string, type: 'private' | 'team' = 'pr
     );
     await openViews(page);
     const reload = waitForAuditReload(page);
-    const mutation = waitForMutation(page, 'POST', (url) => url.pathname === '/admin/table-views');
+    const mutation = waitForMutation(page, 'POST', (url) => url.pathname === '/table-views');
     await page.getByRole('button', { name: /Zapisz|Save/ }).click();
     await mutation;
     await reload;
@@ -223,7 +223,7 @@ async function updateCurrentView(page: Page): Promise<void> {
     await expect(page.getByRole('button', { name: /Aktualizuj|Update/ })).toBeVisible();
     await dismissToasts(page);
     const reload = waitForAuditReload(page);
-    const mutation = waitForMutation(page, 'PATCH', (url) => url.pathname.startsWith('/admin/table-views/'));
+    const mutation = waitForMutation(page, 'PATCH', (url) => url.pathname.startsWith('/table-views/'));
     await page.getByRole('button', { name: /Aktualizuj|Update/ }).click();
     await mutation;
     await reload;
@@ -234,7 +234,7 @@ async function selectView(page: Page, name: string): Promise<void> {
     await openViews(page);
     const viewId = await savedViewId(page, name);
     const reload = waitForAuditReload(page, (url) => url.searchParams.get('view') === viewId);
-    await chooseSelect(page, 'Saved table view', name);
+    await chooseSelect(page, /Zapisany widok tabeli|Saved table view/, name);
     await reload;
     await expect(page).toHaveURL(/view=/);
     await expect.poll(() => page.evaluate(() => window.sessionStorage.getItem('atlas.table.admin.audit.selectedView'))).not.toBeNull();
@@ -356,7 +356,7 @@ test.describe('Audit DataTable saved views', () => {
         const copyMutation = waitForMutation(
             page,
             'POST',
-            (url) => url.pathname.startsWith('/admin/table-views/') && url.pathname.endsWith('/copy'),
+            (url) => url.pathname.startsWith('/table-views/') && url.pathname.endsWith('/copy'),
         );
         await page.getByRole('button', { name: /Kopiuj|Copy/ }).click();
         await copyMutation;

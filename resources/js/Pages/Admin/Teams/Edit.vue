@@ -3,14 +3,15 @@ import { Head, router, useForm } from '@inertiajs/vue3';
 import { IconUsersGroup } from '@tabler/icons-vue';
 import { computed, ref } from 'vue';
 
-import RecordActions, { type RecordAction } from '../../../Components/RecordActions.vue';
+import ActionGroup from '../../../Components/Actions/ActionGroup.vue';
 import TeamForm from '../../../Components/Teams/TeamForm.vue';
-import TeamMemberAccessWorkflow, { type TeamMemberAccessAssignment } from '../../../Components/Teams/TeamMemberAccessWorkflow.vue';
+import UserTeamAuthorizationWorkflow from '../../../Components/Authorization/UserTeamAuthorizationWorkflow.vue';
 import PageStack from '../../../Components/PageStack.vue';
 import AppLayout from '../../../Layouts/AppLayout.vue';
 import { useTranslator } from '../../../Localization/translator';
 import type { FormSelectOption } from '../../../Components/Form/FormSelect.vue';
-import type { AuthorizationAssignmentOption } from '../../../Types/user-team-access';
+import type { AuthorizationAssignmentOption, UserTeamAccessAssignment } from '../../../Types/user-team-access';
+import type { AtlasAction } from '../../../Types/actions';
 
 const props = defineProps<{
     team: {
@@ -35,6 +36,11 @@ const props = defineProps<{
         sessionMaxLifetimeMinutes: number | null;
         breakDailyLimitMinutes: number | null;
         breakMaximumSingleMinutes: number | null;
+        provenancePublicId: string | null;
+        provenanceSourceType: 'manual' | 'preset' | 'copy';
+        provenanceSourceLabel: string | null;
+        provenanceDivergedAt: string | null;
+        provenanceVersion: number;
     }>;
     assignableUsers: FormSelectOption[];
     roleOptions: AuthorizationAssignmentOption[];
@@ -51,6 +57,7 @@ const props = defineProps<{
 }>();
 
 const { t } = useTranslator();
+const pageTitle = computed(() => t('pages.admin.teams.edit.title', { object: props.team.displayName || props.team.name }));
 const form = useForm({
     name: props.team.name,
     display_name: props.team.displayName,
@@ -73,11 +80,15 @@ const policyDefaults = computed(() => ({
             ? props.breakDefaults.maximumSingleBreakMinutes
             : Number(form.break_maximum_single_minutes),
 }));
-const memberAssignments = ref<TeamMemberAccessAssignment[]>(
+const memberAssignments = ref<UserTeamAccessAssignment[]>(
     props.memberships.map((membership) => ({
+        team_public_id: props.team.publicId,
         user_public_id: membership.userPublicId,
         userName: membership.userName,
         userEmail: membership.userEmail,
+        source: membership.provenanceSourceType === 'preset' ? 'package' : membership.provenanceSourceType,
+        onboarding_package: '',
+        copy_authorization_from_user: '',
         role_names: [...membership.roleNames],
         direct_permission_names: [...membership.directPermissionNames],
         inactivity_timeout_minutes: membership.inactivityTimeoutMinutes === null ? '' : String(membership.inactivityTimeoutMinutes),
@@ -86,11 +97,22 @@ const memberAssignments = ref<TeamMemberAccessAssignment[]>(
         break_maximum_single_minutes: membership.breakMaximumSingleMinutes === null ? '' : String(membership.breakMaximumSingleMinutes),
         reason: '',
         removal_reason: '',
+        provenance_public_id: membership.provenancePublicId,
+        provenance_source_type: membership.provenanceSourceType,
+        provenance_source_label: membership.provenanceSourceLabel,
+        provenance_diverged_at: membership.provenanceDivergedAt,
+        provenance_version: membership.provenanceVersion,
     })),
 );
 const memberProcessing = ref(false);
 
-const recordActions = computed<RecordAction[]>(() => [
+const recordActions = computed<AtlasAction<undefined>[]>(() => [
+    {
+        key: 'view',
+        label: t('pages.admin.teams.structure.title'),
+        href: `/admin/teams/${encodeURIComponent(props.team.publicId)}/structure`,
+        method: 'get',
+    },
     {
         key: 'activate',
         label: t('pages.admin.teams.actions.activate'),
@@ -106,6 +128,14 @@ const recordActions = computed<RecordAction[]>(() => [
         href: `/admin/teams/${encodeURIComponent(props.team.publicId)}/deactivate`,
         method: 'post',
         tone: 'danger',
+        semantic: 'deactivate',
+        confirm: {
+            titleKey: 'modal.action.deactivate.title',
+            descriptionKey: 'modal.action.deactivate.description',
+            confirmKey: 'modal.action.deactivate.confirm',
+            subject: props.team.displayName || props.team.name,
+            tone: 'danger',
+        },
         disabled: !props.team.isActive,
         disabledReason: t('pages.admin.teams.actions.deactivate_disabled'),
     },
@@ -129,7 +159,11 @@ function addUser(userPublicId: string): void {
     );
 }
 
-function saveAuthorization(assignment: TeamMemberAccessAssignment): void {
+function saveAuthorization(assignment: UserTeamAccessAssignment): void {
+    if (assignment.user_public_id === undefined) {
+        return;
+    }
+
     memberProcessing.value = true;
     router.patch(
         `/admin/teams/${encodeURIComponent(props.team.publicId)}/users/${encodeURIComponent(assignment.user_public_id)}/authorization`,
@@ -141,6 +175,7 @@ function saveAuthorization(assignment: TeamMemberAccessAssignment): void {
             break_daily_limit_minutes: assignment.break_daily_limit_minutes,
             break_maximum_single_minutes: assignment.break_maximum_single_minutes,
             reason: assignment.reason ?? '',
+            expected_version: assignment.provenance_version ?? 0,
         },
         {
             preserveScroll: true,
@@ -151,8 +186,8 @@ function saveAuthorization(assignment: TeamMemberAccessAssignment): void {
     );
 }
 
-function removeUser(assignment: TeamMemberAccessAssignment): void {
-    if ((assignment.removal_reason ?? '').trim() === '') {
+function removeUser(assignment: UserTeamAccessAssignment): void {
+    if (assignment.user_public_id === undefined || (assignment.removal_reason ?? '').trim() === '') {
         return;
     }
 
@@ -170,11 +205,11 @@ function removeUser(assignment: TeamMemberAccessAssignment): void {
 </script>
 
 <template>
-    <Head :title="t('pages.admin.teams.edit.head_title')" />
-    <AppLayout mode="admin" :title="t('pages.admin.teams.edit.title')" :title-icon="IconUsersGroup">
+    <Head :title="pageTitle" />
+    <AppLayout mode="admin" :title="pageTitle" :title-icon="IconUsersGroup">
         <PageStack>
             <div class="flex justify-end">
-                <RecordActions :actions="recordActions" />
+                <ActionGroup :actions="recordActions" placement="edit" />
             </div>
 
             <TeamForm
@@ -188,20 +223,26 @@ function removeUser(assignment: TeamMemberAccessAssignment): void {
                 :session-defaults="sessionDefaults"
                 :break-defaults="breakDefaults"
                 :processing="form.processing"
+                :dirty="form.isDirty"
+                independent-workflow
                 :submit-label="t('pages.admin.teams.actions.save')"
                 :processing-label="t('pages.admin.teams.actions.saving')"
                 back-href="/admin/teams"
                 @submit="submit"
             >
-                <TeamMemberAccessWorkflow
+                <UserTeamAuthorizationWorkflow
                     mode="edit"
+                    context-axis="team"
                     :assignments="memberAssignments"
                     :user-options="assignableUsers"
+                    :team-options="[]"
+                    :packages="[]"
+                    :copy-sources="[]"
                     :role-options="roleOptions"
                     :permission-options="permissionOptions"
                     :role-permission-map="rolePermissionMap"
                     :session-defaults="sessionDefaults"
-                    :policy-defaults="policyDefaults"
+                    :team-policy-defaults="{ [team.publicId]: policyDefaults }"
                     :processing="memberProcessing"
                     @add-user="addUser"
                     @save="saveAuthorization($event.assignment)"

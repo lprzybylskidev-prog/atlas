@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Modules\Core\Teams\Infrastructure\Persistence;
 
-use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
 use App\Modules\Core\Teams\Domain\ValueObjects\TeamPublicId;
+use App\Modules\Core\Teams\Infrastructure\Persistence\TableNames\TeamsDatabaseTable;
 use Illuminate\Database\Eloquent\Model;
 
 final class Team extends Model

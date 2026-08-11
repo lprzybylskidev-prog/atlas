@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Core\Authorization\Presentation\Http\Controllers;
 
 use App\Modules\Core\Authorization\Application\Contracts\OnboardingPackageStore;
-use App\Modules\Core\Teams\Application\Public\Contracts\UserTeamMembershipManager;
+use App\Shared\Application\Teams\Contracts\UserTeamMembershipManager;
 use App\Shared\Presentation\Support\FlashMessage;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;

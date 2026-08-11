@@ -48,16 +48,16 @@ const filterDefaults = {
 const filters = ref({ ...filterDefaults, ...filterValues() });
 
 const columns = computed<DataTableColumn<PackageRow>[]>(() => [
-    { key: 'publicId', label: t('pages.admin.packages.table.public_id') },
-    { key: 'id', label: t('pages.admin.packages.table.internal_id'), hidden: true },
-    { key: 'teamName', label: t('pages.admin.packages.table.team') },
-    { key: 'teamPublicId', label: t('pages.admin.packages.table.team_public_id'), hidden: true },
     { key: 'label', label: t('pages.admin.packages.table.display_name') },
+    { key: 'teamName', label: t('pages.admin.packages.table.team') },
+    { key: 'publicId', label: t('pages.admin.packages.table.public_id'), hidden: true },
+    { key: 'id', label: t('pages.admin.packages.table.internal_id'), hidden: true },
+    { key: 'teamPublicId', label: t('pages.admin.packages.table.team_public_id'), hidden: true },
     { key: 'name', label: t('pages.admin.packages.table.technical_name'), hidden: true },
     { key: 'initialRoles', label: t('pages.admin.packages.table.initial_roles'), format: 'list' },
     { key: 'directPermissions', label: t('pages.admin.packages.table.direct_permissions'), format: 'list', hidden: true },
     { key: 'templatePermissions', label: t('pages.admin.packages.table.template_permissions'), format: 'list', hidden: true },
-    { key: 'isActive', label: t('pages.admin.packages.table.active'), format: 'boolean', hidden: true },
+    { key: 'isActive', label: t('pages.admin.packages.table.active'), format: 'activation-status' },
     { key: 'createdAt', label: t('pages.admin.packages.table.created_at'), format: 'datetime', hidden: true },
     { key: 'updatedAt', label: t('pages.admin.packages.table.updated_at'), format: 'datetime', hidden: true },
 ]);

@@ -4,20 +4,23 @@ declare(strict_types=1);
 
 namespace App\Shared\Infrastructure\Queues;
 
-use App\Modules\Core\Identity\Application\Public\Persistence\IdentityDatabaseTable;
+use App\Modules\Core\Identity\Application\Public\Contracts\UserLookup;
+use App\Modules\Core\Identity\Application\Public\DTOs\UserDisplaySummary;
 use App\Shared\Infrastructure\Database\DatabaseTable;
 use Illuminate\Support\Facades\DB;
+use stdClass;
 
 final readonly class FailedJobAdminRows
 {
+    public function __construct(private UserLookup $users) {}
+
     /**
      * @return list<array{uuid: string, connection: string, queue: string, failedAt: string, displayName: string, jobClass: string, exceptionType: string, exceptionMessage: string, payload: string, exception: string, acknowledged: bool, handlingStatus: string, acknowledgedAt: string|null, acknowledgedBy: string|null}>
      */
     public function rows(int $limit = 200): array
     {
-        return array_values(DB::table(DatabaseTable::FAILED_JOBS.' as failed_jobs')
+        $rows = DB::table(DatabaseTable::FAILED_JOBS.' as failed_jobs')
             ->leftJoin(DatabaseTable::FAILED_JOB_ACKNOWLEDGEMENTS.' as acknowledgements', 'acknowledgements.failed_job_uuid', '=', 'failed_jobs.uuid')
-            ->leftJoin(IdentityDatabaseTable::USERS.' as acknowledged_users', 'acknowledged_users.id', '=', 'acknowledgements.acknowledged_by_user_id')
             ->orderByDesc('failed_jobs.failed_at')
             ->limit($limit)
             ->get([
@@ -28,18 +31,53 @@ final readonly class FailedJobAdminRows
                 'failed_jobs.payload',
                 'failed_jobs.exception',
                 'failed_jobs.failed_at',
+                'acknowledgements.acknowledged_by_user_id',
                 'acknowledgements.acknowledged_at',
-                'acknowledged_users.name as acknowledged_by',
             ])
-            ->map(fn (object $row): array => $this->jobRow($row))
-            ->values()
-            ->all());
+            ->all();
+        $users = $this->usersByInternalId($rows);
+
+        return array_values(array_map(fn (object $row): array => $this->jobRow($row, $users), $rows));
     }
 
     /**
+     * @param  array<int, stdClass>  $rows
+     * @return array<int, UserDisplaySummary>
+     */
+    private function usersByInternalId(array $rows): array
+    {
+        $userIds = [];
+
+        foreach ($rows as $row) {
+            $userId = $row->acknowledged_by_user_id ?? null;
+
+            if (is_numeric($userId)) {
+                $userIds[] = (int) $userId;
+            }
+        }
+
+        return $this->users->displaySummariesForInternalIds(array_values(array_unique($userIds)));
+    }
+
+    /**
+     * @param  array<int, UserDisplaySummary>  $users
+     */
+    private function acknowledgedBy(object $row, array $users): ?string
+    {
+        $userId = $row->acknowledged_by_user_id ?? null;
+
+        if (! is_numeric($userId)) {
+            return null;
+        }
+
+        return $users[(int) $userId]->name ?? null;
+    }
+
+    /**
+     * @param  array<int, UserDisplaySummary>  $users
      * @return array{uuid: string, connection: string, queue: string, failedAt: string, displayName: string, jobClass: string, exceptionType: string, exceptionMessage: string, payload: string, exception: string, acknowledged: bool, handlingStatus: string, acknowledgedAt: string|null, acknowledgedBy: string|null}
      */
-    public function jobRow(object $row): array
+    public function jobRow(object $row, array $users = []): array
     {
         $payload = $this->scalarString($row->payload ?? '');
         $exception = $this->scalarString($row->exception ?? '');
@@ -60,7 +98,7 @@ final readonly class FailedJobAdminRows
             'acknowledged' => $acknowledgedAt !== null,
             'handlingStatus' => $acknowledgedAt === null ? 'needs_attention' : 'handled',
             'acknowledgedAt' => $acknowledgedAt,
-            'acknowledgedBy' => $this->nullableScalarString($row->acknowledged_by ?? null),
+            'acknowledgedBy' => $this->acknowledgedBy($row, $users),
         ];
     }
 

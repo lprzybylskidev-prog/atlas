@@ -8,9 +8,9 @@ use App\Modules\Optional\ManagedProcesses\Application\Contracts\ProcessDefinitio
 use App\Modules\Optional\ManagedProcesses\Application\DTOs\ProcessLogEntry;
 use App\Modules\Optional\ManagedProcesses\Application\Enums\ProcessLogSeverity;
 use App\Modules\Optional\ManagedProcesses\Application\Enums\ProcessRunStatus;
-use App\Modules\Optional\ManagedProcesses\Application\Public\Contracts\ManagedProcessHandler;
-use App\Modules\Optional\ManagedProcesses\Application\Public\Contracts\ManagedProcessRunner;
-use App\Modules\Optional\ManagedProcesses\Application\Public\Persistence\ManagedProcessesDatabaseTable;
+use App\Modules\Optional\ManagedProcesses\Infrastructure\Persistence\TableNames\ManagedProcessesDatabaseTable;
+use App\Shared\Application\ManagedProcesses\Contracts\ManagedProcessHandler;
+use App\Shared\Application\ManagedProcesses\Contracts\ManagedProcessRunner;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;

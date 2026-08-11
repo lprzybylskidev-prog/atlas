@@ -13,6 +13,7 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
+use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
 final class AuthenticationFoundationTest extends TestCase
@@ -103,7 +104,20 @@ final class AuthenticationFoundationTest extends TestCase
 
     public function test_reset_password_page_is_available_for_first_password_links(): void
     {
-        $this->get('/reset-password/example-token?email=user@example.test')->assertOk();
+        $this->get('/reset-password/example-token?email=user@example.test')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page): Assert => $page
+                ->component('Auth/ResetPassword')
+                ->where('token', 'example-token')
+                ->where('email', 'user@example.test'));
+    }
+
+    public function test_password_recovery_page_is_available_to_guests(): void
+    {
+        $this->get('/forgot-password')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page): Assert => $page
+                ->component('Auth/ForgotPassword'));
     }
 
     public function test_password_reset_link_request_does_not_disclose_account_existence(): void

@@ -4,16 +4,18 @@ declare(strict_types=1);
 
 namespace App\Modules\Core\Identity\Application\Sessions;
 
+use App\Modules\Core\Identity\Application\Public\Contracts\UserLookup;
 use App\Modules\Core\Identity\Application\Public\Contracts\UserSessionLimitResolver;
 use App\Modules\Core\Identity\Infrastructure\Persistence\User;
-use App\Modules\Core\Settings\Application\Public\Contracts\SecuritySessionSettings;
-use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
-use Illuminate\Support\Facades\DB;
+use App\Shared\Application\Security\Contracts\SecuritySessionSettings;
+use App\Shared\Application\Teams\Contracts\UserTeamSessionLimitSettings;
 
 final readonly class SessionLimitResolver implements UserSessionLimitResolver
 {
     public function __construct(
         private SecuritySessionSettings $settings,
+        private UserLookup $users,
+        private UserTeamSessionLimitSettings $teamSessionLimits,
     ) {}
 
     /**
@@ -33,15 +35,20 @@ final readonly class SessionLimitResolver implements UserSessionLimitResolver
         $configuredMaximum = config('atlas.security.sessions.max_lifetime_minutes', 720);
         $maximum = is_numeric($configuredMaximum) ? (int) $configuredMaximum : 720;
 
-        $teamLimits = $this->teamLimits($teamPublicId);
-        $assignmentLimits = $this->assignmentLimits($userId, $teamPublicId);
+        if ($teamPublicId !== null && $teamPublicId !== '') {
+            $userPublicId = $this->users->publicIdForInternalId($userId);
+            $teamOnlyLimits = $this->teamSessionLimits->resolvedForTeam($teamPublicId);
+            $teamLimits = $userPublicId === null
+                ? $teamOnlyLimits
+                : $this->teamSessionLimits->resolvedForUserTeam($userPublicId, $teamPublicId);
 
-        $inactivity = $assignmentLimits['inactivity']
-            ?? $teamLimits['inactivity']
-            ?? $inactivity;
-        $maximum = $assignmentLimits['maximum']
-            ?? $teamLimits['maximum']
-            ?? $maximum;
+            if ($teamLimits['source'] === 'default' && $teamOnlyLimits['source'] !== 'default') {
+                $teamLimits = $teamOnlyLimits;
+            }
+
+            $inactivity = $teamLimits['inactivityTimeoutMinutes'];
+            $maximum = $teamLimits['sessionMaxLifetimeMinutes'];
+        }
 
         $maximum = max(1, $maximum);
 
@@ -49,68 +56,5 @@ final readonly class SessionLimitResolver implements UserSessionLimitResolver
             'inactivity' => min(max(1, $inactivity), $maximum),
             'maximum' => $maximum,
         ];
-    }
-
-    /**
-     * @return array{inactivity: int|null, maximum: int|null}
-     */
-    private function teamLimits(?string $teamPublicId): array
-    {
-        if ($teamPublicId === null || $teamPublicId === '') {
-            return ['inactivity' => null, 'maximum' => null];
-        }
-
-        $team = DB::table(TeamsDatabaseTable::TEAMS)
-            ->where('public_id', $teamPublicId)
-            ->first(['inactivity_timeout_minutes', 'session_max_lifetime_minutes']);
-
-        if (! is_object($team)) {
-            return ['inactivity' => null, 'maximum' => null];
-        }
-
-        return [
-            'inactivity' => $this->positiveInt($team->inactivity_timeout_minutes ?? null),
-            'maximum' => $this->positiveInt($team->session_max_lifetime_minutes ?? null),
-        ];
-    }
-
-    /**
-     * @return array{inactivity: int|null, maximum: int|null}
-     */
-    private function assignmentLimits(int $userId, ?string $teamPublicId): array
-    {
-        if ($userId < 1 || $teamPublicId === null || $teamPublicId === '') {
-            return ['inactivity' => null, 'maximum' => null];
-        }
-
-        $assignment = DB::table(TeamsDatabaseTable::TEAM_USER_ASSIGNMENTS)
-            ->join(TeamsDatabaseTable::TEAMS, 'team_user_assignments.team_id', '=', 'teams.id')
-            ->where('team_user_assignments.user_id', $userId)
-            ->where('teams.public_id', $teamPublicId)
-            ->whereNull('team_user_assignments.valid_to')
-            ->first([
-                'team_user_assignments.inactivity_timeout_minutes',
-                'team_user_assignments.session_max_lifetime_minutes',
-            ]);
-
-        if (! is_object($assignment)) {
-            return ['inactivity' => null, 'maximum' => null];
-        }
-
-        return [
-            'inactivity' => $this->positiveInt($assignment->inactivity_timeout_minutes ?? null),
-            'maximum' => $this->positiveInt($assignment->session_max_lifetime_minutes ?? null),
-        ];
-    }
-
-    private function positiveInt(mixed $value): ?int
-    {
-        if (! is_numeric($value)) {
-            return null;
-        }
-
-        $integer = (int) $value;
-
-        return $integer > 0 ? $integer : null;
     }
 }

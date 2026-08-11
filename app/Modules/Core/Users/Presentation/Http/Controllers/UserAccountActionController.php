@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Modules\Core\Users\Presentation\Http\Controllers;
 
-use App\Modules\Core\Audit\Application\Public\Enums\SecurityAuditCategory;
 use App\Modules\Core\Identity\Application\Public\Contracts\SecurityAuditRecorder;
 use App\Modules\Core\Identity\Application\Public\Contracts\UserCredentialAccountDirectory;
 use App\Modules\Core\Identity\Application\Public\Contracts\UserSessionRegistry;
@@ -18,6 +17,7 @@ use App\Modules\Core\Users\Application\Contracts\FirstPasswordLinkIssuer;
 use App\Modules\Core\Users\Application\DeactivateUserAccount;
 use App\Modules\Core\Users\Application\ResetUserMfa;
 use App\Modules\Core\Users\Application\UnlockUserAccount;
+use App\Shared\Application\Audit\Enums\SecurityAuditCategory;
 use App\Shared\Presentation\Support\FlashMessage;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;

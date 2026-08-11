@@ -5,17 +5,17 @@ declare(strict_types=1);
 namespace App\Modules\Core\Authorization\Presentation\Http\Controllers;
 
 use App\Modules\Core\Authorization\Application\Permissions\PermissionCatalogRegistry;
-use App\Modules\Core\Authorization\Application\Public\Contracts\EffectivePermissionChecker;
-use App\Modules\Core\Authorization\Application\Public\DTOs\EffectivePermissionRequest;
-use App\Modules\Core\Authorization\Application\Public\Persistence\AuthorizationDatabaseTable;
-use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
+use App\Modules\Core\Authorization\Infrastructure\Persistence\TableNames\AuthorizationDatabaseTable;
+use App\Shared\Application\Authorization\Contracts\EffectivePermissionChecker;
+use App\Shared\Application\Authorization\DTOs\EffectivePermissionRequest;
 use App\Shared\Application\Modules\Activation\Contracts\ModuleActivationService;
 use App\Shared\Application\Modules\ModuleKeyResolver;
-use App\Shared\Application\Tables\AdminTableDefinitions;
 use App\Shared\Application\Tables\ArrayTableProcessor;
+use App\Shared\Application\Tables\RegisteredTables;
 use App\Shared\Application\Tables\TableRequestContext;
 use App\Shared\Application\Tables\TableSavedViewService;
 use App\Shared\Application\Tables\TableState;
+use App\Shared\Application\Teams\Contracts\TeamLookup;
 use App\Shared\Presentation\Support\AdminDataTableExportMeta;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -32,11 +32,12 @@ final readonly class PermissionAdministrationController
         private ArrayTableProcessor $tables,
         private TableSavedViewService $views,
         private TableRequestContext $context,
+        private TeamLookup $teams,
     ) {}
 
     public function __invoke(Request $request): Response
     {
-        $definition = AdminTableDefinitions::get(AdminTableDefinitions::PERMISSIONS);
+        $definition = RegisteredTables::get(RegisteredTables::PERMISSIONS);
         $state = TableState::fromRequest($request, $definition);
         [$userId, $teamId] = $this->context->userTeam($request);
         $userPublicId = data_get($request->user(), 'public_id');
@@ -166,9 +167,7 @@ final readonly class PermissionAdministrationController
 
     private function teamId(string $teamPublicId): ?int
     {
-        $teamId = DB::table(TeamsDatabaseTable::TEAMS)->where('public_id', $teamPublicId)->value('id');
-
-        return is_numeric($teamId) ? (int) $teamId : null;
+        return $this->teams->internalIdForPublicId($teamPublicId);
     }
 
     private function humanizeName(string $name): string

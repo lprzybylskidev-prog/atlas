@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Modules\Core\Identity\Infrastructure\Notifications;
 
+use App\Shared\Application\Mail\DTOs\BilingualMailContent;
+use App\Shared\Infrastructure\Mail\AtlasBilingualMailFactory;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 use Illuminate\Support\Carbon;
@@ -25,10 +27,16 @@ final class AccountLockedNotification extends Notification
         $timezone = config('app.timezone');
         $timezone = is_string($timezone) && $timezone !== '' ? $timezone : 'Europe/Warsaw';
 
-        return (new MailMessage)
-            ->subject('Atlas account temporarily locked')
-            ->line('Your Atlas account was temporarily locked after repeated failed login attempts.')
-            ->line(sprintf('The lock expires at %s.', $this->lockedUntil->timezone($timezone)->format('Y-m-d H:i')))
-            ->line('If this was not you, contact an administrator.');
+        $id = data_get($notifiable, 'id');
+
+        return app(AtlasBilingualMailFactory::class)->message(
+            BilingualMailContent::fromTranslationKeys(
+                subjectKey: 'mail.account_locked.subject',
+                headingKey: 'mail.account_locked.heading',
+                bodyKeys: ['mail.account_locked.body', 'mail.account_locked.expiry', 'mail.account_locked.guidance'],
+                parameters: ['locked_until' => $this->lockedUntil->timezone($timezone)->format('Y-m-d H:i')],
+            ),
+            is_numeric($id) ? (int) $id : null,
+        );
     }
 }

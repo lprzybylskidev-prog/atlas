@@ -20,7 +20,7 @@ Current typed key groups:
 - global settings: default locale and default theme;
 - team settings: default locale and default theme;
 - user settings: UI language, theme, notification preferences, default team, table preferences, dashboard preferences, and accessibility preferences;
-- security settings: idle session timeout, password-confirmation timeout, and MFA requirement.
+- security settings: idle session timeout, password-confirmation timeout, and MFA requirement. Shared reader contracts live under `App\Shared\Application\Security\Contracts`; Settings owns their database-backed implementations and cache behavior.
 
 ## Defaults And Precedence
 
@@ -75,7 +75,7 @@ Security-setting changes are recorded through the Audit module as security audit
 ---
 # Phase 28 foundation repair target
 
-Current state: Settings owns typed scoped values, but Phase 28 requires review of Audit dependency, global/team/user/security settings, locale/theme behavior, cache invalidation, validation, settings surfaces, public contracts, and current-versus-target documentation.
+Current state: Settings owns typed global/team/user values, security-setting public contracts, locale/theme behavior, validation, cache invalidation, and audited mutation paths without leaking persistence across module boundaries.
 
 Target state: Settings exposes only owner-approved public contracts, uses the target audit catalog and atomicity rules for changes, keeps locale/theme values aligned with frontend/mail formatting contracts, and has clear surface, cache, validation, docs, and tests.
 

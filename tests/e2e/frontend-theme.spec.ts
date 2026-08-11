@@ -52,7 +52,7 @@ async function ensureLightTheme(page: Page): Promise<void> {
 
 async function signIn(page: Page, user = appUser): Promise<void> {
     await page.goto('/login');
-    await page.getByLabel('Email').fill(user.email);
+    await page.getByLabel(/Adres e-mail|Email address/).fill(user.email);
     await page.getByLabel(/Hasło|Password/).fill(user.password);
     await page.getByRole('button', { name: /Zaloguj|Log in/ }).click();
 
@@ -67,6 +67,16 @@ async function signIn(page: Page, user = appUser): Promise<void> {
 
     await page.getByRole('button', { name: /Kontynuuj tutaj|Continue here/ }).click();
     await expect(page).toHaveURL('/');
+}
+
+async function ensurePolishLocale(page: Page): Promise<void> {
+    await page.goto('/');
+
+    if (await page.getByRole('button', { name: 'Change language' }).isVisible()) {
+        await page.getByRole('button', { name: 'Change language' }).click();
+    }
+
+    await expect(page.getByRole('button', { name: 'Zmień język' })).toBeVisible();
 }
 
 async function confirmAdminPassword(page: Page): Promise<void> {
@@ -104,6 +114,7 @@ test.describe('frontend theme coverage', () => {
 
     test('renders the application shell in light and dark themes', async ({ page }) => {
         await signIn(page);
+        await ensurePolishLocale(page);
         await stabilizeVisuals(page);
         await ensureLightTheme(page);
 
@@ -116,6 +127,7 @@ test.describe('frontend theme coverage', () => {
 
     test('renders the admin shell in light and dark themes', async ({ page }) => {
         await signIn(page, adminUser);
+        await ensurePolishLocale(page);
         await page.goto('/admin');
         await confirmAdminPassword(page);
         await stabilizeVisuals(page);

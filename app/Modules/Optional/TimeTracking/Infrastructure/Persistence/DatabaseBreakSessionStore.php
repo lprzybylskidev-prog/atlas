@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace App\Modules\Optional\TimeTracking\Infrastructure\Persistence;
 
-use App\Modules\Core\Identity\Application\Public\Persistence\IdentityDatabaseTable;
-use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
 use App\Modules\Optional\TimeTracking\Application\Contracts\BreakPolicyStore;
 use App\Modules\Optional\TimeTracking\Application\Contracts\BreakSessionStore;
 use App\Modules\Optional\TimeTracking\Application\Contracts\WorkSessionStore;
@@ -13,7 +11,7 @@ use App\Modules\Optional\TimeTracking\Application\DTOs\ActiveBreakSession;
 use App\Modules\Optional\TimeTracking\Application\Enums\BreakClosureReason;
 use App\Modules\Optional\TimeTracking\Application\Enums\BreakReminderType;
 use App\Modules\Optional\TimeTracking\Application\Enums\WorkSessionClosureReason;
-use App\Modules\Optional\TimeTracking\Application\Public\Persistence\TimeTrackingDatabaseTable;
+use App\Modules\Optional\TimeTracking\Infrastructure\Persistence\TableNames\TimeTrackingDatabaseTable;
 use DateInterval;
 use DateTimeImmutable;
 use Illuminate\Database\ConnectionInterface;
@@ -146,19 +144,15 @@ final readonly class DatabaseBreakSessionStore implements BreakSessionStore
     public function recordDueReminders(DateTimeImmutable $now): int
     {
         $recorded = 0;
-        $activeBreaks = $this->database->table(TimeTrackingDatabaseTable::BREAKS.' as breaks')
-            ->join(IdentityDatabaseTable::USERS.' as users', 'breaks.user_id', '=', 'users.id')
-            ->join(TeamsDatabaseTable::TEAMS.' as teams', 'breaks.team_id', '=', 'teams.id')
-            ->whereNull('breaks.ended_at')
-            ->orderBy('breaks.started_at')
+        $activeBreaks = $this->database->table(TimeTrackingDatabaseTable::BREAKS)
+            ->whereNull('ended_at')
+            ->orderBy('started_at')
             ->get([
-                'breaks.id',
-                'breaks.public_id',
-                'breaks.user_id',
-                'breaks.team_id',
-                'breaks.started_at',
-                'users.public_id as user_public_id',
-                'teams.public_id as team_public_id',
+                'id',
+                'public_id',
+                'user_id',
+                'team_id',
+                'started_at',
             ]);
 
         foreach ($activeBreaks as $break) {

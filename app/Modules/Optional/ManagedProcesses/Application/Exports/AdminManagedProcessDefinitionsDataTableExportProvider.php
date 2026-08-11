@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace App\Modules\Optional\ManagedProcesses\Application\Exports;
 
-use App\Modules\Core\Exports\Application\Public\AbstractAdminDataTableExportProvider;
-use App\Modules\Core\Exports\Application\Public\DTOs\ReportExportGenerationRequest;
-use App\Modules\Core\Exports\Application\Public\Permissions\ReportsPermissionCatalog;
 use App\Modules\Optional\ManagedProcesses\Application\Contracts\ProcessDefinitionRegistry;
-use App\Modules\Optional\ManagedProcesses\Application\Public\DTOs\ProcessDefinition;
-use App\Shared\Application\Tables\AdminTableDefinitions;
+use App\Shared\Application\Exports\AbstractAdminDataTableExportProvider;
+use App\Shared\Application\Exports\DTOs\ReportExportGenerationRequest;
+use App\Shared\Application\Exports\ExportPermissions;
+use App\Shared\Application\ManagedProcesses\DTOs\ProcessDefinition;
+use App\Shared\Application\Tables\RegisteredTables;
 
 final readonly class AdminManagedProcessDefinitionsDataTableExportProvider extends AbstractAdminDataTableExportProvider
 {
@@ -17,7 +17,7 @@ final readonly class AdminManagedProcessDefinitionsDataTableExportProvider exten
 
     public function tableKey(): string
     {
-        return AdminTableDefinitions::MANAGED_PROCESS_DEFINITIONS;
+        return RegisteredTables::MANAGED_PROCESS_DEFINITIONS;
     }
 
     public function tableName(): string
@@ -32,7 +32,7 @@ final readonly class AdminManagedProcessDefinitionsDataTableExportProvider exten
 
     public function requestPermission(): string
     {
-        return ReportsPermissionCatalog::REQUEST;
+        return ExportPermissions::REQUEST;
     }
 
     public function ruleVersion(): string

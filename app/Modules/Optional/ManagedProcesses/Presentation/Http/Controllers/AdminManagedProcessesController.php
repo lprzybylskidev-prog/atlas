@@ -4,28 +4,28 @@ declare(strict_types=1);
 
 namespace App\Modules\Optional\ManagedProcesses\Presentation\Http\Controllers;
 
-use App\Modules\Core\Audit\Application\Public\Contracts\AuditRecorder;
-use App\Modules\Core\Audit\Application\Public\DTOs\AuditEvent;
 use App\Modules\Core\Files\Application\Public\Contracts\FileStorage;
-use App\Modules\Core\Files\Application\Public\Persistence\FilesDatabaseTable;
-use App\Modules\Core\Identity\Application\Public\Persistence\IdentityDatabaseTable;
-use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
-use App\Modules\Optional\Imports\Application\Public\Persistence\ImportsDatabaseTable;
+use App\Modules\Core\Identity\Application\Public\Contracts\UserLookup;
 use App\Modules\Optional\ManagedProcesses\Application\Contracts\ProcessDefinitionRegistry;
 use App\Modules\Optional\ManagedProcesses\Application\Enums\ProcessRunStatus;
-use App\Modules\Optional\ManagedProcesses\Application\Public\Contracts\ManagedProcessRunner;
-use App\Modules\Optional\ManagedProcesses\Application\Public\DTOs\ProcessDefinition;
-use App\Modules\Optional\ManagedProcesses\Application\Public\Persistence\ManagedProcessesDatabaseTable;
-use App\Shared\Application\Tables\AdminTableDefinitions;
+use App\Modules\Optional\ManagedProcesses\Infrastructure\Persistence\TableNames\ManagedProcessesDatabaseTable;
+use App\Shared\Application\Audit\Contracts\AuditRecorder;
+use App\Shared\Application\Audit\DTOs\AuditEvent;
+use App\Shared\Application\Imports\Contracts\ImportAdminVisibility;
+use App\Shared\Application\Imports\DTOs\ImportExecutionDetail;
+use App\Shared\Application\Imports\DTOs\ImportRowErrorSummary;
+use App\Shared\Application\ManagedProcesses\Contracts\ManagedProcessRunner;
+use App\Shared\Application\ManagedProcesses\DTOs\ProcessDefinition;
 use App\Shared\Application\Tables\ArrayTableProcessor;
+use App\Shared\Application\Tables\RegisteredTables;
 use App\Shared\Application\Tables\TableDefinition;
 use App\Shared\Application\Tables\TableRequestContext;
 use App\Shared\Application\Tables\TableResult;
 use App\Shared\Application\Tables\TableSavedViewService;
 use App\Shared\Application\Tables\TableState;
+use App\Shared\Application\Teams\Contracts\TeamLookup;
 use App\Shared\Presentation\Support\AdminDataTableExportMeta;
 use App\Shared\Presentation\Support\FlashMessage;
-use Illuminate\Database\Query\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
@@ -36,6 +36,7 @@ use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 use RuntimeException;
+use stdClass;
 
 final readonly class AdminManagedProcessesController
 {
@@ -46,11 +47,14 @@ final readonly class AdminManagedProcessesController
         private ArrayTableProcessor $tables,
         private TableSavedViewService $views,
         private TableRequestContext $context,
+        private UserLookup $users,
+        private TeamLookup $teams,
+        private ImportAdminVisibility $imports,
     ) {}
 
     public function index(Request $request): Response
     {
-        $definition = AdminTableDefinitions::get(AdminTableDefinitions::MANAGED_PROCESS_RUNS);
+        $definition = RegisteredTables::get(RegisteredTables::MANAGED_PROCESS_RUNS);
         $filters = $this->runFilters($request);
         $result = $this->tableResult($request, $definition, $this->filteredRuns($this->runs(), $filters));
         $table = $result->tableMeta($definition->key, AdminDataTableExportMeta::defaults());
@@ -58,7 +62,7 @@ final readonly class AdminManagedProcessesController
 
         return Inertia::render('Admin/ManagedProcesses/Runs', [
             'runs' => $result->rows,
-            'summary' => $this->summary(),
+            'summary' => $this->summary($result->filteredRows),
             'filterOptions' => $this->runFilterOptions(),
             'table' => $table,
         ]);
@@ -66,7 +70,7 @@ final readonly class AdminManagedProcessesController
 
     public function definitions(Request $request): Response
     {
-        $definition = AdminTableDefinitions::get(AdminTableDefinitions::MANAGED_PROCESS_DEFINITIONS);
+        $definition = RegisteredTables::get(RegisteredTables::MANAGED_PROCESS_DEFINITIONS);
         $filters = $this->definitionFilters($request);
         $definitionRows = array_map(fn (ProcessDefinition $definition): array => $this->definitionRow($definition), $this->definitions->all());
         $result = $this->tableResult($request, $definition, $this->filteredDefinitions($definitionRows, $filters));
@@ -76,9 +80,9 @@ final readonly class AdminManagedProcessesController
         return Inertia::render('Admin/ManagedProcesses/Definitions', [
             'definitions' => $result->rows,
             'summary' => [
-                'definitions' => count($this->definitions->all()),
-                'schedulable' => count(array_filter($this->definitions->all(), fn (ProcessDefinition $definition): bool => $definition->scheduleSupported)),
-                'manual' => count(array_filter($this->definitions->all(), fn (ProcessDefinition $definition): bool => $definition->manualStartSupported)),
+                'definitions' => count($result->filteredRows),
+                'schedulable' => count(array_filter($result->filteredRows, static fn (array $definition): bool => ($definition['scheduleSupported'] ?? false) === true)),
+                'manual' => count(array_filter($result->filteredRows, static fn (array $definition): bool => ($definition['manualStartSupported'] ?? false) === true)),
             ],
             'filterOptions' => $this->definitionFilterOptions($definitionRows),
             'table' => $table,
@@ -87,21 +91,15 @@ final readonly class AdminManagedProcessesController
 
     public function show(Request $request, string $run): Response
     {
-        $record = DB::table(ManagedProcessesDatabaseTable::RUNS.' as process_runs')
-            ->leftJoin(IdentityDatabaseTable::USERS, 'process_runs.actor_user_id', '=', 'users.id')
-            ->leftJoin(TeamsDatabaseTable::TEAMS, 'process_runs.team_id', '=', 'teams.id')
+        $records = DB::table(ManagedProcessesDatabaseTable::RUNS.' as process_runs')
             ->leftJoin(ManagedProcessesDatabaseTable::RUN_ACKNOWLEDGEMENTS.' as acknowledgements', 'acknowledgements.process_run_id', '=', 'process_runs.id')
-            ->leftJoin(IdentityDatabaseTable::USERS.' as acknowledged_users', 'acknowledged_users.id', '=', 'acknowledgements.acknowledged_by_user_id')
             ->where('process_runs.public_id', $run)
-            ->first([
+            ->get([
                 'process_runs.*',
-                'users.public_id as actor_public_id',
-                'users.email as actor_email',
-                'teams.public_id as team_public_id',
-                'teams.name as team_name',
                 'acknowledgements.acknowledged_at',
-                'acknowledged_users.email as acknowledged_by',
+                'acknowledgements.acknowledged_by_user_id',
             ]);
+        $record = $this->enrichRunRecords($records->all())[0] ?? null;
 
         abort_if(! is_object($record), 404);
 
@@ -282,7 +280,7 @@ final readonly class AdminManagedProcessesController
 
     public function schedules(Request $request): Response
     {
-        $definition = AdminTableDefinitions::get(AdminTableDefinitions::MANAGED_PROCESS_SCHEDULES);
+        $definition = RegisteredTables::get(RegisteredTables::MANAGED_PROCESS_SCHEDULES);
         $filters = $this->scheduleFilters($request);
         $result = $this->tableResult($request, $definition, $this->filteredSchedules($this->scheduleRows(), $filters));
         $table = $result->tableMeta($definition->key, AdminDataTableExportMeta::defaults());
@@ -295,8 +293,8 @@ final readonly class AdminManagedProcessesController
             )),
             'schedules' => $result->rows,
             'summary' => [
-                'schedules' => (int) DB::table(ManagedProcessesDatabaseTable::SCHEDULES)->where('enabled', true)->count(),
-                'disabled' => (int) DB::table(ManagedProcessesDatabaseTable::SCHEDULES)->where('enabled', false)->count(),
+                'schedules' => count(array_filter($result->filteredRows, static fn (array $schedule): bool => ($schedule['enabled'] ?? false) === true)),
+                'disabled' => count(array_filter($result->filteredRows, static fn (array $schedule): bool => ($schedule['enabled'] ?? false) === false)),
             ],
             'filterOptions' => $this->scheduleFilterOptions(),
             'table' => $table,
@@ -614,30 +612,82 @@ final readonly class AdminManagedProcessesController
      */
     private function runs(): array
     {
-        return array_values(DB::table(ManagedProcessesDatabaseTable::RUNS.' as process_runs')
-            ->leftJoin(IdentityDatabaseTable::USERS, 'process_runs.actor_user_id', '=', 'users.id')
-            ->leftJoin(TeamsDatabaseTable::TEAMS, 'process_runs.team_id', '=', 'teams.id')
-            ->leftJoin(ImportsDatabaseTable::EXECUTIONS, 'import_executions.process_run_id', '=', 'process_runs.id')
-            ->leftJoin(FilesDatabaseTable::FILE_OBJECTS, 'import_executions.file_object_id', '=', 'file_objects.id')
+        $records = DB::table(ManagedProcessesDatabaseTable::RUNS.' as process_runs')
             ->leftJoin(ManagedProcessesDatabaseTable::RUN_ACKNOWLEDGEMENTS.' as acknowledgements', 'acknowledgements.process_run_id', '=', 'process_runs.id')
-            ->leftJoin(IdentityDatabaseTable::USERS.' as acknowledged_users', 'acknowledged_users.id', '=', 'acknowledgements.acknowledged_by_user_id')
             ->orderByDesc('process_runs.created_at')
             ->limit(80)
             ->get([
                 'process_runs.*',
-                'users.email as actor_email',
-                'teams.name as team_name',
                 'acknowledgements.acknowledged_at',
-                'acknowledged_users.email as acknowledged_by',
-                'import_executions.import_key',
-                'import_executions.source_type as import_source_type',
-                'import_executions.idempotency_key',
-                'import_executions.idempotency_state',
-                'file_objects.original_name as import_file',
-            ])
+                'acknowledgements.acknowledged_by_user_id',
+            ]);
+
+        return array_values(collect($this->enrichRunRecords($records->all()))
             ->map(fn (object $run): array => $this->runRow($run))
             ->values()
             ->all());
+    }
+
+    /**
+     * @param  array<int, stdClass>  $records
+     * @return list<stdClass>
+     */
+    private function enrichRunRecords(array $records): array
+    {
+        $records = array_values($records);
+        $actorIds = [];
+        $acknowledgedByIds = [];
+        $teamIds = [];
+        $runIds = [];
+
+        foreach ($records as $record) {
+            $actorId = $this->nullableInt($record->actor_user_id ?? null);
+            $acknowledgedById = $this->nullableInt($record->acknowledged_by_user_id ?? null);
+            $teamId = $this->nullableInt($record->team_id ?? null);
+            $runId = $this->nullableInt($record->id ?? null);
+
+            if ($actorId !== null) {
+                $actorIds[] = $actorId;
+            }
+
+            if ($acknowledgedById !== null) {
+                $acknowledgedByIds[] = $acknowledgedById;
+            }
+
+            if ($teamId !== null) {
+                $teamIds[] = $teamId;
+            }
+
+            if ($runId !== null) {
+                $runIds[] = $runId;
+            }
+        }
+
+        $userSummaries = $this->users->displaySummariesForInternalIds(array_values(array_unique(array_merge($actorIds, $acknowledgedByIds))));
+        $teamSummaries = $this->teams->summariesForInternalIds(array_values(array_unique($teamIds)));
+        $importSummaries = $this->imports->summariesForProcessRunIds(array_values(array_unique($runIds)));
+
+        foreach ($records as $record) {
+            $actorId = $this->nullableInt($record->actor_user_id ?? null);
+            $acknowledgedById = $this->nullableInt($record->acknowledged_by_user_id ?? null);
+            $teamId = $this->nullableInt($record->team_id ?? null);
+            $runId = $this->nullableInt($record->id ?? null);
+            $actor = $actorId === null ? null : ($userSummaries[$actorId] ?? null);
+            $acknowledgedBy = $acknowledgedById === null ? null : ($userSummaries[$acknowledgedById] ?? null);
+            $team = $teamId === null ? null : ($teamSummaries[$teamId] ?? null);
+            $import = $runId === null ? null : ($importSummaries[$runId] ?? null);
+
+            $record->actor_email = $actor?->email;
+            $record->team_name = $team?->name;
+            $record->acknowledged_by = $acknowledgedBy?->email;
+            $record->import_key = $import?->importKey;
+            $record->import_source_type = $import?->sourceType;
+            $record->import_file = $import?->fileOriginalName;
+            $record->idempotency_key = $import?->idempotencyKey;
+            $record->idempotency_state = $import?->idempotencyState;
+        }
+
+        return $records;
     }
 
     /**
@@ -737,37 +787,40 @@ final readonly class AdminManagedProcessesController
      */
     private function importExecution(int $runId): ?array
     {
-        $execution = DB::table(ImportsDatabaseTable::EXECUTIONS)->where('process_run_id', $runId)->first();
+        $execution = $this->imports->executionForProcessRunId($runId);
 
-        if (! is_object($execution)) {
+        if (! $execution instanceof ImportExecutionDetail) {
             return null;
         }
 
         return [
-            'publicId' => $this->stringValue($execution->public_id ?? null),
-            'importKey' => $this->stringValue($execution->import_key ?? null),
-            'sourceType' => $this->stringValue($execution->source_type ?? null),
-            'apiReference' => $this->string($execution->api_reference ?? null),
-            'externalReference' => $this->string($execution->external_reference ?? null),
-            'mappingSnapshot' => $this->decode($execution->mapping_snapshot ?? null),
-            'sourceMetadata' => $this->decode($execution->source_metadata ?? null),
-            'statistics' => $this->decode($execution->statistics ?? null),
-            'idempotencyKey' => $this->string($execution->idempotency_key ?? null),
-            'idempotencyState' => $this->stringValue($execution->idempotency_state ?? null),
-            'errors' => DB::table(ImportsDatabaseTable::ROW_ERRORS)
-                ->where('import_execution_id', $this->intValue($execution->id ?? null))
-                ->orderBy('row_number')
-                ->get()
-                ->map(fn (object $error): array => [
-                    'publicId' => $this->stringValue($error->public_id ?? null),
-                    'rowNumber' => $this->nullableInt($error->row_number ?? null),
-                    'fieldName' => $this->string($error->field_name ?? null),
-                    'severity' => $this->stringValue($error->severity ?? null),
-                    'errorCode' => $this->stringValue($error->error_code ?? null),
-                    'message' => $this->stringValue($error->message ?? null),
-                    'safeContext' => $this->decode($error->safe_context ?? null),
-                ])
-                ->all(),
+            'publicId' => $execution->publicId,
+            'importKey' => $execution->importKey,
+            'sourceType' => $execution->sourceType,
+            'apiReference' => $execution->apiReference,
+            'externalReference' => $execution->externalReference,
+            'mappingSnapshot' => $execution->mappingSnapshot,
+            'sourceMetadata' => $execution->sourceMetadata,
+            'statistics' => $execution->statistics,
+            'idempotencyKey' => $execution->idempotencyKey,
+            'idempotencyState' => $execution->idempotencyState,
+            'errors' => array_map(fn (ImportRowErrorSummary $error): array => $this->importRowError($error), $execution->errors),
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function importRowError(ImportRowErrorSummary $error): array
+    {
+        return [
+            'publicId' => $error->publicId,
+            'rowNumber' => $error->rowNumber,
+            'fieldName' => $error->fieldName,
+            'severity' => $error->severity,
+            'errorCode' => $error->errorCode,
+            'message' => $error->message,
+            'safeContext' => $error->safeContext,
         ];
     }
 
@@ -776,48 +829,65 @@ final readonly class AdminManagedProcessesController
      */
     private function scheduleRows(): array
     {
-        return array_values(DB::table(ManagedProcessesDatabaseTable::SCHEDULES)
-            ->leftJoin(TeamsDatabaseTable::TEAMS, 'process_schedules.team_id', '=', 'teams.id')
+        $schedules = DB::table(ManagedProcessesDatabaseTable::SCHEDULES)
             ->orderByDesc('process_schedules.created_at')
-            ->get(['process_schedules.*', 'teams.name as team_name'])
-            ->map(fn (object $schedule): array => [
-                'publicId' => $this->stringValue($schedule->public_id ?? null),
-                'processKey' => $this->stringValue($schedule->process_key ?? null),
-                'moduleKey' => $this->stringValue($schedule->module_key ?? null),
-                'scope' => $this->stringValue($schedule->scope ?? null),
-                'team' => $this->string($schedule->team_name ?? null),
-                'timezone' => $this->stringValue($schedule->timezone ?? null),
-                'cronExpression' => $this->string($schedule->cron_expression ?? null),
-                'intervalKey' => $this->string($schedule->interval_key ?? null),
-                'enabled' => (bool) $schedule->enabled,
-                'nextDueAt' => $this->string($schedule->next_due_at ?? null),
-                'overlapPolicy' => $this->stringValue($schedule->overlap_policy ?? null),
-                'reason' => $this->stringValue($schedule->reason ?? null),
-                'createdAt' => $this->string($schedule->created_at ?? null),
-            ])
+            ->get(['process_schedules.*']);
+        $teamIds = [];
+
+        foreach ($schedules as $schedule) {
+            $teamId = $this->nullableInt($schedule->team_id ?? null);
+
+            if ($teamId !== null) {
+                $teamIds[] = $teamId;
+            }
+        }
+
+        $teamSummaries = $this->teams->summariesForInternalIds(array_values(array_unique($teamIds)));
+
+        return array_values($schedules
+            ->map(function (object $schedule) use ($teamSummaries): array {
+                $teamId = $this->nullableInt($schedule->team_id ?? null);
+                $team = $teamId === null ? null : ($teamSummaries[$teamId] ?? null);
+
+                return [
+                    'publicId' => $this->stringValue($schedule->public_id ?? null),
+                    'processKey' => $this->stringValue($schedule->process_key ?? null),
+                    'moduleKey' => $this->stringValue($schedule->module_key ?? null),
+                    'scope' => $this->stringValue($schedule->scope ?? null),
+                    'team' => $team?->name,
+                    'timezone' => $this->stringValue($schedule->timezone ?? null),
+                    'cronExpression' => $this->string($schedule->cron_expression ?? null),
+                    'intervalKey' => $this->string($schedule->interval_key ?? null),
+                    'enabled' => (bool) $schedule->enabled,
+                    'nextDueAt' => $this->string($schedule->next_due_at ?? null),
+                    'overlapPolicy' => $this->stringValue($schedule->overlap_policy ?? null),
+                    'reason' => $this->stringValue($schedule->reason ?? null),
+                    'createdAt' => $this->string($schedule->created_at ?? null),
+                ];
+            })
             ->values()
             ->all());
     }
 
     /**
+     * @param  list<array<string, mixed>>  $rows
      * @return array<string, int>
      */
-    private function summary(): array
+    private function summary(array $rows): array
     {
-        return [
-            'active' => (int) DB::table(ManagedProcessesDatabaseTable::RUNS)->whereIn('status', ['draft', 'queued', 'running', 'waiting'])->count(),
-            'failed24h' => (int) $this->unacknowledgedAttentionRunsQuery()->where('process_runs.status', 'failed')->where('process_runs.created_at', '>=', now()->subDay())->count(),
-            'warnings24h' => (int) $this->unacknowledgedAttentionRunsQuery()->where('process_runs.status', 'succeeded_with_warnings')->where('process_runs.created_at', '>=', now()->subDay())->count(),
-            'handled' => (int) DB::table(ManagedProcessesDatabaseTable::RUN_ACKNOWLEDGEMENTS)->count(),
-            'imports' => (int) DB::table(ImportsDatabaseTable::EXECUTIONS)->count(),
-        ];
-    }
+        $oneDayAgo = now()->subDay()->getTimestamp();
 
-    private function unacknowledgedAttentionRunsQuery(): Builder
-    {
-        return DB::table(ManagedProcessesDatabaseTable::RUNS.' as process_runs')
-            ->leftJoin(ManagedProcessesDatabaseTable::RUN_ACKNOWLEDGEMENTS.' as acknowledgements', 'acknowledgements.process_run_id', '=', 'process_runs.id')
-            ->whereNull('acknowledgements.process_run_id');
+        return [
+            'active' => count(array_filter($rows, static fn (array $row): bool => in_array($row['status'] ?? '', ['draft', 'queued', 'running', 'waiting'], true))),
+            'failed24h' => count(array_filter($rows, fn (array $row): bool => ($row['status'] ?? '') === 'failed'
+                && ($row['handlingStatus'] ?? '') === 'needs_attention'
+                && $this->timestamp($row['createdAt'] ?? null) >= $oneDayAgo)),
+            'warnings24h' => count(array_filter($rows, fn (array $row): bool => ($row['status'] ?? '') === 'succeeded_with_warnings'
+                && ($row['handlingStatus'] ?? '') === 'needs_attention'
+                && $this->timestamp($row['createdAt'] ?? null) >= $oneDayAgo)),
+            'handled' => count(array_filter($rows, static fn (array $row): bool => ($row['handlingStatus'] ?? '') === 'handled')),
+            'imports' => count(array_filter($rows, static fn (array $row): bool => ($row['importKey'] ?? '') !== '')),
+        ];
     }
 
     /**
@@ -838,6 +908,17 @@ final readonly class AdminManagedProcessesController
     private function oneOf(mixed $value, array $allowed): string
     {
         return is_string($value) && in_array($value, $allowed, true) ? $value : 'all';
+    }
+
+    private function timestamp(mixed $value): int
+    {
+        if (! is_scalar($value)) {
+            return 0;
+        }
+
+        $timestamp = strtotime((string) $value);
+
+        return $timestamp === false ? 0 : $timestamp;
     }
 
     /**
@@ -896,7 +977,7 @@ final readonly class AdminManagedProcessesController
      */
     private function distinctImportValues(string $column): array
     {
-        return $this->distinctValues(ImportsDatabaseTable::EXECUTIONS, $column);
+        return $this->imports->distinctExecutionValues($column);
     }
 
     /**
@@ -1098,9 +1179,7 @@ final readonly class AdminManagedProcessesController
             return null;
         }
 
-        $id = DB::table(TeamsDatabaseTable::TEAMS)->where('public_id', $publicId)->value('id');
-
-        return is_numeric($id) ? (int) $id : null;
+        return $this->teams->activeInternalIdForPublicId($publicId);
     }
 
     /**

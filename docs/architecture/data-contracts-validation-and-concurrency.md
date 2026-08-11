@@ -2,11 +2,11 @@
 
 Canonical shared rules for transport formats, dates, money, enums, null handling, formatters, validation layers, exceptions, and concurrency.
 
-## Phase 28 target
+## Phase 28 closure state
 
-Current state: shared data-contract and validation rules exist, but Phase 28 tracks locale-source drift, missing-translation fallback behavior, save-scope ambiguity, stale-write coverage in authorization/team workflows, audit before/after requirements, and owner-owned public contract boundaries.
+Phase 28 closed the recorded locale-source drift, missing-translation fallback behavior, save-scope ambiguity, stale-write coverage in authorization/team workflows, audit before/after requirements, and owner-owned public contract boundary gaps.
 
-Target state: public contracts are small typed owner-owned capabilities; formatters use one effective locale source; missing Atlas-owned translations fail gates; every form save scope is explicit; stale writes are rejected and audited; and validation errors never expose implementation identifiers.
+Public contracts are small typed owner-owned capabilities; formatters use one effective locale source; missing Atlas-owned translations fail gates; every form save scope is explicit; stale writes are rejected and audited; and validation errors never expose implementation identifiers.
 
 Tracked issue IDs: `P28-ARCH-004`, `P28-FORM-002`, `P28-FORM-003`, `P28-AUTH-004`, `P28-LOC-001`, `P28-LOC-002`.
 
@@ -65,6 +65,10 @@ Provide shared formatters for:
 - numbers;
 - status;
 - empty values.
+
+Frontend formatters obtain their default locale from `effectiveLocale`; passing a locale remains available only for an explicit alternate-output contract. Backend mail, export, browser-print, and PDF generation use the effective request locale, and asynchronous export work persists that locale in its immutable snapshot so a later worker cannot format using its process default. Existing pre-locale export records render in Polish as the documented compatibility fallback.
+
+Laravel translation files are the only Atlas-owned copy catalogs. Missing frontend keys render as an explicit `[translation:key]` diagnostic marker and fail localization guard tests; they are never humanized into plausible English-like text. Accessibility labels and error-page copy use the same canonical translation source. Unknown status or enum tokens follow the same explicitly marked diagnostic rule on Admin diagnostic surfaces and are forbidden on ordinary user and manager surfaces.
 
 ---
 

@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Modules\Core\Authorization\Application\Lifecycle;
 
-use App\Modules\Core\Authorization\Application\Public\Persistence\AuthorizationDatabaseTable;
-use App\Modules\Core\Identity\Application\Public\Persistence\IdentityDatabaseTable;
+use App\Modules\Core\Authorization\Infrastructure\Persistence\TableNames\AuthorizationDatabaseTable;
+use App\Modules\Core\Identity\Application\Public\Contracts\UserLookup;
 use App\Shared\Application\DataLifecycle\Contracts\DataLifecycleParticipant;
 use App\Shared\Application\DataLifecycle\DataLifecycleImpact;
 use App\Shared\Application\DataLifecycle\DataLifecycleOperation;
@@ -20,7 +20,13 @@ final readonly class UserAuthorizationDataLifecycleParticipant implements DataLi
 {
     public function __construct(
         private ConnectionInterface $db,
+        private UserLookup $users,
     ) {}
+
+    public function key(): string
+    {
+        return 'authorization';
+    }
 
     public function preview(DataLifecycleSubject $subject, DataLifecycleOperation $operation): DataLifecyclePreview
     {
@@ -49,6 +55,12 @@ final readonly class UserAuthorizationDataLifecycleParticipant implements DataLi
                 true,
                 $this->records($this->onboardingAssignments($userId), ['id', 'user_id', 'team_id', 'package_name', 'created_at']),
             ),
+            new DataLifecycleImpact(
+                'authorization.user_team_assignment_provenance',
+                $this->assignmentProvenance($userId)->count(),
+                true,
+                $this->records($this->assignmentProvenance($userId), ['public_id', 'user_id', 'team_id', 'source_type', 'applied_at']),
+            ),
         ]);
     }
 
@@ -64,6 +76,7 @@ final readonly class UserAuthorizationDataLifecycleParticipant implements DataLi
             new DataLifecycleStepResult('authorization.user_roles_removed', $this->roleAssignments($userId)->delete(), true),
             new DataLifecycleStepResult('authorization.user_direct_permissions_removed', $this->directPermissions($userId)->delete(), true),
             new DataLifecycleStepResult('authorization.user_onboarding_packages_removed', $this->onboardingAssignments($userId)->delete(), true),
+            new DataLifecycleStepResult('authorization.user_team_assignment_provenance_removed', $this->assignmentProvenance($userId)->delete(), true),
         ]);
     }
 
@@ -73,11 +86,7 @@ final readonly class UserAuthorizationDataLifecycleParticipant implements DataLi
             return null;
         }
 
-        $id = $this->db->table(IdentityDatabaseTable::USERS)
-            ->where('public_id', $subject->identifier)
-            ->value('id');
-
-        return is_numeric($id) ? (int) $id : null;
+        return $this->users->internalIdForPublicId($subject->identifier);
     }
 
     private function roleAssignments(int $userId): Builder
@@ -97,6 +106,12 @@ final readonly class UserAuthorizationDataLifecycleParticipant implements DataLi
     private function onboardingAssignments(int $userId): Builder
     {
         return $this->db->table(AuthorizationDatabaseTable::USER_ONBOARDING_PACKAGES)->where('user_id', $userId);
+    }
+
+    private function assignmentProvenance(int $userId): Builder
+    {
+        return $this->db->table(AuthorizationDatabaseTable::USER_TEAM_ASSIGNMENT_PROVENANCE)
+            ->where('user_id', $userId);
     }
 
     /**

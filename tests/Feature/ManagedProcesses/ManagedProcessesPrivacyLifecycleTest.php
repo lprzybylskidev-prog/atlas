@@ -6,7 +6,7 @@ namespace Tests\Feature\ManagedProcesses;
 
 use App\Modules\Optional\ManagedProcesses\Application\Enums\ProcessRunStatus;
 use App\Modules\Optional\ManagedProcesses\Application\Lifecycle\ManagedProcessDataLifecycleParticipant;
-use App\Modules\Optional\ManagedProcesses\Application\Public\Persistence\ManagedProcessesDatabaseTable;
+use App\Modules\Optional\ManagedProcesses\Infrastructure\Persistence\TableNames\ManagedProcessesDatabaseTable;
 use App\Shared\Application\DataLifecycle\DataLifecycleOperation;
 use App\Shared\Application\DataLifecycle\DataLifecycleSubject;
 use App\Shared\Infrastructure\Database\DatabaseTable;

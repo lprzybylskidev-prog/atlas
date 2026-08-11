@@ -4,10 +4,9 @@ declare(strict_types=1);
 
 namespace App\Shared\Presentation\Http\Controllers\Modules;
 
-use App\Modules\Core\Audit\Application\Public\Contracts\AuditRecorder;
-use App\Modules\Core\Audit\Application\Public\DTOs\AuditEvent;
-use App\Modules\Core\Audit\Application\Public\Enums\SecurityAuditCategory;
-use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
+use App\Shared\Application\Audit\Contracts\AuditRecorder;
+use App\Shared\Application\Audit\DTOs\AuditEvent;
+use App\Shared\Application\Audit\Enums\SecurityAuditCategory;
 use App\Shared\Application\Modules\Activation\Contracts\ModuleActivationService;
 use App\Shared\Application\Modules\Activation\ModuleActivationChange;
 use App\Shared\Application\Modules\Activation\ModuleActivationException;
@@ -17,11 +16,13 @@ use App\Shared\Application\Modules\Contracts\ModuleDefinition;
 use App\Shared\Application\Modules\ModuleCategory;
 use App\Shared\Application\Modules\ModuleKey;
 use App\Shared\Application\Modules\ModuleRegistry;
-use App\Shared\Application\Tables\AdminTableDefinitions;
 use App\Shared\Application\Tables\ArrayTableProcessor;
+use App\Shared\Application\Tables\RegisteredTables;
 use App\Shared\Application\Tables\TableRequestContext;
 use App\Shared\Application\Tables\TableSavedViewService;
 use App\Shared\Application\Tables\TableState;
+use App\Shared\Application\Teams\Contracts\TeamLookup;
+use App\Shared\Application\Teams\DTOs\TeamLookupSummary;
 use App\Shared\Infrastructure\Database\DatabaseTable;
 use App\Shared\Presentation\Support\AdminDataTableExportMeta;
 use App\Shared\Presentation\Support\FlashMessage;
@@ -31,6 +32,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
+use stdClass;
 use Symfony\Component\HttpFoundation\Response as HttpResponse;
 
 final readonly class ModuleActivationController
@@ -42,11 +44,12 @@ final readonly class ModuleActivationController
         private TableSavedViewService $views,
         private TableRequestContext $context,
         private AuditRecorder $audit,
+        private TeamLookup $teams,
     ) {}
 
     public function index(Request $request): Response
     {
-        $definition = AdminTableDefinitions::get(AdminTableDefinitions::MODULES);
+        $definition = RegisteredTables::get(RegisteredTables::MODULES);
         $state = TableState::fromRequest($request, $definition);
         $filters = $this->filters($request);
         [$userId, $teamId] = $this->context->userTeam($request);
@@ -434,19 +437,12 @@ final readonly class ModuleActivationController
     {
         $rows = [];
 
-        foreach (DB::table(TeamsDatabaseTable::TEAMS)->orderBy('display_name')->orderBy('name')->get(['id', 'public_id', 'name', 'display_name', 'is_active']) as $team) {
-            $values = get_object_vars($team);
-            $teamId = is_numeric($values['id'] ?? null) ? (int) $values['id'] : null;
-
-            if ($teamId === null) {
-                continue;
-            }
-
-            $effective = $this->activation->effectiveState($module, $teamId);
+        foreach ($this->teams->allSummaries() as $team) {
+            $effective = $this->activation->effectiveState($module, $team->internalId);
             $rows[] = [
-                'publicId' => $this->scalarString($values['public_id'] ?? ''),
-                'name' => $this->teamDisplayName($team),
-                'isActive' => (bool) $values['is_active'],
+                'publicId' => $team->publicId,
+                'name' => $team->name,
+                'isActive' => $team->active,
                 'teamEnabled' => $effective->teamEnabled,
                 'effectiveEnabled' => $effective->effectiveEnabled,
                 'source' => $effective->source,
@@ -462,33 +458,31 @@ final readonly class ModuleActivationController
      */
     private function historyRows(string $module): array
     {
-        $rows = DB::table(DatabaseTable::MODULE_ACTIVATION_HISTORY)
-            ->leftJoin(TeamsDatabaseTable::TEAMS, 'module_activation_history.team_id', '=', 'teams.id')
+        $sourceRows = DB::table(DatabaseTable::MODULE_ACTIVATION_HISTORY)
             ->where('module_activation_history.module_key', $module)
             ->orderByDesc('module_activation_history.effective_at')
             ->limit(25)
             ->get([
+                'module_activation_history.team_id',
                 'module_activation_history.scope',
-                'teams.public_id as team_public_id',
-                'teams.name as team_name',
                 'module_activation_history.previous_enabled',
                 'module_activation_history.new_enabled',
                 'module_activation_history.source',
                 'module_activation_history.reason',
                 'module_activation_history.effective_at',
             ])
-            ->map(static fn (object $row): array => [
-                'scope' => self::rowString($row, 'scope'),
-                'teamPublicId' => is_string($row->team_public_id ?? null) ? $row->team_public_id : null,
-                'teamName' => is_string($row->team_name ?? null) ? $row->team_name : null,
-                'previousEnabled' => $row->previous_enabled === null ? null : (bool) $row->previous_enabled,
-                'newEnabled' => (bool) $row->new_enabled,
-                'source' => self::rowString($row, 'source'),
-                'reason' => self::rowString($row, 'reason'),
-                'effectiveAt' => self::rowString($row, 'effective_at'),
-            ])
-            ->values()
             ->all();
+        $teams = $this->teamsByInternalId($sourceRows);
+        $rows = array_map(static fn (object $row): array => [
+            'scope' => self::rowString($row, 'scope'),
+            'teamPublicId' => self::teamPublicId($teams, $row),
+            'teamName' => self::teamName($teams, $row),
+            'previousEnabled' => $row->previous_enabled === null ? null : (bool) $row->previous_enabled,
+            'newEnabled' => (bool) $row->new_enabled,
+            'source' => self::rowString($row, 'source'),
+            'reason' => self::rowString($row, 'reason'),
+            'effectiveAt' => self::rowString($row, 'effective_at'),
+        ], $sourceRows);
 
         return array_values($rows);
     }
@@ -498,33 +492,31 @@ final readonly class ModuleActivationController
      */
     private function scheduleRows(string $module): array
     {
-        $rows = DB::table(DatabaseTable::MODULE_ACTIVATION_SCHEDULES)
-            ->leftJoin(TeamsDatabaseTable::TEAMS, 'module_activation_schedules.team_id', '=', 'teams.id')
+        $sourceRows = DB::table(DatabaseTable::MODULE_ACTIVATION_SCHEDULES)
             ->where('module_activation_schedules.module_key', $module)
             ->orderByDesc('module_activation_schedules.effective_at')
             ->limit(25)
             ->get([
                 'module_activation_schedules.public_id',
+                'module_activation_schedules.team_id',
                 'module_activation_schedules.scope',
-                'teams.public_id as team_public_id',
-                'teams.name as team_name',
                 'module_activation_schedules.target_enabled',
                 'module_activation_schedules.status',
                 'module_activation_schedules.reason',
                 'module_activation_schedules.effective_at',
             ])
-            ->map(static fn (object $row): array => [
-                'publicId' => self::rowString($row, 'public_id'),
-                'scope' => self::rowString($row, 'scope'),
-                'teamPublicId' => is_string($row->team_public_id ?? null) ? $row->team_public_id : null,
-                'teamName' => is_string($row->team_name ?? null) ? $row->team_name : null,
-                'targetEnabled' => (bool) $row->target_enabled,
-                'status' => self::rowString($row, 'status'),
-                'reason' => self::rowString($row, 'reason'),
-                'effectiveAt' => self::rowString($row, 'effective_at'),
-            ])
-            ->values()
             ->all();
+        $teams = $this->teamsByInternalId($sourceRows);
+        $rows = array_map(static fn (object $row): array => [
+            'publicId' => self::rowString($row, 'public_id'),
+            'scope' => self::rowString($row, 'scope'),
+            'teamPublicId' => self::teamPublicId($teams, $row),
+            'teamName' => self::teamName($teams, $row),
+            'targetEnabled' => (bool) $row->target_enabled,
+            'status' => self::rowString($row, 'status'),
+            'reason' => self::rowString($row, 'reason'),
+            'effectiveAt' => self::rowString($row, 'effective_at'),
+        ], $sourceRows);
 
         return array_values($rows);
     }
@@ -545,9 +537,7 @@ final readonly class ModuleActivationController
 
     private function teamId(string $teamPublicId): ?int
     {
-        $teamId = DB::table(TeamsDatabaseTable::TEAMS)->where('public_id', $teamPublicId)->value('id');
-
-        return is_numeric($teamId) ? (int) $teamId : null;
+        return $this->teams->internalIdForPublicId($teamPublicId);
     }
 
     /**
@@ -606,18 +596,50 @@ final readonly class ModuleActivationController
         return is_scalar($value) ? (string) $value : '';
     }
 
-    private function teamDisplayName(object $team): string
-    {
-        $displayName = $this->scalarString($team->display_name ?? '');
-
-        return $displayName === '' ? $this->scalarString($team->name ?? '') : $displayName;
-    }
-
     private static function rowString(object $row, string $property): string
     {
         $value = $row->{$property} ?? '';
 
         return is_scalar($value) ? (string) $value : '';
+    }
+
+    /**
+     * @param  array<int, stdClass>  $rows
+     * @return array<int, TeamLookupSummary>
+     */
+    private function teamsByInternalId(array $rows): array
+    {
+        $teamIds = [];
+
+        foreach ($rows as $row) {
+            $teamId = $row->team_id ?? null;
+
+            if (is_numeric($teamId)) {
+                $teamIds[] = (int) $teamId;
+            }
+        }
+
+        return $this->teams->summariesForInternalIds(array_values(array_unique($teamIds)));
+    }
+
+    /**
+     * @param  array<int, TeamLookupSummary>  $teams
+     */
+    private static function teamPublicId(array $teams, object $row): ?string
+    {
+        $teamId = $row->team_id ?? null;
+
+        return is_numeric($teamId) ? ($teams[(int) $teamId]->publicId ?? null) : null;
+    }
+
+    /**
+     * @param  array<int, TeamLookupSummary>  $teams
+     */
+    private static function teamName(array $teams, object $row): ?string
+    {
+        $teamId = $row->team_id ?? null;
+
+        return is_numeric($teamId) ? ($teams[(int) $teamId]->name ?? null) : null;
     }
 
     /**

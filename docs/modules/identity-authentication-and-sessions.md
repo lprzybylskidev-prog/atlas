@@ -16,6 +16,8 @@ Current technical ownership:
 - The current user Eloquent persistence model lives under `App\Modules\Core\Identity\Infrastructure\Persistence`.
 - `App\Models\User` is intentionally not used.
 - Authentication and access-related Markdown emails use the Atlas-owned light email layout under `resources/views/vendor/mail` with Atlas branding and logo; fixed layout elements are localized through the application locale, while message body content remains owned by the notification/mailable.
+- `App\Modules\Core\Identity\Application\Public\Contracts\UserLookup` exposes owner-owned public ID/internal ID resolution, bulk public-ID to internal-ID resolution, email-to-public-ID lookup, public-ID and internal-ID display summaries, active user display summaries, and minimal notification contact data for cross-module read surfaces that need user labels, active user options, or notification delivery metadata without querying Identity tables.
+- Identity registers a module-owned `ModuleOperationalDiagnostics` contributor for Admin System Status rate-limit rejection signals, so Shared/Admin code does not query Identity persistence tables directly.
 
 Rules:
 
@@ -30,9 +32,9 @@ Rules:
 
 ## Privacy Lifecycle
 
-The Users module registers `UserAccountDataLifecycleParticipant` for `user` subjects. The participant treats the Identity user row as the stable technical anchor for audit and related foreign-key references, so hard-delete and anonymization execution redacts the account instead of physically deleting it.
+Identity registers `UserAccountDataLifecycleParticipant` for `user` subjects. The participant treats the Identity user row as the stable technical anchor for audit and related foreign-key references, so hard-delete and anonymization execution redacts the account instead of physically deleting it.
 
-Execution removes database-backed sessions, password reset tokens, password history rows, and WebAuthn credentials for the user. It clears MFA secrets/recovery codes, remember token, login-lock state, email verification, and first-password state, marks the account inactive, and replaces name/email with neutral redacted values. Producers must use public contracts rather than deleting `users` directly.
+Execution removes database-backed sessions, password reset tokens, and password history rows for the user. It clears TOTP secrets/recovery codes, remember token, login-lock state, email verification, and first-password state, marks the account inactive, and replaces name/email with neutral redacted values. Producers must use public contracts rather than deleting `users` directly.
 
 Current persistence baseline:
 
@@ -43,7 +45,7 @@ Current persistence baseline:
 - `users.first_password_set_at` records whether the account completed first-password setup;
 - `users.is_active` and `users.deactivated_at` control whether an account may authenticate;
 - `users.failed_login_attempts`, `users.login_lock_count`, and `users.login_locked_until` track persistent login locks;
-- session inactivity and maximum lifetime are resolved from global security defaults, then optional team overrides, then optional user-team assignment overrides. They are intentionally not stored directly on `users`, because the same user can work in several teams with different session policies;
+- session inactivity and maximum lifetime are resolved from global security defaults, then optional team overrides, then optional user-team assignment overrides through the Teams-owned `UserTeamSessionLimitSettings` public contract. They are intentionally not stored directly on `users`, because the same user can work in several teams with different session policies;
 - `users.account_sensitivity` stores the impersonation/account-sensitivity classification independently from role and team assignments. Supported values are `normal`, `sensitive`, `technical`, `service`, and `integration`;
 - `user_password_histories` keeps the last 10 recorded password hashes per user;
 - accounts without `first_password_set_at` cannot authenticate, even when active;
@@ -101,7 +103,7 @@ Rate limiting is defined through stable named code policies:
 
 Policy thresholds live in `config/atlas.php` and environment variables. They are not editable through Admin UI and there is no global disable switch. Missing mandatory authentication or MFA policies fail application boot.
 
-Policy keys may combine IP, user, active team, API client, or an explicit combination. The policy model supports progressive delays and temporary locks; concrete lock counters for failed login escalation are implemented later in this phase.
+Policy keys may combine IP, user, active team, API client, or an explicit combination. The policy model supports progressive delays and temporary locks. Persistent failed-login counters and escalating lock durations are implemented by the Identity login pipeline and are reset after successful authentication or an authorized administrative unlock.
 
 Admin rate-limit visibility is exposed at `/admin/rate-limits`. The screen shows named policy definitions and aggregated rejection statistics through a shared DataTable with metrics, filters, saved views, and exports, but it cannot modify thresholds or disable policies. Administrators with the reset permission may clear exactly one limiter key for one selected policy after providing a reason. Resets are security-audited as `rate_limit.counter_reset` with the policy, limiter key, actor, reason, and correlation ID.
 
@@ -114,21 +116,23 @@ Administrative login unlock is exposed through `App\Modules\Core\Users\Applicati
 Support:
 
 - TOTP;
-- WebAuthn/passkeys;
-- FIDO2 hardware keys;
 - one-time recovery codes.
 
 TOTP MFA uses Laravel Fortify's two-factor backend with encrypted `two_factor_secret` and encrypted recovery codes on the user record. MFA must be confirmed before it is treated as enabled. Confirmed TOTP users receive a second-factor login challenge instead of a complete session after password validation. Recovery codes are generated as one-time fallback codes by Fortify and are hidden from serialized user output.
 
-The user profile panel at `/user` exposes TOTP MFA enable, confirmation, QR/recovery-code display, and disable actions using the existing Fortify backend routes. It shows only user-relevant account state and does not expose roles, permissions, or low-level security event history.
+The user profile panel at `/user` exposes TOTP MFA enable, confirmation, QR/recovery-code display, regeneration, and disable actions using the existing Fortify backend routes. MFA has its own security surface rather than appearing under password settings. QR and recovery-code reads use the shared network service with explicit loading, error, and retry states; recovery codes render through the secure code viewer, and regeneration is an explicit action. The panel shows only user-relevant account state and does not expose roles, permissions, or low-level security event history.
+
+Guests can start password recovery at `GET /forgot-password`, reached from the login screen. Submission remains rate-limited and returns the same neutral response for known and unknown addresses. Reset links open the visible `GET /reset-password/{token}` screen. Atlas sends its branded reset notification with Polish and English sections in one message, effective locale first, a one-time link, and no account-existence disclosure or generated password.
+
+Account e-mail verification, first-password setup, password reset, and suspicious-login account-lock notifications all use the canonical bilingual mail contract. Both sections have the same structure and safe translation-key copy; one-time credentials appear only as secure action URLs and are never printed as standalone tokens or generated passwords. The recipient's stored locale controls section order, with the documented team/application fallback selector.
 
 The Admin team create and edit forms expose team session overrides for inactivity logout minutes and maximum session lifetime minutes. Admin user create/edit assignment workflows expose the same values as user-team overrides. Empty user-team values inherit the effective team policy, and empty team values inherit global security defaults. Admin validation compares effective values after inheritance and rejects an inactivity timeout longer than the maximum session lifetime. Runtime session resolution also clamps inactivity to the effective maximum lifetime as a defensive safeguard.
 
 The regular user profile panel shows only the effective inactivity logout time for the active team. It intentionally does not show the maximum session lifetime because that value is an administrative security bound rather than a user-facing setting.
 
-MFA requirements are evaluated by `App\Modules\Core\Identity\Application\Mfa\MfaRequirementEvaluator`. Requirements are configurable through `atlas.security.mfa.requirements` and can require MFA globally, for specific user public IDs, team public IDs, permissions, or operation keys. Later authorization/team phases connect this evaluator to concrete UI and permission workflows.
+MFA requirements are exposed through the Identity-owned `MfaRequirementChecker` public contract and implemented by `MfaRequirementEvaluator`. Requirements are configurable through `atlas.security.mfa.requirements` and can require confirmed TOTP globally, for specific user public IDs, team public IDs, route permissions, or high-risk operation keys. Authenticated web middleware enforces global, user, team, and route-permission requirements before protected work and redirects an unenrolled user to the profile MFA ceremony. High-risk continuation stores the classified operation and applies the same evaluator before confirmation. A required factor cannot be disabled while the requirement applies, and the profile explains the requirement in Polish or English.
 
-WebAuthn/passkey and FIDO2 hardware-key backend support uses `web-auth/webauthn-lib`. Credential storage is owned by `user_webauthn_credentials` and exposed through `App\Modules\Core\Identity\Application\WebAuthn\Contracts\WebAuthnCredentialRepository`. `WebAuthnOptionsFactory` generates WebAuthn registration options for platform passkeys and cross-platform hardware keys, plus authentication options from stored credentials. Browser-facing passkey screens and ceremonies are connected in later UI/authentication workflow work.
+Atlas does not support passkeys, WebAuthn, or FIDO2 hardware keys. Phase 28 removed the unused dependency, credential repository/options factory, configuration, persistence table, and privacy-lifecycle branches rather than retaining an inaccessible backend capability. Introducing browser passkeys is a new security capability requiring a separate accepted contract, complete registration/authentication/recovery ceremonies, audit, localization, and browser tests.
 
 MFA may be required:
 
@@ -146,7 +150,7 @@ Atlas stores `password_changed_at` on user accounts and calculates password expi
 
 Users can change their password from `/user` before expiry. The change uses the same password policy, password history checks, audit event, and session invalidation behavior as the Fortify password-update action. Expired passwords are rejected during login after password validation and before a session is established.
 
-The user profile panel shows the password-valid-until date, MFA controls, cropped avatar image upload/removal, fallback avatar color controls, and notification email preferences. Uploaded avatar images are stored through the Core Files module, remain unavailable while pending/scanning/blocked, and take precedence over color initials only after Files marks them clean. Removing the image restores the color-based initials avatar and deletes the avatar file through the Files lifecycle workflow. The shared Inertia auth payload exposes the current clean avatar presentation so global navigation and later user-facing surfaces can render the same avatar consistently. The panel intentionally does not show role names, permission names, email verification status, first-password setup dates, active sessions, team lists, or detailed security logs.
+The user profile panel shows the password-valid-until date, MFA controls, cropped avatar image upload/removal, fallback avatar color controls, and notification email preferences. Uploaded avatar images are stored through the Core Files module, remain unavailable while pending/scanning/blocked, and take precedence over color initials only after Files marks them clean. The Users profile surface checks clean-file visibility through the shared `FileAvailability` contract implemented by Files and persists avatar color/image changes through the Identity-owned `UserProfileAvatarUpdater` contract. Removing the image restores the color-based initials avatar and deletes the avatar file through the Files lifecycle workflow. The shared Inertia auth payload exposes the current clean avatar presentation so global navigation and later user-facing surfaces can render the same avatar consistently. The panel intentionally does not show role names, permission names, email verification status, first-password setup dates, active sessions, team lists, or detailed security logs.
 
 ### Sessions
 
@@ -198,6 +202,8 @@ On login:
 - auto-select when exactly one team is available;
 - otherwise require selection on the authenticated team-selection screen before redirecting to `/`.
 
+Team selection, switching, session metadata team labels, and impersonation team selection/eligibility/display use Teams-owned public contracts rather than direct Teams table reads from Identity.
+
 Team switching:
 
 - is explicit;
@@ -220,7 +226,7 @@ Administrative mode is stored in the current Laravel session with:
 - setting-driven timeout values under the security settings store;
 - immediate termination when the Laravel session is invalidated.
 
-High-risk administrative authorization is separate from administrative mode. It is confirmed through the same `/user/confirm-password` password+MFA flow, lasts 5 minutes by default, and is required for high-risk operations. Atlas classifies hard delete, irreversible anonymization, MFA reset, administrator permission changes, sensitive-account impersonation override, and closed-period TimeTracking corrections as high risk. Existing MFA reset, administrator role changes, and sensitive-account impersonation override enforce this guard now; future workflows attach to the same classified guard when implemented. Expiry of the high-risk window does not end administrative mode.
+High-risk administrative authorization is separate from administrative mode. It is confirmed through the same `/user/confirm-password` password+MFA flow, lasts 5 minutes by default, and is required for high-risk operations. Atlas classifies hard delete, irreversible anonymization, MFA reset, administrator permission changes, sensitive-account impersonation override, and closed-period TimeTracking corrections as high risk. All listed workflows enforce the classified guard; the operation key is retained through continuation and participates in configured MFA evaluation. Expiry of the high-risk window does not end administrative mode. Identity `UserLookup` owns public/internal ID translation and display-summary reads for cross-module TimeTracking report, notification, audit, and runtime surfaces.
 
 Impersonation is started from Admin user administration with a mandatory reason and selected target team. It requires active administrative mode, the `impersonation.start` permission, and target eligibility checks. Atlas blocks impersonation of self, administrators evaluated globally, inactive users, and accounts classified as `technical`, `service`, or `integration`. Accounts classified as `sensitive` require `impersonation.sensitive.override` plus fresh high-risk authorization.
 
@@ -237,8 +243,8 @@ TimeTracking UI simulation state for impersonation is stored only through `Imper
 ---
 # Phase 28 foundation repair target
 
-Current state: Identity/authentication/sessions are implemented, but Phase 28 records known foundation drift around the Audit dependency cycle, authentication lifecycle audit coverage, password reset visibility, MFA UI/network handling, session/admin/impersonation context, public lookup contracts, seeder user creation, and bilingual mail flows.
+Current state: Identity/authentication/sessions expose owner-owned account/lookups, registered lifecycle audit, password/reset/session/Admin/impersonation flows, coherent TOTP profile/browser ceremonies, and bilingual mail. Configured MFA scopes are enforced, and unused WebAuthn was removed. The non-production `VerifiedUserFixtureBuilder` owns deterministic verified demo credentials and resets password lifecycle, active/lock, avatar, MFA, reset-token, password-history, and session defaults without replacing an existing public ID.
 
-Target state: Identity exposes owner-owned public account and user lookup contracts, does not leak Eloquent or persistence structure, uses the target audit catalog and atomicity rules, provides coherent profile/security/password/MFA/reset workflows, and is covered by PL/EN mail, feature, frontend, seeder, and architecture tests.
+Target state: Identity exposes owner-owned public account and user lookup contracts, does not leak Eloquent or persistence structure, uses the target audit catalog and atomicity rules, provides coherent profile/security/password/MFA/reset workflows, and is covered by PL/EN mail, feature, frontend, seeder, and architecture tests. Phase 28 boundary slices added `UserLookup` display summaries for Audit security-history screens/exports, internal-ID display summaries for Shared failed-job acknowledgement labels, active-user display summaries for Teams assignment option lists, and notification contact lookup for Notifications delivery paths so those consumers no longer query Identity tables directly. Identity impersonation eligibility now asks Authorization `AdministratorAccessLookup` for administrator-level access instead of querying Authorization tables, and Identity owns its account lifecycle redaction participant directly.
 
 Tracked issue IDs: `P28-ARCH-001`, `P28-ARCH-004`, `P28-ARCH-006`, `P28-FORM-004`, `P28-FORM-005`, `P28-FORM-006`, `P28-SEED-001`, `P28-MAIL-001`, `P28-MAIL-002`, `P28-MODAUD-001`.

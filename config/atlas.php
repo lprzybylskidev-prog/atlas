@@ -68,6 +68,7 @@ return [
     ],
 
     'exports' => [
+        'pdf_render_timeout_seconds' => (int) env('ATLAS_PDF_RENDER_TIMEOUT_SECONDS', 120),
         'render_token_ttl_seconds' => (int) env('ATLAS_EXPORT_RENDER_TOKEN_TTL_SECONDS', env('ATLAS_REPORT_RENDER_TOKEN_TTL_SECONDS', 300)),
         'synchronous_export_max_rows' => (int) env('ATLAS_EXPORT_SYNC_MAX_ROWS', env('ATLAS_REPORT_SYNC_EXPORT_MAX_ROWS', 1000)),
         'synchronous_export_max_cells' => (int) env('ATLAS_EXPORT_SYNC_MAX_CELLS', env('ATLAS_REPORT_SYNC_EXPORT_MAX_CELLS', 10000)),
@@ -117,11 +118,6 @@ return [
                 'permissions' => array_filter(explode(',', (string) env('ATLAS_MFA_REQUIRED_PERMISSIONS', ''))),
                 'operations' => array_filter(explode(',', (string) env('ATLAS_MFA_REQUIRED_OPERATIONS', ''))),
             ],
-        ],
-        'webauthn' => [
-            'rp_id' => env('ATLAS_WEBAUTHN_RP_ID', 'localhost'),
-            'rp_name' => env('ATLAS_WEBAUTHN_RP_NAME', 'Atlas'),
-            'timeout_ms' => (int) env('ATLAS_WEBAUTHN_TIMEOUT_MS', 60000),
         ],
         'headers' => [
             'content_security_policy' => env(

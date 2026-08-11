@@ -16,7 +16,7 @@ use App\Modules\Optional\Integrations\Application\Public\Contracts\ExternalIdMap
 use App\Modules\Optional\Integrations\Application\Public\Contracts\IntegrationIdempotencyStore;
 use App\Modules\Optional\Integrations\Application\Public\DTOs\ExternalCredentialPolicy;
 use App\Modules\Optional\Integrations\Application\Public\DTOs\ExternalIdMapping;
-use App\Modules\Optional\Integrations\Application\Public\Persistence\IntegrationsDatabaseTable;
+use App\Modules\Optional\Integrations\Infrastructure\Persistence\TableNames\IntegrationsDatabaseTable;
 use App\Modules\Optional\Integrations\Infrastructure\Runtime\IntegrationOperationRunner;
 use App\Shared\Application\Modules\Activation\Contracts\ModuleActivationService;
 use App\Shared\Application\Modules\Activation\ModuleActivationChange;

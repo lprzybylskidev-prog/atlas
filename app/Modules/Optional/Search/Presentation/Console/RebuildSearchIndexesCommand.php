@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Modules\Optional\Search\Presentation\Console;
 
-use App\Modules\Optional\ManagedProcesses\Application\Public\Contracts\ManagedProcessRunner;
 use App\Modules\Optional\Search\Application\SearchRebuildProcess;
+use App\Shared\Application\ManagedProcesses\Contracts\ManagedProcessRunner;
 use Illuminate\Console\Command;
 
 final class RebuildSearchIndexesCommand extends Command

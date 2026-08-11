@@ -6,11 +6,11 @@ namespace App\Modules\Core\Exports\Application;
 
 use App\Modules\Core\Exports\Application\Contracts\ReportExportRequestStore;
 use App\Modules\Core\Exports\Application\DTOs\ReportExportRequestSnapshot;
-use App\Modules\Core\Exports\Application\Enums\ReportExportFormat;
 use App\Modules\Core\Exports\Application\Public\Contracts\ReportExportGenerationDispatcher;
 use App\Modules\Core\Exports\Application\Public\Contracts\ReportExportRequestRecorder;
 use App\Modules\Core\Exports\Application\Public\DTOs\ReportExportDispatchResult;
-use App\Modules\Optional\ManagedProcesses\Application\Public\Contracts\ManagedProcessRunner;
+use App\Shared\Application\Exports\Enums\ReportExportFormat;
+use App\Shared\Application\ManagedProcesses\Contracts\ManagedProcessRunner;
 
 final readonly class ReportExportProcessDispatcher implements ReportExportGenerationDispatcher
 {

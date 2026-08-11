@@ -8,7 +8,9 @@ use App\Modules\Optional\TimeTracking\Application\Contracts\OtherWorkSessionStor
 use App\Modules\Optional\TimeTracking\Application\DTOs\ActiveOtherWorkSession;
 use App\Modules\Optional\TimeTracking\Application\Enums\OtherWorkApprovalStatus;
 use App\Modules\Optional\TimeTracking\Application\Enums\OtherWorkClosureReason;
+use App\Shared\Application\Audit\Enums\SecurityAuditCategory;
 use DateTimeImmutable;
+use Illuminate\Database\ConnectionInterface;
 
 final readonly class OtherWorkSessionCoordinator
 {
@@ -16,6 +18,7 @@ final readonly class OtherWorkSessionCoordinator
         private OtherWorkSessionStore $otherWork,
         private TimeTrackingAudit $audit,
         private TimeTrackingLiveStatusPublisher $liveStatus,
+        private ConnectionInterface $database,
     ) {}
 
     public function start(int $userId, ?string $categoryKey, string $description, DateTimeImmutable $startedAt): ActiveOtherWorkSession
@@ -100,26 +103,51 @@ final readonly class OtherWorkSessionCoordinator
         OtherWorkApprovalStatus $status,
         string $reason,
         DateTimeImmutable $decidedAt,
+        ?SecurityAuditCategory $securityCategory = null,
     ): bool {
-        $decided = $this->otherWork->decidePending($otherWorkId, $status);
+        return $this->database->transaction(function () use ($otherWorkId, $actorUserId, $targetUserId, $teamId, $publicId, $status, $reason, $decidedAt, $securityCategory): bool {
+            $decided = $this->otherWork->decidePending($otherWorkId, $status);
 
-        if ($decided) {
-            $this->audit->record(
-                action: 'time_tracking.other_work_'.$status->value,
-                actorUserId: $actorUserId,
-                targetUserId: $targetUserId,
-                teamId: $teamId,
-                aggregateType: 'time_tracking_other_work',
-                aggregatePublicId: $publicId,
-                reason: $reason,
-                after: [
-                    'approval_status' => $status->value,
-                    'requires_manager_review' => false,
-                    'decided_at' => $decidedAt->format(DateTimeImmutable::ATOM),
-                ],
-            );
-        }
+            if ($decided) {
+                $this->audit->record(
+                    action: 'time_tracking.other_work_'.$status->value,
+                    actorUserId: $actorUserId,
+                    targetUserId: $targetUserId,
+                    teamId: $teamId,
+                    aggregateType: 'time_tracking_other_work',
+                    aggregatePublicId: $publicId,
+                    reason: $reason,
+                    before: [
+                        'approval_status' => OtherWorkApprovalStatus::Pending->value,
+                        'requires_manager_review' => true,
+                    ],
+                    after: [
+                        'approval_status' => $status->value,
+                        'requires_manager_review' => false,
+                        'decided_at' => $decidedAt->format(DateTimeImmutable::ATOM),
+                    ],
+                    securityCategory: $securityCategory,
+                );
+            } else {
+                $this->audit->record(
+                    action: 'time_tracking.other_work_'.$status->value,
+                    result: 'rejected',
+                    actorUserId: $actorUserId,
+                    targetUserId: $targetUserId,
+                    teamId: $teamId,
+                    aggregateType: 'time_tracking_other_work',
+                    aggregatePublicId: $publicId,
+                    reason: $reason,
+                    before: [
+                        'approval_status' => OtherWorkApprovalStatus::Pending->value,
+                        'requires_manager_review' => true,
+                    ],
+                    metadata: ['failure_code' => 'not_pending'],
+                    securityCategory: $securityCategory,
+                );
+            }
 
-        return $decided;
+            return $decided;
+        });
     }
 }

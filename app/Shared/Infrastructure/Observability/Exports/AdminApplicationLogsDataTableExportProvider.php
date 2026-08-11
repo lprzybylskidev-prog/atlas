@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Shared\Infrastructure\Observability\Exports;
 
-use App\Modules\Core\Exports\Application\Public\AbstractAdminDataTableExportProvider;
-use App\Modules\Core\Exports\Application\Public\DTOs\ReportExportGenerationRequest;
-use App\Modules\Core\Exports\Application\Public\Permissions\ReportsPermissionCatalog;
-use App\Shared\Application\Tables\AdminTableDefinitions;
+use App\Shared\Application\Exports\AbstractAdminDataTableExportProvider;
+use App\Shared\Application\Exports\DTOs\ReportExportGenerationRequest;
+use App\Shared\Application\Exports\ExportPermissions;
+use App\Shared\Application\Tables\RegisteredTables;
 use App\Shared\Infrastructure\Observability\ApplicationLogReader;
 
 final readonly class AdminApplicationLogsDataTableExportProvider extends AbstractAdminDataTableExportProvider
@@ -16,7 +16,7 @@ final readonly class AdminApplicationLogsDataTableExportProvider extends Abstrac
 
     public function tableKey(): string
     {
-        return AdminTableDefinitions::APPLICATION_LOGS;
+        return RegisteredTables::APPLICATION_LOGS;
     }
 
     public function tableName(): string
@@ -31,7 +31,7 @@ final readonly class AdminApplicationLogsDataTableExportProvider extends Abstrac
 
     public function requestPermission(): string
     {
-        return ReportsPermissionCatalog::REQUEST;
+        return ExportPermissions::REQUEST;
     }
 
     public function ruleVersion(): string

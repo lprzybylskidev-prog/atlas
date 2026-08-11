@@ -4,16 +4,17 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Integrations;
 
-use App\Modules\Core\Authorization\Application\Public\Persistence\AuthorizationDatabaseTable;
+use App\Modules\Core\Audit\Infrastructure\Persistence\TableNames\AuditDatabaseTable;
 use App\Modules\Core\Authorization\Application\Roles\InstallStarterRoles;
 use App\Modules\Core\Authorization\Application\Roles\StarterRoleName;
+use App\Modules\Core\Authorization\Infrastructure\Persistence\TableNames\AuthorizationDatabaseTable;
 use App\Modules\Core\Identity\Infrastructure\Persistence\User;
-use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
+use App\Modules\Core\Teams\Infrastructure\Persistence\TableNames\TeamsDatabaseTable;
 use App\Modules\Core\Teams\Infrastructure\Persistence\Team;
 use App\Modules\Optional\Integrations\Application\Contracts\IntegrationAdapter;
 use App\Modules\Optional\Integrations\Application\DTOs\IntegrationDefinition;
 use App\Modules\Optional\Integrations\Application\DTOs\IntegrationTestResult;
-use App\Modules\Optional\Integrations\Application\Public\Persistence\IntegrationsDatabaseTable;
+use App\Modules\Optional\Integrations\Infrastructure\Persistence\TableNames\IntegrationsDatabaseTable;
 use App\Shared\Application\Modules\Activation\Contracts\ModuleActivationService;
 use App\Shared\Application\Modules\Activation\ModuleActivationChange;
 use App\Shared\Application\Modules\Activation\ModuleActivationScope;
@@ -66,6 +67,57 @@ final class IntegrationsAdminTest extends TestCase
             'name' => 'CRM',
             'external_api_enabled' => false,
             'last_error_message' => null,
+        ]);
+        $this->assertDatabaseHas(AuditDatabaseTable::AUDIT_EVENTS, [
+            'module' => 'integrations',
+            'action' => 'integration.connection_tested',
+            'result' => 'succeeded',
+            'actor_public_id' => $admin->public_id,
+            'team_public_id' => $team->public_id,
+            'is_security' => true,
+        ]);
+    }
+
+    public function test_connection_test_rejection_and_failure_are_audited_safely(): void
+    {
+        Config::set('atlas.integrations.adapters', [ThrowingAdminFakeIntegrationAdapter::class]);
+
+        [$admin, $team] = $this->adminWithTeam();
+        $this->activateIntegrations($team);
+
+        $this->actingAs($admin)
+            ->withSession($this->adminSession($team))
+            ->post('/admin/integrations/missing/test')
+            ->assertRedirect(route('admin.integrations.index'));
+
+        $this->assertDatabaseHas(AuditDatabaseTable::AUDIT_EVENTS, [
+            'module' => 'integrations',
+            'action' => 'integration.connection_tested',
+            'result' => 'rejected',
+            'actor_public_id' => $admin->public_id,
+            'team_public_id' => $team->public_id,
+            'is_security' => true,
+        ]);
+
+        $this->withoutExceptionHandling();
+
+        try {
+            $this->actingAs($admin)
+                ->withSession($this->adminSession($team))
+                ->post('/admin/integrations/failing/test');
+            self::fail('The adapter exception was not propagated.');
+        } catch (\RuntimeException $exception) {
+            self::assertSame('Safe adapter failure.', $exception->getMessage());
+        }
+
+        $this->assertDatabaseHas(AuditDatabaseTable::AUDIT_EVENTS, [
+            'module' => 'integrations',
+            'action' => 'integration.connection_tested',
+            'result' => 'failed',
+            'actor_public_id' => $admin->public_id,
+            'team_public_id' => $team->public_id,
+            'reason' => 'Integration connection test failed.',
+            'is_security' => true,
         ]);
     }
 
@@ -159,5 +211,23 @@ final class AdminFakeIntegrationAdapter implements IntegrationAdapter
             testedAt: CarbonImmutable::now('UTC'),
             metadata: ['correlation_id' => $correlationId],
         );
+    }
+}
+
+final class ThrowingAdminFakeIntegrationAdapter implements IntegrationAdapter
+{
+    public function definition(): IntegrationDefinition
+    {
+        return new IntegrationDefinition(
+            key: 'failing',
+            name: 'Failing test adapter',
+            adapterClass: self::class,
+            sourceOfTruth: 'Test-only failing adapter.',
+        );
+    }
+
+    public function testConnection(string $correlationId): IntegrationTestResult
+    {
+        throw new \RuntimeException('Safe adapter failure.');
     }
 }

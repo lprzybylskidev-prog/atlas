@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace App\Modules\Optional\TimeTracking\Application\Exports;
 
-use App\Modules\Core\Exports\Application\Public\AbstractAdminDataTableExportProvider;
-use App\Modules\Core\Exports\Application\Public\DTOs\ReportExportGenerationRequest;
-use App\Modules\Core\Exports\Application\Public\Permissions\ReportsPermissionCatalog;
 use App\Modules\Optional\TimeTracking\Application\UserTimeReportService;
-use App\Shared\Application\Tables\AdminTableDefinitions;
+use App\Shared\Application\Exports\AbstractAdminDataTableExportProvider;
+use App\Shared\Application\Exports\DTOs\ReportExportGenerationRequest;
+use App\Shared\Application\Exports\ExportPermissions;
+use App\Shared\Application\Tables\RegisteredTables;
 use Illuminate\Http\Request;
 use Stringable;
 
@@ -18,7 +18,7 @@ final readonly class AdminTimeTrackingOtherWorkDataTableExportProvider extends A
 
     public function tableKey(): string
     {
-        return AdminTableDefinitions::TIME_TRACKING_ADMIN_OPERATIONS_OTHER_WORK;
+        return RegisteredTables::TIME_TRACKING_ADMIN_OPERATIONS_OTHER_WORK;
     }
 
     public function tableName(): string
@@ -33,7 +33,7 @@ final readonly class AdminTimeTrackingOtherWorkDataTableExportProvider extends A
 
     public function requestPermission(): string
     {
-        return ReportsPermissionCatalog::ADMIN_DATA_TABLE;
+        return ExportPermissions::ADMIN_DATA_TABLE;
     }
 
     public function ruleVersion(): string

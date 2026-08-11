@@ -60,9 +60,9 @@ const rows = computed<PermissionRow[]>(() =>
 );
 
 const columns = computed<DataTableColumn<PermissionRow>[]>(() => [
-    { key: 'publicId', label: t('pages.admin.permissions.table.public_id') },
-    { key: 'id', label: t('pages.admin.permissions.table.internal_id'), hidden: true },
     { key: 'displayName', label: t('pages.admin.permissions.table.display_name') },
+    { key: 'publicId', label: t('pages.admin.permissions.table.public_id'), hidden: true },
+    { key: 'id', label: t('pages.admin.permissions.table.internal_id'), hidden: true },
     { key: 'name', label: t('pages.admin.permissions.table.technical_name'), hidden: true },
     { key: 'guard', label: t('pages.admin.permissions.table.guard'), hidden: true },
     { key: 'description', label: t('pages.admin.permissions.table.description'), hidden: true },

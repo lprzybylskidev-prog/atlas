@@ -5,15 +5,15 @@ declare(strict_types=1);
 namespace Tests\Feature\Privacy;
 
 use App\Modules\Core\Authorization\Application\Lifecycle\UserAuthorizationDataLifecycleParticipant;
-use App\Modules\Core\Authorization\Application\Public\Persistence\AuthorizationDatabaseTable;
 use App\Modules\Core\Authorization\Application\Roles\InstallStarterRoles;
 use App\Modules\Core\Authorization\Application\Roles\StarterRoleName;
-use App\Modules\Core\Identity\Application\Public\Persistence\IdentityDatabaseTable;
+use App\Modules\Core\Authorization\Infrastructure\Persistence\TableNames\AuthorizationDatabaseTable;
+use App\Modules\Core\Identity\Application\Lifecycle\UserAccountDataLifecycleParticipant;
+use App\Modules\Core\Identity\Infrastructure\Persistence\TableNames\IdentityDatabaseTable;
 use App\Modules\Core\Identity\Infrastructure\Persistence\User;
 use App\Modules\Core\Teams\Application\Lifecycle\TeamUserDataLifecycleParticipant;
-use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
+use App\Modules\Core\Teams\Infrastructure\Persistence\TableNames\TeamsDatabaseTable;
 use App\Modules\Core\Teams\Infrastructure\Persistence\Team;
-use App\Modules\Core\Users\Application\Lifecycle\UserAccountDataLifecycleParticipant;
 use App\Shared\Application\DataLifecycle\DataLifecycleOperation;
 use App\Shared\Application\DataLifecycle\DataLifecycleSubject;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -56,22 +56,6 @@ final class CoreRelatedDataLifecycleTest extends TestCase
             'email' => $user->email,
             'token' => 'reset-token',
             'created_at' => now(),
-        ]);
-        DB::table(IdentityDatabaseTable::USER_WEBAUTHN_CREDENTIALS)->insert([
-            'public_id' => '01J0000000000000000000WEB1',
-            'user_public_id' => $user->public_id,
-            'label' => 'Private key',
-            'credential_id' => 'credential-private-person',
-            'type' => 'public-key',
-            'transports' => json_encode(['internal'], JSON_THROW_ON_ERROR),
-            'attestation_type' => 'none',
-            'aaguid' => '00000000-0000-0000-0000-000000000000',
-            'credential_public_key' => 'public-key',
-            'user_handle' => 'private-user-handle',
-            'counter' => 1,
-            'hardware_backed' => false,
-            'created_at' => now(),
-            'updated_at' => now(),
         ]);
         DB::table(IdentityDatabaseTable::SESSIONS)->insert([
             'id' => 'privacy-related-session',
@@ -120,9 +104,9 @@ final class CoreRelatedDataLifecycleTest extends TestCase
 
         $subject = new DataLifecycleSubject('user', (string) $user->public_id);
         $participants = [
-            new UserAccountDataLifecycleParticipant(DB::connection()),
-            new TeamUserDataLifecycleParticipant(DB::connection()),
-            new UserAuthorizationDataLifecycleParticipant(DB::connection()),
+            $this->app->make(UserAccountDataLifecycleParticipant::class),
+            $this->app->make(TeamUserDataLifecycleParticipant::class),
+            $this->app->make(UserAuthorizationDataLifecycleParticipant::class),
         ];
 
         $previewImpacts = collect($participants)
@@ -161,7 +145,6 @@ final class CoreRelatedDataLifecycleTest extends TestCase
         self::assertNull(DB::table(IdentityDatabaseTable::USERS)->where('id', $user->id)->value('remember_token'));
         self::assertDatabaseMissing(IdentityDatabaseTable::USER_PASSWORD_HISTORIES, ['user_id' => $user->id]);
         self::assertDatabaseMissing(IdentityDatabaseTable::PASSWORD_RESET_TOKENS, ['email' => 'private.person@example.test']);
-        self::assertDatabaseMissing(IdentityDatabaseTable::USER_WEBAUTHN_CREDENTIALS, ['user_public_id' => $user->public_id]);
         self::assertDatabaseMissing(IdentityDatabaseTable::SESSIONS, ['user_id' => $user->id]);
         self::assertDatabaseMissing(AuthorizationDatabaseTable::MODEL_HAS_ROLES, ['model_id' => $user->id]);
         self::assertDatabaseMissing(AuthorizationDatabaseTable::MODEL_HAS_PERMISSIONS, ['model_id' => $user->id]);

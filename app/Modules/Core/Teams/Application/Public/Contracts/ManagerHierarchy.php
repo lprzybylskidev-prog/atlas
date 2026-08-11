@@ -11,6 +11,8 @@ use App\Modules\Core\Teams\Application\Public\DTOs\ManagerScope;
 
 interface ManagerHierarchy
 {
+    public function version(string $teamPublicId): string;
+
     /**
      * @return list<ManagerRelationshipSummary>
      */
@@ -37,9 +39,10 @@ interface ManagerHierarchy
         string $reportUserPublicId,
         string $validFrom,
         string $reason,
+        ?string $expectedVersion = null,
     ): void;
 
-    public function end(string $actorUserPublicId, string $relationshipPublicId, string $validTo, string $reason): void;
+    public function end(string $actorUserPublicId, string $relationshipPublicId, string $validTo, string $reason, ?string $expectedVersion = null): void;
 
     public function setHeadManager(
         string $actorUserPublicId,
@@ -47,6 +50,7 @@ interface ManagerHierarchy
         string $userPublicId,
         bool $headManager,
         string $reason,
+        ?string $expectedVersion = null,
     ): void;
 
     public function scopeFor(string $teamPublicId, string $managerUserPublicId): ManagerScope;

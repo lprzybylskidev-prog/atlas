@@ -6,13 +6,14 @@ Canonical current behavior for the Core export foundation: export request snapsh
 
 Exports is a Core platform module. It owns the reusable lifecycle for CSV, XLSX, PDF, browser print, report-style table layouts, generated artifact access, render credentials, render readiness checks, cleanup, and export provider registries.
 
-Optional Reports depends on Exports for named reports, report-specific charts, catalogs, and future business reporting workflows. Admin and business modules register typed data providers with Exports; Exports must not query another module's tables directly.
+Optional Reports is currently an empty shell and does not declare a dependency until a named business-report workflow is accepted. Admin and business modules register typed data providers with Exports; Exports must not query another module's tables directly.
 
 The current implementation preserves the Phase 24 lifecycle while moving ownership out of optional Reports:
 
 - `ExportsModule` is deployed as the Core `exports` module.
+- `managed_processes` is an optional deployed dependency for Exports. Cross-module process definitions, runners, reporters, handlers, and run summaries use neutral contracts under `App\Shared\Application\ManagedProcesses`; ManagedProcesses owns their runtime implementations. The Core-only registry is tested without Optional modules, while a deployed ManagedProcesses module starts before Exports.
 - Export request snapshots are persisted in the `core_exports` PostgreSQL schema.
-- Request snapshots include report key, report name, owning module, format, active team, requesting user, filters, sorting, visible columns, column order, time range, release/rule version, expiry, and an authorization snapshot.
+- Request snapshots include report key, report name, owning module, format, active team, requesting user, effective locale, filters, sorting, visible columns, column order, time range, release/rule version, expiry, and an authorization snapshot.
 - Authorization snapshots are hashed into an authorization fingerprint and participate in the full request fingerprint.
 - Identical export requests deduplicate only when the full request and authorization fingerprint match.
 - Detailed audit/history exports set the immutable `audit_export` request flag, which participates in the request fingerprint and is reauthorized with `exports.audit-export` during generation, download, browser print, and render-token access.
@@ -22,6 +23,7 @@ The current implementation preserves the Phase 24 lifecycle while moving ownersh
 - Generated artifact metadata records status, content type, filename, checksum, size, creator, file object linkage, availability, failure, and expiry.
 - Render credentials are bound to one export request, one requesting user, one team, one owning module/report key, one allowed dataset, one allowed column set, and one expiry window.
 - Render credentials store only a SHA-256 token hash, resolve without a live authenticated browser session, reject expired or consumed credentials, and are consumed after successful rendering.
+- Actor, team, and managed-process run identifiers used by Exports are resolved through Identity `UserLookup`, Teams `TeamLookup`, and ManagedProcesses `ManagedProcessRunInspector`; Exports does not read those foreign persistence tables for artifact access, DataTable snapshots, or queued process linking.
 - Partial, failed, expired, or cancelled artifacts are not downloadable lifecycle states.
 - PostgreSQL constraints prevent an `available` artifact without a file object, checksum, positive size, availability timestamp, and no failure timestamp.
 - PostgreSQL allows at most one `available` artifact for one export request.
@@ -33,7 +35,7 @@ The current implementation preserves the Phase 24 lifecycle while moving ownersh
 - Retention cleanup expires old export requests and artifacts, then deletes linked file objects through the Files public `FileLifecycle` contract.
 - Operators can run `php artisan exports:cleanup-expired` to execute export retention cleanup.
 - CSV and XLSX generation are available through the shared export generator registry for registered data providers.
-- CSV, XLSX, PDF, and browser-print output use the immutable request snapshot's filters, sorting, active team, visible columns, column order, and authorization snapshot.
+- CSV, XLSX, PDF, and browser-print output use the immutable request snapshot's effective locale, filters, sorting, active team, visible columns, column order, and authorization snapshot. Pre-locale local records use Polish as a compatibility fallback.
 - Tabular export generation intersects visible columns with authorization `allowed_columns` and provider columns before rendering, so request-visible but unauthorized columns are excluded.
 - CSV, XLSX, PDF, and browser-print output include the shared baseline `Total rows` total computed from the final exported row set.
 - CSV and XLSX cells are rendered from scalar, stringable, date, boolean, or null values; cells that could be interpreted as spreadsheet formulas are prefixed before export.
@@ -54,7 +56,7 @@ The current implementation preserves the Phase 24 lifecycle while moving ownersh
 - Admin tables that use the shared backend `TableState` register `AdminDataTableExportProvider` implementations. The provider exposes the table key, display name, owning module, request permission, rule version, `TableDefinition`, and backend-authorized export columns.
 - `AdminDataTableExportProviderRegistry` resolves providers tagged as `atlas.admin_data_table_export_providers`; Exports also exposes those providers through the ordinary `ReportExportDataProviderRegistry` so CSV/XLSX/PDF/browser-print generation uses one provider contract.
 - `AdminDataTableExportSnapshotFactory` maps backend-validated `TableState` plus active team, actor, filters, time range, and estimated row count into an immutable export snapshot. It revalidates sorting, visible columns, and column order against the provider's `TableDefinition` and authorized column set before recording the snapshot.
-- The first registered shared Admin DataTable providers cover Users, Teams, Roles, Authorization presets, Permissions, Audit events, Security history, Rate-limit policies, and Module activation overview. Ordinary Audit events exports exclude raw `metadata`; detailed metadata exports remain separate until the `exports.audit-export` path is wired with distinct authorization behavior.
+- The first registered shared Admin DataTable providers cover Users, Teams, Roles, Authorization presets, Permissions, Audit events, Security history, Rate-limit policies, and Module activation overview. Ordinary Audit event exports exclude raw `metadata`. On the Audit event table, actors with `exports.audit-export` receive a distinct detailed CSV/XLSX/PDF/browser-print action. Its immutable snapshot sets `audit_export`, includes both `exports.request` and `exports.audit-export` in the authorization fingerprint, and emits recorder-redacted metadata as deterministic JSON. Generation, download, print, and render-token access all reauthorize the detailed permission.
 - Page-local Admin DataTables and operational card lists can expose exports with an explicit table key and export metadata while still using local filter panels and local row composition. The current page-local providers cover Files, Integration adapter status, Integration synchronization runs, Search index descriptors, Search rebuild runs, Feature flags, Feature flag history, Managed-process runs, Import executions, Managed-process definitions, Managed-process schedules, Application logs, Failed jobs, Module detail teams, Module detail history, Module detail schedules, Manager relationship history, Impersonation session events, and Managed-process import row errors.
 - PDF generation checks matching render-readiness probes before issuing a render credential; a not-ready result fails the export request and does not publish an artifact.
 - Exports registers a module deactivation guard that blocks deactivating a module while that module owns requested, queued, or generating export requests.
@@ -82,7 +84,8 @@ Public contracts exposed for other modules:
 - `ReportExportMaintenance` expires old requests/artifacts and performs retention cleanup.
 - `ReportRenderCredentialIssuer` issues short-lived internal render credentials for one export request.
 - `ReportRenderCredentialAccess` resolves and consumes short-lived internal render credentials.
-- `AdminDataTableExportProvider` exposes an Admin DataTable as a Core Exports data provider.
+- `App\Shared\Application\Exports\Contracts\AdminDataTableExportProvider` exposes an Admin DataTable as an export data provider contribution. Core Exports owns registration, snapshotting, artifact generation, authorization, and retention.
+- `App\Shared\Application\Exports\ExportPermissions` exposes stable permission-name values for export provider metadata; `ReportsPermissionCatalog` remains the Exports-owned permission contribution that registers those names.
 
 Permissions:
 
@@ -94,7 +97,7 @@ Permissions:
 - `admin.exports.data-table` allows requesting exports from registered Admin DataTables.
 # Phase 28 foundation repair target
 
-Current state: Core Exports owns export artifacts and render credentials, but Phase 28 tracks Core dependency on Optional ManagedProcesses, Audit/Exports dependency direction, PDF/Chromium runtime contract, async/sync limits, notifications/mail, and Admin provider boundaries.
+Current state: Core Exports owns immutable requests, artifacts, render credentials, authorization, retention, bilingual completion/failure notifications, Admin providers, detailed Audit exports, safe optional ManagedProcesses collaboration through neutral shared ports, and verified Chromium/worker runtime smoke coverage.
 
 Target state: Exports has explicit dependency classification, owner-approved integration with Files/ManagedProcesses/Reports/Audit, reproducible PDF runtime support, bilingual completion mail where applicable, and complete technical availability tests.
 

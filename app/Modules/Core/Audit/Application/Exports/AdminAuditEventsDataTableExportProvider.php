@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace App\Modules\Core\Audit\Application\Exports;
 
-use App\Modules\Core\Audit\Application\Public\Persistence\AuditDatabaseTable;
-use App\Modules\Core\Exports\Application\Public\AbstractAdminDataTableExportProvider;
-use App\Modules\Core\Exports\Application\Public\DTOs\AdminDataTableExportContext;
-use App\Modules\Core\Exports\Application\Public\DTOs\ReportExportGenerationRequest;
-use App\Modules\Core\Exports\Application\Public\Permissions\ReportsPermissionCatalog;
-use App\Shared\Application\Tables\AdminTableDefinitions;
+use App\Modules\Core\Audit\Infrastructure\Persistence\TableNames\AuditDatabaseTable;
+use App\Shared\Application\Exports\AbstractAdminDataTableExportProvider;
+use App\Shared\Application\Exports\DTOs\AdminDataTableExportContext;
+use App\Shared\Application\Exports\DTOs\ReportExportGenerationRequest;
+use App\Shared\Application\Exports\ExportPermissions;
+use App\Shared\Application\Tables\RegisteredTables;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Facades\DB;
 
@@ -17,7 +17,7 @@ final readonly class AdminAuditEventsDataTableExportProvider extends AbstractAdm
 {
     public function tableKey(): string
     {
-        return AdminTableDefinitions::AUDIT;
+        return RegisteredTables::AUDIT;
     }
 
     public function tableName(): string
@@ -32,20 +32,26 @@ final readonly class AdminAuditEventsDataTableExportProvider extends AbstractAdm
 
     public function requestPermission(): string
     {
-        return ReportsPermissionCatalog::REQUEST;
+        return ExportPermissions::REQUEST;
     }
 
     public function ruleVersion(): string
     {
-        return 'admin-audit-events-export-v1';
+        return 'admin-audit-events-export-v2';
+    }
+
+    public function supportsDetailedAuditExport(): bool
+    {
+        return true;
     }
 
     public function allowedExportColumns(AdminDataTableExportContext $context): array
     {
-        return array_values(array_filter(
-            parent::allowedExportColumns($context),
-            static fn (string $column): bool => $column !== 'metadata',
-        ));
+        $columns = parent::allowedExportColumns($context);
+
+        return $context->auditExport
+            ? $columns
+            : array_values(array_filter($columns, static fn (string $column): bool => $column !== 'metadata'));
     }
 
     protected function columnLabels(): array
@@ -79,12 +85,24 @@ final readonly class AdminAuditEventsDataTableExportProvider extends AbstractAdm
         $query = DB::table(AuditDatabaseTable::AUDIT_EVENTS)->orderByDesc('occurred_at');
         $this->applyFilters($query, $request);
 
-        $rows = array_values($query->limit(5000)->get()
-            ->map(fn (object $record): array => $this->row($record))
-            ->all());
+        $this->applySearchAndSorting($query, $request);
 
-        foreach ($this->sorted($this->filtered($rows, $request), $request) as $row) {
-            yield $row;
+        $query->orderByDesc('id');
+        foreach ($query->cursor() as $record) {
+            yield $this->row($record, $request);
+        }
+    }
+
+    private function applySearchAndSorting(Builder $query, ReportExportGenerationRequest $request): void
+    {
+        $search = trim(self::filterValue($request, 'search'));
+        if ($search !== '' && $search !== 'all') {
+            $query->where(function (Builder $nested) use ($search): void {
+                foreach (['public_id', 'module', 'action', 'result', 'source', 'actor_public_id', 'target_public_id', 'team_public_id', 'correlation_id', 'reason'] as $index => $column) {
+                    $method = $index === 0 ? 'where' : 'orWhere';
+                    $nested->{$method}($column, 'ilike', '%'.$search.'%');
+                }
+            });
         }
     }
 
@@ -147,7 +165,7 @@ final readonly class AdminAuditEventsDataTableExportProvider extends AbstractAdm
     /**
      * @return array<string, scalar|\Stringable|null>
      */
-    private function row(object $record): array
+    private function row(object $record, ReportExportGenerationRequest $request): array
     {
         $values = get_object_vars($record);
 
@@ -171,8 +189,23 @@ final readonly class AdminAuditEventsDataTableExportProvider extends AbstractAdm
             'correlationId' => self::stringValue($values['correlation_id'] ?? ''),
             'reason' => self::stringValue($values['reason'] ?? ''),
             'security' => (bool) ($values['is_security'] ?? false),
-            'metadata' => $this->metadataSummary($values['metadata'] ?? null),
+            'metadata' => $request->auditExport
+                ? $this->detailedMetadata($values['metadata'] ?? null)
+                : $this->metadataSummary($values['metadata'] ?? null),
         ];
+    }
+
+    private function detailedMetadata(mixed $metadata): string
+    {
+        if (! is_string($metadata) || $metadata === '' || $metadata === '[]' || $metadata === '{}') {
+            return '';
+        }
+
+        $decoded = json_decode($metadata, true);
+
+        return is_array($decoded)
+            ? json_encode($decoded, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE)
+            : '';
     }
 
     private function metadataSummary(mixed $metadata): string

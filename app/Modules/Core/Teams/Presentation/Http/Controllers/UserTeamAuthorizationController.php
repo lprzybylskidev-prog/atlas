@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Modules\Core\Teams\Presentation\Http\Controllers;
 
-use App\Modules\Core\Authorization\Application\Public\Contracts\UserTeamAuthorizationManager;
-use App\Modules\Core\Teams\Application\Public\Contracts\UserTeamSessionLimitSettings;
-use App\Modules\Optional\TimeTracking\Application\Public\Contracts\UserBreakPolicySettings;
+use App\Shared\Application\Authorization\Contracts\UserTeamAuthorizationManager;
+use App\Shared\Application\Teams\Contracts\UserTeamSessionLimitSettings;
+use App\Shared\Application\TimeTracking\Contracts\UserBreakPolicySettings;
 use App\Shared\Presentation\Support\FlashMessage;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -32,6 +32,7 @@ final readonly class UserTeamAuthorizationController
             'session_max_lifetime_minutes' => ['nullable', 'integer', 'min:1'],
             'break_daily_limit_minutes' => ['nullable', 'integer', 'min:1'],
             'break_maximum_single_minutes' => ['nullable', 'integer', 'min:1'],
+            'expected_version' => ['sometimes', 'integer', 'min:0'],
         ], [], [
             'inactivity_timeout_minutes' => __('validation.attributes.inactivity_timeout_minutes'),
             'session_max_lifetime_minutes' => __('validation.attributes.session_max_lifetime_minutes'),
@@ -54,6 +55,13 @@ final readonly class UserTeamAuthorizationController
                 roleNames: $this->stringList($validated['role_names'] ?? []),
                 directPermissionNames: $this->stringList($validated['direct_permission_names'] ?? []),
                 reason: is_string($validated['reason'] ?? null) ? $validated['reason'] : null,
+                resultingLimits: [
+                    'inactivity_timeout_minutes' => $inactivityTimeoutMinutes,
+                    'session_max_lifetime_minutes' => $sessionMaxLifetimeMinutes,
+                    'break_daily_limit_minutes' => $this->nullableIntValue($validated, 'break_daily_limit_minutes'),
+                    'break_maximum_single_minutes' => $this->nullableIntValue($validated, 'break_maximum_single_minutes'),
+                ],
+                expectedVersion: is_numeric($validated['expected_version'] ?? null) ? (int) $validated['expected_version'] : null,
             );
             $this->sessionLimits->setUserTeamOverrides($user, $team, $inactivityTimeoutMinutes, $sessionMaxLifetimeMinutes);
             $this->breakPolicies->setUserTeamOverrides(

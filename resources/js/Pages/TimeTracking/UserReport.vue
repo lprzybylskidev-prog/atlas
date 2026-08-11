@@ -1,7 +1,6 @@
 <script setup lang="ts">
-import { Head, useForm } from '@inertiajs/vue3';
+import { Head } from '@inertiajs/vue3';
 import {
-    IconAlertCircle,
     IconBriefcase,
     IconClockHour4,
     IconDatabase,
@@ -13,19 +12,18 @@ import {
 import { computed, ref, watch } from 'vue';
 
 import AtlasBarChart from '../../Components/AtlasBarChart.vue';
-import DialogPanel from '../../Components/DialogPanel.vue';
 import DataTable from '../../Components/DataTable.vue';
 import FilterPanel from '../../Components/FilterPanel.vue';
-import AtlasForm from '../../Components/Form/AtlasForm.vue';
-import DialogFormActions from '../../Components/Form/DialogFormActions.vue';
 import FormDateInput from '../../Components/Form/FormDateInput.vue';
-import FormDateTimeInput from '../../Components/Form/FormDateTimeInput.vue';
 import FormSelect, { type FormSelectOption } from '../../Components/Form/FormSelect.vue';
-import FormTextarea from '../../Components/Form/FormTextarea.vue';
-import OperationalMetricTile from '../../Components/OperationalMetricTile.vue';
 import PageStack from '../../Components/PageStack.vue';
 import SectionHeader from '../../Components/SectionHeader.vue';
 import SurfaceCard from '../../Components/SurfaceCard.vue';
+import TimeTrackingCorrectionDialog, {
+    type TimeTrackingCorrectionSource,
+} from '../../Components/TimeTracking/TimeTrackingCorrectionDialog.vue';
+import TimeTrackingReportMetrics from '../../Components/TimeTracking/TimeTrackingReportMetrics.vue';
+import TimeTrackingReportTabs, { type TimeTrackingReportSection } from '../../Components/TimeTracking/TimeTrackingReportTabs.vue';
 import {
     formatTimeTrackingDuration,
     localizedTimeTrackingComparisonMetrics,
@@ -39,129 +37,23 @@ import { applyTableFilters, clearTableFilters } from '../../Composables/useTable
 import AppLayout from '../../Layouts/AppLayout.vue';
 import { useTranslator } from '../../Localization/translator';
 import type { DataTableAction, DataTableColumn, DataTableMeta } from '../../Types/data-table';
-
-interface DailyWorkTimeRow extends Record<string, unknown> {
-    date: string;
-    countedSeconds: number;
-    workSeconds: number;
-    breakSeconds: number;
-    technicalBreakSeconds: number;
-    maintenanceSeconds: number;
-    otherWorkSeconds: number;
-    acceptedOtherWorkSeconds: number;
-    pendingOtherWorkSeconds: number;
-    sessionStatus: string;
-}
-
-interface LocalizedDailyWorkTimeRow extends DailyWorkTimeRow {
-    countedDuration: string;
-    workDuration: string;
-    breakDuration: string;
-    technicalBreakDuration: string;
-    maintenanceDuration: string;
-    otherWorkDuration: string;
-    acceptedOtherWorkDuration: string;
-    pendingOtherWorkDuration: string;
-    localizedSessionStatus: string;
-}
-
-interface OtherWorkRow extends Record<string, unknown> {
-    publicId: string;
-    sourceType: string;
-    category: string;
-    categoryLabelPl: string;
-    categoryLabelEn: string;
-    description: string;
-    endNote: string;
-    status: string;
-    decisionState: string;
-    requiresManagerDecision: boolean;
-    startedAt: string;
-    endedAt: string;
-    exactSeconds: number;
-    closureReason: string;
-    availableActions: string[];
-}
-
-interface LocalizedOtherWorkRow extends OtherWorkRow {
-    duration: string;
-}
-
-interface SourceTimeRow extends Record<string, unknown> {
-    publicId: string;
-    sourceType: string;
-    status: string;
-    startedAt: string;
-    endedAt: string;
-    exactSeconds: number;
-    duration: string;
-    availableActions: string[];
-}
-
-interface BreakRow extends SourceTimeRow {
-    breakLimitStatus: string;
-    excessBreakSeconds: number;
-    requiresManagerReview: boolean;
-}
-
-interface LocalizedSourceTimeRow extends SourceTimeRow {
-    statusLabel: string;
-    duration: string;
-}
-
-interface LocalizedBreakRow extends BreakRow {
-    statusLabel: string;
-    breakLimitLabel: string;
-    excessBreakDuration: string;
-    duration: string;
-}
-
-interface CorrectionRow extends Record<string, unknown> {
-    publicId: string;
-    sourceType: string;
-    type: string;
-    status: string;
-    description: string;
-    requestedAt: string;
-    decidedAt: string;
-    decisionReason: string;
-}
-
-interface LocalizedCorrectionRow extends CorrectionRow {
-    typeLabel: string;
-    statusLabel: string;
-}
-
-interface TimeReportSummary {
-    totalSeconds: number;
-    workSeconds: number;
-    breakSeconds: number;
-    technicalBreakSeconds: number;
-    maintenanceSeconds: number;
-    otherWorkSeconds: number;
-    acceptedOtherWorkSeconds: number;
-    pendingOtherWorkSeconds: number;
-    corrections: number;
-    pending: number;
-}
-
-interface ComparisonMetric {
-    metric: string;
-    currentSeconds: number;
-    previousSeconds: number;
-    deltaSeconds: number;
-    percentDelta: number | null;
-}
-
-interface TimeReportComparison {
-    available: boolean;
-    rangeLabel: string;
-    previousRangeLabel: string;
-    metrics: ComparisonMetric[];
-    userMetrics: ComparisonMetric[];
-}
+import type {
+    BreakRow,
+    CorrectionRow,
+    DailyWorkTimeRow,
+    LocalizedBreakRow,
+    LocalizedCorrectionRow,
+    LocalizedDailyWorkTimeRow,
+    LocalizedOtherWorkRow,
+    LocalizedSourceTimeRow,
+    OtherWorkRow,
+    SourceTimeRow,
+    TimeReportComparison,
+    TimeReportSummary,
+} from '../../Types/time-tracking';
 
 const props = defineProps<{
+    section: TimeTrackingReportSection;
     dailyRows: DailyWorkTimeRow[];
     workSessionRows: SourceTimeRow[];
     breakRows: BreakRow[];
@@ -178,16 +70,9 @@ const props = defineProps<{
 }>();
 
 const { locale, t } = useTranslator();
-const activeView = ref<'daily' | 'work_sessions' | 'breaks' | 'other_work' | 'corrections'>('daily');
+const activeView = computed(() => props.section);
 const correctionDialogOpen = ref(false);
-const selectedCorrectionSource = ref<{ sourceType: string; sourcePublicId: string; subject: string } | null>(null);
-const correctionForm = useForm({
-    source_type: '',
-    source_public_id: '',
-    description: '',
-    proposed_started_at: '',
-    proposed_ended_at: '',
-});
+const selectedCorrectionSource = ref<TimeTrackingCorrectionSource | null>(null);
 const filterKeys = ['range', 'from', 'to', 'status', 'compare'];
 const filterDefaults = {
     range: 'settlement_period',
@@ -197,6 +82,7 @@ const filterDefaults = {
     compare: 'off',
 };
 const filters = ref({ ...filterDefaults, ...props.filters });
+const appliedFilters = computed(() => ({ ...filterDefaults, ...props.filters }));
 
 const dailyColumns = computed<DataTableColumn<LocalizedDailyWorkTimeRow>[]>(() => [
     { key: 'date', label: t('pages.time_tracking.user_report.daily_table.date') },
@@ -211,16 +97,16 @@ const dailyColumns = computed<DataTableColumn<LocalizedDailyWorkTimeRow>[]>(() =
     { key: 'localizedSessionStatus', label: t('pages.time_tracking.user_report.daily_table.status'), format: 'status-badge' },
 ]);
 const workSessionColumns = computed<DataTableColumn<LocalizedSourceTimeRow>[]>(() => [
-    { key: 'publicId', label: t('pages.time_tracking.user_report.work_sessions_table.public_id'), hidden: true },
+    { key: 'publicId', label: t('pages.time_tracking.user_report.work_sessions_table.public_id'), access: 'forbidden' },
     { key: 'sourceType', label: t('pages.time_tracking.user_report.table.source_type'), hidden: true },
     { key: 'statusLabel', label: t('pages.time_tracking.user_report.work_sessions_table.status'), format: 'status-badge' },
     { key: 'startedAt', label: t('pages.time_tracking.user_report.work_sessions_table.started_at'), format: 'datetime' },
     { key: 'endedAt', label: t('pages.time_tracking.user_report.work_sessions_table.ended_at'), format: 'datetime' },
     { key: 'duration', label: t('pages.time_tracking.user_report.work_sessions_table.duration') },
-    { key: 'exactSeconds', label: t('pages.time_tracking.user_report.table.exact_seconds'), hidden: true },
+    { key: 'exactSeconds', label: t('pages.time_tracking.user_report.table.exact_seconds'), access: 'forbidden' },
 ]);
 const breakColumns = computed<DataTableColumn<LocalizedBreakRow>[]>(() => [
-    { key: 'publicId', label: t('pages.time_tracking.user_report.breaks_table.public_id'), hidden: true },
+    { key: 'publicId', label: t('pages.time_tracking.user_report.breaks_table.public_id'), access: 'forbidden' },
     { key: 'sourceType', label: t('pages.time_tracking.user_report.table.source_type'), hidden: true },
     { key: 'statusLabel', label: t('pages.time_tracking.user_report.breaks_table.status'), format: 'status-badge' },
     { key: 'startedAt', label: t('pages.time_tracking.user_report.breaks_table.started_at'), format: 'datetime' },
@@ -229,10 +115,10 @@ const breakColumns = computed<DataTableColumn<LocalizedBreakRow>[]>(() => [
     { key: 'breakLimitLabel', label: t('pages.time_tracking.user_report.breaks_table.limit_status'), format: 'status-badge' },
     { key: 'excessBreakDuration', label: t('pages.time_tracking.user_report.breaks_table.excess') },
     { key: 'requiresManagerReview', label: t('pages.time_tracking.user_report.breaks_table.requires_review'), format: 'boolean' },
-    { key: 'exactSeconds', label: t('pages.time_tracking.user_report.table.exact_seconds'), hidden: true },
+    { key: 'exactSeconds', label: t('pages.time_tracking.user_report.table.exact_seconds'), access: 'forbidden' },
 ]);
 const otherWorkColumns = computed<DataTableColumn<LocalizedOtherWorkRow>[]>(() => [
-    { key: 'publicId', label: t('pages.time_tracking.user_report.other_work_table.public_id'), hidden: true },
+    { key: 'publicId', label: t('pages.time_tracking.user_report.other_work_table.public_id'), access: 'forbidden' },
     { key: 'sourceType', label: t('pages.time_tracking.user_report.table.source_type'), hidden: true },
     { key: 'category', label: t('pages.time_tracking.user_report.other_work_table.category') },
     { key: 'description', label: t('pages.time_tracking.user_report.other_work_table.description') },
@@ -245,7 +131,7 @@ const otherWorkColumns = computed<DataTableColumn<LocalizedOtherWorkRow>[]>(() =
     { key: 'closureReason', label: t('pages.time_tracking.user_report.other_work_table.closure_reason'), hidden: true },
 ]);
 const correctionColumns = computed<DataTableColumn<LocalizedCorrectionRow>[]>(() => [
-    { key: 'publicId', label: t('pages.time_tracking.user_report.corrections_table.public_id'), hidden: true },
+    { key: 'publicId', label: t('pages.time_tracking.user_report.corrections_table.public_id'), access: 'forbidden' },
     { key: 'sourceType', label: t('pages.time_tracking.user_report.corrections_table.source_type'), format: 'status-badge' },
     { key: 'typeLabel', label: t('pages.time_tracking.user_report.corrections_table.type') },
     { key: 'statusLabel', label: t('pages.time_tracking.user_report.corrections_table.status'), format: 'status-badge' },
@@ -421,30 +307,7 @@ function openCorrectionDialog(row: SourceTimeRow | BreakRow | OtherWorkRow): voi
         sourcePublicId: row.publicId,
         subject: sourceSubject(row),
     };
-    correctionForm.defaults({
-        source_type: row.sourceType,
-        source_public_id: row.publicId,
-        description: '',
-        proposed_started_at: '',
-        proposed_ended_at: '',
-    });
-    correctionForm.reset();
-    correctionForm.clearErrors();
     correctionDialogOpen.value = true;
-}
-
-function closeCorrectionDialog(): void {
-    correctionDialogOpen.value = false;
-    selectedCorrectionSource.value = null;
-    correctionForm.reset();
-    correctionForm.clearErrors();
-}
-
-function submitCorrection(): void {
-    correctionForm.post('/user/work-time/corrections', {
-        preserveScroll: true,
-        onSuccess: () => closeCorrectionDialog(),
-    });
 }
 </script>
 
@@ -452,44 +315,7 @@ function submitCorrection(): void {
     <Head :title="t('pages.time_tracking.user_report.head_title')" />
     <AppLayout :title="t('pages.time_tracking.user_report.title')" :title-icon="IconClockHour4" mode="user">
         <PageStack>
-            <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-6">
-                <OperationalMetricTile
-                    :label="t('pages.time_tracking.user_report.metrics.total')"
-                    :value="formatDuration(summary.totalSeconds)"
-                    :icon="IconClockHour4"
-                    tone="teal"
-                />
-                <OperationalMetricTile
-                    :label="t('pages.time_tracking.user_report.metrics.work')"
-                    :value="formatDuration(summary.workSeconds)"
-                    :icon="IconHourglass"
-                    tone="sky"
-                />
-                <OperationalMetricTile
-                    :label="t('pages.time_tracking.user_report.metrics.break')"
-                    :value="formatDuration(summary.breakSeconds)"
-                    :icon="IconPlayerPause"
-                    tone="amber"
-                />
-                <OperationalMetricTile
-                    :label="t('pages.time_tracking.user_report.metrics.other_work')"
-                    :value="formatDuration(summary.otherWorkSeconds)"
-                    :icon="IconBriefcase"
-                    tone="emerald"
-                />
-                <OperationalMetricTile
-                    :label="t('pages.time_tracking.user_report.metrics.corrections')"
-                    :value="summary.corrections"
-                    :icon="IconRefresh"
-                    tone="zinc"
-                />
-                <OperationalMetricTile
-                    :label="t('pages.time_tracking.user_report.metrics.pending')"
-                    :value="summary.pending"
-                    :icon="IconAlertCircle"
-                    :tone="summary.pending > 0 ? 'rose' : 'zinc'"
-                />
-            </div>
+            <TimeTrackingReportMetrics :section="section" :summary="summary" />
 
             <FilterPanel
                 :title="t('pages.time_tracking.user_report.filters.title')"
@@ -545,68 +371,7 @@ function submitCorrection(): void {
 
             <SectionHeader :title="activeTableTitle" :icon="activeTableIcon">
                 <template #actions>
-                    <div class="inline-flex flex-wrap rounded-md border border-zinc-200 bg-white p-1 dark:border-zinc-800 dark:bg-zinc-900">
-                        <button
-                            type="button"
-                            class="rounded px-3 py-1.5 text-sm font-medium transition focus-visible:outline focus-visible:outline-amber-500"
-                            :class="
-                                activeView === 'daily'
-                                    ? 'bg-teal-600 text-white shadow-sm'
-                                    : 'text-zinc-600 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800'
-                            "
-                            @click="activeView = 'daily'"
-                        >
-                            {{ t('pages.time_tracking.user_report.tabs.daily') }}
-                        </button>
-                        <button
-                            type="button"
-                            class="rounded px-3 py-1.5 text-sm font-medium transition focus-visible:outline focus-visible:outline-amber-500"
-                            :class="
-                                activeView === 'work_sessions'
-                                    ? 'bg-teal-600 text-white shadow-sm'
-                                    : 'text-zinc-600 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800'
-                            "
-                            @click="activeView = 'work_sessions'"
-                        >
-                            {{ t('pages.time_tracking.user_report.tabs.work_sessions') }}
-                        </button>
-                        <button
-                            type="button"
-                            class="rounded px-3 py-1.5 text-sm font-medium transition focus-visible:outline focus-visible:outline-amber-500"
-                            :class="
-                                activeView === 'breaks'
-                                    ? 'bg-teal-600 text-white shadow-sm'
-                                    : 'text-zinc-600 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800'
-                            "
-                            @click="activeView = 'breaks'"
-                        >
-                            {{ t('pages.time_tracking.user_report.tabs.breaks') }}
-                        </button>
-                        <button
-                            type="button"
-                            class="rounded px-3 py-1.5 text-sm font-medium transition focus-visible:outline focus-visible:outline-amber-500"
-                            :class="
-                                activeView === 'other_work'
-                                    ? 'bg-teal-600 text-white shadow-sm'
-                                    : 'text-zinc-600 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800'
-                            "
-                            @click="activeView = 'other_work'"
-                        >
-                            {{ t('pages.time_tracking.user_report.tabs.other_work') }}
-                        </button>
-                        <button
-                            type="button"
-                            class="rounded px-3 py-1.5 text-sm font-medium transition focus-visible:outline focus-visible:outline-amber-500"
-                            :class="
-                                activeView === 'corrections'
-                                    ? 'bg-teal-600 text-white shadow-sm'
-                                    : 'text-zinc-600 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800'
-                            "
-                            @click="activeView = 'corrections'"
-                        >
-                            {{ t('pages.time_tracking.user_report.tabs.corrections') }}
-                        </button>
-                    </div>
+                    <TimeTrackingReportTabs :active="activeView" />
                 </template>
             </SectionHeader>
 
@@ -620,7 +385,7 @@ function submitCorrection(): void {
                 :total-rows="dailyTable.pagination.total"
                 :ui-locale="locale"
                 :table="dailyTable"
-                :filters="filters"
+                :filters="appliedFilters"
             />
             <DataTable
                 v-else-if="activeView === 'work_sessions'"
@@ -632,7 +397,7 @@ function submitCorrection(): void {
                 :empty-label="t('pages.time_tracking.user_report.work_sessions_table.empty')"
                 :ui-locale="locale"
                 :table="workSessionsTable"
-                :filters="filters"
+                :filters="appliedFilters"
             />
             <DataTable
                 v-else-if="activeView === 'breaks'"
@@ -644,7 +409,7 @@ function submitCorrection(): void {
                 :empty-label="t('pages.time_tracking.user_report.breaks_table.empty')"
                 :ui-locale="locale"
                 :table="breaksTable"
-                :filters="filters"
+                :filters="appliedFilters"
                 :row-class="exceededBreakRowClass"
             />
             <DataTable
@@ -657,7 +422,7 @@ function submitCorrection(): void {
                 :empty-label="t('pages.time_tracking.user_report.other_work_table.empty')"
                 :ui-locale="locale"
                 :table="otherWorkTable"
-                :filters="filters"
+                :filters="appliedFilters"
             />
             <DataTable
                 v-else
@@ -668,52 +433,10 @@ function submitCorrection(): void {
                 :empty-label="t('pages.time_tracking.user_report.corrections_table.empty')"
                 :ui-locale="locale"
                 :table="correctionsTable"
-                :filters="filters"
+                :filters="appliedFilters"
             />
 
-            <DialogPanel
-                v-model:open="correctionDialogOpen"
-                :title="t('pages.time_tracking.user_report.correction_dialog.title')"
-                :icon="IconFilePencil"
-                tone="amber"
-                size="2xl"
-                :close-label="t('actions.close')"
-                @close="closeCorrectionDialog"
-            >
-                <AtlasForm :processing="correctionForm.processing" @submit="submitCorrection">
-                    <p v-if="selectedCorrectionSource" class="mb-4 text-sm font-medium text-zinc-700 dark:text-zinc-200">
-                        {{ selectedCorrectionSource.subject }}
-                    </p>
-                    <div class="grid gap-3">
-                        <FormTextarea
-                            v-model="correctionForm.description"
-                            :label="t('pages.time_tracking.user_report.correction_dialog.description')"
-                            :error="correctionForm.errors.description"
-                            :rows="4"
-                        />
-                        <div class="grid gap-4">
-                            <FormDateTimeInput
-                                v-model="correctionForm.proposed_started_at"
-                                :label="t('pages.time_tracking.user_report.correction_dialog.proposed_started_at')"
-                                :error="correctionForm.errors.proposed_started_at"
-                            />
-                            <FormDateTimeInput
-                                v-model="correctionForm.proposed_ended_at"
-                                :label="t('pages.time_tracking.user_report.correction_dialog.proposed_ended_at')"
-                                :error="correctionForm.errors.proposed_ended_at"
-                            />
-                        </div>
-                    </div>
-                    <DialogFormActions
-                        :cancel-label="t('actions.cancel')"
-                        :submit-label="t('pages.time_tracking.user_report.actions.submit_correction')"
-                        :submit-icon="IconFilePencil"
-                        submit-tone="primary"
-                        :loading="correctionForm.processing"
-                        @cancel="closeCorrectionDialog"
-                    />
-                </AtlasForm>
-            </DialogPanel>
+            <TimeTrackingCorrectionDialog v-model:open="correctionDialogOpen" :source="selectedCorrectionSource" />
         </PageStack>
     </AppLayout>
 </template>

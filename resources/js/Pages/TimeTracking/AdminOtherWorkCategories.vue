@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head, useForm } from '@inertiajs/vue3';
-import { IconArrowLeft, IconBriefcase, IconClockHour4, IconDatabase, IconFilePencil, IconPlayerPause, IconPlus } from '@tabler/icons-vue';
+import { IconArrowLeft, IconBriefcase, IconPlus } from '@tabler/icons-vue';
 import { computed, ref, watch } from 'vue';
 
 import ActionLink from '../../Components/ActionLink.vue';
@@ -16,7 +16,6 @@ import { applyTableFilters, clearTableFilters } from '../../Composables/useTable
 import AppLayout from '../../Layouts/AppLayout.vue';
 import { useTranslator } from '../../Localization/translator';
 import type { DataTableAction, DataTableColumn } from '../../Types/data-table';
-import type { ShellSubnavigationItem } from '../../Types/navigation';
 
 interface CategoryRow extends Record<string, unknown> {
     publicId: string;
@@ -57,43 +56,6 @@ const deactivateForm = useForm({
     reason: '',
 });
 
-const subnavigation = computed<ShellSubnavigationItem[]>(() => [
-    {
-        key: 'daily',
-        label: t('navigation.work_time_daily'),
-        href: '/admin/work-time/summary',
-        icon: IconClockHour4,
-        active: false,
-    },
-    {
-        key: 'other_work',
-        label: t('navigation.work_time_other_work'),
-        href: '/admin/work-time/other-work',
-        icon: IconBriefcase,
-        active: true,
-    },
-    {
-        key: 'breaks',
-        label: t('navigation.work_time_breaks'),
-        href: '/admin/work-time/breaks',
-        icon: IconPlayerPause,
-        active: false,
-    },
-    {
-        key: 'corrections',
-        label: t('navigation.work_time_corrections'),
-        href: '/admin/work-time/corrections',
-        icon: IconFilePencil,
-        active: false,
-    },
-    {
-        key: 'work_sessions',
-        label: t('navigation.work_time_sessions'),
-        href: '/admin/work-time/work-sessions',
-        icon: IconDatabase,
-        active: false,
-    },
-]);
 const columns = computed<DataTableColumn<CategoryRow>[]>(() => [
     { key: 'teamName', label: t('pages.time_tracking.admin_categories.table.team') },
     { key: 'key', label: t('pages.time_tracking.admin_categories.table.key') },
@@ -126,7 +88,7 @@ const statusOptions = computed<FormSelectOption[]>(() => [
     { value: 'active', label: t('datatable.status.active') },
     { value: 'inactive', label: t('datatable.status.inactive') },
 ]);
-const tableFilters = computed(() => ({ ...filters.value }));
+const tableFilters = computed(() => ({ ...filterDefaults, ...props.filters }));
 
 watch(
     () => props.filters,
@@ -182,8 +144,7 @@ function basePath(): string {
         :mode="surface"
         :title="t('pages.time_tracking.admin_categories.title')"
         :title-icon="IconBriefcase"
-        :subnavigation="isManagerSurface ? [] : subnavigation"
-        :subnavigation-label="t('navigation.group.work_time')"
+        :navigation-section="isManagerSurface ? undefined : 'work-time'"
     >
         <PageStack>
             <div class="flex flex-wrap justify-between gap-3">

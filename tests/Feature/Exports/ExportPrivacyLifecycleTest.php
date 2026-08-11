@@ -6,7 +6,7 @@ namespace Tests\Feature\Exports;
 
 use App\Modules\Core\Exports\Application\Enums\ReportExportStatus;
 use App\Modules\Core\Exports\Application\Lifecycle\ExportDataLifecycleParticipant;
-use App\Modules\Core\Exports\Application\Public\Persistence\ExportsDatabaseTable;
+use App\Modules\Core\Exports\Infrastructure\Persistence\TableNames\ExportsDatabaseTable;
 use App\Modules\Core\Files\Application\Public\Contracts\FileLifecycle;
 use App\Modules\Core\Files\Application\Public\DTOs\FileLifecycleResult;
 use App\Shared\Application\DataLifecycle\DataLifecycleOperation;

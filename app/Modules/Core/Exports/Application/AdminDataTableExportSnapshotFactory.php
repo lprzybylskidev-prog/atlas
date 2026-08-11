@@ -4,11 +4,12 @@ declare(strict_types=1);
 
 namespace App\Modules\Core\Exports\Application;
 
-use App\Modules\Core\Exports\Application\Contracts\AdminDataTableExportProvider;
 use App\Modules\Core\Exports\Application\DTOs\AuthorizationFingerprint;
 use App\Modules\Core\Exports\Application\DTOs\ReportExportRequestSnapshot;
-use App\Modules\Core\Exports\Application\Enums\ReportExportFormat;
-use App\Modules\Core\Exports\Application\Public\DTOs\AdminDataTableExportContext;
+use App\Shared\Application\Exports\Contracts\AdminDataTableExportProvider;
+use App\Shared\Application\Exports\DTOs\AdminDataTableExportContext;
+use App\Shared\Application\Exports\Enums\ReportExportFormat;
+use App\Shared\Application\Exports\ExportPermissions;
 use App\Shared\Application\Tables\TableDefinition;
 use App\Shared\Application\Tables\TableState;
 use Illuminate\Support\Facades\Config;
@@ -21,6 +22,10 @@ final class AdminDataTableExportSnapshotFactory
         $safeState = $this->safeState($context->state, $definition);
         $allowedColumns = $this->safeColumnSet($provider->allowedExportColumns($context), $definition);
         $visibleColumns = $this->visibleColumns($safeState, $allowedColumns, $definition);
+
+        if ($context->auditExport && in_array('metadata', $allowedColumns, true) && ! in_array('metadata', $visibleColumns, true)) {
+            $visibleColumns[] = 'metadata';
+        }
 
         return new ReportExportRequestSnapshot(
             reportKey: $provider->tableKey(),
@@ -40,7 +45,9 @@ final class AdminDataTableExportSnapshotFactory
                 moduleKey: $provider->owningModuleKey(),
                 activeTeamPublicId: $context->activeTeamPublicId,
                 requestingUserPublicId: $context->requestingUserPublicId,
-                permissionNames: [$provider->requestPermission()],
+                permissionNames: $context->auditExport
+                    ? [$provider->requestPermission(), ExportPermissions::AUDIT_EXPORT]
+                    : [$provider->requestPermission()],
                 allowedColumns: $allowedColumns,
                 ruleVersion: $provider->ruleVersion(),
             ),
@@ -50,6 +57,7 @@ final class AdminDataTableExportSnapshotFactory
             synchronousAllowed: $context->allowSynchronous,
             auditExport: $context->auditExport,
             estimatedRowCount: $context->estimatedRowCount,
+            locale: app()->getLocale(),
         );
     }
 

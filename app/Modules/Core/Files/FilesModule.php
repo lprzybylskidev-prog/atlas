@@ -25,10 +25,8 @@ final class FilesModule implements ModuleDefinition
     {
         return [
             new ModuleKey('identity'),
-            new ModuleKey('authorization'),
             new ModuleKey('teams'),
             new ModuleKey('audit'),
-            new ModuleKey('health'),
         ];
     }
 
@@ -52,18 +50,8 @@ final class FilesModule implements ModuleDefinition
         return false;
     }
 
-    public function integrations(): array
-    {
-        return [];
-    }
-
     public function healthChecks(): array
     {
         return ['clamav'];
-    }
-
-    public function frontendEntrypoints(): array
-    {
-        return ['admin.files.index'];
     }
 }

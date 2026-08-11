@@ -4,16 +4,16 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Foundation;
 
-use App\Modules\Core\Audit\Application\Public\Persistence\AuditDatabaseTable;
-use App\Modules\Core\Authorization\Application\Public\Persistence\AuthorizationDatabaseTable;
+use App\Modules\Core\Audit\Infrastructure\Persistence\TableNames\AuditDatabaseTable;
 use App\Modules\Core\Authorization\Application\Roles\InstallStarterRoles;
 use App\Modules\Core\Authorization\Application\Roles\StarterRoleName;
+use App\Modules\Core\Authorization\Infrastructure\Persistence\TableNames\AuthorizationDatabaseTable;
 use App\Modules\Core\Identity\Application\Public\Contracts\UserSessionRegistry;
 use App\Modules\Core\Identity\Application\Sessions\SessionLimitResolver;
 use App\Modules\Core\Identity\Infrastructure\Persistence\User;
-use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
+use App\Modules\Core\Teams\Infrastructure\Persistence\TableNames\TeamsDatabaseTable;
 use App\Modules\Core\Teams\Infrastructure\Persistence\Team;
-use App\Shared\Application\Tables\AdminTableDefinitions;
+use App\Shared\Application\Tables\RegisteredTables;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Middleware\ThrottleRequests;
@@ -165,7 +165,7 @@ final class SessionsActiveTeamTest extends TestCase
 
     public function test_admin_users_table_exposes_default_visible_online_status(): void
     {
-        $definition = AdminTableDefinitions::get(AdminTableDefinitions::USERS);
+        $definition = RegisteredTables::get(RegisteredTables::USERS);
         $onlineColumn = array_values(array_filter($definition->columns, static fn ($column): bool => $column->key === 'online'))[0] ?? null;
 
         self::assertNotNull($onlineColumn);

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head } from '@inertiajs/vue3';
-import { IconAlertTriangle, IconArrowLeft, IconHistory, IconListDetails, IconShieldCheck, IconUserScan } from '@tabler/icons-vue';
+import { IconAlertTriangle, IconArrowLeft, IconListDetails, IconShieldCheck, IconUserScan } from '@tabler/icons-vue';
 import { computed } from 'vue';
 
 import ActionLink from '../../../Components/ActionLink.vue';
@@ -11,7 +11,6 @@ import SurfaceCard from '../../../Components/SurfaceCard.vue';
 import AppLayout from '../../../Layouts/AppLayout.vue';
 import { useTranslator } from '../../../Localization/translator';
 import type { DataTableColumn, DataTableMeta } from '../../../Types/data-table';
-import type { ShellSubnavigationItem } from '../../../Types/navigation';
 import { formatDateTime, formatEmpty } from '../../../Utils/formatters';
 
 interface AuditEventRow extends Record<string, unknown> {
@@ -53,22 +52,6 @@ const props = defineProps<{
 
 const { locale, t } = useTranslator();
 
-const subnavigation = computed<ShellSubnavigationItem[]>(() => [
-    {
-        key: 'audit.events',
-        label: t('pages.admin.audit.nav.events'),
-        href: '/admin/audit',
-        icon: IconHistory,
-        active: false,
-    },
-    {
-        key: 'audit.security',
-        label: t('pages.admin.audit.nav.security_history'),
-        href: '/admin/audit/security-history',
-        icon: IconShieldCheck,
-        active: false,
-    },
-]);
 const columns = computed<DataTableColumn<AuditEventRow>[]>(() => [
     { key: 'occurredAt', label: t('pages.admin.audit.table.occurred_at'), format: 'datetime' },
     { key: 'module', label: t('pages.admin.audit.table.module'), format: 'status' },
@@ -99,13 +82,7 @@ function text(value: string | null): string {
 
 <template>
     <Head :title="t('pages.admin.audit.impersonation.head_title')" />
-    <AppLayout
-        mode="admin"
-        :title="t('pages.admin.audit.impersonation.title')"
-        :title-icon="IconUserScan"
-        :subnavigation="subnavigation"
-        :subnavigation-label="t('pages.admin.audit.nav.label')"
-    >
+    <AppLayout mode="admin" :title="t('pages.admin.audit.impersonation.title')" :title-icon="IconUserScan" navigation-section="audit">
         <PageStack>
             <div class="flex flex-wrap items-center justify-between gap-3">
                 <ActionLink href="/admin/audit" tone="neutral" :icon="IconArrowLeft">

@@ -24,8 +24,7 @@
         "phpoffice/phpspreadsheet": "^5.9",
         "sentry/sentry-laravel": "^4.26",
         "spatie/laravel-permission": "^8.3",
-        "tightenco/ziggy": "^2.6",
-        "web-auth/webauthn-lib": "^5.3"
+        "tightenco/ziggy": "^2.6"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",
@@ -63,7 +62,7 @@
         ],
         "dev": [
             "Composer\\Config::disableProcessTimeout",
-            "pnpm exec concurrently -c \"#93c5fd,#c4b5fd,#fb7185,#fdba74,#86efac\" \"php artisan serve\" \"php artisan queue:listen redis --queue=exports,search,files,files-large,default --sleep=1 --tries=1 --timeout=60\" \"php artisan schedule:work\" \"php artisan pail --timeout=0\" \"pnpm dev\" --names=server,queue,scheduler,logs,vite --kill-others"
+            "pnpm exec concurrently -c \"#93c5fd,#c4b5fd,#fb7185,#fdba74,#86efac\" \"php artisan serve\" \"php artisan horizon\" \"php artisan schedule:work\" \"php artisan pail --timeout=0\" \"pnpm dev\" --names=server,horizon,scheduler,logs,vite --kill-others"
         ],
         "demo:reset": [
             "@php artisan demo:reset"
@@ -89,6 +88,19 @@
             "bash tools/quality/run-phpstan.sh --verify-coverage",
             "bash tools/quality/run-phpstan.sh"
         ],
+        "runtime:check": [
+            "bash tools/quality/check-runtime-contract.sh"
+        ],
+        "runtime:smoke": [
+            "Composer\\Config::disableProcessTimeout",
+            "bash tools/runtime/smoke-production.sh"
+        ],
+        "check:foundation": [
+            "Composer\\Config::disableProcessTimeout",
+            "@check",
+            "pnpm test:e2e",
+            "@runtime:smoke"
+        ],
         "test:unit": [
             "@php artisan test --testsuite=Unit"
         ],
@@ -109,6 +121,7 @@
             "pnpm check:unwanted",
             "bash tools/quality/check-env-example.sh",
             "bash tools/quality/check-playwright-version.sh",
+            "@runtime:check",
             "@analyse",
             "@test",
             "pnpm typecheck",

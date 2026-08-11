@@ -22,16 +22,16 @@ const { t } = useTranslator();
 </script>
 
 <template>
-    <SurfaceCard :title="t('pages.admin.managers.tree.title')" :icon="IconSitemap" tone="teal">
+    <SurfaceCard :title="t('pages.admin.teams.structure.tree.title')" :icon="IconSitemap" tone="teal">
         <UiState
             v-if="nodes.length === 0"
             variant="empty"
             size="compact"
-            :title="t('pages.admin.managers.tree.empty_title')"
-            :description="t('pages.admin.managers.tree.empty_description')"
+            :title="t('pages.admin.teams.structure.tree.empty_title')"
+            :description="t('pages.admin.teams.structure.tree.empty_description')"
         />
         <div v-else class="overflow-x-auto">
-            <ul class="min-w-[28rem] space-y-2" :aria-label="t('pages.admin.managers.tree.aria')">
+            <ul class="min-w-[28rem] space-y-2" :aria-label="t('pages.admin.teams.structure.tree.aria')">
                 <li v-for="node in nodes" :key="node.userPublicId">
                     <ManagerHierarchyTreeNode :node="node" />
                 </li>

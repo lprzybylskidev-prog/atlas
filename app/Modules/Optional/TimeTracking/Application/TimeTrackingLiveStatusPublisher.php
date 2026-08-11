@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace App\Modules\Optional\TimeTracking\Application;
 
-use App\Modules\Core\Identity\Application\Public\Persistence\IdentityDatabaseTable;
+use App\Modules\Core\Identity\Application\Public\Contracts\UserLookup;
 use App\Modules\Core\Notifications\Application\Public\Contracts\RealtimePublisher;
 use App\Modules\Core\Notifications\Application\Public\DTOs\PublishRealtimeEvent;
-use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
-use App\Modules\Optional\TimeTracking\Application\Public\Persistence\TimeTrackingDatabaseTable;
+use App\Modules\Optional\TimeTracking\Infrastructure\Persistence\TableNames\TimeTrackingDatabaseTable;
+use App\Shared\Application\Teams\Contracts\TeamLookup;
 use DateTimeImmutable;
 use Illuminate\Database\ConnectionInterface;
 
@@ -17,6 +17,8 @@ final readonly class TimeTrackingLiveStatusPublisher
     public function __construct(
         private RealtimePublisher $realtime,
         private ConnectionInterface $database,
+        private UserLookup $users,
+        private TeamLookup $teams,
     ) {}
 
     /**
@@ -52,12 +54,12 @@ final readonly class TimeTrackingLiveStatusPublisher
 
     private function userPublicId(int $userId): ?string
     {
-        return $this->stringValue($this->database->table(IdentityDatabaseTable::USERS)->where('id', $userId)->value('public_id'));
+        return $this->users->publicIdForInternalId($userId);
     }
 
     private function teamPublicId(int $teamId): ?string
     {
-        return $this->stringValue($this->database->table(TeamsDatabaseTable::TEAMS)->where('id', $teamId)->value('public_id'));
+        return $this->teams->publicIdForInternalId($teamId);
     }
 
     private function latestTeamIdForUser(int $userId): ?int
@@ -69,10 +71,5 @@ final readonly class TimeTrackingLiveStatusPublisher
             ->value('team_id');
 
         return is_numeric($teamId) ? (int) $teamId : null;
-    }
-
-    private function stringValue(mixed $value): ?string
-    {
-        return is_scalar($value) && (string) $value !== '' ? (string) $value : null;
     }
 }

@@ -19,7 +19,7 @@ final class TeamsRouteAvailability implements InertiaRouteAvailabilityContributo
     {
         return [
             TeamPermissionCatalog::ADMIN_TEAMS_INDEX,
-            TeamPermissionCatalog::ADMIN_MANAGERS_INDEX,
+            TeamPermissionCatalog::ADMIN_TEAMS_STRUCTURE_SHOW,
         ];
     }
 

@@ -7,10 +7,12 @@ namespace App\Modules\Core\Exports\Application;
 use App\Modules\Core\Exports\Application\DTOs\ReportChartDefinition;
 use App\Modules\Core\Exports\Application\DTOs\ReportChartPoint;
 use App\Modules\Core\Exports\Application\DTOs\ReportChartSeries;
-use App\Modules\Core\Exports\Application\DTOs\ReportExportColumn;
 use App\Modules\Core\Exports\Application\DTOs\ReportExportTotal;
-use App\Modules\Core\Exports\Application\Public\DTOs\ReportExportGenerationRequest;
+use App\Shared\Application\Exports\DTOs\ReportExportColumn;
+use App\Shared\Application\Exports\DTOs\ReportExportGenerationRequest;
+use Carbon\CarbonImmutable;
 use Illuminate\Contracts\View\Factory as ViewFactory;
+use Illuminate\Support\Facades\App;
 
 final readonly class ReportHtmlDocumentFactory
 {
@@ -23,6 +25,18 @@ final readonly class ReportHtmlDocumentFactory
     ) {}
 
     public function tableReport(ReportExportGenerationRequest $request, bool $browserPrint = false): string
+    {
+        $previousLocale = App::getLocale();
+        App::setLocale($request->locale);
+
+        try {
+            return $this->renderTableReport($request, $browserPrint);
+        } finally {
+            App::setLocale($previousLocale);
+        }
+    }
+
+    private function renderTableReport(ReportExportGenerationRequest $request, bool $browserPrint): string
     {
         $columns = $this->table->columns($request);
         $configuration = $this->configuration->get();
@@ -41,7 +55,7 @@ final readonly class ReportHtmlDocumentFactory
             'moduleKey' => $request->moduleKey,
             'activeTeamPublicId' => $request->activeTeamPublicId,
             'requestingUserPublicId' => $request->requestingUserPublicId,
-            'generatedAt' => now('UTC')->format('Y-m-d H:i:s T'),
+            'generatedAt' => CarbonImmutable::now('UTC')->translatedFormat('j M Y, H:i T'),
             'releaseVersion' => $request->releaseVersion,
             'ruleVersion' => $request->ruleVersion,
             'fontCss' => $this->fonts->css(),

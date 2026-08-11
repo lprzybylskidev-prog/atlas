@@ -4,9 +4,8 @@ declare(strict_types=1);
 
 namespace App\Shared\Infrastructure\Modules\Activation;
 
-use App\Modules\Core\Audit\Application\Public\Contracts\AuditRecorder;
-use App\Modules\Core\Audit\Application\Public\DTOs\AuditEvent;
-use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
+use App\Shared\Application\Audit\Contracts\AuditRecorder;
+use App\Shared\Application\Audit\DTOs\AuditEvent;
 use App\Shared\Application\Modules\Activation\Contracts\ModuleActivationService;
 use App\Shared\Application\Modules\Activation\EffectiveModuleState;
 use App\Shared\Application\Modules\Activation\ModuleActivationChange;
@@ -16,10 +15,12 @@ use App\Shared\Application\Modules\Activation\ModuleActivationScope;
 use App\Shared\Application\Modules\Activation\ModuleActivationSource;
 use App\Shared\Application\Modules\Contracts\ModuleDeactivationGuardRegistry;
 use App\Shared\Application\Modules\Contracts\ModuleDefinition;
+use App\Shared\Application\Modules\Contracts\ModuleTechnicalAvailability;
 use App\Shared\Application\Modules\ModuleCategory;
 use App\Shared\Application\Modules\ModuleDeactivationRequest;
 use App\Shared\Application\Modules\ModuleKey;
 use App\Shared\Application\Modules\ModuleRegistry;
+use App\Shared\Application\Teams\Contracts\TeamLookup;
 use App\Shared\Infrastructure\Database\DatabaseTable;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\ConnectionInterface;
@@ -36,6 +37,8 @@ final readonly class DatabaseModuleActivationService implements ModuleActivation
         private ConnectionInterface $database,
         private ModuleDeactivationGuardRegistry $deactivationGuards,
         private AuditRecorder $audit,
+        private TeamLookup $teams,
+        private ModuleTechnicalAvailability $technicalAvailability,
     ) {}
 
     public function effectiveState(string $moduleKey, ?int $teamId = null): EffectiveModuleState
@@ -54,7 +57,19 @@ final readonly class DatabaseModuleActivationService implements ModuleActivation
 
     public function change(ModuleActivationChange $change): EffectiveModuleState
     {
-        $this->validateChange($change);
+        if (! $change->enabled) {
+            $this->recordDeactivationAudit($change, 'attempted');
+        }
+
+        try {
+            $this->validateChange($change);
+        } catch (\Throwable $exception) {
+            if (! $change->enabled) {
+                $this->recordDeactivationAudit($change, 'rejected', $exception->getMessage());
+            }
+
+            throw $exception;
+        }
 
         return $this->database->transaction(function () use ($change): EffectiveModuleState {
             $previous = $this->effectiveState($change->moduleKey, $change->teamId);
@@ -102,6 +117,10 @@ final readonly class DatabaseModuleActivationService implements ModuleActivation
             ]);
 
             $this->invalidate($change->moduleKey, $change->scope === ModuleActivationScope::Team ? $change->teamId : null);
+
+            if (! $change->enabled) {
+                $this->recordDeactivationAudit($change, 'succeeded');
+            }
 
             return $this->resolveEffectiveState($change->moduleKey, $change->teamId);
         });
@@ -270,10 +289,8 @@ final readonly class DatabaseModuleActivationService implements ModuleActivation
             return;
         }
 
-        foreach ($this->database->table(TeamsDatabaseTable::TEAMS)->pluck('id') as $id) {
-            if (is_numeric($id)) {
-                Cache::forget($this->cacheKey($moduleKey, (int) $id));
-            }
+        foreach ($this->teams->allInternalIds() as $id) {
+            Cache::forget($this->cacheKey($moduleKey, $id));
         }
     }
 
@@ -281,6 +298,8 @@ final readonly class DatabaseModuleActivationService implements ModuleActivation
     {
         $definition = $this->moduleDefinition($moduleKey);
         $deployed = $definition !== null;
+        $technicallyAvailable = $definition instanceof ModuleDefinition
+            && $this->technicalAvailability->available($definition);
         $core = $definition?->category() === ModuleCategory::Core;
         $globalRow = $this->database->table(DatabaseTable::MODULE_GLOBAL_STATES)->where('module_key', $moduleKey)->first();
         $globalValues = is_object($globalRow) ? get_object_vars($globalRow) : [];
@@ -291,8 +310,7 @@ final readonly class DatabaseModuleActivationService implements ModuleActivation
         $teamVersion = null;
 
         if ($teamId !== null) {
-            $teamPublicIdValue = $this->database->table(TeamsDatabaseTable::TEAMS)->where('id', $teamId)->value('public_id');
-            $teamPublicId = is_string($teamPublicIdValue) ? $teamPublicIdValue : null;
+            $teamPublicId = $this->teams->publicIdForInternalId($teamId);
             $teamRow = $this->database->table(DatabaseTable::MODULE_TEAM_STATES)->where('module_key', $moduleKey)->where('team_id', $teamId)->first();
 
             if (is_object($teamRow)) {
@@ -306,10 +324,10 @@ final readonly class DatabaseModuleActivationService implements ModuleActivation
         return new EffectiveModuleState(
             moduleKey: $moduleKey,
             deployed: $deployed,
-            technicallyAvailable: $deployed,
+            technicallyAvailable: $technicallyAvailable,
             globallyEnabled: $globalEnabled,
             teamEnabled: $teamEnabled,
-            effectiveEnabled: $deployed && $globalEnabled && $teamEnabled,
+            effectiveEnabled: $deployed && $technicallyAvailable && $globalEnabled && $teamEnabled,
             source: $source,
             teamPublicId: $teamPublicId,
             reason: is_string($globalValues['reason'] ?? null) ? $globalValues['reason'] : null,
@@ -339,6 +357,8 @@ final readonly class DatabaseModuleActivationService implements ModuleActivation
         }
 
         if (! $change->enabled) {
+            $this->assertNoEnabledRequiredDependents($change);
+
             $assessment = $this->deactivationGuards->assess(new ModuleDeactivationRequest(
                 moduleKey: new ModuleKey($change->moduleKey),
                 teamId: $change->teamId,
@@ -352,9 +372,47 @@ final readonly class DatabaseModuleActivationService implements ModuleActivation
             return;
         }
 
-        if (! $this->registry->has(new ModuleKey($change->moduleKey))) {
+        if (! $this->registry->has(new ModuleKey($change->moduleKey)) || ! $this->technicalAvailability->available($definition)) {
             throw ModuleActivationException::unavailableModuleCannotBeActivated($change->moduleKey);
         }
+    }
+
+    private function assertNoEnabledRequiredDependents(ModuleActivationChange $change): void
+    {
+        foreach ($this->registry->requiredDependentsOf(new ModuleKey($change->moduleKey)) as $dependent) {
+            $state = $this->effectiveState($dependent->key()->value, $change->teamId);
+
+            $enabled = $change->scope === ModuleActivationScope::Global
+                ? $state->globallyEnabled
+                : $state->effectiveEnabled;
+
+            if ($enabled) {
+                throw ModuleActivationException::requiredDependentBlocksDeactivation(
+                    $change->moduleKey,
+                    $dependent->key()->value,
+                );
+            }
+        }
+    }
+
+    private function recordDeactivationAudit(ModuleActivationChange $change, string $result, ?string $rejectionReason = null): void
+    {
+        $this->audit->record(new AuditEvent(
+            module: 'authorization',
+            action: $result === 'attempted' ? 'module.deactivation_attempted' : 'module.deactivation',
+            result: $result === 'attempted' ? 'succeeded' : $result,
+            source: $change->source->value,
+            targetType: 'module',
+            targetPublicId: $change->moduleKey,
+            aggregateType: 'module',
+            aggregatePublicId: $change->moduleKey,
+            reason: $rejectionReason ?? $change->reason,
+            metadata: [
+                'module_key' => $change->moduleKey,
+                'scope' => $change->scope->value,
+                'team_id' => $change->teamId,
+            ],
+        ));
     }
 
     private function moduleDefinition(string $moduleKey): ?ModuleDefinition

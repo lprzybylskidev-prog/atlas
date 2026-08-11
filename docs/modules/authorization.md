@@ -39,8 +39,9 @@ Administrator has the complete permission set but still uses normal use cases, a
 Current implementation foundation:
 
 - `App\Modules\Core\Authorization\AuthorizationModule` owns authorization contracts and infrastructure;
-- `App\Modules\Core\Authorization\Application\Public\Contracts\EffectivePermissionChecker` is the public contract for cross-module effective permission checks;
-- `App\Modules\Core\Authorization\Infrastructure\Persistence\SpatieEffectivePermissionChecker` evaluates active-team-scoped direct and role permissions from the Spatie tables without exposing Spatie APIs to other modules;
+- `App\Shared\Application\Authorization\Contracts\EffectivePermissionChecker` is the public contract for cross-module effective permission checks;
+- `App\Shared\Application\Authorization\Contracts\AdministratorAccessLookup` is the public contract for checking administrator-level access without exposing Spatie role/permission tables to Identity impersonation eligibility.
+- `App\Modules\Core\Authorization\Infrastructure\Persistence\SpatieEffectivePermissionChecker` evaluates active-team-scoped direct and role permissions from the Spatie tables without exposing Spatie APIs to other modules; user/team public-ID resolution and active membership validation are delegated to Identity/Teams public contracts;
 - `App\Modules\Core\Authorization\Application\Permissions\PermissionCatalogRegistry` collects module-owned typed permission catalogs registered through the shared module permission contribution contract;
 - protected named web routes use `route.permission`, which requires the effective permission name to match the route name;
 - public, session-context, or technical route exceptions are currently `login`, `password.email`, `password.reset`, `password.confirm`, `password.confirm.store`, `password.confirmation`, `locale.update`, `team.select`, `team.select.store`, `team.switch`, and `theme.update`.
@@ -70,6 +71,7 @@ Operational CLI:
 - `atlas:first-administrator --name="..." --email="..." --team="..."` creates the first administrator only while no administrator role assignment exists;
 - first administrator bootstrap creates the account through the normal user creation use case, sends the standard first-password link, and does not accept or generate a final password.
 - local/development preview administrator creation is owned by `Database\Seeders\DevelopmentBootstrapSeeder`, not by the development demo seeder.
+- production-safe role/permission installation is exposed through `AuthorizationBootstrapper`; non-production E2E workspace access uses the owner `AuthorizationFixtureBuilder`; TimeTracking demo assignments use the normal assignment manager and persist manual provenance with an explicit fixture reason.
 
 Presets:
 
@@ -80,6 +82,10 @@ Presets:
 - preset definitions are one-time starting assignments only and never synchronize existing users or roles automatically.
 - user creation may alternatively copy the source user's selected-team role and direct-permission assignments as a one-time snapshot, and the source user must have active access to that selected team.
 - user and team creation may also provide explicit team-scoped user role and direct-permission assignments;
+- user-side and team-side administration compose the same `UserTeamAuthorizationWorkflow` frontend workflow and call the same `UserTeamAuthorizationManager` backend use case;
+- `user_team_assignment_provenance` stores the truthful current assignment origin (`manual`, `preset`, or `copy`), source public identifier and display-name snapshot, copied-from user, preset version and snapshot, applying actor/time/reason, resulting roles/direct permissions/policy limits, divergence time, update reason, and optimistic version;
+- later manual edits preserve the original source and mark divergence instead of rewriting preset/copy provenance as manual;
+- stale assignment updates are rejected by the persisted optimistic version;
 - users do not receive global role or permission assignments outside a team context.
 - removing a user's team access also removes that user's direct role and permission assignments in the removed team.
 - operational module activation never grants permissions automatically;
@@ -90,11 +96,14 @@ Presets:
 
 Authorization registers `UserAuthorizationDataLifecycleParticipant` for `user` subjects. Privacy execution removes the user's team-scoped role assignments, direct permission assignments, and onboarding-package snapshots. It does not delete role definitions, permission definitions, role-permission mappings, onboarding package definitions, or module activation state because those records are system configuration rather than personal controlled copies.
 
+Permission catalog Admin read surfaces and exports resolve active-team context through Teams `TeamLookup`. Onboarding package creation, package reads, effective permission checks, assignment previews, administrator-level impersonation eligibility checks, and authorization lifecycle user-ID resolution use Identity `UserLookup` and Teams `TeamLookup` instead of reading Identity/Teams persistence directly. Authorization delegates team-membership provisioning to Teams `UserTeamMembershipProvisioner` instead of writing Teams tables directly.
+
 ---
+
 # Phase 28 foundation repair target
 
-Current state: Authorization is implemented, but Phase 28 tracks dependency drift with Teams/Audit, direct Identity/Teams SQL, team-membership ownership drift, duplicated assignment workflows, incomplete assignment provenance, stale-write risks, audit gaps, UI parity issues, and seeder bypasses.
+Current state: Authorization uses owner-owned Identity/Teams lookups and membership provisioning. Phase 28 consolidated user/team assignment administration into one workflow/use case, added truthful persisted provenance and stale-write protection, and retained atomic security audit evidence for assignment replacement.
 
-Target state: Authorization depends only through owner-owned public contracts, delegates membership mutation to the Teams owner, uses one user-team assignment workflow from both user and team contexts, persists truthful manual/preset/copy provenance, and has complete audit, authorization, UI, seeder, and architecture coverage.
+Target state achieved for seeding: Authorization depends only through owner-owned public contracts, delegates membership mutation to the Teams owner, uses one user-team assignment workflow from user, team, and deterministic fixture contexts, persists truthful manual/preset/copy provenance, and has complete audit, authorization, UI, seeder, and architecture coverage.
 
 Tracked issue IDs: `P28-ARCH-001`, `P28-ARCH-004`, `P28-ARCH-011`, `P28-AUTH-003`, `P28-AUTH-004`, `P28-AUTH-005`, `P28-SEED-001`, `P28-MODAUD-002`.

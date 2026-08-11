@@ -8,8 +8,8 @@ use App\Modules\Optional\TimeTracking\Application\Contracts\UserTeamTrackingSett
 use App\Modules\Optional\TimeTracking\Application\Permissions\TimeTrackingPermissionCatalog;
 use App\Modules\Optional\TimeTracking\Application\TimeTrackingModuleAccess;
 use App\Modules\Optional\TimeTracking\Application\UserTimeReportService;
-use App\Shared\Application\Tables\AdminTableDefinitions;
 use App\Shared\Application\Tables\ArrayTableProcessor;
+use App\Shared\Application\Tables\RegisteredTables;
 use App\Shared\Application\Tables\TableRequestContext;
 use App\Shared\Application\Tables\TableSavedViewService;
 use App\Shared\Application\Tables\TableState;
@@ -23,23 +23,24 @@ final readonly class UserTimeReportController
         private UserTimeReportService $reports,
         private TimeTrackingModuleAccess $access,
         private ArrayTableProcessor $tables,
-        private TableSavedViewService $views,
         private TableRequestContext $context,
         private UserTeamTrackingSettings $trackingSettings,
+        private TableSavedViewService $views,
     ) {}
 
     public function __invoke(Request $request): Response
     {
-        $dailyDefinition = AdminTableDefinitions::get(AdminTableDefinitions::TIME_TRACKING_USER_WORK_TIME_DAILY);
-        $otherWorkDefinition = AdminTableDefinitions::get(AdminTableDefinitions::TIME_TRACKING_USER_OTHER_WORK);
-        $workSessionsDefinition = AdminTableDefinitions::get(AdminTableDefinitions::TIME_TRACKING_USER_WORK_SESSIONS);
-        $breaksDefinition = AdminTableDefinitions::get(AdminTableDefinitions::TIME_TRACKING_USER_BREAKS);
-        $correctionsDefinition = AdminTableDefinitions::get(AdminTableDefinitions::TIME_TRACKING_USER_CORRECTIONS);
+        $section = $this->section($request);
+        $dailyDefinition = RegisteredTables::get(RegisteredTables::TIME_TRACKING_USER_WORK_TIME_DAILY);
+        $otherWorkDefinition = RegisteredTables::get(RegisteredTables::TIME_TRACKING_USER_OTHER_WORK);
+        $workSessionsDefinition = RegisteredTables::get(RegisteredTables::TIME_TRACKING_USER_WORK_SESSIONS);
+        $breaksDefinition = RegisteredTables::get(RegisteredTables::TIME_TRACKING_USER_BREAKS);
+        $correctionsDefinition = RegisteredTables::get(RegisteredTables::TIME_TRACKING_USER_CORRECTIONS);
         $dailyState = TableState::fromRequest($request, $dailyDefinition);
-        $otherWorkState = TableState::fromPayload([], $otherWorkDefinition);
-        $workSessionsState = TableState::fromPayload([], $workSessionsDefinition);
-        $breaksState = TableState::fromPayload([], $breaksDefinition);
-        $correctionsState = TableState::fromPayload([], $correctionsDefinition);
+        $otherWorkState = TableState::fromRequest($request, $otherWorkDefinition);
+        $workSessionsState = TableState::fromRequest($request, $workSessionsDefinition);
+        $breaksState = TableState::fromRequest($request, $breaksDefinition);
+        $correctionsState = TableState::fromRequest($request, $correctionsDefinition);
         [$userId, $teamId] = $this->context->userTeam($request);
         $userPublicId = data_get($request->user(), 'public_id');
         $teamPublicId = $request->hasSession() ? $request->session()->get('active_team_public_id') : null;
@@ -57,23 +58,36 @@ final readonly class UserTimeReportController
 
         $report = $this->reports->workTimeForRequest($request, $userId, $teamId);
 
-        $dailyResult = $this->tables->process($report->dailyRows, $dailyDefinition, $dailyState)
+        $dailyResult = $this->tables->process($section === 'daily' ? $report->dailyRows : [], $dailyDefinition, $dailyState)
             ->withSavedViews($this->views->listFor($dailyDefinition->key, $userId, $teamId));
         $dailyTable = $dailyResult->tableMeta($dailyDefinition->key);
         $dailyTable['state']['filters'] = $report->filters;
 
-        $otherWorkResult = $this->tables->process($report->otherWorkRows, $otherWorkDefinition, $otherWorkState);
-        $workSessionsResult = $this->tables->process($this->reports->userWorkSessionDetails($request, $userId, $teamId), $workSessionsDefinition, $workSessionsState);
-        $breaksResult = $this->tables->process($this->reports->userBreakDetails($request, $userId, $teamId), $breaksDefinition, $breaksState);
-        $correctionsResult = $this->tables->process($this->reports->userCorrectionDetails($request, $userId, $teamId), $correctionsDefinition, $correctionsState);
+        $otherWorkResult = $this->tables->process($section === 'other_work' ? $report->otherWorkRows : [], $otherWorkDefinition, $otherWorkState)
+            ->withSavedViews($this->views->listFor($otherWorkDefinition->key, $userId, $teamId));
+        $workSessionsResult = $this->tables->process($section === 'work_sessions' ? $this->reports->userWorkSessionDetails($request, $userId, $teamId) : [], $workSessionsDefinition, $workSessionsState)
+            ->withSavedViews($this->views->listFor($workSessionsDefinition->key, $userId, $teamId));
+        $breaksResult = $this->tables->process($section === 'breaks' ? $this->reports->userBreakDetails($request, $userId, $teamId) : [], $breaksDefinition, $breaksState)
+            ->withSavedViews($this->views->listFor($breaksDefinition->key, $userId, $teamId));
+        $correctionsResult = $this->tables->process($section === 'corrections' ? $this->reports->userCorrectionDetails($request, $userId, $teamId) : [], $correctionsDefinition, $correctionsState)
+            ->withSavedViews($this->views->listFor($correctionsDefinition->key, $userId, $teamId));
+        $summaryRows = match ($section) {
+            'daily' => $dailyResult->filteredRows,
+            'other_work' => $otherWorkResult->filteredRows,
+            'work_sessions' => $workSessionsResult->filteredRows,
+            'breaks' => $breaksResult->filteredRows,
+            'corrections' => $correctionsResult->filteredRows,
+            default => [],
+        };
 
         return Inertia::render('TimeTracking/UserReport', [
+            'section' => $section,
             'dailyRows' => $dailyResult->rows,
             'otherWorkRows' => $otherWorkResult->rows,
             'workSessionRows' => $workSessionsResult->rows,
             'breakRows' => $breaksResult->rows,
             'correctionRows' => $correctionsResult->rows,
-            'summary' => $report->summary,
+            'summary' => $this->reports->summaryForOperationRows($section, $summaryRows),
             'comparison' => $report->comparison,
             'filters' => $report->filters,
             'dailyTable' => $dailyTable,
@@ -82,5 +96,14 @@ final readonly class UserTimeReportController
             'breaksTable' => $breaksResult->tableMeta($breaksDefinition->key),
             'correctionsTable' => $correctionsResult->tableMeta($correctionsDefinition->key),
         ]);
+    }
+
+    private function section(Request $request): string
+    {
+        $section = $request->query('section');
+
+        return is_string($section) && in_array($section, ['daily', 'work_sessions', 'breaks', 'other_work', 'corrections'], true)
+            ? $section
+            : 'daily';
     }
 }

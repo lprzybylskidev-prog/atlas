@@ -70,11 +70,6 @@ Breadcrumbs::for('users.work-time.other-work.create', function (Generator $bread
     $breadcrumbs->push(__('breadcrumbs.time_tracking_other_work_start'), route('users.work-time.other-work.create'));
 });
 
-Breadcrumbs::for('time-tracking.reports.manager', function (Generator $breadcrumbs): void {
-    atlas_manager_panel_root($breadcrumbs);
-    $breadcrumbs->push(__('breadcrumbs.time_tracking_manager_report'), route('time-tracking.reports.manager'));
-});
-
 Breadcrumbs::for('manager.work-time.summary.index', function (Generator $breadcrumbs): void {
     atlas_manager_panel_root($breadcrumbs);
     $breadcrumbs->push(__('breadcrumbs.work_time_operations'));

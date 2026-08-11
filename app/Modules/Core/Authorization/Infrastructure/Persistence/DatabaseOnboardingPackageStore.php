@@ -6,81 +6,93 @@ namespace App\Modules\Core\Authorization\Infrastructure\Persistence;
 
 use App\Modules\Core\Authorization\Application\Contracts\OnboardingPackageStore;
 use App\Modules\Core\Authorization\Application\Packages\OnboardingPackageDefinition;
-use App\Modules\Core\Authorization\Application\Public\Persistence\AuthorizationDatabaseTable;
-use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
+use App\Modules\Core\Authorization\Infrastructure\Persistence\TableNames\AuthorizationDatabaseTable;
+use App\Shared\Application\Teams\Contracts\TeamLookup;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use stdClass;
 
 final class DatabaseOnboardingPackageStore implements OnboardingPackageStore
 {
+    public function __construct(
+        private readonly TeamLookup $teams,
+    ) {}
+
     public function allActive(?string $teamPublicId = null): array
     {
         $packages = [];
+        $teamId = $teamPublicId === null ? null : $this->teams->internalIdForPublicId($teamPublicId);
 
-        foreach (DB::table(AuthorizationDatabaseTable::AUTHORIZATION_ONBOARDING_PACKAGES)
-            ->join(TeamsDatabaseTable::TEAMS, 'authorization_onboarding_packages.team_id', '=', 'teams.id')
+        if ($teamPublicId !== null && $teamId === null) {
+            return [];
+        }
+
+        foreach ($this->withTeamSummaries(DB::table(AuthorizationDatabaseTable::AUTHORIZATION_ONBOARDING_PACKAGES)
             ->where('authorization_onboarding_packages.is_active', true)
-            ->when($teamPublicId !== null, static function ($query) use ($teamPublicId): void {
-                $query->where('teams.public_id', $teamPublicId);
+            ->when($teamId !== null, static function ($query) use ($teamId): void {
+                $query->where('authorization_onboarding_packages.team_id', $teamId);
             })
-            ->orderBy('teams.name')
             ->orderBy('authorization_onboarding_packages.label')
             ->get([
                 'authorization_onboarding_packages.public_id',
+                'authorization_onboarding_packages.team_id',
                 'authorization_onboarding_packages.name',
                 'authorization_onboarding_packages.label',
                 'authorization_onboarding_packages.initial_role_names',
                 'authorization_onboarding_packages.direct_permission_names',
                 'authorization_onboarding_packages.template_permission_names',
-                'teams.public_id as team_public_id',
-                'teams.name as team_name',
-                'teams.display_name as team_display_name',
             ])
-            ->all() as $row) {
+            ->all()) as $row) {
             $packages[] = $this->definitionFromRow($row);
         }
+
+        usort($packages, fn (OnboardingPackageDefinition $first, OnboardingPackageDefinition $second): int => [$first->teamName, $first->label] <=> [$second->teamName, $second->label]);
 
         return $packages;
     }
 
     public function findByPublicId(string $publicId): ?OnboardingPackageDefinition
     {
-        $row = DB::table(AuthorizationDatabaseTable::AUTHORIZATION_ONBOARDING_PACKAGES)
-            ->join(TeamsDatabaseTable::TEAMS, 'authorization_onboarding_packages.team_id', '=', 'teams.id')
+        $rows = $this->withTeamSummaries(DB::table(AuthorizationDatabaseTable::AUTHORIZATION_ONBOARDING_PACKAGES)
             ->where('authorization_onboarding_packages.public_id', $publicId)
-            ->first([
+            ->get([
                 'authorization_onboarding_packages.public_id',
+                'authorization_onboarding_packages.team_id',
                 'authorization_onboarding_packages.name',
                 'authorization_onboarding_packages.label',
                 'authorization_onboarding_packages.initial_role_names',
                 'authorization_onboarding_packages.direct_permission_names',
                 'authorization_onboarding_packages.template_permission_names',
-                'teams.public_id as team_public_id',
-                'teams.name as team_name',
-                'teams.display_name as team_display_name',
-            ]);
+            ])
+            ->all());
+        $row = $rows[0] ?? null;
 
         return is_object($row) ? $this->definitionFromRow($row) : null;
     }
 
     public function findActiveForTeam(string $name, string $teamPublicId): ?OnboardingPackageDefinition
     {
-        $row = DB::table(AuthorizationDatabaseTable::AUTHORIZATION_ONBOARDING_PACKAGES)
-            ->join(TeamsDatabaseTable::TEAMS, 'authorization_onboarding_packages.team_id', '=', 'teams.id')
+        $teamId = $this->teams->internalIdForPublicId($teamPublicId);
+
+        if ($teamId === null) {
+            return null;
+        }
+
+        $rows = $this->withTeamSummaries(DB::table(AuthorizationDatabaseTable::AUTHORIZATION_ONBOARDING_PACKAGES)
             ->where('authorization_onboarding_packages.name', $name)
             ->where('authorization_onboarding_packages.is_active', true)
-            ->where('teams.public_id', $teamPublicId)
-            ->first([
+            ->where('authorization_onboarding_packages.team_id', $teamId)
+            ->get([
                 'authorization_onboarding_packages.public_id',
+                'authorization_onboarding_packages.team_id',
                 'authorization_onboarding_packages.name',
                 'authorization_onboarding_packages.label',
                 'authorization_onboarding_packages.initial_role_names',
                 'authorization_onboarding_packages.direct_permission_names',
                 'authorization_onboarding_packages.template_permission_names',
-                'teams.public_id as team_public_id',
-                'teams.name as team_name',
-                'teams.display_name as team_display_name',
-            ]);
+            ])
+            ->all());
+        $row = $rows[0] ?? null;
 
         return is_object($row) ? $this->definitionFromRow($row) : null;
     }
@@ -93,9 +105,9 @@ final class DatabaseOnboardingPackageStore implements OnboardingPackageStore
         array $directPermissionNames,
         array $templatePermissionNames,
     ): void {
-        $teamId = DB::table(TeamsDatabaseTable::TEAMS)->where('public_id', $teamPublicId)->value('id');
+        $teamId = $this->teams->internalIdForPublicId($teamPublicId);
 
-        if (! is_int($teamId)) {
+        if ($teamId === null) {
             return;
         }
 
@@ -149,6 +161,39 @@ final class DatabaseOnboardingPackageStore implements OnboardingPackageStore
             directPermissionNames: $this->stringList($values, 'direct_permission_names'),
             templatePermissionNames: $this->stringList($values, 'template_permission_names'),
         );
+    }
+
+    /**
+     * @param  array<int, stdClass>  $rows
+     * @return list<stdClass>
+     */
+    private function withTeamSummaries(array $rows): array
+    {
+        $rows = array_values($rows);
+        $teamIds = [];
+
+        foreach ($rows as $row) {
+            $values = get_object_vars($row);
+            $teamId = $values['team_id'] ?? null;
+
+            if (is_numeric($teamId)) {
+                $teamIds[] = (int) $teamId;
+            }
+        }
+
+        $summaries = $this->teams->summariesForInternalIds($teamIds);
+
+        foreach ($rows as $row) {
+            $values = get_object_vars($row);
+            $teamId = $values['team_id'] ?? null;
+            $summary = is_numeric($teamId) ? ($summaries[(int) $teamId] ?? null) : null;
+
+            $row->team_public_id = $summary === null ? '' : $summary->publicId;
+            $row->team_name = $summary === null ? '' : $summary->name;
+            $row->team_display_name = $summary === null ? '' : $summary->name;
+        }
+
+        return $rows;
     }
 
     /**

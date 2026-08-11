@@ -9,6 +9,8 @@ use App\Modules\Core\Identity\Application\Public\Contracts\UserLookup;
 use App\Modules\Core\Identity\Application\Public\Contracts\UserSessionRegistry;
 use App\Modules\Core\Identity\Application\Public\DTOs\AdminUserCredentialAccount;
 use App\Modules\Core\Identity\Application\Public\DTOs\UserCredentialAccountOption;
+use App\Modules\Core\Identity\Application\Public\DTOs\UserDisplaySummary;
+use App\Modules\Core\Identity\Application\Public\DTOs\UserNotificationContact;
 use DateTimeInterface;
 
 final class EloquentUserCredentialAccountDirectory implements UserCredentialAccountDirectory, UserLookup
@@ -75,6 +77,146 @@ final class EloquentUserCredentialAccountDirectory implements UserCredentialAcco
         $publicId = User::query()->whereKey($userId)->value('public_id');
 
         return is_string($publicId) && $publicId !== '' ? $publicId : null;
+    }
+
+    public function publicIdForEmail(string $email): ?string
+    {
+        $publicId = User::query()->where('email', $email)->value('public_id');
+
+        return is_string($publicId) && $publicId !== '' ? $publicId : null;
+    }
+
+    public function internalIdsForPublicIds(array $userPublicIds): array
+    {
+        if ($userPublicIds === []) {
+            return [];
+        }
+
+        $ids = [];
+
+        foreach (User::query()
+            ->whereIn('public_id', array_values(array_unique($userPublicIds)))
+            ->get(['id', 'public_id'])
+            ->all() as $user) {
+            $publicId = (string) $user->public_id;
+            $id = $user->id;
+
+            if ($publicId !== '' && $id > 0) {
+                $ids[$publicId] = $id;
+            }
+        }
+
+        ksort($ids);
+
+        return $ids;
+    }
+
+    public function notificationContactForInternalId(int $userId): ?UserNotificationContact
+    {
+        $user = User::query()->whereKey($userId)->first(['id', 'public_id', 'email', 'email_verified_at']);
+
+        if (! $user instanceof User) {
+            return null;
+        }
+
+        $emailVerifiedAt = $user->getAttribute('email_verified_at');
+
+        return new UserNotificationContact(
+            internalId: (int) $user->id,
+            publicId: (string) $user->public_id,
+            email: $user->email,
+            emailVerifiedAt: $emailVerifiedAt instanceof DateTimeInterface ? $emailVerifiedAt : null,
+        );
+    }
+
+    public function displaySummariesForPublicIds(array $userPublicIds): array
+    {
+        if ($userPublicIds === []) {
+            return [];
+        }
+
+        $summaries = [];
+
+        foreach (User::query()
+            ->whereIn('public_id', array_values(array_unique($userPublicIds)))
+            ->get(['public_id', 'name', 'email'])
+            ->all() as $user) {
+            $publicId = (string) $user->public_id;
+            $summaries[$publicId] = new UserDisplaySummary(
+                publicId: $publicId,
+                name: $user->name,
+                email: $user->email,
+            );
+        }
+
+        ksort($summaries);
+
+        return $summaries;
+    }
+
+    public function displaySummariesForInternalIds(array $userIds): array
+    {
+        if ($userIds === []) {
+            return [];
+        }
+
+        $summaries = [];
+
+        foreach (User::query()
+            ->whereIn('id', array_values(array_unique($userIds)))
+            ->get(['id', 'public_id', 'name', 'email'])
+            ->all() as $user) {
+            $id = $user->id;
+
+            $summaries[$id] = new UserDisplaySummary(
+                publicId: (string) $user->public_id,
+                name: $user->name,
+                email: $user->email,
+            );
+        }
+
+        ksort($summaries);
+
+        return $summaries;
+    }
+
+    public function allDisplaySummaries(): array
+    {
+        $summaries = [];
+
+        foreach (User::query()
+            ->orderBy('name')
+            ->orderBy('email')
+            ->get(['public_id', 'name', 'email'])
+            ->all() as $user) {
+            $summaries[] = new UserDisplaySummary(
+                publicId: (string) $user->public_id,
+                name: $user->name,
+                email: $user->email,
+            );
+        }
+
+        return $summaries;
+    }
+
+    public function allActiveDisplaySummaries(): array
+    {
+        $summaries = [];
+
+        foreach (User::query()
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->orderBy('email')
+            ->get(['public_id', 'name', 'email'])
+            ->all() as $user) {
+            $summaries[] = new UserDisplaySummary(
+                publicId: (string) $user->public_id,
+                name: $user->name,
+                email: $user->email,
+            );
+        }
+
+        return $summaries;
     }
 
     public function emailExists(string $email, ?string $exceptPublicId = null): bool

@@ -4,19 +4,20 @@ declare(strict_types=1);
 
 namespace App\Modules\Optional\ManagedProcesses\Application\Exports;
 
-use App\Modules\Core\Exports\Application\Public\AbstractAdminDataTableExportProvider;
-use App\Modules\Core\Exports\Application\Public\DTOs\ReportExportGenerationRequest;
-use App\Modules\Core\Exports\Application\Public\Permissions\ReportsPermissionCatalog;
-use App\Modules\Optional\Imports\Application\Public\Persistence\ImportsDatabaseTable;
-use App\Modules\Optional\ManagedProcesses\Application\Public\Persistence\ManagedProcessesDatabaseTable;
-use App\Shared\Application\Tables\AdminTableDefinitions;
-use Illuminate\Support\Facades\DB;
+use App\Shared\Application\Exports\AbstractAdminDataTableExportProvider;
+use App\Shared\Application\Exports\DTOs\ReportExportGenerationRequest;
+use App\Shared\Application\Exports\ExportPermissions;
+use App\Shared\Application\Imports\Contracts\ImportAdminVisibility;
+use App\Shared\Application\Imports\DTOs\ImportRowErrorSummary;
+use App\Shared\Application\Tables\RegisteredTables;
 
 final readonly class AdminImportRowErrorsDataTableExportProvider extends AbstractAdminDataTableExportProvider
 {
+    public function __construct(private ImportAdminVisibility $imports) {}
+
     public function tableKey(): string
     {
-        return AdminTableDefinitions::IMPORT_ROW_ERRORS;
+        return RegisteredTables::IMPORT_ROW_ERRORS;
     }
 
     public function tableName(): string
@@ -31,7 +32,7 @@ final readonly class AdminImportRowErrorsDataTableExportProvider extends Abstrac
 
     public function requestPermission(): string
     {
-        return ReportsPermissionCatalog::REQUEST;
+        return ExportPermissions::REQUEST;
     }
 
     public function ruleVersion(): string
@@ -61,35 +62,18 @@ final readonly class AdminImportRowErrorsDataTableExportProvider extends Abstrac
             return;
         }
 
-        $rows = DB::table(ImportsDatabaseTable::ROW_ERRORS)
-            ->join(ImportsDatabaseTable::EXECUTIONS, 'import_row_errors.import_execution_id', '=', 'import_executions.id')
-            ->join(ManagedProcessesDatabaseTable::RUNS, 'import_executions.process_run_id', '=', 'process_runs.id')
-            ->where('process_runs.public_id', $runPublicId)
-            ->orderBy('import_row_errors.row_number')
-            ->get([
-                'import_row_errors.public_id',
-                'import_row_errors.row_number',
-                'import_row_errors.field_name',
-                'import_row_errors.severity',
-                'import_row_errors.error_code',
-                'import_row_errors.message',
-                'import_executions.public_id as import_public_id',
-                'process_runs.public_id as run_public_id',
-            ])
-            ->map(static fn (object $error): array => [
-                'publicId' => self::stringValue($error->public_id ?? ''),
-                'runPublicId' => self::stringValue($error->run_public_id ?? ''),
-                'importPublicId' => self::stringValue($error->import_public_id ?? ''),
-                'rowNumber' => is_numeric($error->row_number ?? null) ? (int) $error->row_number : null,
-                'fieldName' => self::stringValue($error->field_name ?? ''),
-                'severity' => self::stringValue($error->severity ?? ''),
-                'errorCode' => self::stringValue($error->error_code ?? ''),
-                'message' => self::stringValue($error->message ?? ''),
-            ])
-            ->values()
-            ->all();
+        $rows = array_map(static fn (ImportRowErrorSummary $error): array => [
+            'publicId' => $error->publicId,
+            'runPublicId' => $error->runPublicId,
+            'importPublicId' => $error->importPublicId,
+            'rowNumber' => $error->rowNumber,
+            'fieldName' => self::stringValue($error->fieldName),
+            'severity' => $error->severity,
+            'errorCode' => $error->errorCode,
+            'message' => $error->message,
+        ], $this->imports->rowErrorsForProcessRunPublicId($runPublicId));
 
-        foreach ($this->sorted($this->filtered(array_values($rows), $request), $request) as $row) {
+        foreach ($this->sorted($this->filtered($rows, $request), $request) as $row) {
             yield $row;
         }
     }

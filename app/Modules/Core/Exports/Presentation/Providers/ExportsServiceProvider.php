@@ -5,9 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Core\Exports\Presentation\Providers;
 
 use App\Modules\Core\Exports\Application\AdminDataTableExportProviderRegistry;
-use App\Modules\Core\Exports\Application\Contracts\AdminDataTableExportProvider;
 use App\Modules\Core\Exports\Application\Contracts\ReportChartProvider;
-use App\Modules\Core\Exports\Application\Contracts\ReportExportDataProvider;
 use App\Modules\Core\Exports\Application\Contracts\ReportExportGenerator;
 use App\Modules\Core\Exports\Application\Contracts\ReportExportRequestStore;
 use App\Modules\Core\Exports\Application\Contracts\ReportPdfRenderer;
@@ -39,6 +37,8 @@ use App\Modules\Core\Exports\Infrastructure\Persistence\DatabaseReportExportRequ
 use App\Modules\Core\Exports\Infrastructure\Rendering\PlaywrightReportPdfRenderer;
 use App\Modules\Core\Exports\Infrastructure\Runtime\ReportExportGenerationProcessHandler;
 use App\Modules\Core\Exports\Presentation\Console\CleanupExpiredExportsCommand;
+use App\Shared\Application\Exports\Contracts\AdminDataTableExportProvider;
+use App\Shared\Application\Exports\Contracts\ReportExportDataProvider;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Support\ServiceProvider;
 

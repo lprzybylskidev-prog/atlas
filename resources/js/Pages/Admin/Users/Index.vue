@@ -65,12 +65,12 @@ const rows = computed<UserRow[]>(() =>
 );
 
 const columns = computed<DataTableColumn<UserRow>[]>(() => [
-    { key: 'publicId', label: t('pages.admin.users.table.public_id') },
-    { key: 'id', label: t('pages.admin.users.table.internal_id'), hidden: true },
     { key: 'name', label: t('pages.admin.users.table.name') },
     { key: 'email', label: t('pages.admin.users.table.email') },
+    { key: 'publicId', label: t('pages.admin.users.table.public_id'), hidden: true },
+    { key: 'id', label: t('pages.admin.users.table.internal_id'), hidden: true },
     { key: 'online', label: t('pages.admin.users.table.online'), format: 'boolean' },
-    { key: 'isActive', label: t('pages.admin.users.table.active'), format: 'boolean' },
+    { key: 'isActive', label: t('pages.admin.users.table.active'), format: 'activation-status' },
     { key: 'emailVerified', label: t('pages.admin.users.table.email_verified'), format: 'boolean' },
     { key: 'firstPasswordSet', label: t('pages.admin.users.table.first_password_set'), format: 'boolean' },
     { key: 'loginLocked', label: t('pages.admin.users.table.login_locked'), format: 'boolean' },

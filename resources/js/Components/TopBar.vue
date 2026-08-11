@@ -16,8 +16,7 @@ import {
     IconPlayerPause,
     IconShieldLock,
     IconSun,
-    IconUserCircle,
-    IconUsersGroup,
+    IconWifiOff,
 } from '@tabler/icons-vue';
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import type { Component } from 'vue';
@@ -33,7 +32,7 @@ import { useTranslator } from '../Localization/translator';
 import { beginFullscreenTransitionLoading } from '../Services/fullscreenTransitionLoading';
 import { clearTeamScopedState } from '../Services/teamScopedState';
 import type { AtlasPageProps } from '../Types/inertia';
-import type { ShellMode, ShellSubnavigationItem } from '../Types/navigation';
+import type { ShellMode, ShellModeLink, ShellSubnavigationItem } from '../Types/navigation';
 import { DEFAULT_AVATAR_COLOR, readableAvatarTextColor } from '../Utils/avatar';
 import { formatTimestamp } from '../Utils/formatters';
 
@@ -46,6 +45,8 @@ const props = withDefaults(
         uiLocale?: string;
         subnavigation?: ShellSubnavigationItem[];
         subnavigationLabel?: string;
+        breadcrumbs?: AtlasPageProps['navigation']['breadcrumbs'];
+        modeLinks?: ShellModeLink[];
     }>(),
     {
         mode: 'app',
@@ -53,7 +54,9 @@ const props = withDefaults(
         showLocaleSwitcher: true,
         uiLocale: undefined,
         subnavigation: () => [],
-        subnavigationLabel: 'Section navigation',
+        subnavigationLabel: undefined,
+        breadcrumbs: () => [],
+        modeLinks: () => [],
     },
 );
 
@@ -72,6 +75,7 @@ const userMenuPanel = ref<HTMLElement | null>(null);
 const notificationSoundArmed = ref(false);
 const previousUnreadCount = ref(page.props.notifications.unreadCount);
 const teamSwitching = ref(false);
+const online = ref(typeof navigator === 'undefined' ? true : navigator.onLine);
 
 const userInitials = computed(() => {
     const name = page.props.auth.user?.name ?? t('user.default_name');
@@ -100,11 +104,7 @@ const notificationHref = (deepLinkUrl: string | null): string => deepLinkUrl ?? 
 
 const isNativeNotificationHref = (deepLinkUrl: string | null): boolean => notificationHref(deepLinkUrl).startsWith('/exports/');
 
-const breadcrumbs = computed(() => page.props.navigation.breadcrumbs);
 const isAdminMode = computed(() => props.mode === 'admin');
-const canEnterAdmin = computed(() => page.props.auth.availableAdminRoutes.includes('admin.system-status'));
-const canEnterUserPanel = computed(() => page.props.auth.availableApplicationRoutes.includes('users.profile'));
-const canEnterManagerPanel = computed(() => page.props.auth.availableApplicationRoutes.includes('time-tracking.panels.manager'));
 const canStartBreak = computed(() => page.props.auth.availableApplicationRoutes.includes('users.work-time.break.start'));
 const canStartOtherWork = computed(() => page.props.auth.availableApplicationRoutes.includes('users.work-time.other-work.create'));
 const activeTeamPublicId = computed(() => page.props.auth.teams.active?.publicId ?? '');
@@ -115,6 +115,11 @@ const avatarBadgeLabel = computed(() => String(Math.min(page.props.notifications
 const userAvatarColor = computed(() => page.props.auth.user?.avatar.color ?? DEFAULT_AVATAR_COLOR);
 const userAvatarImageUrl = computed(() => page.props.auth.user?.avatar.imageUrl ?? null);
 const userAvatarTextColor = computed(() => readableAvatarTextColor(userAvatarColor.value));
+const activeTeamName = computed(() => page.props.auth.teams.active?.name ?? t('shell.context.no_active_team'));
+
+const updateNetworkStatus = (): void => {
+    online.value = navigator.onLine;
+};
 
 function startBreak(): void {
     closeUserMenu();
@@ -233,12 +238,16 @@ onMounted(() => {
     document.addEventListener('pointerdown', handleOutsidePointerDown);
     document.addEventListener('keydown', handleEscape);
     document.addEventListener('pointerdown', armNotificationSound, { once: true });
+    window.addEventListener('online', updateNetworkStatus);
+    window.addEventListener('offline', updateNetworkStatus);
 });
 
 onBeforeUnmount(() => {
     document.removeEventListener('pointerdown', handleOutsidePointerDown);
     document.removeEventListener('keydown', handleEscape);
     document.removeEventListener('pointerdown', armNotificationSound);
+    window.removeEventListener('online', updateNetworkStatus);
+    window.removeEventListener('offline', updateNetworkStatus);
 });
 
 watch(
@@ -291,16 +300,16 @@ watch(
                         :class="isAdminMode ? 'text-zinc-500 dark:text-zinc-400' : 'text-zinc-500 dark:text-zinc-400'"
                         :aria-label="t('navigation.aria.breadcrumb')"
                     >
-                        <template v-for="(breadcrumb, index) in breadcrumbs" :key="`${breadcrumb.label}-${index}`">
+                        <template v-for="(breadcrumb, index) in props.breadcrumbs" :key="`${breadcrumb.label}-${index}`">
                             <span v-if="index > 0" aria-hidden="true">/</span>
                             <Link
-                                v-if="breadcrumb.url !== null && index < breadcrumbs.length - 1"
+                                v-if="breadcrumb.url !== null && index < props.breadcrumbs.length - 1"
                                 :href="breadcrumb.url"
                                 class="hover:text-teal-700 focus-visible:outline focus-visible:outline-amber-500 dark:hover:text-teal-300"
                             >
                                 {{ breadcrumb.label }}
                             </Link>
-                            <span v-else :aria-current="index === breadcrumbs.length - 1 ? 'page' : undefined">
+                            <span v-else :aria-current="index === props.breadcrumbs.length - 1 ? 'page' : undefined">
                                 {{ breadcrumb.label }}
                             </span>
                         </template>
@@ -324,7 +333,7 @@ watch(
                     v-if="subnavigation.length > 0"
                     class="hidden min-w-0 shrink lg:flex"
                     :items="subnavigation"
-                    :label="subnavigationLabel"
+                    :label="subnavigationLabel ?? t('navigation.aria.section')"
                     variant="inline"
                 />
             </div>
@@ -514,39 +523,19 @@ watch(
                                     {{ t('navigation.start_other_work') }}
                                 </Link>
                             </div>
-                            <div
-                                v-if="canEnterUserPanel || canEnterManagerPanel || canEnterAdmin"
-                                class="border-b border-zinc-200 py-2 dark:border-zinc-800"
-                            >
+                            <div v-if="modeLinks.length > 0" class="border-b border-zinc-200 py-2 dark:border-zinc-800">
                                 <Link
-                                    v-if="canEnterUserPanel"
-                                    href="/user"
+                                    v-for="modeLink in modeLinks"
+                                    :key="modeLink.key"
+                                    :href="modeLink.href"
                                     class="flex h-10 items-center gap-3 rounded-lg px-2 text-sm font-medium text-zinc-700 transition hover:bg-zinc-100 hover:text-zinc-950 dark:text-zinc-200 dark:hover:bg-zinc-800 dark:hover:text-zinc-50"
+                                    :class="modeLink.active ? 'bg-zinc-100 dark:bg-zinc-800' : ''"
                                     role="menuitem"
+                                    :aria-current="modeLink.active ? 'page' : undefined"
                                     @click="closeUserMenu"
                                 >
-                                    <IconUserCircle aria-hidden="true" class="h-5 w-5" :stroke-width="1.8" />
-                                    {{ t('navigation.user_panel') }}
-                                </Link>
-                                <Link
-                                    v-if="canEnterManagerPanel"
-                                    href="/manager"
-                                    class="flex h-10 items-center gap-3 rounded-lg px-2 text-sm font-medium text-zinc-700 transition hover:bg-zinc-100 hover:text-zinc-950 dark:text-zinc-200 dark:hover:bg-zinc-800 dark:hover:text-zinc-50"
-                                    role="menuitem"
-                                    @click="closeUserMenu"
-                                >
-                                    <IconUsersGroup aria-hidden="true" class="h-5 w-5" :stroke-width="1.8" />
-                                    {{ t('navigation.manager_panel') }}
-                                </Link>
-                                <Link
-                                    v-if="canEnterAdmin"
-                                    href="/admin"
-                                    class="flex h-10 items-center gap-3 rounded-lg px-2 text-sm font-medium text-zinc-700 transition hover:bg-zinc-100 hover:text-zinc-950 dark:text-zinc-200 dark:hover:bg-zinc-800 dark:hover:text-zinc-50"
-                                    role="menuitem"
-                                    @click="closeUserMenu"
-                                >
-                                    <IconShieldLock aria-hidden="true" class="h-5 w-5" :stroke-width="1.8" />
-                                    {{ t('navigation.admin_panel') }}
+                                    <component :is="modeLink.icon" aria-hidden="true" class="h-5 w-5" :stroke-width="1.8" />
+                                    {{ modeLink.label }}
                                 </Link>
                             </div>
                             <button
@@ -562,6 +551,41 @@ watch(
                     </div>
                 </div>
             </div>
+        </div>
+        <div
+            class="flex min-h-9 flex-wrap items-center gap-x-4 gap-y-1 border-t border-zinc-200 px-4 py-1.5 text-xs text-zinc-600 dark:border-zinc-800 dark:text-zinc-300 sm:px-6 lg:px-8"
+            data-testid="shell-security-context"
+            :aria-label="t('shell.context.label')"
+        >
+            <span>{{ t('shell.context.active_team', { team: activeTeamName }) }}</span>
+            <span
+                v-if="page.props.auth.adminMode.active"
+                class="inline-flex items-center gap-1 font-semibold text-amber-700 dark:text-amber-300"
+            >
+                <IconShieldLock aria-hidden="true" class="h-4 w-4" :stroke-width="1.8" />
+                {{ t('shell.context.admin_mode') }}
+            </span>
+            <span
+                v-if="page.props.auth.adminMode.active"
+                :class="
+                    page.props.auth.adminMode.highRiskFresh
+                        ? 'text-emerald-700 dark:text-emerald-300'
+                        : 'text-amber-700 dark:text-amber-300'
+                "
+            >
+                {{ page.props.auth.adminMode.highRiskFresh ? t('shell.context.high_risk_ready') : t('shell.context.high_risk_required') }}
+            </span>
+            <span v-if="page.props.auth.impersonation.active" class="font-semibold text-amber-700 dark:text-amber-300">
+                {{
+                    t('shell.context.impersonation', {
+                        user: page.props.auth.impersonation.userName ?? t('pages.admin.impersonation.banner.unknown_user'),
+                    })
+                }}
+            </span>
+            <span v-if="!online" class="inline-flex items-center gap-1 font-semibold text-rose-700 dark:text-rose-300" role="status">
+                <IconWifiOff aria-hidden="true" class="h-4 w-4" :stroke-width="1.8" />
+                {{ t('shell.context.offline') }}
+            </span>
         </div>
     </header>
 </template>

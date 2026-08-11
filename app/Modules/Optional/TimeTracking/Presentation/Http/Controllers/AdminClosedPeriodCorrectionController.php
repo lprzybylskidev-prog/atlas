@@ -4,21 +4,19 @@ declare(strict_types=1);
 
 namespace App\Modules\Optional\TimeTracking\Presentation\Http\Controllers;
 
-use App\Modules\Core\Audit\Application\Public\Contracts\AuditRecorder;
-use App\Modules\Core\Audit\Application\Public\DTOs\AuditEvent;
-use App\Modules\Core\Audit\Application\Public\Enums\SecurityAuditCategory;
-use App\Modules\Core\Identity\Application\Public\Persistence\IdentityDatabaseTable;
-use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
+use App\Modules\Core\Identity\Application\Public\Contracts\UserLookup;
 use App\Modules\Optional\TimeTracking\Application\CorrectionRequestCoordinator;
 use App\Modules\Optional\TimeTracking\Application\DTOs\ClosedPeriodOverrideAuthorization;
 use App\Modules\Optional\TimeTracking\Application\DTOs\ExactTimeChange;
+use App\Shared\Application\Audit\Contracts\AuditRecorder;
+use App\Shared\Application\Audit\DTOs\AuditEvent;
+use App\Shared\Application\Audit\Enums\SecurityAuditCategory;
+use App\Shared\Application\Teams\Contracts\TeamLookup;
 use App\Shared\Presentation\Support\FlashMessage;
 use DateTimeImmutable;
 use DateTimeZone;
-use Illuminate\Database\Query\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 
@@ -27,6 +25,8 @@ final readonly class AdminClosedPeriodCorrectionController
     public function __construct(
         private CorrectionRequestCoordinator $corrections,
         private AuditRecorder $audit,
+        private UserLookup $users,
+        private TeamLookup $teams,
     ) {}
 
     public function store(Request $request): RedirectResponse
@@ -133,35 +133,19 @@ final readonly class AdminClosedPeriodCorrectionController
 
     private function teamId(string $teamPublicId): ?int
     {
-        $id = DB::table(TeamsDatabaseTable::TEAMS)
-            ->where('public_id', $teamPublicId)
-            ->where('is_active', true)
-            ->value('id');
-
-        return is_numeric($id) ? (int) $id : null;
+        return $this->teams->activeInternalIdForPublicId($teamPublicId);
     }
 
     private function userId(string $userPublicId): ?int
     {
-        $id = DB::table(IdentityDatabaseTable::USERS)
-            ->where('public_id', $userPublicId)
-            ->value('id');
-
-        return is_numeric($id) ? (int) $id : null;
+        return $this->users->internalIdForPublicId($userPublicId);
     }
 
     private function eligibleHeadManagerExists(int $teamId): bool
     {
-        return DB::table(TeamsDatabaseTable::TEAM_USER_ASSIGNMENTS)
-            ->where('team_id', $teamId)
-            ->where('is_head_manager', true)
-            ->where(static function (Builder $query): void {
-                $query->whereNull('valid_from')->orWhere('valid_from', '<=', now());
-            })
-            ->where(static function (Builder $query): void {
-                $query->whereNull('valid_to')->orWhere('valid_to', '>', now());
-            })
-            ->exists();
+        $teamPublicId = $this->teams->publicIdForInternalId($teamId);
+
+        return $teamPublicId !== null && $this->teams->hasActiveHeadManager($teamPublicId);
     }
 
     private function change(mixed $startedAt, mixed $endedAt, mixed $exactSeconds): ExactTimeChange

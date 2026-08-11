@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Tests\Feature\Foundation;
 
 use App\Modules\Core\Identity\Application\PasswordHistory;
-use App\Modules\Core\Identity\Application\Public\Persistence\IdentityDatabaseTable;
+use App\Modules\Core\Identity\Infrastructure\Persistence\TableNames\IdentityDatabaseTable;
 use App\Modules\Core\Identity\Infrastructure\Persistence\User;
 use App\Modules\Core\Identity\Presentation\Fortify\Actions\UpdateUserPassword;
 use Illuminate\Foundation\Testing\RefreshDatabase;

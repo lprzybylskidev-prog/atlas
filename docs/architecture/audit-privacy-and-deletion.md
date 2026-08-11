@@ -8,7 +8,7 @@ Three distinct modes exist.
 
 `App\Modules\Core\Privacy\PrivacyModule` owns the cross-module privacy and retention orchestration surface. It is separate from Audit: Audit stores immutable evidence, while Privacy coordinates deletion, anonymization, retention, legal-hold, and controlled-copy participation workflows.
 
-The Admin entry point is `/admin/privacy-retention`. The current surface shows readiness, controlled-copy coverage, and durable dry-run impact previews. Destructive execution routes must not be introduced until the full high-risk workflow is implemented.
+The Admin entry point is `/admin/privacy-retention`. The surface shows readiness, controlled-copy coverage, durable dry-run impact previews, and permission-gated final execution for an executable preview. Destructive routes require the full high-risk workflow and revalidate the exact participant impact snapshot before all participant mutations and mandatory audit commit atomically.
 
 ### Soft delete
 
@@ -65,7 +65,7 @@ Use an internal audit system.
 
 Do not use `owen-it/laravel-auditing`.
 
-The Core Audit module owns audit persistence and read models. Existing Identity, Authorization, and Phase 10 shared-view producers may continue using the earlier `SecurityAuditRecorder` producer contract, but that contract is now implemented by the Audit module and writes into `audit_events` plus `audit_security_events`.
+The Core Audit module owns audit persistence and read models. Neutral audit producer types (`AuditRecorder`, `AuditEvent`, `AuditActorContextProvider`, `AuditActorContext`, and `SecurityAuditCategory`) live under `App\Shared\Application\Audit` so security-sensitive modules can write audit evidence without importing Core Audit internals or creating graph cycles. Existing Identity, Authorization, and Phase 10 shared-view producers may continue using the earlier `SecurityAuditRecorder` producer contract, but that contract is now implemented by the Audit module and writes into `audit_events` plus `audit_security_events`.
 
 Audit persistence depends on an explicit current audit context provider instead of Laravel HTTP globals. Web implementations may read session state, including impersonation state, but the database recorder must remain safe for CLI, scheduler, queue, and request-less execution.
 
@@ -95,6 +95,12 @@ Maintain a separate security audit for authentication, impersonation, sessions, 
 
 Security audit producers provide an explicit typed category. Runtime category fallback based on action-name fragments is not allowed; old migration-time mapping may exist only to import legacy local records.
 
-Phase 28 target: every module with meaningful mutating operations registers a typed audit action catalog; hardcoded action/result/source values outside catalogs are forbidden; success, rejection, and failure coverage is enforced for security-sensitive and irreversible operations; mandatory audit rows and critical business changes are atomic; and the Audit browser uses DB-backed query/read models with owner-owned display providers. Known noncompliance is tracked by `P28-AUDIT-001` through `P28-AUDIT-011`.
+Every module with meaningful mutating operations registers its allowed audit vocabulary under its module key in `config/audit.php`. The runtime catalog validates module, action, canonical result, source, target type, aggregate type, metadata keys, and explicit security category before either audit table is written. Producer references may use stable literal catalog keys, but the architecture guard fails any literal module/action pair that is absent from the registration. Legacy result aliases are forbidden; the only results are `succeeded`, `rejected`, and `failed`.
+
+Security-sensitive and irreversible operation families are also registered in the executable `required_operation_coverage` matrix. Every matrix entry names its actions, required outcomes, and concrete feature/integration test. The guard verifies that the entries and test evidence remain non-vacuous and catalog-backed. Outcome suites cover missing-object attempts, invalid confirmation, mismatched operation type, stale/non-executable state, invariant rejection, participant/adapter/storage failure, and successful transitions where those outcomes are meaningful.
+
+The persistence boundary redacts sensitive values, completes propagated effective/actual/impersonated actor, impersonation session, and correlation context, remains safe without an HTTP request, and writes the primary/security pair transactionally. Failure of the security-history insert rolls back the primary row. Producer-side business atomicity remains an owning Application transaction: the state mutation and mandatory recorder call belong to the same transaction. For externally irreversible Privacy participation, a committed `executing` reservation precedes idempotent participant calls; terminal state and mandatory audit evidence are committed together, leaving recoverable non-terminal state if final evidence cannot be persisted.
+
+Audit-owned browser, security-history, impersonation-history, and ordinary non-sensitive export queries perform filtering, stable `occurred_at` plus `id` ordering, pagination, and complete cursor traversal in PostgreSQL. Owner-owned public lookup contracts provide Identity and Teams labels. A regression dataset above 5,000 rows proves that older records and the complete ordinary export remain reachable without array-bounded processing or foreign-table joins. Ordinary Audit exports deliberately exclude raw metadata. `P28-AUDIT-001` through `P28-AUDIT-011` were closed by `P28-W04` for that accepted scope. The distinct high-risk detailed Audit/history export governed by `exports.audit-export` remains explicit `P28-MODAUD-010` work in `P28-W10`; W04 closure does not claim that separate capability is complete.
 
 ---

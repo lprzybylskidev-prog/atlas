@@ -5,13 +5,13 @@ declare(strict_types=1);
 namespace Tests\Feature\TimeTracking;
 
 use App\Modules\Core\Authorization\Application\Permissions\CoreAuthorizationPermissionCatalog;
-use App\Modules\Core\Authorization\Application\Public\Persistence\AuthorizationDatabaseTable;
 use App\Modules\Core\Authorization\Application\Roles\InstallStarterRoles;
+use App\Modules\Core\Authorization\Infrastructure\Persistence\TableNames\AuthorizationDatabaseTable;
 use App\Modules\Core\Identity\Infrastructure\Persistence\User;
-use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
+use App\Modules\Core\Teams\Infrastructure\Persistence\TableNames\TeamsDatabaseTable;
 use App\Modules\Core\Teams\Infrastructure\Persistence\Team;
 use App\Modules\Optional\TimeTracking\Application\Permissions\TimeTrackingPermissionCatalog;
-use App\Modules\Optional\TimeTracking\Application\Public\Persistence\TimeTrackingDatabaseTable;
+use App\Modules\Optional\TimeTracking\Infrastructure\Persistence\TableNames\TimeTrackingDatabaseTable;
 use App\Shared\Application\Modules\Activation\Contracts\ModuleActivationService;
 use App\Shared\Application\Modules\Activation\ModuleActivationChange;
 use App\Shared\Application\Modules\Activation\ModuleActivationScope;
@@ -168,20 +168,22 @@ final class OtherWorkLockRouteTest extends TestCase
 
     private function activateTimeTracking(Team $team): void
     {
-        $this->app->make(ModuleActivationService::class)->change(new ModuleActivationChange(
-            moduleKey: 'time_tracking',
-            scope: ModuleActivationScope::Global,
-            enabled: true,
-            reason: 'Feature test setup',
-            source: ModuleActivationSource::Manual,
-        ));
-        $this->app->make(ModuleActivationService::class)->change(new ModuleActivationChange(
-            moduleKey: 'time_tracking',
-            scope: ModuleActivationScope::Team,
-            enabled: true,
-            reason: 'Feature test setup',
-            teamId: $team->id,
-            source: ModuleActivationSource::Manual,
-        ));
+        foreach (['feature_flags', 'managed_processes', 'reports', 'time_tracking'] as $moduleKey) {
+            $this->app->make(ModuleActivationService::class)->change(new ModuleActivationChange(
+                moduleKey: $moduleKey,
+                scope: ModuleActivationScope::Global,
+                enabled: true,
+                reason: 'Feature test setup',
+                source: ModuleActivationSource::Manual,
+            ));
+            $this->app->make(ModuleActivationService::class)->change(new ModuleActivationChange(
+                moduleKey: $moduleKey,
+                scope: ModuleActivationScope::Team,
+                enabled: true,
+                reason: 'Feature test setup',
+                teamId: $team->id,
+                source: ModuleActivationSource::Manual,
+            ));
+        }
     }
 }

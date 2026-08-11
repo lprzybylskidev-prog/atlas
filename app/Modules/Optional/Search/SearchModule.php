@@ -24,12 +24,6 @@ final class SearchModule implements ModuleDefinition
     public function requiredDependencies(): array
     {
         return [
-            new ModuleKey('identity'),
-            new ModuleKey('authorization'),
-            new ModuleKey('teams'),
-            new ModuleKey('audit'),
-            new ModuleKey('notifications'),
-            new ModuleKey('health'),
             new ModuleKey('managed_processes'),
         ];
     }
@@ -54,18 +48,8 @@ final class SearchModule implements ModuleDefinition
         return true;
     }
 
-    public function integrations(): array
-    {
-        return ['meilisearch'];
-    }
-
     public function healthChecks(): array
     {
         return ['meilisearch'];
-    }
-
-    public function frontendEntrypoints(): array
-    {
-        return ['admin.search.index'];
     }
 }

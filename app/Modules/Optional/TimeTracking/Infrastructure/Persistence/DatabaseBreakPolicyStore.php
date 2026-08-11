@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace App\Modules\Optional\TimeTracking\Infrastructure\Persistence;
 
-use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
 use App\Modules\Optional\TimeTracking\Application\Contracts\BreakPolicyStore;
 use App\Modules\Optional\TimeTracking\Application\DTOs\BreakPolicy;
 use App\Modules\Optional\TimeTracking\Application\Enums\BreakPolicyScope;
-use App\Modules\Optional\TimeTracking\Application\Public\Persistence\TimeTrackingDatabaseTable;
+use App\Modules\Optional\TimeTracking\Infrastructure\Persistence\TableNames\TimeTrackingDatabaseTable;
+use App\Shared\Application\Teams\Contracts\TeamLookup;
 use Illuminate\Database\ConnectionInterface;
 use Illuminate\Support\Str;
 
@@ -20,7 +20,10 @@ final readonly class DatabaseBreakPolicyStore implements BreakPolicyStore
 
     private const DEFAULT_WARNING_BEFORE_MAXIMUM_SECONDS = 900;
 
-    public function __construct(private ConnectionInterface $database) {}
+    public function __construct(
+        private ConnectionInterface $database,
+        private TeamLookup $teams,
+    ) {}
 
     public function policyForUserTeam(int $userId, int $teamId): BreakPolicy
     {
@@ -74,13 +77,7 @@ final readonly class DatabaseBreakPolicyStore implements BreakPolicyStore
 
     private function activeAssignmentId(int $userId, int $teamId): ?int
     {
-        $id = $this->database->table(TeamsDatabaseTable::TEAM_USER_ASSIGNMENTS)
-            ->where('user_id', $userId)
-            ->where('team_id', $teamId)
-            ->whereNull('valid_to')
-            ->value('id');
-
-        return is_numeric($id) ? (int) $id : null;
+        return $this->teams->activeAssignmentInternalIdForUserTeam($userId, $teamId);
     }
 
     private function policy(BreakPolicyScope $scope, int $scopeId): ?BreakPolicy

@@ -4,14 +4,13 @@ declare(strict_types=1);
 
 namespace App\Modules\Optional\TimeTracking\Application\Exports;
 
-use App\Modules\Core\Exports\Application\Public\AbstractAdminDataTableExportProvider;
-use App\Modules\Core\Exports\Application\Public\DTOs\ReportExportGenerationRequest;
-use App\Modules\Core\Exports\Application\Public\Permissions\ReportsPermissionCatalog;
-use App\Modules\Core\Identity\Application\Public\Persistence\IdentityDatabaseTable;
-use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
+use App\Modules\Core\Identity\Application\Public\Contracts\UserLookup;
 use App\Modules\Optional\TimeTracking\Application\UserTimeReportService;
-use App\Shared\Application\Tables\AdminTableDefinitions;
-use Illuminate\Database\ConnectionInterface;
+use App\Shared\Application\Exports\AbstractAdminDataTableExportProvider;
+use App\Shared\Application\Exports\DTOs\ReportExportGenerationRequest;
+use App\Shared\Application\Exports\ExportPermissions;
+use App\Shared\Application\Tables\RegisteredTables;
+use App\Shared\Application\Teams\Contracts\TeamLookup;
 use Illuminate\Http\Request;
 use Stringable;
 
@@ -19,12 +18,13 @@ final readonly class TimeTrackingUserReportDataTableExportProvider extends Abstr
 {
     public function __construct(
         private UserTimeReportService $reports,
-        private ConnectionInterface $database,
+        private UserLookup $users,
+        private TeamLookup $teams,
     ) {}
 
     public function tableKey(): string
     {
-        return AdminTableDefinitions::TIME_TRACKING_USER_REPORT;
+        return RegisteredTables::TIME_TRACKING_USER_REPORT;
     }
 
     public function tableName(): string
@@ -39,7 +39,7 @@ final readonly class TimeTrackingUserReportDataTableExportProvider extends Abstr
 
     public function requestPermission(): string
     {
-        return ReportsPermissionCatalog::REQUEST;
+        return ExportPermissions::REQUEST;
     }
 
     public function ruleVersion(): string
@@ -80,9 +80,7 @@ final readonly class TimeTrackingUserReportDataTableExportProvider extends Abstr
 
     private function userId(string $publicId): int
     {
-        $id = $this->database->table(IdentityDatabaseTable::USERS)->where('public_id', $publicId)->value('id');
-
-        return is_numeric($id) ? (int) $id : 0;
+        return $this->users->internalIdForPublicId($publicId) ?? 0;
     }
 
     private function teamId(ReportExportGenerationRequest $request): int
@@ -91,9 +89,7 @@ final readonly class TimeTrackingUserReportDataTableExportProvider extends Abstr
             return 0;
         }
 
-        $id = $this->database->table(TeamsDatabaseTable::TEAMS)->where('public_id', $request->activeTeamPublicId)->value('id');
-
-        return is_numeric($id) ? (int) $id : 0;
+        return $this->teams->internalIdForPublicId($request->activeTeamPublicId) ?? 0;
     }
 
     private function requestFromExport(ReportExportGenerationRequest $request): Request

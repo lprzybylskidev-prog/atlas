@@ -4,19 +4,18 @@ declare(strict_types=1);
 
 namespace App\Modules\Optional\TimeTracking\Presentation\Http\Controllers;
 
-use App\Modules\Core\Audit\Application\Public\Persistence\AuditDatabaseTable;
-use App\Modules\Core\Identity\Application\Public\Persistence\IdentityDatabaseTable;
+use App\Modules\Core\Audit\Application\Public\Contracts\AuditEventLookup;
+use App\Modules\Core\Identity\Application\Public\Contracts\UserLookup;
 use App\Modules\Core\Teams\Application\Public\Contracts\ManagerHierarchy;
-use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
 use App\Modules\Optional\TimeTracking\Application\Contracts\BreakPolicyStore;
 use App\Modules\Optional\TimeTracking\Application\Enums\CorrectionSourceType;
-use App\Modules\Optional\TimeTracking\Application\Public\Persistence\TimeTrackingDatabaseTable;
 use App\Modules\Optional\TimeTracking\Application\UserTimeReportService;
 use App\Modules\Optional\TimeTracking\Domain\Time\CalendarDayIntervalSplitter;
+use App\Modules\Optional\TimeTracking\Infrastructure\Persistence\TableNames\TimeTrackingDatabaseTable;
+use App\Shared\Application\Teams\Contracts\TeamLookup;
 use DateTimeImmutable;
 use DateTimeZone;
 use Illuminate\Database\ConnectionInterface;
-use Illuminate\Database\Query\Builder;
 use Illuminate\Database\Query\JoinClause;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -32,22 +31,20 @@ final readonly class AdminTimeTrackingOperationDetailController
         private UserTimeReportService $reports,
         private BreakPolicyStore $breakPolicies,
         private ManagerHierarchy $hierarchy,
+        private UserLookup $users,
+        private TeamLookup $teams,
+        private AuditEventLookup $auditEvents,
     ) {}
 
     public function workSession(Request $request, string $session): Response
     {
         $record = $this->database->table(TimeTrackingDatabaseTable::WORK_SESSIONS.' as sessions')
-            ->join(IdentityDatabaseTable::USERS.' as users', 'sessions.user_id', '=', 'users.id')
-            ->join(TeamsDatabaseTable::TEAMS.' as teams', 'sessions.team_id', '=', 'teams.id')
             ->where('sessions.public_id', $session)
             ->first([
                 'sessions.id',
                 'sessions.public_id',
-                'users.public_id as user_public_id',
-                'users.name as user_name',
-                'users.email as user_email',
-                'teams.public_id as team_public_id',
-                'teams.name as team_name',
+                'sessions.user_id',
+                'sessions.team_id',
                 'sessions.laravel_session_id',
                 'sessions.started_at',
                 'sessions.ended_at',
@@ -57,7 +54,7 @@ final readonly class AdminTimeTrackingOperationDetailController
                 'sessions.updated_at',
             ]);
 
-        $record = $this->ensureRecordForAuthorizedSurface($request, $record);
+        $record = $this->ensureRecordForAuthorizedSurface($request, $this->withUserTeamDisplay($record));
         $sessionId = $this->intValue($record->id ?? null);
         $summaryRecord = (object) [
             ...(array) $record,
@@ -70,7 +67,7 @@ final readonly class AdminTimeTrackingOperationDetailController
             kind: 'work_session',
             title: 'pages.time_tracking.admin_detail.work_session_title',
             backHref: $this->sectionRoute($request, 'work_sessions'),
-            record: $this->summary($summaryRecord, ['id']),
+            record: $this->summary($summaryRecord, ['id', 'user_id', 'team_id']),
             sections: [
                 $this->section('pages.time_tracking.admin_detail.sections.module_segments', $this->rows(TimeTrackingDatabaseTable::MODULE_CONTEXT_SEGMENTS, [
                     'work_session_id' => $sessionId,
@@ -91,8 +88,6 @@ final readonly class AdminTimeTrackingOperationDetailController
     public function break(Request $request, string $break): Response
     {
         $record = $this->database->table(TimeTrackingDatabaseTable::BREAKS.' as breaks')
-            ->join(IdentityDatabaseTable::USERS.' as users', 'breaks.user_id', '=', 'users.id')
-            ->join(TeamsDatabaseTable::TEAMS.' as teams', 'breaks.team_id', '=', 'teams.id')
             ->leftJoin(TimeTrackingDatabaseTable::WORK_SESSIONS.' as sessions', 'breaks.work_session_id', '=', 'sessions.id')
             ->where('breaks.public_id', $break)
             ->first([
@@ -101,11 +96,6 @@ final readonly class AdminTimeTrackingOperationDetailController
                 'breaks.user_id',
                 'breaks.team_id',
                 'sessions.public_id as work_session_public_id',
-                'users.public_id as user_public_id',
-                'users.name as user_name',
-                'users.email as user_email',
-                'teams.public_id as team_public_id',
-                'teams.name as team_name',
                 'breaks.started_at',
                 'breaks.ended_at',
                 'breaks.exact_seconds',
@@ -115,7 +105,7 @@ final readonly class AdminTimeTrackingOperationDetailController
                 'breaks.updated_at',
             ]);
 
-        $record = $this->ensureRecordForAuthorizedSurface($request, $record);
+        $record = $this->ensureRecordForAuthorizedSurface($request, $this->withUserTeamDisplay($record));
         $exactSeconds = $this->correctedSourceSeconds(CorrectionSourceType::Break, $this->intValue($record->id ?? null), $this->intValue($record->exact_seconds ?? null));
         $excessBreakSeconds = $this->breakExcessSeconds($record);
         $summaryRecord = (object) [
@@ -136,8 +126,6 @@ final readonly class AdminTimeTrackingOperationDetailController
     public function otherWork(Request $request, string $otherWork): Response
     {
         $record = $this->database->table(TimeTrackingDatabaseTable::OTHER_WORK.' as other_work')
-            ->join(IdentityDatabaseTable::USERS.' as users', 'other_work.user_id', '=', 'users.id')
-            ->join(TeamsDatabaseTable::TEAMS.' as teams', 'other_work.team_id', '=', 'teams.id')
             ->leftJoin(TimeTrackingDatabaseTable::WORK_SESSIONS.' as sessions', 'other_work.work_session_id', '=', 'sessions.id')
             ->leftJoin(TimeTrackingDatabaseTable::OTHER_WORK_CATEGORIES.' as categories', function (JoinClause $join): void {
                 $join
@@ -148,12 +136,9 @@ final readonly class AdminTimeTrackingOperationDetailController
             ->where('other_work.public_id', $otherWork)
             ->first([
                 'other_work.public_id',
+                'other_work.user_id',
+                'other_work.team_id',
                 'sessions.public_id as work_session_public_id',
-                'users.public_id as user_public_id',
-                'users.name as user_name',
-                'users.email as user_email',
-                'teams.public_id as team_public_id',
-                'teams.name as team_name',
                 'other_work.category_key',
                 app()->getLocale() === 'pl' ? 'categories.label_pl as category_label' : 'categories.label_en as category_label',
                 'other_work.description',
@@ -168,9 +153,9 @@ final readonly class AdminTimeTrackingOperationDetailController
                 'other_work.updated_at',
             ]);
 
-        $record = $this->ensureRecordForAuthorizedSurface($request, $record);
+        $record = $this->ensureRecordForAuthorizedSurface($request, $this->withUserTeamDisplay($record));
 
-        return $this->render($request, 'TimeTracking/AdminOtherWorkDetail', 'other_work', 'pages.time_tracking.admin_detail.other_work_title', $this->sectionRoute($request, 'other_work'), $this->summary($record), [
+        return $this->render($request, 'TimeTracking/AdminOtherWorkDetail', 'other_work', 'pages.time_tracking.admin_detail.other_work_title', $this->sectionRoute($request, 'other_work'), $this->summary($record, ['user_id', 'team_id']), [
             $this->auditSection($otherWork),
         ]);
     }
@@ -178,21 +163,16 @@ final readonly class AdminTimeTrackingOperationDetailController
     public function correction(Request $request, string $correction): Response
     {
         $record = $this->database->table(TimeTrackingDatabaseTable::CORRECTION_REQUESTS.' as requests')
-            ->join(IdentityDatabaseTable::USERS.' as users', 'requests.user_id', '=', 'users.id')
-            ->join(TeamsDatabaseTable::TEAMS.' as teams', 'requests.team_id', '=', 'teams.id')
             ->leftJoin(TimeTrackingDatabaseTable::WORK_SESSIONS.' as sessions', 'requests.work_session_id', '=', 'sessions.id')
             ->where('requests.public_id', $correction)
             ->first([
                 'requests.id',
                 'requests.public_id',
+                'requests.user_id',
+                'requests.team_id',
                 'sessions.public_id as work_session_public_id',
                 'requests.source_type',
                 'requests.source_id',
-                'users.public_id as user_public_id',
-                'users.name as user_name',
-                'users.email as user_email',
-                'teams.public_id as team_public_id',
-                'teams.name as team_name',
                 'requests.request_type',
                 'requests.status',
                 'requests.description',
@@ -205,14 +185,14 @@ final readonly class AdminTimeTrackingOperationDetailController
                 'requests.updated_at',
             ]);
 
-        $record = $this->ensureRecordForAuthorizedSurface($request, $record);
+        $record = $this->ensureRecordForAuthorizedSurface($request, $this->withUserTeamDisplay($record));
         $correctionId = $this->intValue($record->id ?? null);
         $summaryRecord = (object) [
             ...(array) $record,
             'available_actions' => implode(',', $this->correctionActions($this->stringValue($record->status ?? null))),
         ];
 
-        return $this->render($request, 'TimeTracking/AdminCorrectionDetail', 'correction', 'pages.time_tracking.admin_detail.correction_title', $this->sectionRoute($request, 'corrections'), $this->summary($summaryRecord, ['id']), [
+        return $this->render($request, 'TimeTracking/AdminCorrectionDetail', 'correction', 'pages.time_tracking.admin_detail.correction_title', $this->sectionRoute($request, 'corrections'), $this->summary($summaryRecord, ['id', 'user_id', 'team_id']), [
             $this->section('pages.time_tracking.admin_detail.sections.proposals', $this->rows(TimeTrackingDatabaseTable::CORRECTION_PROPOSALS, [
                 'correction_request_id' => $correctionId,
             ], ['public_id', 'original_started_at', 'original_ended_at', 'original_exact_seconds', 'proposed_started_at', 'proposed_ended_at', 'proposed_exact_seconds', 'final_started_at', 'final_ended_at', 'final_exact_seconds'])),
@@ -270,6 +250,27 @@ final readonly class AdminTimeTrackingOperationDetailController
         }
 
         return $record;
+    }
+
+    private function withUserTeamDisplay(?object $record): ?object
+    {
+        if ($record === null) {
+            return null;
+        }
+
+        $userId = $this->intValue($record->user_id ?? null);
+        $teamId = $this->intValue($record->team_id ?? null);
+        $user = $userId > 0 ? ($this->users->displaySummariesForInternalIds([$userId])[$userId] ?? null) : null;
+        $team = $teamId > 0 ? ($this->teams->summariesForInternalIds([$teamId])[$teamId] ?? null) : null;
+        $values = (array) $record;
+
+        $values['user_public_id'] = $user === null ? '' : $user->publicId;
+        $values['user_name'] = $user === null ? '' : $user->name;
+        $values['user_email'] = $user === null ? '' : $user->email;
+        $values['team_public_id'] = $team === null ? '' : $team->publicId;
+        $values['team_name'] = $team === null ? '' : $team->name;
+
+        return (object) $values;
     }
 
     private function sectionRoute(Request $request, string $section): string
@@ -419,22 +420,32 @@ final readonly class AdminTimeTrackingOperationDetailController
      */
     private function correctionHistoryRows(int $correctionId): array
     {
-        return array_values(array_map(
-            fn (object $row): array => $this->row($row),
-            $this->database->table(TimeTrackingDatabaseTable::CORRECTION_HISTORY.' as history')
-                ->leftJoin(IdentityDatabaseTable::USERS.' as actors', 'history.actor_user_id', '=', 'actors.id')
-                ->where('history.correction_request_id', $correctionId)
-                ->orderByDesc('history.occurred_at')
-                ->get([
-                    'history.public_id',
-                    'history.action',
-                    'actors.name as actor_name',
-                    'actors.email as actor_email',
-                    'history.reason',
-                    'history.occurred_at',
-                ])
-                ->all(),
-        ));
+        $rows = $this->database->table(TimeTrackingDatabaseTable::CORRECTION_HISTORY.' as history')
+            ->where('history.correction_request_id', $correctionId)
+            ->orderByDesc('history.occurred_at')
+            ->get([
+                'history.public_id',
+                'history.action',
+                'history.actor_user_id',
+                'history.reason',
+                'history.occurred_at',
+            ])
+            ->all();
+        $actorIds = array_values(array_unique(array_filter(array_map(
+            fn (object $row): int => $this->intValue($row->actor_user_id ?? null),
+            $rows,
+        ), static fn (int $id): bool => $id > 0)));
+        $actors = $this->users->displaySummariesForInternalIds($actorIds);
+
+        return array_values(array_map(function (object $row) use ($actors): array {
+            $actor = $actors[$this->intValue($row->actor_user_id ?? null)] ?? null;
+            $values = (array) $row;
+            $values['actor_name'] = $actor === null ? '' : $actor->name;
+            $values['actor_email'] = $actor === null ? '' : $actor->email;
+            unset($values['actor_user_id']);
+
+            return $this->row((object) $values);
+        }, $rows));
     }
 
     private function breakExcessSeconds(object $record): int
@@ -535,20 +546,10 @@ final readonly class AdminTimeTrackingOperationDetailController
      */
     private function auditSection(string $aggregatePublicId): array
     {
-        return $this->section('pages.time_tracking.admin_detail.sections.audit', array_values(array_map(
+        return $this->section('pages.time_tracking.admin_detail.sections.audit', array_map(
             fn (object $row): array => $this->row($row),
-            $this->database->table(AuditDatabaseTable::AUDIT_EVENTS)
-                ->where('module', 'time_tracking')
-                ->where(static function (Builder $query) use ($aggregatePublicId): void {
-                    $query
-                        ->where('aggregate_public_id', $aggregatePublicId)
-                        ->orWhere('target_public_id', $aggregatePublicId);
-                })
-                ->orderByDesc('occurred_at')
-                ->limit(20)
-                ->get(['public_id', 'occurred_at', 'action', 'result', 'actor_public_id', 'target_public_id', 'reason'])
-                ->all(),
-        )));
+            $this->auditEvents->recentForModuleAggregateOrTarget('time_tracking', $aggregatePublicId, 20),
+        ));
     }
 
     /**

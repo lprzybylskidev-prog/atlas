@@ -28,6 +28,9 @@ export interface UserTeamAccessCopySource {
 
 export interface UserTeamAccessAssignment {
     team_public_id: string;
+    user_public_id?: string;
+    userName?: string;
+    userEmail?: string;
     source: AssignmentSource;
     onboarding_package: string;
     copy_authorization_from_user: string;
@@ -40,6 +43,11 @@ export interface UserTeamAccessAssignment {
     teamName?: string;
     reason: string;
     removal_reason: string;
+    provenance_public_id?: string | null;
+    provenance_source_type?: 'manual' | 'preset' | 'copy';
+    provenance_source_label?: string | null;
+    provenance_diverged_at?: string | null;
+    provenance_version?: number;
 }
 
 export interface TeamPolicyDefaults {

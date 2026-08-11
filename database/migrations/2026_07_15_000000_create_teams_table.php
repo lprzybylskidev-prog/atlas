@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-use App\Modules\Core\Authorization\Application\Public\Persistence\AuthorizationDatabaseTable;
-use App\Modules\Core\Identity\Application\Public\Persistence\IdentityDatabaseTable;
-use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
+use App\Modules\Core\Authorization\Infrastructure\Persistence\TableNames\AuthorizationDatabaseTable;
+use App\Modules\Core\Identity\Infrastructure\Persistence\TableNames\IdentityDatabaseTable;
+use App\Modules\Core\Teams\Infrastructure\Persistence\TableNames\TeamsDatabaseTable;
 use App\Shared\Infrastructure\Database\DatabaseSchema;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
@@ -22,6 +22,7 @@ return new class extends Migration
             $table->id();
             $table->ulid('public_id')->unique();
             $table->string('name');
+            $table->string('display_name')->nullable();
             $table->unsignedSmallInteger('inactivity_timeout_minutes')->nullable();
             $table->unsignedSmallInteger('session_max_lifetime_minutes')->nullable();
             $table->boolean('is_active')->default(true);
@@ -93,10 +94,39 @@ return new class extends Migration
             $table->unique(['user_id', 'team_id']);
             $table->index(['team_id', 'package_name']);
         });
+
+        Schema::create(AuthorizationDatabaseTable::USER_TEAM_ASSIGNMENT_PROVENANCE, static function (Blueprint $table): void {
+            $table->id();
+            $table->ulid('public_id')->unique();
+            $table->foreignId('user_id')->constrained(IdentityDatabaseTable::USERS)->restrictOnDelete();
+            $table->foreignId('team_id')->constrained(TeamsDatabaseTable::TEAMS)->restrictOnDelete();
+            $table->string('source_type');
+            $table->ulid('source_public_id')->nullable();
+            $table->string('source_display_name_snapshot')->nullable();
+            $table->foreignId('copied_from_user_id')->nullable()->constrained(IdentityDatabaseTable::USERS)->nullOnDelete();
+            $table->unsignedInteger('preset_version')->nullable();
+            $table->json('preset_snapshot')->nullable();
+            $table->foreignId('applied_by_user_id')->nullable()->constrained(IdentityDatabaseTable::USERS)->nullOnDelete();
+            $table->timestampTz('applied_at');
+            $table->text('reason');
+            $table->json('resulting_role_names');
+            $table->json('resulting_direct_permission_names');
+            $table->json('resulting_limits');
+            $table->timestampTz('diverged_at')->nullable();
+            $table->foreignId('updated_by_user_id')->nullable()->constrained(IdentityDatabaseTable::USERS)->nullOnDelete();
+            $table->text('update_reason')->nullable();
+            $table->unsignedBigInteger('version')->default(1);
+            $table->timestamps();
+
+            $table->unique(['user_id', 'team_id']);
+            $table->index(['team_id', 'source_type']);
+            $table->index(['copied_from_user_id', 'team_id']);
+        });
     }
 
     public function down(): void
     {
+        Schema::dropIfExists(AuthorizationDatabaseTable::USER_TEAM_ASSIGNMENT_PROVENANCE);
         Schema::dropIfExists(AuthorizationDatabaseTable::USER_ONBOARDING_PACKAGES);
         Schema::dropIfExists(AuthorizationDatabaseTable::AUTHORIZATION_ONBOARDING_PACKAGES);
         Schema::dropIfExists(TeamsDatabaseTable::TEAM_MANAGER_RELATIONSHIPS);

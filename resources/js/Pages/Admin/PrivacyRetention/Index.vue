@@ -18,7 +18,6 @@ import SurfaceCard from '../../../Components/SurfaceCard.vue';
 import AppLayout from '../../../Layouts/AppLayout.vue';
 import { useTranslator } from '../../../Localization/translator';
 import { applyTableFilters, clearTableFilters } from '../../../Composables/useTableFilterControls';
-import { usePrivacyRetentionSubnavigation } from '../../../Composables/usePrivacyRetentionSubnavigation';
 import type { DataTableColumn, DataTableMeta } from '../../../Types/data-table';
 import { optionsWithAll } from '../../../Utils/filterOptions';
 import { formatStatus } from '../../../Utils/formatters';
@@ -61,6 +60,7 @@ interface LatestPrivacyPreview {
     participantCount: number;
     estimatedRecords: number;
     canExecute: boolean;
+    executeAllowed: boolean;
 }
 
 interface PrivacySummary {
@@ -93,7 +93,6 @@ const props = defineProps<{
 }>();
 
 const { locale, t } = useTranslator();
-const subnavigation = usePrivacyRetentionSubnavigation('/admin/privacy-retention', t);
 const previewResultModalOpen = ref(props.latestPreview !== null);
 const impactDetailsModalOpen = ref(false);
 const selectedImpact = ref<PrivacyPreviewImpact | null>(null);
@@ -119,6 +118,9 @@ const previewForm = useForm<{
     subject_identifier: props.previewFormDefaults.subject_identifier,
     reason: props.previewFormDefaults.reason,
     dry_run: props.previewFormDefaults.dry_run,
+});
+const executionForm = useForm<{ confirmation_phrase: string }>({
+    confirmation_phrase: '',
 });
 
 const columns = computed<DataTableColumn<PrivacyCoverageRow>[]>(() => [
@@ -227,6 +229,17 @@ function preview(): void {
     });
 }
 
+function executePreview(): void {
+    if (props.latestPreview === null) {
+        return;
+    }
+
+    const operationPath = props.latestPreview.operation === 'hard_delete' ? 'hard-delete' : 'anonymization';
+    executionForm.post(`/admin/privacy-retention/${operationPath}/${props.latestPreview.publicId}/execute`, {
+        preserveScroll: true,
+    });
+}
+
 function openImpactDetails(impact: PrivacyPreviewImpact): void {
     selectedImpact.value = impact;
     impactDetailsModalOpen.value = true;
@@ -293,8 +306,7 @@ function blockerMessage(blocker: PrivacyPreviewBlocker): string {
         mode="admin"
         :title="t('pages.admin.privacy_retention.title')"
         :title-icon="IconShieldCheck"
-        :subnavigation="subnavigation"
-        :subnavigation-label="t('pages.admin.privacy_retention.nav.label')"
+        navigation-section="privacy-retention"
     >
         <PageStack>
             <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-6">
@@ -482,6 +494,33 @@ function blockerMessage(blocker: PrivacyPreviewBlocker): string {
                             </p>
                         </div>
                     </div>
+
+                    <AtlasForm
+                        v-if="latestPreview.canExecute && latestPreview.executeAllowed"
+                        class="rounded-lg border border-rose-200 bg-rose-50/70 p-4 dark:border-rose-900 dark:bg-rose-950/30"
+                        :processing="executionForm.processing"
+                        @submit="executePreview"
+                    >
+                        <div class="space-y-3">
+                            <p class="text-sm font-semibold text-rose-900 dark:text-rose-100">
+                                {{ t('pages.admin.privacy_retention.execution.title') }}
+                            </p>
+                            <p class="text-sm text-rose-800 dark:text-rose-200">
+                                {{ t('pages.admin.privacy_retention.execution.description') }}
+                            </p>
+                            <FormInput
+                                v-model="executionForm.confirmation_phrase"
+                                :label="t('pages.admin.privacy_retention.execution.confirmation_phrase')"
+                                :placeholder="latestPreview.confirmationPhrase"
+                                :error="executionForm.errors.confirmation_phrase"
+                                autocomplete="off"
+                                required
+                            />
+                            <FormButton type="submit" tone="danger" :icon="IconPlayerPlay" :loading="executionForm.processing">
+                                {{ t('pages.admin.privacy_retention.execution.submit') }}
+                            </FormButton>
+                        </div>
+                    </AtlasForm>
                 </div>
             </DialogPanel>
 

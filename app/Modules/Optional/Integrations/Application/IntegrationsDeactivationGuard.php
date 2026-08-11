@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Optional\Integrations\Application;
 
 use App\Modules\Optional\Integrations\Application\Enums\IntegrationCircuitState;
-use App\Modules\Optional\Integrations\Application\Public\Persistence\IntegrationsDatabaseTable;
+use App\Modules\Optional\Integrations\Infrastructure\Persistence\TableNames\IntegrationsDatabaseTable;
 use App\Shared\Application\Modules\Contracts\ModuleDeactivationGuard;
 use App\Shared\Application\Modules\ModuleDeactivationAssessment;
 use App\Shared\Application\Modules\ModuleDeactivationBlocker;

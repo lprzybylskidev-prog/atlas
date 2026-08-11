@@ -4,11 +4,10 @@ declare(strict_types=1);
 
 namespace App\Modules\Core\Notifications\Presentation\Console;
 
-use App\Modules\Core\Identity\Application\Public\Persistence\IdentityDatabaseTable;
+use App\Modules\Core\Identity\Application\Public\Contracts\UserLookup;
 use App\Modules\Core\Notifications\Application\Public\Contracts\NotificationPublisher;
 use App\Modules\Core\Notifications\Application\Public\DTOs\CreateNotification;
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\DB;
 
 final class SendNotificationCommand extends Command
 {
@@ -29,9 +28,9 @@ final class SendNotificationCommand extends Command
 
     protected $description = 'Send a typed notification to a user.';
 
-    public function handle(NotificationPublisher $notifications): int
+    public function handle(NotificationPublisher $notifications, UserLookup $users): int
     {
-        $userPublicId = $this->recipientUserPublicId();
+        $userPublicId = $this->recipientUserPublicId($users);
 
         if ($userPublicId === null) {
             $this->error('Provide an existing recipient with --user=PUBLIC_ID or --email=EMAIL.');
@@ -55,7 +54,13 @@ final class SendNotificationCommand extends Command
             teamPublicId: $this->nullableStringOption('team'),
             severity: $this->stringOption('severity', 'info'),
             deepLinkUrl: $this->nullableStringOption('link'),
-            data: ['source' => 'console'],
+            data: [
+                'source' => 'console',
+                'title_pl' => $this->nullableStringOption('title-pl'),
+                'title_en' => $this->nullableStringOption('title-en'),
+                'body_pl' => $this->nullableStringOption('body-pl'),
+                'body_en' => $this->nullableStringOption('body-en'),
+            ],
             emailRequested: (bool) $this->option('email-channel'),
         ));
 
@@ -64,12 +69,12 @@ final class SendNotificationCommand extends Command
         return self::SUCCESS;
     }
 
-    private function recipientUserPublicId(): ?string
+    private function recipientUserPublicId(UserLookup $users): ?string
     {
         $user = $this->nullableStringOption('user');
 
         if ($user !== null) {
-            return DB::table(IdentityDatabaseTable::USERS)->where('public_id', $user)->exists() ? $user : null;
+            return $users->internalIdForPublicId($user) === null ? null : $user;
         }
 
         $email = $this->nullableStringOption('email');
@@ -78,9 +83,7 @@ final class SendNotificationCommand extends Command
             return null;
         }
 
-        $publicId = DB::table(IdentityDatabaseTable::USERS)->where('email', $email)->value('public_id');
-
-        return is_string($publicId) ? $publicId : null;
+        return $users->publicIdForEmail($email);
     }
 
     private function localizedOption(string $name): string

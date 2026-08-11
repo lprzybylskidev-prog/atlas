@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Modules\Core\Exports\Application;
 
-use App\Modules\Core\Exports\Application\DTOs\ReportExportColumn;
 use App\Modules\Core\Exports\Application\DTOs\ReportExportTotal;
-use App\Modules\Core\Exports\Application\Public\DTOs\ReportExportGenerationRequest;
+use App\Shared\Application\Exports\DTOs\ReportExportColumn;
+use App\Shared\Application\Exports\DTOs\ReportExportGenerationRequest;
 use DateTimeInterface;
 use RuntimeException;
 use Stringable;

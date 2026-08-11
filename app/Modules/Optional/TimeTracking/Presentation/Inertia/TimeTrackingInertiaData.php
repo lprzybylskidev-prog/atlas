@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace App\Modules\Optional\TimeTracking\Presentation\Inertia;
 
-use App\Modules\Core\Authorization\Application\Public\Contracts\EffectivePermissionChecker;
-use App\Modules\Core\Authorization\Application\Public\DTOs\EffectivePermissionRequest;
 use App\Modules\Core\Identity\Application\Public\Contracts\UserSessionLimitResolver;
 use App\Modules\Optional\TimeTracking\Application\DTOs\InactivityPolicy;
 use App\Modules\Optional\TimeTracking\Application\Permissions\TimeTrackingPermissionCatalog;
-use App\Modules\Optional\TimeTracking\Application\Public\Persistence\TimeTrackingDatabaseTable;
+use App\Modules\Optional\TimeTracking\Infrastructure\Persistence\TableNames\TimeTrackingDatabaseTable;
+use App\Shared\Application\Authorization\Contracts\EffectivePermissionChecker;
+use App\Shared\Application\Authorization\DTOs\EffectivePermissionRequest;
 use App\Shared\Presentation\Inertia\Contracts\InertiaSharedDataContributor;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;

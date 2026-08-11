@@ -4,16 +4,16 @@ declare(strict_types=1);
 
 namespace Tests\Feature\ManagedProcesses;
 
-use App\Modules\Core\Audit\Application\Public\Persistence\AuditDatabaseTable;
-use App\Modules\Core\Authorization\Application\Public\Persistence\AuthorizationDatabaseTable;
+use App\Modules\Core\Audit\Infrastructure\Persistence\TableNames\AuditDatabaseTable;
 use App\Modules\Core\Authorization\Application\Roles\InstallStarterRoles;
 use App\Modules\Core\Authorization\Application\Roles\StarterRoleName;
+use App\Modules\Core\Authorization\Infrastructure\Persistence\TableNames\AuthorizationDatabaseTable;
 use App\Modules\Core\Exports\Application\Public\Permissions\ReportsPermissionCatalog;
 use App\Modules\Core\Identity\Infrastructure\Persistence\User;
-use App\Modules\Core\Notifications\Application\Public\Persistence\NotificationsDatabaseTable;
-use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
+use App\Modules\Core\Notifications\Infrastructure\Persistence\TableNames\NotificationsDatabaseTable;
+use App\Modules\Core\Teams\Infrastructure\Persistence\TableNames\TeamsDatabaseTable;
 use App\Modules\Core\Teams\Infrastructure\Persistence\Team;
-use App\Modules\Optional\Imports\Application\Public\Persistence\ImportsDatabaseTable;
+use App\Modules\Optional\Imports\Infrastructure\Persistence\TableNames\ImportsDatabaseTable;
 use App\Modules\Optional\ManagedProcesses\Application\Contracts\ManagedProcessHandler;
 use App\Modules\Optional\ManagedProcesses\Application\DTOs\ProcessDefinition;
 use App\Modules\Optional\ManagedProcesses\Application\DTOs\ProcessLogEntry;
@@ -22,8 +22,8 @@ use App\Modules\Optional\ManagedProcesses\Application\DTOs\RetryPolicy;
 use App\Modules\Optional\ManagedProcesses\Application\Enums\ProcessLogSeverity;
 use App\Modules\Optional\ManagedProcesses\Application\Enums\ProcessRunStatus;
 use App\Modules\Optional\ManagedProcesses\Application\Permissions\ManagedProcessesPermissionCatalog;
-use App\Modules\Optional\ManagedProcesses\Application\Public\Contracts\ManagedProcessRunner;
-use App\Modules\Optional\ManagedProcesses\Application\Public\Persistence\ManagedProcessesDatabaseTable;
+use App\Modules\Optional\ManagedProcesses\Infrastructure\Persistence\TableNames\ManagedProcessesDatabaseTable;
+use App\Shared\Application\ManagedProcesses\Contracts\ManagedProcessRunner;
 use App\Shared\Application\Modules\Activation\Contracts\ModuleActivationService;
 use App\Shared\Application\Modules\Activation\ModuleActivationChange;
 use App\Shared\Application\Modules\Activation\ModuleActivationScope;
@@ -65,7 +65,7 @@ final class ManagedProcessesAdminTest extends TestCase
                 ->has('navigation.breadcrumbs', 4)
                 ->where('navigation.breadcrumbs.0.label', 'Atlas')
                 ->where('navigation.breadcrumbs.1.label', 'Panel administratora')
-                ->where('navigation.breadcrumbs.2.label', 'Procesy')
+                ->where('navigation.breadcrumbs.2.label', 'Procesy zarządzane')
                 ->where('navigation.breadcrumbs.3.label', 'Uruchomienia')
                 ->where('table.key', 'admin.managed-processes.runs')
                 ->where('table.state.filters.status', 'all')
@@ -110,7 +110,7 @@ final class ManagedProcessesAdminTest extends TestCase
                 ->has('navigation.breadcrumbs', 5)
                 ->where('navigation.breadcrumbs.0.label', 'Atlas')
                 ->where('navigation.breadcrumbs.1.label', 'Panel administratora')
-                ->where('navigation.breadcrumbs.2.label', 'Procesy')
+                ->where('navigation.breadcrumbs.2.label', 'Procesy zarządzane')
                 ->where('navigation.breadcrumbs.3.label', 'Uruchomienia')
                 ->where('navigation.breadcrumbs.4.label', "Szczegóły uruchomienia · {$runPublicId}")
                 ->where('run.publicId', $runPublicId)
@@ -306,7 +306,7 @@ final class ManagedProcessesAdminTest extends TestCase
                 ->has('navigation.breadcrumbs', 5)
                 ->where('navigation.breadcrumbs.0.label', 'Atlas')
                 ->where('navigation.breadcrumbs.1.label', 'Panel administratora')
-                ->where('navigation.breadcrumbs.2.label', 'Procesy')
+                ->where('navigation.breadcrumbs.2.label', 'Procesy zarządzane')
                 ->where('navigation.breadcrumbs.3.label', 'Harmonogramy')
                 ->where('navigation.breadcrumbs.4.label', 'Utwórz harmonogram'));
 
@@ -350,7 +350,7 @@ final class ManagedProcessesAdminTest extends TestCase
                 ->has('navigation.breadcrumbs', 4)
                 ->where('navigation.breadcrumbs.0.label', 'Atlas')
                 ->where('navigation.breadcrumbs.1.label', 'Panel administratora')
-                ->where('navigation.breadcrumbs.2.label', 'Procesy')
+                ->where('navigation.breadcrumbs.2.label', 'Procesy zarządzane')
                 ->where('navigation.breadcrumbs.3.label', 'Harmonogramy')
                 ->where('table.key', 'admin.managed-processes.schedules')
                 ->where('table.state.filters.enabled', 'all')
@@ -365,7 +365,7 @@ final class ManagedProcessesAdminTest extends TestCase
                 ->has('navigation.breadcrumbs', 4)
                 ->where('navigation.breadcrumbs.0.label', 'Atlas')
                 ->where('navigation.breadcrumbs.1.label', 'Panel administratora')
-                ->where('navigation.breadcrumbs.2.label', 'Procesy')
+                ->where('navigation.breadcrumbs.2.label', 'Procesy zarządzane')
                 ->where('navigation.breadcrumbs.3.label', 'Definicje')
                 ->where('table.key', 'admin.managed-processes.definitions')
                 ->where('table.state.filters.manual', 'all')

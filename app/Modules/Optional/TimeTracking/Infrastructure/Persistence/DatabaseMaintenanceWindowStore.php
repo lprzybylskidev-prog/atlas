@@ -12,7 +12,7 @@ use App\Modules\Optional\TimeTracking\Application\Enums\BreakClosureReason;
 use App\Modules\Optional\TimeTracking\Application\Enums\MaintenanceKind;
 use App\Modules\Optional\TimeTracking\Application\Enums\MaintenanceStatus;
 use App\Modules\Optional\TimeTracking\Application\Enums\OtherWorkClosureReason;
-use App\Modules\Optional\TimeTracking\Application\Public\Persistence\TimeTrackingDatabaseTable;
+use App\Modules\Optional\TimeTracking\Infrastructure\Persistence\TableNames\TimeTrackingDatabaseTable;
 use DateInterval;
 use DateTimeImmutable;
 use Illuminate\Database\ConnectionInterface;

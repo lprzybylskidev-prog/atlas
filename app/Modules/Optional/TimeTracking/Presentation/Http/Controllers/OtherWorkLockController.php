@@ -6,7 +6,7 @@ namespace App\Modules\Optional\TimeTracking\Presentation\Http\Controllers;
 
 use App\Modules\Core\Identity\Application\Public\Contracts\UserStepUpAuthentication;
 use App\Modules\Optional\TimeTracking\Application\OtherWorkSessionCoordinator;
-use App\Modules\Optional\TimeTracking\Application\Public\Persistence\TimeTrackingDatabaseTable;
+use App\Modules\Optional\TimeTracking\Infrastructure\Persistence\TableNames\TimeTrackingDatabaseTable;
 use App\Shared\Presentation\Support\FlashMessage;
 use DateTimeImmutable;
 use DateTimeZone;

@@ -14,8 +14,9 @@ import TopBar from '../Components/TopBar.vue';
 import ToastViewport from '../Components/ToastViewport.vue';
 import { useTimeTrackingActivityTracker } from '../Composables/useTimeTrackingActivityTracker';
 import { useTranslator } from '../Localization/translator';
+import { resolveNavigationRegistry } from '../Navigation/registry';
 import type { AtlasPageProps } from '../Types/inertia';
-import type { ShellMode, ShellSubnavigationItem } from '../Types/navigation';
+import type { ShellMode, ShellSubnavigationKey } from '../Types/navigation';
 
 const props = withDefaults(
     defineProps<{
@@ -24,22 +25,33 @@ const props = withDefaults(
         mode?: ShellMode;
         showLocaleSwitcher?: boolean;
         uiLocale?: string;
-        subnavigation?: ShellSubnavigationItem[];
-        subnavigationLabel?: string;
+        navigationSection?: ShellSubnavigationKey;
     }>(),
     {
         titleIcon: undefined,
         mode: 'app',
         showLocaleSwitcher: true,
         uiLocale: undefined,
-        subnavigation: () => [],
-        subnavigationLabel: 'Section navigation',
+        navigationSection: undefined,
     },
 );
 
 const page = usePage<AtlasPageProps>();
 const { t } = useTranslator(props.uiLocale);
 const mobileMenuOpen = ref(false);
+const navigation = computed(() =>
+    resolveNavigationRegistry(
+        {
+            mode: props.mode,
+            currentPath: page.url,
+            availableAdminRoutes: page.props.auth.availableAdminRoutes,
+            availableApplicationRoutes: page.props.auth.availableApplicationRoutes,
+        },
+        props.navigationSection,
+        page.props.navigation.breadcrumbs,
+        t,
+    ),
+);
 const impersonation = computed(() => page.props.auth?.impersonation);
 const activityConfig = computed(() => page.props.timeTracking.activity);
 const activity = useTimeTrackingActivityTracker(activityConfig);
@@ -77,7 +89,7 @@ const impersonationBannerText = computed(() =>
 <template>
     <div class="min-h-screen bg-zinc-50 text-zinc-950 dark:bg-zinc-950 dark:text-zinc-50">
         <div class="flex min-h-screen">
-            <Sidebar :current-path="page.url" :mode="mode" :ui-locale="uiLocale" />
+            <Sidebar :groups="navigation.groups" :ui-locale="uiLocale" />
             <div class="flex min-w-0 flex-1 flex-col">
                 <div
                     v-if="impersonation?.active"
@@ -102,8 +114,10 @@ const impersonationBannerText = computed(() =>
                     :mode="mode"
                     :show-locale-switcher="showLocaleSwitcher"
                     :ui-locale="uiLocale"
-                    :subnavigation="subnavigation"
-                    :subnavigation-label="subnavigationLabel"
+                    :mode-links="navigation.modeLinks"
+                    :breadcrumbs="navigation.breadcrumbs"
+                    :subnavigation="navigation.subnavigation"
+                    :subnavigation-label="navigation.subnavigationLabel"
                     @open-mobile-menu="mobileMenuOpen = true"
                 />
                 <div
@@ -120,7 +134,14 @@ const impersonationBannerText = computed(() =>
                 </main>
             </div>
         </div>
-        <MobileNavigation :open="mobileMenuOpen" :mode="mode" :ui-locale="uiLocale" @close="mobileMenuOpen = false" />
+        <MobileNavigation
+            :open="mobileMenuOpen"
+            :groups="navigation.groups"
+            :subnavigation="navigation.subnavigation"
+            :subnavigation-label="navigation.subnavigationLabel"
+            :ui-locale="uiLocale"
+            @close="mobileMenuOpen = false"
+        />
         <FullscreenTransitionLoader />
         <ModalHost :ui-locale="uiLocale" />
         <DialogPanel

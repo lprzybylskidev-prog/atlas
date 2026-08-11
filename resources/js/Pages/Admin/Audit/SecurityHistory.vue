@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head } from '@inertiajs/vue3';
-import { IconAlertTriangle, IconFingerprint, IconHistory, IconListDetails, IconShieldCheck, IconUserScan } from '@tabler/icons-vue';
+import { IconAlertTriangle, IconFingerprint, IconListDetails, IconShieldCheck, IconUserScan } from '@tabler/icons-vue';
 import { computed, ref, watch } from 'vue';
 
 import DataTable from '../../../Components/DataTable.vue';
@@ -13,7 +13,6 @@ import { applyTableFilters, clearTableFilters } from '../../../Composables/useTa
 import AppLayout from '../../../Layouts/AppLayout.vue';
 import { useTranslator } from '../../../Localization/translator';
 import type { DataTableAction, DataTableColumn, DataTableMeta } from '../../../Types/data-table';
-import type { ShellSubnavigationItem } from '../../../Types/navigation';
 import { existingOptionsWithAll } from '../../../Utils/filterOptions';
 import { formatStatus } from '../../../Utils/formatters';
 import { readableFilterOption, readableToken } from '../../../Utils/readableTokens';
@@ -68,22 +67,6 @@ const filterDefaults = {
 };
 const filters = ref({ ...filterDefaults, ...filterValues() });
 
-const subnavigation = computed<ShellSubnavigationItem[]>(() => [
-    {
-        key: 'audit.events',
-        label: t('pages.admin.audit.nav.events'),
-        href: '/admin/audit',
-        icon: IconHistory,
-        active: false,
-    },
-    {
-        key: 'audit.security',
-        label: t('pages.admin.audit.nav.security_history'),
-        href: '/admin/audit/security-history',
-        icon: IconShieldCheck,
-        active: true,
-    },
-]);
 const rows = computed<SecurityEventRow[]>(() =>
     props.events.map((event) => ({
         ...event,
@@ -173,13 +156,7 @@ function clearFilters(): void {
 
 <template>
     <Head :title="t('pages.admin.audit.security.head_title')" />
-    <AppLayout
-        mode="admin"
-        :title="t('pages.admin.audit.security.title')"
-        :title-icon="IconShieldCheck"
-        :subnavigation="subnavigation"
-        :subnavigation-label="t('pages.admin.audit.nav.label')"
-    >
+    <AppLayout mode="admin" :title="t('pages.admin.audit.security.title')" :title-icon="IconShieldCheck" navigation-section="audit">
         <PageStack>
             <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
                 <OperationalMetricTile

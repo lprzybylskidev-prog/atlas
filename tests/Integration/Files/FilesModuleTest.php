@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Integration\Files;
 
-use App\Modules\Core\Audit\Application\Public\Persistence\AuditDatabaseTable;
+use App\Modules\Core\Audit\Infrastructure\Persistence\TableNames\AuditDatabaseTable;
 use App\Modules\Core\Files\Application\Contracts\MalwareScanner;
 use App\Modules\Core\Files\Application\DTOs\MalwareScanResult;
 use App\Modules\Core\Files\Application\Enums\FileScanState;
@@ -12,8 +12,8 @@ use App\Modules\Core\Files\Application\Public\Contracts\FileLifecycle;
 use App\Modules\Core\Files\Application\Public\Contracts\FileMaintenance;
 use App\Modules\Core\Files\Application\Public\Contracts\FileStorage;
 use App\Modules\Core\Files\Application\Public\Exceptions\FileNotAvailableForDownload;
-use App\Modules\Core\Files\Application\Public\Persistence\FilesDatabaseTable;
 use App\Modules\Core\Files\Infrastructure\Persistence\DatabaseFileStorage;
+use App\Modules\Core\Files\Infrastructure\Persistence\TableNames\FilesDatabaseTable;
 use App\Modules\Core\Files\Presentation\Jobs\ScanFileForMalware;
 use App\Shared\Infrastructure\Operations\OperationalModuleGuard;
 use Carbon\CarbonImmutable;
@@ -121,6 +121,13 @@ final class FilesModuleTest extends TestCase
                 'public_id' => $stored->publicId,
                 'scan_state' => FileScanState::Failed->value,
             ]);
+            $this->assertDatabaseHas(AuditDatabaseTable::AUDIT_EVENTS, [
+                'module' => 'files',
+                'action' => 'file.scan_failed',
+                'result' => 'failed',
+                'target_public_id' => $stored->publicId,
+                'is_security' => true,
+            ]);
         }
 
         $this->expectException(FileNotAvailableForDownload::class);
@@ -208,6 +215,50 @@ final class FilesModuleTest extends TestCase
                 'module' => 'files',
                 'action' => $action,
                 'result' => 'succeeded',
+            ]);
+        }
+    }
+
+    public function test_missing_rescan_and_delete_attempts_are_audited_as_rejected(): void
+    {
+        $this->useFakeStorage();
+        Queue::fake();
+        $missingPublicId = '01J00000000000000000000FFF';
+        $storage = $this->app->make(DatabaseFileStorage::class);
+
+        self::assertFalse($storage->rescan($missingPublicId));
+        self::assertFalse($storage->delete($missingPublicId, reason: 'Missing-file rejection probe.')->completed);
+
+        foreach (['file.rescan_requested', 'file.delete_requested'] as $action) {
+            $this->assertDatabaseHas(AuditDatabaseTable::AUDIT_EVENTS, [
+                'module' => 'files',
+                'action' => $action,
+                'result' => 'rejected',
+                'is_security' => true,
+            ]);
+        }
+    }
+
+    public function test_failed_retention_copy_and_export_are_audited(): void
+    {
+        $this->useFakeStorage();
+        Queue::fake();
+        $storage = $this->app->make(FileStorage::class);
+        $lifecycle = $this->app->make(FileLifecycle::class);
+        $stored = $storage->storeUpload($this->uploadFile('retained.txt'));
+        $path = $this->fileStringValue($stored->publicId, 'path');
+        Storage::disk('atlas_files')->delete($path);
+
+        self::assertFalse($lifecycle->createRetentionCopy($stored->publicId, 'legal_hold')->completed);
+        self::assertFalse($lifecycle->createRetentionExport($stored->publicId, 'privacy_export')->completed);
+
+        foreach (['file.retention_copy_created', 'file.retention_export_created'] as $action) {
+            $this->assertDatabaseHas(AuditDatabaseTable::AUDIT_EVENTS, [
+                'module' => 'files',
+                'action' => $action,
+                'result' => 'failed',
+                'target_public_id' => $stored->publicId,
+                'is_security' => true,
             ]);
         }
     }

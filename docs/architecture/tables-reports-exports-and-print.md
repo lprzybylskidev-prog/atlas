@@ -2,9 +2,9 @@
 
 Canonical shared contract for data tables, query strings, saved views, exports, report headers, charts, report generation, browser print, and PDF rendering.
 
-## Phase 28 target
+## Phase 28 closure state
 
-Current state: table, saved-view, export, report, and print foundations exist, but Phase 28 tracks DataTable decomposition, manual table migration, role-safe columns, saved-view surface gating, status catalog migration, locale formatting, Reports/Exports ownership, and Chromium/PDF runtime parity.
+The Phase 28 shared DataTable, action, filter, state, status, safe-column, effective-locale, and saved-view contracts are implemented. Saved-view mutations use the shell-neutral `/table-views` routes and `RegisteredTables` validates each table against its owning surface permission and ModuleGate state. Notifications, route-backed regular-user TimeTracking sections, and manager operation tables opt in alongside eligible Admin tables. Reports/Core Exports ownership, existing-view migration, and Chromium/PDF runtime parity are closed and covered by the foundation gate.
 
 Target state: normal tabular data uses the shared DataTable contract; saved views are explicitly enabled per surface; exports/print/PDF values use the effective locale; Reports and Core Exports have explicit ownership and dependency classification; and PDF runtime is smoke-tested before Phase 29.
 
@@ -18,13 +18,21 @@ The Phase 10 shared `DataTable` wrapper is the only application table framework.
 
 Tables keep readable minimum widths for data cells and row actions. When the visible column set is wider than the available viewport, the shared wrapper uses horizontal scrolling instead of compressing columns until values or actions overlap. Truncated data cells expose the full formatted value through the shared tooltip pattern while keeping the formatted value selectable for normal browser copy operations.
 
-Row actions that need confirmation use the shared modal flow through `DataTableAction.confirm`, including row-specific confirmation copy when needed. Pages must not implement separate row-action confirmation dialogs, native browser confirmations, or local action icon/button styling for normal tabular rows.
+Row actions use the canonical typed `AtlasAction` contract and shared modal flow, including row-specific operation copy when needed. Pages must not implement separate row-action confirmation dialogs, native browser confirmations, or local action icon/button styling for normal tabular rows.
 
-Saved views persist safe table configuration only: search/filter state, sorting, visible columns, column order, grouping keys, and fixed or dynamic time-range metadata. They never persist row data. Private views are owner-scoped, team-shared views are active-team scoped, and system views are read-only from the normal table UI. System views may be copied into private or team-shared views. Shared/system view changes are recorded through the current security audit bridge until the full Phase 11 Audit module exists.
+The DataTable host composes focused state-row and pagination units and delegates action semantics, status resolution, locale formatting, filters, saved-view capability, and safe-column metadata to their shared contracts. Normal tabular datasets use this composition. A specialized timeline or code/log reader may use a different responsive presentation, but it must reuse shared states and actions and document why a normal table is not appropriate.
+
+Saved views are explicitly enabled per eligible table, independent of shell mode. The shared component uses the shell-neutral `/table-views` route contract and never hardcodes `/admin`. Table definitions and their saved-view access contracts are registered through the typed shared `RegisteredTables` registry. Eligible regular-user and manager tables—including Notifications and accepted TimeTracking reports/operations—receive the same safe capability without Admin mode; Admin registrations still require an active Admin-mode session. Manager operation tables use manager-specific keys rather than reusing Admin keys, so their permissions and persisted state cannot cross shell boundaries. A table may disable persistence only when its registered contract documents why saved state has no product value.
+
+Saved views persist safe table configuration only: search/filter state, sorting, visible columns, column order, grouping keys, and fixed or dynamic time-range metadata. They never persist row data. Private views are owner-scoped, team-shared views are active-team scoped and permission-gated, and system views are read-only from normal table UI. System views may be copied into private or team-shared views. Defaults are user-and-table scoped. Every read and mutation revalidates table registration, current authorization, active team, ModuleGate state, allowed filters/columns, and view visibility; shared/system changes are audited.
 
 Phase 24 implements the later report/export/PDF/chart/print artifact lifecycle after files, notifications, audit, active-team context, and operational visibility exist. Phase 24a moves the reusable lifecycle into the Core Exports module so Admin and business data surfaces can export without depending on optional Reports.
 
-Admin table data columns place `public_id` first. Admin tables expose all safe non-secret columns from their backing table through the column visibility menu, while default visibility stays limited to the most operationally important fields. Secret values such as passwords, remember tokens, authentication tokens, MFA secrets, and recovery codes are never exposed as table columns.
+The first user-facing column is the human name or business value. A public identifier may lead only on a justified technical Admin surface. Each column is explicitly allowed or forbidden and visible or hidden; forbidden columns never enter the column menu or client state. Regular-user and manager tables forbid internal IDs, non-user-facing public identifiers, raw enums, deep links, session identifiers, technical event names, database values, and precise diagnostics. Secret values such as passwords, remember tokens, authentication tokens, MFA secrets, and recovery codes are never exposed as table columns.
+
+`FilterPanel` owns responsive filter layout, canonical Apply/Clear labels, active-filter chips, clear-one, clear-all, and result/no-results context. The shared UI state contract covers initial and refresh loading, empty dataset, no results, recoverable and fatal errors, permission denied, module unavailable, offline, and stale data. The status catalog owns stable keys, PL/EN labels, meaning, tone, icon, accessibility text, and allowed surfaces; unknown tokens are shown only as explicitly marked diagnostics, never humanized into plausible copy.
+
+Metric tiles that summarize a table, report, chart, timeline, or another detailed dataset use the same authorized data scope as that detail surface. They aggregate the complete dataset after the currently applied report filters and DataTable search, including rows beyond the current page. Sorting, page number, and page size never change aggregate values. A page may also show a contextual metric for a distinct visible dataset or for the inspected record itself, but that ownership must be explicit; it must not silently query a broader global scope. Array-backed tables expose their complete searched dataset through `TableResult::filteredRows`, while database-backed tables apply the same filter and search predicates to a separate aggregate query. Tests cover search/filter coupling and pagination independence at the shared contract and representative HTTP surfaces.
 
 It must support:
 
@@ -95,8 +103,9 @@ Exports and print must honor:
 - visible columns;
 - permissions;
 - active team.
+- the effective locale captured in the immutable request snapshot.
 
-Admin tables using the shared backend `TableState` enter the export lifecycle through Core Exports `AdminDataTableExportProvider` implementations. The snapshot factory revalidates the table state against the table definition and provider-authorized columns before recording the immutable export request.
+Admin tables using the shared backend `TableState` enter the export lifecycle through `App\Shared\Application\Exports\Contracts\AdminDataTableExportProvider` implementations. Core Exports consumes those shared contributions through its provider registry, then revalidates the table state against the table definition and provider-authorized columns before recording the immutable export request.
 
 Small exports may run synchronously through Core Exports.
 

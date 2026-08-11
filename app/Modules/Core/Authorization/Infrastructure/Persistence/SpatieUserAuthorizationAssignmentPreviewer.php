@@ -6,19 +6,24 @@ namespace App\Modules\Core\Authorization\Infrastructure\Persistence;
 
 use App\Modules\Core\Authorization\Application\Public\Contracts\UserAuthorizationAssignmentPreviewer;
 use App\Modules\Core\Authorization\Application\Public\DTOs\UserAuthorizationPreview;
-use App\Modules\Core\Authorization\Application\Public\Persistence\AuthorizationDatabaseTable;
-use App\Modules\Core\Identity\Application\Public\Persistence\IdentityDatabaseTable;
-use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
+use App\Modules\Core\Authorization\Infrastructure\Persistence\TableNames\AuthorizationDatabaseTable;
+use App\Modules\Core\Identity\Application\Public\Contracts\UserLookup;
+use App\Shared\Application\Teams\Contracts\TeamLookup;
 use Illuminate\Support\Facades\DB;
 
 final class SpatieUserAuthorizationAssignmentPreviewer implements UserAuthorizationAssignmentPreviewer
 {
+    public function __construct(
+        private readonly UserLookup $users,
+        private readonly TeamLookup $teams,
+    ) {}
+
     public function preview(string $userPublicId, string $teamPublicId): UserAuthorizationPreview
     {
-        $userId = DB::table(IdentityDatabaseTable::USERS)->where('public_id', $userPublicId)->value('id');
-        $teamId = DB::table(TeamsDatabaseTable::TEAMS)->where('public_id', $teamPublicId)->value('id');
+        $userId = $this->users->internalIdForPublicId($userPublicId);
+        $teamId = $this->teams->internalIdForPublicId($teamPublicId);
 
-        if (! is_int($userId) || ! is_int($teamId)) {
+        if ($userId === null || $teamId === null) {
             return new UserAuthorizationPreview($userPublicId, [], []);
         }
 

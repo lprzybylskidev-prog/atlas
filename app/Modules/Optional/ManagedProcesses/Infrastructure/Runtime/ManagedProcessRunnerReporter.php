@@ -7,8 +7,8 @@ namespace App\Modules\Optional\ManagedProcesses\Infrastructure\Runtime;
 use App\Modules\Optional\ManagedProcesses\Application\DTOs\ProcessLogEntry;
 use App\Modules\Optional\ManagedProcesses\Application\Enums\ProcessLogSeverity;
 use App\Modules\Optional\ManagedProcesses\Application\Enums\ProcessRunStatus;
-use App\Modules\Optional\ManagedProcesses\Application\Public\Contracts\ManagedProcessReporter;
-use App\Modules\Optional\ManagedProcesses\Application\Public\Contracts\ManagedProcessRunner;
+use App\Shared\Application\ManagedProcesses\Contracts\ManagedProcessReporter;
+use App\Shared\Application\ManagedProcesses\Contracts\ManagedProcessRunner;
 
 final readonly class ManagedProcessRunnerReporter implements ManagedProcessReporter
 {

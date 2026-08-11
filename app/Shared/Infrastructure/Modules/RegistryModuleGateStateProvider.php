@@ -4,23 +4,22 @@ declare(strict_types=1);
 
 namespace App\Shared\Infrastructure\Modules;
 
-use App\Modules\Core\Authorization\Application\Public\Contracts\EffectivePermissionChecker;
-use App\Modules\Core\Authorization\Application\Public\DTOs\EffectivePermissionRequest;
-use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
+use App\Shared\Application\Authorization\Contracts\EffectivePermissionChecker;
+use App\Shared\Application\Authorization\DTOs\EffectivePermissionRequest;
 use App\Shared\Application\Modules\Activation\Contracts\ModuleActivationService;
 use App\Shared\Application\Modules\Contracts\ModuleGateStateProvider;
 use App\Shared\Application\Modules\ModuleAccessRequest;
 use App\Shared\Application\Modules\ModuleAccessState;
 use App\Shared\Application\Modules\ModuleKey;
 use App\Shared\Application\Modules\ModuleRegistry;
-use Illuminate\Database\ConnectionInterface;
+use App\Shared\Application\Teams\Contracts\TeamLookup;
 
 final readonly class RegistryModuleGateStateProvider implements ModuleGateStateProvider
 {
     public function __construct(
         private ModuleRegistry $registry,
         private EffectivePermissionChecker $permissions,
-        private ConnectionInterface $database,
+        private TeamLookup $teams,
         private ModuleActivationService $activation,
     ) {}
 
@@ -34,7 +33,7 @@ final readonly class RegistryModuleGateStateProvider implements ModuleGateStateP
 
         return new ModuleAccessState(
             deployed: $deployed,
-            requiredDependenciesSatisfied: $deployed,
+            requiredDependenciesSatisfied: $this->requiredDependenciesAreSatisfied($moduleKey, $deployed, $activeTeamId),
             technicallyAvailable: $effectiveState->technicallyAvailable,
             globallyActive: $effectiveState->globallyEnabled,
             teamActive: $effectiveState->teamEnabled,
@@ -43,23 +42,38 @@ final readonly class RegistryModuleGateStateProvider implements ModuleGateStateP
         );
     }
 
+    private function requiredDependenciesAreSatisfied(ModuleKey $moduleKey, bool $deployed, ?int $activeTeamId): bool
+    {
+        if (! $deployed) {
+            return false;
+        }
+
+        foreach ($this->registry->get($moduleKey)->requiredDependencies() as $dependency) {
+            $state = $this->activation->effectiveState($dependency->value, $activeTeamId);
+
+            if (! $state->deployed || ! $state->technicallyAvailable || ! $state->globallyEnabled || ! $state->teamEnabled) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     private function activeTeamIsValid(ModuleAccessRequest $request): bool
     {
         if ($request->activeTeamId === null && $request->activeTeamPublicId === null) {
             return true;
         }
 
-        $query = $this->database->table(TeamsDatabaseTable::TEAMS)->where('is_active', true);
+        if ($request->activeTeamId !== null && $request->activeTeamPublicId !== null) {
+            return $this->teams->activePublicIdForInternalId($request->activeTeamId) === $request->activeTeamPublicId;
+        }
 
         if ($request->activeTeamId !== null) {
-            $query->where('id', $request->activeTeamId);
+            return $this->teams->activePublicIdForInternalId($request->activeTeamId) !== null;
         }
 
-        if ($request->activeTeamPublicId !== null) {
-            $query->where('public_id', $request->activeTeamPublicId);
-        }
-
-        return $query->exists();
+        return $this->teams->activeInternalIdForPublicId((string) $request->activeTeamPublicId) !== null;
     }
 
     private function permissionIsGranted(ModuleAccessRequest $request, bool $activeTeamValid): bool
@@ -91,11 +105,7 @@ final readonly class RegistryModuleGateStateProvider implements ModuleGateStateP
             return null;
         }
 
-        $publicId = $this->database->table(TeamsDatabaseTable::TEAMS)
-            ->where('id', $teamId)
-            ->value('public_id');
-
-        return is_string($publicId) ? $publicId : null;
+        return $this->teams->publicIdForInternalId($teamId);
     }
 
     private function teamId(?string $teamPublicId): ?int
@@ -104,10 +114,6 @@ final readonly class RegistryModuleGateStateProvider implements ModuleGateStateP
             return null;
         }
 
-        $id = $this->database->table(TeamsDatabaseTable::TEAMS)
-            ->where('public_id', $teamPublicId)
-            ->value('id');
-
-        return is_numeric($id) ? (int) $id : null;
+        return $this->teams->internalIdForPublicId($teamPublicId);
     }
 }

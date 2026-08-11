@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Core\Settings\Presentation\Inertia;
 
 use App\Modules\Core\Settings\Application\Settings\EffectiveSettings;
-use App\Modules\Core\Teams\Application\Public\Contracts\TeamLookup;
+use App\Shared\Application\Teams\Contracts\TeamLookup;
 use App\Shared\Presentation\Inertia\Contracts\InertiaSharedDataContributor;
 use Illuminate\Http\Request;
 

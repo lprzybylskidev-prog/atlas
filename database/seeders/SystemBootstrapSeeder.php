@@ -4,20 +4,16 @@ declare(strict_types=1);
 
 namespace Database\Seeders;
 
-use App\Modules\Core\Authorization\Application\Contracts\PermissionRoleStore;
-use App\Modules\Core\Authorization\Application\Permissions\PermissionCatalogRegistry;
-use App\Modules\Core\Authorization\Application\Roles\InstallStarterRoles;
-use App\Modules\Core\Authorization\Application\Roles\StarterRoleName;
+use App\Modules\Core\Authorization\Application\Public\Contracts\AuthorizationBootstrapper;
 use App\Modules\Core\Teams\Application\Public\Contracts\BootstrapTeamProvider;
-use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
 use App\Shared\Application\Modules\Activation\Contracts\ModuleActivationService;
 use App\Shared\Application\Modules\Activation\ModuleActivationChange;
 use App\Shared\Application\Modules\Activation\ModuleActivationScope;
 use App\Shared\Application\Modules\Activation\ModuleActivationSource;
 use App\Shared\Application\Modules\ModuleCategory;
 use App\Shared\Application\Modules\ModuleRegistry;
+use App\Shared\Application\Teams\Contracts\TeamLookup;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\DB;
 
 class SystemBootstrapSeeder extends Seeder
 {
@@ -25,33 +21,16 @@ class SystemBootstrapSeeder extends Seeder
 
     public function run(): void
     {
-        app(InstallStarterRoles::class)->handle();
-        $this->synchronizeAdministratorRole();
+        app(AuthorizationBootstrapper::class)->synchronizeTechnicalFoundation();
 
         $team = app(BootstrapTeamProvider::class)->provide(self::ADMINISTRATION_TEAM_NAME);
-        $teamId = DB::table(TeamsDatabaseTable::TEAMS)
-            ->where('public_id', $team->publicId)
-            ->value('id');
+        $teamId = app(TeamLookup::class)->internalIdForPublicId($team->publicId);
 
-        if (! is_numeric($teamId)) {
+        if ($teamId === null) {
             return;
         }
 
-        $this->activateModulesForAdministrationTeam((int) $teamId);
-    }
-
-    private function synchronizeAdministratorRole(): void
-    {
-        $store = app(PermissionRoleStore::class);
-        $permissions = app(PermissionCatalogRegistry::class)->names();
-        $existing = $store->rolePermissionNames(StarterRoleName::Administrator->value);
-        $missing = array_values(array_diff($permissions, $existing));
-
-        if ($missing === []) {
-            return;
-        }
-
-        $store->grantPermissionsToRole(StarterRoleName::Administrator->value, $missing);
+        $this->activateModulesForAdministrationTeam($teamId);
     }
 
     private function activateModulesForAdministrationTeam(int $teamId): void

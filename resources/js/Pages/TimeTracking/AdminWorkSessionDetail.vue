@@ -22,7 +22,6 @@ import StatusBadge from '../../Components/StatusBadge.vue';
 import SurfaceCard from '../../Components/SurfaceCard.vue';
 import {
     adminDetailIcon,
-    adminDetailSubnavigation,
     detailFieldLabel,
     detailFields,
     detailValue,
@@ -164,8 +163,7 @@ function maintenanceEnd(row: Record<string, string>): string {
         :title="pageTitle"
         :title-icon="adminDetailIcon('work_session')"
         :mode="surface"
-        :subnavigation="isManagerSurface ? [] : adminDetailSubnavigation('work_sessions', t)"
-        :subnavigation-label="t('navigation.group.work_time')"
+        :navigation-section="isManagerSurface ? undefined : 'work-time'"
     >
         <PageStack>
             <div>

@@ -9,7 +9,6 @@ use App\Modules\Core\Identity\Application\Public\Contracts\UserSessionRegistry;
 use App\Modules\Core\Notifications\Application\Public\Contracts\NotificationPublisher;
 use App\Modules\Core\Notifications\Application\Public\DTOs\CreateNotification;
 use App\Modules\Core\Teams\Application\Public\Contracts\ManagerHierarchy;
-use App\Modules\Core\Teams\Application\Public\Contracts\TeamLookup;
 use App\Modules\Optional\TimeTracking\Application\BreakSessionCoordinator;
 use App\Modules\Optional\TimeTracking\Application\Contracts\BreakPolicyStore;
 use App\Modules\Optional\TimeTracking\Application\Contracts\OtherWorkCategoryStore;
@@ -20,10 +19,12 @@ use App\Modules\Optional\TimeTracking\Application\Enums\CorrectionSourceType;
 use App\Modules\Optional\TimeTracking\Application\Enums\OtherWorkApprovalStatus;
 use App\Modules\Optional\TimeTracking\Application\Enums\WorkSessionClosureReason;
 use App\Modules\Optional\TimeTracking\Application\OtherWorkSessionCoordinator;
-use App\Modules\Optional\TimeTracking\Application\Public\Persistence\TimeTrackingDatabaseTable;
 use App\Modules\Optional\TimeTracking\Application\TimeTrackingAudit;
 use App\Modules\Optional\TimeTracking\Application\UserTimeReportService;
 use App\Modules\Optional\TimeTracking\Domain\Time\CalendarDayIntervalSplitter;
+use App\Modules\Optional\TimeTracking\Infrastructure\Persistence\TableNames\TimeTrackingDatabaseTable;
+use App\Shared\Application\Audit\Enums\SecurityAuditCategory;
+use App\Shared\Application\Teams\Contracts\TeamLookup;
 use App\Shared\Presentation\Support\FlashMessage;
 use DateTimeImmutable;
 use DateTimeZone;
@@ -244,6 +245,7 @@ final readonly class AdminTimeTrackingOperationActionController
             status: $status,
             reason: $reason,
             decidedAt: $this->now(),
+            securityCategory: SecurityAuditCategory::Security,
         );
 
         if (! $decided) {
@@ -779,6 +781,7 @@ final readonly class AdminTimeTrackingOperationActionController
             reason: $reason,
             after: $after,
             source: 'http',
+            securityCategory: SecurityAuditCategory::Security,
         );
     }
 

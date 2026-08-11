@@ -4,13 +4,14 @@ declare(strict_types=1);
 
 namespace App\Modules\Optional\Search\Presentation\Http\Controllers;
 
-use App\Modules\Optional\ManagedProcesses\Application\Public\Contracts\ManagedProcessRunner;
-use App\Modules\Optional\ManagedProcesses\Application\Public\Persistence\ManagedProcessesDatabaseTable;
 use App\Modules\Optional\Search\Application\Contracts\SearchIndexRegistry;
 use App\Modules\Optional\Search\Application\Public\DTOs\SearchIndexDescriptor;
 use App\Modules\Optional\Search\Application\SearchRebuildProcess;
-use App\Shared\Application\Tables\AdminTableDefinitions;
+use App\Shared\Application\ManagedProcesses\Contracts\ManagedProcessRunInspector;
+use App\Shared\Application\ManagedProcesses\Contracts\ManagedProcessRunner;
+use App\Shared\Application\ManagedProcesses\DTOs\ManagedProcessRunSummary;
 use App\Shared\Application\Tables\ArrayTableProcessor;
+use App\Shared\Application\Tables\RegisteredTables;
 use App\Shared\Application\Tables\TableDefinition;
 use App\Shared\Application\Tables\TableRequestContext;
 use App\Shared\Application\Tables\TableResult;
@@ -21,7 +22,6 @@ use App\Shared\Presentation\Support\FlashMessage;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Config;
-use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 use RuntimeException;
@@ -31,6 +31,7 @@ final readonly class AdminSearchController
     public function __construct(
         private SearchIndexRegistry $indexes,
         private ManagedProcessRunner $runner,
+        private ManagedProcessRunInspector $runs,
         private ArrayTableProcessor $tables,
         private TableSavedViewService $views,
         private TableRequestContext $context,
@@ -38,7 +39,7 @@ final readonly class AdminSearchController
 
     public function index(Request $request): Response
     {
-        $definition = AdminTableDefinitions::get(AdminTableDefinitions::SEARCH_INDEXES);
+        $definition = RegisteredTables::get(RegisteredTables::SEARCH_INDEXES);
         $indexes = array_map(fn (SearchIndexDescriptor $descriptor): array => $this->indexRow($descriptor), $this->indexes->all());
         $filters = $this->filters($request, $indexes);
         $filteredIndexes = $this->filteredIndexes($indexes, $filters);
@@ -51,8 +52,8 @@ final readonly class AdminSearchController
         return Inertia::render('Admin/Search/Index', [
             'indexes' => $result->rows,
             'summary' => [
-                'indexes' => count($indexes),
-                'sensitive' => count(array_filter($indexes, static fn (array $index): bool => ($index['containsSensitiveData'] ?? false) === true)),
+                'indexes' => count($result->filteredRows),
+                'sensitive' => count(array_filter($result->filteredRows, static fn (array $index): bool => ($index['containsSensitiveData'] ?? false) === true)),
                 'recentRebuilds' => count($rebuilds),
                 'activeRebuilds' => count(array_filter($rebuilds, static fn (array $run): bool => in_array($run['status'] ?? '', ['draft', 'queued', 'running', 'waiting'], true))),
                 'visibleIndexes' => $result->total,
@@ -212,24 +213,20 @@ final readonly class AdminSearchController
      */
     private function recentRebuildRuns(): array
     {
-        return array_values(DB::table(ManagedProcessesDatabaseTable::RUNS)
-            ->where('process_key', SearchRebuildProcess::KEY)
-            ->orderByDesc('created_at')
-            ->limit(8)
-            ->get(['public_id', 'status', 'current_stage', 'progress_current', 'progress_total', 'progress_label', 'created_at', 'started_at', 'finished_at'])
-            ->map(fn (object $row): array => [
-                'publicId' => $this->string($row->public_id ?? null),
-                'status' => $this->string($row->status ?? null),
-                'currentStage' => $this->string($row->current_stage ?? null),
-                'progressCurrent' => $this->int($row->progress_current ?? null),
-                'progressTotal' => $this->nullableInt($row->progress_total ?? null),
-                'progressLabel' => $this->string($row->progress_label ?? null),
-                'createdAt' => $this->string($row->created_at ?? null),
-                'startedAt' => $this->string($row->started_at ?? null),
-                'finishedAt' => $this->string($row->finished_at ?? null),
-            ])
-            ->values()
-            ->all());
+        return array_map(
+            static fn (ManagedProcessRunSummary $run): array => [
+                'publicId' => $run->publicId,
+                'status' => $run->status,
+                'currentStage' => $run->currentStage,
+                'progressCurrent' => $run->progressCurrent,
+                'progressTotal' => $run->progressTotal,
+                'progressLabel' => $run->progressLabel,
+                'createdAt' => $run->createdAt,
+                'startedAt' => $run->startedAt,
+                'finishedAt' => $run->finishedAt,
+            ],
+            $this->runs->recentRunsForProcess(SearchRebuildProcess::KEY, 8),
+        );
     }
 
     /**
@@ -263,21 +260,6 @@ final readonly class AdminSearchController
         $teamPublicId = $request->hasSession() ? $request->session()->get('active_team_public_id') : null;
 
         return is_string($teamPublicId) ? $teamPublicId : null;
-    }
-
-    private function string(mixed $value): ?string
-    {
-        return is_scalar($value) ? (string) $value : null;
-    }
-
-    private function int(mixed $value): int
-    {
-        return is_numeric($value) ? (int) $value : 0;
-    }
-
-    private function nullableInt(mixed $value): ?int
-    {
-        return is_numeric($value) ? (int) $value : null;
     }
 
     /**

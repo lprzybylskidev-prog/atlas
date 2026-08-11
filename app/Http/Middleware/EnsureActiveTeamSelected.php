@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Middleware;
 
-use App\Modules\Core\Teams\Application\Public\Contracts\UserTeamMembershipManager;
+use App\Shared\Application\Teams\Contracts\UserTeamMembershipManager;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;

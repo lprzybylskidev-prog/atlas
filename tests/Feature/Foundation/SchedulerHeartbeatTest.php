@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Foundation;
 
-use App\Modules\Core\Audit\Application\Public\Persistence\AuditDatabaseTable;
-use App\Modules\Core\Authorization\Application\Public\Persistence\AuthorizationDatabaseTable;
+use App\Modules\Core\Audit\Infrastructure\Persistence\TableNames\AuditDatabaseTable;
 use App\Modules\Core\Authorization\Application\Roles\InstallStarterRoles;
 use App\Modules\Core\Authorization\Application\Roles\StarterRoleName;
+use App\Modules\Core\Authorization\Infrastructure\Persistence\TableNames\AuthorizationDatabaseTable;
 use App\Modules\Core\Identity\Infrastructure\Persistence\User;
-use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
+use App\Modules\Core\Teams\Infrastructure\Persistence\TableNames\TeamsDatabaseTable;
 use App\Modules\Core\Teams\Infrastructure\Persistence\Team;
 use App\Shared\Application\Modules\Activation\Contracts\ModuleActivationService;
 use App\Shared\Application\Modules\Activation\ModuleActivationScheduleStatus;
@@ -58,6 +58,15 @@ final class SchedulerHeartbeatTest extends TestCase
         self::assertSame('stale', $status['status']);
         self::assertFalse($status['isFresh']);
         self::assertSame('Scheduler heartbeat is older than the configured freshness threshold.', $status['description']);
+    }
+
+    public function test_scheduler_status_command_reflects_the_real_heartbeat(): void
+    {
+        self::assertSame(1, Artisan::call('system:scheduler-status'));
+
+        $this->app->make(SchedulerHeartbeatMonitor::class)->markHealthy(4);
+
+        self::assertSame(0, Artisan::call('system:scheduler-status'));
     }
 
     public function test_admin_scheduler_heartbeat_endpoint_exposes_diagnostics(): void

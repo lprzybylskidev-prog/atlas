@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace App\Modules\Core\Privacy\Application\Services;
 
-use App\Modules\Core\Audit\Application\Public\Contracts\AuditRecorder;
-use App\Modules\Core\Audit\Application\Public\DTOs\AuditEvent;
-use App\Modules\Core\Audit\Application\Public\Enums\SecurityAuditCategory;
 use App\Modules\Core\Privacy\Application\DTOs\PrivacyPreviewCommand;
 use App\Modules\Core\Privacy\Application\DTOs\PrivacyPreviewResult;
 use App\Modules\Core\Privacy\Application\Enums\PrivacyOperation;
-use App\Modules\Core\Privacy\Application\Public\Persistence\PrivacyDatabaseTable;
+use App\Modules\Core\Privacy\Infrastructure\Persistence\TableNames\PrivacyDatabaseTable;
+use App\Shared\Application\Audit\Contracts\AuditRecorder;
+use App\Shared\Application\Audit\DTOs\AuditEvent;
+use App\Shared\Application\Audit\Enums\SecurityAuditCategory;
 use App\Shared\Application\DataLifecycle\DataLifecycleBlocker;
 use App\Shared\Application\DataLifecycle\DataLifecycleImpact;
 use App\Shared\Application\DataLifecycle\DataLifecycleSubject;
@@ -78,7 +78,7 @@ final readonly class PrivacyOperationPreviewer
         }
 
         $incompleteCoverage = array_filter(
-            $this->coverage->items($this->participants->classNames()),
+            $this->coverage->items($this->participants->keys()),
             static fn ($item): bool => $item->coverage !== 'implemented',
         );
 
@@ -129,6 +129,7 @@ final readonly class PrivacyOperationPreviewer
                 'participant_count' => count($participants),
                 'estimated_records' => $estimatedRecords,
                 'can_execute' => $canExecute,
+                'snapshot_hash' => $this->snapshotHash($impactPayload, $blockerPayload, count($participants)),
                 'created_at' => now(),
             ]);
 
@@ -199,6 +200,19 @@ final readonly class PrivacyOperationPreviewer
     private function json(array $value): string
     {
         return json_encode($value, JSON_THROW_ON_ERROR);
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $impacts
+     * @param  list<array<string, mixed>>  $blockers
+     */
+    private function snapshotHash(array $impacts, array $blockers, int $participantCount): string
+    {
+        return hash('sha256', $this->json([
+            'impacts' => $impacts,
+            'blockers' => $blockers,
+            'participant_count' => $participantCount,
+        ]));
     }
 
     private function auditAction(PrivacyOperation $operation): string

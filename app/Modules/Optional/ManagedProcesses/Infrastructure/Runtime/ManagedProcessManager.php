@@ -4,23 +4,23 @@ declare(strict_types=1);
 
 namespace App\Modules\Optional\ManagedProcesses\Infrastructure\Runtime;
 
-use App\Modules\Core\Audit\Application\Public\Contracts\AuditRecorder;
-use App\Modules\Core\Audit\Application\Public\DTOs\AuditEvent;
-use App\Modules\Core\Identity\Application\Public\Persistence\IdentityDatabaseTable;
+use App\Modules\Core\Identity\Application\Public\Contracts\UserLookup;
 use App\Modules\Core\Notifications\Application\Public\Contracts\NotificationPublisher;
 use App\Modules\Core\Notifications\Application\Public\Contracts\RealtimePublisher;
 use App\Modules\Core\Notifications\Application\Public\DTOs\CreateNotification;
-use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
 use App\Modules\Optional\ManagedProcesses\Application\Contracts\ProcessDefinitionRegistry;
 use App\Modules\Optional\ManagedProcesses\Application\DTOs\ProcessLogEntry;
 use App\Modules\Optional\ManagedProcesses\Application\Enums\ProcessLogSeverity;
 use App\Modules\Optional\ManagedProcesses\Application\Enums\ProcessRunStatus;
 use App\Modules\Optional\ManagedProcesses\Application\Permissions\ManagedProcessesPermissionCatalog;
-use App\Modules\Optional\ManagedProcesses\Application\Public\Contracts\ManagedProcessRunner;
-use App\Modules\Optional\ManagedProcesses\Application\Public\DTOs\ProcessDefinition;
-use App\Modules\Optional\ManagedProcesses\Application\Public\Persistence\ManagedProcessesDatabaseTable;
+use App\Modules\Optional\ManagedProcesses\Infrastructure\Persistence\TableNames\ManagedProcessesDatabaseTable;
+use App\Shared\Application\Audit\Contracts\AuditRecorder;
+use App\Shared\Application\Audit\DTOs\AuditEvent;
+use App\Shared\Application\ManagedProcesses\Contracts\ManagedProcessRunner;
+use App\Shared\Application\ManagedProcesses\DTOs\ProcessDefinition;
 use App\Shared\Application\Modules\Contracts\ModuleGate;
 use App\Shared\Application\Modules\ModuleAccessRequest;
+use App\Shared\Application\Teams\Contracts\TeamLookup;
 use Illuminate\Database\ConnectionInterface;
 use Illuminate\Support\Facades\Context;
 use Illuminate\Support\Str;
@@ -36,6 +36,8 @@ final readonly class ManagedProcessManager implements ManagedProcessRunner
         private AuditRecorder $audit,
         private NotificationPublisher $notifications,
         private RealtimePublisher $realtime,
+        private UserLookup $users,
+        private TeamLookup $teams,
     ) {}
 
     public function start(
@@ -452,9 +454,7 @@ final readonly class ManagedProcessManager implements ManagedProcessRunner
             return null;
         }
 
-        $id = $this->database->table(IdentityDatabaseTable::USERS)->where('public_id', $publicId)->value('id');
-
-        return is_numeric($id) ? (int) $id : null;
+        return $this->users->internalIdForPublicId($publicId);
     }
 
     private function userPublicId(?int $id): ?string
@@ -463,9 +463,7 @@ final readonly class ManagedProcessManager implements ManagedProcessRunner
             return null;
         }
 
-        $publicId = $this->database->table(IdentityDatabaseTable::USERS)->where('id', $id)->value('public_id');
-
-        return is_string($publicId) ? $publicId : null;
+        return $this->users->publicIdForInternalId($id);
     }
 
     private function teamId(?string $publicId): ?int
@@ -474,9 +472,7 @@ final readonly class ManagedProcessManager implements ManagedProcessRunner
             return null;
         }
 
-        $id = $this->database->table(TeamsDatabaseTable::TEAMS)->where('public_id', $publicId)->value('id');
-
-        return is_numeric($id) ? (int) $id : null;
+        return $this->teams->activeInternalIdForPublicId($publicId);
     }
 
     private function teamPublicId(?int $id): ?string
@@ -485,9 +481,7 @@ final readonly class ManagedProcessManager implements ManagedProcessRunner
             return null;
         }
 
-        $publicId = $this->database->table(TeamsDatabaseTable::TEAMS)->where('id', $id)->value('public_id');
-
-        return is_string($publicId) ? $publicId : null;
+        return $this->teams->activePublicIdForInternalId($id);
     }
 
     private function correlationId(): string

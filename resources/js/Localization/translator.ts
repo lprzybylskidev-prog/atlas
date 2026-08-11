@@ -2,10 +2,11 @@ import { computed } from 'vue';
 import { usePage } from '@inertiajs/vue3';
 
 import { normalizeLocale, type SupportedLocale, type TranslationKey } from './catalog';
+import { setEffectiveLocale } from './effectiveLocale';
 import type { AtlasPageProps } from '../Types/inertia';
 
 export function translate(key: TranslationKey, catalog: Record<string, string> = {}, params: Record<string, string | number> = {}): string {
-    let message: string = catalog[key] ?? key;
+    let message: string = catalog[key] ?? `[translation:${key}]`;
 
     Object.entries(params).forEach(([name, value]) => {
         message = message.replaceAll(`{${name}}`, String(value));
@@ -18,6 +19,7 @@ export function useTranslator(localeOverride?: string) {
     const page = usePage<AtlasPageProps>();
     const locale = computed<SupportedLocale>(() => normalizeLocale(localeOverride ?? page.props.locale));
     const catalog = computed<Record<string, string>>(() => page.props.translations ?? {});
+    setEffectiveLocale(locale.value);
 
     return {
         locale,

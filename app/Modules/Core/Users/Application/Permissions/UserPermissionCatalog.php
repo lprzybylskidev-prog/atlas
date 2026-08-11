@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Modules\Core\Users\Application\Permissions;
 
-use App\Modules\Core\Users\Application\Public\Permissions\UserPermissionNames;
 use App\Shared\Application\Modules\Contributions\Contracts\ModulePermissionContribution;
 use App\Shared\Application\Modules\Contributions\ModulePermissionDefinition;
+use App\Shared\Application\Users\Permissions\UserPermissionNames;
 
 final class UserPermissionCatalog implements ModulePermissionContribution
 {

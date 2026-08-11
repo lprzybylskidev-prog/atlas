@@ -36,13 +36,11 @@ final readonly class DataLifecycleParticipantRegistry
         return count($this->all());
     }
 
-    /**
-     * @return list<class-string>
-     */
-    public function classNames(): array
+    /** @return list<string> */
+    public function keys(): array
     {
         return array_map(
-            static fn (DataLifecycleParticipant $participant): string => $participant::class,
+            static fn (DataLifecycleParticipant $participant): string => $participant->key(),
             $this->all(),
         );
     }

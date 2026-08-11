@@ -2,7 +2,8 @@
 
 declare(strict_types=1);
 
-use App\Modules\Core\Files\Application\Public\Persistence\FilesDatabaseTable;
+use App\Modules\Core\Files\Infrastructure\Persistence\TableNames\FilesDatabaseTable;
+use App\Modules\Core\Identity\Infrastructure\Persistence\TableNames\IdentityDatabaseTable;
 use App\Shared\Infrastructure\Database\DatabaseSchema;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
@@ -35,6 +36,9 @@ return new class extends Migration
             $table->timestampTz('quarantined_at');
             $table->timestampTz('anonymized_at')->nullable();
             $table->timestampTz('deleted_at')->nullable();
+            $table->foreignId('acknowledged_by_user_id')->nullable()->constrained(IdentityDatabaseTable::USERS)->nullOnDelete();
+            $table->timestampTz('acknowledged_at')->nullable();
+            $table->text('acknowledgement_reason')->nullable();
             $table->string('retention_purpose')->nullable();
             $table->jsonb('metadata')->nullable();
             $table->timestampsTz();
@@ -47,6 +51,7 @@ return new class extends Migration
             $table->index(['canonical_file_object_id', 'created_at']);
             $table->index(['retention_source_file_object_id', 'created_at']);
             $table->index(['deleted_at', 'created_at']);
+            $table->index('acknowledged_at');
         });
 
         Schema::create(FilesDatabaseTable::FILE_SCAN_EVIDENCE, function (Blueprint $table): void {

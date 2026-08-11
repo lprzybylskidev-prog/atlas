@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace App\Modules\Optional\TimeTracking\Presentation\Http\Controllers;
 
 use App\Modules\Core\Teams\Application\Public\Contracts\ManagerHierarchy;
-use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
 use App\Modules\Optional\TimeTracking\Application\Permissions\TimeTrackingPermissionCatalog;
-use App\Modules\Optional\TimeTracking\Application\Public\Persistence\TimeTrackingDatabaseTable;
 use App\Modules\Optional\TimeTracking\Application\TimeTrackingModuleAccess;
 use App\Modules\Optional\TimeTracking\Application\UserTimeReportService;
+use App\Modules\Optional\TimeTracking\Infrastructure\Persistence\TableNames\TimeTrackingDatabaseTable;
+use App\Shared\Application\Teams\Contracts\TeamLookup;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
@@ -21,6 +21,7 @@ final readonly class AdminOtherWorkCategoryController
         private TimeTrackingModuleAccess $access,
         private UserTimeReportService $reports,
         private ManagerHierarchy $hierarchy,
+        private TeamLookup $teams,
     ) {}
 
     public function index(Request $request): Response
@@ -54,12 +55,10 @@ final readonly class AdminOtherWorkCategoryController
     {
         $userPublicId = data_get($request->user(), 'public_id');
         $teamPublicId = $this->activeTeamPublicId($request);
-        $teamId = is_string($teamPublicId)
-            ? DB::table(TeamsDatabaseTable::TEAMS)->where('public_id', $teamPublicId)->value('id')
-            : null;
+        $teamId = is_string($teamPublicId) ? $this->teams->internalIdForPublicId($teamPublicId) : null;
 
         $this->access->ensureAllowed(
-            activeTeamId: is_numeric($teamId) ? (int) $teamId : null,
+            activeTeamId: $teamId,
             activeTeamPublicId: is_string($teamPublicId) ? $teamPublicId : null,
             userPublicId: is_string($userPublicId) ? $userPublicId : null,
             requiredPermission: $permission,
@@ -90,10 +89,10 @@ final readonly class AdminOtherWorkCategoryController
         foreach ($this->teamOptions($request) as $team) {
             $publicId = $this->stringValue($team['publicId']);
             $name = $this->stringValue($team['name']);
-            $id = DB::table(TeamsDatabaseTable::TEAMS)->where('public_id', $publicId)->value('id');
+            $id = $publicId === '' ? null : $this->teams->internalIdForPublicId($publicId);
 
-            if ($publicId !== '' && is_numeric($id)) {
-                $teams[$publicId] = ['id' => (int) $id, 'name' => $name];
+            if ($publicId !== '' && $id !== null) {
+                $teams[$publicId] = ['id' => $id, 'name' => $name];
             }
         }
 

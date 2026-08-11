@@ -29,9 +29,10 @@ final class DispatchOperationalAlertsCommand extends Command
         if ($report->status() === HealthCheckStatus::Unhealthy) {
             $sent += (int) $alerts->send(
                 type: 'readiness.failure',
-                title: 'Readiness failure',
-                body: sprintf('%d blocking readiness check(s) failed.', $report->blockingFailureCount()),
+                titleKey: 'mail.operational_alert.readiness.subject',
+                bodyKey: 'mail.operational_alert.readiness.body',
                 severity: 'error',
+                parameters: ['count' => $report->blockingFailureCount()],
                 context: ['blocking_failures' => $report->blockingFailureCount()],
             );
         }
@@ -42,8 +43,8 @@ final class DispatchOperationalAlertsCommand extends Command
         if (! $schedulerHealthy) {
             $sent += (int) $alerts->send(
                 type: 'scheduler.failure',
-                title: 'Scheduler heartbeat failure',
-                body: (string) ($schedulerStatus['description'] ?? 'Scheduler heartbeat is not healthy.'),
+                titleKey: 'mail.operational_alert.scheduler.subject',
+                bodyKey: 'mail.operational_alert.scheduler.body',
                 severity: 'error',
                 context: ['status' => is_scalar($schedulerStatus['status'] ?? null) ? (string) $schedulerStatus['status'] : null],
             );
@@ -58,28 +59,29 @@ final class DispatchOperationalAlertsCommand extends Command
         if ($failedJobs >= $threshold) {
             $sent += (int) $alerts->send(
                 type: 'queue.failed_jobs.repeated',
-                title: 'Repeated failed jobs',
-                body: sprintf('%d failed job(s) are currently recorded.', $failedJobs),
+                titleKey: 'mail.operational_alert.queue.subject',
+                bodyKey: 'mail.operational_alert.queue.body',
                 severity: 'error',
+                parameters: ['count' => $failedJobs],
                 context: ['failed_jobs' => $failedJobs, 'threshold' => $threshold],
             );
         }
 
-        $sent += $this->flaggedAlert($alerts, 'backup.failure', 'Backup failure', 'A backup failure signal is active.', 'backup_failed');
-        $sent += $this->flaggedAlert($alerts, 'integration.failure', 'Persistent integration failure', 'An integration failure signal is active.', 'integration_failed');
-        $sent += $this->flaggedAlert($alerts, 'sentry.critical', 'Critical Sentry exception', 'A critical Sentry signal is active.', 'sentry_critical');
+        $sent += $this->flaggedAlert($alerts, 'backup.failure', 'mail.operational_alert.backup.subject', 'mail.operational_alert.backup.body', 'backup_failed');
+        $sent += $this->flaggedAlert($alerts, 'integration.failure', 'mail.operational_alert.integration.subject', 'mail.operational_alert.integration.body', 'integration_failed');
+        $sent += $this->flaggedAlert($alerts, 'sentry.critical', 'mail.operational_alert.sentry.subject', 'mail.operational_alert.sentry.body', 'sentry_critical');
 
         $this->info(sprintf('Dispatched %d operational alert(s).', $sent));
 
         return self::SUCCESS;
     }
 
-    private function flaggedAlert(OperationalAlertDispatcher $alerts, string $type, string $title, string $body, string $configKey): int
+    private function flaggedAlert(OperationalAlertDispatcher $alerts, string $type, string $titleKey, string $bodyKey, string $configKey): int
     {
         if (! config()->boolean('atlas.operations.alerts.'.$configKey, false)) {
             return 0;
         }
 
-        return (int) $alerts->send($type, $title, $body, 'error');
+        return (int) $alerts->send($type, $titleKey, $bodyKey, 'error');
     }
 }

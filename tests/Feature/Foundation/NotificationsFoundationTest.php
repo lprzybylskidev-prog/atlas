@@ -4,22 +4,28 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Foundation;
 
-use App\Modules\Core\Authorization\Application\Public\Persistence\AuthorizationDatabaseTable;
+use App\Modules\Core\Audit\Infrastructure\Persistence\TableNames\AuditDatabaseTable;
 use App\Modules\Core\Authorization\Application\Roles\InstallStarterRoles;
 use App\Modules\Core\Authorization\Application\Roles\StarterRoleName;
+use App\Modules\Core\Authorization\Infrastructure\Persistence\TableNames\AuthorizationDatabaseTable;
 use App\Modules\Core\Identity\Infrastructure\Persistence\User;
 use App\Modules\Core\Notifications\Application\Public\Contracts\NotificationInbox;
 use App\Modules\Core\Notifications\Application\Public\Contracts\NotificationPublisher;
 use App\Modules\Core\Notifications\Application\Public\Contracts\RealtimePublisher;
 use App\Modules\Core\Notifications\Application\Public\DTOs\CreateNotification;
-use App\Modules\Core\Notifications\Application\Public\Persistence\NotificationsDatabaseTable;
 use App\Modules\Core\Notifications\Application\UserNotificationEmailPreferences;
 use App\Modules\Core\Notifications\Infrastructure\Persistence\DatabaseNotificationStore;
-use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
+use App\Modules\Core\Notifications\Infrastructure\Persistence\TableNames\NotificationsDatabaseTable;
+use App\Modules\Core\Notifications\Presentation\Jobs\DeliverNotification;
+use App\Modules\Core\Teams\Infrastructure\Persistence\TableNames\TeamsDatabaseTable;
 use App\Modules\Core\Teams\Infrastructure\Persistence\Team;
+use App\Shared\Infrastructure\Database\DatabaseTable;
+use App\Shared\Infrastructure\Mail\AtlasBilingualMail;
+use DateTimeInterface;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Str;
 use Inertia\Testing\AssertableInertia;
@@ -77,6 +83,7 @@ final class NotificationsFoundationTest extends TestCase
             ->assertInertia(fn (AssertableInertia $page) => $page
                 ->component('Notifications/Index')
                 ->where('table.key', 'notifications')
+                ->where('table.capabilities.savedViews', true)
                 ->where('table.state.filters.status', 'all')
                 ->where('summary.total', 1)
                 ->where('summary.visible', 1)
@@ -255,6 +262,56 @@ final class NotificationsFoundationTest extends TestCase
         );
     }
 
+    public function test_verified_notification_delivery_and_address_verification_use_bilingual_mail(): void
+    {
+        Queue::fake();
+        Mail::fake();
+
+        [$user, $team] = $this->userWithTeam(StarterRoleName::WorkspaceAccess->value);
+        $preferences = $this->app->make(UserNotificationEmailPreferences::class);
+        $verifiedAt = $user->getAttribute('email_verified_at');
+        $preferences->addAddressForUser(
+            (int) $user->id,
+            (string) $user->email,
+            $verifiedAt instanceof DateTimeInterface ? $verifiedAt : null,
+            'additional@example.test',
+            (string) $team->public_id,
+        );
+
+        Mail::assertSent(AtlasBilingualMail::class, function (AtlasBilingualMail $mail): bool {
+            $html = (string) $mail->render();
+
+            return str_contains($html, 'Potwierdź adres e-mail do powiadomień')
+                && str_contains($html, 'Verify notification e-mail address');
+        });
+
+        Mail::fake();
+        $preferences->ensurePrimaryAddressForUser((int) $user->id, (string) $user->email, now(), (int) $team->id);
+        $publicId = $this->app->make(NotificationPublisher::class)->publish(new CreateNotification(
+            type: 'report_export.available',
+            title: 'notifications.exports.available.title',
+            body: 'notifications.exports.available.body',
+            recipientUserPublicId: (string) $user->public_id,
+            teamPublicId: (string) $team->public_id,
+            deepLinkUrl: '/user/notifications',
+            data: [
+                'title_key' => 'notifications.exports.available.title',
+                'body_key' => 'notifications.exports.available.body',
+                'report_name' => 'Users',
+            ],
+            emailRequested: true,
+        ));
+
+        $this->app->call([new DeliverNotification($this->recipientId($publicId)), 'handle']);
+
+        Mail::assertSent(AtlasBilingualMail::class, function (AtlasBilingualMail $mail): bool {
+            $html = (string) $mail->render();
+
+            return str_contains($html, 'Eksport jest gotowy')
+                && str_contains($html, 'Export is ready');
+        });
+    }
+
     public function test_notification_center_applies_status_and_severity_filters(): void
     {
         Queue::fake();
@@ -284,7 +341,7 @@ final class NotificationsFoundationTest extends TestCase
             ->get('/user/notifications?status=unread&severity=info')
             ->assertOk()
             ->assertInertia(fn (AssertableInertia $page) => $page
-                ->where('summary.total', 2)
+                ->where('summary.total', 1)
                 ->where('summary.visible', 1)
                 ->where('summary.unread', 1)
                 ->where('table.state.filters.status', 'unread')
@@ -442,6 +499,77 @@ final class NotificationsFoundationTest extends TestCase
             ->assertForbidden();
     }
 
+    public function test_shell_neutral_saved_views_enforce_owner_team_and_surface_permissions(): void
+    {
+        [$owner, $team] = $this->userWithTeam(StarterRoleName::WorkspaceAccess->value);
+        $collaborator = $this->addWorkspaceUserToTeam($team);
+        [$outsider, $otherTeam] = $this->userWithTeam(StarterRoleName::WorkspaceAccess->value);
+        [$unauthorized, $unauthorizedTeam] = $this->userWithTeam(null);
+
+        $privatePayload = $this->savedViewPayload('Private inbox', 'private');
+        $this->actingAs($owner)->withSession(['active_team_public_id' => $team->public_id])
+            ->post('/table-views', $privatePayload)
+            ->assertRedirect();
+        $privateId = DB::table(DatabaseTable::TABLE_SAVED_VIEWS)->where('name', 'Private inbox')->value('public_id');
+        self::assertIsString($privateId);
+
+        $this->actingAs($collaborator)->withSession(['active_team_public_id' => $team->public_id])
+            ->patch('/table-views/'.$privateId, ['name' => 'Not mine', 'state' => $privatePayload['state']])
+            ->assertNotFound();
+
+        $teamPayload = $this->savedViewPayload('Team inbox', 'team');
+        $this->actingAs($owner)->withSession(['active_team_public_id' => $team->public_id])
+            ->post('/table-views', $teamPayload)
+            ->assertRedirect();
+        $teamViewId = DB::table(DatabaseTable::TABLE_SAVED_VIEWS)->where('name', 'Team inbox')->value('public_id');
+        self::assertIsString($teamViewId);
+
+        $this->actingAs($collaborator)->withSession(['active_team_public_id' => $team->public_id])
+            ->patch('/table-views/'.$teamViewId, ['name' => 'Shared inbox', 'state' => $teamPayload['state']])
+            ->assertRedirect();
+        $this->actingAs($collaborator)->withSession(['active_team_public_id' => $team->public_id])
+            ->post('/table-views/'.$teamViewId.'/default')
+            ->assertRedirect();
+        $this->actingAs($collaborator)->withSession(['active_team_public_id' => $team->public_id])
+            ->post('/table-views/'.$teamViewId.'/copy', ['name' => 'My inbox copy', 'type' => 'private'])
+            ->assertRedirect();
+
+        $this->actingAs($outsider)->withSession(['active_team_public_id' => $otherTeam->public_id])
+            ->delete('/table-views/'.$teamViewId)
+            ->assertNotFound();
+        $this->actingAs($unauthorized)->withSession(['active_team_public_id' => $unauthorizedTeam->public_id])
+            ->post('/table-views', $this->savedViewPayload('Forbidden inbox', 'private'))
+            ->assertForbidden();
+
+        self::assertDatabaseHas(DatabaseTable::TABLE_SAVED_VIEW_DEFAULTS, [
+            'user_id' => $collaborator->id,
+            'team_id' => $team->id,
+        ]);
+        self::assertDatabaseHas(DatabaseTable::TABLE_SAVED_VIEWS, [
+            'name' => 'My inbox copy',
+            'type' => 'private',
+            'owner_user_id' => $collaborator->id,
+        ]);
+        foreach (['table_saved_view.created', 'table_saved_view.updated', 'table_saved_view.default_set'] as $action) {
+            self::assertDatabaseHas(AuditDatabaseTable::AUDIT_EVENTS, [
+                'module' => 'shared',
+                'action' => $action,
+                'result' => 'succeeded',
+                'source' => 'ui',
+            ]);
+        }
+
+        $this->actingAs($collaborator)->withSession(['active_team_public_id' => $team->public_id])
+            ->delete('/table-views/'.$teamViewId)
+            ->assertRedirect();
+        self::assertDatabaseHas(AuditDatabaseTable::AUDIT_EVENTS, [
+            'module' => 'shared',
+            'action' => 'table_saved_view.deleted',
+            'result' => 'succeeded',
+            'source' => 'ui',
+        ]);
+    }
+
     /**
      * @return array{0: User, 1: Team}
      */
@@ -471,6 +599,45 @@ final class NotificationsFoundationTest extends TestCase
         }
 
         return [$user, $team];
+    }
+
+    private function addWorkspaceUserToTeam(Team $team): User
+    {
+        $user = User::factory()->create();
+        DB::table(TeamsDatabaseTable::TEAM_USER_ASSIGNMENTS)->insert([
+            'team_id' => $team->id,
+            'user_id' => $user->id,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $roleId = Role::query()->where('name', StarterRoleName::WorkspaceAccess->value)->value('id');
+        self::assertIsNumeric($roleId);
+        DB::table(AuthorizationDatabaseTable::MODEL_HAS_ROLES)->insert([
+            'role_id' => (int) $roleId,
+            'model_type' => config('auth.providers.users.model'),
+            'model_id' => $user->id,
+            'team_id' => $team->id,
+        ]);
+
+        return $user;
+    }
+
+    /** @return array{table_key: string, name: string, type: string, state: array<string, mixed>} */
+    private function savedViewPayload(string $name, string $type): array
+    {
+        return [
+            'table_key' => 'notifications',
+            'name' => $name,
+            'type' => $type,
+            'state' => [
+                'sort' => 'createdAt',
+                'direction' => 'desc',
+                'search' => '',
+                'columns' => ['title', 'severity', 'createdAt'],
+                'columnOrder' => ['title', 'severity', 'createdAt'],
+                'filters' => ['status' => 'unread'],
+            ],
+        ];
     }
 
     private function recipientId(string $notificationPublicId): int

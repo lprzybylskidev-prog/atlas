@@ -5,16 +5,16 @@ declare(strict_types=1);
 namespace App\Modules\Core\Authorization\Application\Exports;
 
 use App\Modules\Core\Authorization\Application\Permissions\PermissionCatalogRegistry;
-use App\Modules\Core\Authorization\Application\Public\Contracts\EffectivePermissionChecker;
-use App\Modules\Core\Authorization\Application\Public\DTOs\EffectivePermissionRequest;
-use App\Modules\Core\Authorization\Application\Public\Persistence\AuthorizationDatabaseTable;
-use App\Modules\Core\Exports\Application\Public\AbstractAdminDataTableExportProvider;
-use App\Modules\Core\Exports\Application\Public\DTOs\ReportExportGenerationRequest;
-use App\Modules\Core\Exports\Application\Public\Permissions\ReportsPermissionCatalog;
-use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
+use App\Modules\Core\Authorization\Infrastructure\Persistence\TableNames\AuthorizationDatabaseTable;
+use App\Shared\Application\Authorization\Contracts\EffectivePermissionChecker;
+use App\Shared\Application\Authorization\DTOs\EffectivePermissionRequest;
+use App\Shared\Application\Exports\AbstractAdminDataTableExportProvider;
+use App\Shared\Application\Exports\DTOs\ReportExportGenerationRequest;
+use App\Shared\Application\Exports\ExportPermissions;
 use App\Shared\Application\Modules\Activation\Contracts\ModuleActivationService;
 use App\Shared\Application\Modules\ModuleKeyResolver;
-use App\Shared\Application\Tables\AdminTableDefinitions;
+use App\Shared\Application\Tables\RegisteredTables;
+use App\Shared\Application\Teams\Contracts\TeamLookup;
 use Illuminate\Support\Facades\DB;
 
 final readonly class AdminPermissionsDataTableExportProvider extends AbstractAdminDataTableExportProvider
@@ -24,11 +24,12 @@ final readonly class AdminPermissionsDataTableExportProvider extends AbstractAdm
         private EffectivePermissionChecker $checker,
         private ModuleActivationService $activation,
         private ModuleKeyResolver $moduleKeys,
+        private TeamLookup $teams,
     ) {}
 
     public function tableKey(): string
     {
-        return AdminTableDefinitions::PERMISSIONS;
+        return RegisteredTables::PERMISSIONS;
     }
 
     public function tableName(): string
@@ -43,7 +44,7 @@ final readonly class AdminPermissionsDataTableExportProvider extends AbstractAdm
 
     public function requestPermission(): string
     {
-        return ReportsPermissionCatalog::REQUEST;
+        return ExportPermissions::REQUEST;
     }
 
     public function ruleVersion(): string
@@ -146,9 +147,7 @@ final readonly class AdminPermissionsDataTableExportProvider extends AbstractAdm
 
     private function teamId(string $teamPublicId): ?int
     {
-        $teamId = DB::table(TeamsDatabaseTable::TEAMS)->where('public_id', $teamPublicId)->value('id');
-
-        return is_numeric($teamId) ? (int) $teamId : null;
+        return $this->teams->internalIdForPublicId($teamPublicId);
     }
 
     private function humanizeName(string $name): string

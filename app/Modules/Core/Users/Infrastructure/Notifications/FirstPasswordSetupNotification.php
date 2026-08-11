@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Modules\Core\Users\Infrastructure\Notifications;
 
+use App\Shared\Application\Mail\DTOs\BilingualMailContent;
+use App\Shared\Infrastructure\Mail\AtlasBilingualMailFactory;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
@@ -12,6 +14,7 @@ final class FirstPasswordSetupNotification extends Notification
     public function __construct(
         private readonly string $token,
         private readonly string $email,
+        private readonly ?int $userId = null,
     ) {}
 
     /** @return list<string> */
@@ -32,15 +35,16 @@ final class FirstPasswordSetupNotification extends Notification
             'email' => $this->email,
         ], false));
 
-        return (new MailMessage)
-            ->subject('Set your Atlas password')
-            ->line('Your Atlas account has been created.')
-            ->line('Use the button below to set your first password and verify your email address.')
-            ->action('Set password', $url)
-            ->line(sprintf(
-                'This one-time link expires in %d minutes.',
-                $expiryMinutes,
-            ))
-            ->line('Atlas never sends generated passwords.');
+        return app(AtlasBilingualMailFactory::class)->message(
+            BilingualMailContent::fromTranslationKeys(
+                subjectKey: 'mail.first_password.subject',
+                headingKey: 'mail.first_password.heading',
+                bodyKeys: ['mail.first_password.body', 'mail.first_password.expiry', 'mail.first_password.guidance'],
+                actionKey: 'mail.first_password.action',
+                actionUrl: $url,
+                parameters: ['minutes' => $expiryMinutes],
+            ),
+            $this->userId,
+        );
     }
 }

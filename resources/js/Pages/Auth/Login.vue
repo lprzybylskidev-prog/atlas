@@ -7,6 +7,7 @@ import FormButton from '../../Components/Form/FormButton.vue';
 import FormCheckbox from '../../Components/Form/FormCheckbox.vue';
 import FormInput from '../../Components/Form/FormInput.vue';
 import NoticeBanner from '../../Components/NoticeBanner.vue';
+import ActionLink from '../../Components/ActionLink.vue';
 import AuthLayout from '../../Layouts/AuthLayout.vue';
 import { useTranslator } from '../../Localization/translator';
 
@@ -83,6 +84,9 @@ const cancelConflict = (): void => {
             <FormButton type="submit" class="h-11 w-full" :loading="form.processing">
                 {{ form.processing ? t('auth.login.submitting') : t('auth.login.submit') }}
             </FormButton>
+            <ActionLink href="/forgot-password" class="w-full justify-center">
+                {{ t('auth.login.forgot_password') }}
+            </ActionLink>
         </AtlasForm>
     </AuthLayout>
 </template>

@@ -23,9 +23,6 @@ interface ModuleDefinition
      */
     public function optionalDependencies(): array;
 
-    /**
-     * @return class-string
-     */
     public function serviceProvider(): string;
 
     public function supportsGlobalActivation(): bool;
@@ -35,15 +32,5 @@ interface ModuleDefinition
     /**
      * @return list<string>
      */
-    public function integrations(): array;
-
-    /**
-     * @return list<string>
-     */
     public function healthChecks(): array;
-
-    /**
-     * @return list<string>
-     */
-    public function frontendEntrypoints(): array;
 }

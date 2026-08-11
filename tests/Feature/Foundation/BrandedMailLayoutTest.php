@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace Tests\Feature\Foundation;
 
 use App\Modules\Core\Identity\Infrastructure\Notifications\AccountLockedNotification;
+use App\Modules\Core\Identity\Infrastructure\Notifications\AtlasPasswordResetNotification;
 use App\Modules\Core\Identity\Infrastructure\Persistence\User;
 use App\Modules\Core\Users\Infrastructure\Notifications\FirstPasswordSetupNotification;
-use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Config;
@@ -69,7 +69,7 @@ final class BrandedMailLayoutTest extends TestCase
         $renderedMessages = [
             (string) (new FirstPasswordSetupNotification('token', 'mail@example.test'))->toMail($user)->render(),
             (string) (new AccountLockedNotification(Carbon::parse('2026-07-15 12:00:00', 'Europe/Warsaw')))->toMail($user)->render(),
-            (string) (new ResetPassword('token'))->toMail($user)->render(),
+            (string) (new AtlasPasswordResetNotification('token'))->toMail($user)->render(),
         ];
 
         foreach ($renderedMessages as $html) {
@@ -78,5 +78,30 @@ final class BrandedMailLayoutTest extends TestCase
             $this->assertStringContainsString('Debt collection operations', $html);
             $this->assertStringNotContainsString('laravel.com/img/notification-logo', $html);
         }
+    }
+
+    public function test_password_reset_mail_is_bilingual_with_effective_locale_first(): void
+    {
+        $user = new User([
+            'name' => 'Mail User',
+            'email' => 'mail@example.test',
+        ]);
+
+        app()->setLocale('pl');
+        $polishFirst = (string) (new AtlasPasswordResetNotification('token'))->toMail($user)->render();
+        app()->setLocale('en');
+        $englishFirst = (string) (new AtlasPasswordResetNotification('token'))->toMail($user)->render();
+
+        $this->assertStringContainsString('Odzyskiwanie hasła Atlas', $polishFirst);
+        $this->assertStringContainsString('Atlas password recovery', $polishFirst);
+        $this->assertLessThan(
+            strpos($polishFirst, 'Atlas password recovery'),
+            strpos($polishFirst, 'Odzyskiwanie hasła Atlas'),
+        );
+        $this->assertLessThan(
+            strpos($englishFirst, 'Odzyskiwanie hasła Atlas'),
+            strpos($englishFirst, 'Atlas password recovery'),
+        );
+        $this->assertStringContainsString('/reset-password/token?email=mail%40example.test', $englishFirst);
     }
 }

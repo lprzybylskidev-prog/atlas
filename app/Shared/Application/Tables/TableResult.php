@@ -8,18 +8,21 @@ final readonly class TableResult
 {
     /**
      * @param  list<array<string, mixed>>  $rows
+     * @param  list<array<string, mixed>>  $filteredRows
      * @param  list<array<string, mixed>>  $savedViews
      */
     public function __construct(
         public array $rows,
         public int $total,
         public TableState $state,
+        public array $filteredRows = [],
         public array $savedViews = [],
+        public bool $savedViewsEnabled = false,
     ) {}
 
     /**
      * @param  array{endpoint: string, formats: list<string>}|null  $exports
-     * @return array{key: string, state: array{page: int, perPage: int, sort: string, direction: string, search: string, columns: list<string>, columnOrder: list<string>, filters: array<string, mixed>, grouping: list<string>, timeRange: array<string, string|null>|null, view: string|null}, pagination: array{total: int, page: int, perPage: int, from: int, to: int}, savedViews: list<array<string, mixed>>, exports?: array{endpoint: string, formats: list<string>}}
+     * @return array{key: string, state: array{page: int, perPage: int, sort: string, direction: string, search: string, columns: list<string>, columnOrder: list<string>, filters: array<string, mixed>, grouping: list<string>, timeRange: array<string, string|null>|null, view: string|null}, pagination: array{total: int, page: int, perPage: int, from: int, to: int}, savedViews: list<array<string, mixed>>, capabilities: array{savedViews: bool, exports: bool, selection: bool}, exports?: array{endpoint: string, formats: list<string>}}
      */
     public function tableMeta(string $key, ?array $exports = null): array
     {
@@ -37,6 +40,11 @@ final readonly class TableResult
                 'to' => $to,
             ],
             'savedViews' => $this->savedViews,
+            'capabilities' => [
+                'savedViews' => $this->savedViewsEnabled,
+                'exports' => $exports !== null,
+                'selection' => true,
+            ],
         ];
 
         if ($exports !== null) {
@@ -51,6 +59,6 @@ final readonly class TableResult
      */
     public function withSavedViews(array $savedViews): self
     {
-        return new self($this->rows, $this->total, $this->state, $savedViews);
+        return new self($this->rows, $this->total, $this->state, $this->filteredRows, $savedViews, true);
     }
 }

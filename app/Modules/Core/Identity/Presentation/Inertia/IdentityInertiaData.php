@@ -4,8 +4,9 @@ declare(strict_types=1);
 
 namespace App\Modules\Core\Identity\Presentation\Inertia;
 
-use App\Modules\Core\Files\Application\Public\Contracts\FileAvailability;
+use App\Modules\Core\Identity\Application\Admin\AdministrativeSessionManager;
 use App\Modules\Core\Identity\Application\Admin\ImpersonationManager;
+use App\Shared\Application\Files\Contracts\FileAvailability;
 use App\Shared\Presentation\Inertia\Contracts\InertiaSharedDataContributor;
 use Illuminate\Http\Request;
 
@@ -14,6 +15,7 @@ final readonly class IdentityInertiaData implements InertiaSharedDataContributor
     public function __construct(
         private FileAvailability $files,
         private ImpersonationManager $impersonation,
+        private AdministrativeSessionManager $administrativeSessions,
     ) {}
 
     public function key(): string
@@ -35,6 +37,10 @@ final readonly class IdentityInertiaData implements InertiaSharedDataContributor
                 ],
             ],
             'auth.impersonation' => $this->impersonation->sharedState($request),
+            'auth.adminMode' => [
+                'active' => $this->administrativeSessions->active($request),
+                'highRiskFresh' => $this->administrativeSessions->highRiskFresh($request),
+            ],
         ];
     }
 

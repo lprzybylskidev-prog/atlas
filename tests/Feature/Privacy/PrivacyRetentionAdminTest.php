@@ -4,16 +4,16 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Privacy;
 
-use App\Modules\Core\Audit\Application\Public\Persistence\AuditDatabaseTable;
-use App\Modules\Core\Authorization\Application\Public\Persistence\AuthorizationDatabaseTable;
+use App\Modules\Core\Audit\Infrastructure\Persistence\TableNames\AuditDatabaseTable;
 use App\Modules\Core\Authorization\Application\Roles\InstallStarterRoles;
 use App\Modules\Core\Authorization\Application\Roles\StarterRoleName;
-use App\Modules\Core\Files\Application\Public\Persistence\FilesDatabaseTable;
+use App\Modules\Core\Authorization\Infrastructure\Persistence\TableNames\AuthorizationDatabaseTable;
+use App\Modules\Core\Files\Infrastructure\Persistence\TableNames\FilesDatabaseTable;
 use App\Modules\Core\Identity\Application\Admin\AdministrativeSessionManager;
 use App\Modules\Core\Identity\Infrastructure\Persistence\User;
-use App\Modules\Core\Privacy\Application\Public\Persistence\PrivacyDatabaseTable;
 use App\Modules\Core\Privacy\Application\Services\DataLifecycleParticipantRegistry;
-use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
+use App\Modules\Core\Privacy\Infrastructure\Persistence\TableNames\PrivacyDatabaseTable;
+use App\Modules\Core\Teams\Infrastructure\Persistence\TableNames\TeamsDatabaseTable;
 use App\Modules\Core\Teams\Infrastructure\Persistence\Team;
 use App\Modules\Optional\Search\Application\Contracts\SearchDocumentStore;
 use App\Modules\Optional\Search\Application\Contracts\SearchIndexRegistry;
@@ -21,6 +21,7 @@ use App\Modules\Optional\Search\Application\Public\Contracts\SearchLifecycleProj
 use App\Modules\Optional\Search\Application\Public\DTOs\SearchDocument;
 use App\Modules\Optional\Search\Application\Public\DTOs\SearchIndexDescriptor;
 use App\Shared\Application\DataLifecycle\Contracts\DataLifecycleParticipant;
+use App\Shared\Application\DataLifecycle\DataLifecycleImpact;
 use App\Shared\Application\DataLifecycle\DataLifecycleOperation;
 use App\Shared\Application\DataLifecycle\DataLifecyclePreview;
 use App\Shared\Application\DataLifecycle\DataLifecycleResult;
@@ -28,6 +29,7 @@ use App\Shared\Application\DataLifecycle\DataLifecycleStepResult;
 use App\Shared\Application\DataLifecycle\DataLifecycleSubject;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Inertia\Testing\AssertableInertia;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
@@ -409,6 +411,8 @@ final class PrivacyRetentionAdminTest extends TestCase
                 ->where('navigation.breadcrumbs.3.label', 'Blokady prawne')
                 ->where('auth.availableAdminRoutes', fn (Collection $routes): bool => $routes->contains('admin.privacy-retention.legal-holds.index'))
                 ->where('auth.availableAdminRoutes', fn (Collection $routes): bool => $routes->contains('admin.privacy-retention.legal-holds.create'))
+                ->where('auth.availableAdminRoutes', fn (Collection $routes): bool => $routes->contains('admin.privacy-retention.legal-holds.release'))
+                ->where('canRelease', true)
                 ->where('summary.active', 1)
                 ->where('holds.0.subjectIdentifier', $subjectIdentifier)
                 ->where('holds.0.status', 'active'));
@@ -448,6 +452,47 @@ final class PrivacyRetentionAdminTest extends TestCase
             ->assertInertia(fn (AssertableInertia $page) => $page
                 ->component('Admin/PrivacyRetention/Index')
                 ->where('latestPreview.blockers.0.code', 'active_legal_hold'));
+
+        $holdPublicId = DB::table(PrivacyDatabaseTable::LEGAL_HOLDS)
+            ->where('subject_identifier', $subjectIdentifier)
+            ->value('public_id');
+        self::assertIsString($holdPublicId);
+
+        $this->actingAs($admin)
+            ->withSession($this->adminSession($team))
+            ->post('/admin/privacy-retention/legal-holds/'.$holdPublicId.'/release', [
+                'reason' => 'The court order has been formally lifted.',
+            ])
+            ->assertRedirect('/admin/privacy-retention/legal-holds')
+            ->assertSessionHas('flash.messages.0.key', 'flash.privacy.legal_hold_released');
+
+        $this->assertDatabaseHas(PrivacyDatabaseTable::LEGAL_HOLDS, [
+            'public_id' => $holdPublicId,
+            'released_by_user_id' => $admin->id,
+            'release_reason' => 'The court order has been formally lifted.',
+        ]);
+        $this->assertDatabaseHas(AuditDatabaseTable::AUDIT_EVENTS, [
+            'module' => 'privacy',
+            'action' => 'privacy.legal_hold_released',
+            'result' => 'succeeded',
+            'aggregate_public_id' => $holdPublicId,
+            'is_security' => true,
+        ]);
+
+        $this->actingAs($admin)
+            ->withSession($this->adminSession($team))
+            ->post('/admin/privacy-retention/legal-holds/'.$holdPublicId.'/release', [
+                'reason' => 'A duplicate release must not overwrite evidence.',
+            ])
+            ->assertConflict();
+
+        $this->assertDatabaseHas(AuditDatabaseTable::AUDIT_EVENTS, [
+            'module' => 'privacy',
+            'action' => 'privacy.legal_hold_released',
+            'result' => 'rejected',
+            'aggregate_public_id' => $holdPublicId,
+            'is_security' => true,
+        ]);
     }
 
     public function test_legal_hold_creation_rejects_unknown_subject_type(): void
@@ -544,11 +589,22 @@ final class PrivacyRetentionAdminTest extends TestCase
                 'dataSet' => 'tests.subject_records',
                 'estimatedRecords' => 2,
                 'irreversible' => true,
+                'details' => [],
             ]], JSON_THROW_ON_ERROR),
             'blockers' => json_encode([], JSON_THROW_ON_ERROR),
             'participant_count' => 1,
             'estimated_records' => 2,
             'can_execute' => true,
+            'snapshot_hash' => hash('sha256', json_encode([
+                'impacts' => [[
+                    'dataSet' => 'tests.subject_records',
+                    'estimatedRecords' => 2,
+                    'irreversible' => true,
+                    'details' => [],
+                ]],
+                'blockers' => [],
+                'participant_count' => 1,
+            ], JSON_THROW_ON_ERROR)),
             'created_at' => now(),
         ]);
 
@@ -593,6 +649,98 @@ final class PrivacyRetentionAdminTest extends TestCase
         self::assertSame('tests.subject_records_anonymized', $firstStep['step']);
     }
 
+    public function test_rejected_privacy_execution_attempts_are_audited_without_mutating_business_state(): void
+    {
+        [$admin, $team] = $this->adminWithTeam();
+        $subject = '01J00000000000000000000D01';
+
+        $cases = [
+            ['01J00000000000000000000D02', 'hard_delete', 'previewed', true, 'WRONG', 'hard-delete', 'privacy_execution_confirmation_mismatch'],
+            ['01J00000000000000000000D03', 'hard_delete', 'previewed', true, 'HARD DELETE '.$subject, 'anonymization', 'privacy_execution_operation_mismatch'],
+            ['01J00000000000000000000D04', 'hard_delete', 'blocked', true, 'HARD DELETE '.$subject, 'hard-delete', 'privacy_execution_not_executable'],
+        ];
+
+        foreach ($cases as [$publicId, $operation, $status, $canExecute, $phrase, $routeOperation, $failureCode]) {
+            $this->insertPrivacyExecutionRequest($publicId, $operation, $status, $canExecute, $subject, $admin->id, $team->id);
+
+            $this->actingAs($admin)
+                ->withSession($this->adminSession($team))
+                ->post('/admin/privacy-retention/'.$routeOperation.'/'.$publicId.'/execute', [
+                    'confirmation_phrase' => $phrase,
+                ])
+                ->assertRedirect('/admin/privacy-retention/operations');
+
+            $this->assertDatabaseHas(AuditDatabaseTable::AUDIT_EVENTS, [
+                'module' => 'privacy',
+                'result' => 'rejected',
+                'aggregate_public_id' => $publicId,
+                'reason' => $failureCode,
+                'is_security' => true,
+            ]);
+            $this->assertDatabaseHas(PrivacyDatabaseTable::OPERATION_REQUESTS, [
+                'public_id' => $publicId,
+                'status' => $status,
+            ]);
+        }
+
+        $missing = '01J00000000000000000000D05';
+        $this->actingAs($admin)
+            ->withSession($this->adminSession($team))
+            ->post('/admin/privacy-retention/hard-delete/'.$missing.'/execute', [
+                'confirmation_phrase' => 'HARD DELETE '.$subject,
+            ])
+            ->assertRedirect('/admin/privacy-retention/operations');
+
+        $this->assertDatabaseHas(AuditDatabaseTable::AUDIT_EVENTS, [
+            'module' => 'privacy',
+            'action' => 'privacy.hard_delete_executed',
+            'result' => 'rejected',
+            'aggregate_public_id' => $missing,
+            'reason' => 'privacy_execution_not_found',
+        ]);
+    }
+
+    public function test_privacy_participant_failure_is_audited_as_failed(): void
+    {
+        [$admin, $team] = $this->adminWithTeam();
+        $subject = '01J00000000000000000000D11';
+        $operationPublicId = '01J00000000000000000000D12';
+        $this->app->singleton(
+            DataLifecycleParticipantRegistry::class,
+            fn (): DataLifecycleParticipantRegistry => new DataLifecycleParticipantRegistry([
+                new PrivacyTestFailingLifecycleParticipant,
+            ]),
+        );
+        $this->insertPrivacyExecutionRequest(
+            $operationPublicId,
+            'hard_delete',
+            'previewed',
+            true,
+            $subject,
+            $admin->id,
+            $team->id,
+        );
+
+        $this->actingAs($admin)
+            ->withSession($this->adminSession($team))
+            ->post('/admin/privacy-retention/hard-delete/'.$operationPublicId.'/execute', [
+                'confirmation_phrase' => 'HARD DELETE '.$subject,
+            ])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas(PrivacyDatabaseTable::OPERATION_REQUESTS, [
+            'public_id' => $operationPublicId,
+            'status' => 'blocked',
+        ]);
+        $this->assertDatabaseHas(AuditDatabaseTable::AUDIT_EVENTS, [
+            'module' => 'privacy',
+            'action' => 'privacy.hard_delete_executed',
+            'result' => 'failed',
+            'aggregate_public_id' => $operationPublicId,
+            'is_security' => true,
+        ]);
+    }
+
     /**
      * @return list<array<string, mixed>>
      */
@@ -616,6 +764,54 @@ final class PrivacyRetentionAdminTest extends TestCase
         }
 
         return $rows;
+    }
+
+    private function insertPrivacyExecutionRequest(
+        string $publicId,
+        string $operation,
+        string $status,
+        bool $canExecute,
+        string $subjectIdentifier,
+        int $actorUserId,
+        int $teamId,
+    ): void {
+        $requestId = $this->app['db']->table(PrivacyDatabaseTable::OPERATION_REQUESTS)->insertGetId([
+            'public_id' => $publicId,
+            'operation' => $operation,
+            'subject_type' => 'person',
+            'subject_identifier' => $subjectIdentifier,
+            'status' => $status,
+            'dry_run' => true,
+            'requested_by_user_id' => $actorUserId,
+            'team_id' => $teamId,
+            'reason' => 'Privacy execution rejection coverage.',
+            'confirmation_phrase' => 'HARD DELETE '.$subjectIdentifier,
+            'correlation_id' => 'privacy-rejection-'.$publicId,
+            'previewed_at' => now(),
+            'metadata' => '{}',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->app['db']->table(PrivacyDatabaseTable::OPERATION_PREVIEWS)->insert([
+            'operation_request_id' => $requestId,
+            'impacts' => '[]',
+            'blockers' => '[]',
+            'participant_count' => 1,
+            'estimated_records' => 1,
+            'can_execute' => $canExecute,
+            'snapshot_hash' => hash('sha256', json_encode([
+                'impacts' => [[
+                    'dataSet' => 'tests.subject_records',
+                    'estimatedRecords' => 1,
+                    'irreversible' => true,
+                    'details' => [],
+                ]],
+                'blockers' => [],
+                'participant_count' => 1,
+            ], JSON_THROW_ON_ERROR)),
+            'created_at' => now(),
+        ]);
     }
 
     /**
@@ -748,9 +944,16 @@ final class PrivacyTestSearchLifecycleProjector implements SearchLifecycleProjec
 
 final class PrivacyTestExecutingLifecycleParticipant implements DataLifecycleParticipant
 {
+    public function key(): string
+    {
+        return 'privacy_test';
+    }
+
     public function preview(DataLifecycleSubject $subject, DataLifecycleOperation $operation): DataLifecyclePreview
     {
-        return new DataLifecyclePreview([]);
+        return new DataLifecyclePreview([
+            new DataLifecycleImpact('tests.subject_records', 2, true),
+        ]);
     }
 
     public function execute(DataLifecycleSubject $subject, DataLifecycleOperation $operation, string $correlationId): DataLifecycleResult
@@ -762,5 +965,25 @@ final class PrivacyTestExecutingLifecycleParticipant implements DataLifecyclePar
                 idempotent: true,
             ),
         ]);
+    }
+}
+
+final class PrivacyTestFailingLifecycleParticipant implements DataLifecycleParticipant
+{
+    public function key(): string
+    {
+        return 'privacy_test_failing';
+    }
+
+    public function preview(DataLifecycleSubject $subject, DataLifecycleOperation $operation): DataLifecyclePreview
+    {
+        return new DataLifecyclePreview([
+            new DataLifecycleImpact('tests.subject_records', 1, true),
+        ]);
+    }
+
+    public function execute(DataLifecycleSubject $subject, DataLifecycleOperation $operation, string $correlationId): DataLifecycleResult
+    {
+        throw new \RuntimeException('Test-only lifecycle participant failure.');
     }
 }

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head, useForm } from '@inertiajs/vue3';
-import { IconBriefcase, IconClockHour4, IconDatabase, IconFilePencil, IconPlayerPause } from '@tabler/icons-vue';
+import { IconBriefcase } from '@tabler/icons-vue';
 import { computed } from 'vue';
 
 import ActionLink from '../../Components/ActionLink.vue';
@@ -15,7 +15,6 @@ import FormSelect, { type FormSelectOption } from '../../Components/Form/FormSel
 import FormTextarea from '../../Components/Form/FormTextarea.vue';
 import AppLayout from '../../Layouts/AppLayout.vue';
 import { useTranslator } from '../../Localization/translator';
-import type { ShellSubnavigationItem } from '../../Types/navigation';
 
 interface TeamOption {
     publicId: string;
@@ -43,43 +42,6 @@ const form = useForm({
     auto_approval_enabled: false,
     reason: '',
 });
-const subnavigation = computed<ShellSubnavigationItem[]>(() => [
-    {
-        key: 'daily',
-        label: t('navigation.work_time_daily'),
-        href: '/admin/work-time/summary',
-        icon: IconClockHour4,
-        active: false,
-    },
-    {
-        key: 'other_work',
-        label: t('navigation.work_time_other_work'),
-        href: '/admin/work-time/other-work',
-        icon: IconBriefcase,
-        active: true,
-    },
-    {
-        key: 'breaks',
-        label: t('navigation.work_time_breaks'),
-        href: '/admin/work-time/breaks',
-        icon: IconPlayerPause,
-        active: false,
-    },
-    {
-        key: 'corrections',
-        label: t('navigation.work_time_corrections'),
-        href: '/admin/work-time/corrections',
-        icon: IconFilePencil,
-        active: false,
-    },
-    {
-        key: 'work_sessions',
-        label: t('navigation.work_time_sessions'),
-        href: '/admin/work-time/work-sessions',
-        icon: IconDatabase,
-        active: false,
-    },
-]);
 const teamOptions = computed<FormSelectOption[]>(() => [
     { value: '', label: t('pages.time_tracking.admin_operations.filters.team_placeholder') },
     ...props.teamOptions.map((team) => ({
@@ -103,8 +65,7 @@ function basePath(): string {
         :mode="surface"
         :title="t('pages.time_tracking.admin_categories.create.title')"
         :title-icon="IconBriefcase"
-        :subnavigation="isManagerSurface ? [] : subnavigation"
-        :subnavigation-label="t('navigation.group.work_time')"
+        :navigation-section="isManagerSurface ? undefined : 'work-time'"
     >
         <PageStack>
             <SurfaceCard :title="t('pages.time_tracking.admin_categories.form.title')" :icon="IconBriefcase" tone="teal">

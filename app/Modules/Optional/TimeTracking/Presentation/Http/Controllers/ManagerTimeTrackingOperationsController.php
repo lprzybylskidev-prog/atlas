@@ -4,20 +4,19 @@ declare(strict_types=1);
 
 namespace App\Modules\Optional\TimeTracking\Presentation\Http\Controllers;
 
-use App\Modules\Core\Authorization\Application\Public\Contracts\EffectivePermissionChecker;
-use App\Modules\Core\Authorization\Application\Public\DTOs\EffectivePermissionRequest;
-use App\Modules\Core\Identity\Application\Public\Persistence\IdentityDatabaseTable;
 use App\Modules\Core\Teams\Application\Public\Contracts\ManagerHierarchy;
-use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
 use App\Modules\Optional\TimeTracking\Application\Permissions\TimeTrackingPermissionCatalog;
-use App\Modules\Optional\TimeTracking\Application\Public\Persistence\TimeTrackingDatabaseTable;
 use App\Modules\Optional\TimeTracking\Application\TimeTrackingModuleAccess;
 use App\Modules\Optional\TimeTracking\Application\UserTimeReportService;
-use App\Shared\Application\Tables\AdminTableDefinitions;
+use App\Modules\Optional\TimeTracking\Infrastructure\Persistence\TableNames\TimeTrackingDatabaseTable;
+use App\Shared\Application\Authorization\Contracts\EffectivePermissionChecker;
+use App\Shared\Application\Authorization\DTOs\EffectivePermissionRequest;
 use App\Shared\Application\Tables\ArrayTableProcessor;
+use App\Shared\Application\Tables\RegisteredTables;
 use App\Shared\Application\Tables\TableRequestContext;
 use App\Shared\Application\Tables\TableSavedViewService;
 use App\Shared\Application\Tables\TableState;
+use App\Shared\Application\Teams\Contracts\TeamLookup;
 use Illuminate\Database\ConnectionInterface;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -29,11 +28,12 @@ final readonly class ManagerTimeTrackingOperationsController
         private UserTimeReportService $reports,
         private TimeTrackingModuleAccess $access,
         private ManagerHierarchy $hierarchy,
+        private TeamLookup $teams,
         private EffectivePermissionChecker $permissions,
         private ArrayTableProcessor $tables,
-        private TableSavedViewService $views,
         private TableRequestContext $context,
         private ConnectionInterface $database,
+        private TableSavedViewService $views,
     ) {}
 
     public function daily(Request $request): Response
@@ -71,6 +71,11 @@ final readonly class ManagerTimeTrackingOperationsController
         }
 
         $teamOptions = $this->managerTeamOptions($userPublicId, $permission);
+
+        if ($teamOptions === []) {
+            abort(403);
+        }
+
         $selectedTeamPublicId = $this->selectedTeamPublicId($request, $teamOptions);
         $filterRequest = $this->requestForSectionFilters($request, $section, $selectedTeamPublicId);
         $assignments = $selectedTeamPublicId === ''
@@ -78,18 +83,18 @@ final readonly class ManagerTimeTrackingOperationsController
             : $this->managerAssignments($filterRequest, $selectedTeamPublicId, $userPublicId, $permission);
         $selectedTeamId = $this->teamId($selectedTeamPublicId);
 
-        $dailyDefinition = AdminTableDefinitions::get(AdminTableDefinitions::TIME_TRACKING_ADMIN_OPERATIONS_DAILY);
-        $otherWorkDefinition = AdminTableDefinitions::get(AdminTableDefinitions::TIME_TRACKING_ADMIN_OPERATIONS_OTHER_WORK);
-        $workSessionsDefinition = AdminTableDefinitions::get(AdminTableDefinitions::TIME_TRACKING_ADMIN_OPERATIONS_WORK_SESSIONS);
-        $breaksDefinition = AdminTableDefinitions::get(AdminTableDefinitions::TIME_TRACKING_ADMIN_OPERATIONS_BREAKS);
-        $correctionsDefinition = AdminTableDefinitions::get(AdminTableDefinitions::TIME_TRACKING_ADMIN_OPERATIONS_CORRECTIONS);
+        $dailyDefinition = RegisteredTables::get(RegisteredTables::TIME_TRACKING_MANAGER_OPERATIONS_DAILY);
+        $otherWorkDefinition = RegisteredTables::get(RegisteredTables::TIME_TRACKING_MANAGER_OPERATIONS_OTHER_WORK);
+        $workSessionsDefinition = RegisteredTables::get(RegisteredTables::TIME_TRACKING_MANAGER_OPERATIONS_WORK_SESSIONS);
+        $breaksDefinition = RegisteredTables::get(RegisteredTables::TIME_TRACKING_MANAGER_OPERATIONS_BREAKS);
+        $correctionsDefinition = RegisteredTables::get(RegisteredTables::TIME_TRACKING_MANAGER_OPERATIONS_CORRECTIONS);
         $dailyState = TableState::fromRequest($filterRequest, $dailyDefinition);
-        $otherWorkState = TableState::fromPayload([], $otherWorkDefinition);
-        $workSessionsState = TableState::fromPayload([], $workSessionsDefinition);
-        $breaksState = TableState::fromPayload([], $breaksDefinition);
-        $correctionsState = TableState::fromPayload([], $correctionsDefinition);
+        $otherWorkState = TableState::fromRequest($filterRequest, $otherWorkDefinition);
+        $workSessionsState = TableState::fromRequest($filterRequest, $workSessionsDefinition);
+        $breaksState = TableState::fromRequest($filterRequest, $breaksDefinition);
+        $correctionsState = TableState::fromRequest($filterRequest, $correctionsDefinition);
 
-        $report = $this->reports->workTimeForAssignmentsRequest($filterRequest, $assignments, false);
+        $report = $this->reports->workTimeForAssignmentsRequest($filterRequest, $assignments);
         $dailyRows = $section === 'daily' ? $report->dailyRows : [];
         $otherWorkRows = $section === 'other_work' ? $report->otherWorkRows : [];
         $workSessionRows = $section === 'work_sessions' ? $this->reports->workSessionRowsForAssignments($filterRequest, $assignments) : [];
@@ -97,13 +102,25 @@ final readonly class ManagerTimeTrackingOperationsController
         $correctionRows = $section === 'corrections' ? $this->reports->correctionRowsForAssignments($filterRequest, $assignments) : [];
 
         $dailyResult = $this->tables->process($dailyRows, $dailyDefinition, $dailyState)
-            ->withSavedViews($this->views->listFor($dailyDefinition->key, $userId, $selectedTeamId > 0 ? $selectedTeamId : $activeTeamId));
-        $otherWorkResult = $this->tables->process($otherWorkRows, $otherWorkDefinition, $otherWorkState);
-        $workSessionsResult = $this->tables->process($workSessionRows, $workSessionsDefinition, $workSessionsState);
-        $breaksResult = $this->tables->process($breakRows, $breaksDefinition, $breaksState);
-        $correctionsResult = $this->tables->process($correctionRows, $correctionsDefinition, $correctionsState);
+            ->withSavedViews($this->views->listFor($dailyDefinition->key, $userId, $activeTeamId));
+        $otherWorkResult = $this->tables->process($otherWorkRows, $otherWorkDefinition, $otherWorkState)
+            ->withSavedViews($this->views->listFor($otherWorkDefinition->key, $userId, $activeTeamId));
+        $workSessionsResult = $this->tables->process($workSessionRows, $workSessionsDefinition, $workSessionsState)
+            ->withSavedViews($this->views->listFor($workSessionsDefinition->key, $userId, $activeTeamId));
+        $breaksResult = $this->tables->process($breakRows, $breaksDefinition, $breaksState)
+            ->withSavedViews($this->views->listFor($breaksDefinition->key, $userId, $activeTeamId));
+        $correctionsResult = $this->tables->process($correctionRows, $correctionsDefinition, $correctionsState)
+            ->withSavedViews($this->views->listFor($correctionsDefinition->key, $userId, $activeTeamId));
         $dailyTable = $dailyResult->tableMeta($dailyDefinition->key);
         $dailyTable['state']['filters'] = $report->filters;
+        $summaryRows = match ($section) {
+            'daily' => $dailyResult->filteredRows,
+            'other_work' => $otherWorkResult->filteredRows,
+            'work_sessions' => $workSessionsResult->filteredRows,
+            'breaks' => $breaksResult->filteredRows,
+            'corrections' => $correctionsResult->filteredRows,
+            default => [],
+        };
 
         return Inertia::render('TimeTracking/AdminOperations', [
             'surface' => 'manager',
@@ -120,7 +137,7 @@ final readonly class ManagerTimeTrackingOperationsController
             'workSessionRows' => $workSessionsResult->rows,
             'breakRows' => $breaksResult->rows,
             'correctionRows' => $correctionsResult->rows,
-            'summary' => $report->summary,
+            'summary' => $this->reports->summaryForOperationRows($section, $summaryRows),
             'filters' => $report->filters,
             'dailyTable' => $dailyTable,
             'otherWorkTable' => $otherWorkResult->tableMeta($otherWorkDefinition->key),
@@ -189,24 +206,16 @@ final readonly class ManagerTimeTrackingOperationsController
     {
         $teams = [];
 
-        foreach ($this->database->table(TimeTrackingDatabaseTable::USER_TEAM_SETTINGS.' as settings')
-            ->join(TeamsDatabaseTable::TEAM_USER_ASSIGNMENTS.' as assignments', 'settings.team_user_assignment_id', '=', 'assignments.id')
-            ->join(TeamsDatabaseTable::TEAMS.' as teams', 'assignments.team_id', '=', 'teams.id')
-            ->where('settings.tracking_enabled', true)
-            ->distinct()
-            ->orderBy('teams.name')
-            ->get(['teams.id', 'teams.public_id', 'teams.name']) as $row) {
-            $teamId = $this->intValue($row->id ?? null);
-            $teamPublicId = $this->stringValue($row->public_id ?? null);
-
-            if ($teamId > 0 && $teamPublicId !== '') {
-                $teams[] = [
-                    'id' => $teamId,
-                    'publicId' => $teamPublicId,
-                    'name' => $this->stringValue($row->name ?? null),
-                ];
-            }
+        foreach ($this->trackedAssignments() as $assignment) {
+            $teams[$assignment['teamId']] = [
+                'id' => $assignment['teamId'],
+                'publicId' => $assignment['teamPublicId'],
+                'name' => $assignment['teamName'],
+            ];
         }
+
+        $teams = array_values($teams);
+        usort($teams, fn (array $first, array $second): int => strcmp($first['name'], $second['name']));
 
         return $teams;
     }
@@ -221,17 +230,13 @@ final readonly class ManagerTimeTrackingOperationsController
             return [];
         }
 
-        return array_values($this->database->table(TimeTrackingDatabaseTable::USER_TEAM_SETTINGS.' as settings')
-            ->join(TeamsDatabaseTable::TEAM_USER_ASSIGNMENTS.' as assignments', 'settings.team_user_assignment_id', '=', 'assignments.id')
-            ->join(IdentityDatabaseTable::USERS.' as users', 'assignments.user_id', '=', 'users.id')
-            ->where('settings.tracking_enabled', true)
-            ->where('assignments.team_id', $teamId)
-            ->whereIn('users.public_id', $visibleUserPublicIds)
-            ->pluck('users.id')
-            ->map(static fn (mixed $id): int => is_numeric($id) ? (int) $id : 0)
-            ->filter(static fn (int $id): bool => $id > 0)
-            ->values()
-            ->all());
+        return array_values(array_map(
+            static fn (array $assignment): int => $assignment['userId'],
+            array_filter(
+                $this->trackedAssignments($teamId),
+                static fn (array $assignment): bool => in_array($assignment['userPublicId'], $visibleUserPublicIds, true),
+            ),
+        ));
     }
 
     /**
@@ -254,40 +259,28 @@ final readonly class ManagerTimeTrackingOperationsController
             abort(403);
         }
 
-        $selectedUserPublicId = $this->stringValue($request->query('user'));
-        $query = $this->database->table(TimeTrackingDatabaseTable::USER_TEAM_SETTINGS.' as settings')
-            ->join(TeamsDatabaseTable::TEAM_USER_ASSIGNMENTS.' as assignments', 'settings.team_user_assignment_id', '=', 'assignments.id')
-            ->join(IdentityDatabaseTable::USERS.' as users', 'assignments.user_id', '=', 'users.id')
-            ->join(TeamsDatabaseTable::TEAMS.' as teams', 'assignments.team_id', '=', 'teams.id')
-            ->where('settings.tracking_enabled', true)
-            ->where('assignments.team_id', $teamId)
-            ->whereIn('users.public_id', $scope->visibleUserPublicIds);
-
-        if ($selectedUserPublicId !== '') {
-            $query->where('users.public_id', $selectedUserPublicId);
-        }
-
         $assignments = [];
+        $selectedUserPublicId = $this->stringValue($request->query('user'));
 
-        foreach ($query->orderBy('users.name')->get([
-            'users.id as user_id',
-            'users.public_id as user_public_id',
-            'users.name as user_name',
-            'users.email as user_email',
-            'teams.id as team_id',
-            'teams.public_id as team_public_id',
-            'teams.name as team_name',
-        ]) as $row) {
+        foreach ($this->trackedAssignments($teamId) as $assignment) {
+            if (! in_array($assignment['userPublicId'], $scope->visibleUserPublicIds, true)
+                || ($selectedUserPublicId !== '' && $assignment['userPublicId'] !== $selectedUserPublicId)
+            ) {
+                continue;
+            }
+
             $assignments[] = [
-                'userId' => $this->intValue($row->user_id ?? null),
-                'userPublicId' => $this->stringValue($row->user_public_id ?? null),
-                'userName' => $this->stringValue($row->user_name ?? null),
-                'userEmail' => $this->stringValue($row->user_email ?? null),
-                'teamId' => $this->intValue($row->team_id ?? null),
-                'teamPublicId' => $this->stringValue($row->team_public_id ?? null),
-                'teamName' => $this->stringValue($row->team_name ?? null),
+                'userId' => $assignment['userId'],
+                'userPublicId' => $assignment['userPublicId'],
+                'userName' => $assignment['userName'],
+                'userEmail' => $assignment['userEmail'],
+                'teamId' => $assignment['teamId'],
+                'teamPublicId' => $assignment['teamPublicId'],
+                'teamName' => $assignment['teamName'],
             ];
         }
+
+        usort($assignments, fn (array $first, array $second): int => strcmp($first['userName'], $second['userName']));
 
         return array_values(array_filter($assignments, static fn (array $assignment): bool => $assignment['userId'] > 0 && $assignment['teamId'] > 0));
     }
@@ -388,18 +381,26 @@ final readonly class ManagerTimeTrackingOperationsController
 
         $categories = [];
 
+        $teamIds = $this->teams->internalIdsForPublicIds($teamPublicIds);
+        $teamPublicIdsById = [];
+
+        foreach ($this->teams->summariesForInternalIds($teamIds) as $team) {
+            $teamPublicIdsById[$team->internalId] = $team->publicId;
+        }
+
         foreach ($this->database->table(TimeTrackingDatabaseTable::OTHER_WORK_CATEGORIES.' as categories')
-            ->join(TeamsDatabaseTable::TEAMS.' as teams', 'categories.scope_id', '=', 'teams.id')
             ->where('categories.scope_type', 'team')
-            ->whereIn('teams.public_id', $teamPublicIds)
+            ->whereIn('categories.scope_id', $teamIds)
             ->orderBy('categories.label_pl')
             ->orderBy('categories.category_key')
-            ->get(['categories.category_key', 'categories.label_pl', 'categories.label_en', 'teams.public_id as team_public_id']) as $row) {
+            ->get(['categories.category_key', 'categories.label_pl', 'categories.label_en', 'categories.scope_id']) as $row) {
+            $teamId = $this->intValue($row->scope_id ?? null);
+
             $categories[] = [
                 'key' => $this->stringValue($row->category_key ?? null),
                 'labelPl' => $this->stringValue($row->label_pl ?? null),
                 'labelEn' => $this->stringValue($row->label_en ?? null),
-                'teamPublicId' => $this->stringValue($row->team_public_id ?? null),
+                'teamPublicId' => $teamPublicIdsById[$teamId] ?? '',
             ];
         }
 
@@ -408,7 +409,7 @@ final readonly class ManagerTimeTrackingOperationsController
 
     private function requestForSectionFilters(Request $request, string $section, string $teamPublicId): Request
     {
-        $common = ['team', 'user', 'range', 'from', 'to'];
+        $common = ['team', 'user', 'range', 'from', 'to', 'page', 'per_page', 'sort', 'direction', 'search', 'columns', 'column_order', 'view'];
         $sectionKeys = match ($section) {
             'daily' => [...$common, 'compare'],
             'other_work' => [...$common, 'category', 'status', 'decision_state', 'closure_reason', 'review'],
@@ -432,11 +433,48 @@ final readonly class ManagerTimeTrackingOperationsController
             return 0;
         }
 
-        $id = $this->database->table(TeamsDatabaseTable::TEAMS)
-            ->where('public_id', $teamPublicId)
-            ->value('id');
+        return $this->teams->internalIdForPublicId($teamPublicId) ?? 0;
+    }
 
-        return is_numeric($id) ? (int) $id : 0;
+    /**
+     * @return list<array{userId: int, userPublicId: string, userName: string, userEmail: string, teamId: int, teamPublicId: string, teamName: string}>
+     */
+    private function trackedAssignments(?int $teamId = null): array
+    {
+        $rows = [];
+
+        foreach ($this->teams->assignmentSummariesForInternalIds($this->trackedAssignmentIds()) as $assignment) {
+            if ($teamId !== null && $assignment->teamId !== $teamId) {
+                continue;
+            }
+
+            $rows[] = [
+                'userId' => $assignment->userId,
+                'userPublicId' => $assignment->userPublicId,
+                'userName' => $assignment->userName,
+                'userEmail' => $assignment->userEmail,
+                'teamId' => $assignment->teamId,
+                'teamPublicId' => $assignment->teamPublicId,
+                'teamName' => $assignment->teamName,
+            ];
+        }
+
+        return $rows;
+    }
+
+    /**
+     * @return list<int>
+     */
+    private function trackedAssignmentIds(): array
+    {
+        return array_values($this->database->table(TimeTrackingDatabaseTable::USER_TEAM_SETTINGS)
+            ->where('tracking_enabled', true)
+            ->pluck('team_user_assignment_id')
+            ->map(static fn (mixed $id): int => is_numeric($id) ? (int) $id : 0)
+            ->filter(static fn (int $id): bool => $id > 0)
+            ->unique()
+            ->values()
+            ->all());
     }
 
     private function currentUserPublicId(Request $request): ?string

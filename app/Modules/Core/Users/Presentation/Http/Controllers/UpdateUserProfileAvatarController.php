@@ -7,11 +7,10 @@ namespace App\Modules\Core\Users\Presentation\Http\Controllers;
 use App\Modules\Core\Files\Application\Public\Contracts\FileLifecycle;
 use App\Modules\Core\Files\Application\Public\Contracts\FileScanner;
 use App\Modules\Core\Files\Application\Public\Contracts\FileStorage;
-use App\Modules\Core\Identity\Application\Public\Persistence\IdentityDatabaseTable;
+use App\Modules\Core\Identity\Application\Public\Contracts\UserProfileAvatarUpdater;
 use App\Shared\Presentation\Support\FlashMessage;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 final readonly class UpdateUserProfileAvatarController
@@ -20,6 +19,7 @@ final readonly class UpdateUserProfileAvatarController
         private FileStorage $files,
         private FileLifecycle $fileLifecycle,
         private FileScanner $fileScanner,
+        private UserProfileAvatarUpdater $avatars,
     ) {}
 
     public function __invoke(Request $request): RedirectResponse
@@ -58,9 +58,13 @@ final readonly class UpdateUserProfileAvatarController
             $updates['avatar_image_file_public_id'] = $stored?->publicId;
         }
 
-        DB::table(IdentityDatabaseTable::USERS)
-            ->where('id', $userId)
-            ->update(array_merge($updates, ['updated_at' => now()]));
+        $this->avatars->updateAvatar(
+            userId: $userId,
+            avatarColor: $updates['avatar_color'],
+            avatarImageFilePublicId: array_key_exists('avatar_image_file_public_id', $updates)
+                ? $updates['avatar_image_file_public_id']
+                : $this->stringOrNull(data_get($user, 'avatar_image_file_public_id')),
+        );
 
         return back()->with('flash.messages', [
             FlashMessage::success('flash.user_profile.avatar_updated'),
@@ -82,5 +86,10 @@ final readonly class UpdateUserProfileAvatarController
     private function stringValue(mixed $value): string
     {
         return is_string($value) ? $value : '';
+    }
+
+    private function stringOrNull(mixed $value): ?string
+    {
+        return is_string($value) && $value !== '' ? $value : null;
     }
 }

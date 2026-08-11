@@ -1,20 +1,11 @@
 <script setup lang="ts">
 import { Head, useForm, usePage } from '@inertiajs/vue3';
-import {
-    IconBriefcase,
-    IconClockHour4,
-    IconDatabase,
-    IconFilePencil,
-    IconHourglass,
-    IconPlus,
-    IconPlayerPause,
-    IconRefresh,
-    IconTool,
-} from '@tabler/icons-vue';
+import { IconBriefcase, IconClockHour4, IconDatabase, IconFilePencil, IconPlus, IconPlayerPause, IconTool } from '@tabler/icons-vue';
 import { computed, ref, watch } from 'vue';
 import type { Component } from 'vue';
 
 import ActionLink from '../../Components/ActionLink.vue';
+import ComparisonTable, { type ComparisonTableColumn } from '../../Components/ComparisonTable.vue';
 import DataTable from '../../Components/DataTable.vue';
 import DialogPanel from '../../Components/DialogPanel.vue';
 import FilterPanel from '../../Components/FilterPanel.vue';
@@ -25,8 +16,8 @@ import FormDateTimeInput from '../../Components/Form/FormDateTimeInput.vue';
 import FormInput from '../../Components/Form/FormInput.vue';
 import FormSelect, { type FormSelectOption } from '../../Components/Form/FormSelect.vue';
 import FormTextarea from '../../Components/Form/FormTextarea.vue';
-import OperationalMetricTile from '../../Components/OperationalMetricTile.vue';
 import PageStack from '../../Components/PageStack.vue';
+import TimeTrackingReportMetrics from '../../Components/TimeTracking/TimeTrackingReportMetrics.vue';
 import {
     formatTimeTrackingDuration,
     timeTrackingCompareOptions,
@@ -38,7 +29,7 @@ import AppLayout from '../../Layouts/AppLayout.vue';
 import { useTranslator } from '../../Localization/translator';
 import type { DataTableAction, DataTableColumn, DataTableMeta } from '../../Types/data-table';
 import type { AtlasPageProps } from '../../Types/inertia';
-import type { ShellSubnavigationItem } from '../../Types/navigation';
+import type { TimeReportSummary } from '../../Types/time-tracking';
 import { formatDateTime } from '../../Utils/formatters';
 
 interface DailyWorkTimeRow extends Record<string, unknown> {
@@ -147,6 +138,14 @@ interface CorrectionRow extends Record<string, unknown> {
     availableActions: string[];
 }
 
+interface CorrectionTimelineRow extends Record<string, unknown> {
+    key: string;
+    label: string;
+    startedAt: string;
+    endedAt: string;
+    duration: string;
+}
+
 interface LocalizedDailyWorkTimeRow extends DailyWorkTimeRow {
     countedDuration: string;
     workDuration: string;
@@ -175,19 +174,6 @@ interface LocalizedBreakRow extends BreakRow {
 
 interface LocalizedCorrectionRow extends CorrectionRow {
     typeLabel: string;
-}
-
-interface TimeReportSummary {
-    totalSeconds: number;
-    workSeconds: number;
-    breakSeconds: number;
-    technicalBreakSeconds: number;
-    maintenanceSeconds: number;
-    otherWorkSeconds: number;
-    acceptedOtherWorkSeconds: number;
-    pendingOtherWorkSeconds: number;
-    corrections: number;
-    pending: number;
 }
 
 interface TeamOption {
@@ -265,6 +251,7 @@ const sectionFilterKeys: Record<AdminOperationsSection, FilterKey[]> = {
     work_sessions: ['team', 'user', 'range', 'from', 'to', 'status', 'closure_reason'],
 };
 const filters = ref({ ...filterDefaults, ...props.filters });
+const appliedFilters = computed(() => ({ ...filterDefaults, ...props.filters }));
 const actionModalOpen = ref(false);
 const selectedAction = ref<{
     kind:
@@ -288,8 +275,8 @@ const actionForm = useForm({
     final_started_at: '',
     final_ended_at: '',
 });
-const selectedTeamMissing = computed(() => filters.value.team === '');
-const selectedUserMissing = computed(() => filters.value.user === '');
+const selectedTeamMissing = computed(() => appliedFilters.value.team === '');
+const selectedUserMissing = computed(() => appliedFilters.value.user === '');
 const sectionMeta: Record<
     typeof props.section,
     {
@@ -348,47 +335,10 @@ const categoriesForSelectedTeam = computed<OtherWorkCategoryOption[]>(() => {
 
     return props.otherWorkCategoryOptionsByTeam[filters.value.team] ?? [];
 });
-const subnavigation = computed<ShellSubnavigationItem[]>(() => [
-    {
-        key: 'daily',
-        label: t('navigation.work_time_daily'),
-        href: routeWithFilters(sectionPath('daily'), 'daily'),
-        icon: IconClockHour4,
-        active: props.section === 'daily',
-    },
-    {
-        key: 'other_work',
-        label: t('navigation.work_time_other_work'),
-        href: routeWithFilters(sectionPath('other_work'), 'other_work'),
-        icon: IconBriefcase,
-        active: props.section === 'other_work',
-    },
-    {
-        key: 'breaks',
-        label: t('navigation.work_time_breaks'),
-        href: routeWithFilters(sectionPath('breaks'), 'breaks'),
-        icon: IconPlayerPause,
-        active: props.section === 'breaks',
-    },
-    {
-        key: 'corrections',
-        label: t('navigation.work_time_corrections'),
-        href: routeWithFilters(sectionPath('corrections'), 'corrections'),
-        icon: IconFilePencil,
-        active: props.section === 'corrections',
-    },
-    {
-        key: 'work_sessions',
-        label: t('navigation.work_time_sessions'),
-        href: routeWithFilters(sectionPath('work_sessions'), 'work_sessions'),
-        icon: IconDatabase,
-        active: props.section === 'work_sessions',
-    },
-]);
 
 const dailyColumns = computed<DataTableColumn<LocalizedDailyWorkTimeRow>[]>(() => [
     { key: 'userPublicId', label: t('pages.time_tracking.admin_operations.table.user_public_id'), hidden: true },
-    { key: 'userName', label: t('pages.time_tracking.admin_operations.table.user'), hidden: selectedUserMissing.value },
+    { key: 'userName', label: t('pages.time_tracking.admin_operations.table.user'), hidden: !selectedUserMissing.value },
     { key: 'userEmail', label: t('pages.time_tracking.admin_operations.table.user_email'), hidden: true },
     { key: 'teamPublicId', label: t('pages.time_tracking.admin_operations.table.team_public_id'), hidden: true },
     { key: 'teamName', label: t('pages.time_tracking.admin_operations.table.team') },
@@ -849,22 +799,6 @@ function sectionPath(targetSection: AdminOperationsSection): string {
     return paths[surface.value][targetSection];
 }
 
-function routeWithFilters(path: string, targetSection: AdminOperationsSection): string {
-    const params = new URLSearchParams();
-
-    for (const key of sectionFilterKeys[targetSection]) {
-        const value = filters.value[key];
-
-        if (value !== undefined && value !== '' && value !== filterDefaults[key]) {
-            params.set(key, value);
-        }
-    }
-
-    const query = params.toString();
-
-    return query === '' ? path : `${path}?${query}`;
-}
-
 function formatDuration(seconds: number): string {
     return formatTimeTrackingDuration(seconds, t);
 }
@@ -905,9 +839,7 @@ function exceededBreakRowClass(row: LocalizedBreakRow): string {
         : '';
 }
 
-function correctionTimelineRows(
-    correction: LocalizedCorrectionRow | undefined,
-): Array<{ key: string; label: string; startedAt: string; endedAt: string; duration: string }> {
+function correctionTimelineRows(correction: LocalizedCorrectionRow | undefined): CorrectionTimelineRow[] {
     if (correction === undefined) {
         return [];
     }
@@ -940,6 +872,22 @@ function correctionTimelineRows(
 function correctionTimestampLabel(value: string): string {
     return value === '' ? '-' : formatDateTime(value, locale.value);
 }
+
+const correctionTimelineColumns = computed<ComparisonTableColumn<CorrectionTimelineRow>[]>(() => [
+    { key: 'label', label: t('pages.time_tracking.admin_operations.dialog.values_kind') },
+    { key: 'startedAt', label: t('pages.time_tracking.admin_operations.manual.started_at') },
+    { key: 'endedAt', label: t('pages.time_tracking.admin_operations.manual.ended_at') },
+    { key: 'duration', label: t('pages.time_tracking.admin_operations.table.duration') },
+]);
+
+const localizedCorrectionTimelineRows = computed<CorrectionTimelineRow[]>(() =>
+    correctionTimelineRows(selectedAction.value?.correction).map((row) => ({
+        ...row,
+        startedAt: correctionTimestampLabel(row.startedAt),
+        endedAt: correctionTimestampLabel(row.endedAt),
+        duration: row.duration === '' ? '-' : row.duration,
+    })),
+);
 </script>
 
 <template>
@@ -948,48 +896,10 @@ function correctionTimestampLabel(value: string): string {
         :title="pageTitle"
         :title-icon="activeSectionMeta.icon"
         :mode="surface"
-        :subnavigation="isAdminSurface ? subnavigation : []"
-        :subnavigation-label="t('navigation.group.work_time')"
+        :navigation-section="isAdminSurface ? 'work-time' : undefined"
     >
         <PageStack>
-            <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-6">
-                <OperationalMetricTile
-                    :label="t('pages.time_tracking.user_report.metrics.total')"
-                    :value="formatDuration(summary.totalSeconds)"
-                    :icon="IconClockHour4"
-                    tone="teal"
-                />
-                <OperationalMetricTile
-                    :label="t('pages.time_tracking.user_report.metrics.work')"
-                    :value="formatDuration(summary.workSeconds)"
-                    :icon="IconHourglass"
-                    tone="sky"
-                />
-                <OperationalMetricTile
-                    :label="t('pages.time_tracking.user_report.metrics.break')"
-                    :value="formatDuration(summary.breakSeconds)"
-                    :icon="IconPlayerPause"
-                    tone="amber"
-                />
-                <OperationalMetricTile
-                    :label="t('pages.time_tracking.user_report.metrics.other_work')"
-                    :value="formatDuration(summary.otherWorkSeconds)"
-                    :icon="IconBriefcase"
-                    tone="emerald"
-                />
-                <OperationalMetricTile
-                    :label="t('pages.time_tracking.admin_operations.metrics.work_sessions')"
-                    :value="workSessionRows.length"
-                    :icon="IconDatabase"
-                    tone="zinc"
-                />
-                <OperationalMetricTile
-                    :label="t('pages.time_tracking.user_report.metrics.pending')"
-                    :value="summary.pending"
-                    :icon="IconRefresh"
-                    :tone="summary.pending > 0 ? 'rose' : 'zinc'"
-                />
-            </div>
+            <TimeTrackingReportMetrics :section="section" :summary="summary" multi-user />
 
             <FilterPanel
                 :title="t('pages.time_tracking.user_report.filters.title')"
@@ -1090,7 +1000,7 @@ function correctionTimestampLabel(value: string): string {
                 :total-rows="dailyTable.pagination.total"
                 :ui-locale="locale"
                 :table="dailyTable"
-                :filters="filters"
+                :filters="appliedFilters"
             />
             <DataTable
                 v-else-if="section === 'other_work'"
@@ -1106,7 +1016,7 @@ function correctionTimestampLabel(value: string): string {
                 :total-rows="otherWorkTable.pagination.total"
                 :ui-locale="locale"
                 :table="otherWorkTable"
-                :filters="filters"
+                :filters="appliedFilters"
                 :actions="otherWorkActions"
             />
             <DataTable
@@ -1123,7 +1033,7 @@ function correctionTimestampLabel(value: string): string {
                 :total-rows="breaksTable.pagination.total"
                 :ui-locale="locale"
                 :table="breaksTable"
-                :filters="filters"
+                :filters="appliedFilters"
                 :actions="breakActions"
                 :row-class="exceededBreakRowClass"
             />
@@ -1141,7 +1051,7 @@ function correctionTimestampLabel(value: string): string {
                 :total-rows="correctionsTable.pagination.total"
                 :ui-locale="locale"
                 :table="correctionsTable"
-                :filters="filters"
+                :filters="appliedFilters"
                 :actions="correctionActions"
             />
             <DataTable
@@ -1158,7 +1068,7 @@ function correctionTimestampLabel(value: string): string {
                 :total-rows="workSessionsTable.pagination.total"
                 :ui-locale="locale"
                 :table="workSessionsTable"
-                :filters="filters"
+                :filters="appliedFilters"
                 :actions="workSessionActions"
             />
         </PageStack>
@@ -1182,37 +1092,12 @@ function correctionTimestampLabel(value: string): string {
                         :error="actionForm.errors.reason"
                     />
                     <div v-if="selectedAction?.kind === 'correct'" class="grid gap-3">
-                        <div
-                            v-if="correctionTimelineRows(selectedAction.correction).length > 0"
-                            class="overflow-hidden rounded-md border border-zinc-200 dark:border-zinc-800"
-                        >
-                            <table class="min-w-full divide-y divide-zinc-200 text-sm dark:divide-zinc-800">
-                                <thead
-                                    class="bg-zinc-50 text-left text-xs font-semibold uppercase text-zinc-500 dark:bg-zinc-900 dark:text-zinc-400"
-                                >
-                                    <tr>
-                                        <th class="px-3 py-2">{{ t('pages.time_tracking.admin_operations.dialog.values_kind') }}</th>
-                                        <th class="px-3 py-2">{{ t('pages.time_tracking.admin_operations.manual.started_at') }}</th>
-                                        <th class="px-3 py-2">{{ t('pages.time_tracking.admin_operations.manual.ended_at') }}</th>
-                                        <th class="px-3 py-2">{{ t('pages.time_tracking.admin_operations.table.duration') }}</th>
-                                    </tr>
-                                </thead>
-                                <tbody class="divide-y divide-zinc-100 dark:divide-zinc-900">
-                                    <tr v-for="row in correctionTimelineRows(selectedAction.correction)" :key="row.key">
-                                        <td class="px-3 py-2 font-medium text-zinc-950 dark:text-zinc-50">{{ row.label }}</td>
-                                        <td class="px-3 py-2 text-zinc-600 dark:text-zinc-300">
-                                            {{ correctionTimestampLabel(row.startedAt) }}
-                                        </td>
-                                        <td class="px-3 py-2 text-zinc-600 dark:text-zinc-300">
-                                            {{ correctionTimestampLabel(row.endedAt) }}
-                                        </td>
-                                        <td class="px-3 py-2 text-zinc-600 dark:text-zinc-300">
-                                            {{ row.duration === '' ? '-' : row.duration }}
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
+                        <ComparisonTable
+                            v-if="localizedCorrectionTimelineRows.length > 0"
+                            :columns="correctionTimelineColumns"
+                            :rows="localizedCorrectionTimelineRows"
+                            row-key="key"
+                        />
                         <FormDateTimeInput
                             v-model="actionForm.final_started_at"
                             :label="t('pages.time_tracking.admin_operations.manual.started_at')"

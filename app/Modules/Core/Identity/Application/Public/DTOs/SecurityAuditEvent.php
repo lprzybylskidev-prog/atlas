@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Core\Identity\Application\Public\DTOs;
 
-use App\Modules\Core\Audit\Application\Public\Enums\SecurityAuditCategory;
+use App\Shared\Application\Audit\Enums\SecurityAuditCategory;
 
 final readonly class SecurityAuditEvent
 {

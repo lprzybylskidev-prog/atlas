@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-use App\Modules\Core\Identity\Application\Public\Persistence\IdentityDatabaseTable;
-use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
-use App\Modules\Optional\TimeTracking\Application\Public\Persistence\TimeTrackingDatabaseTable;
+use App\Modules\Core\Identity\Infrastructure\Persistence\TableNames\IdentityDatabaseTable;
+use App\Modules\Core\Teams\Infrastructure\Persistence\TableNames\TeamsDatabaseTable;
+use App\Modules\Optional\TimeTracking\Infrastructure\Persistence\TableNames\TimeTrackingDatabaseTable;
 use App\Shared\Infrastructure\Database\DatabaseSchema;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
@@ -16,11 +16,6 @@ return new class extends Migration
     public function up(): void
     {
         DatabaseSchema::ensure(DatabaseSchema::OPTIONAL_TIME_TRACKING);
-
-        if (Schema::hasTable(TimeTrackingDatabaseTable::USER_TEAM_SETTINGS)) {
-            DB::statement('drop schema if exists '.DatabaseSchema::OPTIONAL_TIME_TRACKING.' cascade');
-            DatabaseSchema::ensure(DatabaseSchema::OPTIONAL_TIME_TRACKING);
-        }
 
         Schema::create(TimeTrackingDatabaseTable::USER_TEAM_SETTINGS, static function (Blueprint $table): void {
             $table->id();

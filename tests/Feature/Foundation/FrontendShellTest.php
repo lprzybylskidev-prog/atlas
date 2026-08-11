@@ -4,14 +4,15 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Foundation;
 
-use App\Modules\Core\Authorization\Application\Public\Persistence\AuthorizationDatabaseTable;
 use App\Modules\Core\Authorization\Application\Roles\InstallStarterRoles;
 use App\Modules\Core\Authorization\Application\Roles\StarterRoleName;
+use App\Modules\Core\Authorization\Infrastructure\Persistence\TableNames\AuthorizationDatabaseTable;
 use App\Modules\Core\Identity\Infrastructure\Persistence\User;
-use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
+use App\Modules\Core\Teams\Infrastructure\Persistence\TableNames\TeamsDatabaseTable;
 use App\Modules\Core\Teams\Infrastructure\Persistence\Team;
 use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 use Inertia\Testing\AssertableInertia;
 use Spatie\Permission\Models\Role;
@@ -103,6 +104,8 @@ final class FrontendShellTest extends TestCase
                 ->where('navigation.breadcrumbs.1.url', 'http://localhost:8000/admin')
                 ->where('navigation.breadcrumbs.2.label', 'Pulpit administratora')
                 ->where('navigation.breadcrumbs.2.url', null)
+                ->where('auth.adminMode.active', true)
+                ->where('auth.adminMode.highRiskFresh', true)
                 ->where('dashboard.release.environment', 'testing')
                 ->where('dashboard.externalMechanisms.items.0.key', 'postgresql')
                 ->where('dashboard.externalMechanisms.items.1.key', 'redis')
@@ -112,7 +115,7 @@ final class FrontendShellTest extends TestCase
                 ->has('dashboard.modules.items')
                 ->where('auth.availableAdminRoutes', fn ($routes): bool => self::stringListContains($routes, 'admin.users.index'))
                 ->where('auth.availableAdminRoutes', fn ($routes): bool => self::stringListContains($routes, 'admin.teams.index'))
-                ->where('auth.availableAdminRoutes', fn ($routes): bool => self::stringListContains($routes, 'admin.managers.index'))
+                ->where('auth.availableAdminRoutes', fn ($routes): bool => self::stringListContains($routes, 'admin.teams.structure.show'))
                 ->where('auth.availableAdminRoutes', fn ($routes): bool => self::stringListContains($routes, 'admin.audit.index'))
                 ->where('auth.availableAdminRoutes', fn ($routes): bool => self::stringListContains($routes, 'admin.audit.security-history.index'))
                 ->where('auth.availableAdminRoutes', fn ($routes): bool => self::stringListContains($routes, 'admin.files.index'))
@@ -127,6 +130,30 @@ final class FrontendShellTest extends TestCase
                 ->where('availability.0.elementKey', 'admin.system-status.release')
                 ->where('availability.1.elementKey', 'admin.system-status.readiness')
                 ->where('availability.2.elementKey', 'admin.system-status.modules'));
+    }
+
+    public function test_configured_mfa_requirement_blocks_protected_surfaces_until_enrollment_is_confirmed(): void
+    {
+        Config::set('atlas.security.mfa.requirements.global', true);
+        $user = User::factory()->create();
+        $team = Team::query()->create(['name' => 'MFA Operations']);
+        $this->assignStarterRoleInTeam($user, $team, StarterRoleName::Administrator->value);
+
+        $session = ['active_team_public_id' => $team->public_id];
+
+        $this->actingAs($user)
+            ->withSession($session)
+            ->get('/')
+            ->assertRedirect('/user?mfa_required=1');
+
+        $this->actingAs($user)
+            ->withSession($session)
+            ->get('/user')
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->component('User/Panel')
+                ->where('profile.mfa.required', true)
+                ->where('profile.mfa.enabled', false));
     }
 
     public function test_stale_active_team_session_is_replaced_with_first_assigned_team(): void

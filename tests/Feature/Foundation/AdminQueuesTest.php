@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Foundation;
 
-use App\Modules\Core\Audit\Application\Public\Persistence\AuditDatabaseTable;
-use App\Modules\Core\Authorization\Application\Public\Persistence\AuthorizationDatabaseTable;
+use App\Modules\Core\Audit\Infrastructure\Persistence\TableNames\AuditDatabaseTable;
 use App\Modules\Core\Authorization\Application\Roles\InstallStarterRoles;
 use App\Modules\Core\Authorization\Application\Roles\StarterRoleName;
+use App\Modules\Core\Authorization\Infrastructure\Persistence\TableNames\AuthorizationDatabaseTable;
 use App\Modules\Core\Identity\Infrastructure\Persistence\User;
-use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
+use App\Modules\Core\Teams\Infrastructure\Persistence\TableNames\TeamsDatabaseTable;
 use App\Modules\Core\Teams\Infrastructure\Persistence\Team;
 use App\Shared\Infrastructure\Database\DatabaseTable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -114,7 +114,7 @@ final class AdminQueuesTest extends TestCase
             ->assertOk()
             ->assertInertia(fn (AssertableInertia $page) => $page
                 ->where('summary.failedCount', 1)
-                ->where('summary.handledCount', 1)
+                ->where('summary.handledCount', 0)
                 ->where('table.state.filters.handling', 'needs_attention')
                 ->has('jobs', 1)
                 ->where('jobs.0.uuid', $pendingUuid)
@@ -126,10 +126,34 @@ final class AdminQueuesTest extends TestCase
             ->assertOk()
             ->assertInertia(fn (AssertableInertia $page) => $page
                 ->where('table.state.filters.handling', 'handled')
+                ->where('summary.failedCount', 0)
+                ->where('summary.handledCount', 1)
                 ->has('jobs', 1)
                 ->where('jobs.0.uuid', $handledUuid)
                 ->where('jobs.0.handlingStatus', 'handled')
             );
+    }
+
+    public function test_failed_job_metrics_follow_search_but_ignore_pagination_and_sorting(): void
+    {
+        [$admin, $team] = $this->adminWithTeam();
+
+        foreach (range(1, 11) as $index) {
+            $this->insertFailedJob(sprintf('11111111-1111-4111-8111-%012d', $index), 'emails');
+        }
+
+        $this->insertFailedJob('33333333-3333-4333-8333-333333333333', 'imports');
+
+        $this->actingAs($admin)
+            ->withSession($this->adminSession($team))
+            ->get('/admin/queues?search=emails&per_page=10&sort=failedAt&direction=asc')
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->has('jobs', 10)
+                ->where('table.pagination.total', 11)
+                ->where('summary.failedCount', 11)
+                ->where('summary.visibleCount', 11)
+                ->where('summary.queues', 1));
     }
 
     public function test_admin_dashboard_exposes_failed_job_summary(): void

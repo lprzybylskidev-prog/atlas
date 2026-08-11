@@ -6,9 +6,12 @@ namespace App\Modules\Optional\Integrations\Presentation\Http\Controllers;
 
 use App\Modules\Optional\Integrations\Application\Contracts\IntegrationRegistry;
 use App\Modules\Optional\Integrations\Application\DTOs\IntegrationDefinition;
-use App\Modules\Optional\Integrations\Application\Public\Persistence\IntegrationsDatabaseTable;
-use App\Shared\Application\Tables\AdminTableDefinitions;
+use App\Modules\Optional\Integrations\Infrastructure\Persistence\TableNames\IntegrationsDatabaseTable;
+use App\Shared\Application\Audit\Contracts\AuditRecorder;
+use App\Shared\Application\Audit\DTOs\AuditEvent;
+use App\Shared\Application\Audit\Enums\SecurityAuditCategory;
 use App\Shared\Application\Tables\ArrayTableProcessor;
+use App\Shared\Application\Tables\RegisteredTables;
 use App\Shared\Application\Tables\TableDefinition;
 use App\Shared\Application\Tables\TableRequestContext;
 use App\Shared\Application\Tables\TableResult;
@@ -31,11 +34,12 @@ final readonly class AdminIntegrationsController
         private ArrayTableProcessor $tables,
         private TableSavedViewService $views,
         private TableRequestContext $context,
+        private AuditRecorder $audit,
     ) {}
 
     public function index(Request $request): Response
     {
-        $definition = AdminTableDefinitions::get(AdminTableDefinitions::INTEGRATION_ADAPTERS);
+        $definition = RegisteredTables::get(RegisteredTables::INTEGRATION_ADAPTERS);
         $adapters = array_map(fn (IntegrationDefinition $definition): array => $this->integrationRow($definition), $this->registry->all());
         $filters = $this->filters($request, $adapters);
         $filteredAdapters = $this->filteredAdapters($adapters, $filters);
@@ -46,7 +50,7 @@ final readonly class AdminIntegrationsController
 
         return Inertia::render('Admin/Integrations/Index', [
             'integrations' => $result->rows,
-            'summary' => $this->summary($adapters, $result->total),
+            'summary' => $this->summary($result->filteredRows),
             'filterOptions' => $this->filterOptions($adapters),
             'externalApiEnabled' => Config::boolean('atlas.integrations.external_api_enabled', false),
             'recentRuns' => $runs,
@@ -59,28 +63,43 @@ final readonly class AdminIntegrationsController
         $adapter = $this->registry->get($integration);
 
         if ($adapter === null) {
+            $this->recordConnectionTest($request, $integration, 'rejected', 'Integration adapter was not found.');
+
             return redirect()->route('admin.integrations.index')->with('flash.messages', [
                 FlashMessage::error('flash.integrations.adapter_not_found'),
             ]);
         }
 
-        $result = $adapter->testConnection((string) Str::uuid());
+        try {
+            $result = $adapter->testConnection((string) Str::uuid());
+        } catch (\Throwable $exception) {
+            $this->recordConnectionTest($request, $integration, 'failed', 'Integration connection test failed.');
+            throw $exception;
+        }
 
-        DB::table(IntegrationsDatabaseTable::CONNECTIONS)->updateOrInsert(
-            ['integration_key' => $result->integrationKey],
-            [
-                'public_id' => (string) Str::ulid(),
-                'name' => $adapter->definition()->name,
-                'enabled' => false,
-                'external_api_enabled' => $adapter->definition()->externalApiEnabled,
-                'source_of_truth' => $adapter->definition()->sourceOfTruth,
-                'last_success_at' => $result->successful ? $result->testedAt : null,
-                'last_error_at' => $result->successful ? null : $result->testedAt,
-                'last_error_message' => $result->successful ? null : $result->message,
-                'updated_at' => now(),
-                'created_at' => now(),
-            ],
-        );
+        DB::transaction(function () use ($adapter, $integration, $request, $result): void {
+            DB::table(IntegrationsDatabaseTable::CONNECTIONS)->updateOrInsert(
+                ['integration_key' => $result->integrationKey],
+                [
+                    'public_id' => (string) Str::ulid(),
+                    'name' => $adapter->definition()->name,
+                    'enabled' => false,
+                    'external_api_enabled' => $adapter->definition()->externalApiEnabled,
+                    'source_of_truth' => $adapter->definition()->sourceOfTruth,
+                    'last_success_at' => $result->successful ? $result->testedAt : null,
+                    'last_error_at' => $result->successful ? null : $result->testedAt,
+                    'last_error_message' => $result->successful ? null : $result->message,
+                    'updated_at' => now(),
+                    'created_at' => now(),
+                ],
+            );
+            $this->recordConnectionTest(
+                $request,
+                $integration,
+                $result->successful ? 'succeeded' : 'failed',
+                $result->successful ? null : 'Integration connection test returned a failure.',
+            );
+        });
 
         return redirect()
             ->route('admin.integrations.index')
@@ -89,6 +108,26 @@ final readonly class AdminIntegrationsController
                     ? FlashMessage::success('flash.integrations.test_succeeded')
                     : FlashMessage::error('flash.integrations.test_failed'),
             ]);
+    }
+
+    private function recordConnectionTest(Request $request, string $integration, string $result, ?string $reason): void
+    {
+        $actorPublicId = data_get($request->user(), 'public_id');
+        $teamPublicId = $request->hasSession() ? $request->session()->get('active_team_public_id') : null;
+
+        $this->audit->record(new AuditEvent(
+            module: 'integrations',
+            action: 'integration.connection_tested',
+            result: $result,
+            source: 'admin',
+            actorPublicId: is_string($actorPublicId) ? $actorPublicId : null,
+            teamPublicId: is_string($teamPublicId) ? $teamPublicId : null,
+            correlationId: $this->string($request->attributes->get('correlation_id')),
+            reason: $reason,
+            metadata: ['integration_key' => $integration],
+            security: true,
+            securityCategory: SecurityAuditCategory::Integrations,
+        ));
     }
 
     /**
@@ -197,18 +236,21 @@ final readonly class AdminIntegrationsController
     }
 
     /**
-     * @param  list<array<string, scalar|array<int, string>|null>>  $adapters
+     * @param  list<array<string, mixed>>  $adapters
      * @return array{registered: int, visible: int, enabled: int, openCircuits: int, running: int, failedLastRuns: int}
      */
-    private function summary(array $adapters, int $visible): array
+    private function summary(array $adapters): array
     {
+        $oneDayAgo = now()->subDay()->getTimestamp();
+
         return [
             'registered' => count($adapters),
-            'visible' => $visible,
+            'visible' => count($adapters),
             'enabled' => count(array_filter($adapters, static fn (array $adapter): bool => ($adapter['enabled'] ?? false) === true)),
-            'openCircuits' => (int) DB::table(IntegrationsDatabaseTable::CIRCUIT_BREAKERS)->where('state', 'open')->count(),
-            'running' => (int) DB::table(IntegrationsDatabaseTable::SYNC_RUNS)->where('status', 'running')->count(),
-            'failedLastRuns' => (int) DB::table(IntegrationsDatabaseTable::SYNC_RUNS)->where('status', 'failed')->where('started_at', '>=', now()->subDay())->count(),
+            'openCircuits' => count(array_filter($adapters, static fn (array $adapter): bool => ($adapter['circuitState'] ?? null) === 'open')),
+            'running' => count(array_filter($adapters, static fn (array $adapter): bool => ($adapter['lastRunStatus'] ?? null) === 'running')),
+            'failedLastRuns' => count(array_filter($adapters, fn (array $adapter): bool => ($adapter['lastRunStatus'] ?? null) === 'failed'
+                && $this->timestamp($adapter['lastRunAt'] ?? null) >= $oneDayAgo)),
         ];
     }
 
@@ -240,6 +282,17 @@ final readonly class AdminIntegrationsController
     private function string(mixed $value): ?string
     {
         return is_scalar($value) ? (string) $value : null;
+    }
+
+    private function timestamp(mixed $value): int
+    {
+        if (! is_scalar($value)) {
+            return 0;
+        }
+
+        $timestamp = strtotime((string) $value);
+
+        return $timestamp === false ? 0 : $timestamp;
     }
 
     /**

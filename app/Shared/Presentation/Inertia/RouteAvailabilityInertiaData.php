@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Shared\Presentation\Inertia;
 
-use App\Modules\Core\Authorization\Application\Public\Contracts\EffectivePermissionChecker;
-use App\Modules\Core\Authorization\Application\Public\DTOs\EffectivePermissionRequest;
 use App\Modules\Core\Identity\Application\Public\Contracts\ImpersonationSessionState;
+use App\Shared\Application\Authorization\Contracts\EffectivePermissionChecker;
+use App\Shared\Application\Authorization\DTOs\EffectivePermissionRequest;
 use App\Shared\Presentation\Inertia\Contracts\InertiaRouteAvailabilityContributor;
 use App\Shared\Presentation\Inertia\Contracts\InertiaSharedDataContributor;
 use Illuminate\Http\Request;

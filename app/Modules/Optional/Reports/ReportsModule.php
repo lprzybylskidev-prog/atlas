@@ -23,17 +23,7 @@ final class ReportsModule implements ModuleDefinition
 
     public function requiredDependencies(): array
     {
-        return [
-            new ModuleKey('identity'),
-            new ModuleKey('authorization'),
-            new ModuleKey('teams'),
-            new ModuleKey('audit'),
-            new ModuleKey('notifications'),
-            new ModuleKey('health'),
-            new ModuleKey('files'),
-            new ModuleKey('managed_processes'),
-            new ModuleKey('exports'),
-        ];
+        return [];
     }
 
     public function optionalDependencies(): array
@@ -56,17 +46,7 @@ final class ReportsModule implements ModuleDefinition
         return true;
     }
 
-    public function integrations(): array
-    {
-        return [];
-    }
-
     public function healthChecks(): array
-    {
-        return ['reports'];
-    }
-
-    public function frontendEntrypoints(): array
     {
         return [];
     }

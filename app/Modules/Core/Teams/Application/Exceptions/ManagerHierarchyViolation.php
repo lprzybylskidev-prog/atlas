@@ -32,4 +32,9 @@ final class ManagerHierarchyViolation extends RuntimeException
     {
         return new self('The selected manager relationship is not active.');
     }
+
+    public static function staleStructure(): self
+    {
+        return new self('The team structure changed after this page was opened. Reload it before saving.');
+    }
 }

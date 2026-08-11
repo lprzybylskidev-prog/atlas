@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Modules\Core\Teams\Application\Lifecycle;
 
-use App\Modules\Core\Identity\Application\Public\Persistence\IdentityDatabaseTable;
-use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
+use App\Modules\Core\Identity\Application\Public\Contracts\UserLookup;
+use App\Modules\Core\Teams\Infrastructure\Persistence\TableNames\TeamsDatabaseTable;
 use App\Shared\Application\DataLifecycle\Contracts\DataLifecycleParticipant;
 use App\Shared\Application\DataLifecycle\DataLifecycleImpact;
 use App\Shared\Application\DataLifecycle\DataLifecycleOperation;
@@ -20,7 +20,13 @@ final readonly class TeamUserDataLifecycleParticipant implements DataLifecyclePa
 {
     public function __construct(
         private ConnectionInterface $db,
+        private UserLookup $users,
     ) {}
+
+    public function key(): string
+    {
+        return 'teams';
+    }
 
     public function preview(DataLifecycleSubject $subject, DataLifecycleOperation $operation): DataLifecyclePreview
     {
@@ -105,11 +111,7 @@ final readonly class TeamUserDataLifecycleParticipant implements DataLifecyclePa
             return null;
         }
 
-        $id = $this->db->table(IdentityDatabaseTable::USERS)
-            ->where('public_id', $subject->identifier)
-            ->value('id');
-
-        return is_numeric($id) ? (int) $id : null;
+        return $this->users->internalIdForPublicId($subject->identifier);
     }
 
     private function assignments(int $userId): Builder

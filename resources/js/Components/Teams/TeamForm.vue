@@ -1,9 +1,7 @@
 <script setup lang="ts">
-import { IconArrowLeft, IconDeviceFloppy, IconUsersGroup } from '@tabler/icons-vue';
+import { IconUsersGroup } from '@tabler/icons-vue';
 
-import ActionLink from '../ActionLink.vue';
 import AtlasForm from '../Form/AtlasForm.vue';
-import FormButton from '../Form/FormButton.vue';
 import FormInput from '../Form/FormInput.vue';
 import FormActions from '../FormActions.vue';
 import SurfaceCard from '../SurfaceCard.vue';
@@ -41,10 +39,14 @@ withDefaults(
         submitLabel: string;
         processingLabel: string;
         backHref: string;
+        dirty?: boolean;
+        independentWorkflow?: boolean;
     }>(),
     {
         errors: () => ({}),
         processing: false,
+        dirty: false,
+        independentWorkflow: false,
     },
 );
 
@@ -129,15 +131,18 @@ const { t } = useTranslator();
             </div>
         </SurfaceCard>
 
-        <slot />
+        <slot v-if="!independentWorkflow" />
 
-        <FormActions>
-            <FormButton type="submit" :icon="IconDeviceFloppy" :loading="processing">
-                {{ processing ? processingLabel : submitLabel }}
-            </FormButton>
-            <ActionLink :href="backHref" :icon="IconArrowLeft">
-                {{ t('pages.admin.teams.actions.back_to_teams') }}
-            </ActionLink>
-        </FormActions>
+        <FormActions
+            :submit-label="submitLabel"
+            :processing-label="processingLabel"
+            :processing="processing"
+            :dirty="dirty"
+            :cancel-href="backHref"
+            :scope-label="t('pages.admin.teams.form.identity_title')"
+        />
     </AtlasForm>
+    <div v-if="independentWorkflow" class="mt-5">
+        <slot />
+    </div>
 </template>

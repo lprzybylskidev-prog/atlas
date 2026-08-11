@@ -4,23 +4,24 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Foundation;
 
-use App\Modules\Core\Audit\Application\Public\Persistence\AuditDatabaseTable;
-use App\Modules\Core\Authorization\Application\Public\Persistence\AuthorizationDatabaseTable;
+use App\Modules\Core\Audit\Infrastructure\Persistence\TableNames\AuditDatabaseTable;
 use App\Modules\Core\Authorization\Application\Roles\StarterRoleName;
-use App\Modules\Core\Files\Application\Public\Persistence\FilesDatabaseTable;
-use App\Modules\Core\Identity\Application\Public\Persistence\IdentityDatabaseTable;
+use App\Modules\Core\Authorization\Infrastructure\Persistence\TableNames\AuthorizationDatabaseTable;
+use App\Modules\Core\Files\Infrastructure\Persistence\TableNames\FilesDatabaseTable;
+use App\Modules\Core\Identity\Infrastructure\Persistence\TableNames\IdentityDatabaseTable;
 use App\Modules\Core\Identity\Infrastructure\Persistence\User;
-use App\Modules\Core\Notifications\Application\Public\Persistence\NotificationsDatabaseTable;
-use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
-use App\Modules\Optional\FeatureFlags\Application\Public\Persistence\FeatureFlagsDatabaseTable;
-use App\Modules\Optional\Imports\Application\Public\Persistence\ImportsDatabaseTable;
-use App\Modules\Optional\Integrations\Application\Public\Persistence\IntegrationsDatabaseTable;
-use App\Modules\Optional\ManagedProcesses\Application\Public\Persistence\ManagedProcessesDatabaseTable;
-use App\Modules\Optional\TimeTracking\Application\Public\Persistence\TimeTrackingDatabaseTable;
+use App\Modules\Core\Notifications\Infrastructure\Persistence\TableNames\NotificationsDatabaseTable;
+use App\Modules\Core\Teams\Infrastructure\Persistence\TableNames\TeamsDatabaseTable;
+use App\Modules\Optional\FeatureFlags\Infrastructure\Persistence\TableNames\FeatureFlagsDatabaseTable;
+use App\Modules\Optional\Imports\Infrastructure\Persistence\TableNames\ImportsDatabaseTable;
+use App\Modules\Optional\Integrations\Infrastructure\Persistence\TableNames\IntegrationsDatabaseTable;
+use App\Modules\Optional\ManagedProcesses\Infrastructure\Persistence\TableNames\ManagedProcessesDatabaseTable;
+use App\Modules\Optional\TimeTracking\Infrastructure\Persistence\TableNames\TimeTrackingDatabaseTable;
 use App\Shared\Infrastructure\Database\DatabaseTable;
 use Database\Seeders\DatabaseSeeder;
 use Database\Seeders\DevelopmentBootstrapSeeder;
 use Database\Seeders\DevelopmentDemoSeeder;
+use Database\Seeders\E2eVisibilitySeeder;
 use Database\Seeders\SystemBootstrapSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
@@ -109,9 +110,36 @@ final class DemoResetTest extends TestCase
         $this->seed(DevelopmentBootstrapSeeder::class);
 
         $this->seed(DevelopmentDemoSeeder::class);
+        $publicIds = DB::table(IdentityDatabaseTable::USERS)
+            ->where('email', 'like', 'tt.%@example.test')
+            ->orderBy('email')
+            ->pluck('public_id', 'email')
+            ->all();
+        $auditCount = DB::table(AuditDatabaseTable::AUDIT_EVENTS)->count();
+        $fixturePublicIds = $this->timeTrackingFixturePublicIds();
         $this->seed(DevelopmentDemoSeeder::class);
 
+        $this->assertSame($publicIds, DB::table(IdentityDatabaseTable::USERS)
+            ->where('email', 'like', 'tt.%@example.test')
+            ->orderBy('email')
+            ->pluck('public_id', 'email')
+            ->all());
+        $this->assertSame($auditCount, DB::table(AuditDatabaseTable::AUDIT_EVENTS)->count());
+        $this->assertSame($fixturePublicIds, $this->timeTrackingFixturePublicIds());
+
         $this->assertDatabaseCount(IdentityDatabaseTable::USERS, 57);
+        $this->assertSame(56, DB::table(IdentityDatabaseTable::USERS)
+            ->where('email', 'like', 'tt.%@example.test')
+            ->whereNotNull('email_verified_at')
+            ->whereNotNull('first_password_set_at')
+            ->whereNotNull('password_changed_at')
+            ->where('is_active', true)
+            ->whereNull('deactivated_at')
+            ->whereNull('two_factor_secret')
+            ->whereNull('two_factor_recovery_codes')
+            ->whereNull('two_factor_confirmed_at')
+            ->whereNull('avatar_image_file_public_id')
+            ->count());
         $this->assertDatabaseCount(TeamsDatabaseTable::TEAMS, 3);
         $this->assertDatabaseHas(IdentityDatabaseTable::USERS, [
             'email' => 'tt.one.minute.policy.north@example.test',
@@ -120,6 +148,10 @@ final class DemoResetTest extends TestCase
         $this->assertDatabaseHas(TeamsDatabaseTable::TEAMS, ['name' => 'TT Demo Team North']);
         $this->assertDatabaseHas(TeamsDatabaseTable::TEAMS, ['name' => 'TT Demo Team South']);
         $this->assertDatabaseCount(TeamsDatabaseTable::TEAM_MANAGER_RELATIONSHIPS, 54);
+        $this->assertSame(2, DB::table(TeamsDatabaseTable::TEAM_USER_ASSIGNMENTS)->where('is_head_manager', true)->count());
+        $this->assertSame(0, DB::table(TeamsDatabaseTable::TEAM_MANAGER_RELATIONSHIPS)
+            ->whereColumn('manager_user_id', 'report_user_id')
+            ->count());
         $this->assertDatabaseCount(TimeTrackingDatabaseTable::MAINTENANCE_WINDOWS, 1);
         $this->assertGreaterThan(0, DB::table(TimeTrackingDatabaseTable::WORK_SESSIONS)->count());
         $this->assertGreaterThan(0, DB::table(TimeTrackingDatabaseTable::BREAKS)->count());
@@ -183,6 +215,11 @@ final class DemoResetTest extends TestCase
         ]);
 
         $this->assertDatabaseCount(AuthorizationDatabaseTable::USER_ONBOARDING_PACKAGES, 0);
+        $this->assertDatabaseCount(AuthorizationDatabaseTable::USER_TEAM_ASSIGNMENT_PROVENANCE, 56);
+        $this->assertSame(56, DB::table(AuthorizationDatabaseTable::USER_TEAM_ASSIGNMENT_PROVENANCE)
+            ->where('source_type', 'manual')
+            ->where('reason', 'Development TimeTracking fixture.')
+            ->count());
         $this->assertDatabaseCount(DatabaseTable::FAILED_JOBS, 0);
         $this->assertDatabaseCount(IdentityDatabaseTable::RATE_LIMIT_REJECTIONS, 0);
         $this->assertDatabaseCount(ManagedProcessesDatabaseTable::RUNS, 0);
@@ -195,8 +232,8 @@ final class DemoResetTest extends TestCase
         $this->assertDatabaseCount(FeatureFlagsDatabaseTable::TEAM_VALUES, 0);
         $this->assertDatabaseCount(FeatureFlagsDatabaseTable::HISTORY, 0);
         $this->assertDatabaseCount(NotificationsDatabaseTable::NOTIFICATIONS, 0);
-        $this->assertDatabaseCount(AuditDatabaseTable::AUDIT_EVENTS, 0);
-        $this->assertDatabaseCount(AuditDatabaseTable::AUDIT_SECURITY_EVENTS, 0);
+        $this->assertGreaterThan(0, DB::table(AuditDatabaseTable::AUDIT_EVENTS)->count());
+        $this->assertGreaterThan(0, DB::table(AuditDatabaseTable::AUDIT_SECURITY_EVENTS)->count());
         $this->assertDatabaseCount(FilesDatabaseTable::FILE_OBJECTS, 0);
         $this->assertDatabaseCount(FilesDatabaseTable::FILE_SCAN_EVIDENCE, 0);
         $this->assertDatabaseMissing(DatabaseTable::MODULE_GLOBAL_STATES, [
@@ -207,8 +244,75 @@ final class DemoResetTest extends TestCase
         ]);
     }
 
+    public function test_e2e_visibility_seeder_is_repeatable_and_refuses_production(): void
+    {
+        $this->app->detectEnvironment(static fn (): string => 'production');
+        app(E2eVisibilitySeeder::class)->run();
+        $this->assertDatabaseCount(IdentityDatabaseTable::USERS, 0);
+
+        $this->app->detectEnvironment(static fn (): string => 'testing');
+        $this->seed(E2eVisibilitySeeder::class);
+        $userPublicIds = DB::table(IdentityDatabaseTable::USERS)->orderBy('email')->pluck('public_id', 'email')->all();
+        $counts = [
+            DB::table(TeamsDatabaseTable::TEAM_MANAGER_RELATIONSHIPS)->count(),
+            DB::table(ManagedProcessesDatabaseTable::RUNS)->count(),
+            DB::table(ImportsDatabaseTable::EXECUTIONS)->count(),
+            DB::table(ImportsDatabaseTable::ROW_ERRORS)->count(),
+            DB::table(AuditDatabaseTable::AUDIT_EVENTS)->count(),
+            DB::table(AuditDatabaseTable::AUDIT_SECURITY_EVENTS)->count(),
+        ];
+
+        $this->seed(E2eVisibilitySeeder::class);
+
+        $this->assertSame($userPublicIds, DB::table(IdentityDatabaseTable::USERS)->orderBy('email')->pluck('public_id', 'email')->all());
+        $this->assertSame($counts, [
+            DB::table(TeamsDatabaseTable::TEAM_MANAGER_RELATIONSHIPS)->count(),
+            DB::table(ManagedProcessesDatabaseTable::RUNS)->count(),
+            DB::table(ImportsDatabaseTable::EXECUTIONS)->count(),
+            DB::table(ImportsDatabaseTable::ROW_ERRORS)->count(),
+            DB::table(AuditDatabaseTable::AUDIT_EVENTS)->count(),
+            DB::table(AuditDatabaseTable::AUDIT_SECURITY_EVENTS)->count(),
+        ]);
+        $this->assertDatabaseCount(ManagedProcessesDatabaseTable::RUNS, 1);
+        $this->assertDatabaseCount(ImportsDatabaseTable::EXECUTIONS, 1);
+        $this->assertDatabaseCount(ImportsDatabaseTable::ROW_ERRORS, 2);
+    }
+
     private function intValue(mixed $value): int
     {
         return is_numeric($value) ? (int) $value : 0;
+    }
+
+    /**
+     * @return array<string, list<string>>
+     */
+    private function timeTrackingFixturePublicIds(): array
+    {
+        $tables = [
+            TimeTrackingDatabaseTable::USER_TEAM_SETTINGS,
+            TimeTrackingDatabaseTable::BREAK_POLICIES,
+            TimeTrackingDatabaseTable::OTHER_WORK_CATEGORIES,
+            TimeTrackingDatabaseTable::WORK_SESSIONS,
+            TimeTrackingDatabaseTable::MODULE_CONTEXT_SEGMENTS,
+            TimeTrackingDatabaseTable::BREAKS,
+            TimeTrackingDatabaseTable::OTHER_WORK,
+            TimeTrackingDatabaseTable::CORRECTION_REQUESTS,
+            TimeTrackingDatabaseTable::CORRECTION_PROPOSALS,
+            TimeTrackingDatabaseTable::MAINTENANCE_WINDOWS,
+            TimeTrackingDatabaseTable::MAINTENANCE_AFFECTED_SESSIONS,
+        ];
+        $publicIds = [];
+
+        foreach ($tables as $table) {
+            $publicIds[$table] = array_values(array_map(static function (mixed $publicId) use ($table): string {
+                if (! is_string($publicId)) {
+                    throw new \RuntimeException(sprintf('Fixture table [%s] contains a non-string public ID.', $table));
+                }
+
+                return $publicId;
+            }, DB::table($table)->orderBy('public_id')->pluck('public_id')->all()));
+        }
+
+        return $publicIds;
     }
 }

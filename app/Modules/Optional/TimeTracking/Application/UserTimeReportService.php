@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 namespace App\Modules\Optional\TimeTracking\Application;
 
-use App\Modules\Core\Identity\Application\Public\Persistence\IdentityDatabaseTable;
-use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
+use App\Modules\Core\Identity\Application\Public\Contracts\UserLookup;
 use App\Modules\Optional\TimeTracking\Application\Contracts\BreakPolicyStore;
 use App\Modules\Optional\TimeTracking\Application\DTOs\UserTimeReport;
 use App\Modules\Optional\TimeTracking\Application\DTOs\UserWorkTimeReport;
 use App\Modules\Optional\TimeTracking\Application\Enums\CorrectionSourceType;
-use App\Modules\Optional\TimeTracking\Application\Public\Persistence\TimeTrackingDatabaseTable;
 use App\Modules\Optional\TimeTracking\Domain\Time\CalendarDayIntervalSplitter;
+use App\Modules\Optional\TimeTracking\Infrastructure\Persistence\TableNames\TimeTrackingDatabaseTable;
+use App\Shared\Application\Teams\Contracts\TeamLookup;
 use DateTimeImmutable;
 use DateTimeZone;
 use Illuminate\Database\ConnectionInterface;
@@ -42,6 +42,8 @@ final readonly class UserTimeReportService
         private ConnectionInterface $database,
         private SettlementPeriodCoordinator $settlements,
         private BreakPolicyStore $breakPolicies,
+        private UserLookup $users,
+        private TeamLookup $teams,
         private CalendarDayIntervalSplitter $splitter = new CalendarDayIntervalSplitter,
     ) {}
 
@@ -110,13 +112,13 @@ final readonly class UserTimeReportService
         $selectedTeamId = $this->adminSelectedTeamId($filters['team']);
         $assignments = $this->adminAssignments($filters, $selectedTeamId);
 
-        return $this->workTimeForAssignmentsRequest($request, $assignments, $filters['user'] === '');
+        return $this->workTimeForAssignmentsRequest($request, $assignments);
     }
 
     /**
      * @param  list<TrackedAssignment>  $assignments
      */
-    public function workTimeForAssignmentsRequest(Request $request, array $assignments, bool $aggregateDailyRowsWhenNoUserSelected = false): UserWorkTimeReport
+    public function workTimeForAssignmentsRequest(Request $request, array $assignments): UserWorkTimeReport
     {
         $filters = $this->filters($request);
         [$from, $to] = $this->rangeBounds($filters);
@@ -148,7 +150,7 @@ final readonly class UserTimeReportService
             $teamDailyRows = $this->dailyRowsForUsers($userIds, $teamId, $from, $to, $users, $team);
             $dailyRows = [
                 ...$dailyRows,
-                ...($aggregateDailyRowsWhenNoUserSelected ? $this->aggregateDailyRowsForTeam($teamDailyRows, $team, $teamId) : $teamDailyRows),
+                ...$teamDailyRows,
             ];
             $otherWorkRows = [
                 ...$otherWorkRows,
@@ -172,6 +174,89 @@ final readonly class UserTimeReportService
             filters: $filters,
             comparison: null,
         );
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $rows
+     * @return array<string, int>
+     */
+    public function summaryForOperationRows(string $section, array $rows): array
+    {
+        $seconds = array_sum(array_map(fn (array $row): int => $this->intValue($row['exactSeconds'] ?? null), $rows));
+        $statuses = array_map(fn (array $row): string => $this->stringValue($row['status'] ?? $row['sessionStatus'] ?? null), $rows);
+        $users = array_values(array_unique(array_filter(array_map(
+            fn (array $row): string => $this->stringValue($row['userPublicId'] ?? null),
+            $rows,
+        ))));
+        $summary = [
+            'totalSeconds' => 0,
+            'workSeconds' => 0,
+            'breakSeconds' => 0,
+            'technicalBreakSeconds' => 0,
+            'maintenanceSeconds' => 0,
+            'otherWorkSeconds' => 0,
+            'acceptedOtherWorkSeconds' => 0,
+            'pendingOtherWorkSeconds' => 0,
+            'corrections' => 0,
+            'pending' => 0,
+            'records' => count($rows),
+            'users' => count($users),
+            'open' => count(array_filter($statuses, static fn (string $status): bool => $status === 'open')),
+            'closed' => count(array_filter($statuses, static fn (string $status): bool => $status === 'closed')),
+            'approved' => count(array_filter($statuses, static fn (string $status): bool => $status === 'approved')),
+            'rejected' => count(array_filter($statuses, static fn (string $status): bool => $status === 'rejected')),
+            'corrected' => count(array_filter($statuses, static fn (string $status): bool => $status === 'corrected')),
+            'requiresReview' => count(array_filter($rows, static fn (array $row): bool => ($row['requiresManagerReview'] ?? $row['requiresManagerDecision'] ?? false) === true)),
+            'excessSeconds' => array_sum(array_map(fn (array $row): int => $this->intValue($row['excessBreakSeconds'] ?? null), $rows)),
+            'manualEntries' => count(array_filter($rows, fn (array $row): bool => in_array('manual_entry', [
+                $this->stringValue($row['type'] ?? null),
+                $this->stringValue($row['correctionType'] ?? null),
+                $this->stringValue($row['closureReason'] ?? null),
+            ], true))),
+            'relatedCorrections' => array_sum(array_map(fn (array $row): int => $this->intValue($row['corrections'] ?? null), $rows)),
+        ];
+
+        if ($section === 'daily') {
+            foreach ($rows as $row) {
+                foreach (['countedSeconds', 'workSeconds', 'breakSeconds', 'technicalBreakSeconds', 'maintenanceSeconds', 'otherWorkSeconds', 'acceptedOtherWorkSeconds', 'pendingOtherWorkSeconds'] as $key) {
+                    $summary[$key === 'countedSeconds' ? 'totalSeconds' : $key] += $this->intValue($row[$key] ?? null);
+                }
+            }
+
+            return $summary;
+        }
+
+        if ($section === 'work_sessions') {
+            $summary['totalSeconds'] = $seconds;
+            $summary['workSeconds'] = $seconds;
+        } elseif ($section === 'breaks') {
+            $summary['totalSeconds'] = $seconds;
+            $summary['breakSeconds'] = $seconds;
+        } elseif ($section === 'other_work') {
+            $summary['totalSeconds'] = $seconds;
+            $summary['otherWorkSeconds'] = $seconds;
+
+            foreach ($rows as $row) {
+                $rowSeconds = $this->intValue($row['exactSeconds'] ?? null);
+                $status = $this->stringValue($row['status'] ?? null);
+
+                if ($status === 'approved') {
+                    $summary['acceptedOtherWorkSeconds'] += $rowSeconds;
+                } elseif (in_array($status, ['pending', 'under_review'], true)) {
+                    $summary['pendingOtherWorkSeconds'] += $rowSeconds;
+                }
+            }
+        } elseif ($section === 'corrections') {
+            $summary['corrections'] = count($rows);
+        }
+
+        $summary['pending'] = count(array_filter($statuses, static fn (string $status): bool => in_array($status, ['pending', 'under_review'], true)));
+
+        if ($section === 'corrections') {
+            $summary['requiresReview'] = $summary['pending'];
+        }
+
+        return $summary;
     }
 
     /**
@@ -215,7 +300,7 @@ final readonly class UserTimeReportService
                     });
                 }
             });
-        $this->applyTimeRange($query, 'sessions.started_at', $from, $to);
+        $this->applyIntervalRange($query, 'sessions.started_at', 'sessions.ended_at', $from, $to);
 
         $rows = [];
 
@@ -237,7 +322,12 @@ final readonly class UserTimeReportService
             }
 
             $sessionId = $this->intValue($row->id ?? null);
-            $seconds = is_numeric($row->exact_seconds ?? null) ? (int) $row->exact_seconds : 0;
+            $seconds = $this->intervalSecondsWithinRange(
+                $this->stringValue($row->started_at ?? null),
+                $this->stringValue($row->ended_at ?? null),
+                $from,
+                $to,
+            );
             $closureReason = $this->stringValue($row->closure_reason ?? null);
             $status = $this->stringValue($row->ended_at ?? null) === '' ? 'open' : 'closed';
             $maintenanceImpacts = $this->relatedCount(TimeTrackingDatabaseTable::MAINTENANCE_AFFECTED_SESSIONS, 'work_session_id', $sessionId);
@@ -317,7 +407,7 @@ final readonly class UserTimeReportService
                     });
                 }
             });
-        $this->applyTimeRange($query, 'breaks.started_at', $from, $to);
+        $this->applyIntervalRange($query, 'breaks.started_at', 'breaks.ended_at', $from, $to);
 
         $rows = [];
 
@@ -354,7 +444,18 @@ final readonly class UserTimeReportService
                 continue;
             }
 
-            $seconds = $this->correctedSourceSeconds(CorrectionSourceType::Break, $this->intValue($row->id ?? null), $this->intValue($row->exact_seconds ?? null));
+            $rawSeconds = $this->intValue($row->exact_seconds ?? null);
+            $correctedSeconds = $this->correctedSourceSeconds(CorrectionSourceType::Break, $this->intValue($row->id ?? null), $rawSeconds);
+            $seconds = $this->correctedSliceSeconds(
+                $this->intervalSecondsWithinRange(
+                    $this->stringValue($row->started_at ?? null),
+                    $this->stringValue($row->ended_at ?? null),
+                    $from,
+                    $to,
+                ),
+                $rawSeconds,
+                $correctedSeconds,
+            );
             $limit = $this->breakLimitState(
                 userId: $this->intValue($row->user_id ?? null),
                 teamId: $this->intValue($row->team_id ?? null),
@@ -588,23 +689,21 @@ final readonly class UserTimeReportService
     {
         $rows = [];
 
-        foreach ($this->database->table(TimeTrackingDatabaseTable::USER_TEAM_SETTINGS.' as settings')
-            ->join(TeamsDatabaseTable::TEAM_USER_ASSIGNMENTS.' as assignments', 'settings.team_user_assignment_id', '=', 'assignments.id')
-            ->join(TeamsDatabaseTable::TEAMS.' as teams', 'assignments.team_id', '=', 'teams.id')
-            ->where('settings.tracking_enabled', true)
-            ->groupBy('teams.id', 'teams.public_id', 'teams.name')
-            ->orderBy('teams.name')
-            ->get([
-                'teams.public_id',
-                'teams.name',
-                $this->database->raw('count(distinct assignments.user_id) as tracked_users'),
-            ]) as $row) {
+        foreach ($this->assignmentsByTeam($this->trackedAssignments()) as $assignments) {
+            $first = $assignments[0] ?? null;
+
+            if ($first === null) {
+                continue;
+            }
+
             $rows[] = [
-                'publicId' => $this->stringValue($row->public_id ?? null),
-                'name' => $this->stringValue($row->name ?? null),
-                'trackedUsers' => $this->intValue($row->tracked_users ?? null),
+                'publicId' => $first['teamPublicId'],
+                'name' => $first['teamName'],
+                'trackedUsers' => count(array_unique(array_column($assignments, 'userId'))),
             ];
         }
+
+        usort($rows, fn (array $first, array $second): int => strcmp($first['name'], $second['name']));
 
         return $rows;
     }
@@ -681,19 +780,8 @@ final readonly class UserTimeReportService
     {
         $teams = [];
 
-        foreach ($this->database->table(TimeTrackingDatabaseTable::USER_TEAM_SETTINGS.' as settings')
-            ->join(TeamsDatabaseTable::TEAM_USER_ASSIGNMENTS.' as assignments', 'settings.team_user_assignment_id', '=', 'assignments.id')
-            ->join(TeamsDatabaseTable::TEAMS.' as teams', 'assignments.team_id', '=', 'teams.id')
-            ->where('settings.tracking_enabled', true)
-            ->distinct()
-            ->orderBy('teams.public_id')
-            ->pluck('teams.public_id', 'assignments.team_id') as $teamId => $teamPublicId) {
-            $teamId = is_numeric($teamId) ? (int) $teamId : 0;
-            $teamPublicId = $this->stringValue($teamPublicId);
-
-            if ($teamId > 0 && $teamPublicId !== '') {
-                $teams[$teamPublicId] = $this->moduleOptionsForTeam($teamId);
-            }
+        foreach ($this->trackedTeamPublicIdsById() as $teamId => $teamPublicId) {
+            $teams[$teamPublicId] = $this->moduleOptionsForTeam($teamId);
         }
 
         ksort($teams);
@@ -773,7 +861,7 @@ final readonly class UserTimeReportService
         $query = $this->database->table(TimeTrackingDatabaseTable::WORK_SESSIONS)
             ->where('user_id', $userId)
             ->where('team_id', $teamId);
-        $this->applyTimeRange($query, 'started_at', $from, $to);
+        $this->applyIntervalRange($query, 'started_at', 'ended_at', $from, $to);
 
         $rows = [];
 
@@ -784,7 +872,12 @@ final readonly class UserTimeReportService
                 continue;
             }
 
-            $seconds = is_numeric($row->exact_seconds ?? null) ? (int) $row->exact_seconds : 0;
+            $seconds = $this->intervalSecondsWithinRange(
+                $this->stringValue($row->started_at ?? null),
+                $this->stringValue($row->ended_at ?? null),
+                $from,
+                $to,
+            );
             $rows[] = [
                 'publicId' => $this->stringValue($row->public_id ?? null),
                 'sourceType' => 'work_session',
@@ -810,7 +903,7 @@ final readonly class UserTimeReportService
         $query = $this->database->table(TimeTrackingDatabaseTable::BREAKS)
             ->where('user_id', $userId)
             ->where('team_id', $teamId);
-        $this->applyTimeRange($query, 'started_at', $from, $to);
+        $this->applyIntervalRange($query, 'started_at', 'ended_at', $from, $to);
 
         $rows = [];
 
@@ -821,7 +914,18 @@ final readonly class UserTimeReportService
                 continue;
             }
 
-            $seconds = $this->correctedSourceSeconds(CorrectionSourceType::Break, $this->intValue($row->id ?? null), $this->intValue($row->exact_seconds ?? null));
+            $rawSeconds = $this->intValue($row->exact_seconds ?? null);
+            $correctedSeconds = $this->correctedSourceSeconds(CorrectionSourceType::Break, $this->intValue($row->id ?? null), $rawSeconds);
+            $seconds = $this->correctedSliceSeconds(
+                $this->intervalSecondsWithinRange(
+                    $this->stringValue($row->started_at ?? null),
+                    $this->stringValue($row->ended_at ?? null),
+                    $from,
+                    $to,
+                ),
+                $rawSeconds,
+                $correctedSeconds,
+            );
             $limit = $this->breakLimitState(
                 userId: $userId,
                 teamId: $teamId,
@@ -997,7 +1101,7 @@ final readonly class UserTimeReportService
         $query = $this->database->table(TimeTrackingDatabaseTable::WORK_SESSIONS)
             ->whereIn('user_id', $userIds)
             ->where('team_id', $teamId);
-        $this->applyTimeRange($query, 'started_at', $from, $to);
+        $this->applyIntervalRange($query, 'started_at', 'ended_at', $from, $to);
 
         $rows = [];
 
@@ -1018,6 +1122,12 @@ final readonly class UserTimeReportService
                 continue;
             }
 
+            $row->exact_seconds = $this->intervalSecondsWithinRange(
+                $this->stringValue($row->started_at ?? null),
+                $this->stringValue($row->ended_at ?? null),
+                $from,
+                $to,
+            );
             $rows[] = $this->row($row, 'work', $status, 'System', $this->stringValue($row->closure_reason ?? null), $users);
         }
 
@@ -1132,72 +1242,6 @@ final readonly class UserTimeReportService
         ));
 
         return $rows;
-    }
-
-    /**
-     * @param  list<array<string, mixed>>  $rows
-     * @param  array{teamPublicId: string, teamName: string}  $team
-     * @return list<array<string, mixed>>
-     */
-    private function aggregateDailyRowsForTeam(array $rows, array $team, int $teamId): array
-    {
-        $days = [];
-
-        foreach ($rows as $row) {
-            $date = $this->stringValue($row['date'] ?? null);
-
-            if ($date === '') {
-                continue;
-            }
-
-            $day = $days[$date] ?? [
-                'publicId' => ($team['teamPublicId'] === '' ? (string) $teamId : $team['teamPublicId']).'-'.$date,
-                'userPublicId' => '',
-                'userName' => '',
-                'userEmail' => '',
-                ...$team,
-                'date' => $date,
-                'countedSeconds' => 0,
-                'workSeconds' => 0,
-                'breakSeconds' => 0,
-                'technicalBreakSeconds' => 0,
-                'maintenanceSeconds' => 0,
-                'otherWorkSeconds' => 0,
-                'acceptedOtherWorkSeconds' => 0,
-                'pendingOtherWorkSeconds' => 0,
-                'sessionStatus' => 'normal',
-            ];
-
-            foreach ([
-                'countedSeconds',
-                'workSeconds',
-                'breakSeconds',
-                'technicalBreakSeconds',
-                'maintenanceSeconds',
-                'otherWorkSeconds',
-                'acceptedOtherWorkSeconds',
-                'pendingOtherWorkSeconds',
-            ] as $key) {
-                $day[$key] += $this->intValue($row[$key] ?? null);
-            }
-
-            $day['sessionStatus'] = $this->mergeDailyStatus($day['sessionStatus'], $this->stringValue($row['sessionStatus'] ?? null));
-            $days[$date] = $day;
-        }
-
-        krsort($days);
-
-        return array_map(fn (array $day): array => [
-            ...$day,
-            'countedDuration' => $this->duration($day['countedSeconds']),
-            'workDuration' => $this->duration($day['workSeconds']),
-            'breakDuration' => $this->duration($day['breakSeconds']),
-            'technicalBreakDuration' => $this->duration($this->intValue($day['technicalBreakSeconds'])),
-            'maintenanceDuration' => $this->duration($this->intValue($day['maintenanceSeconds'])),
-            'otherWorkDuration' => $this->duration($this->intValue($day['otherWorkSeconds'])),
-            'acceptedOtherWorkDuration' => $this->duration($this->intValue($day['acceptedOtherWorkSeconds'])),
-            'pendingOtherWorkDuration' => $this->duration($this->intValue($day['pendingOtherWorkSeconds'])),
-        ], array_values($days));
     }
 
     /**
@@ -1352,7 +1396,7 @@ final readonly class UserTimeReportService
         $query = $this->database->table(TimeTrackingDatabaseTable::BREAKS)
             ->whereIn('user_id', $userIds)
             ->where('team_id', $teamId);
-        $this->applyTimeRange($query, 'started_at', $from, $to);
+        $this->applyIntervalRange($query, 'started_at', 'ended_at', $from, $to);
 
         $rows = [];
 
@@ -1364,7 +1408,18 @@ final readonly class UserTimeReportService
                 continue;
             }
 
-            $row->exact_seconds = $this->correctedSourceSeconds(CorrectionSourceType::Break, $this->intValue($row->id ?? null), $this->intValue($row->exact_seconds ?? null));
+            $rawSeconds = $this->intValue($row->exact_seconds ?? null);
+            $correctedSeconds = $this->correctedSourceSeconds(CorrectionSourceType::Break, $this->intValue($row->id ?? null), $rawSeconds);
+            $row->exact_seconds = $this->correctedSliceSeconds(
+                $this->intervalSecondsWithinRange(
+                    $this->stringValue($row->started_at ?? null),
+                    $this->stringValue($row->ended_at ?? null),
+                    $from,
+                    $to,
+                ),
+                $rawSeconds,
+                $correctedSeconds,
+            );
             $limit = $this->breakLimitState(
                 userId: $this->intValue($row->user_id ?? null),
                 teamId: $teamId,
@@ -1399,7 +1454,7 @@ final readonly class UserTimeReportService
         $query = $this->database->table(TimeTrackingDatabaseTable::OTHER_WORK)
             ->whereIn('user_id', $userIds)
             ->where('team_id', $teamId);
-        $this->applyTimeRange($query, 'started_at', $from, $to);
+        $this->applyIntervalRange($query, 'started_at', 'ended_at', $from, $to);
 
         $rows = [];
 
@@ -1419,6 +1474,12 @@ final readonly class UserTimeReportService
                 continue;
             }
 
+            $row->exact_seconds = $this->intervalSecondsWithinRange(
+                $this->stringValue($row->started_at ?? null),
+                $this->stringValue($row->ended_at ?? null),
+                $from,
+                $to,
+            );
             $rows[] = $this->row($row, 'other_work', $status, $this->stringValue($row->category_key ?? null), $closureReason, $users);
         }
 
@@ -1439,7 +1500,7 @@ final readonly class UserTimeReportService
         $query = $this->database->table(TimeTrackingDatabaseTable::OTHER_WORK)
             ->where('user_id', $userId)
             ->where('team_id', $teamId);
-        $this->applyTimeRange($query, 'started_at', $from, $to);
+        $this->applyIntervalRange($query, 'started_at', 'ended_at', $from, $to);
 
         $rows = [];
 
@@ -1474,6 +1535,12 @@ final readonly class UserTimeReportService
                 continue;
             }
 
+            $seconds = $this->intervalSecondsWithinRange(
+                $this->stringValue($row->started_at ?? null),
+                $this->stringValue($row->ended_at ?? null),
+                $from,
+                $to,
+            );
             $rows[] = [
                 'publicId' => $this->stringValue($row->public_id ?? null),
                 'sourceType' => 'other_work',
@@ -1492,8 +1559,8 @@ final readonly class UserTimeReportService
                         : []),
                 'startedAt' => $this->stringValue($row->started_at ?? null),
                 'endedAt' => $this->stringValue($row->ended_at ?? null),
-                'exactSeconds' => is_numeric($row->exact_seconds ?? null) ? (int) $row->exact_seconds : 0,
-                'duration' => $this->duration(is_numeric($row->exact_seconds ?? null) ? (int) $row->exact_seconds : 0),
+                'exactSeconds' => $seconds,
+                'duration' => $this->duration($seconds),
                 'closureReason' => $closureReason,
             ];
         }
@@ -1686,6 +1753,48 @@ final readonly class UserTimeReportService
         if ($to !== null) {
             $query->where($column, '<=', $to);
         }
+    }
+
+    private function applyIntervalRange(
+        Builder $query,
+        string $startedAtColumn,
+        string $endedAtColumn,
+        ?DateTimeImmutable $from,
+        ?DateTimeImmutable $to,
+    ): void {
+        if ($from !== null) {
+            $query->where(static function (Builder $query) use ($endedAtColumn, $from): void {
+                $query->whereNull($endedAtColumn)->orWhere($endedAtColumn, '>=', $from);
+            });
+        }
+
+        if ($to !== null) {
+            $query->where($startedAtColumn, '<=', $to);
+        }
+    }
+
+    private function intervalSecondsWithinRange(
+        string $startedAt,
+        string $endedAt,
+        ?DateTimeImmutable $from,
+        ?DateTimeImmutable $to,
+    ): int {
+        if ($startedAt === '') {
+            return 0;
+        }
+
+        $start = new DateTimeImmutable($startedAt);
+        $end = $endedAt === '' ? new DateTimeImmutable('now') : new DateTimeImmutable($endedAt);
+
+        if ($from !== null && $start < $from) {
+            $start = $from;
+        }
+
+        if ($to !== null && $end > $to) {
+            $end = $to;
+        }
+
+        return max(0, $end->getTimestamp() - $start->getTimestamp());
     }
 
     /**
@@ -1884,19 +1993,21 @@ final readonly class UserTimeReportService
             return [];
         }
 
+        $ids = $this->users->internalIdsForPublicIds($publicIds);
+        $summaries = $this->users->displaySummariesForPublicIds($publicIds);
         $users = [];
 
-        foreach ($this->database->table(IdentityDatabaseTable::USERS)->whereIn('public_id', $publicIds)->get(['id', 'public_id', 'name', 'email']) as $user) {
-            $id = $this->intValue($user->id ?? null);
+        foreach ($ids as $publicId => $id) {
+            $summary = $summaries[$publicId] ?? null;
 
-            if ($id < 1) {
+            if ($summary === null) {
                 continue;
             }
 
             $users[$id] = [
-                'publicId' => $this->stringValue($user->public_id ?? null),
-                'name' => $this->stringValue($user->name ?? null),
-                'email' => $this->stringValue($user->email ?? null),
+                'publicId' => $summary->publicId,
+                'name' => $summary->name,
+                'email' => $summary->email,
             ];
         }
 
@@ -1926,40 +2037,19 @@ final readonly class UserTimeReportService
     {
         $rows = [];
 
-        $query = $this->database->table(TimeTrackingDatabaseTable::USER_TEAM_SETTINGS.' as settings')
-            ->join(TeamsDatabaseTable::TEAM_USER_ASSIGNMENTS.' as assignments', 'settings.team_user_assignment_id', '=', 'assignments.id')
-            ->join(IdentityDatabaseTable::USERS.' as users', 'assignments.user_id', '=', 'users.id')
-            ->join(TeamsDatabaseTable::TEAMS.' as teams', 'assignments.team_id', '=', 'teams.id')
-            ->where('settings.tracking_enabled', true);
-
-        if ($teamId !== null) {
-            $query->where('teams.id', $teamId);
-        }
-
-        foreach ($query->get([
-            'users.id as user_id',
-            'users.public_id as user_public_id',
-            'users.name as user_name',
-            'users.email as user_email',
-            'teams.id as team_id',
-            'teams.public_id as team_public_id',
-            'teams.name as team_name',
-        ]) as $row) {
-            $userId = $this->intValue($row->user_id ?? null);
-            $teamId = $this->intValue($row->team_id ?? null);
-
-            if ($userId < 1 || $teamId < 1) {
+        foreach ($this->teams->assignmentSummariesForInternalIds($this->trackedAssignmentIds()) as $assignment) {
+            if ($teamId !== null && $assignment->teamId !== $teamId) {
                 continue;
             }
 
             $rows[] = [
-                'userId' => $userId,
-                'userPublicId' => $this->stringValue($row->user_public_id ?? null),
-                'userName' => $this->stringValue($row->user_name ?? null),
-                'userEmail' => $this->stringValue($row->user_email ?? null),
-                'teamId' => $teamId,
-                'teamPublicId' => $this->stringValue($row->team_public_id ?? null),
-                'teamName' => $this->stringValue($row->team_name ?? null),
+                'userId' => $assignment->userId,
+                'userPublicId' => $assignment->userPublicId,
+                'userName' => $assignment->userName,
+                'userEmail' => $assignment->userEmail,
+                'teamId' => $assignment->teamId,
+                'teamPublicId' => $assignment->teamPublicId,
+                'teamName' => $assignment->teamName,
             ];
         }
 
@@ -1987,11 +2077,7 @@ final readonly class UserTimeReportService
             return 0;
         }
 
-        $id = $this->database->table(TeamsDatabaseTable::TEAMS)
-            ->where('public_id', $teamPublicId)
-            ->value('id');
-
-        return is_numeric($id) ? (int) $id : 0;
+        return $this->teams->internalIdForPublicId($teamPublicId) ?? 0;
     }
 
     private function closureReasonMatches(string $filter, string $closureReason): bool
@@ -2071,13 +2157,11 @@ final readonly class UserTimeReportService
      */
     private function teamColumns(int $teamId): array
     {
-        $team = $this->database->table(TeamsDatabaseTable::TEAMS)
-            ->where('id', $teamId)
-            ->first(['public_id', 'name']);
+        $team = $this->teams->summariesForInternalIds([$teamId])[$teamId] ?? null;
 
         return [
-            'teamPublicId' => $this->stringValue($team->public_id ?? null),
-            'teamName' => $this->stringValue($team->name ?? null),
+            'teamPublicId' => $team === null ? '' : $team->publicId,
+            'teamName' => $team === null ? '' : $team->name,
         ];
     }
 
@@ -2189,22 +2273,28 @@ final readonly class UserTimeReportService
     {
         $teams = [];
 
-        foreach ($this->database->table(TimeTrackingDatabaseTable::USER_TEAM_SETTINGS.' as settings')
-            ->join(TeamsDatabaseTable::TEAM_USER_ASSIGNMENTS.' as assignments', 'settings.team_user_assignment_id', '=', 'assignments.id')
-            ->join(TeamsDatabaseTable::TEAMS.' as teams', 'assignments.team_id', '=', 'teams.id')
-            ->where('settings.tracking_enabled', true)
-            ->distinct()
-            ->orderBy('teams.public_id')
-            ->get(['assignments.team_id', 'teams.public_id']) as $row) {
-            $teamId = $this->intValue($row->team_id ?? null);
-            $teamPublicId = $this->stringValue($row->public_id ?? null);
-
-            if ($teamId > 0 && $teamPublicId !== '') {
-                $teams[$teamId] = $teamPublicId;
-            }
+        foreach ($this->trackedAssignments() as $assignment) {
+            $teams[$assignment['teamId']] = $assignment['teamPublicId'];
         }
 
+        ksort($teams);
+
         return $teams;
+    }
+
+    /**
+     * @return list<int>
+     */
+    private function trackedAssignmentIds(): array
+    {
+        return array_values($this->database->table(TimeTrackingDatabaseTable::USER_TEAM_SETTINGS)
+            ->where('tracking_enabled', true)
+            ->pluck('team_user_assignment_id')
+            ->map(static fn (mixed $id): int => is_numeric($id) ? (int) $id : 0)
+            ->filter(static fn (int $id): bool => $id > 0)
+            ->unique()
+            ->values()
+            ->all());
     }
 
     /**

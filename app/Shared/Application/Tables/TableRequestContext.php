@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Shared\Application\Tables;
 
-use App\Modules\Core\Teams\Application\Public\Contracts\TeamLookup;
+use App\Shared\Application\Teams\Contracts\TeamLookup;
 use Illuminate\Http\Request;
 
 final readonly class TableRequestContext

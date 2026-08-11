@@ -6,20 +6,32 @@ namespace App\Shared\Infrastructure\Operations;
 
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Lang;
 use Illuminate\Support\Facades\Mail;
+use InvalidArgumentException;
 
 final readonly class OperationalAlertDispatcher
 {
     /**
+     * @param  array<string, int|string>  $parameters
      * @param  array<string, scalar|null>  $context
      */
-    public function send(string $type, string $title, string $body, string $severity = 'warning', array $context = []): bool
-    {
+    public function send(
+        string $type,
+        string $titleKey,
+        string $bodyKey,
+        string $severity = 'warning',
+        array $parameters = [],
+        array $context = [],
+    ): bool {
+        $this->assertMailTranslationKey($titleKey);
+        $this->assertMailTranslationKey($bodyKey);
+
         if (! config()->boolean('atlas.operations.alerts.enabled', false)) {
             return false;
         }
 
-        $fingerprint = hash('sha256', $type.'|'.$title.'|'.$body);
+        $fingerprint = hash('sha256', $type.'|'.$titleKey.'|'.$bodyKey.'|'.json_encode($parameters));
         $dedupeKey = 'atlas:alerts:dedupe:'.$fingerprint;
         $throttleKey = 'atlas:alerts:throttle:'.$type;
         $dedupeSeconds = max(60, config()->integer('atlas.operations.alerts.dedupe_seconds', 900));
@@ -33,6 +45,8 @@ final readonly class OperationalAlertDispatcher
             return false;
         }
 
+        $title = trans($titleKey, $parameters, 'en');
+        $body = trans($bodyKey, $parameters, 'en');
         $payload = [
             'type' => $type,
             'title' => $title,
@@ -43,16 +57,16 @@ final readonly class OperationalAlertDispatcher
             'context' => $context,
         ];
 
-        $this->sendEmail($title, $body, $payload);
+        $this->sendEmail($titleKey, $bodyKey, $parameters);
         $this->sendWebhook($payload);
 
         return true;
     }
 
     /**
-     * @param  array<string, mixed>  $payload
+     * @param  array<string, int|string>  $parameters
      */
-    private function sendEmail(string $title, string $body, array $payload): void
+    private function sendEmail(string $titleKey, string $bodyKey, array $parameters): void
     {
         $recipients = config('atlas.operations.alerts.email_to');
 
@@ -65,7 +79,7 @@ final readonly class OperationalAlertDispatcher
                 continue;
             }
 
-            Mail::to($recipient)->send(new OperationalAlertMail($title, $body, $payload));
+            Mail::to($recipient)->send(new OperationalAlertMail($titleKey, $bodyKey, $parameters));
         }
     }
 
@@ -81,5 +95,12 @@ final readonly class OperationalAlertDispatcher
         }
 
         Http::timeout(5)->post($webhookUrl, $payload)->throw();
+    }
+
+    private function assertMailTranslationKey(string $key): void
+    {
+        if (! str_starts_with($key, 'mail.operational_alert.') || ! Lang::has($key, 'pl') || ! Lang::has($key, 'en')) {
+            throw new InvalidArgumentException(sprintf('Operational alert mail key [%s] must exist in Polish and English.', $key));
+        }
     }
 }

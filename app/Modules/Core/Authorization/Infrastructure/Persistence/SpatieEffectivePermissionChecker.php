@@ -4,15 +4,15 @@ declare(strict_types=1);
 
 namespace App\Modules\Core\Authorization\Infrastructure\Persistence;
 
-use App\Modules\Core\Authorization\Application\Public\Contracts\EffectivePermissionChecker;
-use App\Modules\Core\Authorization\Application\Public\DTOs\EffectivePermissionDecision;
-use App\Modules\Core\Authorization\Application\Public\DTOs\EffectivePermissionRequest;
-use App\Modules\Core\Authorization\Application\Public\Persistence\AuthorizationDatabaseTable;
-use App\Modules\Core\Identity\Application\Public\Persistence\IdentityDatabaseTable;
-use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
+use App\Modules\Core\Authorization\Infrastructure\Persistence\TableNames\AuthorizationDatabaseTable;
+use App\Modules\Core\Identity\Application\Public\Contracts\UserLookup;
+use App\Shared\Application\Authorization\Contracts\EffectivePermissionChecker;
+use App\Shared\Application\Authorization\DTOs\EffectivePermissionDecision;
+use App\Shared\Application\Authorization\DTOs\EffectivePermissionRequest;
 use App\Shared\Application\Modules\Activation\Contracts\ModuleActivationService;
 use App\Shared\Application\Modules\ModuleKeyResolver;
-use Illuminate\Database\Query\Builder;
+use App\Shared\Application\Teams\Contracts\TeamLookup;
+use App\Shared\Application\Teams\Contracts\UserTeamMembershipManager;
 use Illuminate\Support\Facades\DB;
 
 final class SpatieEffectivePermissionChecker implements EffectivePermissionChecker
@@ -20,6 +20,9 @@ final class SpatieEffectivePermissionChecker implements EffectivePermissionCheck
     public function __construct(
         private readonly ModuleActivationService $activation,
         private readonly ModuleKeyResolver $moduleKeys,
+        private readonly UserLookup $users,
+        private readonly TeamLookup $teams,
+        private readonly UserTeamMembershipManager $memberships,
     ) {}
 
     public function check(EffectivePermissionRequest $request): EffectivePermissionDecision
@@ -37,38 +40,33 @@ final class SpatieEffectivePermissionChecker implements EffectivePermissionCheck
             return $this->deny('authorization.permission_unknown');
         }
 
-        $user = DB::table(IdentityDatabaseTable::USERS)
-            ->where('public_id', $request->userPublicId)
-            ->first(['id']);
+        $userId = $this->users->internalIdForPublicId($request->userPublicId);
 
-        if ($user === null || ! property_exists($user, 'id') || ! is_int($user->id)) {
+        if ($userId === null) {
             return $this->deny('authorization.user_unknown');
         }
 
-        $team = DB::table(TeamsDatabaseTable::TEAMS)
-            ->where('public_id', $request->teamPublicId)
-            ->where('is_active', true)
-            ->first(['id']);
+        $teamId = $this->teams->activeInternalIdForPublicId($request->teamPublicId);
 
-        if ($team === null || ! property_exists($team, 'id') || ! is_int($team->id)) {
+        if ($teamId === null) {
             return $this->deny('authorization.active_team_invalid');
         }
 
-        $moduleState = $this->activation->effectiveState($this->moduleKeys->forPermission($request->permission), $team->id);
+        $moduleState = $this->activation->effectiveState($this->moduleKeys->forPermission($request->permission), $teamId);
 
         if (! $moduleState->effectiveEnabled) {
             return $this->deny('authorization.module_inactive');
         }
 
-        if (! $this->userBelongsToTeam($user->id, $team->id)) {
+        if (! $this->memberships->hasActiveMembership($request->userPublicId, $request->teamPublicId)) {
             return $this->deny('authorization.active_team_not_assigned');
         }
 
-        if ($this->hasDirectPermission($user->id, $team->id, $permission->id)) {
+        if ($this->hasDirectPermission($userId, $teamId, $permission->id)) {
             return $this->allow();
         }
 
-        if ($this->hasRolePermission($user->id, $team->id, $permission->id)) {
+        if ($this->hasRolePermission($userId, $teamId, $permission->id)) {
             return $this->allow();
         }
 
@@ -93,20 +91,6 @@ final class SpatieEffectivePermissionChecker implements EffectivePermissionCheck
             ->where('model_has_roles.team_id', $teamId)
             ->where('model_has_roles.model_id', $userId)
             ->where('model_has_roles.model_type', $this->userModelType())
-            ->exists();
-    }
-
-    private function userBelongsToTeam(int $userId, int $teamId): bool
-    {
-        return DB::table(TeamsDatabaseTable::TEAM_USER_ASSIGNMENTS)
-            ->where('team_id', $teamId)
-            ->where('user_id', $userId)
-            ->where(static function (Builder $query): void {
-                $query->whereNull('valid_from')->orWhere('valid_from', '<=', now());
-            })
-            ->where(static function (Builder $query): void {
-                $query->whereNull('valid_to')->orWhere('valid_to', '>', now());
-            })
             ->exists();
     }
 

@@ -13,6 +13,7 @@ use App\Modules\Optional\Integrations\Application\Public\Contracts\ExternalApiAc
 use App\Modules\Optional\Integrations\Application\Public\Contracts\ExternalIdMappingStore;
 use App\Modules\Optional\Integrations\Application\Public\Contracts\IntegrationIdempotencyStore;
 use App\Modules\Optional\Integrations\Application\Public\Contracts\SynchronizationHistory;
+use App\Modules\Optional\Integrations\Infrastructure\Diagnostics\IntegrationModuleOperationalDiagnostics;
 use App\Modules\Optional\Integrations\Infrastructure\Persistence\DatabaseIntegrationStore;
 use App\Modules\Optional\Integrations\Infrastructure\Runtime\ConfiguredIntegrationRegistry;
 use App\Modules\Optional\Integrations\Presentation\Inertia\IntegrationsRouteAvailability;
@@ -30,6 +31,7 @@ final class IntegrationsServiceProvider extends ServiceProvider
         $this->app->tag([IntegrationsPermissionCatalog::class], 'atlas.permission_catalogs');
         $this->app->tag([IntegrationsRouteAvailability::class], 'atlas.inertia_route_availability');
         $this->app->tag([IntegrationsDeactivationGuard::class], 'atlas.module_deactivation_guards');
+        $this->app->tag([IntegrationModuleOperationalDiagnostics::class], 'atlas.module_operational_diagnostics');
         $this->app->tag([
             AdminIntegrationAdaptersDataTableExportProvider::class,
             AdminIntegrationRunsDataTableExportProvider::class,

@@ -4,19 +4,21 @@ declare(strict_types=1);
 
 namespace App\Modules\Optional\ManagedProcesses\Application\Exports;
 
-use App\Modules\Core\Exports\Application\Public\AbstractAdminDataTableExportProvider;
-use App\Modules\Core\Exports\Application\Public\DTOs\ReportExportGenerationRequest;
-use App\Modules\Core\Exports\Application\Public\Permissions\ReportsPermissionCatalog;
-use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
-use App\Modules\Optional\ManagedProcesses\Application\Public\Persistence\ManagedProcessesDatabaseTable;
-use App\Shared\Application\Tables\AdminTableDefinitions;
+use App\Modules\Optional\ManagedProcesses\Infrastructure\Persistence\TableNames\ManagedProcessesDatabaseTable;
+use App\Shared\Application\Exports\AbstractAdminDataTableExportProvider;
+use App\Shared\Application\Exports\DTOs\ReportExportGenerationRequest;
+use App\Shared\Application\Exports\ExportPermissions;
+use App\Shared\Application\Tables\RegisteredTables;
+use App\Shared\Application\Teams\Contracts\TeamLookup;
 use Illuminate\Support\Facades\DB;
 
 final readonly class AdminManagedProcessSchedulesDataTableExportProvider extends AbstractAdminDataTableExportProvider
 {
+    public function __construct(private TeamLookup $teams) {}
+
     public function tableKey(): string
     {
-        return AdminTableDefinitions::MANAGED_PROCESS_SCHEDULES;
+        return RegisteredTables::MANAGED_PROCESS_SCHEDULES;
     }
 
     public function tableName(): string
@@ -31,7 +33,7 @@ final readonly class AdminManagedProcessSchedulesDataTableExportProvider extends
 
     public function requestPermission(): string
     {
-        return ReportsPermissionCatalog::REQUEST;
+        return ExportPermissions::REQUEST;
     }
 
     public function ruleVersion(): string
@@ -60,25 +62,37 @@ final readonly class AdminManagedProcessSchedulesDataTableExportProvider extends
 
     public function rows(ReportExportGenerationRequest $request): iterable
     {
-        $rows = array_values(DB::table(ManagedProcessesDatabaseTable::SCHEDULES)
-            ->leftJoin(TeamsDatabaseTable::TEAMS, 'process_schedules.team_id', '=', 'teams.id')
+        $schedules = DB::table(ManagedProcessesDatabaseTable::SCHEDULES)
             ->orderByDesc('process_schedules.created_at')
-            ->get(['process_schedules.*', 'teams.name as team_name'])
-            ->map(static fn (object $schedule): array => [
-                'publicId' => self::stringValue($schedule->public_id ?? null),
-                'processKey' => self::stringValue($schedule->process_key ?? null),
-                'moduleKey' => self::stringValue($schedule->module_key ?? null),
-                'scope' => self::stringValue($schedule->scope ?? null),
-                'team' => self::stringValue($schedule->team_name ?? null),
-                'timezone' => self::stringValue($schedule->timezone ?? null),
-                'cronExpression' => self::stringValue($schedule->cron_expression ?? null),
-                'intervalKey' => self::stringValue($schedule->interval_key ?? null),
-                'enabled' => (bool) ($schedule->enabled ?? false),
-                'nextDueAt' => self::stringValue($schedule->next_due_at ?? null),
-                'overlapPolicy' => self::stringValue($schedule->overlap_policy ?? null),
-                'reason' => self::stringValue($schedule->reason ?? null),
-                'createdAt' => self::stringValue($schedule->created_at ?? null),
-            ])
+            ->get(['process_schedules.*']);
+        $teamSummaries = $this->teams->summariesForInternalIds(array_values($schedules
+            ->pluck('team_id')
+            ->filter(static fn (mixed $teamId): bool => is_numeric($teamId))
+            ->map(static fn (mixed $teamId): int => (int) $teamId)
+            ->unique()
+            ->all()));
+
+        $rows = array_values($schedules
+            ->map(static function (object $schedule) use ($teamSummaries): array {
+                $teamId = is_numeric($schedule->team_id ?? null) ? (int) $schedule->team_id : null;
+                $team = $teamId === null ? null : ($teamSummaries[$teamId] ?? null);
+
+                return [
+                    'publicId' => self::stringValue($schedule->public_id ?? null),
+                    'processKey' => self::stringValue($schedule->process_key ?? null),
+                    'moduleKey' => self::stringValue($schedule->module_key ?? null),
+                    'scope' => self::stringValue($schedule->scope ?? null),
+                    'team' => self::stringValue($team?->name),
+                    'timezone' => self::stringValue($schedule->timezone ?? null),
+                    'cronExpression' => self::stringValue($schedule->cron_expression ?? null),
+                    'intervalKey' => self::stringValue($schedule->interval_key ?? null),
+                    'enabled' => (bool) ($schedule->enabled ?? false),
+                    'nextDueAt' => self::stringValue($schedule->next_due_at ?? null),
+                    'overlapPolicy' => self::stringValue($schedule->overlap_policy ?? null),
+                    'reason' => self::stringValue($schedule->reason ?? null),
+                    'createdAt' => self::stringValue($schedule->created_at ?? null),
+                ];
+            })
             ->all());
 
         foreach ($this->sorted($this->filtered($this->filteredByControls($rows, $request), $request), $request) as $row) {

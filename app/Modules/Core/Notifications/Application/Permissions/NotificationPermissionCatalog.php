@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Modules\Core\Notifications\Application\Permissions;
 
-use App\Modules\Core\Notifications\Application\Public\Permissions\NotificationPermissionNames;
 use App\Shared\Application\Modules\Contributions\Contracts\ModulePermissionContribution;
 use App\Shared\Application\Modules\Contributions\ModulePermissionDefinition;
+use App\Shared\Application\Notifications\Permissions\NotificationPermissionNames;
 
 final class NotificationPermissionCatalog implements ModulePermissionContribution
 {

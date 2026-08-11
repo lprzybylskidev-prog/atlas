@@ -4,18 +4,19 @@ declare(strict_types=1);
 
 namespace App\Modules\Core\Privacy\Presentation\Http\Controllers;
 
-use App\Modules\Core\Identity\Application\Public\Persistence\IdentityDatabaseTable;
-use App\Modules\Core\Privacy\Application\Public\Persistence\PrivacyDatabaseTable;
-use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
-use App\Shared\Application\Tables\AdminTableDefinitions;
+use App\Modules\Core\Identity\Application\Public\Contracts\UserLookup;
+use App\Modules\Core\Privacy\Infrastructure\Persistence\TableNames\PrivacyDatabaseTable;
 use App\Shared\Application\Tables\ArrayTableProcessor;
+use App\Shared\Application\Tables\RegisteredTables;
 use App\Shared\Application\Tables\TableRequestContext;
 use App\Shared\Application\Tables\TableSavedViewService;
 use App\Shared\Application\Tables\TableState;
+use App\Shared\Application\Teams\Contracts\TeamLookup;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
+use stdClass;
 
 final readonly class PrivacyOperationHistoryController
 {
@@ -23,30 +24,32 @@ final readonly class PrivacyOperationHistoryController
         private ArrayTableProcessor $tables,
         private TableRequestContext $context,
         private TableSavedViewService $views,
+        private UserLookup $users,
+        private TeamLookup $teams,
     ) {}
 
     public function __invoke(Request $request): Response
     {
-        $definition = AdminTableDefinitions::get(AdminTableDefinitions::PRIVACY_OPERATIONS);
+        $definition = RegisteredTables::get(RegisteredTables::PRIVACY_OPERATIONS);
         $state = TableState::fromRequest($request, $definition);
         [$userId, $teamId] = $this->context->userTeam($request);
         $rows = $this->rows();
         $filters = $this->filters($request, $rows);
         $filteredRows = $this->filteredRows($rows, $filters);
         $result = $this->tables->process($filteredRows, $definition, $state)
-            ->withSavedViews($this->views->listFor(AdminTableDefinitions::PRIVACY_OPERATIONS, $userId, $teamId));
-        $table = $result->tableMeta(AdminTableDefinitions::PRIVACY_OPERATIONS);
+            ->withSavedViews($this->views->listFor(RegisteredTables::PRIVACY_OPERATIONS, $userId, $teamId));
+        $table = $result->tableMeta(RegisteredTables::PRIVACY_OPERATIONS);
         $table['state']['filters'] = $filters;
 
         return Inertia::render('Admin/PrivacyRetention/Operations', [
             'operations' => $result->rows,
             'summary' => [
-                'total' => count($rows),
+                'total' => count($result->filteredRows),
                 'visible' => $result->total,
-                'blocked' => count(array_filter($rows, static fn (array $row): bool => ($row['status'] ?? null) === 'blocked')),
-                'previewed' => count(array_filter($rows, static fn (array $row): bool => ($row['status'] ?? null) === 'previewed')),
-                'hardDelete' => count(array_filter($rows, static fn (array $row): bool => ($row['operation'] ?? null) === 'hard_delete')),
-                'anonymization' => count(array_filter($rows, static fn (array $row): bool => ($row['operation'] ?? null) === 'anonymization')),
+                'blocked' => count(array_filter($result->filteredRows, static fn (array $row): bool => ($row['status'] ?? null) === 'blocked')),
+                'previewed' => count(array_filter($result->filteredRows, static fn (array $row): bool => ($row['status'] ?? null) === 'previewed')),
+                'hardDelete' => count(array_filter($result->filteredRows, static fn (array $row): bool => ($row['operation'] ?? null) === 'hard_delete')),
+                'anonymization' => count(array_filter($result->filteredRows, static fn (array $row): bool => ($row['operation'] ?? null) === 'anonymization')),
             ],
             'filterOptions' => [
                 'operations' => $this->uniqueValues($rows, 'operation'),
@@ -63,10 +66,8 @@ final readonly class PrivacyOperationHistoryController
      */
     private function rows(): array
     {
-        return array_values(DB::table(PrivacyDatabaseTable::OPERATION_REQUESTS.' as requests')
+        $records = DB::table(PrivacyDatabaseTable::OPERATION_REQUESTS.' as requests')
             ->leftJoin(PrivacyDatabaseTable::OPERATION_PREVIEWS.' as previews', 'previews.operation_request_id', '=', 'requests.id')
-            ->leftJoin(IdentityDatabaseTable::USERS.' as actors', 'actors.id', '=', 'requests.requested_by_user_id')
-            ->leftJoin(TeamsDatabaseTable::TEAMS.' as teams', 'teams.id', '=', 'requests.team_id')
             ->orderByDesc('requests.created_at')
             ->get([
                 'requests.public_id',
@@ -77,18 +78,58 @@ final readonly class PrivacyOperationHistoryController
                 'requests.dry_run',
                 'requests.reason',
                 'requests.confirmation_phrase',
+                'requests.requested_by_user_id',
+                'requests.team_id',
                 'requests.previewed_at',
                 'requests.created_at',
                 'previews.blockers',
                 'previews.participant_count',
                 'previews.estimated_records',
                 'previews.can_execute',
-                'actors.public_id as actor_public_id',
-                'teams.public_id as team_public_id',
-                'teams.name as team_name',
             ])
-            ->map(fn (object $row): array => $this->row($row))
-            ->all());
+            ->all();
+
+        return array_map(fn (object $row): array => $this->row($row), $this->enrichRecords($records));
+    }
+
+    /**
+     * @param  array<int, stdClass>  $records
+     * @return list<stdClass>
+     */
+    private function enrichRecords(array $records): array
+    {
+        $records = array_values($records);
+        $userIds = [];
+        $teamIds = [];
+
+        foreach ($records as $record) {
+            $userId = $this->nullableIntValue($record->requested_by_user_id ?? null);
+            $teamId = $this->nullableIntValue($record->team_id ?? null);
+
+            if ($userId !== null) {
+                $userIds[] = $userId;
+            }
+
+            if ($teamId !== null) {
+                $teamIds[] = $teamId;
+            }
+        }
+
+        $users = $this->users->displaySummariesForInternalIds(array_values(array_unique($userIds)));
+        $teams = $this->teams->summariesForInternalIds(array_values(array_unique($teamIds)));
+
+        foreach ($records as $record) {
+            $userId = $this->nullableIntValue($record->requested_by_user_id ?? null);
+            $teamId = $this->nullableIntValue($record->team_id ?? null);
+            $user = $userId === null ? null : ($users[$userId] ?? null);
+            $team = $teamId === null ? null : ($teams[$teamId] ?? null);
+
+            $record->actor_public_id = $user?->publicId;
+            $record->team_public_id = $team?->publicId;
+            $record->team_name = $team?->name;
+        }
+
+        return $records;
     }
 
     /**
@@ -209,6 +250,11 @@ final readonly class PrivacyOperationHistoryController
     private function intValue(mixed $value): int
     {
         return is_numeric($value) ? (int) $value : 0;
+    }
+
+    private function nullableIntValue(mixed $value): ?int
+    {
+        return is_numeric($value) ? (int) $value : null;
     }
 
     private function stringValue(mixed $value): string

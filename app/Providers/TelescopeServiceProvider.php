@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
-use App\Modules\Core\Authorization\Application\Permissions\CoreAuthorizationPermissionCatalog;
-use App\Modules\Core\Authorization\Application\Public\Contracts\EffectivePermissionChecker;
-use App\Modules\Core\Authorization\Application\Public\DTOs\EffectivePermissionRequest;
+use App\Shared\Application\Authorization\Contracts\EffectivePermissionChecker;
+use App\Shared\Application\Authorization\DTOs\EffectivePermissionRequest;
+use App\Shared\Application\Authorization\Permissions\OperationalPermissionNames;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Support\Facades\Gate;
 use Laravel\Telescope\IncomingEntry;
@@ -61,7 +61,7 @@ class TelescopeServiceProvider extends TelescopeApplicationServiceProvider
 
             return $checker->check(new EffectivePermissionRequest(
                 userPublicId: $userPublicId,
-                permission: CoreAuthorizationPermissionCatalog::ADMIN_TELESCOPE_VIEW,
+                permission: OperationalPermissionNames::TELESCOPE_VIEW,
                 teamPublicId: $teamPublicId,
             ))->allowed;
         });

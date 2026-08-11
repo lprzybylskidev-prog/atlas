@@ -38,6 +38,50 @@ export function networkMessage(status: NetworkStatus): TranslationKey {
     return 'network.status.server_error';
 }
 
+export class NetworkRequestError extends Error {
+    public constructor(
+        public readonly status: number,
+        message: string,
+    ) {
+        super(message);
+        this.name = 'NetworkRequestError';
+    }
+}
+
+export async function requestJson<T>(url: string, init: RequestInit = {}): Promise<T> {
+    const method = (init.method ?? 'GET').toUpperCase();
+    const attempts = canRetryRequest(method) ? 2 : 1;
+    let lastError: unknown;
+
+    for (let attempt = 0; attempt < attempts; attempt += 1) {
+        try {
+            const response = await fetch(url, {
+                ...init,
+                headers: {
+                    Accept: 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    ...init.headers,
+                },
+                credentials: 'same-origin',
+            });
+
+            if (!response.ok) {
+                throw new NetworkRequestError(response.status, `Request failed with HTTP ${response.status}.`);
+            }
+
+            if (!response.headers.get('content-type')?.includes('application/json')) {
+                throw new NetworkRequestError(response.status, 'Expected a JSON response.');
+            }
+
+            return (await response.json()) as T;
+        } catch (error) {
+            lastError = error;
+        }
+    }
+
+    throw lastError instanceof Error ? lastError : new Error('Unexpected browser request failure.');
+}
+
 export function registerNetworkHandling(): void {
     if (registered) {
         return;

@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 namespace App\Modules\Core\Identity\Application\Mfa;
 
-final class MfaRequirementEvaluator
+use App\Modules\Core\Identity\Application\Public\Contracts\MfaRequirementChecker;
+use App\Modules\Core\Identity\Application\Public\DTOs\MfaRequirementContext;
+
+final class MfaRequirementEvaluator implements MfaRequirementChecker
 {
     public function isRequired(MfaRequirementContext $context): bool
     {

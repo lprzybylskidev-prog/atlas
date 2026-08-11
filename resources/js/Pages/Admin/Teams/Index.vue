@@ -35,11 +35,11 @@ const filterDefaults = { status: 'all', members: 'all' };
 const filters = ref({ ...filterDefaults, ...filterValues() });
 
 const columns = computed<DataTableColumn<TeamRow>[]>(() => [
-    { key: 'publicId', label: t('pages.admin.teams.table.public_id') },
-    { key: 'id', label: t('pages.admin.teams.table.internal_id'), hidden: true },
     { key: 'displayName', label: t('pages.admin.teams.table.display_name') },
+    { key: 'publicId', label: t('pages.admin.teams.table.public_id'), hidden: true },
+    { key: 'id', label: t('pages.admin.teams.table.internal_id'), hidden: true },
     { key: 'name', label: t('pages.admin.teams.table.technical_name'), hidden: true },
-    { key: 'isActive', label: t('pages.admin.teams.table.active'), format: 'boolean' },
+    { key: 'isActive', label: t('pages.admin.teams.table.active'), format: 'activation-status' },
     { key: 'membersCount', label: t('pages.admin.teams.table.members_count'), format: 'number' },
     { key: 'createdAt', label: t('pages.admin.teams.table.created_at'), format: 'datetime', hidden: true },
     { key: 'updatedAt', label: t('pages.admin.teams.table.updated_at'), format: 'datetime', hidden: true },

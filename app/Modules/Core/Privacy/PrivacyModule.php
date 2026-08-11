@@ -25,20 +25,14 @@ final class PrivacyModule implements ModuleDefinition
     {
         return [
             new ModuleKey('identity'),
-            new ModuleKey('authorization'),
             new ModuleKey('teams'),
             new ModuleKey('audit'),
-            new ModuleKey('files'),
-            new ModuleKey('managed_processes'),
-            new ModuleKey('exports'),
         ];
     }
 
     public function optionalDependencies(): array
     {
-        return [
-            new ModuleKey('search'),
-        ];
+        return [];
     }
 
     public function serviceProvider(): string
@@ -56,18 +50,8 @@ final class PrivacyModule implements ModuleDefinition
         return false;
     }
 
-    public function integrations(): array
-    {
-        return [];
-    }
-
     public function healthChecks(): array
     {
         return [];
-    }
-
-    public function frontendEntrypoints(): array
-    {
-        return ['admin.privacy-retention.index'];
     }
 }

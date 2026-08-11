@@ -4,31 +4,34 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
-use App\Http\Middleware\RequireHighRiskAdministrativeAuthorization;
-use App\Modules\Core\Authorization\Application\Permissions\CoreAuthorizationPermissionCatalog;
-use App\Modules\Core\Authorization\Application\Public\Contracts\EffectivePermissionChecker;
-use App\Modules\Core\Authorization\Application\Public\DTOs\EffectivePermissionRequest;
-use App\Modules\Core\Identity\Application\Admin\AdministrativeSessionManager;
 use App\Modules\Core\Identity\Application\Public\Contracts\ImpersonationSessionState;
+use App\Shared\Application\Authorization\Contracts\EffectivePermissionChecker;
+use App\Shared\Application\Authorization\DTOs\EffectivePermissionRequest;
+use App\Shared\Application\Authorization\Permissions\OperationalPermissionNames;
 use App\Shared\Application\Modules\Activation\Contracts\ModuleActivationService;
 use App\Shared\Application\Modules\Contracts\ModuleDeactivationGuard;
 use App\Shared\Application\Modules\Contracts\ModuleDeactivationGuardRegistry;
 use App\Shared\Application\Modules\Contracts\ModuleDefinition;
 use App\Shared\Application\Modules\Contracts\ModuleGate;
 use App\Shared\Application\Modules\Contracts\ModuleGateStateProvider;
+use App\Shared\Application\Modules\Contracts\ModuleOperationalDiagnostics;
+use App\Shared\Application\Modules\Contracts\ModuleTechnicalAvailability;
 use App\Shared\Application\Modules\DefaultModuleDeactivationGuardRegistry;
 use App\Shared\Application\Modules\DefaultModuleGate;
+use App\Shared\Application\Modules\ModuleOperationalDiagnosticsRegistry;
 use App\Shared\Application\Modules\ModuleRegistry;
 use App\Shared\Application\Outbox\Contracts\OutboxConsumerDeduplicator;
 use App\Shared\Application\Outbox\Contracts\OutboxEventRecorder;
 use App\Shared\Application\Outbox\Contracts\OutboxMaintenance;
 use App\Shared\Infrastructure\DataLifecycle\SharedDerivedDataLifecycleParticipant;
 use App\Shared\Infrastructure\Modules\Activation\DatabaseModuleActivationService;
+use App\Shared\Infrastructure\Modules\ReadinessModuleTechnicalAvailability;
 use App\Shared\Infrastructure\Modules\RegistryModuleGateStateProvider;
 use App\Shared\Infrastructure\Observability\ObservabilityContext;
 use App\Shared\Infrastructure\Outbox\DatabaseOutboxConsumerDeduplicator;
 use App\Shared\Infrastructure\Outbox\DatabaseOutboxEventRecorder;
 use App\Shared\Infrastructure\Outbox\DatabaseOutboxMaintenance;
+use App\Shared\Presentation\Console\AtlasDatabaseWipeCommand;
 use App\Shared\Presentation\Inertia\InertiaSharedDataRegistry;
 use App\Shared\Presentation\Inertia\RouteAvailabilityInertiaData;
 use App\Shared\Presentation\Inertia\SharedFoundationInertiaData;
@@ -57,6 +60,7 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->validateCriticalConfiguration();
+        $this->commands([AtlasDatabaseWipeCommand::class]);
         $this->registerModuleRegistry();
         $this->registerModuleServiceProviders();
         $this->registerSharedInfrastructure();
@@ -132,7 +136,7 @@ class AppServiceProvider extends ServiceProvider
 
                 return $checker->check(new EffectivePermissionRequest(
                     userPublicId: $userPublicId,
-                    permission: CoreAuthorizationPermissionCatalog::ADMIN_PULSE_VIEW,
+                    permission: OperationalPermissionNames::PULSE_VIEW,
                     teamPublicId: $teamPublicId,
                 ))->allowed;
             });
@@ -208,9 +212,13 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->app->bind(ModuleGateStateProvider::class, RegistryModuleGateStateProvider::class);
         $this->app->bind(ModuleGate::class, DefaultModuleGate::class);
+        $this->app->bind(ModuleTechnicalAvailability::class, ReadinessModuleTechnicalAvailability::class);
         $this->app->bind(ModuleActivationService::class, DatabaseModuleActivationService::class);
         $this->app->singleton(ModuleDeactivationGuardRegistry::class, fn (): DefaultModuleDeactivationGuardRegistry => new DefaultModuleDeactivationGuardRegistry(
             $this->moduleDeactivationGuards(),
+        ));
+        $this->app->singleton(ModuleOperationalDiagnosticsRegistry::class, fn (): ModuleOperationalDiagnosticsRegistry => new ModuleOperationalDiagnosticsRegistry(
+            $this->moduleOperationalDiagnostics(),
         ));
 
         $this->app->bind(OutboxEventRecorder::class, function (): DatabaseOutboxEventRecorder {
@@ -234,10 +242,6 @@ class AppServiceProvider extends ServiceProvider
             $this->app->tagged('atlas.inertia_route_availability'),
             $this->app->make(EffectivePermissionChecker::class),
             $this->app->make(ImpersonationSessionState::class),
-        ));
-        $this->app->bind(RequireHighRiskAdministrativeAuthorization::class, fn (): RequireHighRiskAdministrativeAuthorization => new RequireHighRiskAdministrativeAuthorization(
-            $this->app->make(AdministrativeSessionManager::class),
-            $this->app->tagged('atlas.high_risk_reauthentication_continuations'),
         ));
     }
 
@@ -268,6 +272,22 @@ class AppServiceProvider extends ServiceProvider
         }
 
         return $guards;
+    }
+
+    /**
+     * @return list<ModuleOperationalDiagnostics>
+     */
+    private function moduleOperationalDiagnostics(): array
+    {
+        $diagnostics = [];
+
+        foreach ($this->app->tagged('atlas.module_operational_diagnostics') as $candidate) {
+            if ($candidate instanceof ModuleOperationalDiagnostics) {
+                $diagnostics[] = $candidate;
+            }
+        }
+
+        return $diagnostics;
     }
 
     private function validateCriticalConfiguration(): void

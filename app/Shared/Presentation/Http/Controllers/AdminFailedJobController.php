@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace App\Shared\Presentation\Http\Controllers;
 
-use App\Modules\Core\Audit\Application\Public\Contracts\AuditRecorder;
-use App\Modules\Core\Audit\Application\Public\DTOs\AuditEvent;
-use App\Modules\Core\Audit\Application\Public\Enums\SecurityAuditCategory;
-use App\Shared\Application\Tables\AdminTableDefinitions;
+use App\Shared\Application\Audit\Contracts\AuditRecorder;
+use App\Shared\Application\Audit\DTOs\AuditEvent;
+use App\Shared\Application\Audit\Enums\SecurityAuditCategory;
 use App\Shared\Application\Tables\ArrayTableProcessor;
+use App\Shared\Application\Tables\RegisteredTables;
 use App\Shared\Application\Tables\TableDefinition;
 use App\Shared\Application\Tables\TableRequestContext;
 use App\Shared\Application\Tables\TableResult;
@@ -41,7 +41,7 @@ final readonly class AdminFailedJobController
 
     public function index(Request $request): Response
     {
-        $definition = AdminTableDefinitions::get(AdminTableDefinitions::FAILED_JOBS);
+        $definition = RegisteredTables::get(RegisteredTables::FAILED_JOBS);
         $filters = $this->filters($request);
         $allRows = $this->rows->rows();
         $filteredRows = $this->filteredRows($allRows, $filters);
@@ -52,7 +52,7 @@ final readonly class AdminFailedJobController
         return Inertia::render('Admin/Queues/Index', [
             'jobs' => $result->rows,
             'jobDetails' => $result->rows,
-            'summary' => $this->summary($filteredRows),
+            'summary' => $this->summary($result->filteredRows),
             'queueOperations' => $this->queueOperations(),
             'filterOptions' => $this->filterOptions($allRows),
             'table' => $table,
@@ -149,27 +149,23 @@ final readonly class AdminFailedJobController
      */
     private function summary(array $visibleRows): array
     {
-        $pendingAggregate = DB::table(DatabaseTable::FAILED_JOBS.' as failed_jobs')
-            ->leftJoin(DatabaseTable::FAILED_JOB_ACKNOWLEDGEMENTS.' as acknowledgements', 'acknowledgements.failed_job_uuid', '=', 'failed_jobs.uuid')
-            ->whereNull('acknowledgements.failed_job_uuid')
-            ->selectRaw('count(*) as failed_count')
-            ->selectRaw('count(distinct failed_jobs.queue) as queues')
-            ->selectRaw('max(failed_jobs.failed_at) as latest_failed_at')
-            ->selectRaw('min(failed_jobs.failed_at) as oldest_failed_at')
-            ->first();
-        $handledCount = DB::table(DatabaseTable::FAILED_JOB_ACKNOWLEDGEMENTS.' as acknowledgements')
-            ->join(DatabaseTable::FAILED_JOBS.' as failed_jobs', 'failed_jobs.uuid', '=', 'acknowledgements.failed_job_uuid')
-            ->count();
-
-        $failedCount = is_object($pendingAggregate) && is_numeric($pendingAggregate->failed_count ?? null) ? (int) $pendingAggregate->failed_count : 0;
+        $failedDates = array_values(array_filter(array_map(
+            static fn (array $row): ?string => is_string($row['failedAt'] ?? null) && $row['failedAt'] !== '' ? $row['failedAt'] : null,
+            $visibleRows,
+        )));
+        sort($failedDates);
+        $queues = array_values(array_unique(array_filter(array_map(
+            static fn (array $row): ?string => is_string($row['queue'] ?? null) && $row['queue'] !== '' ? $row['queue'] : null,
+            $visibleRows,
+        ))));
 
         return [
-            'failedCount' => $failedCount,
-            'handledCount' => (int) $handledCount,
+            'failedCount' => count(array_filter($visibleRows, static fn (array $row): bool => ($row['handlingStatus'] ?? null) === 'needs_attention')),
+            'handledCount' => count(array_filter($visibleRows, static fn (array $row): bool => ($row['handlingStatus'] ?? null) === 'handled')),
             'visibleCount' => count($visibleRows),
-            'queues' => is_object($pendingAggregate) && is_numeric($pendingAggregate->queues ?? null) ? (int) $pendingAggregate->queues : 0,
-            'latestFailedAt' => is_object($pendingAggregate) && is_scalar($pendingAggregate->latest_failed_at ?? null) ? (string) $pendingAggregate->latest_failed_at : null,
-            'oldestFailedAt' => is_object($pendingAggregate) && is_scalar($pendingAggregate->oldest_failed_at ?? null) ? (string) $pendingAggregate->oldest_failed_at : null,
+            'queues' => count($queues),
+            'latestFailedAt' => $failedDates === [] ? null : $failedDates[array_key_last($failedDates)],
+            'oldestFailedAt' => $failedDates[0] ?? null,
         ];
     }
 

@@ -6,7 +6,9 @@ Canonical current rules for Atlas frontend UI usage, themes, layout, routing, fr
 
 Frontend views are product surfaces, not thin delivery wrappers for backend features. A change is not complete merely because routes, props, permissions, tables, and tests exist; the rendered workflow must be understandable, actionable, localized, accessible, and reviewable by the target user.
 
-Phase 28 target: Atlas must converge on one canonical UI/UX contract, one PL/EN glossary, one navigation registry, one action contract, one confirmation system, one CRUD/form contract, one DataTable contract, one status catalog, and executable frontend guardrails. Current known noncompliance is tracked by `P28-UI-*`, `P28-ACTION-*`, `P28-FORM-*`, `P28-TABLE-*`, `P28-LOC-*`, `P28-AUTH-*`, and `P28-TT-*` issue IDs in [Phase 28](../roadmap/phase-28-foundation-repair-and-consolidation.md).
+Phase 28 converged Atlas on one canonical UI/UX contract, one PL/EN glossary, one navigation registry, one action contract, one confirmation system, one CRUD/form contract, one DataTable contract, one status catalog, and executable frontend guardrails. The completed `P28-UI-*`, `P28-ACTION-*`, `P28-FORM-*`, `P28-TABLE-*`, `P28-LOC-*`, `P28-AUTH-*`, and `P28-TT-*` issue families and their evidence are recorded in [Phase 28](../roadmap/phase-28-foundation-repair-and-consolidation.md).
+
+The binding naming contract is the [Atlas UI glossary](ui-glossary.md). Its executable catalog maps every concept to singular, plural, menu, page, and form labels, action verbs, status labels, and an English technical internal name. Laravel translation keys remain the rendered source of truth; executable binding tests reject drift between glossary labels and navigation, breadcrumbs, page titles, and other registered surfaces. Do not create page-local synonyms or humanize unknown technical tokens.
 
 Do not patch a structurally poor view with more cards, explanatory text, warnings, or page-local styling. If a view needs long copy to explain why it shows partial data, where the real workflow lives, or what an operator should infer, redesign the view contract with proper ownership, navigation, filters, pagination, drill-down, states, and actions.
 
@@ -84,6 +86,8 @@ Temporary review-only seeders, fixtures, helper classes, routes, UI controls, an
 
 Rendered UI must be manually or browser-automated reviewed in the active locale or locales before declaring localization complete. Backend translation-key parity alone is insufficient.
 
+Every route-backed Inertia page is protected by the shared frontend view-contract guard. The guard requires a browser title, exactly one accepted shell, canonical visible title/icon behavior for authenticated pages, `PageStack` for non-empty authenticated content, and no page-owned shell navigation definitions. Critical static application and Admin routes are additionally swept in a real browser in Polish/light and English/dark variants; the browser fixture rejects runtime errors, `console.error`, failed monitored resources, and unexpected HTTP 4xx/5xx responses.
+
 ### Shell and shared frontend composition
 
 The Atlas shell owns navigation hierarchy:
@@ -94,7 +98,13 @@ The Atlas shell owns navigation hierarchy:
 - Breadcrumbs remain centralized and visible independently of shell subnavigation.
 - Breadcrumbs for pages with top-navbar subsection links must include the active subsection level so the hierarchy matches the visible navigation, for example `Admin / Processes / Runs` and `Admin / Processes / Schedules / Create`.
 
-Use `AppLayout` `subnavigation` props for module subsection links. A page may define module-specific subnavigation items locally, but the rendering, active state treatment, spacing, theme behavior, and responsive overflow belong to `ShellSubnavigation`.
+`resources/js/Navigation/registry.ts` is the only authenticated-shell navigation registry. It declares canonical labels, icons, hrefs, route-availability keys, shell modes, active matching, external-link behavior, mode switchers, and subsection definitions. `AppLayout` resolves that registry once from its explicit mode, optional `navigation-section` key, the current URL, backend-provided route availability, and centralized breadcrumbs. `Sidebar`, `MobileNavigation`, `TopBar`, and `ShellSubnavigation` receive only resolved entries; pages must not build local shell link arrays or duplicate permission/module-gate checks. Backend route availability remains the authoritative result of permission, active-team, route-existence, and ModuleGate evaluation, while protected routes retain their middleware authorization boundary.
+
+The permanent frontend source guard scans the real Vue/TypeScript tree and rejects route-backed pages without browser titles or accepted layouts, page-owned native form controls and tables, page-owned navigation, unsafe regular-user/manager technical columns, native browser dialogs, local status or translation dictionaries, and removed surface/component names. Its mutation fixtures must demonstrate every rule can fail. Rendered Vitest/component assertions and the shared Playwright fixture complement this static boundary with localization, desktop/mobile parity, keyboard/focus/screen-reader behavior, light/dark screenshots, console cleanliness, failed-request detection, and critical workflow coverage.
+
+Canonical breadcrumb levels whose URLs match registered shell entries reuse the registry label. Object identifiers and action-specific breadcrumb levels remain backend-owned. This keeps navigation, subnavigation, breadcrumbs, active state, mode, and route availability aligned without weakening centralized route-name breadcrumb generation.
+
+Pages select subsection navigation with the typed `AppLayout` `navigation-section` key. `ShellSubnavigation` renders the resolved entries inline on desktop and as a labeled stacked section inside the mobile drawer. The mobile drawer is scrollable, opens only the active primary group by default, exposes `aria-current`, traps focus, closes on Escape or navigation, prevents background scrolling, and restores focus to its opener.
 
 Shared application, user, manager, and administrator pages use the same authenticated shell: `AppLayout` with an explicit shell mode. Do not create pass-through shell wrappers such as `AdminLayout`; shell variation belongs in `AppLayout`, `Sidebar`, `MobileNavigation`, `TopBar`, and typed navigation mode configuration.
 
@@ -197,10 +207,11 @@ The baseline frontend shell includes:
 - collapsible desktop sidebar;
 - mobile navigation drawer;
 - top bar with theme, language, avatar menu, admin entry, and logout controls.
+- persistent security-context strip showing the active team and, when relevant, Admin mode, high-risk authorization readiness, impersonation, and offline state.
 
 Real team switching, profile routes, notification counts, settings, active sessions, and team-scoped state clearing are implemented by the dependency-ordered roadmap phases for settings, sessions/active team, notifications, and module activation. Backend authorization primitives already exist after Phase 7 and are completed for UI visibility coverage in Phase 8.
 
-The authenticated Inertia shell receives `auth.availableAdminRoutes` from the backend. The sidebar and top-bar Admin entry use that list only for visibility; protected Admin routes still require backend middleware authorization and password confirmation.
+The authenticated Inertia shell receives `auth.availableAdminRoutes`, `auth.availableApplicationRoutes`, `auth.adminMode`, active-team state, and impersonation state from the backend. The navigation registry uses the route lists only for visibility; protected routes still require backend middleware authorization, ModuleGate enforcement, and password confirmation. The security-context strip is informational and never substitutes for those controls.
 
 Operational dashboards show concise actionable state, not sidebar navigation, raw logs, raw queue/process step streams, or architecture explanations. Dashboard signals must be deduplicated and attributed to the correct owner or shown as global when ownership is not module-specific.
 
@@ -306,7 +317,7 @@ View elements declare:
 - supported host view types;
 - explicit supported host keys;
 - translation keys and current fallback copy;
-- permission, module, and active-team requirements for later backend enforcement;
+- permission, module, and active-team requirements enforced by the backend and reused for frontend availability;
 - component;
 - data provider;
 - cache TTL;
@@ -321,7 +332,7 @@ Unavailable optional elements are removed from the coded layout without leaving 
 
 Each element owns its own loading, empty, error, unavailable, and permission-denied state. A failed data provider renders that element's error state and does not prevent the rest of the host view from rendering.
 
-The active-team, permission, and module-gate requirements are metadata for coded view elements until the dependency-ordered sessions/active-team and module-activation phases connect real backend enforcement. Authorization primitives already exist after Phase 7; Phase 8 closes the first permission/module-gated visibility e2e coverage.
+Active-team, permission, and module-gate requirements are executable metadata used by backend route authorization and frontend availability. Frontend visibility improves ergonomics but never replaces the backend decision.
 
 ### Accessibility
 
@@ -389,6 +400,10 @@ Custom filter forms that are not owned by the shared `DataTable` wrapper use `re
 
 Page-level action links such as Create and Back use `resources/js/Components/ActionLink.vue`, and ordinary form footers use `resources/js/Components/FormActions.vue`. This keeps primary link buttons, neutral navigation links, focus treatment, wrapping, and spacing consistent without duplicating long Tailwind class strings in pages.
 
+All resource, row, detail, edit, and bulk actions use the typed `AtlasAction` contract and render through `ActionGroup` or the shared DataTable action host. The contract owns a stable key, semantic operation, label, icon, tone, placement, navigation or request target, method, permission and module requirements, availability, disabled reason, confirmation, reason capture, optimistic behavior, loading, feedback, and refresh behavior. Do not create a parallel resource-action component or infer a destructive operation from button color alone.
+
+Delete, deactivate, archive, revoke, retry, rescan, and acknowledge are distinct action semantics. Each uses the cataloged icon/tone and an operation-specific confirmation label. Mutually exclusive lifecycle actions are hidden or disabled from the same availability predicate, so a resource cannot offer Activate and Deactivate simultaneously.
+
 Repeated operational count/status cards use `resources/js/Components/MetricGrid.vue`. Use it for compact page-level metrics before hand-building local metric card grids.
 
 Application, Admin, and operational card titles use `SurfaceCard`, `CardHeader`, and `SectionHeader` so card headers keep one visual language for title weight, subtitle spacing, background, border, icon placement, actions, and dark-theme treatment across the system. Titled `SurfaceCard` headers must render like the current Admin dashboard cards: a distinct header band with the shared background, bottom border, `px-4 py-3` spacing, title/subtitle stack, approved icon tile, optional actions on the right, and matching dark-theme treatment. Phase 22a deliberately redesigns the shared card system around documented icon variants: larger colored icons for main operational cards and smaller neutral icons for secondary cards such as filters, compact status sections, and helper panels. Do not hand-build local header structures or one-off icon tiles in pages.
@@ -414,6 +429,12 @@ Requirements:
 - money input converts to backend minor units through one shared formatter.
 
 `AtlasForm` is the ordinary page-level form wrapper. It sets `novalidate`, exposes `aria-busy`, and blocks duplicate submits while processing. Pages should not render native `<form>` submit handling directly.
+
+`FormActions` owns the ordinary form footer contract. Cancel is the first secondary action and Save is the final primary action on desktop and mobile. Cancel abandons the current edit scope, warns through the shared modal when the scope is dirty, and must not be used as a generic Back link. Every save button names its transaction scope when a page contains independent workflows. Team identity and team authorization, and user identity and team assignment, are explicitly separate workflows when they do not share one backend transaction.
+
+The typed `CrudContract` and `FormContract` describe resource routes, index/create/show/edit availability, object title, status/audit surfaces, primary and secondary actions, save scope, dirty state, processing state, and cancellation. Comparable resource pages compose these contracts through the shared form and action primitives; a page-local exception requires a documented workflow reason.
+
+The user account panel presents profile, avatar, password, MFA/security, additional notification addresses, and notification preferences as coherent named sections. MFA is never presented as a password field group. QR and recovery-code requests use the shared network service and expose loading, retry, and error states; recovery codes use the secure code viewer and regeneration remains an explicit confirmed action.
 
 ### Modals and confirmation
 

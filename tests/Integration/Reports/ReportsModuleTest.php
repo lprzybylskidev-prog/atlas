@@ -4,23 +4,16 @@ declare(strict_types=1);
 
 namespace Tests\Integration\Reports;
 
-use App\Modules\Core\Authorization\Application\Public\Contracts\EffectivePermissionChecker;
-use App\Modules\Core\Authorization\Application\Public\DTOs\EffectivePermissionDecision;
-use App\Modules\Core\Authorization\Application\Public\DTOs\EffectivePermissionRequest;
 use App\Modules\Core\Exports\Application\AdminDataTableExportProviderRegistry;
 use App\Modules\Core\Exports\Application\AdminDataTableExportSnapshotFactory;
-use App\Modules\Core\Exports\Application\Contracts\AdminDataTableExportProvider;
 use App\Modules\Core\Exports\Application\Contracts\ReportChartProvider;
-use App\Modules\Core\Exports\Application\Contracts\ReportExportDataProvider;
 use App\Modules\Core\Exports\Application\Contracts\ReportRenderReadinessProbe;
 use App\Modules\Core\Exports\Application\DTOs\AuthorizationFingerprint;
 use App\Modules\Core\Exports\Application\DTOs\ReportChartDefinition;
 use App\Modules\Core\Exports\Application\DTOs\ReportChartPoint;
 use App\Modules\Core\Exports\Application\DTOs\ReportChartSeries;
-use App\Modules\Core\Exports\Application\DTOs\ReportExportColumn;
 use App\Modules\Core\Exports\Application\DTOs\ReportExportRequestSnapshot;
 use App\Modules\Core\Exports\Application\DTOs\ReportRenderReadinessResult;
-use App\Modules\Core\Exports\Application\Enums\ReportExportFormat;
 use App\Modules\Core\Exports\Application\Enums\ReportExportStatus;
 use App\Modules\Core\Exports\Application\Exceptions\ReportArtifactNotDownloadable;
 use App\Modules\Core\Exports\Application\Exceptions\ReportRenderCredentialInvalid;
@@ -32,27 +25,34 @@ use App\Modules\Core\Exports\Application\Public\Contracts\ReportExportMaintenanc
 use App\Modules\Core\Exports\Application\Public\Contracts\ReportExportRequestRecorder;
 use App\Modules\Core\Exports\Application\Public\Contracts\ReportRenderCredentialAccess;
 use App\Modules\Core\Exports\Application\Public\Contracts\ReportRenderCredentialIssuer;
-use App\Modules\Core\Exports\Application\Public\DTOs\AdminDataTableExportContext;
-use App\Modules\Core\Exports\Application\Public\DTOs\ReportExportGenerationRequest;
 use App\Modules\Core\Exports\Application\Public\Permissions\ReportsPermissionCatalog;
-use App\Modules\Core\Exports\Application\Public\Persistence\ExportsDatabaseTable;
 use App\Modules\Core\Exports\Application\ReportExportDataProviderRegistry;
 use App\Modules\Core\Exports\Application\ReportExportGenerationProcess;
+use App\Modules\Core\Exports\Infrastructure\Persistence\TableNames\ExportsDatabaseTable;
 use App\Modules\Core\Exports\Infrastructure\Runtime\ReportExportGenerationProcessHandler;
-use App\Modules\Core\Files\Application\Public\Persistence\FilesDatabaseTable;
+use App\Modules\Core\Files\Infrastructure\Persistence\TableNames\FilesDatabaseTable;
 use App\Modules\Core\Identity\Application\Public\Contracts\UserCredentialAccountDirectory;
 use App\Modules\Core\Identity\Application\Public\DTOs\AdminUserCredentialAccount;
-use App\Modules\Core\Identity\Application\Public\Persistence\IdentityDatabaseTable;
+use App\Modules\Core\Identity\Infrastructure\Persistence\TableNames\IdentityDatabaseTable;
 use App\Modules\Core\Identity\Infrastructure\Persistence\User;
-use App\Modules\Core\Notifications\Application\Public\Persistence\NotificationsDatabaseTable;
-use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
+use App\Modules\Core\Notifications\Infrastructure\Persistence\TableNames\NotificationsDatabaseTable;
+use App\Modules\Core\Teams\Infrastructure\Persistence\TableNames\TeamsDatabaseTable;
 use App\Modules\Core\Teams\Infrastructure\Persistence\Team;
 use App\Modules\Core\Users\Application\Exports\AdminUsersDataTableExportProvider;
 use App\Modules\Optional\ManagedProcesses\Application\Contracts\ProcessDefinitionRegistry;
 use App\Modules\Optional\ManagedProcesses\Application\DTOs\ProcessLogEntry;
 use App\Modules\Optional\ManagedProcesses\Application\Enums\ProcessRunStatus;
-use App\Modules\Optional\ManagedProcesses\Application\Public\Contracts\ManagedProcessRunner;
-use App\Modules\Optional\ManagedProcesses\Application\Public\Persistence\ManagedProcessesDatabaseTable;
+use App\Modules\Optional\ManagedProcesses\Infrastructure\Persistence\TableNames\ManagedProcessesDatabaseTable;
+use App\Shared\Application\Authorization\Contracts\EffectivePermissionChecker;
+use App\Shared\Application\Authorization\DTOs\EffectivePermissionDecision;
+use App\Shared\Application\Authorization\DTOs\EffectivePermissionRequest;
+use App\Shared\Application\Exports\Contracts\AdminDataTableExportProvider;
+use App\Shared\Application\Exports\Contracts\ReportExportDataProvider;
+use App\Shared\Application\Exports\DTOs\AdminDataTableExportContext;
+use App\Shared\Application\Exports\DTOs\ReportExportColumn;
+use App\Shared\Application\Exports\DTOs\ReportExportGenerationRequest;
+use App\Shared\Application\Exports\Enums\ReportExportFormat;
+use App\Shared\Application\ManagedProcesses\Contracts\ManagedProcessRunner;
 use App\Shared\Application\Modules\Contracts\ModuleGate;
 use App\Shared\Application\Modules\ModuleAccessDecision;
 use App\Shared\Application\Modules\ModuleAccessDenialReason;
@@ -60,7 +60,7 @@ use App\Shared\Application\Modules\ModuleAccessRequest;
 use App\Shared\Application\Modules\ModuleDeactivationRequest;
 use App\Shared\Application\Modules\ModuleKey;
 use App\Shared\Application\Modules\ModuleKeyResolver;
-use App\Shared\Application\Tables\AdminTableDefinitions;
+use App\Shared\Application\Tables\RegisteredTables;
 use App\Shared\Application\Tables\TableColumn;
 use App\Shared\Application\Tables\TableDefinition;
 use App\Shared\Application\Tables\TableState;
@@ -245,40 +245,39 @@ final class ReportsModuleTest extends TestCase
         $keys = $registry->tableKeys();
 
         foreach ([
-            AdminTableDefinitions::USERS,
-            AdminTableDefinitions::TEAMS,
-            AdminTableDefinitions::MANAGER_RELATIONSHIP_HISTORY,
-            AdminTableDefinitions::ROLES,
-            AdminTableDefinitions::PACKAGES,
-            AdminTableDefinitions::PERMISSIONS,
-            AdminTableDefinitions::AUDIT,
-            AdminTableDefinitions::SECURITY_HISTORY,
-            AdminTableDefinitions::IMPERSONATION_SESSION_EVENTS,
-            AdminTableDefinitions::RATE_LIMITS,
-            AdminTableDefinitions::MODULES,
-            AdminTableDefinitions::APPLICATION_LOGS,
-            AdminTableDefinitions::FAILED_JOBS,
-            AdminTableDefinitions::MODULE_DETAIL_TEAMS,
-            AdminTableDefinitions::MODULE_DETAIL_HISTORY,
-            AdminTableDefinitions::MODULE_DETAIL_SCHEDULES,
-            AdminTableDefinitions::TIME_TRACKING_USER_REPORT,
-            AdminTableDefinitions::TIME_TRACKING_MANAGER_REPORT,
-            AdminTableDefinitions::TIME_TRACKING_ADMIN_OPERATIONS_DAILY,
-            AdminTableDefinitions::TIME_TRACKING_ADMIN_OPERATIONS_OTHER_WORK,
-            AdminTableDefinitions::TIME_TRACKING_ADMIN_OPERATIONS_WORK_SESSIONS,
-            AdminTableDefinitions::TIME_TRACKING_ADMIN_OPERATIONS_BREAKS,
-            AdminTableDefinitions::TIME_TRACKING_ADMIN_OPERATIONS_CORRECTIONS,
-            AdminTableDefinitions::FILES,
-            AdminTableDefinitions::INTEGRATION_ADAPTERS,
-            AdminTableDefinitions::INTEGRATION_RUNS,
-            AdminTableDefinitions::SEARCH_INDEXES,
-            AdminTableDefinitions::SEARCH_REBUILDS,
-            AdminTableDefinitions::FEATURE_FLAGS,
-            AdminTableDefinitions::FEATURE_FLAG_HISTORY,
-            AdminTableDefinitions::MANAGED_PROCESS_RUNS,
-            AdminTableDefinitions::MANAGED_PROCESS_DEFINITIONS,
-            AdminTableDefinitions::MANAGED_PROCESS_SCHEDULES,
-            AdminTableDefinitions::IMPORT_ROW_ERRORS,
+            RegisteredTables::USERS,
+            RegisteredTables::TEAMS,
+            RegisteredTables::MANAGER_RELATIONSHIP_HISTORY,
+            RegisteredTables::ROLES,
+            RegisteredTables::PACKAGES,
+            RegisteredTables::PERMISSIONS,
+            RegisteredTables::AUDIT,
+            RegisteredTables::SECURITY_HISTORY,
+            RegisteredTables::IMPERSONATION_SESSION_EVENTS,
+            RegisteredTables::RATE_LIMITS,
+            RegisteredTables::MODULES,
+            RegisteredTables::APPLICATION_LOGS,
+            RegisteredTables::FAILED_JOBS,
+            RegisteredTables::MODULE_DETAIL_TEAMS,
+            RegisteredTables::MODULE_DETAIL_HISTORY,
+            RegisteredTables::MODULE_DETAIL_SCHEDULES,
+            RegisteredTables::TIME_TRACKING_USER_REPORT,
+            RegisteredTables::TIME_TRACKING_ADMIN_OPERATIONS_DAILY,
+            RegisteredTables::TIME_TRACKING_ADMIN_OPERATIONS_OTHER_WORK,
+            RegisteredTables::TIME_TRACKING_ADMIN_OPERATIONS_WORK_SESSIONS,
+            RegisteredTables::TIME_TRACKING_ADMIN_OPERATIONS_BREAKS,
+            RegisteredTables::TIME_TRACKING_ADMIN_OPERATIONS_CORRECTIONS,
+            RegisteredTables::FILES,
+            RegisteredTables::INTEGRATION_ADAPTERS,
+            RegisteredTables::INTEGRATION_RUNS,
+            RegisteredTables::SEARCH_INDEXES,
+            RegisteredTables::SEARCH_REBUILDS,
+            RegisteredTables::FEATURE_FLAGS,
+            RegisteredTables::FEATURE_FLAG_HISTORY,
+            RegisteredTables::MANAGED_PROCESS_RUNS,
+            RegisteredTables::MANAGED_PROCESS_DEFINITIONS,
+            RegisteredTables::MANAGED_PROCESS_SCHEDULES,
+            RegisteredTables::IMPORT_ROW_ERRORS,
         ] as $tableKey) {
             self::assertContains($tableKey, $keys);
 
@@ -322,10 +321,10 @@ final class ReportsModuleTest extends TestCase
         $rows = iterator_to_array($provider->rows($request), false);
         $columns = $provider->columns($request);
 
-        self::assertSame(AdminTableDefinitions::USERS, $provider->tableKey());
+        self::assertSame(RegisteredTables::USERS, $provider->tableKey());
         self::assertSame(ReportsPermissionCatalog::REQUEST, $provider->requestPermission());
-        self::assertSame(AdminTableDefinitions::get(AdminTableDefinitions::USERS)->columnKeys(), $provider->allowedExportColumns(new AdminDataTableExportContext(
-            state: TableState::fromPayload([], AdminTableDefinitions::get(AdminTableDefinitions::USERS)),
+        self::assertSame(RegisteredTables::get(RegisteredTables::USERS)->columnKeys(), $provider->allowedExportColumns(new AdminDataTableExportContext(
+            state: TableState::fromPayload([], RegisteredTables::get(RegisteredTables::USERS)),
             requestingUserId: 1,
             requestingUserPublicId: '01J000000000000000000000AA',
             activeTeamId: null,
@@ -353,7 +352,7 @@ final class ReportsModuleTest extends TestCase
                 'atlas_admin_mode_last_activity_at' => now()->toIso8601String(),
             ])
             ->post(route('admin.exports.data-table'), [
-                'table_key' => AdminTableDefinitions::USERS,
+                'table_key' => RegisteredTables::USERS,
                 'format' => ReportExportFormat::Csv->value,
                 'page' => 2,
                 'per_page' => 250,
@@ -370,7 +369,7 @@ final class ReportsModuleTest extends TestCase
         $response->assertSessionHas('flash.messages.0.key', 'flash.exports.queued');
         $response->assertSessionMissing('success');
 
-        $record = DB::table(ExportsDatabaseTable::REPORT_EXPORT_REQUESTS)->where('report_key', AdminTableDefinitions::USERS)->first();
+        $record = DB::table(ExportsDatabaseTable::REPORT_EXPORT_REQUESTS)->where('report_key', RegisteredTables::USERS)->first();
 
         self::assertNotNull($record);
         self::assertSame('users', $record->module_key);
@@ -407,7 +406,7 @@ final class ReportsModuleTest extends TestCase
                 'atlas_admin_mode_last_activity_at' => now()->toIso8601String(),
             ])
             ->post(route('admin.exports.data-table'), [
-                'table_key' => AdminTableDefinitions::USERS,
+                'table_key' => RegisteredTables::USERS,
                 'format' => ReportExportFormat::Csv->value,
                 'columns' => 'email',
             ]);
@@ -416,6 +415,42 @@ final class ReportsModuleTest extends TestCase
         $response->assertSessionHas('flash.messages.0.key', 'flash.exports.queue_failed');
         $response->assertSessionMissing('error');
         $this->assertDatabaseCount(ExportsDatabaseTable::REPORT_EXPORT_REQUESTS, 0);
+    }
+
+    public function test_detailed_audit_export_records_immutable_permission_and_metadata_scope(): void
+    {
+        [$user, $team] = $this->userAndTeam();
+        $this->app->bind(EffectivePermissionChecker::class, AllowAllEffectivePermissionChecker::class);
+        $this->app->bind(ManagedProcessRunner::class, FakeReportManagedProcessRunner::class);
+
+        $this->actingAs($user)
+            ->withSession([
+                'active_team_public_id' => (string) $team->public_id,
+                'atlas_admin_mode_entered_at' => now()->toIso8601String(),
+                'atlas_admin_mode_last_activity_at' => now()->toIso8601String(),
+            ])
+            ->post(route('admin.exports.data-table'), [
+                'table_key' => RegisteredTables::AUDIT,
+                'format' => ReportExportFormat::Csv->value,
+                'columns' => 'occurredAt,module,action',
+                'audit_export' => true,
+            ])
+            ->assertRedirect()
+            ->assertSessionHas('flash.messages.0.key', 'flash.exports.queued');
+
+        $record = DB::table(ExportsDatabaseTable::REPORT_EXPORT_REQUESTS)
+            ->where('report_key', RegisteredTables::AUDIT)
+            ->first();
+
+        self::assertNotNull($record);
+        self::assertTrue((bool) $record->audit_export);
+        self::assertContains('metadata', $this->jsonStringList($record->visible_columns ?? null));
+
+        $authorization = $this->jsonObject($record->authorization_snapshot ?? null);
+        self::assertSame([
+            ReportsPermissionCatalog::AUDIT_EXPORT,
+            ReportsPermissionCatalog::REQUEST,
+        ], $authorization['permission_names'] ?? null);
     }
 
     public function test_admin_data_table_browser_print_endpoint_redirects_to_print_view(): void
@@ -430,12 +465,12 @@ final class ReportsModuleTest extends TestCase
                 'atlas_admin_mode_last_activity_at' => now()->toIso8601String(),
             ])
             ->post(route('admin.exports.data-table'), [
-                'table_key' => AdminTableDefinitions::USERS,
+                'table_key' => RegisteredTables::USERS,
                 'format' => ReportExportFormat::BrowserPrint->value,
                 'columns' => 'publicId,email',
             ]);
 
-        $record = DB::table(ExportsDatabaseTable::REPORT_EXPORT_REQUESTS)->where('report_key', AdminTableDefinitions::USERS)->first();
+        $record = DB::table(ExportsDatabaseTable::REPORT_EXPORT_REQUESTS)->where('report_key', RegisteredTables::USERS)->first();
 
         self::assertNotNull($record);
         self::assertSame(ReportExportStatus::Requested->value, $record->status);
@@ -456,7 +491,7 @@ final class ReportsModuleTest extends TestCase
                 'atlas_admin_mode_last_activity_at' => now()->toIso8601String(),
             ])
             ->post(route('admin.exports.data-table'), [
-                'table_key' => AdminTableDefinitions::USERS,
+                'table_key' => RegisteredTables::USERS,
                 'format' => ReportExportFormat::Csv->value,
                 'columns' => 'publicId,email',
             ]);
@@ -475,7 +510,7 @@ final class ReportsModuleTest extends TestCase
 
         self::assertNotNull($artifact);
         $this->assertDatabaseHas(ExportsDatabaseTable::REPORT_EXPORT_REQUESTS, [
-            'report_key' => AdminTableDefinitions::USERS,
+            'report_key' => RegisteredTables::USERS,
             'status' => ReportExportStatus::Available->value,
         ]);
     }
@@ -1536,6 +1571,11 @@ final class FakeAdminUsersDataTableExportProvider implements AdminDataTableExpor
     public function ruleVersion(): string
     {
         return 'admin-users-export-v1';
+    }
+
+    public function supportsDetailedAuditExport(): bool
+    {
+        return false;
     }
 
     public function tableDefinition(): TableDefinition

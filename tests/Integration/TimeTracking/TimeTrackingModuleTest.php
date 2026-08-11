@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Tests\Integration\TimeTracking;
 
-use App\Modules\Core\Audit\Application\Public\Persistence\AuditDatabaseTable;
-use App\Modules\Core\Identity\Application\Public\Persistence\IdentityDatabaseTable;
-use App\Modules\Core\Notifications\Application\Public\Persistence\NotificationsDatabaseTable;
-use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
+use App\Modules\Core\Audit\Infrastructure\Persistence\TableNames\AuditDatabaseTable;
+use App\Modules\Core\Identity\Infrastructure\Persistence\TableNames\IdentityDatabaseTable;
+use App\Modules\Core\Notifications\Infrastructure\Persistence\TableNames\NotificationsDatabaseTable;
+use App\Modules\Core\Teams\Infrastructure\Persistence\TableNames\TeamsDatabaseTable;
 use App\Modules\Optional\TimeTracking\Application\BreakSessionCoordinator;
 use App\Modules\Optional\TimeTracking\Application\Contracts\ActiveTimeLockStore;
 use App\Modules\Optional\TimeTracking\Application\Contracts\BreakPolicyStore;
@@ -20,10 +20,10 @@ use App\Modules\Optional\TimeTracking\Application\DTOs\OtherWorkCategory;
 use App\Modules\Optional\TimeTracking\Application\InactivityCoordinator;
 use App\Modules\Optional\TimeTracking\Application\MaintenanceCoordinator;
 use App\Modules\Optional\TimeTracking\Application\OtherWorkSessionCoordinator;
-use App\Modules\Optional\TimeTracking\Application\Public\Persistence\TimeTrackingDatabaseTable;
 use App\Modules\Optional\TimeTracking\Application\SettlementPeriodCoordinator;
 use App\Modules\Optional\TimeTracking\Application\UserTimeReportService;
 use App\Modules\Optional\TimeTracking\Application\WorkSessionCoordinator;
+use App\Modules\Optional\TimeTracking\Infrastructure\Persistence\TableNames\TimeTrackingDatabaseTable;
 use App\Modules\Optional\TimeTracking\Presentation\Http\Middleware\SynchronizeWorkSession;
 use DateTimeImmutable;
 use DateTimeZone;

@@ -64,16 +64,16 @@ const filterDefaults = {
 };
 const filters = ref({ ...filterDefaults, ...filterValues() });
 const columns = computed<DataTableColumn<NotificationRow>[]>(() => [
-    { key: 'publicId', label: t('notifications.table.public_id'), hidden: true },
+    { key: 'publicId', label: t('notifications.table.public_id'), access: 'forbidden' },
     { key: 'severity', label: t('notifications.table.severity'), format: 'severity' },
     { key: 'title', label: t('notifications.table.title') },
     { key: 'body', label: t('notifications.table.body') },
-    { key: 'teamPublicId', label: t('notifications.table.team'), hidden: true },
+    { key: 'teamPublicId', label: t('notifications.table.team'), access: 'forbidden' },
     { key: 'scopeLabel', label: t('notifications.table.scope') },
     { key: 'read', label: t('notifications.table.read'), format: 'boolean' },
     { key: 'createdAt', label: t('notifications.table.created_at'), format: 'datetime' },
     { key: 'readAt', label: t('notifications.table.read_at'), format: 'datetime', hidden: true },
-    { key: 'deepLinkUrl', label: t('notifications.table.deep_link'), hidden: true },
+    { key: 'deepLinkUrl', label: t('notifications.table.deep_link'), access: 'forbidden' },
 ]);
 const actions = computed<DataTableAction<NotificationRow>[]>(() => [
     {

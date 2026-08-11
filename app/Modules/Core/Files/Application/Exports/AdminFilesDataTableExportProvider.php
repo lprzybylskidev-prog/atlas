@@ -4,20 +4,23 @@ declare(strict_types=1);
 
 namespace App\Modules\Core\Files\Application\Exports;
 
-use App\Modules\Core\Exports\Application\Public\AbstractAdminDataTableExportProvider;
-use App\Modules\Core\Exports\Application\Public\DTOs\ReportExportGenerationRequest;
-use App\Modules\Core\Exports\Application\Public\Permissions\ReportsPermissionCatalog;
-use App\Modules\Core\Files\Application\Public\Persistence\FilesDatabaseTable;
-use App\Modules\Core\Identity\Application\Public\Persistence\IdentityDatabaseTable;
-use App\Shared\Application\Tables\AdminTableDefinitions;
+use App\Modules\Core\Files\Infrastructure\Persistence\TableNames\FilesDatabaseTable;
+use App\Modules\Core\Identity\Application\Public\Contracts\UserLookup;
+use App\Shared\Application\Exports\AbstractAdminDataTableExportProvider;
+use App\Shared\Application\Exports\DTOs\ReportExportGenerationRequest;
+use App\Shared\Application\Exports\ExportPermissions;
+use App\Shared\Application\Tables\RegisteredTables;
 use Illuminate\Database\Query\JoinClause;
 use Illuminate\Support\Facades\DB;
+use stdClass;
 
 final readonly class AdminFilesDataTableExportProvider extends AbstractAdminDataTableExportProvider
 {
+    public function __construct(private UserLookup $users) {}
+
     public function tableKey(): string
     {
-        return AdminTableDefinitions::FILES;
+        return RegisteredTables::FILES;
     }
 
     public function tableName(): string
@@ -32,7 +35,7 @@ final readonly class AdminFilesDataTableExportProvider extends AbstractAdminData
 
     public function requestPermission(): string
     {
-        return ReportsPermissionCatalog::REQUEST;
+        return ExportPermissions::REQUEST;
     }
 
     public function ruleVersion(): string
@@ -68,13 +71,12 @@ final readonly class AdminFilesDataTableExportProvider extends AbstractAdminData
 
     public function rows(ReportExportGenerationRequest $request): iterable
     {
-        $rows = array_values(DB::table(FilesDatabaseTable::FILE_OBJECTS.' as file_objects')
+        $records = DB::table(FilesDatabaseTable::FILE_OBJECTS.' as file_objects')
             ->leftJoin(FilesDatabaseTable::FILE_SCAN_EVIDENCE.' as file_scan_evidence', function (JoinClause $join): void {
                 $join
                     ->on('file_scan_evidence.file_object_id', '=', 'file_objects.id')
                     ->whereRaw('file_scan_evidence.id = (select max(evidence.id) from '.FilesDatabaseTable::FILE_SCAN_EVIDENCE.' evidence where evidence.file_object_id = file_objects.id)');
             })
-            ->leftJoin(IdentityDatabaseTable::USERS.' as acknowledged_users', 'acknowledged_users.id', '=', 'file_objects.acknowledged_by_user_id')
             ->whereNull('file_objects.deleted_at')
             ->orderByDesc('file_objects.created_at')
             ->get([
@@ -89,21 +91,55 @@ final readonly class AdminFilesDataTableExportProvider extends AbstractAdminData
                 'file_objects.quarantined_at',
                 'file_objects.available_at',
                 'file_objects.acknowledged_at',
+                'file_objects.acknowledged_by_user_id',
                 'file_objects.acknowledgement_reason',
                 'file_objects.created_at',
-                'acknowledged_users.name as acknowledged_by',
                 'file_scan_evidence.provider',
                 'file_scan_evidence.engine_version',
                 'file_scan_evidence.signature_version',
                 'file_scan_evidence.scanned_at',
                 'file_scan_evidence.threat_name',
-            ])
+            ]);
+        $rows = array_values(collect($this->enrichRowsWithAcknowledgedBy($records->all()))
             ->map(fn (object $row): array => $this->fileRow($row))
             ->all());
 
         foreach ($this->sorted($this->filtered($this->filteredByControls($rows, $request), $request), $request) as $row) {
             yield $row;
         }
+    }
+
+    /**
+     * @param  array<int, stdClass>  $rows
+     * @return list<stdClass>
+     */
+    private function enrichRowsWithAcknowledgedBy(array $rows): array
+    {
+        $rows = array_values($rows);
+        $userIds = [];
+
+        foreach ($rows as $row) {
+            $userId = self::nullableInt($row->acknowledged_by_user_id ?? null);
+
+            if ($userId !== null) {
+                $userIds[] = $userId;
+            }
+        }
+
+        $summaries = $this->users->displaySummariesForInternalIds(array_values(array_unique($userIds)));
+
+        foreach ($rows as $row) {
+            $userId = self::nullableInt($row->acknowledged_by_user_id ?? null);
+            $summary = $userId === null ? null : ($summaries[$userId] ?? null);
+            $row->acknowledged_by = $summary?->name;
+        }
+
+        return $rows;
+    }
+
+    private static function nullableInt(mixed $value): ?int
+    {
+        return is_numeric($value) ? (int) $value : null;
     }
 
     /**

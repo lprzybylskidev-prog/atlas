@@ -71,7 +71,7 @@ function handleRealtimeEvents(events: RealtimeEvent[]): void {
     const toast = useToast();
     let refreshNotifications = false;
     let reloadPage = false;
-    let refreshTimeTrackingManagerReport = false;
+    let refreshManagerWorkTime = false;
 
     for (const event of events) {
         window.sessionStorage.setItem(STORAGE_KEY, event.publicId);
@@ -94,8 +94,8 @@ function handleRealtimeEvents(events: RealtimeEvent[]): void {
             reloadPage = true;
         }
 
-        if (event.eventType === 'time_tracking.status.changed' && window.location.pathname === '/time-tracking/manager-report') {
-            refreshTimeTrackingManagerReport = true;
+        if (event.eventType === 'time_tracking.status.changed' && window.location.pathname.startsWith('/manager/work-time/')) {
+            refreshManagerWorkTime = true;
         }
     }
 
@@ -107,8 +107,8 @@ function handleRealtimeEvents(events: RealtimeEvent[]): void {
         window.location.reload();
     }
 
-    if (refreshTimeTrackingManagerReport) {
-        router.reload({ only: ['rows', 'summary', 'teamSummary', 'statusFeed', 'table'] });
+    if (refreshManagerWorkTime) {
+        router.reload();
     }
 }
 

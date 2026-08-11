@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Shared\Presentation\Http\Controllers;
 
 use App\Shared\Application\Tables\TableRequestContext;
+use App\Shared\Application\Tables\TableSavedViewAuthorizer;
 use App\Shared\Application\Tables\TableSavedViewService;
 use App\Shared\Presentation\Support\FlashMessage;
 use Illuminate\Http\RedirectResponse;
@@ -15,12 +16,18 @@ final readonly class TableSavedViewController
     public function __construct(
         private TableSavedViewService $views,
         private TableRequestContext $context,
+        private TableSavedViewAuthorizer $authorizer,
     ) {}
 
     public function store(Request $request): RedirectResponse
     {
         $validated = $this->validatedPayload($request, true);
         [$userId, $teamId, $actorPublicId] = $this->context->userTeam($request);
+        $this->authorizer->authorize(
+            $request,
+            self::stringValue($validated['table_key'] ?? ''),
+            self::stringValue($validated['type'] ?? 'private') === 'team',
+        );
 
         $publicId = $this->views->create(
             tableKey: self::stringValue($validated['table_key'] ?? ''),
@@ -43,6 +50,7 @@ final readonly class TableSavedViewController
     {
         $validated = $this->validatedPayload($request, false);
         [$userId, $teamId, $actorPublicId] = $this->context->userTeam($request);
+        $this->authorizer->authorize($request, $this->views->tableKeyForVisibleView($view, $userId, $teamId));
 
         $this->views->update(
             publicId: $view,
@@ -61,6 +69,7 @@ final readonly class TableSavedViewController
     public function destroy(Request $request, string $view): RedirectResponse
     {
         [$userId, $teamId, $actorPublicId] = $this->context->userTeam($request);
+        $this->authorizer->authorize($request, $this->views->tableKeyForVisibleView($view, $userId, $teamId));
 
         $this->views->delete($view, $userId, $teamId, $actorPublicId);
 
@@ -76,6 +85,11 @@ final readonly class TableSavedViewController
             'type' => ['required', 'string', 'in:private,team'],
         ]));
         [$userId, $teamId, $actorPublicId] = $this->context->userTeam($request);
+        $this->authorizer->authorize(
+            $request,
+            $this->views->tableKeyForVisibleView($view, $userId, $teamId),
+            self::stringValue($validated['type'] ?? 'private') === 'team',
+        );
         $publicId = $this->views->copy(
             publicId: $view,
             name: self::stringValue($validated['name'] ?? ''),
@@ -94,9 +108,10 @@ final readonly class TableSavedViewController
 
     public function default(Request $request, string $view): RedirectResponse
     {
-        [$userId, $teamId] = $this->context->userTeam($request);
+        [$userId, $teamId, $actorPublicId] = $this->context->userTeam($request);
+        $this->authorizer->authorize($request, $this->views->tableKeyForVisibleView($view, $userId, $teamId));
 
-        $this->views->setDefault($view, $userId, $teamId);
+        $this->views->setDefault($view, $userId, $teamId, $actorPublicId);
 
         return back()->with('flash.messages', [
             FlashMessage::success('flash.table_views.default_updated'),

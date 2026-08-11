@@ -1,7 +1,10 @@
-FROM postgres:18-bookworm
+# syntax=docker/dockerfile:1.12
 
-COPY docker/production/backup/backup.sh /usr/local/bin/atlas-backup
+FROM postgres:18.4-bookworm
 
-RUN chmod +x /usr/local/bin/atlas-backup
+COPY --chown=postgres:postgres docker/production/backup/backup.sh /usr/local/bin/atlas-backup
+RUN chmod 0755 /usr/local/bin/atlas-backup
 
+USER postgres
 ENTRYPOINT ["atlas-backup"]
+CMD ["create"]

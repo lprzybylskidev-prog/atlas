@@ -5,14 +5,11 @@ declare(strict_types=1);
 namespace App\Modules\Core\Identity\Presentation\Http\Controllers;
 
 use App\Modules\Core\Identity\Application\Admin\ImpersonationManager;
-use App\Modules\Core\Identity\Application\Public\Persistence\IdentityDatabaseTable;
 use App\Modules\Core\Identity\Infrastructure\Persistence\User;
-use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
+use App\Shared\Application\Teams\Contracts\UserTeamMembershipManager;
 use App\Shared\Presentation\Support\FlashMessage;
-use Illuminate\Database\Query\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -21,6 +18,7 @@ final readonly class ImpersonationController
 {
     public function __construct(
         private ImpersonationManager $impersonation,
+        private UserTeamMembershipManager $memberships,
     ) {}
 
     public function create(Request $request, string $user): Response
@@ -87,35 +85,20 @@ final readonly class ImpersonationController
     {
         $teams = [];
 
-        foreach (DB::table(TeamsDatabaseTable::TEAM_USER_ASSIGNMENTS)
-            ->join(IdentityDatabaseTable::USERS, 'team_user_assignments.user_id', '=', 'users.id')
-            ->join(TeamsDatabaseTable::TEAMS, 'team_user_assignments.team_id', '=', 'teams.id')
-            ->where('users.public_id', $userPublicId)
-            ->where('teams.is_active', true)
-            ->where(static function (Builder $query): void {
-                $query->whereNull('team_user_assignments.valid_from')->orWhere('team_user_assignments.valid_from', '<=', now());
-            })
-            ->where(static function (Builder $query): void {
-                $query->whereNull('team_user_assignments.valid_to')->orWhere('team_user_assignments.valid_to', '>', now());
-            })
-            ->orderBy('teams.display_name')
-            ->orderBy('teams.name')
-            ->get(['teams.public_id', 'teams.name', 'teams.display_name'])
-            ->all() as $team) {
+        foreach ($this->memberships->activeMembershipsForUser($userPublicId) as $team) {
+            if (! $team->teamActive) {
+                continue;
+            }
+
             $teams[] = [
-                'value' => $this->scalarString($team->public_id ?? ''),
-                'label' => $this->teamDisplayName($team),
+                'value' => $team->teamPublicId,
+                'label' => $team->teamName,
             ];
         }
 
+        usort($teams, static fn (array $first, array $second): int => strcmp($first['label'], $second['label']));
+
         return $teams;
-    }
-
-    private function teamDisplayName(object $record): string
-    {
-        $displayName = $this->scalarString($record->display_name ?? '');
-
-        return $displayName !== '' ? $displayName : $this->scalarString($record->name ?? '');
     }
 
     /**
@@ -129,10 +112,5 @@ final readonly class ImpersonationController
             'email' => (string) $user->email,
             'accountSensitivity' => (string) $user->account_sensitivity,
         ];
-    }
-
-    private function scalarString(mixed $value): string
-    {
-        return is_scalar($value) || $value === null ? (string) $value : '';
     }
 }

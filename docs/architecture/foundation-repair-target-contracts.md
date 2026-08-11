@@ -1,15 +1,15 @@
 # Foundation repair target contracts
 
-This document records accepted Phase 28 target contracts for the Atlas foundation. It distinguishes the current implemented state from the required target state. The binding issue register and executable checkboxes live in [Phase 28 — Foundation repair and consolidation](../roadmap/phase-28-foundation-repair-and-consolidation.md).
+This document records the accepted and implemented Phase 28 foundation contracts. The completed binding issue register, package evidence, and executable checkboxes live in [Phase 28 — Foundation repair and consolidation](../roadmap/phase-28-foundation-repair-and-consolidation.md).
 
 ## Status
 
-- Current implementation: Phases 27 and 27a are complete, but later review found known foundation noncompliance tracked by Phase 28 issue IDs.
-- Target implementation: Phase 28 repairs the known drift before production deployment.
+- Current implementation: Phases 27, 27a, and 28 are complete; all 110 Phase 28 issue IDs are reconciled to implementation, tests, permanent guardrails, canonical documentation, and package evidence.
+- Next implementation phase: Phase 29 owns production deployment, backup, restore, and rollback. Phase 30 later owns the distinct final release audit.
 
 ## Module graph and public contracts
 
-Current known noncompliance: `P28-ARCH-001` through `P28-ARCH-014`, `P28-MOD-001` through `P28-MOD-005`.
+Current implementation: the `P28-W02` module-boundary repair and `P28-W03` executable ModuleRegistry/ModuleGate workstream are complete. `P28-MOD-001` through `P28-MOD-005` are protected by permanent architecture and availability tests.
 
 Target contract:
 
@@ -21,9 +21,11 @@ Target contract:
 - public table constants and schema-qualified table names are not cross-module APIs;
 - global providers and middleware use public contracts, shared contracts, or explicit Presentation contributions only.
 
+The permanent architecture suite parses PHP with `nikic/php-parser`, discovers all configured modules and internal table catalogs, checks real and runtime-only dependency evidence, scans configuration/bootstrap/migrations, and includes mutation fixtures for grouped imports, FQCNs, inheritance, interfaces, types, attributes, static/class-string references, foreign table catalogs, embedded schema-qualified SQL, and forbidden global Infrastructure imports.
+
 ## Module metadata and activation
 
-Current known noncompliance: `P28-MOD-001` through `P28-MOD-005`.
+Implemented state: `P28-MOD-001` through `P28-MOD-005` are complete and protected by registry, ModuleGate, technical-availability, activation/deactivation, dependency, reduced-mode, and audit tests.
 
 Target contract:
 
@@ -34,7 +36,7 @@ Target contract:
 
 ## Audit contracts and event coverage
 
-Current known noncompliance: `P28-AUDIT-001` through `P28-AUDIT-011`.
+Implemented state: `P28-AUDIT-001` through `P28-AUDIT-011` are complete and protected by catalog, outcome, producer, atomicity, redaction, DB-backed browser/export, pagination, and mutation guardrails.
 
 Target contract:
 
@@ -47,7 +49,7 @@ Target contract:
 
 ## Unified UI/UX contracts
 
-Current known noncompliance: `P28-UI-001` through `P28-UI-008`, `P28-ACTION-001` through `P28-ACTION-003`, `P28-FORM-001` through `P28-FORM-006`, `P28-TABLE-001` through `P28-TABLE-009`, `P28-LOC-001`, and `P28-LOC-002`.
+Implemented state: `P28-UI-001` through `P28-UI-008`, `P28-ACTION-001` through `P28-ACTION-003`, `P28-FORM-001` through `P28-FORM-006`, `P28-TABLE-001` through `P28-TABLE-009`, `P28-LOC-001`, and `P28-LOC-002` are complete and protected by typed source, translation/glossary, shared-component, route/view, feature, Vitest, and Playwright guardrails.
 
 Target contract:
 
@@ -56,14 +58,14 @@ Target contract:
 - one action contract feeds list, detail, edit, row, and bulk actions;
 - one confirmation system handles destructive and high-risk actions with named operations and reason requirements;
 - one CRUD/form contract controls create/edit/show/index structure, dirty state, save scope, `Anuluj`, and `Wroc` semantics;
-- one DataTable contract owns columns, filters, saved views, sorting, pagination, selection, actions, exports, states, responsive rendering, formatting, and permissions;
+- one DataTable contract owns columns, filters, saved views, sorting, pagination, selection, actions, exports, states, responsive rendering, formatting, and permissions; saved views use shell-neutral routes and typed table registration and are available to eligible regular-user and manager tables without Admin mode;
 - one status catalog owns status labels, colors, icons, meanings, and allowed surfaces;
 - missing translations fail quality gates instead of being humanized into plausible UI text;
 - regular-user and manager UI do not expose raw technical tokens.
 
 ## Authorization, assignments, and manager hierarchy
 
-Current known noncompliance: `P28-AUTH-001` through `P28-AUTH-005`.
+Implemented state: `P28-AUTH-001` through `P28-AUTH-005` are complete and protected by provenance, stale-write, backend-authorization, manager-DAG/head-manager, legacy-reference, and browser tests.
 
 Target contract:
 
@@ -75,7 +77,7 @@ Target contract:
 
 ## TimeTracking
 
-Current known noncompliance: `P28-TT-001` through `P28-TT-004`.
+Implemented state: `P28-TT-001` through `P28-TT-004` are complete together with the `P28-MODAUD-*` capability audit and protected by route, scope, transaction/audit, shared-UI, incomplete-capability, removed-surface, and browser tests.
 
 Target contract:
 
@@ -86,7 +88,7 @@ Target contract:
 
 ## Migrations and schema ownership
 
-Current known noncompliance: `P28-MIG-001` through `P28-MIG-003`.
+Current state: `P28-MIG-001` through `P28-MIG-003` are complete.
 
 Target contract:
 
@@ -96,9 +98,11 @@ Target contract:
 - constraints, indexes, FKs, checks, and triggers exist in canonical create migrations;
 - local reset requirements after squash are documented.
 
+The canonical migration set contains create migrations only. Permanent unit guardrails reject follow-up table alters, PostgreSQL `after`, local historical table detection, destructive pre-create repairs, removed legacy schemas, unqualified Atlas table literals, and a broad configured `search_path`. PostgreSQL integration coverage verifies every registered owner table plus the Spatie Permission team FKs, Identity session FK, Audit append-only function/triggers, partial unique indexes, and Files/Privacy retention relationships against the fresh catalog.
+
 ## Seeders and demo data
 
-Current known noncompliance: `P28-SEED-001`.
+Current state: `P28-SEED-001` is complete. Production-safe bootstrap seeders use public Application contracts, while deterministic demo/e2e records are delegated to owner fixture builders registered only in local, development, and testing environments. Permanent architecture tests reject persistence shortcuts in seeder classes and unguarded fixture-builder registration.
 
 Target contract:
 
@@ -109,7 +113,7 @@ Target contract:
 
 ## Mail architecture
 
-Current known noncompliance: `P28-MAIL-001` and `P28-MAIL-002`.
+Current state: `P28-MAIL-001` and `P28-MAIL-002` are complete and protected by bilingual render, translation-key, preference, and architecture guardrails.
 
 Target contract:
 
@@ -122,7 +126,7 @@ Target contract:
 
 ## Runtime and guardrail architecture
 
-Current known noncompliance: `P28-RUNTIME-001` through `P28-RUNTIME-014`, `P28-GUARD-001` through `P28-GUARD-003`, and `P28-LEGACY-001`.
+Current state: `P28-RUNTIME-001` through `P28-RUNTIME-014` are complete. The foundation gate runs the standard gate, full isolated Playwright suite, and production runtime smoke sequentially. Permanent mutation-tested source guards replace the temporary Phase 28 inventory generator and snapshots; removed legacy surfaces and components have active-tree no-reference coverage. Phase 30 still owns the distinct post-deployment release gate.
 
 Target contract:
 

@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace App\Modules\Core\Users\Application\Exports;
 
-use App\Modules\Core\Exports\Application\Public\AbstractAdminDataTableExportProvider;
-use App\Modules\Core\Exports\Application\Public\DTOs\ReportExportGenerationRequest;
-use App\Modules\Core\Exports\Application\Public\Permissions\ReportsPermissionCatalog;
 use App\Modules\Core\Identity\Application\Public\Contracts\UserCredentialAccountDirectory;
 use App\Modules\Core\Identity\Application\Public\DTOs\AdminUserCredentialAccount;
-use App\Shared\Application\Tables\AdminTableDefinitions;
+use App\Shared\Application\Exports\AbstractAdminDataTableExportProvider;
+use App\Shared\Application\Exports\DTOs\ReportExportGenerationRequest;
+use App\Shared\Application\Exports\ExportPermissions;
+use App\Shared\Application\Tables\RegisteredTables;
 
 final readonly class AdminUsersDataTableExportProvider extends AbstractAdminDataTableExportProvider
 {
@@ -19,7 +19,7 @@ final readonly class AdminUsersDataTableExportProvider extends AbstractAdminData
 
     public function tableKey(): string
     {
-        return AdminTableDefinitions::USERS;
+        return RegisteredTables::USERS;
     }
 
     public function tableName(): string
@@ -34,7 +34,7 @@ final readonly class AdminUsersDataTableExportProvider extends AbstractAdminData
 
     public function requestPermission(): string
     {
-        return ReportsPermissionCatalog::REQUEST;
+        return ExportPermissions::REQUEST;
     }
 
     public function ruleVersion(): string

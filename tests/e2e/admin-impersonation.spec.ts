@@ -11,7 +11,7 @@ const users = {
 
 async function signIn(page: Page): Promise<void> {
     await page.goto('/login');
-    await page.getByLabel('Email').fill(users.admin.email);
+    await page.getByLabel(/Adres e-mail|Email address/).fill(users.admin.email);
     await page.getByLabel(/Hasło|Password/).fill(users.admin.password);
     await page.getByRole('button', { name: /Zaloguj|Log in/ }).click();
 
@@ -32,9 +32,23 @@ async function confirmAdministratorAccess(page: Page): Promise<void> {
     await page.getByRole('button', { name: /Potwierdź|Confirm/ }).click();
 }
 
+async function ensureEnglishLocale(page: Page): Promise<void> {
+    if (await page.getByRole('button', { name: 'Zmień język' }).isVisible()) {
+        await Promise.all([
+            page.waitForEvent('requestfinished', {
+                predicate: (request) => new URL(request.url()).pathname === '/' && request.method() === 'GET',
+            }),
+            page.getByRole('button', { name: 'Zmień język' }).click(),
+        ]);
+    }
+
+    await expect(page.getByRole('button', { name: 'Change language' })).toBeVisible();
+}
+
 test.describe('Admin impersonation', () => {
     test('lets an administrator start and exit impersonation from user administration', async ({ page }) => {
         await signIn(page);
+        await ensureEnglishLocale(page);
         await page.goto('/admin/users');
 
         if (page.url().includes('/user/confirm-password')) {
@@ -50,18 +64,19 @@ test.describe('Admin impersonation', () => {
         await expect(ownAccountRow.getByRole('button', { name: /Impersonuj|Impersonate/ })).toHaveCount(0);
         await targetRow.getByRole('button', { name: /Impersonuj|Impersonate/ }).click();
 
-        await expect(page.getByRole('heading', { name: /Impersonacja użytkownika|User impersonation|Start impersonation/ })).toBeVisible();
+        await expect(page.getByRole('heading', { name: /Impersonacja użytkownika|User impersonation/, exact: true })).toBeVisible();
         await expect(
             page.getByText(/audyt zapisuje rzeczywistego administratora|audit records both the actual administrator/i),
         ).toBeVisible();
         await expect(page.getByLabel(/Nadpisz blokadę konta wrażliwego|Override sensitive-account block/)).toHaveCount(0);
-        await page.getByLabel(/Powód impersonacji|Reason/).fill('E2E support verification');
+        await page.getByLabel(/Powód impersonacji|Impersonation reason/).fill('E2E support verification');
         await page.getByRole('button', { name: /Rozpocznij impersonację|Start impersonation/ }).click();
 
         await expect(page).toHaveURL('/');
-        await expect(page.getByText(/Impersonujesz użytkownika|Impersonating/)).toBeVisible();
-        await expect(page.getByText('Visibility User')).toBeVisible();
         await expect(page.getByText('E2E support verification')).toBeVisible();
+        await expect(page.getByTestId('shell-security-context')).toContainText(
+            /Praca jako: Visibility User|Impersonating: Visibility User/,
+        );
 
         await page.getByRole('button', { name: /Zakończ impersonację|Exit impersonation/ }).click();
         await expect(page).toHaveURL('/admin');

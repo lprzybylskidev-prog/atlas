@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Core\Exports\Application;
 
 use App\Modules\Core\Exports\Application\Enums\ReportExportStatus;
-use App\Modules\Core\Exports\Application\Public\Persistence\ExportsDatabaseTable;
+use App\Modules\Core\Exports\Infrastructure\Persistence\TableNames\ExportsDatabaseTable;
 use App\Shared\Application\Modules\Contracts\ModuleDeactivationGuard;
 use App\Shared\Application\Modules\ModuleDeactivationAssessment;
 use App\Shared\Application\Modules\ModuleDeactivationBlocker;

@@ -11,11 +11,11 @@ use App\Modules\Core\Exports\Application\Public\Contracts\ReportExportMaintenanc
 use App\Modules\Core\Exports\Application\Public\DTOs\DownloadableReportArtifact;
 use App\Modules\Core\Exports\Application\Public\DTOs\ReportExportCleanupResult;
 use App\Modules\Core\Exports\Application\Public\Permissions\ReportsPermissionCatalog;
-use App\Modules\Core\Exports\Application\Public\Persistence\ExportsDatabaseTable;
+use App\Modules\Core\Exports\Infrastructure\Persistence\TableNames\ExportsDatabaseTable;
 use App\Modules\Core\Files\Application\Public\Contracts\FileLifecycle;
 use App\Modules\Core\Files\Application\Public\Contracts\FileStorage;
-use App\Modules\Core\Identity\Application\Public\Persistence\IdentityDatabaseTable;
-use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
+use App\Modules\Core\Identity\Application\Public\Contracts\UserLookup;
+use App\Shared\Application\Teams\Contracts\TeamLookup;
 use App\Shared\Infrastructure\Operations\OperationalModuleGuard;
 use DateTimeImmutable;
 use Illuminate\Database\ConnectionInterface;
@@ -28,6 +28,8 @@ final readonly class ReportExportArtifactService implements ReportExportArtifact
         private FileStorage $files,
         private FileLifecycle $fileLifecycle,
         private OperationalModuleGuard $modules,
+        private UserLookup $users,
+        private TeamLookup $teams,
     ) {}
 
     public function download(string $artifactPublicId, string $actorPublicId, ?string $activeTeamPublicId): DownloadableReportArtifact
@@ -164,19 +166,12 @@ final readonly class ReportExportArtifactService implements ReportExportArtifact
 
     private function userId(string $publicId): ?int
     {
-        return $this->idForPublicId(IdentityDatabaseTable::USERS, $publicId);
+        return $this->users->internalIdForPublicId($publicId);
     }
 
     private function teamId(?string $publicId): ?int
     {
-        return $publicId === null ? null : $this->idForPublicId(TeamsDatabaseTable::TEAMS, $publicId);
-    }
-
-    private function idForPublicId(string $table, string $publicId): ?int
-    {
-        $id = $this->database->table($table)->where('public_id', $publicId)->value('id');
-
-        return is_numeric($id) ? (int) $id : null;
+        return $publicId === null ? null : $this->teams->internalIdForPublicId($publicId);
     }
 
     private function expired(mixed $value): bool

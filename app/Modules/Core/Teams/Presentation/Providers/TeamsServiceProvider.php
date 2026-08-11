@@ -10,15 +10,16 @@ use App\Modules\Core\Teams\Application\Lifecycle\TeamUserDataLifecycleParticipan
 use App\Modules\Core\Teams\Application\Permissions\TeamPermissionCatalog;
 use App\Modules\Core\Teams\Application\Public\Contracts\BootstrapTeamProvider;
 use App\Modules\Core\Teams\Application\Public\Contracts\ManagerHierarchy;
-use App\Modules\Core\Teams\Application\Public\Contracts\TeamLookup;
-use App\Modules\Core\Teams\Application\Public\Contracts\UserTeamMembershipManager;
-use App\Modules\Core\Teams\Application\Public\Contracts\UserTeamSessionLimitSettings;
 use App\Modules\Core\Teams\Infrastructure\Persistence\DatabaseManagerHierarchy;
 use App\Modules\Core\Teams\Infrastructure\Persistence\DatabaseUserTeamMembershipManager;
 use App\Modules\Core\Teams\Infrastructure\Persistence\DatabaseUserTeamSessionLimitSettings;
 use App\Modules\Core\Teams\Infrastructure\Persistence\EloquentBootstrapTeamProvider;
 use App\Modules\Core\Teams\Presentation\Inertia\TeamsInertiaData;
 use App\Modules\Core\Teams\Presentation\Inertia\TeamsRouteAvailability;
+use App\Shared\Application\Teams\Contracts\TeamLookup;
+use App\Shared\Application\Teams\Contracts\UserTeamMembershipManager;
+use App\Shared\Application\Teams\Contracts\UserTeamMembershipProvisioner;
+use App\Shared\Application\Teams\Contracts\UserTeamSessionLimitSettings;
 use Illuminate\Support\ServiceProvider;
 
 final class TeamsServiceProvider extends ServiceProvider
@@ -28,6 +29,7 @@ final class TeamsServiceProvider extends ServiceProvider
         $this->app->bind(BootstrapTeamProvider::class, EloquentBootstrapTeamProvider::class);
         $this->app->bind(TeamLookup::class, DatabaseUserTeamMembershipManager::class);
         $this->app->bind(UserTeamMembershipManager::class, DatabaseUserTeamMembershipManager::class);
+        $this->app->bind(UserTeamMembershipProvisioner::class, DatabaseUserTeamMembershipManager::class);
         $this->app->bind(UserTeamSessionLimitSettings::class, DatabaseUserTeamSessionLimitSettings::class);
         $this->app->bind(ManagerHierarchy::class, DatabaseManagerHierarchy::class);
         $this->app->tag([TeamPermissionCatalog::class], 'atlas.permission_catalogs');

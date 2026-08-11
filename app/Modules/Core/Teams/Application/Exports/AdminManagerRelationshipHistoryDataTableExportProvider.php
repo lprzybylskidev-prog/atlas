@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace App\Modules\Core\Teams\Application\Exports;
 
-use App\Modules\Core\Exports\Application\Public\AbstractAdminDataTableExportProvider;
-use App\Modules\Core\Exports\Application\Public\DTOs\ReportExportGenerationRequest;
-use App\Modules\Core\Exports\Application\Public\Permissions\ReportsPermissionCatalog;
 use App\Modules\Core\Teams\Application\Public\Contracts\ManagerHierarchy;
-use App\Shared\Application\Tables\AdminTableDefinitions;
+use App\Shared\Application\Exports\AbstractAdminDataTableExportProvider;
+use App\Shared\Application\Exports\DTOs\ReportExportGenerationRequest;
+use App\Shared\Application\Exports\ExportPermissions;
+use App\Shared\Application\Tables\RegisteredTables;
 
 final readonly class AdminManagerRelationshipHistoryDataTableExportProvider extends AbstractAdminDataTableExportProvider
 {
@@ -16,7 +16,7 @@ final readonly class AdminManagerRelationshipHistoryDataTableExportProvider exte
 
     public function tableKey(): string
     {
-        return AdminTableDefinitions::MANAGER_RELATIONSHIP_HISTORY;
+        return RegisteredTables::MANAGER_RELATIONSHIP_HISTORY;
     }
 
     public function tableName(): string
@@ -31,7 +31,7 @@ final readonly class AdminManagerRelationshipHistoryDataTableExportProvider exte
 
     public function requestPermission(): string
     {
-        return ReportsPermissionCatalog::REQUEST;
+        return ExportPermissions::REQUEST;
     }
 
     public function ruleVersion(): string

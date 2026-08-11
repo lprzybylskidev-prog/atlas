@@ -1,10 +1,18 @@
+import type { AtlasAction, AtlasBulkAction } from './actions';
+
+export type DataTableColumnAccess = 'allowed' | 'forbidden';
+export type DataTableColumnVisibility = 'visible' | 'hidden';
+
 export interface DataTableColumn<TRow extends Record<string, unknown>> {
     key: keyof TRow & string;
     label: string;
     sortable?: boolean;
     hidden?: boolean;
+    access?: DataTableColumnAccess;
+    visibility?: DataTableColumnVisibility;
     format?:
         | 'boolean'
+        | 'activation-status'
         | 'count'
         | 'date'
         | 'datetime'
@@ -19,26 +27,8 @@ export interface DataTableColumn<TRow extends Record<string, unknown>> {
         | 'time';
 }
 
-export interface DataTableAction<TRow extends Record<string, unknown>> {
-    key: string;
-    label: string;
-    method?: 'get' | 'post' | 'patch' | 'delete';
-    href?: (row: TRow) => string;
-    onAction?: (row: TRow) => void | Promise<void>;
-    confirm?: string | ((row: TRow) => string);
-    nativeNavigation?: boolean;
-    tone?: 'neutral' | 'info' | 'success' | 'warning' | 'danger';
-    visible?: (row: TRow) => boolean;
-    disabled?: (row: TRow) => boolean;
-    disabledReason?: string | ((row: TRow) => string);
-}
-
-export interface DataTableBulkAction {
-    key: string;
-    label: string;
-    tone?: 'neutral' | 'info' | 'success' | 'warning' | 'danger';
-    execution?: 'sync' | 'queued';
-}
+export type DataTableAction<TRow extends Record<string, unknown>> = AtlasAction<TRow>;
+export type DataTableBulkAction = AtlasBulkAction;
 
 export interface DataTableState {
     page: number;
@@ -73,6 +63,7 @@ export type DataTableExportFormat = 'csv' | 'xlsx' | 'pdf' | 'browser_print';
 export interface DataTableExportMeta {
     endpoint: string;
     formats: DataTableExportFormat[];
+    detailedAudit?: boolean;
 }
 
 export interface DataTableMeta {
@@ -86,5 +77,10 @@ export interface DataTableMeta {
         to: number;
     };
     savedViews: DataTableSavedView[];
+    capabilities?: {
+        savedViews?: boolean;
+        exports?: boolean;
+        selection?: boolean;
+    };
     exports?: DataTableExportMeta;
 }

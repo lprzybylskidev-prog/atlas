@@ -19,8 +19,49 @@ const translationFiles = import.meta.glob('../../../lang/*.json', {
 }) as Record<string, string>;
 
 describe('shared UI guardrails', () => {
+    it('keeps draft filter values isolated from applied table, export, and result state', () => {
+        for (const [file, contents] of Object.entries(vueFiles)) {
+            if (!contents.includes('<FilterPanel')) {
+                continue;
+            }
+
+            const resultConsumersUsingDraftFilters = Array.from(
+                contents.matchAll(/<(?:DataTable|DataTableExportMenu)\b[^>]*:filters="filters"/g),
+            ).map((match) => match[0]);
+
+            expect(resultConsumersUsingDraftFilters, file).toEqual([]);
+            expect(contents, `${file}: applied table filters must not be copied from the mutable form draft.`).not.toMatch(
+                /const tableFilters = computed\(\(\) => \(\{ \.\.\.filters\.value \}\)\)/,
+            );
+            expect(contents, `${file}: result-state predicates must use applied filters.`).not.toMatch(
+                /const \w*Missing = computed\(\(\) => filters\.value\./,
+            );
+        }
+    });
+
+    it('keeps work-time metric tiles section-specific and shared across user, manager, and administrator reports', () => {
+        const metrics = Object.entries(vueFiles).find(([file]) => file.endsWith('/TimeTracking/TimeTrackingReportMetrics.vue'))?.[1] ?? '';
+        const userReport = Object.entries(vueFiles).find(([file]) => file.endsWith('/Pages/TimeTracking/UserReport.vue'))?.[1] ?? '';
+        const adminOperations =
+            Object.entries(vueFiles).find(([file]) => file.endsWith('/Pages/TimeTracking/AdminOperations.vue'))?.[1] ?? '';
+
+        expect(metrics).toContain("props.section === 'other_work'");
+        expect(metrics).toContain("props.section === 'breaks'");
+        expect(metrics).toContain("props.section === 'corrections'");
+        expect(metrics).toContain("props.section === 'work_sessions'");
+        expect(metrics).toContain('props.summary.records');
+        expect(metrics).toContain('props.summary.users');
+        expect(metrics).toContain('props.summary.otherWorkSeconds');
+        expect(userReport).toContain('<TimeTrackingReportMetrics :section="section" :summary="summary" />');
+        expect(adminOperations).toContain('<TimeTrackingReportMetrics');
+        expect(adminOperations).toContain('multi-user');
+        expect(userReport).not.toContain('<OperationalMetricTile');
+        expect(adminOperations).not.toContain('<OperationalMetricTile');
+    });
+
     it('does not use native browser alert or confirm APIs', () => {
         for (const [file, contents] of Object.entries({ ...vueFiles, ...tsFiles })) {
+            if (file.includes('/Guardrails/')) continue;
             expect(contents, file).not.toMatch(/\bwindow\.(alert|confirm)\s*\(/);
         }
     });
@@ -38,7 +79,7 @@ describe('shared UI guardrails', () => {
 
     it('keeps common technical filter and status labels human-readable', () => {
         const polishTranslations = translationFiles['../../../lang/pl.json'];
-        const dataTable = Object.entries(vueFiles).find(([file]) => file.endsWith('/DataTable.vue'))?.[1];
+        const statusCatalog = Object.entries(tsFiles).find(([file]) => file.endsWith('/Services/statusCatalog.ts'))?.[1];
 
         expect(polishTranslations).toBeDefined();
         expect(polishTranslations).not.toMatch(/Dowoln|Dowolnie/);
@@ -46,9 +87,10 @@ describe('shared UI guardrails', () => {
         expect(polishTranslations).toContain('"pages.admin.files.filters.not_applicable": "Nie wymaga obsługi"');
         expect(polishTranslations).toContain('"pages.admin.files.providers.fake": "Skaner testowy"');
         expect(polishTranslations).toContain('"pages.admin.managed_processes.filters.ok": "Nie wymaga obsługi"');
-        expect(dataTable).toBeDefined();
-        expect(dataTable).toContain("half_open: 'datatable.status.half_open'");
-        expect(dataTable).toContain("under_review: 'datatable.status.under_review'");
+        expect(statusCatalog).toBeDefined();
+        expect(statusCatalog).toContain("'half_open'");
+        expect(statusCatalog).toContain("'under_review'");
+        expect(statusCatalog).toContain('`datatable.status.${token}`');
     });
 
     it('keeps modal accessibility behavior wired in the shared host', () => {
@@ -90,25 +132,25 @@ describe('shared UI guardrails', () => {
     it('keeps application, user, manager, and admin side navigation separated', () => {
         const sidebar = Object.entries(vueFiles).find(([file]) => file.endsWith('/Sidebar.vue'))?.[1];
         const mobileNavigation = Object.entries(vueFiles).find(([file]) => file.endsWith('/MobileNavigation.vue'))?.[1];
+        const registry = Object.entries(tsFiles).find(([file]) => file.endsWith('/Navigation/registry.ts'))?.[1];
         const dashboard = Object.entries(vueFiles).find(([file]) => file.endsWith('/Pages/Dashboard.vue'))?.[1];
         const userPanel = Object.entries(vueFiles).find(([file]) => file.endsWith('/Pages/User/Panel.vue'))?.[1];
         const managerPanel = Object.entries(vueFiles).find(([file]) => file.endsWith('/Pages/Manager/Panel.vue'))?.[1];
         const userReport = Object.entries(vueFiles).find(([file]) => file.endsWith('/Pages/TimeTracking/UserReport.vue'))?.[1];
-        const managerReport = Object.entries(vueFiles).find(([file]) => file.endsWith('/Pages/TimeTracking/ManagerReport.vue'))?.[1];
+        const managerOperations = Object.entries(vueFiles).find(([file]) => file.endsWith('/Pages/TimeTracking/AdminOperations.vue'))?.[1];
         const notifications = Object.entries(vueFiles).find(([file]) => file.endsWith('/Pages/Notifications/Index.vue'))?.[1];
         const polishTranslations = JSON.parse(translationFiles['../../../lang/pl.json'] ?? '{}') as Record<string, string>;
         const englishTranslations = JSON.parse(translationFiles['../../../lang/en.json'] ?? '{}') as Record<string, string>;
 
         expect(sidebar).toBeDefined();
-        expect(sidebar).toContain("const workspaceItemsByMode: Record<Exclude<ShellMode, 'admin'>, NavigationNode[]>");
-        expect(sidebar).toContain('app: [appDashboard]');
-        expect(sidebar).toContain('user: [');
-        expect(sidebar).toContain('manager: [');
-        expect(sidebar).not.toContain('v-if="mode !== \'admin\'"');
+        expect(sidebar).toContain('groups: NavigationGroup[]');
         expect(mobileNavigation).toBeDefined();
-        expect(mobileNavigation).toContain("const workspaceItemsByMode: Record<Exclude<ShellMode, 'admin'>, MobileNavigationItem[]>");
-        expect(mobileNavigation).toContain('app: [appDashboard]');
-        expect(mobileNavigation).not.toContain('v-if="mode !== \'admin\'"');
+        expect(mobileNavigation).toContain('groups: NavigationGroup[]');
+        expect(registry).toBeDefined();
+        expect(registry).toContain('const groups: NavigationGroupDefinition[]');
+        expect(registry).toContain('const modeDefinitions:');
+        expect(sidebar).not.toContain("href: '/admin");
+        expect(mobileNavigation).not.toContain("href: '/admin");
         expect(dashboard).toBeDefined();
         expect(dashboard).toContain('<AppLayout :title="t(\'pages.dashboard.title\')" :title-icon="IconLayoutDashboard" />');
         expect(polishTranslations['pages.dashboard.title']).toBe(polishTranslations['navigation.app_dashboard']);
@@ -119,7 +161,7 @@ describe('shared UI guardrails', () => {
         expect(userReport).toContain('mode="user"');
         expect(notifications).toContain('mode="user"');
         expect(managerPanel).toContain('mode="manager"');
-        expect(managerReport).toContain('mode="manager"');
+        expect(managerOperations).toContain(':mode="surface"');
     });
 
     it('keeps page titles aligned with canonical navigation labels', () => {
@@ -139,14 +181,9 @@ describe('shared UI guardrails', () => {
             ['navigation.manager_dashboard', ['pages.manager_panel.title', 'pages.manager_panel.head_title']],
             ['navigation.notifications', ['pages.notifications.title', 'pages.notifications.head_title']],
             ['navigation.time_tracking', ['pages.time_tracking.user_report.title', 'pages.time_tracking.user_report.head_title']],
-            [
-                'navigation.time_tracking_manager',
-                ['pages.time_tracking.manager_report.title', 'pages.time_tracking.manager_report.head_title'],
-            ],
             ['navigation.admin_dashboard', ['pages.admin.dashboard.title']],
             ['navigation.users', ['pages.admin.users.index.title', 'pages.admin.users.index.head_title']],
             ['navigation.teams', ['pages.admin.teams.title', 'pages.admin.teams.head_title']],
-            ['navigation.managers', ['pages.admin.managers.title', 'pages.admin.managers.head_title']],
             ['navigation.roles', ['pages.admin.roles.title', 'pages.admin.roles.head_title']],
             ['navigation.permissions', ['pages.admin.permissions.title', 'pages.admin.permissions.head_title']],
             ['navigation.packages', ['pages.admin.packages.title', 'pages.admin.packages.head_title']],
@@ -304,7 +341,9 @@ describe('shared UI guardrails', () => {
         const filterPanel = Object.entries(vueFiles).find(([file]) => file.endsWith('/FilterPanel.vue'))?.[1];
 
         expect(filterPanel).toBeDefined();
-        expect(filterPanel).toContain("title: 'Filters'");
+        expect(filterPanel).toContain("t('filters.title')");
+        expect(filterPanel).toContain("t('filters.clear_all')");
+        expect(filterPanel).toContain("emit('clearFilter', filter.key)");
         expect(filterPanel).toContain('tone="neutral"');
         expect(filterPanel).toContain(':icon="IconRefresh"');
         expect(filterPanel).toContain(':icon="IconFilter"');
@@ -355,6 +394,55 @@ describe('shared UI guardrails', () => {
         }
     });
 
+    it('keeps every route-backed page on the accepted view contract', () => {
+        const intentionalEmptyDashboards = new Set(['/Pages/Dashboard.vue', '/Pages/Manager/Panel.vue']);
+
+        for (const [file, contents] of Object.entries(vueFiles)) {
+            if (!file.includes('/Pages/')) {
+                continue;
+            }
+
+            expect(contents, `${file}: every Inertia page must own its browser title.`).toContain('<Head');
+
+            if (file.endsWith('/Pages/Error.vue')) {
+                expect(contents, `${file}: the global error surface must not pretend to be an authenticated page.`).not.toContain(
+                    '<AppLayout',
+                );
+
+                continue;
+            }
+
+            const usesAppLayout = contents.includes('<AppLayout');
+            const usesAuthLayout = contents.includes('<AuthLayout');
+            const usesManagedProcessArea = contents.includes('<ManagedProcessArea');
+
+            expect(
+                Number(usesAppLayout) + Number(usesAuthLayout) + Number(usesManagedProcessArea),
+                `${file}: every page must select exactly one accepted shell.`,
+            ).toBe(1);
+
+            if (usesAppLayout) {
+                expect(contents, `${file}: authenticated page titles must be visible in AppLayout.`).toMatch(/<AppLayout[\s\S]*?:title=/);
+                expect(contents, `${file}: authenticated page titles must use the canonical route icon.`).toMatch(
+                    /<AppLayout[\s\S]*?:title-icon=/,
+                );
+
+                if (![...intentionalEmptyDashboards].some((suffix) => file.endsWith(suffix))) {
+                    expect(contents, `${file}: non-empty authenticated pages must use PageStack.`).toContain('<PageStack');
+                }
+            }
+
+            if (usesManagedProcessArea) {
+                expect(contents, `${file}: managed-process pages must use PageStack.`).toContain('<PageStack');
+            }
+
+            expect(contents, `${file}: route-backed pages must not own shell subsection navigation.`).not.toContain('ShellSubnavigation');
+            expect(contents, `${file}: route-backed pages must not own duplicate navigation definitions.`).not.toContain(
+                'NavigationGroupDefinition',
+            );
+        }
+    });
+
     it('keeps page action links and form footers on shared primitives', () => {
         const actionLink = Object.entries(vueFiles).find(([file]) => file.endsWith('/ActionLink.vue'))?.[1];
         const formActions = Object.entries(vueFiles).find(([file]) => file.endsWith('/FormActions.vue'))?.[1];
@@ -372,6 +460,55 @@ describe('shared UI guardrails', () => {
 
             expect(contents, file).not.toMatch(/<Link[\s\S]{0,240}class="inline-flex h-10/);
         }
+    });
+
+    it('keeps actions, DataTable responsibilities, and ordinary tables on the canonical contracts', () => {
+        const recordActions = Object.entries(vueFiles).find(([file]) => file.endsWith('/RecordActions.vue'))?.[1];
+        const dataTable = Object.entries(vueFiles).find(([file]) => file.endsWith('/DataTable.vue'))?.[1] ?? '';
+        const actionContract = Object.entries(tsFiles).find(([file]) => file.endsWith('/Types/actions.ts'))?.[1] ?? '';
+
+        expect(recordActions).toBeUndefined();
+        expect(dataTable.split('\n').length).toBeLessThan(1200);
+        expect(dataTable).toContain('DataTableSavedViewsMenu');
+        expect(dataTable).toContain('DataTableStateRow');
+        expect(dataTable).toContain('DataTablePagination');
+        expect(dataTable).toContain('createDataTableFormatting');
+        expect(dataTable).not.toContain('function bulkActionIcon');
+
+        for (const field of [
+            'semantic?',
+            'placement?',
+            'endpoint?',
+            'method?',
+            'navigation?',
+            'permission?',
+            'module?',
+            'available?',
+            'disabledReason?',
+            'confirm?',
+            'reason?',
+            'optimistic?',
+            'feedback?',
+            'refresh?',
+        ]) {
+            expect(actionContract).toContain(field);
+        }
+
+        for (const [file, contents] of Object.entries(vueFiles)) {
+            if (!file.includes('/Pages/')) continue;
+            expect(contents, `${file}: normal tabular data must use DataTable.`).not.toContain('<table');
+        }
+    });
+
+    it('keeps locale failures explicit and MFA requests in the shared network service', () => {
+        const translator = Object.entries(tsFiles).find(([file]) => file.endsWith('/Localization/translator.ts'))?.[1] ?? '';
+        const userPanel = Object.entries(vueFiles).find(([file]) => file.endsWith('/Pages/User/Panel.vue'))?.[1] ?? '';
+
+        expect(translator).toContain('[translation:${key}]');
+        expect(translator).not.toContain('humanize');
+        expect(userPanel).toContain('requestJson');
+        expect(userPanel).not.toContain('fetch(');
+        expect(userPanel).toContain('CodeViewer');
     });
 
     it('keeps shared surface cards and technical viewers on shared primitives', () => {
@@ -413,7 +550,10 @@ describe('shared UI guardrails', () => {
         expect(codeViewer).toContain("wrapLines ? 'whitespace-pre-wrap break-words' : 'whitespace-pre'");
         expect(uiState).toBeDefined();
         expect(uiState).toContain("size?: 'default' | 'compact'");
-        expect(uiState).toContain("variant: 'loading' | 'empty' | 'error' | 'no-results'");
+        expect(uiState).toContain("'loading-initial'");
+        expect(uiState).toContain("'permission-denied'");
+        expect(uiState).toContain("'module-unavailable'");
+        expect(uiState).toContain("'offline'");
         expect(noticeBanner).toBeDefined();
         expect(noticeBanner).toContain("tone?: 'info' | 'success' | 'warning' | 'danger'");
         expect(statusBadge).toBeDefined();
@@ -506,7 +646,7 @@ describe('shared UI guardrails', () => {
         const shellSubnavigation = Object.entries(vueFiles).find(([file]) => file.endsWith('/ShellSubnavigation.vue'))?.[1];
 
         expect(appLayout).toBeDefined();
-        expect(appLayout).toContain(':subnavigation="subnavigation"');
+        expect(appLayout).toContain(':subnavigation="navigation.subnavigation"');
         expect(topBar).toBeDefined();
         expect(topBar).toContain('ShellSubnavigation');
         expect(shellSubnavigation).toBeDefined();
@@ -517,49 +657,92 @@ describe('shared UI guardrails', () => {
         }
     });
 
+    it('keeps navigation definitions in one registry and the mobile drawer accessible', () => {
+        const appLayout = Object.entries(vueFiles).find(([file]) => file.endsWith('/Layouts/AppLayout.vue'))?.[1];
+        const sidebar = Object.entries(vueFiles).find(([file]) => file.endsWith('/Sidebar.vue'))?.[1];
+        const mobileNavigation = Object.entries(vueFiles).find(([file]) => file.endsWith('/MobileNavigation.vue'))?.[1];
+        const topBar = Object.entries(vueFiles).find(([file]) => file.endsWith('/TopBar.vue'))?.[1];
+        const registry = Object.entries(tsFiles).find(([file]) => file.endsWith('/Navigation/registry.ts'))?.[1];
+
+        expect(registry).toBeDefined();
+        expect(appLayout).toContain('resolveNavigationRegistry');
+        expect(sidebar).toContain('groups: NavigationGroup[]');
+        expect(mobileNavigation).toContain('groups: NavigationGroup[]');
+        expect(topBar).toContain('modeLinks?: ShellModeLink[]');
+
+        for (const [file, contents] of Object.entries(vueFiles)) {
+            if (
+                file.endsWith('/Layouts/AppLayout.vue') ||
+                file.endsWith('/TopBar.vue') ||
+                file.endsWith('/MobileNavigation.vue') ||
+                file.endsWith('/ShellSubnavigation.vue')
+            ) {
+                continue;
+            }
+
+            expect(contents, `${file}: pages select a registered section instead of defining shell subnavigation.`).not.toContain(
+                'ShellSubnavigationItem',
+            );
+            expect(contents, `${file}: pages must not pass local subnavigation arrays.`).not.toContain(':subnavigation=');
+        }
+
+        expect(mobileNavigation).toContain('role="dialog"');
+        expect(mobileNavigation).toContain('aria-modal="true"');
+        expect(mobileNavigation).toContain("event.key === 'Escape'");
+        expect(mobileNavigation).toContain("event.key !== 'Tab'");
+        expect(mobileNavigation).toContain('previouslyFocused?.focus()');
+        expect(mobileNavigation).toContain('overflow-y-auto');
+        expect(mobileNavigation).toContain('variant="stacked"');
+        expect(mobileNavigation).toContain(':aria-current="entry.active ? \'page\' : undefined"');
+    });
+
     it('keeps admin navigation limited to accepted entry points', () => {
         const sidebar = Object.entries(vueFiles).find(([file]) => file.endsWith('/Sidebar.vue'))?.[1];
         const mobileNavigation = Object.entries(vueFiles).find(([file]) => file.endsWith('/MobileNavigation.vue'))?.[1];
+        const registry = Object.entries(tsFiles).find(([file]) => file.endsWith('/Navigation/registry.ts'))?.[1];
 
         expect(sidebar).toBeDefined();
         expect(mobileNavigation).toBeDefined();
+        expect(registry).toBeDefined();
 
-        for (const contents of [sidebar, mobileNavigation]) {
-            expect(contents).toContain("canSeeAdminRoute('admin.system-status')");
-            expect(contents).toContain("canSeeAdminRoute('admin.users.index')");
-            expect(contents).toContain("canSeeAdminRoute('admin.teams.index')");
-            expect(contents).toContain("canSeeAdminRoute('admin.managed-processes.index')");
-            expect(contents).toContain("canSeeAdminRoute('admin.queues.index')");
-            expect(contents).toContain("canSeeAdminRoute('admin.files.index')");
-            expect(contents).toContain("canSeeAdminRoute('admin.privacy-retention.index')");
-            expect(contents).toContain("canSeeAdminRoute('admin.logs.index')");
-            expect(contents).toContain("canSeeAdminRoute('admin.feature-flags.index')");
-            expect(contents).toContain("canSeeAdminRoute('admin.rate-limits.index')");
-            expect(contents).toContain("canSeeAdminRoute('admin.pulse.view')");
-            expect(contents).toContain("canSeeAdminRoute('admin.telescope.view')");
-            expect(contents).toContain("t('navigation.group.identity_access')");
-            expect(contents).toContain("t('navigation.group.diagnostics')");
-            expect(contents).toContain("t('navigation.group.system_configuration')");
-            expect(contents).not.toContain("t('navigation.group.operations')");
-            expect(contents).toContain("t('navigation.pulse')");
-            expect(contents).toContain("t('navigation.telescope')");
-            expect(contents).toContain('external: true');
+        for (const route of [
+            'admin.system-status',
+            'admin.users.index',
+            'admin.teams.index',
+            'admin.managed-processes.index',
+            'admin.queues.index',
+            'admin.files.index',
+            'admin.privacy-retention.index',
+            'admin.logs.index',
+            'admin.feature-flags.index',
+            'admin.rate-limits.index',
+            'admin.pulse.view',
+            'admin.telescope.view',
+        ]) {
+            expect(registry).toContain(`'${route}'`);
         }
+
+        expect(registry).toContain("labelKey: 'navigation.group.identity_access'");
+        expect(registry).toContain("labelKey: 'navigation.group.diagnostics'");
+        expect(registry).toContain("labelKey: 'navigation.group.system_configuration'");
+        expect(registry).toContain('external: true');
     });
 
     it('does not use settings icons as generic table action fallbacks', () => {
-        const dataTable = Object.entries(vueFiles).find(([file]) => file.endsWith('/DataTable.vue'))?.[1];
+        const actionCatalog = Object.entries(tsFiles).find(([file]) => file.endsWith('/Services/actionCatalog.ts'))?.[1];
 
-        expect(dataTable).toBeDefined();
-        expect(dataTable).not.toContain('?? IconSettings');
-        expect(dataTable).not.toContain('return IconSettings;');
-        expect(dataTable).toContain('configure: IconSettings');
-        expect(dataTable).toContain('settings: IconSettings');
+        expect(actionCatalog).toBeDefined();
+        expect(actionCatalog).not.toContain('?? IconSettings');
+        expect(actionCatalog).not.toContain('return IconSettings;');
+        expect(actionCatalog).toContain("configure: 'update'");
+        expect(actionCatalog).toContain("settings: 'update'");
+        expect(actionCatalog).toContain('update: IconPencil');
     });
 
     it('keeps rebuilt Users workflow form buttons icon-led', () => {
         const userWorkflowSurfaces = Object.entries(vueFiles).filter(
-            ([file]) => file.includes('/Pages/Admin/Users/') || file.endsWith('/Components/Users/UserTeamAccessWorkflow.vue'),
+            ([file]) =>
+                file.includes('/Pages/Admin/Users/') || file.endsWith('/Components/Authorization/UserTeamAuthorizationWorkflow.vue'),
         );
 
         for (const [file, contents] of userWorkflowSurfaces) {
@@ -571,23 +754,31 @@ describe('shared UI guardrails', () => {
         }
     });
 
-    it('keeps rebuilt Users team access in one workflow module', () => {
+    it('keeps user-side and team-side authorization access in one workflow module', () => {
         const create = Object.entries(vueFiles).find(([file]) => file.endsWith('/Pages/Admin/Users/Create.vue'))?.[1];
         const edit = Object.entries(vueFiles).find(([file]) => file.endsWith('/Pages/Admin/Users/Edit.vue'))?.[1];
-        const workflow = Object.entries(vueFiles).find(([file]) => file.endsWith('/Users/UserTeamAccessWorkflow.vue'))?.[1];
+        const teamCreate = Object.entries(vueFiles).find(([file]) => file.endsWith('/Pages/Admin/Teams/Create.vue'))?.[1];
+        const teamEdit = Object.entries(vueFiles).find(([file]) => file.endsWith('/Pages/Admin/Teams/Edit.vue'))?.[1];
+        const workflow = Object.entries(vueFiles).find(([file]) => file.endsWith('/Authorization/UserTeamAuthorizationWorkflow.vue'))?.[1];
 
         expect(create).toBeDefined();
         expect(edit).toBeDefined();
         expect(workflow).toBeDefined();
 
-        expect(create).toContain('UserTeamAccessWorkflow');
-        expect(edit).toContain('UserTeamAccessWorkflow');
+        expect(teamCreate).toBeDefined();
+        expect(teamEdit).toBeDefined();
+        expect(create).toContain('UserTeamAuthorizationWorkflow');
+        expect(edit).toContain('UserTeamAuthorizationWorkflow');
+        expect(teamCreate).toContain('UserTeamAuthorizationWorkflow');
+        expect(teamEdit).toContain('UserTeamAuthorizationWorkflow');
         expect(create).not.toContain('sourceOptions');
         expect(edit).not.toContain('sourceOptions');
         expect(workflow).toContain('const sourceOptions = computed');
         expect(workflow).toContain('packageOptionsForAssignment');
         expect(workflow).toContain('copySourceOptionsForAssignment');
         expect(workflow).toContain("mode: 'create' | 'edit'");
+        expect(workflow).toContain("contextAxis?: 'user' | 'team'");
+        expect(workflow).toContain(':aria-expanded="expandedIndex === index"');
     });
 
     it('keeps rebuilt Users actions and sensitivity options shared', () => {
@@ -635,9 +826,6 @@ describe('shared UI guardrails', () => {
             '../Pages/Admin/ManagedProcesses/Schedules.vue',
             '../Pages/Admin/ManagedProcesses/Schedules/Create.vue',
             '../Pages/Admin/ManagedProcesses/Show.vue',
-            '../Pages/Admin/Managers/Create.vue',
-            '../Pages/Admin/Managers/Edit.vue',
-            '../Pages/Admin/Managers/Index.vue',
             '../Pages/Admin/Modules/Index.vue',
             '../Pages/Admin/Modules/Show.vue',
             '../Pages/Admin/Modules/TeamConfiguration.vue',
@@ -652,6 +840,7 @@ describe('shared UI guardrails', () => {
             '../Pages/Admin/Teams/Create.vue',
             '../Pages/Admin/Teams/Edit.vue',
             '../Pages/Admin/Teams/Index.vue',
+            '../Pages/Admin/Teams/Structure.vue',
             '../Pages/Admin/Users/Create.vue',
             '../Pages/Admin/Users/Edit.vue',
             '../Pages/Admin/Users/Index.vue',

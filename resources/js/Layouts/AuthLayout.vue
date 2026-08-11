@@ -91,7 +91,7 @@ const contentWidthClass = computed(() => {
                         <h2 class="mt-2 text-2xl font-semibold text-zinc-950 dark:text-zinc-50">{{ title }}</h2>
                         <p class="mt-2 text-sm leading-6 text-zinc-600 dark:text-zinc-300">{{ subtitle }}</p>
                     </div>
-                    <SurfaceCard v-if="frameContent" aria-label="Authentication form" body-class="sm:p-6">
+                    <SurfaceCard v-if="frameContent" :aria-label="t('auth.aria.form')" body-class="sm:p-6">
                         <slot />
                     </SurfaceCard>
                     <slot v-else />

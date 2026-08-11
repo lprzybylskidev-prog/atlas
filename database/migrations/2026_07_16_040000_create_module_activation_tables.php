@@ -2,8 +2,8 @@
 
 declare(strict_types=1);
 
-use App\Modules\Core\Identity\Application\Public\Persistence\IdentityDatabaseTable;
-use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
+use App\Modules\Core\Identity\Infrastructure\Persistence\TableNames\IdentityDatabaseTable;
+use App\Modules\Core\Teams\Infrastructure\Persistence\TableNames\TeamsDatabaseTable;
 use App\Shared\Infrastructure\Database\DatabaseSchema;
 use App\Shared\Infrastructure\Database\DatabaseTable;
 use Illuminate\Database\Migrations\Migration;
@@ -100,7 +100,7 @@ return new class extends Migration
     private function appendOnlyTriggerSql(string $triggerBaseName, string $table): string
     {
         return sprintf(
-            'create trigger %s_append_only before update or delete on %s for each row execute function prevent_audit_mutation()',
+            'create trigger %s_append_only before update or delete on %s for each row execute function core_audit.prevent_audit_mutation()',
             $triggerBaseName,
             $table,
         );

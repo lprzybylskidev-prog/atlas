@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Core\Teams\Presentation\Http\Controllers;
 
-use App\Modules\Core\Teams\Application\Public\Contracts\UserTeamMembershipManager;
+use App\Shared\Application\Teams\Contracts\UserTeamMembershipManager;
 use App\Shared\Presentation\Support\FlashMessage;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;

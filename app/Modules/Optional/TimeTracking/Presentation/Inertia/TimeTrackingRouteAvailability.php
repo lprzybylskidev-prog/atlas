@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace App\Modules\Optional\TimeTracking\Presentation\Inertia;
 
 use App\Modules\Core\Teams\Application\Public\Contracts\ManagerHierarchy;
-use App\Modules\Core\Teams\Application\Public\Contracts\TeamLookup;
 use App\Modules\Optional\TimeTracking\Application\Contracts\UserTeamTrackingSettings;
 use App\Modules\Optional\TimeTracking\Application\Permissions\TimeTrackingPermissionCatalog;
+use App\Shared\Application\Teams\Contracts\TeamLookup;
 use App\Shared\Presentation\Inertia\Contracts\InertiaRouteAvailabilityContributor;
 use Illuminate\Http\Request;
 
@@ -73,7 +73,6 @@ final readonly class TimeTrackingRouteAvailability implements InertiaRouteAvaila
             $routes = [
                 ...$routes,
                 TimeTrackingPermissionCatalog::MANAGER_PANEL,
-                TimeTrackingPermissionCatalog::MANAGER_REPORT,
                 TimeTrackingPermissionCatalog::MANAGER_WORK_TIME_SUMMARY,
                 TimeTrackingPermissionCatalog::MANAGER_WORK_TIME_OTHER_WORK,
                 TimeTrackingPermissionCatalog::MANAGER_WORK_TIME_WORK_SESSIONS,

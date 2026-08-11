@@ -2,11 +2,11 @@
 
 Canonical testing environment strategy for backend tests, frontend tests, browser tests, local development, and future CI.
 
-## Phase 28 target
+## Phase 28 closure state
 
-Current state: PHPUnit, Vitest, and Playwright lanes are documented and isolated. Phase 28 adds a foundation-level gate and guardrails for architecture graph validation, audit coverage, frontend contracts, migration/schema rules, seeders, bilingual mail rendering, container smoke, ClamAV/PDF smoke, worker smoke, and scheduler smoke.
+PHPUnit, Vitest, and Playwright lanes are documented and isolated. Bilingual mail has PL-first/EN-first rendering, plain-text, locale-precedence, notification-preference, translation-parity, and hardcoded-copy guardrails. Phase 28 added the aggregate foundation gate and production runtime smoke coverage.
 
-Target state: `composer check` remains the standard local gate; `composer check:foundation` becomes the full Phase 28 gate; Phase 30 later owns the final release gate after production deployment, backup, restore, and rollback are implemented.
+`composer check` remains the standard local gate. `composer check:foundation` is the full foundation gate and runs the standard gate, full Playwright, and the production runtime smoke sequentially. Phase 30 later owns the distinct final release gate after production deployment, backup, restore, and rollback are implemented.
 
 Tracked issue IDs: `P28-GUARD-001`, `P28-GUARD-002`, `P28-GUARD-003`.
 
@@ -71,7 +71,7 @@ Use `pnpm exec playwright install firefox` for a Firefox-only repair.
 
 `tools/testing/ensure-test-databases.sh` creates the local PostgreSQL databases required by PHPUnit and Playwright. Public Composer and pnpm commands call this setup where they need stateful test databases.
 
-For PHPUnit lanes, the same preparation script drops known Atlas-owned PostgreSQL schemas before migrations run. This keeps schema-qualified module tables isolated even when a previous interrupted test run left a non-`public` schema behind.
+For PHPUnit lanes, the same preparation script drops known Atlas-owned PostgreSQL schemas before migrations run. This keeps schema-qualified module tables isolated even when a previous interrupted test run left a non-`public` schema behind. The application also extends Laravel's explicit `db:wipe` operation to drop the exact schemas in `DatabaseSchema::all()`, so `migrate:fresh`, `RefreshDatabase`, demo reset, and Playwright work with `DB_SEARCH_PATH=public` and never need a broad Atlas schema search path.
 
 ## Deterministic Fixtures
 
@@ -84,16 +84,19 @@ Test seeders must:
 - avoid random credentials, random emails, or time-dependent data unless the test explicitly controls the clock;
 - belong to the module or shared testing support that owns the tested behavior;
 - stay separate from production-safe technical seeders and development-only demo seeders.
+- contain no direct persistence access; unavoidable deterministic aggregate setup belongs to an owner fixture builder registered only outside production and covered by invariant tests.
 
 `Database\Seeders\DatabaseSeeder` remains production-safe, installs starter roles and registered permissions, creates mandatory system bootstrap records such as the `Administration` team, synchronizes Administration module access, and does not create demo or e2e-only accounts.
 
 `Database\Seeders\DevelopmentBootstrapSeeder` may be used by local preview only to create the local administrator account. `Database\Seeders\DevelopmentDemoSeeder` owns development-only module demo data accepted by active phases, currently the TimeTracking demo scenario, and must stay separate from production-safe technical seeders. Permission-gated and module-gated Playwright scenarios use explicit e2e fixtures rather than the generic development account.
 
-`Database\Seeders\E2eVisibilitySeeder` is the deterministic fixture set for current Admin visibility coverage. It runs the production-safe technical seeders, then creates stable administrator and limited-user accounts, an active team, module states, and the exact records needed by the browser scenarios.
+`Database\Seeders\E2eVisibilitySeeder` is the deterministic fixture set for current Admin visibility coverage. It runs the production-safe technical seeders, then creates stable administrator and limited-user accounts, an active team, module states, and the exact records needed by the browser scenarios through public contracts and owner fixture builders. Repeated runs preserve public IDs and do not duplicate hierarchy, managed-process, import, row-error, or audit fixtures.
 
 ## Browser Coverage
 
 Playwright tests must import `test` and `expect` from `tests/e2e/support/test`.
+
+`tests/e2e/frontend-surfaces.spec.ts` is the route-backed UI migration sweep. It covers the static application and Admin index/create surfaces in Polish/light and English/dark variants, plus focused canonical-copy assertions for critical user, manager, authorization, team, user, and module workflows. Dynamic object and action paths remain covered by their focused workflow specs. The shared fixture makes console cleanliness, runtime errors, monitored request failures, and unexpected 4xx/5xx responses part of every sweep assertion.
 
 The shared fixture fails browser tests on:
 

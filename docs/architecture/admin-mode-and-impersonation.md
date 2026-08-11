@@ -10,7 +10,7 @@ Entering administrative mode requires reauthentication through the shared Larave
 
 Administrative mode stores session-bound timestamps for entry and last administrative activity. It expires after 30 minutes of administrative inactivity or 4 hours of absolute lifetime by default. These values are security settings.
 
-Fresh high-risk authorization is separate from administrative mode, uses the same password confirmation flow with MFA, lasts 5 minutes by default, and is required by high-risk Admin operations. Atlas classifies hard delete, irreversible anonymization, MFA reset, administrator permission changes, sensitive-account impersonation override, and closed-period TimeTracking corrections as high-risk administrative operations. Existing MFA reset and administrator role changes use the high-risk route middleware; future hard-delete, anonymization, and closed-period correction workflows must attach the same classified guard when introduced.
+Fresh high-risk authorization is separate from administrative mode, uses the same password confirmation flow with configured MFA enforcement, lasts 5 minutes by default, and is required by high-risk Admin operations. Atlas classifies hard delete, irreversible anonymization, MFA reset, administrator permission changes, sensitive-account impersonation override, and closed-period TimeTracking corrections as high-risk administrative operations. Every listed route uses the classified guard, and the pending operation key participates in the MFA requirement evaluation before confirmation.
 
 While the administrative session remains valid, multiple impersonations may be started without repeating password and MFA each time. High-risk operations may still require separate reauthentication.
 

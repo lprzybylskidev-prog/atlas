@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Core\Exports\Application\Lifecycle;
 
 use App\Modules\Core\Exports\Application\Enums\ReportExportStatus;
-use App\Modules\Core\Exports\Application\Public\Persistence\ExportsDatabaseTable;
+use App\Modules\Core\Exports\Infrastructure\Persistence\TableNames\ExportsDatabaseTable;
 use App\Modules\Core\Files\Application\Public\Contracts\FileLifecycle;
 use App\Shared\Application\DataLifecycle\Contracts\DataLifecycleParticipant;
 use App\Shared\Application\DataLifecycle\DataLifecycleBlocker;
@@ -24,6 +24,11 @@ final readonly class ExportDataLifecycleParticipant implements DataLifecyclePart
         private ConnectionInterface $db,
         private FileLifecycle $files,
     ) {}
+
+    public function key(): string
+    {
+        return 'exports';
+    }
 
     public function preview(DataLifecycleSubject $subject, DataLifecycleOperation $operation): DataLifecyclePreview
     {

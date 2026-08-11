@@ -4,24 +4,26 @@ declare(strict_types=1);
 
 namespace App\Modules\Core\Files\Infrastructure\Persistence;
 
-use App\Modules\Core\Audit\Application\Public\Contracts\AuditRecorder;
-use App\Modules\Core\Audit\Application\Public\DTOs\AuditEvent;
-use App\Modules\Core\Audit\Application\Public\Enums\SecurityAuditCategory;
 use App\Modules\Core\Files\Application\DTOs\MalwareScanResult;
 use App\Modules\Core\Files\Application\Enums\FileScanState;
-use App\Modules\Core\Files\Application\Public\Contracts\FileAvailability;
 use App\Modules\Core\Files\Application\Public\Contracts\FileLifecycle;
+use App\Modules\Core\Files\Application\Public\Contracts\FileLookup;
 use App\Modules\Core\Files\Application\Public\Contracts\FileMaintenance;
 use App\Modules\Core\Files\Application\Public\Contracts\FileStorage;
 use App\Modules\Core\Files\Application\Public\DTOs\DownloadableFile;
+use App\Modules\Core\Files\Application\Public\DTOs\FileDisplaySummary;
 use App\Modules\Core\Files\Application\Public\DTOs\FileLifecycleResult;
 use App\Modules\Core\Files\Application\Public\DTOs\FileMaintenanceResult;
 use App\Modules\Core\Files\Application\Public\DTOs\StoredFile;
 use App\Modules\Core\Files\Application\Public\Exceptions\FileNotAvailableForDownload;
-use App\Modules\Core\Files\Application\Public\Persistence\FilesDatabaseTable;
+use App\Modules\Core\Files\Infrastructure\Persistence\TableNames\FilesDatabaseTable;
 use App\Modules\Core\Files\Presentation\Jobs\ScanFileForMalware;
-use App\Modules\Core\Identity\Application\Public\Persistence\IdentityDatabaseTable;
-use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
+use App\Modules\Core\Identity\Application\Public\Contracts\UserLookup;
+use App\Shared\Application\Audit\Contracts\AuditRecorder;
+use App\Shared\Application\Audit\DTOs\AuditEvent;
+use App\Shared\Application\Audit\Enums\SecurityAuditCategory;
+use App\Shared\Application\Files\Contracts\FileAvailability;
+use App\Shared\Application\Teams\Contracts\TeamLookup;
 use Illuminate\Database\ConnectionInterface;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Config;
@@ -29,11 +31,13 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
 
-final readonly class DatabaseFileStorage implements FileAvailability, FileLifecycle, FileMaintenance, FileStorage
+final readonly class DatabaseFileStorage implements FileAvailability, FileLifecycle, FileLookup, FileMaintenance, FileStorage
 {
     public function __construct(
         private ConnectionInterface $db,
         private AuditRecorder $audit,
+        private UserLookup $users,
+        private TeamLookup $teams,
     ) {}
 
     public function storeUpload(UploadedFile $file, ?int $actorId = null, ?int $teamId = null, array $metadata = []): StoredFile
@@ -165,6 +169,36 @@ final readonly class DatabaseFileStorage implements FileAvailability, FileLifecy
         return $this->cleanDownloadFile($publicId, $actorId, $teamId)->path;
     }
 
+    public function displaySummariesForInternalIds(array $fileIds): array
+    {
+        if ($fileIds === []) {
+            return [];
+        }
+
+        $summaries = [];
+
+        foreach ($this->db->table(FilesDatabaseTable::FILE_OBJECTS)
+            ->whereIn('id', array_values(array_unique($fileIds)))
+            ->get(['id', 'public_id', 'original_name']) as $row) {
+            $id = is_numeric($row->id ?? null) ? (int) $row->id : null;
+            $publicId = $this->string($row->public_id ?? null);
+
+            if ($id === null || $publicId === null) {
+                continue;
+            }
+
+            $summaries[$id] = new FileDisplaySummary(
+                internalId: $id,
+                publicId: $publicId,
+                originalName: $this->string($row->original_name ?? null) ?? $publicId,
+            );
+        }
+
+        ksort($summaries);
+
+        return $summaries;
+    }
+
     public function clean(string $publicId): bool
     {
         return $this->db->table(FilesDatabaseTable::FILE_OBJECTS)
@@ -266,7 +300,7 @@ final readonly class DatabaseFileStorage implements FileAvailability, FileLifecy
                 'updated_at' => now(),
             ]);
 
-            $this->recordAudit('file.scan_completed', $state === FileScanState::Clean ? 'succeeded' : 'blocked', null, null, $this->string($row->public_id ?? null), [
+            $this->recordAudit('file.scan_completed', $state === FileScanState::Clean ? 'succeeded' : 'rejected', null, null, $this->string($row->public_id ?? null), [
                 'provider' => $result->provider,
                 'result' => $result->result->value,
                 'checksum_sha256' => $result->checksumSha256,
@@ -277,12 +311,20 @@ final readonly class DatabaseFileStorage implements FileAvailability, FileLifecy
 
     public function markScanFailed(int $fileObjectId): void
     {
-        $this->db->table(FilesDatabaseTable::FILE_OBJECTS)->where('id', $fileObjectId)->update([
-            'scan_state' => FileScanState::Failed->value,
-            'scan_state_changed_at' => now(),
-            'available_at' => null,
-            'updated_at' => now(),
-        ]);
+        $this->db->transaction(function () use ($fileObjectId): void {
+            $row = $this->db->table(FilesDatabaseTable::FILE_OBJECTS)->where('id', $fileObjectId)->lockForUpdate()->first();
+            if (! is_object($row)) {
+                return;
+            }
+
+            $this->db->table(FilesDatabaseTable::FILE_OBJECTS)->where('id', $fileObjectId)->update([
+                'scan_state' => FileScanState::Failed->value,
+                'scan_state_changed_at' => now(),
+                'available_at' => null,
+                'updated_at' => now(),
+            ]);
+            $this->recordAudit('file.scan_failed', 'failed', null, null, $this->string($row->public_id ?? null));
+        });
     }
 
     /**
@@ -293,6 +335,8 @@ final readonly class DatabaseFileStorage implements FileAvailability, FileLifecy
         $row = $this->db->table(FilesDatabaseTable::FILE_OBJECTS)->where('public_id', $publicId)->whereNull('deleted_at')->first();
 
         if (! is_object($row)) {
+            $this->recordAudit('file.rescan_requested', 'rejected', $actorId, $teamId, null, $metadata + ['requested_file_public_id' => $publicId]);
+
             return false;
         }
 
@@ -343,6 +387,8 @@ final readonly class DatabaseFileStorage implements FileAvailability, FileLifecy
         $row = $this->db->table(FilesDatabaseTable::FILE_OBJECTS)->where('public_id', $publicId)->whereNull('deleted_at')->first();
 
         if (! is_object($row)) {
+            $this->recordAudit('file.delete_requested', 'rejected', $actorId, $teamId, null, ['requested_file_public_id' => $publicId, 'reason' => $reason]);
+
             return new FileLifecycleResult($publicId, 'delete', false);
         }
 
@@ -426,6 +472,12 @@ final readonly class DatabaseFileStorage implements FileAvailability, FileLifecy
         $row = $this->db->table(FilesDatabaseTable::FILE_OBJECTS)->where('public_id', $publicId)->whereNull('deleted_at')->first();
 
         if (! is_object($row) || trim($purpose) === '') {
+            $this->recordAudit($auditAction, 'rejected', $actorId, $teamId, is_object($row) ? $publicId : null, [
+                'requested_file_public_id' => $publicId,
+                'purpose' => $purpose,
+                'failure_code' => is_object($row) ? 'retention_purpose_missing' : 'retention_source_not_found',
+            ]);
+
             return new FileLifecycleResult($publicId, $operation, false);
         }
 
@@ -436,10 +488,33 @@ final readonly class DatabaseFileStorage implements FileAvailability, FileLifecy
         $copyPath = sprintf('%s/%s/%s.%s', $pathPrefix, now('UTC')->format('Y/m/d'), Str::lower((string) Str::ulid()), $extension);
 
         if (! Storage::disk($disk)->exists($sourcePath)) {
+            $this->recordAudit($auditAction, 'failed', $actorId, $teamId, $publicId, [
+                'purpose' => $purpose,
+                'failure_code' => 'retention_source_missing',
+            ]);
+
             return new FileLifecycleResult($publicId, $operation, false);
         }
 
-        Storage::disk($disk)->copy($sourcePath, $copyPath);
+        try {
+            $copied = Storage::disk($disk)->copy($sourcePath, $copyPath);
+        } catch (\Throwable $exception) {
+            $this->recordAudit($auditAction, 'failed', $actorId, $teamId, $publicId, [
+                'purpose' => $purpose,
+                'failure_code' => 'retention_copy_failed',
+            ]);
+
+            throw $exception;
+        }
+
+        if (! $copied) {
+            $this->recordAudit($auditAction, 'failed', $actorId, $teamId, $publicId, [
+                'purpose' => $purpose,
+                'failure_code' => 'retention_copy_failed',
+            ]);
+
+            return new FileLifecycleResult($publicId, $operation, false);
+        }
 
         $this->db->table(FilesDatabaseTable::FILE_OBJECTS)->insert([
             'public_id' => $copyPublicId,
@@ -492,7 +567,7 @@ final readonly class DatabaseFileStorage implements FileAvailability, FileLifecy
         $this->audit->record(new AuditEvent(
             module: 'files',
             action: 'file.temporary_pruned',
-            result: $failed === 0 ? 'succeeded' : 'partial',
+            result: $failed === 0 ? 'succeeded' : 'failed',
             source: 'system',
             metadata: [
                 'deleted_temporary_files' => $deleted,
@@ -592,8 +667,8 @@ final readonly class DatabaseFileStorage implements FileAvailability, FileLifecy
      */
     private function recordAudit(string $action, string $result, ?int $actorId, ?int $teamId, ?string $filePublicId, array $metadata = []): void
     {
-        $actorPublicId = $actorId === null ? null : $this->publicId(IdentityDatabaseTable::USERS, $actorId);
-        $teamPublicId = $teamId === null ? null : $this->publicId(TeamsDatabaseTable::TEAMS, $teamId);
+        $actorPublicId = $actorId === null ? null : $this->users->publicIdForInternalId($actorId);
+        $teamPublicId = $teamId === null ? null : $this->teams->activePublicIdForInternalId($teamId);
 
         $this->audit->record(new AuditEvent(
             module: 'files',
@@ -610,13 +685,6 @@ final readonly class DatabaseFileStorage implements FileAvailability, FileLifecy
             security: true,
             securityCategory: SecurityAuditCategory::Files,
         ));
-    }
-
-    private function publicId(string $table, int $id): ?string
-    {
-        $value = $this->db->table($table)->where('id', $id)->value('public_id');
-
-        return is_string($value) ? $value : null;
     }
 
     /**

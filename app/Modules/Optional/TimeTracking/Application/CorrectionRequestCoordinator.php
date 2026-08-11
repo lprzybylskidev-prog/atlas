@@ -164,6 +164,7 @@ final readonly class CorrectionRequestCoordinator
             requestId: $requestId,
             actorUserId: $actorUserId,
             reason: $reason,
+            before: ['status' => 'pending'],
             after: ['occurred_at' => $occurredAt->format(DateTimeImmutable::ATOM)],
         );
     }

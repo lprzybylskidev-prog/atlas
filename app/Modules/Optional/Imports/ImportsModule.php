@@ -24,13 +24,7 @@ final class ImportsModule implements ModuleDefinition
     public function requiredDependencies(): array
     {
         return [
-            new ModuleKey('identity'),
-            new ModuleKey('authorization'),
-            new ModuleKey('teams'),
-            new ModuleKey('audit'),
-            new ModuleKey('notifications'),
             new ModuleKey('files'),
-            new ModuleKey('integrations'),
             new ModuleKey('managed_processes'),
         ];
     }
@@ -55,17 +49,7 @@ final class ImportsModule implements ModuleDefinition
         return true;
     }
 
-    public function integrations(): array
-    {
-        return [];
-    }
-
     public function healthChecks(): array
-    {
-        return ['imports'];
-    }
-
-    public function frontendEntrypoints(): array
     {
         return [];
     }

@@ -4,12 +4,12 @@ import { IconUsersGroup } from '@tabler/icons-vue';
 import { computed } from 'vue';
 
 import TeamForm from '../../../Components/Teams/TeamForm.vue';
-import TeamMemberAccessWorkflow, { type TeamMemberAccessAssignment } from '../../../Components/Teams/TeamMemberAccessWorkflow.vue';
+import UserTeamAuthorizationWorkflow from '../../../Components/Authorization/UserTeamAuthorizationWorkflow.vue';
 import PageStack from '../../../Components/PageStack.vue';
 import AppLayout from '../../../Layouts/AppLayout.vue';
 import { useTranslator } from '../../../Localization/translator';
 import type { FormSelectOption } from '../../../Components/Form/FormSelect.vue';
-import type { AuthorizationAssignmentOption } from '../../../Types/user-team-access';
+import type { AuthorizationAssignmentOption, UserTeamAccessAssignment } from '../../../Types/user-team-access';
 
 const props = defineProps<{
     userOptions: FormSelectOption[];
@@ -34,7 +34,7 @@ const form = useForm({
     session_max_lifetime_minutes: '',
     break_daily_limit_minutes: '',
     break_maximum_single_minutes: '',
-    user_assignments: [] as TeamMemberAccessAssignment[],
+    user_assignments: [] as UserTeamAccessAssignment[],
 });
 const policyDefaults = computed(() => ({
     inactivityTimeoutMinutes:
@@ -57,7 +57,11 @@ function addUser(userPublicId: string): void {
     }
 
     form.user_assignments.push({
+        team_public_id: '',
         user_public_id: userPublicId,
+        source: 'manual',
+        onboarding_package: '',
+        copy_authorization_from_user: '',
         role_names: [],
         direct_permission_names: [],
         inactivity_timeout_minutes: '',
@@ -93,20 +97,25 @@ function submit(): void {
                 :session-defaults="sessionDefaults"
                 :break-defaults="breakDefaults"
                 :processing="form.processing"
+                :dirty="form.isDirty"
                 :submit-label="t('pages.admin.teams.actions.create')"
                 :processing-label="t('pages.admin.teams.actions.creating')"
                 back-href="/admin/teams"
                 @submit="submit"
             >
-                <TeamMemberAccessWorkflow
+                <UserTeamAuthorizationWorkflow
                     mode="create"
+                    context-axis="team"
                     :assignments="form.user_assignments"
                     :user-options="props.userOptions"
+                    :team-options="[]"
+                    :packages="[]"
+                    :copy-sources="[]"
                     :role-options="props.roleOptions"
                     :permission-options="props.permissionOptions"
                     :role-permission-map="props.rolePermissionMap"
                     :session-defaults="sessionDefaults"
-                    :policy-defaults="policyDefaults"
+                    :team-policy-defaults="{ '': policyDefaults }"
                     :processing="form.processing"
                     :root-error="form.errors.user_assignments"
                     :errors="form.errors"

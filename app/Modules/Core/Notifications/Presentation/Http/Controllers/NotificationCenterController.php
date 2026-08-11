@@ -7,8 +7,8 @@ namespace App\Modules\Core\Notifications\Presentation\Http\Controllers;
 use App\Modules\Core\Notifications\Application\Public\Contracts\NotificationInbox;
 use App\Modules\Core\Notifications\Application\Public\DTOs\NotificationSummary;
 use App\Modules\Core\Notifications\Presentation\Support\NotificationTextLocalizer;
-use App\Shared\Application\Tables\AdminTableDefinitions;
 use App\Shared\Application\Tables\ArrayTableProcessor;
+use App\Shared\Application\Tables\RegisteredTables;
 use App\Shared\Application\Tables\TableRequestContext;
 use App\Shared\Application\Tables\TableSavedViewService;
 use App\Shared\Application\Tables\TableState;
@@ -21,13 +21,13 @@ final readonly class NotificationCenterController
     public function __construct(
         private NotificationInbox $notifications,
         private ArrayTableProcessor $tables,
-        private TableSavedViewService $views,
         private TableRequestContext $context,
+        private TableSavedViewService $views,
     ) {}
 
     public function __invoke(Request $request): Response
     {
-        $definition = AdminTableDefinitions::get(AdminTableDefinitions::NOTIFICATIONS);
+        $definition = RegisteredTables::get(RegisteredTables::NOTIFICATIONS);
         $state = TableState::fromRequest($request, $definition);
         [$userId, $teamId] = $this->context->userTeam($request);
         $userPublicId = data_get($request->user(), 'public_id');
@@ -63,7 +63,7 @@ final readonly class NotificationCenterController
 
         return Inertia::render('Notifications/Index', [
             'notificationRows' => $result->rows,
-            'summary' => $this->summary($allRows, $rows),
+            'summary' => $this->summary($result->filteredRows),
             'filterOptions' => [
                 'severities' => $this->uniqueValues($allRows, 'severity'),
                 'types' => $this->uniqueValues($allRows, 'type'),
@@ -126,20 +126,19 @@ final readonly class NotificationCenterController
     }
 
     /**
-     * @param  list<array<string, mixed>>  $allRows
-     * @param  list<array<string, mixed>>  $visibleRows
+     * @param  list<array<string, mixed>>  $rows
      * @return array{total: int, visible: int, unread: int, read: int, warnings: int, danger: int, withLinks: int}
      */
-    private function summary(array $allRows, array $visibleRows): array
+    private function summary(array $rows): array
     {
         return [
-            'total' => count($allRows),
-            'visible' => count($visibleRows),
-            'unread' => count(array_filter($allRows, static fn (array $row): bool => ($row['read'] ?? false) === false)),
-            'read' => count(array_filter($allRows, static fn (array $row): bool => ($row['read'] ?? false) === true)),
-            'warnings' => count(array_filter($allRows, static fn (array $row): bool => ($row['severity'] ?? '') === 'warning')),
-            'danger' => count(array_filter($allRows, static fn (array $row): bool => in_array($row['severity'] ?? '', ['critical', 'error'], true))),
-            'withLinks' => count(array_filter($allRows, static fn (array $row): bool => trim(self::stringValue($row['deepLinkUrl'] ?? '')) !== '')),
+            'total' => count($rows),
+            'visible' => count($rows),
+            'unread' => count(array_filter($rows, static fn (array $row): bool => ($row['read'] ?? false) === false)),
+            'read' => count(array_filter($rows, static fn (array $row): bool => ($row['read'] ?? false) === true)),
+            'warnings' => count(array_filter($rows, static fn (array $row): bool => ($row['severity'] ?? '') === 'warning')),
+            'danger' => count(array_filter($rows, static fn (array $row): bool => in_array($row['severity'] ?? '', ['critical', 'error'], true))),
+            'withLinks' => count(array_filter($rows, static fn (array $row): bool => trim(self::stringValue($row['deepLinkUrl'] ?? '')) !== '')),
         ];
     }
 

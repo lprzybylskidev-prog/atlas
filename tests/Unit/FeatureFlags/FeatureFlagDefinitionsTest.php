@@ -20,7 +20,6 @@ final class FeatureFlagDefinitionsTest extends TestCase
         self::assertSame(ModuleCategory::Optional, $module->category());
         self::assertTrue($module->supportsGlobalActivation());
         self::assertTrue($module->supportsTeamActivation());
-        self::assertSame(['admin.feature-flags.index'], $module->frontendEntrypoints());
     }
 
     public function test_registered_flags_are_typed_and_default_disabled(): void

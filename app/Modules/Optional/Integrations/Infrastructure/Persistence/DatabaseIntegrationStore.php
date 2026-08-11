@@ -4,11 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Optional\Integrations\Infrastructure\Persistence;
 
-use App\Modules\Core\Audit\Application\Public\Contracts\AuditRecorder;
-use App\Modules\Core\Audit\Application\Public\DTOs\AuditEvent;
-use App\Modules\Core\Audit\Application\Public\Enums\SecurityAuditCategory;
-use App\Modules\Core\Identity\Application\Public\Persistence\IdentityDatabaseTable;
-use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
+use App\Modules\Core\Identity\Application\Public\Contracts\UserLookup;
 use App\Modules\Optional\Integrations\Application\Exceptions\ExternalApiAccessDisabled;
 use App\Modules\Optional\Integrations\Application\Public\Contracts\ExternalApiAccessPolicy;
 use App\Modules\Optional\Integrations\Application\Public\Contracts\ExternalIdMappingStore;
@@ -16,7 +12,11 @@ use App\Modules\Optional\Integrations\Application\Public\Contracts\IntegrationId
 use App\Modules\Optional\Integrations\Application\Public\Contracts\SynchronizationHistory;
 use App\Modules\Optional\Integrations\Application\Public\DTOs\ExternalCredentialPolicy;
 use App\Modules\Optional\Integrations\Application\Public\DTOs\ExternalIdMapping;
-use App\Modules\Optional\Integrations\Application\Public\Persistence\IntegrationsDatabaseTable;
+use App\Modules\Optional\Integrations\Infrastructure\Persistence\TableNames\IntegrationsDatabaseTable;
+use App\Shared\Application\Audit\Contracts\AuditRecorder;
+use App\Shared\Application\Audit\DTOs\AuditEvent;
+use App\Shared\Application\Audit\Enums\SecurityAuditCategory;
+use App\Shared\Application\Teams\Contracts\TeamLookup;
 use Illuminate\Database\ConnectionInterface;
 use Illuminate\Support\Facades\Config;
 
@@ -25,6 +25,8 @@ final readonly class DatabaseIntegrationStore implements ExternalApiAccessPolicy
     public function __construct(
         private ConnectionInterface $db,
         private AuditRecorder $audit,
+        private UserLookup $users,
+        private TeamLookup $teams,
     ) {}
 
     public function assertExternalApiEnabled(ExternalCredentialPolicy $policy, string $moduleKey, string $scope): void
@@ -144,8 +146,8 @@ final readonly class DatabaseIntegrationStore implements ExternalApiAccessPolicy
      */
     private function audit(string $action, string $result, ?int $actorId, ?int $teamId, string $entityPublicId, array $context = []): void
     {
-        $actorPublicId = $actorId === null ? null : $this->publicId(IdentityDatabaseTable::USERS, $actorId);
-        $teamPublicId = $teamId === null ? null : $this->publicId(TeamsDatabaseTable::TEAMS, $teamId);
+        $actorPublicId = $actorId === null ? null : $this->users->publicIdForInternalId($actorId);
+        $teamPublicId = $teamId === null ? null : $this->teams->activePublicIdForInternalId($teamId);
 
         $this->audit->record(new AuditEvent(
             module: 'integrations',
@@ -162,13 +164,6 @@ final readonly class DatabaseIntegrationStore implements ExternalApiAccessPolicy
             security: true,
             securityCategory: SecurityAuditCategory::Integrations,
         ));
-    }
-
-    private function publicId(string $table, int $id): ?string
-    {
-        $value = $this->db->table($table)->where('id', $id)->value('public_id');
-
-        return is_scalar($value) ? (string) $value : null;
     }
 
     /**

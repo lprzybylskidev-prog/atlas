@@ -4,17 +4,14 @@ declare(strict_types=1);
 
 namespace App\Modules\Core\Identity\Presentation\Http\Controllers;
 
-use App\Modules\Core\Audit\Application\Public\Contracts\AuditRecorder;
-use App\Modules\Core\Audit\Application\Public\DTOs\AuditEvent;
-use App\Modules\Core\Audit\Application\Public\Enums\SecurityAuditCategory;
 use App\Modules\Core\Identity\Application\Public\Contracts\UserSessionRegistry;
-use App\Modules\Core\Identity\Application\Public\Persistence\IdentityDatabaseTable;
-use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
+use App\Shared\Application\Audit\Contracts\AuditRecorder;
+use App\Shared\Application\Audit\DTOs\AuditEvent;
+use App\Shared\Application\Audit\Enums\SecurityAuditCategory;
+use App\Shared\Application\Teams\Contracts\UserTeamMembershipManager;
 use App\Shared\Presentation\Support\FlashMessage;
-use Illuminate\Database\Query\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -24,6 +21,7 @@ final readonly class ActiveTeamController
     public function __construct(
         private AuditRecorder $audit,
         private UserSessionRegistry $sessions,
+        private UserTeamMembershipManager $memberships,
     ) {}
 
     public function select(Request $request): Response|RedirectResponse
@@ -83,26 +81,18 @@ final readonly class ActiveTeamController
 
         $teams = [];
 
-        foreach (DB::table(TeamsDatabaseTable::TEAM_USER_ASSIGNMENTS)
-            ->join(IdentityDatabaseTable::USERS, 'team_user_assignments.user_id', '=', 'users.id')
-            ->join(TeamsDatabaseTable::TEAMS, 'team_user_assignments.team_id', '=', 'teams.id')
-            ->where('users.public_id', $userPublicId)
-            ->where('teams.is_active', true)
-            ->where(static function (Builder $query): void {
-                $query->whereNull('team_user_assignments.valid_from')->orWhere('team_user_assignments.valid_from', '<=', now());
-            })
-            ->where(static function (Builder $query): void {
-                $query->whereNull('team_user_assignments.valid_to')->orWhere('team_user_assignments.valid_to', '>', now());
-            })
-            ->orderBy('teams.display_name')
-            ->orderBy('teams.name')
-            ->get(['teams.public_id', 'teams.name', 'teams.display_name'])
-            ->all() as $team) {
+        foreach ($this->memberships->activeMembershipsForUser($userPublicId) as $team) {
+            if (! $team->teamActive) {
+                continue;
+            }
+
             $teams[] = [
-                'publicId' => self::stringValue($team, 'public_id'),
-                'name' => self::teamDisplayName($team),
+                'publicId' => $team->teamPublicId,
+                'name' => $team->teamName,
             ];
         }
+
+        usort($teams, static fn (array $first, array $second): int => strcmp($first['name'], $second['name']));
 
         return $teams;
     }
@@ -123,20 +113,6 @@ final readonly class ActiveTeamController
         throw ValidationException::withMessages([
             'team_public_id' => __('validation.custom.team_public_id.available'),
         ]);
-    }
-
-    private static function stringValue(object $record, string $property): string
-    {
-        $value = $record->{$property} ?? '';
-
-        return is_scalar($value) ? (string) $value : '';
-    }
-
-    private static function teamDisplayName(object $record): string
-    {
-        $displayName = self::stringValue($record, 'display_name');
-
-        return $displayName !== '' ? $displayName : self::stringValue($record, 'name');
     }
 
     private function recordSwitchAudit(Request $request, ?string $before, string $after): void

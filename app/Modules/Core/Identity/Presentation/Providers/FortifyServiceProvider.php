@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace App\Modules\Core\Identity\Presentation\Providers;
 
-use App\Modules\Core\Audit\Application\Public\Contracts\AuditActorContextProvider;
-use App\Modules\Core\Audit\Application\Public\Enums\SecurityAuditCategory;
 use App\Modules\Core\Identity\Application\Admin\AdministrativeSessionManager;
 use App\Modules\Core\Identity\Application\Admin\CurrentUserStepUpAuthenticator;
 use App\Modules\Core\Identity\Application\Admin\ImpersonationManager;
@@ -13,12 +11,15 @@ use App\Modules\Core\Identity\Application\Admin\ImpersonationSimulationStore;
 use App\Modules\Core\Identity\Application\Contracts\PasswordHistoryRepository;
 use App\Modules\Core\Identity\Application\Contracts\SuspiciousLoginNotifier;
 use App\Modules\Core\Identity\Application\Exports\AdminRateLimitPoliciesDataTableExportProvider;
+use App\Modules\Core\Identity\Application\Lifecycle\UserAccountDataLifecycleParticipant;
 use App\Modules\Core\Identity\Application\LoginProtection\LoginAttemptProtection;
+use App\Modules\Core\Identity\Application\Mfa\MfaRequirementEvaluator;
 use App\Modules\Core\Identity\Application\PasswordExpiryPolicy;
 use App\Modules\Core\Identity\Application\Public\Contracts\HighRiskAdministrativeAuthorization;
 use App\Modules\Core\Identity\Application\Public\Contracts\ImpersonationEligibilityChecker;
 use App\Modules\Core\Identity\Application\Public\Contracts\ImpersonationSessionState;
 use App\Modules\Core\Identity\Application\Public\Contracts\ImpersonationSimulationRecorder;
+use App\Modules\Core\Identity\Application\Public\Contracts\MfaRequirementChecker;
 use App\Modules\Core\Identity\Application\Public\Contracts\SecurityAuditRecorder;
 use App\Modules\Core\Identity\Application\Public\Contracts\UserCredentialAccountDirectory;
 use App\Modules\Core\Identity\Application\Public\Contracts\UserCredentialAccountStatusManager;
@@ -26,9 +27,11 @@ use App\Modules\Core\Identity\Application\Public\Contracts\UserCredentialAccount
 use App\Modules\Core\Identity\Application\Public\Contracts\UserLookup;
 use App\Modules\Core\Identity\Application\Public\Contracts\UserPasswordExpiration;
 use App\Modules\Core\Identity\Application\Public\Contracts\UserPasswordUpdater;
+use App\Modules\Core\Identity\Application\Public\Contracts\UserProfileAvatarUpdater;
 use App\Modules\Core\Identity\Application\Public\Contracts\UserSessionLimitResolver;
 use App\Modules\Core\Identity\Application\Public\Contracts\UserSessionRegistry;
 use App\Modules\Core\Identity\Application\Public\Contracts\UserStepUpAuthentication;
+use App\Modules\Core\Identity\Application\Public\Contracts\VerifiedUserFixtureBuilder;
 use App\Modules\Core\Identity\Application\Public\DTOs\SecurityAuditEvent;
 use App\Modules\Core\Identity\Application\RateLimiting\RateLimitKeyBuilder;
 use App\Modules\Core\Identity\Application\RateLimiting\RateLimitPolicyCatalog;
@@ -36,13 +39,14 @@ use App\Modules\Core\Identity\Application\RateLimiting\RateLimitPolicyRegistrar;
 use App\Modules\Core\Identity\Application\RateLimiting\RateLimitRejectionRecorder;
 use App\Modules\Core\Identity\Application\Sessions\SessionLimitResolver;
 use App\Modules\Core\Identity\Application\Sessions\SingleSessionLoginGuard;
-use App\Modules\Core\Identity\Application\WebAuthn\Contracts\WebAuthnCredentialRepository;
+use App\Modules\Core\Identity\Infrastructure\Diagnostics\IdentityModuleOperationalDiagnostics;
+use App\Modules\Core\Identity\Infrastructure\Fixtures\EloquentVerifiedUserFixtureBuilder;
 use App\Modules\Core\Identity\Infrastructure\Notifications\UserSuspiciousLoginNotifier;
 use App\Modules\Core\Identity\Infrastructure\Persistence\DatabasePasswordHistoryRepository;
-use App\Modules\Core\Identity\Infrastructure\Persistence\DatabaseWebAuthnCredentialRepository;
 use App\Modules\Core\Identity\Infrastructure\Persistence\EloquentUserCredentialAccountDirectory;
 use App\Modules\Core\Identity\Infrastructure\Persistence\EloquentUserCredentialAccountStatusManager;
 use App\Modules\Core\Identity\Infrastructure\Persistence\EloquentUserCredentialAccountStore;
+use App\Modules\Core\Identity\Infrastructure\Persistence\EloquentUserProfileAvatarUpdater;
 use App\Modules\Core\Identity\Infrastructure\Persistence\RedisUserSessionRegistry;
 use App\Modules\Core\Identity\Infrastructure\Persistence\User;
 use App\Modules\Core\Identity\Infrastructure\Runtime\SessionAuditActorContextProvider;
@@ -50,8 +54,12 @@ use App\Modules\Core\Identity\Presentation\Fortify\Actions\CreateNewUser;
 use App\Modules\Core\Identity\Presentation\Fortify\Actions\ResetUserPassword;
 use App\Modules\Core\Identity\Presentation\Fortify\Actions\UpdateUserPassword;
 use App\Modules\Core\Identity\Presentation\Fortify\Actions\UpdateUserProfileInformation;
+use App\Modules\Core\Identity\Presentation\Http\Middleware\RequireHighRiskAdministrativeAuthorization;
 use App\Modules\Core\Identity\Presentation\Inertia\IdentityInertiaData;
 use App\Modules\Core\Identity\Presentation\Inertia\IdentityRouteAvailability;
+use App\Shared\Application\Audit\Contracts\AuditActorContextProvider;
+use App\Shared\Application\Audit\Enums\SecurityAuditCategory;
+use App\Shared\Application\Security\Contracts\AdministrativeModeState;
 use Illuminate\Auth\Events\Logout;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Event;
@@ -66,11 +74,11 @@ class FortifyServiceProvider extends ServiceProvider
     {
         $this->app->bind(PasswordHistoryRepository::class, DatabasePasswordHistoryRepository::class);
         $this->app->bind(SuspiciousLoginNotifier::class, UserSuspiciousLoginNotifier::class);
-        $this->app->bind(WebAuthnCredentialRepository::class, DatabaseWebAuthnCredentialRepository::class);
         $this->app->bind(UserCredentialAccountDirectory::class, EloquentUserCredentialAccountDirectory::class);
         $this->app->bind(UserLookup::class, EloquentUserCredentialAccountDirectory::class);
         $this->app->bind(UserCredentialAccountStore::class, EloquentUserCredentialAccountStore::class);
         $this->app->bind(UserCredentialAccountStatusManager::class, EloquentUserCredentialAccountStatusManager::class);
+        $this->app->bind(UserProfileAvatarUpdater::class, EloquentUserProfileAvatarUpdater::class);
         $this->app->bind(UserSessionRegistry::class, RedisUserSessionRegistry::class);
         $this->app->bind(UserPasswordExpiration::class, PasswordExpiryPolicy::class);
         $this->app->bind(UserPasswordUpdater::class, UpdateUserPassword::class);
@@ -79,11 +87,22 @@ class FortifyServiceProvider extends ServiceProvider
         $this->app->bind(ImpersonationSimulationRecorder::class, ImpersonationSimulationStore::class);
         $this->app->bind(UserSessionLimitResolver::class, SessionLimitResolver::class);
         $this->app->bind(HighRiskAdministrativeAuthorization::class, AdministrativeSessionManager::class);
+        $this->app->bind(AdministrativeModeState::class, AdministrativeSessionManager::class);
         $this->app->bind(UserStepUpAuthentication::class, CurrentUserStepUpAuthenticator::class);
+        $this->app->bind(MfaRequirementChecker::class, MfaRequirementEvaluator::class);
+        if ($this->app->environment(['local', 'development', 'testing'])) {
+            $this->app->bind(VerifiedUserFixtureBuilder::class, EloquentVerifiedUserFixtureBuilder::class);
+        }
         $this->app->bind(AuditActorContextProvider::class, SessionAuditActorContextProvider::class);
         $this->app->tag([IdentityInertiaData::class], 'atlas.inertia_shared_data');
         $this->app->tag([IdentityRouteAvailability::class], 'atlas.inertia_route_availability');
+        $this->app->tag([UserAccountDataLifecycleParticipant::class], 'atlas.data_lifecycle_participants');
         $this->app->tag([AdminRateLimitPoliciesDataTableExportProvider::class], 'atlas.admin_data_table_export_providers');
+        $this->app->tag([IdentityModuleOperationalDiagnostics::class], 'atlas.module_operational_diagnostics');
+        $this->app->bind(RequireHighRiskAdministrativeAuthorization::class, fn (): RequireHighRiskAdministrativeAuthorization => new RequireHighRiskAdministrativeAuthorization(
+            $this->app->make(AdministrativeSessionManager::class),
+            $this->app->tagged('atlas.high_risk_reauthentication_continuations'),
+        ));
     }
 
     public function boot(): void

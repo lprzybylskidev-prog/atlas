@@ -6,12 +6,11 @@ namespace App\Modules\Core\Identity\Infrastructure\Persistence;
 
 use App\Modules\Core\Identity\Application\Public\Contracts\UserSessionRegistry;
 use App\Modules\Core\Identity\Application\Sessions\UserSessionMetadata;
-use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
+use App\Shared\Application\Teams\Contracts\TeamLookup;
 use Illuminate\Contracts\Session\Session;
 use Illuminate\Http\Request;
 use Illuminate\Redis\Connections\Connection;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Redis;
 use Illuminate\Support\Str;
 
@@ -225,9 +224,9 @@ final class RedisUserSessionRegistry implements UserSessionRegistry
 
     private function teamName(string $teamPublicId): ?string
     {
-        $name = DB::table(TeamsDatabaseTable::TEAMS)->where('public_id', $teamPublicId)->value('name');
+        $name = app(TeamLookup::class)->displaySummariesForPublicIds([$teamPublicId])[$teamPublicId]->name ?? null;
 
-        return is_string($name) ? $name : null;
+        return is_string($name) && $name !== '' ? $name : null;
     }
 
     private function approximateIpLocation(?string $ip): string

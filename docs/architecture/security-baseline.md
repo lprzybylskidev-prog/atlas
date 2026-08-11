@@ -2,11 +2,11 @@
 
 Canonical security baseline that applies across Atlas. Read together with the affected module and operations documentation.
 
-## Phase 28 target
+## Phase 28 closure state
 
-Current state: Atlas has a security baseline, but Phase 28 tracks additional durable enforcement for audit catalogs, critical-change audit atomicity, no raw technical tokens in user/manager UI, hardcoded mail-copy rejection, secret-safe runtime configuration, no production fake scanner, real readiness, and guarded high-risk workflows.
+Atlas has registered audit catalogs, canonical outcomes, critical-change atomicity, secret/metadata guardrails, user/manager technical-token protections, classified high-risk workflows with configured MFA enforcement, bilingual mail-copy rejection, and cross-environment secret/scanner/readiness verification.
 
-Target state: security-sensitive operations are cataloged, audited for success/rejection/failure, transactionally evidenced, localized safely, and backed by executable guardrails across application, mail, frontend, runtime, and operations.
+Security-sensitive operations are cataloged, audited for success/rejection/failure, transactionally evidenced, localized safely, and backed by executable guardrails across application, mail, frontend, runtime, and operations.
 
 Tracked issue IDs: `P28-AUDIT-*`, `P28-UI-002`, `P28-MAIL-*`, `P28-RUNTIME-003`, `P28-RUNTIME-008`, `P28-GUARD-*`.
 
@@ -23,6 +23,8 @@ Tracked issue IDs: `P28-AUDIT-*`, `P28-UI-002`, `P28-MAIL-*`, `P28-RUNTIME-003`,
 - encrypt sensitive values where justified;
 - no secrets in logs;
 - no secrets in audit;
+- no uncataloged audit modules, actions, results, sources, target/aggregate types, metadata keys, or security categories;
+- mandatory security evidence uses atomic primary/security rows, and critical terminal state changes fail when mandatory audit persistence fails;
 - dependency vulnerability checks;
 - destructive operations require reauthentication;
 - rate limits for login, API, search, import, export, and expensive operations;

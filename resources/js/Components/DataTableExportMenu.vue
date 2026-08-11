@@ -57,8 +57,8 @@ function exportFilters(): Record<string, string | number> {
     );
 }
 
-function exportPayload(format: DataTableExportFormat): Record<string, string | number> {
-    return {
+function exportPayload(format: DataTableExportFormat, detailedAudit = false): Record<string, string | number> {
+    const payload: Record<string, string | number> = {
         table_key: props.tableKey,
         format,
         page: 1,
@@ -70,25 +70,31 @@ function exportPayload(format: DataTableExportFormat): Record<string, string | n
         column_order: (props.columnOrder ?? props.columns).join(','),
         ...exportFilters(),
     };
+
+    if (detailedAudit) {
+        payload.audit_export = 1;
+    }
+
+    return payload;
 }
 
-function requestExport(format: DataTableExportFormat): void {
+function requestExport(format: DataTableExportFormat, detailedAudit = false): void {
     if (props.exports === undefined) {
         return;
     }
 
     if (format === 'browser_print') {
-        requestBrowserPrint();
+        requestBrowserPrint(detailedAudit);
         return;
     }
 
-    router.post(props.exports.endpoint, exportPayload(format), {
+    router.post(props.exports.endpoint, exportPayload(format, detailedAudit), {
         preserveScroll: true,
         preserveState: true,
     });
 }
 
-function requestBrowserPrint(): void {
+function requestBrowserPrint(detailedAudit = false): void {
     if (props.exports === undefined) {
         return;
     }
@@ -104,7 +110,7 @@ function requestBrowserPrint(): void {
         appendHiddenInput(form, '_token', csrfValue);
     }
 
-    for (const [key, value] of Object.entries(exportPayload('browser_print'))) {
+    for (const [key, value] of Object.entries(exportPayload('browser_print', detailedAudit))) {
         appendHiddenInput(form, key, String(value));
     }
 
@@ -153,6 +159,20 @@ onBeforeUnmount(() => {
                 type="button"
                 class="flex h-9 w-full items-center gap-2 rounded-md px-2 text-left text-sm font-medium text-zinc-700 transition hover:bg-zinc-100 hover:text-zinc-950 dark:text-zinc-200 dark:hover:bg-zinc-900 dark:hover:text-zinc-50"
                 @click="requestExport(format)"
+            >
+                <IconFileExport aria-hidden="true" class="h-4 w-4" :stroke-width="1.8" />
+                {{ exportLabel(format) }}
+            </button>
+            <div v-if="exports?.detailedAudit" class="my-2 border-t border-zinc-200 dark:border-zinc-800" />
+            <p v-if="exports?.detailedAudit" class="px-2 pb-1 text-xs font-semibold text-zinc-500 dark:text-zinc-400">
+                {{ t('datatable.exports.detailed_audit') }}
+            </p>
+            <button
+                v-for="format in exports?.detailedAudit ? exportFormats : []"
+                :key="`audit-${format}`"
+                type="button"
+                class="flex h-9 w-full items-center gap-2 rounded-md px-2 text-left text-sm font-medium text-zinc-700 transition hover:bg-zinc-100 hover:text-zinc-950 dark:text-zinc-200 dark:hover:bg-zinc-900 dark:hover:text-zinc-50"
+                @click="requestExport(format, true)"
             >
                 <IconFileExport aria-hidden="true" class="h-4 w-4" :stroke-width="1.8" />
                 {{ exportLabel(format) }}

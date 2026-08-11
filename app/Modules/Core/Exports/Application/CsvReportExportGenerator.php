@@ -6,9 +6,9 @@ namespace App\Modules\Core\Exports\Application;
 
 use App\Modules\Core\Exports\Application\Contracts\ReportExportGenerator;
 use App\Modules\Core\Exports\Application\DTOs\GeneratedReportArtifact;
-use App\Modules\Core\Exports\Application\DTOs\ReportExportColumn;
-use App\Modules\Core\Exports\Application\Enums\ReportExportFormat;
-use App\Modules\Core\Exports\Application\Public\DTOs\ReportExportGenerationRequest;
+use App\Shared\Application\Exports\DTOs\ReportExportColumn;
+use App\Shared\Application\Exports\DTOs\ReportExportGenerationRequest;
+use App\Shared\Application\Exports\Enums\ReportExportFormat;
 use Illuminate\Support\Str;
 use RuntimeException;
 

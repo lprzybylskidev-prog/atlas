@@ -25,10 +25,8 @@ final class IntegrationsModule implements ModuleDefinition
     {
         return [
             new ModuleKey('identity'),
-            new ModuleKey('authorization'),
             new ModuleKey('teams'),
             new ModuleKey('audit'),
-            new ModuleKey('health'),
         ];
     }
 
@@ -52,18 +50,8 @@ final class IntegrationsModule implements ModuleDefinition
         return true;
     }
 
-    public function integrations(): array
-    {
-        return [];
-    }
-
     public function healthChecks(): array
     {
-        return ['integrations'];
-    }
-
-    public function frontendEntrypoints(): array
-    {
-        return ['admin.integrations.index'];
+        return [];
     }
 }

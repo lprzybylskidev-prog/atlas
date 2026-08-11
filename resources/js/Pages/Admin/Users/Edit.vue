@@ -1,19 +1,17 @@
 <script setup lang="ts">
 import { Head, router, useForm } from '@inertiajs/vue3';
-import { IconArrowLeft, IconDeviceFloppy, IconUserEdit } from '@tabler/icons-vue';
-import { reactive } from 'vue';
+import { IconUserEdit } from '@tabler/icons-vue';
+import { computed, reactive } from 'vue';
 
-import ActionLink from '../../../Components/ActionLink.vue';
 import AtlasForm from '../../../Components/Form/AtlasForm.vue';
-import FormButton from '../../../Components/Form/FormButton.vue';
 import FormInput from '../../../Components/Form/FormInput.vue';
 import FormSelect, { type FormSelectOption } from '../../../Components/Form/FormSelect.vue';
 import FormActions from '../../../Components/FormActions.vue';
 import PageStack from '../../../Components/PageStack.vue';
-import RecordActions from '../../../Components/RecordActions.vue';
+import ActionGroup from '../../../Components/Actions/ActionGroup.vue';
 import StatusBadge from '../../../Components/StatusBadge.vue';
 import SurfaceCard from '../../../Components/SurfaceCard.vue';
-import UserTeamAccessWorkflow from '../../../Components/Users/UserTeamAccessWorkflow.vue';
+import UserTeamAuthorizationWorkflow from '../../../Components/Authorization/UserTeamAuthorizationWorkflow.vue';
 import { useAccountSensitivityOptions } from '../../../Composables/useAccountSensitivityOptions';
 import { useAdminUserAccountActions } from '../../../Composables/useAdminUserAccountActions';
 import AppLayout from '../../../Layouts/AppLayout.vue';
@@ -52,6 +50,11 @@ interface TeamMembership {
     sessionMaxLifetimeMinutes: number | null;
     breakDailyLimitMinutes: number | null;
     breakMaximumSingleMinutes: number | null;
+    provenancePublicId: string | null;
+    provenanceSourceType: 'manual' | 'preset' | 'copy';
+    provenanceSourceLabel: string | null;
+    provenanceDivergedAt: string | null;
+    provenanceVersion: number;
 }
 
 const props = defineProps<{
@@ -71,6 +74,7 @@ const props = defineProps<{
 }>();
 
 const { t } = useTranslator();
+const pageTitle = computed(() => t('pages.admin.users.edit.title', { object: props.user.name || props.user.email }));
 const form = useForm({
     name: props.user.name,
     email: props.user.email,
@@ -83,7 +87,7 @@ const teamAccessAssignments = reactive<UserTeamAccessAssignment[]>(
     props.teamMemberships.map((membership) => ({
         team_public_id: membership.teamPublicId,
         teamName: membership.teamName,
-        source: 'manual',
+        source: membership.provenanceSourceType === 'preset' ? 'package' : membership.provenanceSourceType,
         onboarding_package: '',
         copy_authorization_from_user: '',
         role_names: [...membership.roleNames],
@@ -94,6 +98,11 @@ const teamAccessAssignments = reactive<UserTeamAccessAssignment[]>(
         break_maximum_single_minutes: membership.breakMaximumSingleMinutes === null ? '' : String(membership.breakMaximumSingleMinutes),
         reason: '',
         removal_reason: '',
+        provenance_public_id: membership.provenancePublicId,
+        provenance_source_type: membership.provenanceSourceType,
+        provenance_source_label: membership.provenanceSourceLabel,
+        provenance_diverged_at: membership.provenanceDivergedAt,
+        provenance_version: membership.provenanceVersion,
     })),
 );
 const accountSensitivity = useAccountSensitivityOptions();
@@ -137,6 +146,7 @@ function updateTeamAuthorization(assignment: UserTeamAccessAssignment): void {
             break_daily_limit_minutes: assignment.break_daily_limit_minutes,
             break_maximum_single_minutes: assignment.break_maximum_single_minutes,
             reason: assignment.reason ?? '',
+            expected_version: assignment.provenance_version ?? 0,
         },
         { preserveScroll: true },
     );
@@ -144,8 +154,8 @@ function updateTeamAuthorization(assignment: UserTeamAccessAssignment): void {
 </script>
 
 <template>
-    <Head :title="t('pages.admin.users.edit.head_title')" />
-    <AppLayout mode="admin" :title="t('pages.admin.users.edit.title')" :title-icon="IconUserEdit">
+    <Head :title="pageTitle" />
+    <AppLayout mode="admin" :title="pageTitle" :title-icon="IconUserEdit">
         <PageStack>
             <SurfaceCard :title="t('pages.admin.users.status.title')" :icon="IconUserEdit" tone="emerald">
                 <dl class="grid gap-3 text-sm sm:grid-cols-2 xl:grid-cols-5">
@@ -155,9 +165,8 @@ function updateTeamAuthorization(assignment: UserTeamAccessAssignment): void {
                         <dt class="text-zinc-500 dark:text-zinc-400">{{ t('pages.admin.users.status.active') }}</dt>
                         <dd>
                             <StatusBadge
-                                :value="user.isActive"
-                                :true-label="t('datatable.boolean.yes')"
-                                :false-label="t('datatable.boolean.no')"
+                                :value="user.isActive ? 'active' : 'inactive'"
+                                :label="t(user.isActive ? 'datatable.status.active' : 'datatable.status.inactive')"
                             />
                         </dd>
                     </div>
@@ -167,9 +176,14 @@ function updateTeamAuthorization(assignment: UserTeamAccessAssignment): void {
                         <dt class="text-zinc-500 dark:text-zinc-400">{{ t('pages.admin.users.status.email_verified') }}</dt>
                         <dd>
                             <StatusBadge
-                                :value="user.emailVerified"
-                                :true-label="t('datatable.boolean.yes')"
-                                :false-label="t('datatable.boolean.no')"
+                                :value="user.emailVerified ? 'verified' : 'unverified'"
+                                :label="
+                                    t(
+                                        user.emailVerified
+                                            ? 'pages.admin.users.status.email_verified'
+                                            : 'pages.admin.users.status.email_unverified',
+                                    )
+                                "
                             />
                         </dd>
                     </div>
@@ -179,9 +193,14 @@ function updateTeamAuthorization(assignment: UserTeamAccessAssignment): void {
                         <dt class="text-zinc-500 dark:text-zinc-400">{{ t('pages.admin.users.status.first_password_set') }}</dt>
                         <dd>
                             <StatusBadge
-                                :value="user.firstPasswordSet"
-                                :true-label="t('datatable.boolean.yes')"
-                                :false-label="t('datatable.boolean.no')"
+                                :value="user.firstPasswordSet ? 'enabled' : 'pending'"
+                                :label="
+                                    t(
+                                        user.firstPasswordSet
+                                            ? 'pages.admin.users.status.first_password_set'
+                                            : 'pages.admin.users.status.first_password_pending',
+                                    )
+                                "
                             />
                         </dd>
                     </div>
@@ -191,9 +210,14 @@ function updateTeamAuthorization(assignment: UserTeamAccessAssignment): void {
                         <dt class="text-zinc-500 dark:text-zinc-400">{{ t('pages.admin.users.status.login_locked') }}</dt>
                         <dd>
                             <StatusBadge
-                                :value="user.loginLocked"
-                                :true-label="t('datatable.boolean.yes')"
-                                :false-label="t('datatable.boolean.no')"
+                                :value="user.loginLocked ? 'blocked' : 'active'"
+                                :label="
+                                    t(
+                                        user.loginLocked
+                                            ? 'pages.admin.users.status.login_locked'
+                                            : 'pages.admin.users.status.login_unlocked',
+                                    )
+                                "
                             />
                         </dd>
                     </div>
@@ -203,9 +227,10 @@ function updateTeamAuthorization(assignment: UserTeamAccessAssignment): void {
                         <dt class="text-zinc-500 dark:text-zinc-400">{{ t('pages.admin.users.status.mfa_enabled') }}</dt>
                         <dd>
                             <StatusBadge
-                                :value="user.mfaEnabled"
-                                :true-label="t('datatable.boolean.yes')"
-                                :false-label="t('datatable.boolean.no')"
+                                :value="user.mfaEnabled ? 'enabled' : 'disabled'"
+                                :label="
+                                    t(user.mfaEnabled ? 'pages.admin.users.status.mfa_enabled' : 'pages.admin.users.status.mfa_disabled')
+                                "
                             />
                         </dd>
                     </div>
@@ -213,7 +238,7 @@ function updateTeamAuthorization(assignment: UserTeamAccessAssignment): void {
             </SurfaceCard>
 
             <SurfaceCard :title="t('pages.admin.users.actions.title')" :icon="IconUserEdit" tone="amber">
-                <RecordActions :actions="recordActions" />
+                <ActionGroup :actions="recordActions" placement="edit" />
             </SurfaceCard>
 
             <div class="space-y-5">
@@ -241,18 +266,19 @@ function updateTeamAuthorization(assignment: UserTeamAccessAssignment): void {
                             />
                         </div>
 
-                        <FormActions class="mt-5">
-                            <FormButton type="submit" :icon="IconDeviceFloppy" :loading="form.processing">
-                                {{ form.processing ? t('pages.admin.users.actions.saving') : t('pages.admin.users.actions.save') }}
-                            </FormButton>
-                            <ActionLink href="/admin/users" :icon="IconArrowLeft">
-                                {{ t('pages.admin.users.actions.back_to_users') }}
-                            </ActionLink>
-                        </FormActions>
+                        <FormActions
+                            class="mt-5"
+                            :submit-label="t('pages.admin.users.actions.save')"
+                            :processing-label="t('pages.admin.users.actions.saving')"
+                            :processing="form.processing"
+                            :dirty="form.isDirty"
+                            cancel-href="/admin/users"
+                            :scope-label="t('pages.admin.users.identity.title')"
+                        />
                     </AtlasForm>
                 </SurfaceCard>
 
-                <UserTeamAccessWorkflow
+                <UserTeamAuthorizationWorkflow
                     mode="edit"
                     :assignments="teamAccessAssignments"
                     :team-options="assignableTeams"

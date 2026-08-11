@@ -75,6 +75,12 @@ Current maintenance:
 - the scheduler runs this cleanup hourly;
 - cleanup is audited with deleted and failed counts.
 
+Files registers a module-owned `ModuleOperationalDiagnostics` contributor for Admin System Status. It reports unacknowledged blocked scan states without requiring Shared/Admin code to query Files persistence tables directly.
+
+`App\Modules\Core\Files\Application\Public\Contracts\FileLookup` exposes minimal file display summaries by internal ID for owner-approved operational surfaces, such as import execution rows that store a Files-owned internal reference. It returns public ID and original filename metadata only; callers do not query Files tables directly.
+
+Files Admin handled-by labels and Files audit actor/team public identifiers are resolved through Identity and Teams lookup contracts. Files-owned screens and exports may query Files tables directly, but must not join to Identity or Teams tables for labels or active-team resolution.
+
 ## Malware scanning
 
 The module-owned scanner contract is `App\Modules\Core\Files\Application\Contracts\MalwareScanner`.
@@ -124,7 +130,7 @@ Permissions:
 Phase 19 implementation is complete except for the repository commit step, which requires explicit user approval under the Atlas git workflow.
 # Phase 28 foundation repair target
 
-Current state: Files owns private storage and scanning, but Phase 28 tracks direct Identity/Teams SQL, fake-versus-real scanner risk, missing audit for scan failure and rejected operations, ClamAV production parity, scan queues, temp lifecycle, retention copy failures, and UI/status token issues.
+Current state: Files owns private quarantine/storage/scanning/lifecycle, temporary cleanup, owner lookups, canonical Admin status/actions, and registered success/rejection/failure evidence. Production forbids a fake scanner, uses the pinned private ClamAV service with persisted signatures, and the foundation smoke proves daemon readiness plus EICAR rejection. File scan queues are covered by the canonical Horizon all-queue probe.
 
 Target state: Files uses owner-owned user/team contracts, never runs production with a fake scanner, exposes real ClamAV readiness, audits scan/rescan/delete/retention outcomes consistently, and uses canonical table/action/status UI.
 

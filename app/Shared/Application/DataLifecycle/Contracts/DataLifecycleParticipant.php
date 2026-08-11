@@ -11,6 +11,8 @@ use App\Shared\Application\DataLifecycle\DataLifecycleSubject;
 
 interface DataLifecycleParticipant
 {
+    public function key(): string;
+
     public function preview(DataLifecycleSubject $subject, DataLifecycleOperation $operation): DataLifecyclePreview;
 
     public function execute(DataLifecycleSubject $subject, DataLifecycleOperation $operation, string $correlationId): DataLifecycleResult;

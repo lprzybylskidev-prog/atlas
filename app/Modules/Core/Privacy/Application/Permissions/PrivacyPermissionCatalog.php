@@ -25,6 +25,8 @@ final class PrivacyPermissionCatalog implements ModulePermissionContribution
 
     public const LEGAL_HOLDS_STORE = 'admin.privacy-retention.legal-holds.store';
 
+    public const LEGAL_HOLDS_RELEASE = 'admin.privacy-retention.legal-holds.release';
+
     public const OPERATIONS_INDEX = 'admin.privacy-retention.operations.index';
 
     public function permissions(): array
@@ -38,6 +40,7 @@ final class PrivacyPermissionCatalog implements ModulePermissionContribution
             new ModulePermissionDefinition(self::LEGAL_HOLDS_INDEX, 'View legal holds and retention blockers for privacy workflows.'),
             new ModulePermissionDefinition(self::LEGAL_HOLDS_CREATE, 'Open legal hold creation forms for privacy workflows.'),
             new ModulePermissionDefinition(self::LEGAL_HOLDS_STORE, 'Create legal holds and retention blockers for privacy workflows.'),
+            new ModulePermissionDefinition(self::LEGAL_HOLDS_RELEASE, 'Release active legal holds with mandatory reason and audit evidence.'),
             new ModulePermissionDefinition(self::OPERATIONS_INDEX, 'View privacy operation request and preview history.'),
         ];
     }

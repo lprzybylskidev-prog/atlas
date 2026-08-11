@@ -4,24 +4,19 @@ declare(strict_types=1);
 
 namespace App\Shared\Presentation\Http\Controllers;
 
-use App\Modules\Core\Files\Application\Public\Persistence\FilesDatabaseTable;
 use App\Modules\Core\Health\Application\Readiness\Contracts\ReadinessChecker;
-use App\Modules\Core\Identity\Application\Public\Persistence\IdentityDatabaseTable;
-use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
-use App\Modules\Optional\Imports\Application\Public\Persistence\ImportsDatabaseTable;
-use App\Modules\Optional\Integrations\Application\Public\Persistence\IntegrationsDatabaseTable;
-use App\Modules\Optional\ManagedProcesses\Application\Public\Persistence\ManagedProcessesDatabaseTable;
 use App\Shared\Application\Modules\Activation\Contracts\ModuleActivationService;
 use App\Shared\Application\Modules\Contracts\ModuleDefinition;
 use App\Shared\Application\Modules\Contracts\ModuleGate;
 use App\Shared\Application\Modules\ModuleAccessDenialReason;
 use App\Shared\Application\Modules\ModuleAccessRequest;
 use App\Shared\Application\Modules\ModuleKey;
+use App\Shared\Application\Modules\ModuleOperationalDiagnosticsRegistry;
 use App\Shared\Application\Modules\ModuleRegistry;
+use App\Shared\Application\Teams\Contracts\TeamLookup;
 use App\Shared\Infrastructure\Database\DatabaseTable;
 use App\Shared\Infrastructure\Observability\ModuleActivationScheduleDiagnostics;
 use App\Shared\Infrastructure\Observability\SchedulerHeartbeatMonitor;
-use Illuminate\Database\Query\Builder;
 use Illuminate\Foundation\Application;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -38,6 +33,8 @@ final readonly class AdminSystemStatusController
         private ReadinessChecker $readiness,
         private SchedulerHeartbeatMonitor $schedulerHeartbeat,
         private ModuleActivationScheduleDiagnostics $moduleActivationDiagnostics,
+        private TeamLookup $teams,
+        private ModuleOperationalDiagnosticsRegistry $moduleOperationalDiagnostics,
     ) {}
 
     public function __invoke(Request $request): Response
@@ -293,13 +290,8 @@ final readonly class AdminSystemStatusController
     {
         return match ($moduleKey) {
             'authorization' => $this->authorizationIssues(),
-            'files' => $this->fileIssues(),
             'health' => $this->healthIssues(),
-            'identity' => $this->identityIssues(),
-            'integrations' => $this->integrationIssues(),
-            'managed_processes' => $this->managedProcessIssues(),
-            'imports' => $this->importIssues(),
-            default => [],
+            default => $this->moduleOperationalDiagnostics->issuesFor($moduleKey),
         };
     }
 
@@ -337,32 +329,6 @@ final readonly class AdminSystemStatusController
     /**
      * @return list<array{severity: string, label: string, description: string, value?: int|string|null}>
      */
-    private function fileIssues(): array
-    {
-        $rows = DB::table(FilesDatabaseTable::FILE_OBJECTS)
-            ->selectRaw('scan_state, count(*) as total')
-            ->whereNull('deleted_at')
-            ->whereNull('acknowledged_at')
-            ->groupBy('scan_state')
-            ->pluck('total', 'scan_state');
-
-        $blocked = $this->intValue($rows['infected'] ?? null) + $this->intValue($rows['failed'] ?? null) + $this->intValue($rows['unsupported'] ?? null);
-
-        if ($blocked === 0) {
-            return [];
-        }
-
-        return [[
-            'severity' => 'degraded',
-            'label' => 'Blocked files',
-            'description' => 'File scan states are blocking file use and need review.',
-            'value' => $blocked,
-        ]];
-    }
-
-    /**
-     * @return list<array{severity: string, label: string, description: string, value?: int|string|null}>
-     */
     private function healthIssues(): array
     {
         $payload = $this->readiness->check()->toAdminArray();
@@ -377,108 +343,6 @@ final readonly class AdminSystemStatusController
             'description' => sprintf('%d blocking and %d degraded readiness issue(s).', $payload['blocking']['failed'], $payload['degraded']['failed']),
             'value' => $payload['blocking']['failed'] + $payload['degraded']['failed'],
         ]];
-    }
-
-    /**
-     * @return list<array{severity: string, label: string, description: string, value?: int|string|null}>
-     */
-    private function identityIssues(): array
-    {
-        $rejections = (int) DB::table(IdentityDatabaseTable::RATE_LIMIT_REJECTIONS)
-            ->where('created_at', '>=', now()->subDay())
-            ->count();
-
-        if ($rejections === 0) {
-            return [];
-        }
-
-        return [[
-            'severity' => 'info',
-            'label' => 'Rate-limit rejections',
-            'description' => 'Rate limits rejected requests during the last 24 hours.',
-            'value' => $rejections,
-        ]];
-    }
-
-    /**
-     * @return list<array{severity: string, label: string, description: string, value?: int|string|null}>
-     */
-    private function integrationIssues(): array
-    {
-        $openCircuits = (int) DB::table(IntegrationsDatabaseTable::CIRCUIT_BREAKERS)->where('state', 'open')->count();
-        $failedRuns = (int) DB::table(IntegrationsDatabaseTable::SYNC_RUNS)->where('status', 'failed')->where('started_at', '>=', now()->subDay())->count();
-        $issues = [];
-
-        if ($openCircuits > 0) {
-            $issues[] = [
-                'severity' => 'unhealthy',
-                'label' => 'Open circuits',
-                'description' => 'Integration circuit breakers are open.',
-                'value' => $openCircuits,
-            ];
-        }
-
-        if ($failedRuns > 0) {
-            $issues[] = [
-                'severity' => 'degraded',
-                'label' => 'Failed sync runs',
-                'description' => 'Integration synchronization runs failed during the last 24 hours.',
-                'value' => $failedRuns,
-            ];
-        }
-
-        return $issues;
-    }
-
-    /**
-     * @return list<array{severity: string, label: string, description: string, value?: int|string|null}>
-     */
-    private function managedProcessIssues(): array
-    {
-        $active = (int) DB::table(ManagedProcessesDatabaseTable::RUNS)->whereIn('status', ['draft', 'queued', 'running', 'waiting'])->count();
-        $failed = (int) $this->unacknowledgedManagedProcessRunsQuery()->where('process_runs.status', 'failed')->where('process_runs.created_at', '>=', now()->subDay())->count();
-        $warnings = (int) $this->unacknowledgedManagedProcessRunsQuery()->where('process_runs.status', 'succeeded_with_warnings')->where('process_runs.created_at', '>=', now()->subDay())->count();
-        $issues = [];
-
-        if ($failed > 0) {
-            $issues[] = ['severity' => 'unhealthy', 'label' => 'Failed process runs', 'description' => 'Managed process runs failed during the last 24 hours.', 'value' => $failed];
-        }
-
-        if ($warnings > 0) {
-            $issues[] = ['severity' => 'degraded', 'label' => 'Process warnings', 'description' => 'Managed process runs completed with warnings during the last 24 hours.', 'value' => $warnings];
-        }
-
-        if ($active > 0) {
-            $issues[] = ['severity' => 'info', 'label' => 'Active process runs', 'description' => 'Managed process runs are currently active or queued.', 'value' => $active];
-        }
-
-        return $issues;
-    }
-
-    private function unacknowledgedManagedProcessRunsQuery(): Builder
-    {
-        return DB::table(ManagedProcessesDatabaseTable::RUNS.' as process_runs')
-            ->leftJoin(ManagedProcessesDatabaseTable::RUN_ACKNOWLEDGEMENTS.' as acknowledgements', 'acknowledgements.process_run_id', '=', 'process_runs.id')
-            ->whereNull('acknowledgements.process_run_id');
-    }
-
-    /**
-     * @return list<array{severity: string, label: string, description: string, value?: int|string|null}>
-     */
-    private function importIssues(): array
-    {
-        $rowWarnings = (int) DB::table(ImportsDatabaseTable::ROW_ERRORS)->where('severity', 'warning')->count();
-        $rowErrors = (int) DB::table(ImportsDatabaseTable::ROW_ERRORS)->where('severity', 'error')->count();
-
-        if ($rowErrors > 0) {
-            return [['severity' => 'degraded', 'label' => 'Import row errors', 'description' => 'Import row errors are available for operator review.', 'value' => $rowErrors]];
-        }
-
-        if ($rowWarnings > 0) {
-            return [['severity' => 'info', 'label' => 'Import row warnings', 'description' => 'Import row warnings are available for operator review.', 'value' => $rowWarnings]];
-        }
-
-        return [];
     }
 
     /**
@@ -566,9 +430,7 @@ final readonly class AdminSystemStatusController
             return null;
         }
 
-        $teamId = DB::table(TeamsDatabaseTable::TEAMS)->where('public_id', $teamPublicId)->value('id');
-
-        return is_numeric($teamId) ? (int) $teamId : null;
+        return $this->teams->internalIdForPublicId($teamPublicId);
     }
 
     private function intValue(mixed $value): int

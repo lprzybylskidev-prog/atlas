@@ -177,6 +177,7 @@ return [
 
     'custom' => [
         'team_assignments' => [
+            'active_structure' => 'End active manager relationships and transfer head-manager responsibility before removing team access.',
             'copy_source_team' => 'The selected source user must have active access to the selected team.',
             'preset_team' => 'The selected preset must belong to the selected team.',
         ],
@@ -185,6 +186,9 @@ return [
         ],
         'session_limits' => [
             'inactivity_not_greater_than_maximum' => 'The inactivity logout time cannot be longer than the maximum session lifetime.',
+        ],
+        'authorization_assignment' => [
+            'stale' => 'This authorization assignment changed after the page was opened. Reload it and review the current values before saving again.',
         ],
     ],
 

@@ -8,7 +8,6 @@ import FilterPanel from '../../../Components/FilterPanel.vue';
 import FormSelect, { type FormSelectOption } from '../../../Components/Form/FormSelect.vue';
 import OperationalMetricTile from '../../../Components/OperationalMetricTile.vue';
 import PageStack from '../../../Components/PageStack.vue';
-import { usePrivacyRetentionSubnavigation } from '../../../Composables/usePrivacyRetentionSubnavigation';
 import { applyTableFilters, clearTableFilters } from '../../../Composables/useTableFilterControls';
 import AppLayout from '../../../Layouts/AppLayout.vue';
 import { useTranslator } from '../../../Localization/translator';
@@ -58,7 +57,6 @@ const props = defineProps<{
 }>();
 
 const { locale, t } = useTranslator();
-const subnavigation = usePrivacyRetentionSubnavigation('/admin/privacy-retention/operations', t);
 const filterKeys = ['operation', 'status', 'subject_type', 'team', 'executable'];
 const filterDefaults = {
     operation: 'all',
@@ -169,8 +167,7 @@ function teamLabel(value: string): string {
         mode="admin"
         :title="t('pages.admin.privacy_retention.title')"
         :title-icon="IconShieldCheck"
-        :subnavigation="subnavigation"
-        :subnavigation-label="t('pages.admin.privacy_retention.nav.label')"
+        navigation-section="privacy-retention"
     >
         <PageStack>
             <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-6">

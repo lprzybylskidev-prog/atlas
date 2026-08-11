@@ -34,8 +34,8 @@ return [
             'queue' => 24,
         ],
     ],
-    'fast_termination' => false,
-    'memory_limit' => 64,
+    'fast_termination' => true,
+    'memory_limit' => 256,
     'defaults' => [
         'supervisor-1' => [
             'connection' => 'redis',

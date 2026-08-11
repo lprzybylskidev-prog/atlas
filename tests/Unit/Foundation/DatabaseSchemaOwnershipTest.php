@@ -4,20 +4,20 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Foundation;
 
-use App\Modules\Core\Audit\Application\Public\Persistence\AuditDatabaseTable;
-use App\Modules\Core\Authorization\Application\Public\Persistence\AuthorizationDatabaseTable;
-use App\Modules\Core\Exports\Application\Public\Persistence\ExportsDatabaseTable;
-use App\Modules\Core\Files\Application\Public\Persistence\FilesDatabaseTable;
-use App\Modules\Core\Identity\Application\Public\Persistence\IdentityDatabaseTable;
-use App\Modules\Core\Notifications\Application\Public\Persistence\NotificationsDatabaseTable;
-use App\Modules\Core\Privacy\Application\Public\Persistence\PrivacyDatabaseTable;
-use App\Modules\Core\Settings\Application\Public\Persistence\SettingsDatabaseTable;
-use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
-use App\Modules\Optional\FeatureFlags\Application\Public\Persistence\FeatureFlagsDatabaseTable;
-use App\Modules\Optional\Imports\Application\Public\Persistence\ImportsDatabaseTable;
-use App\Modules\Optional\Integrations\Application\Public\Persistence\IntegrationsDatabaseTable;
-use App\Modules\Optional\ManagedProcesses\Application\Public\Persistence\ManagedProcessesDatabaseTable;
-use App\Modules\Optional\TimeTracking\Application\Public\Persistence\TimeTrackingDatabaseTable;
+use App\Modules\Core\Audit\Infrastructure\Persistence\TableNames\AuditDatabaseTable;
+use App\Modules\Core\Authorization\Infrastructure\Persistence\TableNames\AuthorizationDatabaseTable;
+use App\Modules\Core\Exports\Infrastructure\Persistence\TableNames\ExportsDatabaseTable;
+use App\Modules\Core\Files\Infrastructure\Persistence\TableNames\FilesDatabaseTable;
+use App\Modules\Core\Identity\Infrastructure\Persistence\TableNames\IdentityDatabaseTable;
+use App\Modules\Core\Notifications\Infrastructure\Persistence\TableNames\NotificationsDatabaseTable;
+use App\Modules\Core\Privacy\Infrastructure\Persistence\TableNames\PrivacyDatabaseTable;
+use App\Modules\Core\Settings\Infrastructure\Persistence\TableNames\SettingsDatabaseTable;
+use App\Modules\Core\Teams\Infrastructure\Persistence\TableNames\TeamsDatabaseTable;
+use App\Modules\Optional\FeatureFlags\Infrastructure\Persistence\TableNames\FeatureFlagsDatabaseTable;
+use App\Modules\Optional\Imports\Infrastructure\Persistence\TableNames\ImportsDatabaseTable;
+use App\Modules\Optional\Integrations\Infrastructure\Persistence\TableNames\IntegrationsDatabaseTable;
+use App\Modules\Optional\ManagedProcesses\Infrastructure\Persistence\TableNames\ManagedProcessesDatabaseTable;
+use App\Modules\Optional\TimeTracking\Infrastructure\Persistence\TableNames\TimeTrackingDatabaseTable;
 use App\Shared\Infrastructure\Database\DatabaseSchema;
 use App\Shared\Infrastructure\Database\DatabaseTable;
 use PHPUnit\Framework\Attributes\Test;
@@ -74,6 +74,52 @@ final class DatabaseSchemaOwnershipTest extends TestCase
             }
         }
 
+        self::assertSame([], $violations);
+    }
+
+    #[Test]
+    public function pre_production_migrations_are_canonical_and_do_not_depend_on_a_broad_search_path(): void
+    {
+        $violations = [];
+
+        foreach ($this->migrationFiles() as $file) {
+            $contents = file_get_contents($file);
+
+            if (! is_string($contents)) {
+                continue;
+            }
+
+            $relative = str_replace(base_path().DIRECTORY_SEPARATOR, '', $file);
+            $up = explode('public function down(): void', $contents, 2)[0];
+            $forbidden = [
+                'Schema::table(' => 'alters an already-created table',
+                '->after(' => 'uses the unsupported PostgreSQL column-position API',
+                'Schema::hasTable(' => 'contains local historical table detection',
+                'Schema::hasColumn(' => 'contains local historical column detection',
+                'optional_reports' => 'references the removed pre-production Reports schema',
+            ];
+
+            foreach ($forbidden as $needle => $reason) {
+                if (str_contains($contents, $needle)) {
+                    $violations[] = sprintf('%s %s.', $relative, $reason);
+                }
+            }
+
+            if (str_contains($up, 'Schema::dropIfExists(') || preg_match('/drop\s+schema/i', $up) === 1) {
+                $violations[] = $relative.' destructively repairs local state before creating its canonical schema.';
+            }
+
+            if (! str_contains(basename($file), 'create_')) {
+                $violations[] = $relative.' is not a canonical create migration after the pre-production squash.';
+            }
+
+            if (preg_match('/execute\s+function\s+[a-zA-Z_][a-zA-Z0-9_]*\s*\(/i', $contents) === 1) {
+                $violations[] = $relative.' invokes a PostgreSQL function without an explicit schema.';
+            }
+        }
+
+        self::assertSame('public', config('database.connections.pgsql.search_path'));
+        self::assertStringContainsString('DB_SEARCH_PATH=public', (string) file_get_contents(base_path('.env.example')));
         self::assertSame([], $violations);
     }
 
@@ -147,6 +193,19 @@ final class DatabaseSchemaOwnershipTest extends TestCase
             }
         }
 
+        sort($files);
+
+        return $files;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function migrationFiles(): array
+    {
+        $files = glob(database_path('migrations/*.php'));
+
+        self::assertIsArray($files);
         sort($files);
 
         return $files;

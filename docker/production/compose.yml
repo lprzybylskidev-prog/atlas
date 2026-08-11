@@ -1,43 +1,120 @@
 name: atlas
 
+x-atlas-runtime-environment: &atlas-runtime-environment
+  APP_NAME: ${APP_NAME:-Atlas}
+  APP_ENV: production
+  APP_DEBUG: "false"
+  APP_URL: ${APP_URL:-http://localhost:8080}
+  APP_TIMEZONE: Europe/Warsaw
+  APP_LOCALE: ${APP_LOCALE:-pl}
+  APP_FALLBACK_LOCALE: ${APP_FALLBACK_LOCALE:-en}
+  HOME: /tmp
+  XDG_CONFIG_HOME: /tmp/atlas-chromium-config
+  XDG_CACHE_HOME: /tmp/atlas-chromium-cache
+  APP_KEY_FILE: /run/secrets/app_key
+  PRODUCTION_DEPLOYED: "true"
+  ATLAS_RELEASE_VERSION: ${ATLAS_RELEASE_VERSION:?Set ATLAS_RELEASE_VERSION}
+  ATLAS_RELEASE_ID: ${ATLAS_RELEASE_ID:?Set ATLAS_RELEASE_ID}
+  ATLAS_RELEASE_DEPLOYED_AT: ${ATLAS_RELEASE_DEPLOYED_AT:-}
+  ATLAS_RELEASE_DEPLOYED_BY: ${ATLAS_RELEASE_DEPLOYED_BY:-}
+  ATLAS_RELEASE_SOURCE: ${ATLAS_RELEASE_SOURCE:-}
+  LOG_CHANNEL: ${LOG_CHANNEL:-stack}
+  LOG_LEVEL: ${LOG_LEVEL:-warning}
+  DB_CONNECTION: pgsql
+  DB_HOST: postgres
+  DB_PORT: "5432"
+  DB_DATABASE: ${DB_DATABASE:-atlas}
+  DB_USERNAME: ${DB_USERNAME:-atlas}
+  DB_PASSWORD_FILE: /run/secrets/postgres_password
+  DB_SEARCH_PATH: public
+  DB_SSLMODE: ${DB_SSLMODE:-prefer}
+  CACHE_STORE: redis
+  SESSION_DRIVER: redis
+  QUEUE_CONNECTION: redis
+  REDIS_HOST: redis
+  REDIS_PORT: "6379"
+  REDIS_PASSWORD_FILE: /run/secrets/redis_password
+  MEILISEARCH_HOST: http://meilisearch:7700
+  MEILISEARCH_KEY_FILE: /run/secrets/meilisearch_master_key
+  SCOUT_DRIVER: meilisearch
+  MAIL_MAILER: ${MAIL_MAILER:-smtp}
+  MAIL_HOST: ${MAIL_HOST:?Set MAIL_HOST}
+  MAIL_PORT: ${MAIL_PORT:-587}
+  MAIL_USERNAME: ${MAIL_USERNAME:-}
+  MAIL_PASSWORD_FILE: /run/secrets/mail_password
+  MAIL_ENCRYPTION: ${MAIL_ENCRYPTION:-tls}
+  MAIL_FROM_ADDRESS: ${MAIL_FROM_ADDRESS:?Set MAIL_FROM_ADDRESS}
+  MAIL_FROM_NAME: ${MAIL_FROM_NAME:-Atlas}
+  SENTRY_LARAVEL_DSN_FILE: /run/secrets/sentry_laravel_dsn
+  SENTRY_RELEASE: ${SENTRY_RELEASE:-}
+  SENTRY_ENVIRONMENT: production
+  SENTRY_SEND_DEFAULT_PII: "false"
+  ATLAS_FILES_DISK: ${ATLAS_FILES_DISK:-atlas_files_s3}
+  ATLAS_FILES_SCANNER: clamav
+  ATLAS_FILES_CLAMAV_HOST: ${ATLAS_FILES_CLAMAV_HOST:-clamav}
+  ATLAS_FILES_CLAMAV_PORT: ${ATLAS_FILES_CLAMAV_PORT:-3310}
+  ATLAS_HEALTH_CLAMAV_CRITICAL: "true"
+  ATLAS_HEALTH_CLAMAV_HOST: ${ATLAS_FILES_CLAMAV_HOST:-clamav}
+  ATLAS_HEALTH_CLAMAV_PORT: ${ATLAS_FILES_CLAMAV_PORT:-3310}
+  ATLAS_HEALTH_CHROMIUM_CRITICAL: "true"
+  ATLAS_HEALTH_CHROMIUM_BINARY: /usr/bin/chromium
+  ATLAS_CHROMIUM_BINARY: /usr/bin/chromium
+  ATLAS_PDF_RENDER_TIMEOUT_SECONDS: ${ATLAS_PDF_RENDER_TIMEOUT_SECONDS:-120}
+  ATLAS_FILES_S3_ACCESS_KEY_ID_FILE: /run/secrets/files_s3_access_key_id
+  ATLAS_FILES_S3_SECRET_ACCESS_KEY_FILE: /run/secrets/files_s3_secret_access_key
+  ATLAS_FILES_S3_DEFAULT_REGION: ${ATLAS_FILES_S3_DEFAULT_REGION:-us-east-1}
+  ATLAS_FILES_S3_BUCKET: ${ATLAS_FILES_S3_BUCKET:-}
+  ATLAS_FILES_S3_URL: ${ATLAS_FILES_S3_URL:-}
+  ATLAS_FILES_S3_ENDPOINT: ${ATLAS_FILES_S3_ENDPOINT:-}
+  ATLAS_FILES_S3_USE_PATH_STYLE_ENDPOINT: ${ATLAS_FILES_S3_USE_PATH_STYLE_ENDPOINT:-false}
+
+x-atlas-runtime-secrets: &atlas-runtime-secrets
+  - app_key
+  - postgres_password
+  - redis_password
+  - meilisearch_master_key
+  - mail_password
+  - sentry_laravel_dsn
+  - files_s3_access_key_id
+  - files_s3_secret_access_key
+
 services:
   nginx:
+    image: atlas-nginx:${ATLAS_RELEASE_ID:?Set ATLAS_RELEASE_ID}
     build:
       context: ../..
       dockerfile: docker/production/nginx/Dockerfile
     depends_on:
       php-fpm:
-        condition: service_started
+        condition: service_healthy
     ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - app-storage:/var/www/html/storage:ro
+      - "${ATLAS_HTTP_BIND:-127.0.0.1}:${ATLAS_HTTP_PORT:-8080}:8080"
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "--show-error", "http://127.0.0.1:8080/health/ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
     networks:
       - public
       - internal
 
   php-fpm:
+    image: atlas-runtime:${ATLAS_RELEASE_ID:?Set ATLAS_RELEASE_ID}
     build:
       context: ../..
       dockerfile: docker/production/php/Dockerfile
-    environment:
-      APP_NAME: ${APP_NAME}
-      APP_ENV: ${APP_ENV}
-      APP_DEBUG: ${APP_DEBUG}
-      APP_URL: ${APP_URL}
-      APP_TIMEZONE: ${APP_TIMEZONE:-Europe/Warsaw}
-      PRODUCTION_DEPLOYED: ${PRODUCTION_DEPLOYED}
-      DB_CONNECTION: ${DB_CONNECTION}
-      DB_HOST: postgres
-      DB_PORT: 5432
-      DB_DATABASE: ${DB_DATABASE}
-      DB_USERNAME: ${DB_USERNAME}
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
-      MEILISEARCH_HOST: http://meilisearch:7700
+      target: php-runtime
+    environment: *atlas-runtime-environment
+    secrets: *atlas-runtime-secrets
     volumes:
       - app-storage:/var/www/html/storage
+    healthcheck:
+      test: ["CMD", "php-fpm", "-t"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 10s
     depends_on:
       postgres:
         condition: service_healthy
@@ -45,33 +122,25 @@ services:
         condition: service_healthy
       meilisearch:
         condition: service_healthy
+      clamav:
+        condition: service_healthy
     networks:
       - internal
 
   worker:
-    build:
-      context: ../..
-      dockerfile: docker/production/php/Dockerfile
-    environment:
-      APP_NAME: ${APP_NAME}
-      APP_ENV: ${APP_ENV}
-      APP_DEBUG: ${APP_DEBUG}
-      APP_URL: ${APP_URL}
-      APP_TIMEZONE: ${APP_TIMEZONE:-Europe/Warsaw}
-      PRODUCTION_DEPLOYED: ${PRODUCTION_DEPLOYED}
-      DB_CONNECTION: ${DB_CONNECTION}
-      DB_HOST: postgres
-      DB_PORT: 5432
-      DB_DATABASE: ${DB_DATABASE}
-      DB_USERNAME: ${DB_USERNAME}
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
-      MEILISEARCH_HOST: http://meilisearch:7700
-    command: ["php", "artisan", "queue:work", "--sleep=3", "--tries=3"]
+    image: atlas-runtime:${ATLAS_RELEASE_ID:?Set ATLAS_RELEASE_ID}
+    environment: *atlas-runtime-environment
+    secrets: *atlas-runtime-secrets
+    command: ["php", "artisan", "horizon"]
+    stop_grace_period: 1m
+    healthcheck:
+      test: ["CMD", "atlas-entrypoint", "php", "artisan", "horizon:status"]
+      interval: 10s
+      timeout: 10s
+      retries: 12
+      start_period: 20s
     depends_on:
       php-fpm:
-        condition: service_started
-      redis:
         condition: service_healthy
     volumes:
       - app-storage:/var/www/html/storage
@@ -79,29 +148,19 @@ services:
       - internal
 
   scheduler:
-    build:
-      context: ../..
-      dockerfile: docker/production/php/Dockerfile
-    environment:
-      APP_NAME: ${APP_NAME}
-      APP_ENV: ${APP_ENV}
-      APP_DEBUG: ${APP_DEBUG}
-      APP_URL: ${APP_URL}
-      APP_TIMEZONE: ${APP_TIMEZONE:-Europe/Warsaw}
-      PRODUCTION_DEPLOYED: ${PRODUCTION_DEPLOYED}
-      DB_CONNECTION: ${DB_CONNECTION}
-      DB_HOST: postgres
-      DB_PORT: 5432
-      DB_DATABASE: ${DB_DATABASE}
-      DB_USERNAME: ${DB_USERNAME}
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
-      MEILISEARCH_HOST: http://meilisearch:7700
+    image: atlas-runtime:${ATLAS_RELEASE_ID:?Set ATLAS_RELEASE_ID}
+    environment: *atlas-runtime-environment
+    secrets: *atlas-runtime-secrets
     command: ["php", "artisan", "schedule:work"]
+    stop_grace_period: 1m
+    healthcheck:
+      test: ["CMD", "atlas-entrypoint", "php", "artisan", "system:scheduler-status"]
+      interval: 30s
+      timeout: 10s
+      retries: 6
+      start_period: 90s
     depends_on:
       php-fpm:
-        condition: service_started
-      redis:
         condition: service_healthy
     volumes:
       - app-storage:/var/www/html/storage
@@ -109,67 +168,95 @@ services:
       - internal
 
   postgres:
-    image: postgres:18-bookworm
+    image: postgres:18.4-bookworm
     environment:
-      POSTGRES_DB: ${DB_DATABASE}
-      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_DB: ${DB_DATABASE:-atlas}
+      POSTGRES_USER: ${DB_USERNAME:-atlas}
       POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
-      TZ: ${APP_TIMEZONE:-Europe/Warsaw}
-      PGTZ: ${APP_TIMEZONE:-Europe/Warsaw}
+      PGDATA: /var/lib/postgresql/18/docker
+      TZ: Europe/Warsaw
+      PGTZ: Europe/Warsaw
     secrets:
       - postgres_password
     volumes:
       - postgres-data:/var/lib/postgresql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
-      interval: 10s
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+      interval: 5s
       timeout: 5s
-      retries: 5
+      retries: 12
     networks:
       - internal
 
   redis:
-    image: redis:8-bookworm
-    command: ["redis-server", "--appendonly", "yes"]
+    image: redis:8.4.0-bookworm
+    command:
+      - /bin/sh
+      - -ec
+      - exec redis-server --appendonly yes --requirepass "$$(cat /run/secrets/redis_password)"
+    secrets:
+      - redis_password
     volumes:
       - redis-data:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
+      test: ["CMD-SHELL", "redis-cli -a \"$$(cat /run/secrets/redis_password)\" ping | grep -q PONG"]
+      interval: 5s
       timeout: 5s
-      retries: 5
+      retries: 12
     networks:
       - internal
 
   meilisearch:
-    image: getmeili/meilisearch:v1.15
+    image: getmeili/meilisearch:v1.15.2
+    entrypoint:
+      - /bin/sh
+      - -ec
+    command:
+      - exec /bin/meilisearch --master-key "$$(cat /run/secrets/meilisearch_master_key)"
     environment:
       MEILI_ENV: production
-      MEILI_MASTER_KEY_FILE: /run/secrets/meilisearch_master_key
-      TZ: ${APP_TIMEZONE:-Europe/Warsaw}
+      TZ: Europe/Warsaw
     secrets:
       - meilisearch_master_key
     volumes:
       - meilisearch-data:/meili_data
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--spider", "http://127.0.0.1:7700/health"]
-      interval: 10s
+      interval: 5s
       timeout: 5s
-      retries: 10
+      retries: 20
+    networks:
+      - internal
+
+  clamav:
+    image: clamav/clamav:1.4.5-debian13-slim
+    environment:
+      TZ: Europe/Warsaw
+    volumes:
+      - clamav-data:/var/lib/clamav
+    healthcheck:
+      test: ["CMD-SHELL", "clamdscan --ping 1 >/dev/null 2>&1"]
+      interval: 15s
+      timeout: 10s
+      retries: 40
+      start_period: 2m
     networks:
       - internal
 
   backup:
+    profiles: ["operations"]
+    image: atlas-backup:${ATLAS_RELEASE_ID:?Set ATLAS_RELEASE_ID}
     build:
       context: ../..
       dockerfile: docker/production/backup/Dockerfile
     environment:
       DB_HOST: postgres
-      DB_PORT: 5432
-      DB_DATABASE: ${DB_DATABASE}
-      DB_USERNAME: ${DB_USERNAME}
+      DB_PORT: "5432"
+      DB_DATABASE: ${DB_DATABASE:-atlas}
+      DB_USERNAME: ${DB_USERNAME:-atlas}
       PGPASSWORD_FILE: /run/secrets/postgres_password
-      TZ: ${APP_TIMEZONE:-Europe/Warsaw}
+      BACKUP_DIRECTORY: /backups
+      TZ: Europe/Warsaw
     secrets:
       - postgres_password
     volumes:
@@ -181,16 +268,29 @@ services:
       - internal
 
 secrets:
+  app_key:
+    file: ${ATLAS_SECRET_APP_KEY_FILE:-./secrets/app_key.txt}
   postgres_password:
-    file: ./secrets/postgres_password.txt
+    file: ${ATLAS_SECRET_POSTGRES_PASSWORD_FILE:-./secrets/postgres_password.txt}
+  redis_password:
+    file: ${ATLAS_SECRET_REDIS_PASSWORD_FILE:-./secrets/redis_password.txt}
   meilisearch_master_key:
-    file: ./secrets/meilisearch_master_key.txt
+    file: ${ATLAS_SECRET_MEILISEARCH_KEY_FILE:-./secrets/meilisearch_master_key.txt}
+  mail_password:
+    file: ${ATLAS_SECRET_MAIL_PASSWORD_FILE:-./secrets/mail_password.txt}
+  sentry_laravel_dsn:
+    file: ${ATLAS_SECRET_SENTRY_LARAVEL_DSN_FILE:-./secrets/sentry_laravel_dsn.txt}
+  files_s3_access_key_id:
+    file: ${ATLAS_SECRET_FILES_S3_ACCESS_KEY_ID_FILE:-./secrets/files_s3_access_key_id.txt}
+  files_s3_secret_access_key:
+    file: ${ATLAS_SECRET_FILES_S3_SECRET_ACCESS_KEY_FILE:-./secrets/files_s3_secret_access_key.txt}
 
 volumes:
   app-storage:
   postgres-data:
   redis-data:
   meilisearch-data:
+  clamav-data:
   backup-data:
 
 networks:

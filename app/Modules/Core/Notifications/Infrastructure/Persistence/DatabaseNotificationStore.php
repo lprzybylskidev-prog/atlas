@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Core\Notifications\Infrastructure\Persistence;
 
-use App\Modules\Core\Identity\Application\Public\Persistence\IdentityDatabaseTable;
+use App\Modules\Core\Identity\Application\Public\Contracts\UserLookup;
 use App\Modules\Core\Notifications\Application\Public\Contracts\NotificationEmailPreferenceManager;
 use App\Modules\Core\Notifications\Application\Public\Contracts\NotificationInbox;
 use App\Modules\Core\Notifications\Application\Public\Contracts\NotificationMaintenance;
@@ -16,9 +16,9 @@ use App\Modules\Core\Notifications\Application\Public\DTOs\NotificationCleanupRe
 use App\Modules\Core\Notifications\Application\Public\DTOs\NotificationSummary;
 use App\Modules\Core\Notifications\Application\Public\DTOs\PublishRealtimeEvent;
 use App\Modules\Core\Notifications\Application\Public\DTOs\RealtimeEventSummary;
-use App\Modules\Core\Notifications\Application\Public\Persistence\NotificationsDatabaseTable;
+use App\Modules\Core\Notifications\Infrastructure\Persistence\TableNames\NotificationsDatabaseTable;
 use App\Modules\Core\Notifications\Presentation\Jobs\DeliverNotification;
-use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
+use App\Shared\Application\Teams\Contracts\TeamLookup;
 use Carbon\CarbonImmutable;
 use DateTimeInterface;
 use Illuminate\Database\Query\Builder;
@@ -28,6 +28,11 @@ use RuntimeException;
 
 final class DatabaseNotificationStore implements NotificationInbox, NotificationMaintenance, NotificationPublisher, RealtimeFeed, RealtimePublisher
 {
+    public function __construct(
+        private readonly UserLookup $users,
+        private readonly TeamLookup $teams,
+    ) {}
+
     public function publish(CreateNotification $notification): string
     {
         $userId = $this->userId($notification->recipientUserPublicId);
@@ -221,21 +226,21 @@ final class DatabaseNotificationStore implements NotificationInbox, Notification
     }
 
     /**
-     * @return list<array{email: string, title: string, body: string|null}>
+     * @return list<array{email: string, user_id: int, team_id: int|null, titles: array{pl: string, en: string}, bodies: array{pl: string|null, en: string|null}, deep_link_url: string|null}>
      */
     public function emailPayloads(int $recipientId): array
     {
         $record = DB::table(NotificationsDatabaseTable::NOTIFICATION_RECIPIENTS.' as recipients')
             ->join(NotificationsDatabaseTable::NOTIFICATIONS.' as notifications', 'recipients.notification_id', '=', 'notifications.id')
-            ->join(IdentityDatabaseTable::USERS.' as users', 'recipients.user_id', '=', 'users.id')
             ->where('recipients.id', $recipientId)
             ->first([
-                'users.id as user_id',
-                'users.public_id as user_public_id',
+                'recipients.user_id',
                 'recipients.team_id',
                 'notifications.type',
                 'notifications.title',
                 'notifications.body',
+                'notifications.deep_link_url',
+                'notifications.data',
             ]);
 
         if (! is_object($record)) {
@@ -248,20 +253,20 @@ final class DatabaseNotificationStore implements NotificationInbox, Notification
         $type = $this->scalarString($values['type'] ?? '');
         $title = $this->scalarString($values['title'] ?? '');
         $body = $values['body'] ?? null;
+        $deepLinkUrl = $values['deep_link_url'] ?? null;
+        $data = $this->decodedPayload($values['data'] ?? '{}');
 
         if (! is_numeric($userId) || $type === '' || $title === '') {
             return [];
         }
 
-        $user = DB::table(IdentityDatabaseTable::USERS)
-            ->where('id', (int) $userId)
-            ->first(['id', 'email', 'email_verified_at']);
+        $user = $this->users->notificationContactForInternalId((int) $userId);
 
-        if (is_object($user) && is_string($user->email ?? null)) {
+        if ($user !== null) {
             app(NotificationEmailPreferenceManager::class)->ensurePrimaryAddressForUser(
-                (int) $userId,
-                (string) $user->email,
-                $user->email_verified_at instanceof DateTimeInterface ? $user->email_verified_at : null,
+                $user->internalId,
+                $user->email,
+                $user->emailVerifiedAt,
                 is_numeric($teamId) ? (int) $teamId : null,
             );
         }
@@ -286,12 +291,49 @@ final class DatabaseNotificationStore implements NotificationInbox, Notification
         foreach ($emails as $email) {
             $payloads[] = [
                 'email' => $email,
-                'title' => $title,
-                'body' => is_string($body) ? $body : null,
+                'user_id' => (int) $userId,
+                'team_id' => is_numeric($teamId) ? (int) $teamId : null,
+                'titles' => [
+                    'pl' => $this->localizedMailText('title', $title, $data, 'pl') ?? $title,
+                    'en' => $this->localizedMailText('title', $title, $data, 'en') ?? $title,
+                ],
+                'bodies' => [
+                    'pl' => $this->localizedMailText('body', is_string($body) ? $body : null, $data, 'pl'),
+                    'en' => $this->localizedMailText('body', is_string($body) ? $body : null, $data, 'en'),
+                ],
+                'deep_link_url' => is_string($deepLinkUrl) && $deepLinkUrl !== '' ? url($deepLinkUrl) : null,
             ];
         }
 
         return $payloads;
+    }
+
+    /** @param array<string, mixed> $data */
+    private function localizedMailText(string $field, ?string $fallback, array $data, string $locale): ?string
+    {
+        $localized = $data[$field.'_'.$locale] ?? null;
+
+        if (is_string($localized) && $localized !== '') {
+            return $localized;
+        }
+
+        $key = $data[$field.'_key'] ?? null;
+
+        if (! is_string($key) || ! str_starts_with($key, 'notifications.')) {
+            return $fallback;
+        }
+
+        $parameters = [];
+
+        foreach ($data as $name => $value) {
+            if (! str_ends_with($name, '_key')
+                && ! in_array($name, ['title_pl', 'title_en', 'body_pl', 'body_en'], true)
+                && (is_scalar($value) || $value === null)) {
+                $parameters[$name] = $value;
+            }
+        }
+
+        return trans($key, $parameters, $locale);
     }
 
     public function markEmailDelivered(int $recipientId): void
@@ -317,7 +359,6 @@ final class DatabaseNotificationStore implements NotificationInbox, Notification
         $afterId = $afterPublicId === null ? null : DB::table(NotificationsDatabaseTable::REALTIME_EVENTS)->where('public_id', $afterPublicId)->value('id');
 
         $query = DB::table(NotificationsDatabaseTable::REALTIME_EVENTS)
-            ->leftJoin(TeamsDatabaseTable::TEAMS, 'realtime_events.team_id', '=', 'teams.id')
             ->where(static function (Builder $query) use ($userId): void {
                 $query->whereNull('realtime_events.user_id')->orWhere('realtime_events.user_id', $userId);
             })
@@ -329,7 +370,7 @@ final class DatabaseNotificationStore implements NotificationInbox, Notification
                 'realtime_events.event_type',
                 'realtime_events.payload',
                 'realtime_events.created_at',
-                'teams.public_id as team_public_id',
+                'realtime_events.team_id',
             ]);
 
         if (is_int($teamId)) {
@@ -352,7 +393,7 @@ final class DatabaseNotificationStore implements NotificationInbox, Notification
                 publicId: $this->scalarString($values['public_id'] ?? ''),
                 topic: $this->scalarString($values['topic'] ?? ''),
                 eventType: $this->scalarString($values['event_type'] ?? ''),
-                teamPublicId: is_string($values['team_public_id'] ?? null) ? $values['team_public_id'] : null,
+                teamPublicId: is_numeric($values['team_id'] ?? null) ? $this->teams->publicIdForInternalId((int) $values['team_id']) : null,
                 payload: $this->decodedPayload($values['payload'] ?? '{}'),
                 createdAt: $this->dateTimeString($values['created_at'] ?? null),
             );
@@ -449,7 +490,6 @@ final class DatabaseNotificationStore implements NotificationInbox, Notification
 
         $query = DB::table(NotificationsDatabaseTable::NOTIFICATION_RECIPIENTS)
             ->join(NotificationsDatabaseTable::NOTIFICATIONS, 'notification_recipients.notification_id', '=', 'notifications.id')
-            ->leftJoin(TeamsDatabaseTable::TEAMS, 'notification_recipients.team_id', '=', 'teams.id')
             ->where('notification_recipients.user_id', $userId)
             ->orderByDesc('notifications.created_at')
             ->select([
@@ -460,7 +500,7 @@ final class DatabaseNotificationStore implements NotificationInbox, Notification
                 'notifications.body',
                 'notifications.deep_link_url',
                 'notifications.data',
-                'teams.public_id as team_public_id',
+                'notification_recipients.team_id',
                 'notification_recipients.read_at',
                 'notifications.created_at',
             ]);
@@ -490,7 +530,7 @@ final class DatabaseNotificationStore implements NotificationInbox, Notification
                 title: $this->scalarString($values['title'] ?? ''),
                 body: is_string($values['body'] ?? null) ? $values['body'] : null,
                 deepLinkUrl: is_string($values['deep_link_url'] ?? null) ? $values['deep_link_url'] : null,
-                teamPublicId: is_string($values['team_public_id'] ?? null) ? $values['team_public_id'] : null,
+                teamPublicId: is_numeric($values['team_id'] ?? null) ? $this->teams->publicIdForInternalId((int) $values['team_id']) : null,
                 read: $readAt !== null,
                 createdAt: $this->dateTimeString($values['created_at'] ?? null),
                 readAt: $this->nullableDateTimeString($readAt),
@@ -529,16 +569,12 @@ final class DatabaseNotificationStore implements NotificationInbox, Notification
 
     private function userId(string $userPublicId): ?int
     {
-        $id = DB::table(IdentityDatabaseTable::USERS)->where('public_id', $userPublicId)->value('id');
-
-        return is_int($id) ? $id : (is_numeric($id) ? (int) $id : null);
+        return $this->users->internalIdForPublicId($userPublicId);
     }
 
     private function teamId(string $teamPublicId): ?int
     {
-        $id = DB::table(TeamsDatabaseTable::TEAMS)->where('public_id', $teamPublicId)->value('id');
-
-        return is_int($id) ? $id : (is_numeric($id) ? (int) $id : null);
+        return $this->teams->internalIdForPublicId($teamPublicId);
     }
 
     private function scalarString(mixed $value): string

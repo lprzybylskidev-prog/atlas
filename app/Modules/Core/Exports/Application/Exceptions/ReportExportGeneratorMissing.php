@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Core\Exports\Application\Exceptions;
 
-use App\Modules\Core\Exports\Application\Enums\ReportExportFormat;
+use App\Shared\Application\Exports\Enums\ReportExportFormat;
 use RuntimeException;
 
 final class ReportExportGeneratorMissing extends RuntimeException

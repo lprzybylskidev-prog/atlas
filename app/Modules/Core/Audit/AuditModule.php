@@ -25,7 +25,6 @@ final class AuditModule implements ModuleDefinition
     {
         return [
             new ModuleKey('identity'),
-            new ModuleKey('authorization'),
             new ModuleKey('teams'),
         ];
     }
@@ -50,17 +49,7 @@ final class AuditModule implements ModuleDefinition
         return false;
     }
 
-    public function integrations(): array
-    {
-        return [];
-    }
-
     public function healthChecks(): array
-    {
-        return [];
-    }
-
-    public function frontendEntrypoints(): array
     {
         return [];
     }

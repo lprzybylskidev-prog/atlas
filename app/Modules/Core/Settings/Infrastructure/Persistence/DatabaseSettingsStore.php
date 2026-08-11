@@ -4,17 +4,17 @@ declare(strict_types=1);
 
 namespace App\Modules\Core\Settings\Infrastructure\Persistence;
 
-use App\Modules\Core\Audit\Application\Public\Contracts\AuditRecorder;
-use App\Modules\Core\Audit\Application\Public\DTOs\AuditEvent;
-use App\Modules\Core\Audit\Application\Public\Enums\SecurityAuditCategory;
 use App\Modules\Core\Settings\Application\Contracts\SettingsStore;
 use App\Modules\Core\Settings\Application\Enums\GlobalSettingKey;
 use App\Modules\Core\Settings\Application\Enums\SecuritySettingKey;
 use App\Modules\Core\Settings\Application\Enums\TeamSettingKey;
 use App\Modules\Core\Settings\Application\Enums\UserSettingKey;
-use App\Modules\Core\Settings\Application\Public\Persistence\SettingsDatabaseTable;
 use App\Modules\Core\Settings\Application\Settings\SettingsDefaults;
 use App\Modules\Core\Settings\Application\Settings\SettingValueValidator;
+use App\Modules\Core\Settings\Infrastructure\Persistence\TableNames\SettingsDatabaseTable;
+use App\Shared\Application\Audit\Contracts\AuditRecorder;
+use App\Shared\Application\Audit\DTOs\AuditEvent;
+use App\Shared\Application\Audit\Enums\SecurityAuditCategory;
 use Closure;
 use Illuminate\Contracts\Cache\Repository as CacheRepository;
 use Illuminate\Database\ConnectionInterface;

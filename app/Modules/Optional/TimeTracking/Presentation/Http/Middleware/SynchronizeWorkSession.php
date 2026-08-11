@@ -5,16 +5,15 @@ declare(strict_types=1);
 namespace App\Modules\Optional\TimeTracking\Presentation\Http\Middleware;
 
 use App\Modules\Core\Identity\Application\Public\Contracts\ImpersonationSessionState;
-use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
 use App\Modules\Optional\TimeTracking\Application\Contracts\ActiveTimeLockStore;
 use App\Modules\Optional\TimeTracking\Application\Permissions\TimeTrackingPermissionCatalog;
 use App\Modules\Optional\TimeTracking\Application\TimeTrackingModuleAccess;
 use App\Modules\Optional\TimeTracking\Application\WorkSessionCoordinator;
+use App\Shared\Application\Teams\Contracts\TeamLookup;
 use Closure;
 use DateTimeImmutable;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
@@ -25,6 +24,7 @@ final readonly class SynchronizeWorkSession
         private WorkSessionCoordinator $coordinator,
         private TimeTrackingModuleAccess $access,
         private ImpersonationSessionState $impersonation,
+        private TeamLookup $teams,
     ) {}
 
     public function handle(Request $request, Closure $next): Response
@@ -103,11 +103,7 @@ final readonly class SynchronizeWorkSession
             return null;
         }
 
-        $id = DB::table(TeamsDatabaseTable::TEAMS)
-            ->where('public_id', $teamPublicId)
-            ->value('id');
-
-        return is_numeric($id) ? (int) $id : null;
+        return $this->teams->internalIdForPublicId($teamPublicId);
     }
 
     private function activeTeamPublicId(Request $request): ?string

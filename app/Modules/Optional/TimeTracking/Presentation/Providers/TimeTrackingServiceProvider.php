@@ -13,6 +13,7 @@ use App\Modules\Optional\TimeTracking\Application\Contracts\OtherWorkCategorySto
 use App\Modules\Optional\TimeTracking\Application\Contracts\OtherWorkSessionStore;
 use App\Modules\Optional\TimeTracking\Application\Contracts\SettlementPeriodStore;
 use App\Modules\Optional\TimeTracking\Application\Contracts\TimeTrackingDeactivationReadiness;
+use App\Modules\Optional\TimeTracking\Application\Contracts\TimeTrackingFixtureBuilder;
 use App\Modules\Optional\TimeTracking\Application\Contracts\UserTeamTrackingSettings;
 use App\Modules\Optional\TimeTracking\Application\Contracts\WorkSessionStore;
 use App\Modules\Optional\TimeTracking\Application\Exports\AdminTimeTrackingBreaksDataTableExportProvider;
@@ -20,12 +21,11 @@ use App\Modules\Optional\TimeTracking\Application\Exports\AdminTimeTrackingCorre
 use App\Modules\Optional\TimeTracking\Application\Exports\AdminTimeTrackingDailyDataTableExportProvider;
 use App\Modules\Optional\TimeTracking\Application\Exports\AdminTimeTrackingOtherWorkDataTableExportProvider;
 use App\Modules\Optional\TimeTracking\Application\Exports\AdminTimeTrackingWorkSessionsDataTableExportProvider;
-use App\Modules\Optional\TimeTracking\Application\Exports\TimeTrackingManagerReportDataTableExportProvider;
 use App\Modules\Optional\TimeTracking\Application\Exports\TimeTrackingUserReportDataTableExportProvider;
 use App\Modules\Optional\TimeTracking\Application\Permissions\TimeTrackingPermissionCatalog;
-use App\Modules\Optional\TimeTracking\Application\Public\Contracts\UserBreakPolicySettings;
 use App\Modules\Optional\TimeTracking\Application\TimeTrackingDeactivationGuard;
 use App\Modules\Optional\TimeTracking\Application\TimeTrackingModuleAccess;
+use App\Modules\Optional\TimeTracking\Infrastructure\Fixtures\TimeTrackingDevelopmentFixtureBuilder;
 use App\Modules\Optional\TimeTracking\Infrastructure\Persistence\DatabaseActiveTimeLockStore;
 use App\Modules\Optional\TimeTracking\Infrastructure\Persistence\DatabaseBreakPolicyStore;
 use App\Modules\Optional\TimeTracking\Infrastructure\Persistence\DatabaseBreakSessionStore;
@@ -41,6 +41,7 @@ use App\Modules\Optional\TimeTracking\Infrastructure\Persistence\EmptyTimeTracki
 use App\Modules\Optional\TimeTracking\Presentation\Http\Middleware\SynchronizeWorkSession;
 use App\Modules\Optional\TimeTracking\Presentation\Inertia\TimeTrackingInertiaData;
 use App\Modules\Optional\TimeTracking\Presentation\Inertia\TimeTrackingRouteAvailability;
+use App\Shared\Application\TimeTracking\Contracts\UserBreakPolicySettings;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 
@@ -60,6 +61,9 @@ final class TimeTrackingServiceProvider extends ServiceProvider
         $this->app->bind(UserTeamTrackingSettings::class, DatabaseUserTeamTrackingSettings::class);
         $this->app->bind(UserBreakPolicySettings::class, DatabaseUserBreakPolicySettings::class);
         $this->app->bind(WorkSessionStore::class, DatabaseWorkSessionStore::class);
+        if ($this->app->environment(['local', 'development', 'testing'])) {
+            $this->app->singleton(TimeTrackingFixtureBuilder::class, TimeTrackingDevelopmentFixtureBuilder::class);
+        }
         $this->app->singleton(TimeTrackingModuleAccess::class);
         $this->app->tag([TimeTrackingPermissionCatalog::class], 'atlas.permission_catalogs');
         $this->app->tag([TimeTrackingInertiaData::class], 'atlas.inertia_shared_data');
@@ -71,7 +75,6 @@ final class TimeTrackingServiceProvider extends ServiceProvider
             AdminTimeTrackingDailyDataTableExportProvider::class,
             AdminTimeTrackingOtherWorkDataTableExportProvider::class,
             AdminTimeTrackingWorkSessionsDataTableExportProvider::class,
-            TimeTrackingManagerReportDataTableExportProvider::class,
             TimeTrackingUserReportDataTableExportProvider::class,
         ], 'atlas.admin_data_table_export_providers');
     }

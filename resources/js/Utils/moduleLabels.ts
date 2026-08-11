@@ -11,9 +11,5 @@ export function moduleLabel(key: string, t: Translator): string {
         return translated;
     }
 
-    return normalized
-        .split('_')
-        .filter((part) => part !== '')
-        .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-        .join(' ');
+    return t('pages.admin.dashboard.module.unknown', { module: key });
 }

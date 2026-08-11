@@ -169,7 +169,7 @@ Dependencies must be acyclic.
 
 Every deployed module has an explicit `ModuleDefinition` manifest registered in `config/modules.php`.
 
-The manifest declares the module key, category, required dependencies, optional dependencies, Service Provider, activation support, integrations, health checks, and frontend entrypoints. `ModuleRegistry` rejects duplicate keys, missing required dependencies, dependency cycles, and invalid startup order during application registration.
+The manifest declares the module key, category, required dependencies, optional dependencies, Service Provider, activation support, integrations, health checks, and frontend entrypoints. `ModuleRegistry` rejects duplicate keys, missing required dependencies, dependency cycles, and invalid startup order during application registration. Dependency declarations must be evidenced by provider-module imports, neutral shared integration ports, or an explicit runtime-only dependency test. Decorative dependencies are forbidden. Core modules may collaborate with Optional implementations only through neutral shared ports and optional dependency metadata with a tested reduced Core registry; Core-to-Optional required dependencies are invalid.
 
 Modules expose cross-module synchronous APIs only through:
 
@@ -245,7 +245,7 @@ Current table ownership:
 
 | Schema | Tables |
 | --- | --- |
-| `core_identity` | `users`, `password_reset_tokens`, `user_password_histories`, `user_webauthn_credentials`, `sessions` |
+| `core_identity` | `users`, `password_reset_tokens`, `user_password_histories`, `sessions` |
 | `core_teams` | `teams`, `team_user_assignments` |
 | `core_authorization` | `permissions`, `roles`, `model_has_permissions`, `model_has_roles`, `role_has_permissions`, `authorization_onboarding_packages`, `user_onboarding_packages` |
 | `core_audit` | `audit_events`, `audit_security_events` |
@@ -255,9 +255,9 @@ Current table ownership:
 | `shared` | `cache`, `cache_locks`, `jobs`, `job_batches`, `failed_jobs`, `failed_job_acknowledgements`, `outbox_events`, `outbox_consumed_events`, `table_saved_views`, `table_saved_view_defaults`, `module_global_states`, `module_team_states`, `module_activation_schedules`, `module_activation_history` |
 | `public` allowlist | `migrations`, package-owned diagnostics tables such as Telescope and Pulse tables |
 
-Runtime table references use final table-name classes owned by the persistence owner. Module-owned tables live in module-local `Application/Public/Persistence/<Module>DatabaseTable` classes, for example `TimeTrackingDatabaseTable`; shared technical infrastructure tables remain in `App\Shared\Infrastructure\Database\DatabaseTable`. Module table-name classes are narrow public persistence identifiers: they publish schema-qualified names for migrations, tests, package configuration, and unavoidable database-level joins, but they do not by themselves authorize cross-module business reads or mutations. Cross-module behavior still uses public contracts, Integration Events, or owner-owned lifecycle/activation participants. `App\Shared\Infrastructure\Database\DatabaseSchema` remains the central schema-topology registry for deployment and migration consistency, but a schema-qualified name is not permission for cross-module table access. The configured PostgreSQL `search_path` includes Atlas schemas only so Laravel database maintenance commands can see and wipe all schemas deterministically; application code must still use schema-qualified Atlas-owned table names. During the Phase 24a ownership move, `optional_reports` remains in the default `search_path` only as a pre-production legacy cleanup entry so existing development databases can migrate export state to `core_exports` or wipe old report-owned tables safely.
+Runtime table references use final table-name classes owned by the persistence owner. Module-owned catalogs live in module-local `Infrastructure/Persistence/TableNames/<Module>DatabaseTable` classes; shared technical infrastructure tables remain in `App\Shared\Infrastructure\Database\DatabaseTable`. These catalogs are internal persistence details for owner code, migrations, owner tests, and package configuration. They are not public contracts and must never be imported by another module. Cross-module behavior uses owner-owned public contracts or Integration Events. Architecture guards discover the catalogs automatically and reject both foreign class imports and embedded schema-qualified foreign table names. `App\Shared\Infrastructure\Database\DatabaseSchema` remains the central schema-topology registry for deployment and migration consistency, but a schema-qualified name is not permission for cross-module table access. PostgreSQL uses the minimal `public` search path required by Laravel's migration repository and package-owned diagnostic tables. Atlas extends the explicit `db:wipe`/`migrate:fresh` workflow to drop only schemas registered by `DatabaseSchema::all()`, so maintenance commands remain deterministic without exposing module tables through `search_path`.
 
-Phase 28 target: table-name classes must no longer act as a cross-module API. After Phase 28, owner-owned public contracts replace all foreign table reads/writes, broad `search_path` masking is removed except for minimal documented framework needs, and architecture tests compare real imports and table access to `ModuleDefinition`. Known noncompliance is tracked by `P28-ARCH-001` through `P28-ARCH-014` and `P28-MIG-001` through `P28-MIG-003`.
+Phase 28 boundary state: table-name classes no longer act as a cross-module API, owner-owned or neutral shared integration contracts replace foreign reads/writes, and permanent AST-backed architecture tests compare real imports, runtime-only evidence, configuration, migrations, and table access to `ModuleDefinition`. The canonical pre-production migration set and minimal-search-path schema reset contract are enforced by permanent static and PostgreSQL integration tests.
 
 Module contribution contracts are framework-independent declarations consumed by shared Presentation/Admin infrastructure:
 
@@ -354,7 +354,7 @@ Each participant can:
 - execute idempotent deletion or anonymization steps;
 - return auditable step results tied to a correlation ID.
 
-The full administrative orchestration is implemented later, but modules must shape their deletion/anonymization behavior around this minimal shared contract.
+Privacy administrative orchestration executes registered lifecycle participants behind preview, stale-snapshot, legal-hold, high-risk, authorization, atomicity, and audit guards. Modules shape deletion/anonymization behavior around this shared contract.
 
 ## Base Module Classification
 

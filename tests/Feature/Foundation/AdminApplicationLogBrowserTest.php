@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Foundation;
 
-use App\Modules\Core\Authorization\Application\Public\Persistence\AuthorizationDatabaseTable;
 use App\Modules\Core\Authorization\Application\Roles\InstallStarterRoles;
 use App\Modules\Core\Authorization\Application\Roles\StarterRoleName;
+use App\Modules\Core\Authorization\Infrastructure\Persistence\TableNames\AuthorizationDatabaseTable;
 use App\Modules\Core\Identity\Infrastructure\Persistence\User;
-use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
+use App\Modules\Core\Teams\Infrastructure\Persistence\TableNames\TeamsDatabaseTable;
 use App\Modules\Core\Teams\Infrastructure\Persistence\Team;
-use App\Shared\Application\Tables\AdminTableDefinitions;
+use App\Shared\Application\Tables\RegisteredTables;
 use App\Shared\Infrastructure\Observability\ApplicationLogReader;
 use App\Shared\Infrastructure\Observability\SensitiveDataRedactor;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -74,7 +74,7 @@ final class AdminApplicationLogBrowserTest extends TestCase
                     ->where('filters.source', 'all')
                     ->where('filterOptions.files.0.name', basename($path))
                     ->where('filterOptions.sources.0', 'http')
-                    ->where('tableKey', AdminTableDefinitions::APPLICATION_LOGS)
+                    ->where('tableKey', RegisteredTables::APPLICATION_LOGS)
                     ->where('exports.endpoint', route('admin.exports.data-table'))
                     ->where('logs.0.module', 'identity')
                     ->where('logs.0.source', 'http')

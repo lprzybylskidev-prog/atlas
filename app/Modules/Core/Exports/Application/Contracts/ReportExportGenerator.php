@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace App\Modules\Core\Exports\Application\Contracts;
 
 use App\Modules\Core\Exports\Application\DTOs\GeneratedReportArtifact;
-use App\Modules\Core\Exports\Application\Enums\ReportExportFormat;
-use App\Modules\Core\Exports\Application\Public\DTOs\ReportExportGenerationRequest;
+use App\Shared\Application\Exports\DTOs\ReportExportGenerationRequest;
+use App\Shared\Application\Exports\Enums\ReportExportFormat;
 
 interface ReportExportGenerator
 {

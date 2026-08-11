@@ -28,14 +28,9 @@ final class TimeTrackingModule implements ModuleDefinition
             new ModuleKey('authorization'),
             new ModuleKey('teams'),
             new ModuleKey('audit'),
-            new ModuleKey('settings'),
             new ModuleKey('notifications'),
-            new ModuleKey('health'),
             new ModuleKey('feature_flags'),
-            new ModuleKey('managed_processes'),
             new ModuleKey('exports'),
-            new ModuleKey('privacy'),
-            new ModuleKey('reports'),
         ];
     }
 
@@ -59,17 +54,7 @@ final class TimeTrackingModule implements ModuleDefinition
         return true;
     }
 
-    public function integrations(): array
-    {
-        return [];
-    }
-
     public function healthChecks(): array
-    {
-        return ['time_tracking'];
-    }
-
-    public function frontendEntrypoints(): array
     {
         return [];
     }

@@ -18,7 +18,11 @@ final class LaravelFirstPasswordLinkIssuer implements FirstPasswordLinkIssuer
             ['email' => $email],
             static function (CanResetPassword $user, string $token): void {
                 Notification::route('mail', $user->getEmailForPasswordReset())
-                    ->notify(new FirstPasswordSetupNotification($token, $user->getEmailForPasswordReset()));
+                    ->notify(new FirstPasswordSetupNotification(
+                        $token,
+                        $user->getEmailForPasswordReset(),
+                        is_numeric($user->getAuthIdentifier()) ? (int) $user->getAuthIdentifier() : null,
+                    ));
             },
         );
 

@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace App\Modules\Core\Exports\Application;
 
 use App\Modules\Core\Exports\Application\Contracts\ReportExportGenerator;
-use App\Modules\Core\Exports\Application\Enums\ReportExportFormat;
 use App\Modules\Core\Exports\Application\Exceptions\ReportExportGeneratorMissing;
+use App\Shared\Application\Exports\Enums\ReportExportFormat;
 
 final readonly class ReportExportGeneratorRegistry
 {

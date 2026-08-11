@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Modules\Core\Teams\Infrastructure\Persistence;
 
-use App\Modules\Core\Identity\Application\Public\Persistence\IdentityDatabaseTable;
-use App\Modules\Core\Settings\Application\Public\Contracts\SecuritySessionSettings;
-use App\Modules\Core\Teams\Application\Public\Contracts\UserTeamSessionLimitSettings;
-use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
+use App\Modules\Core\Identity\Application\Public\Contracts\UserLookup;
+use App\Modules\Core\Teams\Infrastructure\Persistence\TableNames\TeamsDatabaseTable;
+use App\Shared\Application\Security\Contracts\SecuritySessionSettings;
+use App\Shared\Application\Teams\Contracts\UserTeamSessionLimitSettings;
 use Illuminate\Database\ConnectionInterface;
 
 final readonly class DatabaseUserTeamSessionLimitSettings implements UserTeamSessionLimitSettings
@@ -15,6 +15,7 @@ final readonly class DatabaseUserTeamSessionLimitSettings implements UserTeamSes
     public function __construct(
         private ConnectionInterface $database,
         private SecuritySessionSettings $settings,
+        private UserLookup $users,
     ) {}
 
     public function resolvedForTeam(string $teamPublicId): array
@@ -63,10 +64,19 @@ final readonly class DatabaseUserTeamSessionLimitSettings implements UserTeamSes
         $defaultMaximum = max(1, is_numeric($configuredMaximum) ? (int) $configuredMaximum : 720);
         $source = 'default';
 
+        $userId = $this->users->internalIdForPublicId($userPublicId);
+
+        if ($userId === null) {
+            return [
+                'inactivityTimeoutMinutes' => min($defaultInactivity, $defaultMaximum),
+                'sessionMaxLifetimeMinutes' => $defaultMaximum,
+                'source' => 'default',
+            ];
+        }
+
         $row = $this->database->table(TeamsDatabaseTable::TEAM_USER_ASSIGNMENTS)
-            ->join(IdentityDatabaseTable::USERS, 'team_user_assignments.user_id', '=', 'users.id')
             ->join(TeamsDatabaseTable::TEAMS, 'team_user_assignments.team_id', '=', 'teams.id')
-            ->where('users.public_id', $userPublicId)
+            ->where('team_user_assignments.user_id', $userId)
             ->where('teams.public_id', $teamPublicId)
             ->whereNull('team_user_assignments.valid_to')
             ->first([
@@ -130,10 +140,15 @@ final readonly class DatabaseUserTeamSessionLimitSettings implements UserTeamSes
 
     private function assignmentId(string $userPublicId, string $teamPublicId): int
     {
+        $userId = $this->users->internalIdForPublicId($userPublicId);
+
+        if ($userId === null) {
+            return 0;
+        }
+
         $id = $this->database->table(TeamsDatabaseTable::TEAM_USER_ASSIGNMENTS)
-            ->join(IdentityDatabaseTable::USERS, 'team_user_assignments.user_id', '=', 'users.id')
             ->join(TeamsDatabaseTable::TEAMS, 'team_user_assignments.team_id', '=', 'teams.id')
-            ->where('users.public_id', $userPublicId)
+            ->where('team_user_assignments.user_id', $userId)
             ->where('teams.public_id', $teamPublicId)
             ->whereNull('team_user_assignments.valid_to')
             ->value('team_user_assignments.id');

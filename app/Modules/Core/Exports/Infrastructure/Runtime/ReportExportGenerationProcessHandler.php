@@ -6,8 +6,8 @@ namespace App\Modules\Core\Exports\Infrastructure\Runtime;
 
 use App\Modules\Core\Exports\Application\ReportExportArtifactGenerator;
 use App\Modules\Core\Exports\Application\ReportExportGenerationProcess;
-use App\Modules\Optional\ManagedProcesses\Application\Public\Contracts\ManagedProcessHandler;
-use App\Modules\Optional\ManagedProcesses\Application\Public\Contracts\ManagedProcessRunInspector;
+use App\Shared\Application\ManagedProcesses\Contracts\ManagedProcessHandler;
+use App\Shared\Application\ManagedProcesses\Contracts\ManagedProcessRunInspector;
 use RuntimeException;
 
 final readonly class ReportExportGenerationProcessHandler implements ManagedProcessHandler

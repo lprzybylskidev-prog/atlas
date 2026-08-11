@@ -9,6 +9,7 @@ use App\Modules\Core\Authorization\Application\Contracts\PermissionRoleStore;
 use App\Modules\Core\Authorization\Application\Exports\AdminOnboardingPackagesDataTableExportProvider;
 use App\Modules\Core\Authorization\Application\Exports\AdminPermissionsDataTableExportProvider;
 use App\Modules\Core\Authorization\Application\Exports\AdminRolesDataTableExportProvider;
+use App\Modules\Core\Authorization\Application\Fixtures\ApplicationAuthorizationFixtureBuilder;
 use App\Modules\Core\Authorization\Application\Lifecycle\UserAuthorizationDataLifecycleParticipant;
 use App\Modules\Core\Authorization\Application\Packages\PublicOnboardingPackageDirectory;
 use App\Modules\Core\Authorization\Application\Packages\PublicUserAuthorizationAssignmentCopier;
@@ -16,14 +17,14 @@ use App\Modules\Core\Authorization\Application\Packages\PublicUserOnboardingPack
 use App\Modules\Core\Authorization\Application\Permissions\CoreAuthorizationPermissionCatalog;
 use App\Modules\Core\Authorization\Application\Permissions\PermissionCatalogRegistry;
 use App\Modules\Core\Authorization\Application\Public\Contracts\AdministratorAccessManager;
-use App\Modules\Core\Authorization\Application\Public\Contracts\EffectivePermissionChecker;
+use App\Modules\Core\Authorization\Application\Public\Contracts\AuthorizationBootstrapper;
+use App\Modules\Core\Authorization\Application\Public\Contracts\AuthorizationFixtureBuilder;
 use App\Modules\Core\Authorization\Application\Public\Contracts\OnboardingPackageDirectory;
 use App\Modules\Core\Authorization\Application\Public\Contracts\UserAuthorizationAssignmentCopier;
 use App\Modules\Core\Authorization\Application\Public\Contracts\UserAuthorizationAssignmentPreviewer;
 use App\Modules\Core\Authorization\Application\Public\Contracts\UserOnboardingPackageApplier;
-use App\Modules\Core\Authorization\Application\Public\Contracts\UserTeamAuthorizationCleaner;
-use App\Modules\Core\Authorization\Application\Public\Contracts\UserTeamAuthorizationManager;
 use App\Modules\Core\Authorization\Application\Roles\AdministratorAccess;
+use App\Modules\Core\Authorization\Application\Roles\SystemAuthorizationBootstrapper;
 use App\Modules\Core\Authorization\Infrastructure\Persistence\DatabaseOnboardingPackageStore;
 use App\Modules\Core\Authorization\Infrastructure\Persistence\SpatieEffectivePermissionChecker;
 use App\Modules\Core\Authorization\Infrastructure\Persistence\SpatiePermissionRoleStore;
@@ -31,6 +32,10 @@ use App\Modules\Core\Authorization\Infrastructure\Persistence\SpatiePublicIdHook
 use App\Modules\Core\Authorization\Infrastructure\Persistence\SpatieUserAuthorizationAssignmentPreviewer;
 use App\Modules\Core\Authorization\Presentation\Console\UpdateAdministratorRolePermissions;
 use App\Modules\Core\Authorization\Presentation\Inertia\AuthorizationRouteAvailability;
+use App\Shared\Application\Authorization\Contracts\AdministratorAccessLookup;
+use App\Shared\Application\Authorization\Contracts\EffectivePermissionChecker;
+use App\Shared\Application\Authorization\Contracts\UserTeamAuthorizationCleaner;
+use App\Shared\Application\Authorization\Contracts\UserTeamAuthorizationManager;
 use App\Shared\Application\Modules\Contributions\Contracts\ModulePermissionContribution;
 use App\Shared\Application\Modules\Exports\AdminModuleDetailHistoryDataTableExportProvider;
 use App\Shared\Application\Modules\Exports\AdminModuleDetailSchedulesDataTableExportProvider;
@@ -48,7 +53,12 @@ final class AuthorizationServiceProvider extends ServiceProvider
         $this->app->tag([AuthorizationRouteAvailability::class], 'atlas.inertia_route_availability');
         $this->app->tag([UserAuthorizationDataLifecycleParticipant::class], 'atlas.data_lifecycle_participants');
         $this->app->bind(EffectivePermissionChecker::class, SpatieEffectivePermissionChecker::class);
+        $this->app->bind(AdministratorAccessLookup::class, SpatiePermissionRoleStore::class);
         $this->app->bind(AdministratorAccessManager::class, AdministratorAccess::class);
+        $this->app->bind(AuthorizationBootstrapper::class, SystemAuthorizationBootstrapper::class);
+        if ($this->app->environment(['local', 'development', 'testing'])) {
+            $this->app->bind(AuthorizationFixtureBuilder::class, ApplicationAuthorizationFixtureBuilder::class);
+        }
         $this->app->bind(OnboardingPackageDirectory::class, PublicOnboardingPackageDirectory::class);
         $this->app->bind(UserOnboardingPackageApplier::class, PublicUserOnboardingPackageApplier::class);
         $this->app->bind(UserAuthorizationAssignmentCopier::class, PublicUserAuthorizationAssignmentCopier::class);

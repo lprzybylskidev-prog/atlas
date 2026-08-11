@@ -15,6 +15,7 @@ services:
 
   php-fpm:
     image: atlas-php-fpm:latest
+    user: "${USER_UID:-1000}:${USER_GID:-1000}"
     build:
       context: ..
       dockerfile: docker/production/php/Dockerfile
@@ -26,6 +27,11 @@ services:
       DB_HOST: postgres
       REDIS_HOST: redis
       MEILISEARCH_HOST: http://meilisearch:7700
+      ATLAS_FILES_SCANNER: clamav
+      ATLAS_FILES_CLAMAV_HOST: clamav
+      ATLAS_HEALTH_CLAMAV_HOST: clamav
+      ATLAS_HEALTH_CHROMIUM_BINARY: /usr/bin/chromium
+      ATLAS_CHROMIUM_BINARY: /usr/bin/chromium
     volumes:
       - ${ATLAS_WORKSPACE_SOURCE:-..}:/var/www/html:cached
     depends_on:
@@ -34,12 +40,15 @@ services:
       redis:
         condition: service_healthy
       meilisearch:
+        condition: service_healthy
+      clamav:
         condition: service_healthy
     networks:
       - atlas-dev
 
   scheduler:
     image: atlas-php-fpm:latest
+    user: "${USER_UID:-1000}:${USER_GID:-1000}"
     env_file:
       - ../.env
     environment:
@@ -48,6 +57,11 @@ services:
       DB_HOST: postgres
       REDIS_HOST: redis
       MEILISEARCH_HOST: http://meilisearch:7700
+      ATLAS_FILES_SCANNER: clamav
+      ATLAS_FILES_CLAMAV_HOST: clamav
+      ATLAS_HEALTH_CLAMAV_HOST: clamav
+      ATLAS_HEALTH_CHROMIUM_BINARY: /usr/bin/chromium
+      ATLAS_CHROMIUM_BINARY: /usr/bin/chromium
     volumes:
       - ${ATLAS_WORKSPACE_SOURCE:-..}:/var/www/html:cached
     depends_on:
@@ -59,12 +73,21 @@ services:
         condition: service_healthy
       meilisearch:
         condition: service_healthy
+      clamav:
+        condition: service_healthy
     command: ["php", "artisan", "schedule:work"]
+    healthcheck:
+      test: ["CMD", "php", "artisan", "system:scheduler-status"]
+      interval: 30s
+      timeout: 10s
+      retries: 6
+      start_period: 90s
     networks:
       - atlas-dev
 
   worker:
     image: atlas-php-fpm:latest
+    user: "${USER_UID:-1000}:${USER_GID:-1000}"
     env_file:
       - ../.env
     environment:
@@ -73,6 +96,11 @@ services:
       DB_HOST: postgres
       REDIS_HOST: redis
       MEILISEARCH_HOST: http://meilisearch:7700
+      ATLAS_FILES_SCANNER: clamav
+      ATLAS_FILES_CLAMAV_HOST: clamav
+      ATLAS_HEALTH_CLAMAV_HOST: clamav
+      ATLAS_HEALTH_CHROMIUM_BINARY: /usr/bin/chromium
+      ATLAS_CHROMIUM_BINARY: /usr/bin/chromium
     volumes:
       - ${ATLAS_WORKSPACE_SOURCE:-..}:/var/www/html:cached
     depends_on:
@@ -84,7 +112,16 @@ services:
         condition: service_healthy
       meilisearch:
         condition: service_healthy
-    command: ["php", "artisan", "queue:listen", "redis", "--queue=managed-processes,imports,exports,search,files,files-large,default", "--sleep=1", "--tries=1", "--timeout=43200"]
+      clamav:
+        condition: service_healthy
+    command: ["php", "artisan", "horizon"]
+    stop_grace_period: 1m
+    healthcheck:
+      test: ["CMD", "php", "artisan", "horizon:status"]
+      interval: 10s
+      timeout: 10s
+      retries: 12
+      start_period: 20s
     networks:
       - atlas-dev
 
@@ -96,6 +133,7 @@ services:
         USER_UID: ${USER_UID:-1000}
         USER_GID: ${USER_GID:-1000}
         DOCKER_GID: ${DOCKER_GID:-998}
+        PNPM_VERSION: 11.18.0
     environment:
       APP_TIMEZONE: ${APP_TIMEZONE:-Europe/Warsaw}
       TZ: ${APP_TIMEZONE:-Europe/Warsaw}
@@ -110,6 +148,8 @@ services:
       redis:
         condition: service_healthy
       meilisearch:
+        condition: service_healthy
+      clamav:
         condition: service_healthy
       mailpit:
         condition: service_started
@@ -173,6 +213,21 @@ services:
     ports:
       - "127.0.0.1:7700:7700"
 
+  clamav:
+    image: clamav/clamav:1.4.5-debian13-slim
+    environment:
+      TZ: ${APP_TIMEZONE:-Europe/Warsaw}
+    volumes:
+      - clamav-data:/var/lib/clamav
+    healthcheck:
+      test: ["CMD-SHELL", "clamdscan --ping 1 >/dev/null 2>&1"]
+      interval: 15s
+      timeout: 10s
+      retries: 40
+      start_period: 2m
+    networks:
+      - atlas-dev
+
   mailpit:
     image: axllent/mailpit:v1.21
     networks:
@@ -184,7 +239,7 @@ services:
   pgadmin:
     image: dpage/pgadmin4:9
     environment:
-      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:-admin@example.test}
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:-admin@atlas.example.com}
       PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD:-atlas_dev_pgadmin_password}
     volumes:
       - pgadmin-data:/var/lib/pgadmin
@@ -214,6 +269,7 @@ volumes:
   postgres-data:
   redis-data:
   meilisearch-data:
+  clamav-data:
   pgadmin-data:
   redisinsight-data:
 

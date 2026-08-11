@@ -75,7 +75,10 @@ final readonly class ConfirmPasswordController
         }
 
         if ($pending === AdministrativeSessionManager::PENDING_HIGH_RISK) {
-            $request->session()->forget(AdministrativeSessionManager::PENDING_REAUTHENTICATION);
+            $request->session()->forget([
+                AdministrativeSessionManager::PENDING_REAUTHENTICATION,
+                AdministrativeSessionManager::PENDING_HIGH_RISK_OPERATION,
+            ]);
 
             if (! $this->adminMode->confirmHighRiskConfirmed($request, $user)) {
                 throw ValidationException::withMessages([

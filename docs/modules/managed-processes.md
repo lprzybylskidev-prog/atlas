@@ -39,7 +39,9 @@ Unregistered processes cannot be started from Admin. Admin schedule management n
 
 The foundation does not ship demo process definitions. Process definitions are registered only by owning modules or explicit test fixtures.
 
-Cross-module process definitions and handlers use only public ManagedProcesses contracts. Public `ProcessDefinition`, `ProcessPermissions`, and `RetryPolicy` DTOs describe the process. `ManagedProcessHandler` identifies and executes the registered process, while `ManagedProcessReporter` lets owning modules write safe info checkpoints and progress or success updates without importing ManagedProcesses internal DTOs or enums.
+The non-production `ManagedProcessFixtureBuilder` owns the one completed-with-warnings process run used by Imports browser E2E coverage. It uses fixed timestamps/correlation data, resolves actor/team through owner lookups, is idempotent, and is not a production process definition or runtime execution path.
+
+Cross-module process definitions and handlers use neutral integration ports under `App\Shared\Application\ManagedProcesses`; ManagedProcesses remains their runtime and persistence implementation owner. Shared `ProcessDefinition`, `ProcessPermissions`, and `RetryPolicy` DTOs describe the process. `ManagedProcessHandler` identifies and executes the registered process, while `ManagedProcessReporter` lets owning modules write safe info checkpoints and progress or success updates without importing ManagedProcesses internals. `ManagedProcessRunInspector` exposes run ID/input lookup and recent typed run summaries for owning modules that need to show their own process history without reading ManagedProcesses tables.
 
 ## Process Runs
 
@@ -63,6 +65,12 @@ A run stores:
 - safe result and error summaries.
 
 Runs that represent completed operational problems (`failed`, `succeeded_with_warnings`, `cancelled`, or `expired`) may be marked as handled by an authorized Admin operator. Handling is stored as a separate acknowledgement record with actor, reason, and timestamp; it does not rewrite the historical process status.
+
+Managed Processes registers a module-owned `ModuleOperationalDiagnostics` contributor for Admin System Status active-run, failed-run, and warning-completion signals. The contributor excludes acknowledged operational problems from failed and warning counts.
+
+Managed Processes Admin composes import-linked run visibility through the shared `ImportAdminVisibility` port implemented by Imports, Files `FileLookup` behind Imports, Identity `UserLookup`, and Teams `TeamLookup`. The run list, run detail import section, schedule export, run export, and import row-error export must not join directly to Files, Imports, Identity, or Teams tables.
+
+ManagedProcesses runtime uses Identity and Teams lookup contracts for actor/team internal-ID and public-ID mapping in audit, notification, concurrency, and scheduling context. Runtime code must not query Identity or Teams persistence tables directly for those mappings.
 
 Statuses are stable and include at least:
 
@@ -172,7 +180,7 @@ Active process runs (`draft`, `queued`, `running`, or `waiting`) add the `manage
 For completed records, privacy execution preserves operational history and redacts controlled subject references from process run snapshots/summaries, process log messages/context/entity references, and schedule input/reason fields. Matching queued jobs are removed because they are pending derived work under project control. The participant is idempotent and does not delete completed run or schedule records.
 # Phase 28 foundation repair target
 
-Current state: ManagedProcesses owns runs, logs, retry/cancel, schedules, queues, and Admin visibility, but Phase 28 tracks direct Identity/Teams/Files/Imports SQL, queue/scheduler parity, deactivation guards, input-file boundaries, audit, notifications, and table/action consistency.
+Current state: ManagedProcesses owns boundary-safe definitions, runs, logs, retry/cancel, schedules, acknowledgements, input-file/import visibility, deactivation guards, audit/notifications, canonical Admin tables/actions, and verified cross-environment worker/scheduler parity.
 
 Target state: ManagedProcesses is boundary-safe through public contracts, has real queue/scheduler/readiness behavior, audits run state transitions, and provides consistent Admin workflows through canonical tables/actions/statuses.
 

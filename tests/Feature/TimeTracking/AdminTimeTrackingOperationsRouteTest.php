@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Tests\Feature\TimeTracking;
 
-use App\Modules\Core\Audit\Application\Public\Persistence\AuditDatabaseTable;
-use App\Modules\Core\Authorization\Application\Public\Persistence\AuthorizationDatabaseTable;
+use App\Modules\Core\Audit\Infrastructure\Persistence\TableNames\AuditDatabaseTable;
 use App\Modules\Core\Authorization\Application\Roles\InstallStarterRoles;
+use App\Modules\Core\Authorization\Infrastructure\Persistence\TableNames\AuthorizationDatabaseTable;
 use App\Modules\Core\Identity\Application\Admin\AdministrativeSessionManager;
 use App\Modules\Core\Identity\Infrastructure\Persistence\User;
-use App\Modules\Core\Notifications\Application\Public\Persistence\NotificationsDatabaseTable;
-use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
+use App\Modules\Core\Notifications\Infrastructure\Persistence\TableNames\NotificationsDatabaseTable;
+use App\Modules\Core\Teams\Infrastructure\Persistence\TableNames\TeamsDatabaseTable;
 use App\Modules\Core\Teams\Infrastructure\Persistence\Team;
 use App\Modules\Optional\TimeTracking\Application\Contracts\BreakPolicyStore;
 use App\Modules\Optional\TimeTracking\Application\Contracts\UserTeamTrackingSettings;
@@ -18,7 +18,9 @@ use App\Modules\Optional\TimeTracking\Application\CorrectionRequestCoordinator;
 use App\Modules\Optional\TimeTracking\Application\DTOs\ExactTimeChange;
 use App\Modules\Optional\TimeTracking\Application\Enums\CorrectionSourceType;
 use App\Modules\Optional\TimeTracking\Application\Permissions\TimeTrackingPermissionCatalog;
-use App\Modules\Optional\TimeTracking\Application\Public\Persistence\TimeTrackingDatabaseTable;
+use App\Modules\Optional\TimeTracking\Infrastructure\Persistence\TableNames\TimeTrackingDatabaseTable;
+use App\Shared\Application\Audit\Contracts\AuditRecorder;
+use App\Shared\Application\Audit\DTOs\AuditEvent;
 use App\Shared\Application\Modules\Activation\Contracts\ModuleActivationService;
 use App\Shared\Application\Modules\Activation\ModuleActivationChange;
 use App\Shared\Application\Modules\Activation\ModuleActivationScope;
@@ -127,12 +129,35 @@ final class AdminTimeTrackingOperationsRouteTest extends TestCase
                 ->where('dailyTable.state.columns', fn (mixed $columns): bool => $this->iterableContains($columns, 'workDuration'))
                 ->where('dailyTable.state.columns', fn (mixed $columns): bool => $this->iterableContains($columns, 'breakDuration'))
                 ->where('summary.totalSeconds', 5400)
-                ->has('dailyRows', 1)
-                ->where('dailyRows.0.userName', '')
-                ->where('dailyRows.0.workSeconds', 5400)
+                ->has('dailyRows', 2)
+                ->where('dailyRows', function (mixed $rows) use ($target, $secondTarget): bool {
+                    if (! is_iterable($rows)) {
+                        return false;
+                    }
+
+                    $names = [];
+                    $workSeconds = 0;
+
+                    foreach ($rows as $row) {
+                        if (! is_array($row)
+                            || ! is_string($row['userName'] ?? null)
+                            || ! is_int($row['workSeconds'] ?? null)
+                        ) {
+                            return false;
+                        }
+
+                        $names[] = $row['userName'];
+                        $workSeconds += $row['workSeconds'];
+                    }
+
+                    sort($names);
+                    $expectedNames = [$target->name, $secondTarget->name];
+                    sort($expectedNames);
+
+                    return $names === $expectedNames && $workSeconds === 5400;
+                })
                 ->where('dailyRows.0.teamName', $team->name)
-                ->has('workSessionRows', 2)
-                ->where('workSessionRows.0.moduleSegments', 1));
+                ->has('workSessionRows', 0));
 
         $this->actingAs($admin)
             ->withSession($this->adminSession($team))
@@ -153,7 +178,8 @@ final class AdminTimeTrackingOperationsRouteTest extends TestCase
                 ->component('TimeTracking/AdminOperations')
                 ->where('section', 'work_sessions')
                 ->where('workSessionsTable.key', 'admin.time-tracking.operations.work-sessions')
-                ->has('workSessionRows', 2));
+                ->has('workSessionRows', 2)
+                ->where('workSessionRows.0.moduleSegments', 1));
 
         $this->actingAs($admin)
             ->withSession($this->adminSession($team))
@@ -212,6 +238,104 @@ final class AdminTimeTrackingOperationsRouteTest extends TestCase
             ->assertForbidden();
     }
 
+    public function test_other_work_metrics_and_rows_share_search_and_interval_overlap_scope(): void
+    {
+        [$admin, $target, $team] = $this->adminTargetAndTeam();
+        $secondTarget = User::factory()->create(['name' => 'Second Operator']);
+        $this->assignUserToTeam($secondTarget, $team);
+        $this->activateTimeTracking($team);
+        $this->enableTracking($target, $team);
+        $this->enableTracking($secondTarget, $team);
+        $this->assignDirectPermissionInTeam($admin, $team, TimeTrackingPermissionCatalog::ADMIN_OTHER_WORK);
+
+        $overlappingSessionId = DB::table(TimeTrackingDatabaseTable::WORK_SESSIONS)->insertGetId([
+            'public_id' => (string) Str::ulid(),
+            'user_id' => $target->id,
+            'team_id' => $team->id,
+            'laravel_session_id' => 'overlapping-other-work-session',
+            'started_at' => '2026-07-31 20:00:00+00',
+            'ended_at' => '2026-08-01 02:00:00+00',
+            'exact_seconds' => 21600,
+            'closure_reason' => 'logout',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $ordinarySessionId = DB::table(TimeTrackingDatabaseTable::WORK_SESSIONS)->insertGetId([
+            'public_id' => (string) Str::ulid(),
+            'user_id' => $secondTarget->id,
+            'team_id' => $team->id,
+            'laravel_session_id' => 'ordinary-other-work-session',
+            'started_at' => '2026-08-01 08:00:00+00',
+            'ended_at' => '2026-08-01 08:30:00+00',
+            'exact_seconds' => 1800,
+            'closure_reason' => 'logout',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        DB::table(TimeTrackingDatabaseTable::OTHER_WORK)->insert([
+            [
+                'public_id' => (string) Str::ulid(),
+                'work_session_id' => $overlappingSessionId,
+                'user_id' => $target->id,
+                'team_id' => $team->id,
+                'category_key' => null,
+                'description' => 'Overlapping court archive review',
+                'end_note' => null,
+                'approval_status' => 'approved',
+                'started_at' => '2026-07-31 20:00:00+00',
+                'ended_at' => '2026-08-01 02:00:00+00',
+                'exact_seconds' => 21600,
+                'closure_reason' => 'normal',
+                'requires_manager_review' => false,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'public_id' => (string) Str::ulid(),
+                'work_session_id' => $ordinarySessionId,
+                'user_id' => $secondTarget->id,
+                'team_id' => $team->id,
+                'category_key' => null,
+                'description' => 'Ordinary office filing',
+                'end_note' => null,
+                'approval_status' => 'pending',
+                'started_at' => '2026-08-01 08:00:00+00',
+                'ended_at' => '2026-08-01 08:30:00+00',
+                'exact_seconds' => 1800,
+                'closure_reason' => 'normal',
+                'requires_manager_review' => true,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+        ]);
+
+        $baseQuery = '/admin/work-time/other-work?team='.$team->public_id.'&range=custom&from=2026-08-01&to=2026-08-01';
+
+        $this->actingAs($admin)
+            ->withSession($this->adminSession($team))
+            ->get($baseQuery)
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->has('otherWorkRows', 2)
+                ->where('otherWorkTable.pagination.total', 2)
+                ->where('summary.records', 2)
+                ->where('summary.otherWorkSeconds', 16200));
+
+        $this->actingAs($admin)
+            ->withSession($this->adminSession($team))
+            ->get($baseQuery.'&search=Overlapping')
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->has('otherWorkRows', 1)
+                ->where('otherWorkRows.0.exactSeconds', 14400)
+                ->where('otherWorkTable.pagination.total', 1)
+                ->where('summary.records', 1)
+                ->where('summary.otherWorkSeconds', 14400)
+                ->where('summary.acceptedOtherWorkSeconds', 14400)
+                ->where('summary.pendingOtherWorkSeconds', 0));
+    }
+
     public function test_admin_can_terminate_active_work_session_with_audit_and_notification(): void
     {
         Queue::fake();
@@ -251,6 +375,7 @@ final class AdminTimeTrackingOperationsRouteTest extends TestCase
             'actor_public_id' => $admin->public_id,
             'target_public_id' => $target->public_id,
             'team_public_id' => $team->public_id,
+            'is_security' => true,
         ]);
         $this->assertDatabaseHas(NotificationsDatabaseTable::NOTIFICATIONS, [
             'type' => 'time_tracking.admin_action',
@@ -526,7 +651,26 @@ final class AdminTimeTrackingOperationsRouteTest extends TestCase
             'actor_public_id' => $admin->public_id,
             'target_public_id' => $target->public_id,
             'team_public_id' => $team->public_id,
+            'is_security' => true,
         ]);
+        $audit = DB::table(AuditDatabaseTable::AUDIT_EVENTS)
+            ->where('action', 'time_tracking.other_work_approved')
+            ->where('result', 'succeeded')
+            ->first(['before_values', 'after_values']);
+        self::assertNotNull($audit);
+        $beforeValues = $audit->before_values;
+        $afterValues = $audit->after_values;
+        self::assertIsString($beforeValues);
+        self::assertIsString($afterValues);
+        $before = json_decode($beforeValues, true, flags: JSON_THROW_ON_ERROR);
+        $after = json_decode($afterValues, true, flags: JSON_THROW_ON_ERROR);
+        self::assertIsArray($before);
+        self::assertIsArray($after);
+        self::assertSame(
+            ['approval_status' => 'pending', 'requires_manager_review' => true],
+            $before,
+        );
+        self::assertSame('approved', $after['approval_status'] ?? null);
         $this->assertDatabaseHas(NotificationsDatabaseTable::NOTIFICATIONS, [
             'type' => 'time_tracking.admin_action',
             'title' => 'notifications.time_tracking.admin_action.other_work_decided.title',
@@ -544,6 +688,74 @@ final class AdminTimeTrackingOperationsRouteTest extends TestCase
             'public_id' => $otherWorkPublicId,
             'approval_status' => 'approved',
             'requires_manager_review' => false,
+        ]);
+        $this->assertDatabaseHas(AuditDatabaseTable::AUDIT_EVENTS, [
+            'action' => 'time_tracking.other_work_rejected',
+            'result' => 'rejected',
+            'aggregate_public_id' => $otherWorkPublicId,
+            'is_security' => true,
+        ]);
+    }
+
+    public function test_other_work_decision_rolls_back_when_mandatory_audit_persistence_fails(): void
+    {
+        Queue::fake();
+
+        [$admin, $target, $team] = $this->adminTargetAndTeam();
+        $this->activateTimeTracking($team);
+        $this->enableTracking($target, $team);
+        $this->assignDirectPermissionInTeam($admin, $team, TimeTrackingPermissionCatalog::ADMIN_OTHER_WORK_DECIDE);
+        $workSessionId = $this->insertOpenWorkSession($target, $team);
+        $otherWorkPublicId = (string) Str::ulid();
+
+        DB::table(TimeTrackingDatabaseTable::OTHER_WORK)->insert([
+            'public_id' => $otherWorkPublicId,
+            'work_session_id' => $workSessionId,
+            'user_id' => $target->id,
+            'team_id' => $team->id,
+            'category_key' => null,
+            'description' => 'Atomic audit decision.',
+            'end_note' => null,
+            'approval_status' => 'pending',
+            'started_at' => '2026-08-01 09:00:00+00',
+            'ended_at' => '2026-08-01 10:00:00+00',
+            'exact_seconds' => 3600,
+            'closure_reason' => 'normal',
+            'requires_manager_review' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->app->instance(AuditRecorder::class, new class implements AuditRecorder
+        {
+            public function record(AuditEvent $event): void
+            {
+                throw new \RuntimeException('Mandatory audit persistence failed.');
+            }
+        });
+
+        $this->withoutExceptionHandling();
+
+        try {
+            $this->actingAs($admin)
+                ->withSession($this->adminSession($team))
+                ->post('/admin/work-time/other-work/'.$otherWorkPublicId.'/decide', [
+                    'decision' => 'approve',
+                    'reason' => 'This decision must be transactionally evidenced.',
+                ]);
+            self::fail('The injected audit failure was not propagated.');
+        } catch (\RuntimeException $exception) {
+            self::assertSame('Mandatory audit persistence failed.', $exception->getMessage());
+        }
+
+        $this->assertDatabaseHas(TimeTrackingDatabaseTable::OTHER_WORK, [
+            'public_id' => $otherWorkPublicId,
+            'approval_status' => 'pending',
+            'requires_manager_review' => true,
+        ]);
+        $this->assertDatabaseMissing(AuditDatabaseTable::AUDIT_EVENTS, [
+            'action' => 'time_tracking.other_work_approved',
+            'aggregate_public_id' => $otherWorkPublicId,
         ]);
     }
 
@@ -1034,21 +1246,23 @@ final class AdminTimeTrackingOperationsRouteTest extends TestCase
 
     private function activateTimeTracking(Team $team): void
     {
-        $this->app->make(ModuleActivationService::class)->change(new ModuleActivationChange(
-            moduleKey: 'time_tracking',
-            scope: ModuleActivationScope::Global,
-            enabled: true,
-            reason: 'Feature test setup',
-            source: ModuleActivationSource::Manual,
-        ));
-        $this->app->make(ModuleActivationService::class)->change(new ModuleActivationChange(
-            moduleKey: 'time_tracking',
-            scope: ModuleActivationScope::Team,
-            enabled: true,
-            reason: 'Feature test setup',
-            teamId: $team->id,
-            source: ModuleActivationSource::Manual,
-        ));
+        foreach (['feature_flags', 'managed_processes', 'reports', 'time_tracking'] as $moduleKey) {
+            $this->app->make(ModuleActivationService::class)->change(new ModuleActivationChange(
+                moduleKey: $moduleKey,
+                scope: ModuleActivationScope::Global,
+                enabled: true,
+                reason: 'Feature test setup',
+                source: ModuleActivationSource::Manual,
+            ));
+            $this->app->make(ModuleActivationService::class)->change(new ModuleActivationChange(
+                moduleKey: $moduleKey,
+                scope: ModuleActivationScope::Team,
+                enabled: true,
+                reason: 'Feature test setup',
+                teamId: $team->id,
+                source: ModuleActivationSource::Manual,
+            ));
+        }
     }
 
     private function enableTracking(User $user, Team $team): void

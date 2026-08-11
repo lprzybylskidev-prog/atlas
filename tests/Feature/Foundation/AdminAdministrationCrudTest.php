@@ -4,17 +4,17 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Foundation;
 
-use App\Modules\Core\Audit\Application\Public\Persistence\AuditDatabaseTable;
+use App\Modules\Core\Audit\Infrastructure\Persistence\TableNames\AuditDatabaseTable;
 use App\Modules\Core\Authorization\Application\Contracts\OnboardingPackageStore;
 use App\Modules\Core\Authorization\Application\Permissions\CoreAuthorizationPermissionCatalog;
-use App\Modules\Core\Authorization\Application\Public\Persistence\AuthorizationDatabaseTable;
 use App\Modules\Core\Authorization\Application\Roles\InstallStarterRoles;
 use App\Modules\Core\Authorization\Application\Roles\StarterRoleName;
+use App\Modules\Core\Authorization\Infrastructure\Persistence\TableNames\AuthorizationDatabaseTable;
 use App\Modules\Core\Identity\Application\Public\Contracts\UserSessionRegistry;
 use App\Modules\Core\Identity\Infrastructure\Persistence\User;
-use App\Modules\Core\Teams\Application\Public\Persistence\TeamsDatabaseTable;
+use App\Modules\Core\Teams\Infrastructure\Persistence\TableNames\TeamsDatabaseTable;
 use App\Modules\Core\Teams\Infrastructure\Persistence\Team;
-use App\Modules\Optional\TimeTracking\Application\Public\Persistence\TimeTrackingDatabaseTable;
+use App\Modules\Optional\TimeTracking\Infrastructure\Persistence\TableNames\TimeTrackingDatabaseTable;
 use App\Shared\Infrastructure\Database\DatabaseTable;
 use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -41,6 +41,21 @@ final class AdminAdministrationCrudTest extends TestCase
             ->withSession($session)
             ->get('/admin')
             ->assertRedirect(route('password.confirm'));
+
+        $this->actingAs($actor)
+            ->withSession($session)
+            ->post('/table-views', [
+                'table_key' => 'admin.users',
+                'name' => 'Outside Admin mode',
+                'type' => 'private',
+                'state' => [
+                    'sort' => 'name',
+                    'direction' => 'asc',
+                    'columns' => ['name', 'email'],
+                    'columnOrder' => ['name', 'email'],
+                ],
+            ])
+            ->assertForbidden();
 
         $this->actingAs($actor)
             ->withSession([
@@ -188,7 +203,7 @@ final class AdminAdministrationCrudTest extends TestCase
 
         $this->actingAs($actor)
             ->withSession($session)
-            ->post('/admin/table-views', [
+            ->post('/table-views', [
                 'table_key' => 'admin.users',
                 'name' => 'Team active users',
                 'type' => 'team',
@@ -211,7 +226,7 @@ final class AdminAdministrationCrudTest extends TestCase
         self::assertDatabaseHas(AuditDatabaseTable::AUDIT_EVENTS, [
             'module' => 'shared',
             'action' => 'table_saved_view.created',
-            'result' => 'success',
+            'result' => 'succeeded',
             'actor_public_id' => $actor->public_id,
         ]);
 
@@ -222,7 +237,7 @@ final class AdminAdministrationCrudTest extends TestCase
 
         $this->actingAs($actor)
             ->withSession($session)
-            ->post('/admin/table-views', [
+            ->post('/table-views', [
                 'table_key' => 'admin.users',
                 'name' => 'No visible data columns',
                 'type' => 'private',
@@ -241,7 +256,7 @@ final class AdminAdministrationCrudTest extends TestCase
 
         $this->actingAs($actor)
             ->withSession($session)
-            ->patch("/admin/table-views/{$viewPublicId}", [
+            ->patch("/table-views/{$viewPublicId}", [
                 'name' => 'Team active users',
                 'state' => [
                     'sort' => 'email',

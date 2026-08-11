@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace App\Modules\Core\Identity\Presentation\Http\Controllers;
 
-use App\Modules\Core\Identity\Application\Public\Persistence\IdentityDatabaseTable;
 use App\Modules\Core\Identity\Application\RateLimiting\RateLimitPolicy;
 use App\Modules\Core\Identity\Application\RateLimiting\RateLimitPolicyCatalog;
-use App\Shared\Application\Tables\AdminTableDefinitions;
+use App\Modules\Core\Identity\Infrastructure\Persistence\TableNames\IdentityDatabaseTable;
 use App\Shared\Application\Tables\ArrayTableProcessor;
+use App\Shared\Application\Tables\RegisteredTables;
 use App\Shared\Application\Tables\TableRequestContext;
 use App\Shared\Application\Tables\TableSavedViewService;
 use App\Shared\Application\Tables\TableState;
@@ -28,7 +28,7 @@ final readonly class RateLimitAdministrationController
 
     public function __invoke(Request $request): Response
     {
-        $definition = AdminTableDefinitions::get(AdminTableDefinitions::RATE_LIMITS);
+        $definition = RegisteredTables::get(RegisteredTables::RATE_LIMITS);
         $state = TableState::fromRequest($request, $definition);
         [$userId, $teamId] = $this->context->userTeam($request);
         $stats = $this->stats();
@@ -37,19 +37,19 @@ final readonly class RateLimitAdministrationController
         $filteredRows = $this->filteredRows($rows, $filters);
 
         $result = $this->tables->process($filteredRows, $definition, $state)
-            ->withSavedViews($this->views->listFor(AdminTableDefinitions::RATE_LIMITS, $userId, $teamId));
-        $table = $result->tableMeta(AdminTableDefinitions::RATE_LIMITS, AdminDataTableExportMeta::defaults());
+            ->withSavedViews($this->views->listFor(RegisteredTables::RATE_LIMITS, $userId, $teamId));
+        $table = $result->tableMeta(RegisteredTables::RATE_LIMITS, AdminDataTableExportMeta::defaults());
         $table['state']['filters'] = $filters;
 
         return Inertia::render('Admin/RateLimits/Index', [
             'policies' => $result->rows,
             'summary' => [
-                'registered' => count($rows),
+                'registered' => count($result->filteredRows),
                 'visible' => $result->total,
-                'rejections' => array_sum(array_map(fn (array $row): int => $this->intValue($row['rejections'] ?? 0), $rows)),
-                'distinctKeys' => array_sum(array_map(fn (array $row): int => $this->intValue($row['distinctKeys'] ?? 0), $rows)),
-                'withTemporaryLock' => count(array_filter($rows, static fn (array $row): bool => ($row['hasTemporaryLock'] ?? false) === true)),
-                'withProgressiveDelay' => count(array_filter($rows, static fn (array $row): bool => ($row['hasProgressiveDelay'] ?? false) === true)),
+                'rejections' => array_sum(array_map(fn (array $row): int => $this->intValue($row['rejections'] ?? 0), $result->filteredRows)),
+                'distinctKeys' => array_sum(array_map(fn (array $row): int => $this->intValue($row['distinctKeys'] ?? 0), $result->filteredRows)),
+                'withTemporaryLock' => count(array_filter($result->filteredRows, static fn (array $row): bool => ($row['hasTemporaryLock'] ?? false) === true)),
+                'withProgressiveDelay' => count(array_filter($result->filteredRows, static fn (array $row): bool => ($row['hasProgressiveDelay'] ?? false) === true)),
             ],
             'filterOptions' => $this->filterOptions($rows),
             'table' => $table,
