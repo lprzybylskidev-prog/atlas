@@ -6,7 +6,7 @@ Canonical shared contract for data tables, query strings, saved views, exports, 
 
 The Phase 28 shared DataTable, action, filter, state, status, safe-column, effective-locale, and saved-view contracts are implemented. Saved-view mutations use the shell-neutral `/table-views` routes and `RegisteredTables` validates each table against its owning surface permission and ModuleGate state. Notifications, route-backed regular-user TimeTracking sections, and manager operation tables opt in alongside eligible Admin tables. Reports/Core Exports ownership, existing-view migration, and Chromium/PDF runtime parity are closed and covered by the foundation gate.
 
-Target state: normal tabular data uses the shared DataTable contract; saved views are explicitly enabled per surface; exports/print/PDF values use the effective locale; Reports and Core Exports have explicit ownership and dependency classification; and PDF runtime is smoke-tested before Phase 29.
+Target state: normal tabular data uses the shared DataTable contract; saved views are explicitly enabled per surface; exports/print/PDF values use the effective locale; Reports and Core Exports have explicit ownership and dependency classification; and PDF runtime is smoke-tested before Phase 30.
 
 Tracked issue IDs: `P28-TABLE-001` through `P28-TABLE-009`, `P28-LOC-001`, `P28-ARCH-002`, `P28-ARCH-003`, `P28-RUNTIME-009`, `P28-MODAUD-010`, `P28-MODAUD-017`.
 

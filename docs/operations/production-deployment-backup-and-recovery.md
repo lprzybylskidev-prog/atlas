@@ -4,16 +4,16 @@ Canonical production topology and operational procedures. This document compleme
 
 ## Phase 28 prerequisite boundary
 
-Current state: production deployment is planned for Phase 29. Phase 28 completed the prerequisite production image build, runtime configuration, `.dockerignore`/COPY boundaries, secrets handling, internal HTTP smoke stack, queue/scheduler parity, ClamAV/PDF/Search/File readiness, PostgreSQL volume verification, and backup-image buildability.
+Current state: production deployment is planned for Phase 30. Phase 28 completed the prerequisite production image build, runtime configuration, `.dockerignore`/COPY boundaries, secrets handling, internal HTTP smoke stack, queue/scheduler parity, ClamAV/PDF/Search/File readiness, PostgreSQL volume verification, and backup-image buildability.
 
-Target state before Phase 29: application and nginx production images are reproducible and smoke-tested; production runtime secrets are externalized; broad `DB_SEARCH_PATH` masking is removed; non-HTTP services remain private; and Phase 29 can build HTTPS, deployment, backup, restore, and rollback on a verified runtime foundation.
+Target state before Phase 30: application and nginx production images are reproducible and smoke-tested; production runtime secrets are externalized; broad `DB_SEARCH_PATH` masking is removed; non-HTTP services remain private; and Phase 30 can build HTTPS, deployment, backup, restore, and rollback on a verified runtime foundation.
 
 Tracked issue IDs: `P28-RUNTIME-001` through `P28-RUNTIME-014`.
 
 ## Production Topology
 
 - The baseline production topology is one application host or VM running Docker Compose.
-- In the Phase 29 deployment topology, public traffic will enter only through the TLS reverse proxy on ports 80/443. The Phase 28 smoke stack intentionally provides HTTP only, bound to `127.0.0.1:8080` by default.
+- In the Phase 30 deployment topology, public traffic will enter only through the TLS reverse proxy on ports 80/443. The Phase 28 smoke stack intentionally provides HTTP only, bound to `127.0.0.1:8080` by default.
 - PostgreSQL runs inside the production Docker Compose stack under project control and uses a durable persistent volume.
 - Redis, Meilisearch, ClamAV, Horizon, queue workers, scheduler, and the Chromium renderer remain private.
 - The production PHP runtime image includes Node.js, the runtime `playwright` package, and system Chromium so queued PDF exports can render through the same Node/Playwright/Chromium chain that readiness verifies. Chromium runs as the unprivileged `www-data` user. Playwright's inner Chromium user-namespace sandbox is explicitly disabled because Docker's default seccomp profile blocks that namespace operation; never compensate with `SYS_ADMIN`, privileged mode, or an unconfined seccomp profile. The non-root private container boundary is the accepted runtime sandbox.
@@ -40,7 +40,7 @@ Secret values are external files described in `docker/production/secrets/README.
 
 Run one-off Artisan operations with `docker compose run --rm --no-deps php-fpm ...`, not `docker compose exec`. A new Compose run passes through the image entrypoint and therefore loads mounted `_FILE` secrets before dropping privileges; an exec-created process bypasses the entrypoint and must not be used for secret-dependent application commands.
 
-Production validation is fail-fast: debug mode must be disabled, the deployed marker must be true, timezone and database search path must match the Atlas contract, ports and booleans must be typed correctly, required settings must be non-empty, and the fake Files scanner is forbidden. Phase 28 establishes this schema; Phase 29 owns host secret provisioning and rotation.
+Production validation is fail-fast: debug mode must be disabled, the deployed marker must be true, timezone and database search path must match the Atlas contract, ports and booleans must be typed correctly, required settings must be non-empty, and the fake Files scanner is forbidden. Phase 28 establishes this schema; Phase 30 owns host secret provisioning and rotation.
 
 ## Internal HTTP smoke stack
 
@@ -58,7 +58,7 @@ composer runtime:smoke
 
 The smoke command builds all three artifacts from repository source, verifies the final-image allowlists and non-root application UID, rejects unsupported backup commands, starts isolated PostgreSQL, Redis, Meilisearch, ClamAV, PHP-FPM, nginx, Horizon, and scheduler services, and applies fresh migrations. It checks liveness/readiness and a generated Vite asset, executes a harmless probe through every canonical queue, proves scheduler heartbeat freshness, rejects the EICAR test payload through real ClamAV signatures, renders and validates a true PDF through Node/Playwright/system Chromium, recreates PostgreSQL, and proves a probe row survived in the PostgreSQL volume. It then performs a clean Compose teardown. `ATLAS_SMOKE_HTTP_PORT` may select a different loopback port; inside the Dev Container, retain `ATLAS_WORKSPACE_SOURCE` so the host Docker daemon can resolve temporary secret paths.
 
-This is deliberately not a deployment procedure. It provides no HTTPS, certificates, public host routing, release switching, backup schedule, retention, encryption, off-host copy, restore drill, or rollback. Those remain Phase 29.
+This is deliberately not a deployment procedure. It provides no HTTPS, certificates, public host routing, release switching, backup schedule, retention, encryption, off-host copy, restore drill, or rollback. Those remain Phase 30.
 
 ## PostgreSQL 18 durability boundary
 
@@ -75,7 +75,7 @@ atlas-backup verify /backups/<artifact>.dump
 
 `create` reads the database password from a mounted secret, writes a compressed custom-format dump below `/backups` through a `.partial` file, verifies its catalog, refuses overwrites and paths outside the backup volume, and atomically publishes the completed artifact. `verify` checks only that an existing dump catalog is readable. The service runs as the PostgreSQL image's unprivileged user and is never started by the default profile.
 
-This interface is only a safe buildable foundation. It is not an accepted production backup system: scheduling, retention, encryption, off-host replication, restore into an isolated database, application-level verification, monitoring, runbooks, and rollback remain binding Phase 29 work.
+This interface is only a safe buildable foundation. It is not an accepted production backup system: scheduling, retention, encryption, off-host replication, restore into an isolated database, application-level verification, monitoring, runbooks, and rollback remain binding Phase 30 work.
 
 ## Manual Ubuntu/Debian runtime parity
 

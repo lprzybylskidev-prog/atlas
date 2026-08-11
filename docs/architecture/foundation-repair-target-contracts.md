@@ -5,7 +5,7 @@ This document records the accepted and implemented Phase 28 foundation contracts
 ## Status
 
 - Current implementation: Phases 27, 27a, and 28 are complete; all 110 Phase 28 issue IDs are reconciled to implementation, tests, permanent guardrails, canonical documentation, and package evidence.
-- Next implementation phase: Phase 29 owns production deployment, backup, restore, and rollback. Phase 30 later owns the distinct final release audit.
+- Next implementation phase: Phase 29 owns foundation acceptance repair and rendered workflow closure. Phase 30 owns production deployment, backup, restore, and rollback. Phase 31 later owns the distinct final release audit.
 
 ## Module graph and public contracts
 
@@ -126,7 +126,7 @@ Target contract:
 
 ## Runtime and guardrail architecture
 
-Current state: `P28-RUNTIME-001` through `P28-RUNTIME-014` are complete. The foundation gate runs the standard gate, full isolated Playwright suite, and production runtime smoke sequentially. Permanent mutation-tested source guards replace the temporary Phase 28 inventory generator and snapshots; removed legacy surfaces and components have active-tree no-reference coverage. Phase 30 still owns the distinct post-deployment release gate.
+Current state: `P28-RUNTIME-001` through `P28-RUNTIME-014` are complete. The foundation gate runs the standard gate, full isolated Playwright suite, and production runtime smoke sequentially. Permanent mutation-tested source guards replace the temporary Phase 28 inventory generator and snapshots; removed legacy surfaces and components have active-tree no-reference coverage. Phase 31 still owns the distinct post-deployment release gate.
 
 Target contract:
 

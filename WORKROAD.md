@@ -39,7 +39,7 @@ Do not replace this index after the initial technical foundation is completed. C
 
 ## Current phase
 
-- Phase: [Phase 29 — Production deployment, backup, restore, and rollback](docs/roadmap/phase-29-deployment-backup-rollback.md)
+- Phase: [Phase 29 — Foundation acceptance repair and rendered workflow closure](docs/roadmap/phase-29-foundation-acceptance-repair.md)
 - Status: `not started`
 
 ## Roadmap dependency repair note
@@ -50,7 +50,9 @@ Before Phase 15 starts, Phase 14a was added as a targeted dependency repair beca
 
 After Phase 27 completed, Phase 27a was inserted as a dependency-repair phase because the large TimeTracking implementation revealed or amplified cross-cutting issues in module boundaries, persistence ownership, configuration consistency, and quality-gate completeness. These repairs must land before the next foundation-hardening phases and before production deployment work.
 
-After Phase 27a completed, further foundation review consolidated the unstarted Phase 27b, Phase 27c, and former Phase 28 scopes into a single Phase 28 repair contract. Phase 27 and Phase 27a remain completed historical phases. Phase 28 is the first unfinished phase and must close all known foundation repair work before Phase 29 production deployment and Phase 30 final release verification.
+After Phase 27a completed, further foundation review consolidated the unstarted Phase 27b, Phase 27c, and former Phase 28 scopes into a single Phase 28 repair contract. Phase 27 and Phase 27a remain completed historical phases. Phase 28 is the first unfinished phase and must close all known foundation repair work before Phase 30 production deployment and Phase 31 final release verification.
+
+After Phase 28 completed, an independent post-completion acceptance review identified concrete gaps in the implementation of some accepted contracts. Phase 28 remains complete and its historical implementation record is not rewritten. A new sequential Phase 29 was therefore added as a later foundation acceptance repair. The previously unstarted deployment Phase 29 moved to Phase 30, and the previously unstarted final-verification Phase 30 moved to Phase 31. No deployment or final-verification scope was removed.
 
 ## Phase index
 
@@ -334,22 +336,30 @@ Repair and consolidate known foundation drift across module boundaries, ModuleGa
 
 [Open implementation contract and tasks](docs/roadmap/phase-28-foundation-repair-and-consolidation.md)
 
-### Phase 29 — Production deployment, backup, restore, and rollback
+### Phase 29 — Foundation acceptance repair and rendered workflow closure
+
+**Status:** `not started`
+
+Close concrete post-Phase-28 acceptance gaps in localization, DataTable responsibility decomposition, the integrated Team Structure workflow, and TimeTracking browser-level E2E coverage without reopening Phase 28.
+
+[Open implementation contract and tasks](docs/roadmap/phase-29-foundation-acceptance-repair.md)
+
+### Phase 30 — Production deployment, backup, restore, and rollback
 
 **Status:** `not started`
 
 Implement the single-host production Docker topology, HTTPS, deployment releases, PostgreSQL backups, restore, readiness, and rollback.
 
-Depends on Phase 28 for reproducible images, runtime configuration, dependency readiness, queue/scheduler parity, ClamAV/PDF/Search/File smoke foundations, and an internal HTTP smoke stack. Production HTTPS, deployment, backup, restore, and rollback remain Phase 29 scope.
+Depends on Phases 28 and 29. Phase 28 provides reproducible images, runtime configuration, dependency readiness, queue/scheduler parity, ClamAV/PDF/Search/File smoke foundations, and an internal HTTP smoke stack. Production HTTPS, deployment, backup, restore, and rollback remain Phase 30 scope.
 
-[Open implementation contract and tasks](docs/roadmap/phase-29-deployment-backup-rollback.md)
+[Open implementation contract and tasks](docs/roadmap/phase-30-deployment-backup-rollback.md)
 
-### Phase 30 — Final test audit, full-app E2E review, and foundation verification
+### Phase 31 — Final test audit, full-app E2E review, and foundation verification
 
 **Status:** `not started`
 
 Perform a full test-suite audit, browser-level E2E review of the whole application, architecture/security/documentation verification, restore/deployment checks, and final technical-foundation hardening before debt collection business modules begin.
 
-Depends on Phases 28 and 29. Phase 30 remains the final full-app release verification and does not replace Phase 28 foundation repair or Phase 29 deployment/recovery work.
+Depends on Phases 28, 29, and 30. Phase 31 remains the final full-app release verification and does not replace Phase 28 foundation repair, Phase 29 acceptance repair, or Phase 30 deployment/recovery work.
 
-[Open implementation contract and tasks](docs/roadmap/phase-30-final-verification.md)
+[Open implementation contract and tasks](docs/roadmap/phase-31-final-verification.md)
