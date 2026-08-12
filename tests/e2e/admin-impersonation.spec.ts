@@ -1,5 +1,6 @@
 import type { Page } from '@playwright/test';
 
+import { completeSignIn } from './support/auth';
 import { expect, test } from './support/test';
 
 const users = {
@@ -15,16 +16,7 @@ async function signIn(page: Page): Promise<void> {
     await page.getByLabel(/Hasło|Password/).fill(users.admin.password);
     await page.getByRole('button', { name: /Zaloguj|Log in/ }).click();
 
-    const continueHere = page.getByRole('button', { name: /Kontynuuj tutaj|Continue here/ });
-
-    try {
-        await expect(continueHere).toBeVisible({ timeout: 1000 });
-        await continueHere.click();
-    } catch {
-        // No active-session conflict was shown.
-    }
-
-    await expect(page).toHaveURL('/');
+    await completeSignIn(page);
 }
 
 async function confirmAdministratorAccess(page: Page): Promise<void> {
@@ -57,11 +49,15 @@ test.describe('Admin impersonation', () => {
 
         await expect(page.getByRole('heading', { name: /Użytkownicy|Users/ })).toBeVisible();
 
-        const targetRow = page.getByRole('row').filter({ hasText: 'limited@example.test' });
+        const search = page.getByRole('textbox', { name: /Szukaj|Search/ });
+        await search.fill(users.admin.email);
         const ownAccountRow = page.getByRole('row').filter({ hasText: 'admin@example.test' });
-
-        await expect(targetRow).toBeVisible();
+        await expect(ownAccountRow).toBeVisible();
         await expect(ownAccountRow.getByRole('button', { name: /Impersonuj|Impersonate/ })).toHaveCount(0);
+
+        await search.fill('limited@example.test');
+        const targetRow = page.getByRole('row').filter({ hasText: 'limited@example.test' });
+        await expect(targetRow).toBeVisible();
         await targetRow.getByRole('button', { name: /Impersonuj|Impersonate/ }).click();
 
         await expect(page.getByRole('heading', { name: /Impersonacja użytkownika|User impersonation/, exact: true })).toBeVisible();

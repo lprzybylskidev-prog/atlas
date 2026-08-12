@@ -2,9 +2,9 @@
 
 Canonical testing environment strategy for backend tests, frontend tests, browser tests, local development, and future CI.
 
-## Phase 28 closure state
+## Foundation acceptance closure state
 
-PHPUnit, Vitest, and Playwright lanes are documented and isolated. Bilingual mail has PL-first/EN-first rendering, plain-text, locale-precedence, notification-preference, translation-parity, and hardcoded-copy guardrails. Phase 28 added the aggregate foundation gate and production runtime smoke coverage.
+PHPUnit, Vitest, and Playwright lanes are documented and isolated. Bilingual mail has PL-first/EN-first rendering, plain-text, locale-precedence, notification-preference, translation-parity, and hardcoded-copy guardrails. Phase 28 added the aggregate foundation gate and production runtime smoke coverage. Phase 29 completed the rendered localization, decomposed DataTable, Team Structure, and TimeTracking acceptance coverage and closed with 46 Playwright scenarios across Chromium and Firefox.
 
 `composer check` remains the standard local gate. `composer check:foundation` is the full foundation gate and runs the standard gate, full Playwright, and the production runtime smoke sequentially. Phase 31 later owns the distinct final release gate after production deployment, backup, restore, and rollback are implemented.
 
@@ -98,6 +98,8 @@ Test seeders must:
 
 Playwright tests must import `test` and `expect` from `tests/e2e/support/test`.
 
+Authenticated browser specs use `tests/e2e/support/auth.ts` to complete the real post-login flow. The helper resolves an existing-session conflict when present, selects an active team when required, supports a deterministic preferred team, and returns only after the dashboard destination is established. Workflow specs must additionally await the concrete response that owns a mutating Inertia redirect before starting a competing navigation; increasing timeouts or suppressing `NS_BINDING_ABORTED` is not an accepted substitute.
+
 `tests/e2e/frontend-surfaces.spec.ts` is the route-backed UI migration and localization sweep. It covers every canonical static application, user, manager, and Admin page route in Polish/light and English/dark variants, plus focused canonical-copy assertions for critical user, manager, authorization, team, user, and module workflows. Dynamic object and action paths remain covered by their focused workflow specs. Every visited surface rejects `[translation:...]` and visible untranslated Atlas key namespaces. The shared fixture applies the same rendered-copy assertion to the final page of every browser test and makes console cleanliness, runtime errors, monitored request failures, and unexpected 4xx/5xx responses part of every sweep assertion.
 
 The shared fixture fails browser tests on:
@@ -109,7 +111,7 @@ The shared fixture fails browser tests on:
 
 Permission-gated and module-gated UI behavior needs Playwright coverage when manual visibility checks would be error-prone. UI visibility tests do not replace backend authorization tests.
 
-`tests/e2e/time-tracking-workflows.spec.ts` is the Phase 29 TimeTracking workflow closure. It runs serially per browser project because each project creates and decides its own uniquely named operational records. It covers the mobile Polish user lifecycle, password-confirmed break and Other-work returns, correction creation, manager reports and decisions, direct notification delivery, hierarchy-scope denial, the removed legacy manager-report route, English Admin tables and filters, and maintenance-affected session details. Chromium and Firefox are both mandatory for this spec.
+`tests/e2e/time-tracking-workflows.spec.ts` is the Phase 29 TimeTracking workflow closure. It runs serially per browser project because each project creates and decides its own uniquely named operational records. It covers the mobile Polish user lifecycle, password-confirmed break and Other-work returns, correction creation, manager reports and decisions, direct notification delivery, hierarchy-scope denial, the removed legacy manager-report route, English Admin tables and filters, and maintenance-affected session details. Chromium and Firefox are both mandatory for this spec. Lifecycle intervals cross a measurable whole-second boundary before closure because TimeTracking persists exact integer-second durations, and mutating transitions await their return responses so the shared failed-request guard remains meaningful.
 
 ## Future CI
 

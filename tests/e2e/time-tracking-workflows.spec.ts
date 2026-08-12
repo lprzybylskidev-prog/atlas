@@ -1,5 +1,6 @@
 import type { Page } from '@playwright/test';
 
+import { completeSignIn } from './support/auth';
 import { expect, test } from './support/test';
 
 const password = 'password';
@@ -14,27 +15,7 @@ async function signIn(page: Page, email: string): Promise<void> {
     await page.getByLabel(/Hasło|Password/).fill(password);
     await page.getByRole('button', { name: /Zaloguj|Log in/ }).click();
 
-    const teamSelection = page.getByRole('heading', { name: /Wybierz aktywny zespół|Choose active team/ });
-    const continueHere = page.getByRole('button', { name: /Kontynuuj tutaj|Continue here/ });
-    const destination = await Promise.race([
-        page.waitForURL('/').then(() => 'dashboard' as const),
-        teamSelection.waitFor({ state: 'visible' }).then(() => 'team' as const),
-        continueHere.waitFor({ state: 'visible' }).then(() => 'conflict' as const),
-    ]);
-
-    if (destination === 'team') {
-        const teamSelect = page.getByRole('combobox', { name: /Zespół|Team/ });
-        await teamSelect.click();
-        await page.getByRole('option', { name: /TT Demo Team North/ }).click();
-        await expect(teamSelect).toContainText('TT Demo Team North');
-        await page.getByRole('button', { name: /^Kontynuuj$|^Continue$/ }).click();
-    }
-
-    if (destination === 'conflict') {
-        await continueHere.click();
-    }
-
-    await expect(page).toHaveURL('/');
+    await completeSignIn(page, 'TT Demo Team North');
 }
 
 async function signOut(page: Page): Promise<void> {
@@ -74,6 +55,11 @@ async function settlePage(page: Page): Promise<void> {
     await page.waitForLoadState('networkidle', { timeout: 1500 }).catch(() => undefined);
 }
 
+async function waitForMeasurableInterval(): Promise<void> {
+    const confirmedStartSecond = Math.floor(Date.now() / 1000);
+    await expect.poll(() => Math.floor(Date.now() / 1000)).toBeGreaterThan(confirmedStartSecond);
+}
+
 test.describe.serial('TimeTracking browser workflows', () => {
     test('completes the mobile user session, break, other-work and correction lifecycle in Polish', async ({ page }, testInfo) => {
         await page.setViewportSize({ width: 390, height: 844 });
@@ -86,9 +72,14 @@ test.describe.serial('TimeTracking browser workflows', () => {
         await openUserMenu(page);
         await page.getByRole('menuitem', { name: 'Idź na przerwę' }).click();
         await expect(page.getByRole('heading', { name: 'Przerwa jest aktywna' })).toBeVisible();
+        await waitForMeasurableInterval();
 
         await page.getByLabel('Aktualne hasło').fill(password);
-        await page.getByRole('button', { name: 'Wróć do pracy' }).click();
+        const [breakReturnResponse] = await Promise.all([
+            page.waitForResponse((response) => response.request().method() === 'GET' && new URL(response.url()).pathname === '/'),
+            page.getByRole('button', { name: 'Wróć do pracy' }).click(),
+        ]);
+        await breakReturnResponse.finished();
         await expect(page).toHaveURL('/');
 
         await openUserMenu(page);
@@ -101,9 +92,14 @@ test.describe.serial('TimeTracking browser workflows', () => {
         await page.getByRole('button', { name: 'Rozpocznij pracę poza komputerem' }).click();
         await expect(page.getByRole('heading', { name: 'Praca poza komputerem jest aktywna' })).toBeVisible();
         await expect(page.getByText(otherWorkDescription)).toBeVisible();
+        await waitForMeasurableInterval();
         await page.getByLabel('Notatka końcowa').fill('Powrót do pracy potwierdzony w E2E.');
         await page.getByLabel('Aktualne hasło').fill(password);
-        await page.getByRole('button', { name: 'Wróć do pracy' }).click();
+        const [otherWorkReturnResponse] = await Promise.all([
+            page.waitForResponse((response) => response.request().method() === 'GET' && new URL(response.url()).pathname === '/'),
+            page.getByRole('button', { name: 'Wróć do pracy' }).click(),
+        ]);
+        await otherWorkReturnResponse.finished();
         await expect(page).toHaveURL('/');
 
         await page.goto('/user/work-time?section=work_sessions&range=year');
@@ -112,12 +108,22 @@ test.describe.serial('TimeTracking browser workflows', () => {
 
         const correctionDescription = `E2E korekta czasu ${testInfo.project.name}`;
         await page.getByLabel('Opis korekty').fill(correctionDescription);
-        await Promise.all([
+        const [, correctionReturnResponse] = await Promise.all([
             page.waitForResponse(
                 (response) => response.request().method() === 'POST' && new URL(response.url()).pathname === '/user/work-time/corrections',
             ),
+            page.waitForResponse((response) => {
+                const url = new URL(response.url());
+
+                return (
+                    response.request().method() === 'GET' &&
+                    url.pathname === '/user/work-time' &&
+                    url.searchParams.get('section') === 'work_sessions'
+                );
+            }),
             page.getByRole('button', { name: 'Wyślij zgłoszenie' }).click(),
         ]);
+        await correctionReturnResponse.finished();
         await expect(page.getByRole('button', { name: 'Wyślij zgłoszenie' })).toHaveCount(0);
         await page.goto('/user/work-time?section=corrections&range=year');
         await expect(page.getByText(correctionDescription)).toBeVisible();
@@ -197,8 +203,15 @@ test.describe.serial('TimeTracking browser workflows', () => {
         await convertExcessButton.click();
         const conversionDialog = page.getByRole('dialog');
         await conversionDialog.getByLabel('Reason').fill('E2E Admin excess-break conversion.');
-        await conversionDialog.getByRole('button', { name: 'Confirm action' }).click();
-        await expect(page.getByText('Break excess was converted through an audited correction.')).toBeVisible();
+        await Promise.all([
+            expect(page.getByText('Break excess was converted through an audited correction.')).toBeVisible(),
+            page.waitForResponse(
+                (response) =>
+                    response.request().method() === 'POST' &&
+                    /\/admin\/work-time\/breaks\/[^/]+\/convert-excess$/.test(new URL(response.url()).pathname),
+            ),
+            conversionDialog.getByRole('button', { name: 'Confirm action' }).click(),
+        ]);
         await settlePage(page);
         await signOut(page);
     });

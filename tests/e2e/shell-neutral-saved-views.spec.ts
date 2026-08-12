@@ -1,5 +1,6 @@
 import type { Page } from '@playwright/test';
 
+import { completeSignIn } from './support/auth';
 import { expect, test } from './support/test';
 
 const manager = {
@@ -13,15 +14,7 @@ async function signIn(page: Page): Promise<void> {
     await page.getByLabel(/Hasło|Password/).fill(manager.password);
     await page.getByRole('button', { name: /Zaloguj|Log in/ }).click();
 
-    if (
-        !(await page
-            .waitForURL('/', { timeout: 2000 })
-            .then(() => true)
-            .catch(() => false))
-    ) {
-        await page.getByRole('button', { name: /Kontynuuj tutaj|Continue here/ }).click();
-        await expect(page).toHaveURL('/');
-    }
+    await completeSignIn(page);
 }
 
 async function ensurePolishLocale(page: Page): Promise<void> {
@@ -85,6 +78,7 @@ async function savePrivateView(page: Page, path: string, name: string): Promise<
             }, name),
         )
         .toBe(true);
+    await page.waitForLoadState('networkidle');
 }
 
 test.describe('shell-neutral saved views', () => {

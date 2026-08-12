@@ -1,5 +1,6 @@
 import type { Page } from '@playwright/test';
 
+import { completeSignIn } from './support/auth';
 import { expect, test } from './support/test';
 
 const users = {
@@ -19,17 +20,7 @@ async function signIn(page: Page, user: { email: string; password: string }): Pr
     await page.getByLabel(/Hasło|Password/).fill(user.password);
     await page.getByRole('button', { name: /Zaloguj|Log in/ }).click();
 
-    if (
-        await page
-            .waitForURL('/', { timeout: 2000 })
-            .then(() => true)
-            .catch(() => false)
-    ) {
-        return;
-    }
-
-    await page.getByRole('button', { name: /Kontynuuj tutaj|Continue here/ }).click();
-    await expect(page).toHaveURL('/');
+    await completeSignIn(page);
 }
 
 async function openUserMenu(page: Page): Promise<void> {

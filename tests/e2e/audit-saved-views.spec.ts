@@ -1,5 +1,6 @@
 import type { Page, TestInfo } from '@playwright/test';
 
+import { completeSignIn } from './support/auth';
 import { expect, test } from './support/test';
 
 const admin = {
@@ -13,17 +14,7 @@ async function signIn(page: Page): Promise<void> {
     await page.getByLabel(/Hasło|Password/).fill(admin.password);
     await page.getByRole('button', { name: /Zaloguj|Log in/ }).click();
 
-    if (
-        await page
-            .waitForURL('/', { timeout: 2000 })
-            .then(() => true)
-            .catch(() => false)
-    ) {
-        return;
-    }
-
-    await page.getByRole('button', { name: /Kontynuuj tutaj|Continue here/ }).click();
-    await expect(page).toHaveURL('/');
+    await completeSignIn(page);
 }
 
 async function confirmAdministratorAccess(page: Page): Promise<void> {

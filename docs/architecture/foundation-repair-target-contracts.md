@@ -4,8 +4,8 @@ This document records the accepted and implemented Phase 28 foundation contracts
 
 ## Status
 
-- Current implementation: Phases 27, 27a, and 28 are complete; all 110 Phase 28 issue IDs are reconciled to implementation, tests, permanent guardrails, canonical documentation, and package evidence.
-- Next implementation phase: Phase 29 owns foundation acceptance repair and rendered workflow closure. Phase 30 owns production deployment, backup, restore, and rollback. Phase 31 later owns the distinct final release audit.
+- Current implementation: Phases 27, 27a, 28, and 29 are complete. All 110 Phase 28 issue IDs and all 15 Phase 29 acceptance-repair issue IDs are reconciled to implementation, tests, permanent guardrails, canonical documentation, and package evidence.
+- Next implementation phase: Phase 30 owns production deployment, backup, restore, and rollback. Phase 31 later owns the distinct final release audit and remains `not started`.
 
 ## Module graph and public contracts
 
@@ -51,7 +51,7 @@ Target contract:
 
 Implemented state: `P28-UI-001` through `P28-UI-008`, `P28-ACTION-001` through `P28-ACTION-003`, `P28-FORM-001` through `P28-FORM-006`, `P28-TABLE-001` through `P28-TABLE-009`, `P28-LOC-001`, and `P28-LOC-002` are complete and protected by typed source, translation/glossary, shared-component, route/view, feature, Vitest, and Playwright guardrails.
 
-Phase 29 workstream `P29-W01` closes the later localization acceptance findings `P29-LOC-001` through `P29-LOC-004`: frontend and backend usage are inventoried against both locale catalogs, finite dynamic families are explicitly registered, PL/EN removals are mutation-tested, and the bilingual canonical route sweep rejects missing markers and visible raw Atlas key namespaces.
+Completed Phase 29 workstream `P29-W01` closes the later localization acceptance findings `P29-LOC-001` through `P29-LOC-004`: frontend and backend usage are inventoried against both locale catalogs, finite dynamic families are explicitly registered, PL/EN removals are mutation-tested, and the bilingual canonical route sweep rejects missing markers and visible raw Atlas key namespaces. `P29-W02` decomposes the DataTable host into focused state, persistence, saved-view, action, formatting, and result units; its permanent structural guard and mutation fixtures reject responsibility re-centralization.
 
 Target contract:
 
@@ -69,6 +69,8 @@ Target contract:
 
 Implemented state: `P28-AUTH-001` through `P28-AUTH-005` are complete and protected by provenance, stale-write, backend-authorization, manager-DAG/head-manager, legacy-reference, and browser tests.
 
+Completed Phase 29 workstream `P29-W03` makes Team Structure the sole membership and hierarchy mutation surface. It covers membership history, add/end workflows, head-manager state, effective-dated atomic reparenting, stale writes, DAG and membership invariants, active-process blockers, transactional audit outcomes, and desktop/mobile/keyboard browser acceptance.
+
 Target contract:
 
 - manager hierarchy belongs to Teams;
@@ -80,6 +82,8 @@ Target contract:
 ## TimeTracking
 
 Implemented state: `P28-TT-001` through `P28-TT-004` are complete together with the `P28-MODAUD-*` capability audit and protected by route, scope, transaction/audit, shared-UI, incomplete-capability, removed-surface, and browser tests.
+
+Completed Phase 29 workstream `P29-W04` adds deterministic Chromium and Firefox workflows for the mobile Polish user lifecycle, manager scope and decisions, resulting notifications, English Admin operations, maintenance evidence, and legacy-route absence. These workflows use the shared untranslated-copy, console, failed-request, and unexpected-HTTP guards.
 
 Target contract:
 

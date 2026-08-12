@@ -1,6 +1,6 @@
 # Phase 29 — Foundation acceptance repair and rendered workflow closure
 
-**Status:** `in progress`
+**Status:** `complete`
 
 ## Objective
 
@@ -553,21 +553,23 @@ Acceptance evidence: the isolated Playwright bootstrap now composes `E2eVisibili
 
 ### P29-W05 — Final Phase 29 regression and acceptance gate
 
-* [ ] Confirm every Phase 29 issue ID is closed with implementation, focused tests, permanent guardrails, documentation, and legacy-removal evidence where applicable.
-* [ ] Run targeted localization tests.
-* [ ] Run targeted DataTable/frontend tests.
-* [ ] Run targeted Teams/Authorization tests.
-* [ ] Run targeted TimeTracking backend/frontend tests.
-* [ ] Run full Playwright gate required by Atlas.
-* [ ] Run `composer check`.
-* [ ] Run `composer check:foundation`.
-* [ ] Confirm permanent guardrails are non-vacuous and mutation-tested where required.
-* [ ] Confirm Phase 28 remains historical and is not rewritten into an active phase.
-* [ ] Confirm Phase 30 deployment remains `not started`.
-* [ ] Confirm Phase 31 final verification remains `not started`.
-* [ ] Update affected canonical architecture/module/testing documentation.
-* [ ] Update `WORKROAD.md` to mark Phase 29 complete only after all acceptance criteria are satisfied.
-* [ ] Record final Phase 29 quality-gate evidence.
+* [x] Confirm every Phase 29 issue ID is closed with implementation, focused tests, permanent guardrails, documentation, and legacy-removal evidence where applicable.
+* [x] Run targeted localization tests.
+* [x] Run targeted DataTable/frontend tests.
+* [x] Run targeted Teams/Authorization tests.
+* [x] Run targeted TimeTracking backend/frontend tests.
+* [x] Run full Playwright gate required by Atlas.
+* [x] Run `composer check`.
+* [x] Run `composer check:foundation`.
+* [x] Confirm permanent guardrails are non-vacuous and mutation-tested where required.
+* [x] Confirm Phase 28 remains historical and is not rewritten into an active phase.
+* [x] Confirm Phase 30 deployment remains `not started`.
+* [x] Confirm Phase 31 final verification remains `not started`.
+* [x] Update affected canonical architecture/module/testing documentation.
+* [x] Update `WORKROAD.md` to mark Phase 29 complete only after all acceptance criteria are satisfied.
+* [x] Record final Phase 29 quality-gate evidence.
+
+Acceptance evidence: all 15 registered Phase 29 issue IDs are reconciled to their completed workstreams, focused tests, permanent guardrails, canonical documentation, and legacy-removal evidence. Targeted localization passed 18 PHPUnit tests with 24,426 assertions and 12 Vitest tests. Targeted DataTable coverage passed 9 PHPUnit tests with 994 assertions and 19 Vitest tests. Targeted Teams/Authorization coverage passed 15 PHPUnit tests with 8,465 assertions. Targeted TimeTracking coverage passed 89 PHPUnit tests with 1,589 assertions and the related frontend guard set passed 49 Vitest tests. `composer check` passed Pint, Prettier, ESLint, Stylelint, Markdown, secret/unwanted-file, runtime-contract, PHPStan, 604 PHPUnit tests with 55,662 assertions, TypeScript, 103 Vitest tests, and the production Vite build. The foundation run repeated those gates and passed the full Playwright suite 46/46 across Chromium and Firefox. Its unprivileged Docker invocation reached the documented host-socket permission boundary; the documented privileged runtime lane then passed production PHP/nginx/backup image builds, fresh migration and readiness, HTTP/assets, Horizon and every configured queue, scheduler heartbeat, Meilisearch, ClamAV/EICAR, Chromium/PDF, PostgreSQL recreation/persistence, and clean teardown. Phase 28 remains unchanged historical completion, while Phase 30 and Phase 31 remain `not started`.
 
 ## Required permanent guardrails
 
@@ -577,8 +579,8 @@ Acceptance evidence: the isolated Playwright bootstrap now composes `E2eVisibili
 * [x] Dynamic translation-family registration guard.
 * [x] Missing-translation mutation fixtures.
 * [x] Rendered missing-key Playwright assertion.
-* [ ] DataTable responsibility-boundary guard.
-* [ ] DataTable responsibility mutation fixture.
+* [x] DataTable responsibility-boundary guard.
+* [x] DataTable responsibility mutation fixture.
 * [x] No separate Managers-area regression guard.
 * [x] Team Structure canonical-mutation-surface guard.
 * [x] Team hierarchy atomic move/reparent tests.
@@ -590,20 +592,20 @@ Acceptance evidence: the isolated Playwright bootstrap now composes `E2eVisibili
 ## Completion criteria
 
 * [x] Every `P29-LOC-*` issue is complete.
-* [ ] Every `P29-TABLE-*` issue is complete.
+* [x] Every `P29-TABLE-*` issue is complete.
 * [x] Every `P29-TEAM-*` issue is complete.
 * [x] Every `P29-TT-*` issue is complete.
-* [ ] `P29-GATE-001` is complete.
+* [x] `P29-GATE-001` is complete.
 * [x] No Atlas-owned translation key is visibly rendered as untranslated product copy in the accepted browser route matrix.
 * [x] Polish and English Atlas translation catalogs are complete and permanently guarded against drift.
-* [ ] `DataTable.vue` is genuinely composed from focused responsibility units rather than passing only a size threshold.
+* [x] `DataTable.vue` is genuinely composed from focused responsibility units rather than passing only a size threshold.
 * [x] Team Structure is the canonical complete team membership and manager-hierarchy editing surface.
 * [x] Manager move/reparent is atomic, validated, concurrency-safe, effective-dated, and audited.
 * [x] TimeTracking has representative browser-level user, manager, and Admin workflow coverage rather than only route smoke tests.
-* [ ] Intentionally empty user and manager dashboards remain intentionally empty.
-* [ ] No Phase 30 deployment implementation has been pulled into Phase 29.
-* [ ] No Phase 31 final whole-app verification has been falsely claimed by Phase 29.
-* [ ] `composer check` passes.
-* [ ] `composer check:foundation` passes.
-* [ ] Canonical documentation matches the implemented behavior.
-* [ ] `WORKROAD.md` marks Phase 29 complete only after every criterion above is true.
+* [x] Intentionally empty user and manager dashboards remain intentionally empty.
+* [x] No Phase 30 deployment implementation has been pulled into Phase 29.
+* [x] No Phase 31 final whole-app verification has been falsely claimed by Phase 29.
+* [x] `composer check` passes.
+* [x] `composer check:foundation` passes.
+* [x] Canonical documentation matches the implemented behavior.
+* [x] `WORKROAD.md` marks Phase 29 complete only after every criterion above is true.
