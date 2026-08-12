@@ -35,9 +35,7 @@ export interface ComposableViewElementDefinition<TData = unknown> {
     hostTypes: readonly ComposableHostViewType[];
     hostKeys: readonly ComposableHostViewKey[];
     titleKey: string;
-    fallbackTitle: string;
     descriptionKey: string | null;
-    fallbackDescription: string | null;
     requirements: ComposableViewElementRequirements;
     component: Component;
     dataProvider: ComposableViewDataProvider<TData>;
@@ -62,7 +60,6 @@ export interface ComposableHostViewDefinition {
     type: ComposableHostViewType;
     layout: ComposableHostViewLayout;
     titleKey: string;
-    fallbackTitle: string;
     acceptedElements: readonly ComposableViewAcceptedElement[];
 }
 

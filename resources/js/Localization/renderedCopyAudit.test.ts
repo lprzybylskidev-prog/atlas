@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
+import { dynamicTranslationFamilies } from './dynamicTranslationFamilies';
+import { catalogProblems, inventoryFrontendTranslationUsage } from './translationUsageInventory';
+import { statusCatalog } from '../Services/statusCatalog';
+
 const pageFiles = import.meta.glob('../Pages/**/*.vue', {
     eager: true,
     import: 'default',
@@ -28,10 +32,6 @@ function pageSource(path: string): string {
     return source ?? '';
 }
 
-function renderedTranslationKeys(source: string): string[] {
-    return [...source.matchAll(/\b(?:t|translate)\(\s*['"]([a-z0-9_.-]+)['"]/g)].map((match) => match[1]);
-}
-
 describe('rendered PL/EN view copy audit', () => {
     const pages = Object.entries(pageFiles);
 
@@ -41,11 +41,13 @@ describe('rendered PL/EN view copy audit', () => {
         let auditedKeys = 0;
 
         for (const [page, source] of pages) {
-            const keys = renderedTranslationKeys(source);
+            const keys = inventoryFrontendTranslationUsage({ [page]: source }).filter(
+                ({ key }) => !key.startsWith('[unregistered-dynamic:'),
+            );
 
             expect(keys.length, `${page} has no auditable rendered translation key`).toBeGreaterThan(0);
 
-            for (const key of keys) {
+            for (const { key } of keys) {
                 auditedKeys += 1;
 
                 for (const [locale, catalog] of Object.entries(catalogs)) {
@@ -60,26 +62,56 @@ describe('rendered PL/EN view copy audit', () => {
     });
 
     it('audits statically rendered translation keys across the production frontend', () => {
-        const productionFiles = Object.entries(frontendFiles).filter(
-            ([file]) => !file.endsWith('.test.ts') && !file.includes('/Guardrails/'),
-        );
-        let auditedKeys = 0;
+        const productionFiles = Object.entries(frontendFiles).filter(([file]) => !file.endsWith('.test.ts'));
+        const usages = inventoryFrontendTranslationUsage(Object.fromEntries(productionFiles));
 
         expect(productionFiles.length).toBeGreaterThanOrEqual(180);
+        expect(usages.length).toBeGreaterThanOrEqual(2_300);
+        expect(catalogProblems(usages, catalogs)).toEqual([]);
+    });
 
-        for (const [file, source] of productionFiles) {
-            for (const key of renderedTranslationKeys(source)) {
-                auditedKeys += 1;
+    it('keeps every dynamic translation expression finite, unique, and exercised by production source', () => {
+        const productionSource = Object.entries(frontendFiles)
+            .filter(([file]) => !file.endsWith('.test.ts'))
+            .map(([, source]) => source)
+            .join('\n');
+        const expressions = dynamicTranslationFamilies.map(({ expression }) => expression);
 
-                for (const [locale, catalog] of Object.entries(catalogs)) {
-                    expect(catalog[key], `${file} renders missing ${locale} key [${key}]`).toBeTypeOf('string');
-                    expect(catalog[key]?.trim(), `${file} renders blank ${locale} key [${key}]`).not.toBe('');
-                    expect(catalog[key], `${file} exposes untranslated key [${key}] in ${locale}`).not.toBe(key);
-                }
-            }
+        expect(new Set(expressions).size).toBe(expressions.length);
+
+        for (const { expression, keys } of dynamicTranslationFamilies) {
+            expect(keys.length, `${expression} must enumerate at least one accepted key`).toBeGreaterThan(0);
+            expect(new Set(keys).size, `${expression} must not register duplicate keys`).toBe(keys.length);
+            expect(productionSource, `${expression} must correspond to a production dynamic lookup`).toContain(`\`${expression}\``);
         }
+    });
 
-        expect(auditedKeys).toBeGreaterThanOrEqual(2_200);
+    it('binds the dynamic DataTable status family to the accepted status catalog', () => {
+        const family = dynamicTranslationFamilies.find(({ expression }) => expression === 'datatable.status.${token}');
+
+        expect(family).toBeDefined();
+        expect([...(family?.keys ?? [])].sort()).toEqual(
+            Object.values(statusCatalog)
+                .map(({ key }) => key)
+                .sort(),
+        );
+    });
+
+    it('proves the usage guard fails when a used translation is removed from either locale', () => {
+        const usages = inventoryFrontendTranslationUsage(
+            Object.fromEntries(Object.entries(frontendFiles).filter(([file]) => !file.endsWith('.test.ts'))),
+        );
+        const usedKey = 'actions.cancel';
+
+        for (const locale of ['pl', 'en'] as const) {
+            const mutated = {
+                pl: { ...catalogs.pl },
+                en: { ...catalogs.en },
+            };
+            delete mutated[locale][usedKey];
+
+            expect(catalogProblems(usages, mutated)).toContainEqual(expect.stringContaining(`missing ${locale} key [${usedKey}]`));
+        }
     });
 
     it('keeps known defective phrases and raw product-internal terms out of rendered catalogs', () => {

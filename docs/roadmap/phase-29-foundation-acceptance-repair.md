@@ -1,6 +1,6 @@
 # Phase 29 — Foundation acceptance repair and rendered workflow closure
 
-**Status:** `not started`
+**Status:** `in progress`
 
 ## Objective
 
@@ -456,22 +456,22 @@ The final gate must prove:
 
 ### P29-W01 — Localization completeness and raw-key elimination
 
-* [ ] Inventory every Atlas-owned user-facing translation-key reference used by the current frontend and backend-rendered UI.
-* [ ] Complete missing Polish translations.
-* [ ] Complete missing English translations.
-* [ ] Enforce PL/EN Atlas catalog parity.
-* [ ] Enforce used-key → PL catalog existence.
-* [ ] Enforce used-key → EN catalog existence.
-* [ ] Register/enumerate accepted dynamic translation families.
-* [ ] Add mutation fixtures proving the localization guards fail when a used translation is removed from PL.
-* [ ] Add mutation fixtures proving the localization guards fail when a used translation is removed from EN.
-* [ ] Remove broad localization scanner exclusions that can hide whole namespaces.
-* [ ] Add rendered Playwright detection for `[translation:...]`.
-* [ ] Add rendered Playwright detection for visible untranslated Atlas key namespaces.
-* [ ] Walk the canonical route/view set in Polish.
-* [ ] Walk the canonical route/view set in English.
-* [ ] Update frontend/localization/glossary documentation.
-* [ ] Close `P29-LOC-001` through `P29-LOC-004`.
+* [x] Inventory every Atlas-owned user-facing translation-key reference used by the current frontend and backend-rendered UI.
+* [x] Complete missing Polish translations.
+* [x] Complete missing English translations.
+* [x] Enforce PL/EN Atlas catalog parity.
+* [x] Enforce used-key → PL catalog existence.
+* [x] Enforce used-key → EN catalog existence.
+* [x] Register/enumerate accepted dynamic translation families.
+* [x] Add mutation fixtures proving the localization guards fail when a used translation is removed from PL.
+* [x] Add mutation fixtures proving the localization guards fail when a used translation is removed from EN.
+* [x] Remove broad localization scanner exclusions that can hide whole namespaces.
+* [x] Add rendered Playwright detection for `[translation:...]`.
+* [x] Add rendered Playwright detection for visible untranslated Atlas key namespaces.
+* [x] Walk the canonical route/view set in Polish.
+* [x] Walk the canonical route/view set in English.
+* [x] Update frontend/localization/glossary documentation.
+* [x] Close `P29-LOC-001` through `P29-LOC-004`.
 
 ### P29-W02 — DataTable responsibility decomposition
 
@@ -565,12 +565,12 @@ The final gate must prove:
 
 ## Required permanent guardrails
 
-* [ ] PL/EN catalog parity guard.
-* [ ] Used translation key exists in PL guard.
-* [ ] Used translation key exists in EN guard.
-* [ ] Dynamic translation-family registration guard.
-* [ ] Missing-translation mutation fixtures.
-* [ ] Rendered missing-key Playwright assertion.
+* [x] PL/EN catalog parity guard.
+* [x] Used translation key exists in PL guard.
+* [x] Used translation key exists in EN guard.
+* [x] Dynamic translation-family registration guard.
+* [x] Missing-translation mutation fixtures.
+* [x] Rendered missing-key Playwright assertion.
 * [ ] DataTable responsibility-boundary guard.
 * [ ] DataTable responsibility mutation fixture.
 * [ ] No separate Managers-area regression guard.
@@ -583,13 +583,13 @@ The final gate must prove:
 
 ## Completion criteria
 
-* [ ] Every `P29-LOC-*` issue is complete.
+* [x] Every `P29-LOC-*` issue is complete.
 * [ ] Every `P29-TABLE-*` issue is complete.
 * [ ] Every `P29-TEAM-*` issue is complete.
 * [ ] Every `P29-TT-*` issue is complete.
 * [ ] `P29-GATE-001` is complete.
-* [ ] No Atlas-owned translation key is visibly rendered as untranslated product copy in the accepted browser route matrix.
-* [ ] Polish and English Atlas translation catalogs are complete and permanently guarded against drift.
+* [x] No Atlas-owned translation key is visibly rendered as untranslated product copy in the accepted browser route matrix.
+* [x] Polish and English Atlas translation catalogs are complete and permanently guarded against drift.
 * [ ] `DataTable.vue` is genuinely composed from focused responsibility units rather than passing only a size threshold.
 * [ ] Team Structure is the canonical complete team membership and manager-hierarchy editing surface.
 * [ ] Manager move/reparent is atomic, validated, concurrency-safe, effective-dated, and audited.

@@ -9,7 +9,6 @@ const testHost: ComposableHostViewDefinition = {
     type: 'dashboard',
     layout: 'dashboard-sidebar',
     titleKey: 'views.dashboard.title',
-    fallbackTitle: 'Dashboard',
     acceptedElements: [
         {
             elementKey: 'test.dashboard.introduction',
@@ -65,9 +64,7 @@ function testElement(key: string, optional = false): ComposableViewElementDefini
         hostTypes: ['dashboard'],
         hostKeys: ['app.dashboard'],
         titleKey: `${key}.title`,
-        fallbackTitle: key,
         descriptionKey: null,
-        fallbackDescription: null,
         requirements: {
             permissions: [],
             modules: [],

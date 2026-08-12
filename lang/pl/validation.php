@@ -234,6 +234,7 @@ return [
         'state.sort' => 'sortowanie',
         'table_key' => 'klucz tabeli',
         'team_assignments' => 'przypisania do zespołów',
+        'user' => 'użytkownik',
         'team_assignments.*.copy_authorization_from_user' => 'użytkownik źródłowy w przypisaniu do zespołu',
         'team_assignments.*.direct_permission_names' => 'bezpośrednie uprawnienia w przypisaniu do zespołu',
         'team_assignments.*.direct_permission_names.*' => 'bezpośrednie uprawnienie w przypisaniu do zespołu',

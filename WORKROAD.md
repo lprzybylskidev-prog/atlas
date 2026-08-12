@@ -40,7 +40,7 @@ Do not replace this index after the initial technical foundation is completed. C
 ## Current phase
 
 - Phase: [Phase 29 — Foundation acceptance repair and rendered workflow closure](docs/roadmap/phase-29-foundation-acceptance-repair.md)
-- Status: `not started`
+- Status: `in progress`
 
 ## Roadmap dependency repair note
 
@@ -338,7 +338,7 @@ Repair and consolidate known foundation drift across module boundaries, ModuleGa
 
 ### Phase 29 — Foundation acceptance repair and rendered workflow closure
 
-**Status:** `not started`
+**Status:** `in progress`
 
 Close concrete post-Phase-28 acceptance gaps in localization, DataTable responsibility decomposition, the integrated Team Structure workflow, and TimeTracking browser-level E2E coverage without reopening Phase 28.
 

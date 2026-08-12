@@ -2,6 +2,7 @@ import type { FormSelectOption } from '../Components/Form/FormSelect.vue';
 import type { AtlasBarChartData } from '../Types/charts';
 import { formatStatus } from '../Utils/formatters';
 import { moduleLabel } from '../Utils/moduleLabels';
+import { isMissingTranslation } from '../Localization/translator';
 
 interface TimeTrackingSummary {
     totalSeconds: number;
@@ -94,14 +95,14 @@ export function timeTrackingStatusLabel(status: string, t: Translator): string {
     const key = `pages.time_tracking.user_report.status.${status}`;
     const translated = t(key);
 
-    return translated === key ? formatStatus(status) : translated;
+    return isMissingTranslation(translated, key) ? formatStatus(status) : translated;
 }
 
 export function timeTrackingTypeLabel(type: string, t: Translator): string {
     const key = `pages.time_tracking.user_report.types.${type}`;
     const translated = t(key);
 
-    return translated === key ? formatStatus(type) : translated;
+    return isMissingTranslation(translated, key) ? formatStatus(type) : translated;
 }
 
 export function timeTrackingContextLabel(context: string, t: Translator): string {

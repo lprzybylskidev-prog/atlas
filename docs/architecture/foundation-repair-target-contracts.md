@@ -51,6 +51,8 @@ Target contract:
 
 Implemented state: `P28-UI-001` through `P28-UI-008`, `P28-ACTION-001` through `P28-ACTION-003`, `P28-FORM-001` through `P28-FORM-006`, `P28-TABLE-001` through `P28-TABLE-009`, `P28-LOC-001`, and `P28-LOC-002` are complete and protected by typed source, translation/glossary, shared-component, route/view, feature, Vitest, and Playwright guardrails.
 
+Phase 29 workstream `P29-W01` closes the later localization acceptance findings `P29-LOC-001` through `P29-LOC-004`: frontend and backend usage are inventoried against both locale catalogs, finite dynamic families are explicitly registered, PL/EN removals are mutation-tested, and the bilingual canonical route sweep rejects missing markers and visible raw Atlas key namespaces.
+
 Target contract:
 
 - one PL/EN glossary controls canonical labels in navigation, breadcrumbs, titles, forms, tables, messages, mails, docs, and tests;

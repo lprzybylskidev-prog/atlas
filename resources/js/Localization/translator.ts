@@ -15,6 +15,10 @@ export function translate(key: TranslationKey, catalog: Record<string, string> =
     return message;
 }
 
+export function isMissingTranslation(value: string, key: TranslationKey): boolean {
+    return value === key || value === `[translation:${key}]`;
+}
+
 export function useTranslator(localeOverride?: string) {
     const page = usePage<AtlasPageProps>();
     const locale = computed<SupportedLocale>(() => normalizeLocale(localeOverride ?? page.props.locale));

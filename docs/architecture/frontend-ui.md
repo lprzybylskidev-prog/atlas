@@ -86,6 +86,8 @@ Temporary review-only seeders, fixtures, helper classes, routes, UI controls, an
 
 Rendered UI must be manually or browser-automated reviewed in the active locale or locales before declaring localization complete. Backend translation-key parity alone is insufficient.
 
+Localization acceptance combines three independent checks: PL/EN catalog parity, source-usage inventories for frontend and backend-rendered copy, and a rendered browser sweep. Dynamic frontend translation expressions are permitted only when their complete finite key family is registered in `resources/js/Localization/dynamicTranslationFamilies.ts`; deriving accepted values from the catalogs themselves or excluding a namespace would make removal defects invisible and is forbidden. The shared Playwright fixture rejects both `[translation:...]` diagnostics and visible untranslated Atlas key namespaces, while `frontend-surfaces.spec.ts` walks the canonical static application, user, manager, and Admin page routes in Polish and English. Parameterized object routes remain covered by their owning workflow specifications.
+
 Every route-backed Inertia page is protected by the shared frontend view-contract guard. The guard requires a browser title, exactly one accepted shell, canonical visible title/icon behavior for authenticated pages, `PageStack` for non-empty authenticated content, and no page-owned shell navigation definitions. Critical static application and Admin routes are additionally swept in a real browser in Polish/light and English/dark variants; the browser fixture rejects runtime errors, `console.error`, failed monitored resources, and unexpected HTTP 4xx/5xx responses.
 
 ### Shell and shared frontend composition

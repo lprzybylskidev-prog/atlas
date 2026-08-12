@@ -19,7 +19,7 @@ import PageStack from '../../../Components/PageStack.vue';
 import SurfaceCard from '../../../Components/SurfaceCard.vue';
 import { applyTableFilters, clearTableFilters } from '../../../Composables/useTableFilterControls';
 import AppLayout from '../../../Layouts/AppLayout.vue';
-import { useTranslator } from '../../../Localization/translator';
+import { isMissingTranslation, useTranslator } from '../../../Localization/translator';
 import type { DataTableAction, DataTableColumn, DataTableMeta } from '../../../Types/data-table';
 import { moduleLabel } from '../../../Utils/moduleLabels';
 import { optionsWithAll } from '../../../Utils/filterOptions';
@@ -199,7 +199,7 @@ function scopeLabel(value: string): string {
     const key = `pages.admin.integrations.scopes.${value.replaceAll('-', '_')}`;
     const translated = t(key);
 
-    return translated === key ? formatStatus(value) : translated;
+    return isMissingTranslation(translated, key) ? formatStatus(value) : translated;
 }
 </script>
 

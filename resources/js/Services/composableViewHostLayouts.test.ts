@@ -19,7 +19,6 @@ describe('composable view host layouts', () => {
             type: 'dashboard',
             layout: 'dashboard-sidebar',
             titleKey: 'views.dashboard.title',
-            fallbackTitle: 'Dashboard',
             acceptedElements: [],
         };
 
@@ -32,7 +31,6 @@ describe('composable view host layouts', () => {
             type: 'dashboard',
             layout: 'operational-status',
             titleKey: 'views.dashboard.title',
-            fallbackTitle: 'Dashboard',
             acceptedElements: [],
         };
 

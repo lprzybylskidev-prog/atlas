@@ -13,7 +13,7 @@ import PageStack from '../../../Components/PageStack.vue';
 import SurfaceCard from '../../../Components/SurfaceCard.vue';
 import { applyTableFilters, clearTableFilters } from '../../../Composables/useTableFilterControls';
 import AppLayout from '../../../Layouts/AppLayout.vue';
-import { useTranslator } from '../../../Localization/translator';
+import { isMissingTranslation, useTranslator } from '../../../Localization/translator';
 import type { DataTableAction, DataTableBulkAction, DataTableColumn, DataTableMeta } from '../../../Types/data-table';
 import { optionsWithAll } from '../../../Utils/filterOptions';
 import { formatStatus } from '../../../Utils/formatters';
@@ -162,14 +162,14 @@ function connectionLabel(value: string): string {
     const key = `pages.admin.queues.connections.${value}`;
     const translated = t(key);
 
-    return translated === key ? formatStatus(value) : translated;
+    return isMissingTranslation(translated, key) ? formatStatus(value) : translated;
 }
 
 function queueLabel(value: string): string {
     const key = `pages.admin.queues.queues.${value.replaceAll('-', '_')}`;
     const translated = t(key);
 
-    return translated === key ? formatStatus(value) : translated;
+    return isMissingTranslation(translated, key) ? formatStatus(value) : translated;
 }
 
 function filterValues(): Record<string, string> {

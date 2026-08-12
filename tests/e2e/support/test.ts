@@ -47,11 +47,25 @@ function attachBrowserConsoleGuards(page: Page): string[] {
     return browserErrors;
 }
 
+const untranslatedAtlasCopyPattern =
+    /(?:^|[\s([{>])(?:pages|navigation|actions|auth|breadcrumbs|datatable|filters)\.[a-z0-9_]+(?:\.[a-z0-9_]+)+(?=$|[\s,.;:!?)}\]<])/i;
+
+export async function expectNoUntranslatedAtlasCopy(page: Page): Promise<void> {
+    const visibleCopy = await page.locator('body').innerText();
+
+    expect(visibleCopy, 'rendered UI must not expose a missing-translation marker').not.toContain('[translation:');
+    expect(visibleCopy, 'rendered UI must not expose an untranslated Atlas key').not.toMatch(untranslatedAtlasCopyPattern);
+}
+
 const test = base.extend<{ page: Page }>({
     page: async ({ page }, use) => {
         const browserErrors = attachBrowserConsoleGuards(page);
 
         await use(page);
+
+        if (!page.isClosed() && (await page.locator('body').count()) > 0) {
+            await expectNoUntranslatedAtlasCopy(page);
+        }
 
         expect(browserErrors, 'browser console, runtime, and monitored asset requests should stay clean').toEqual([]);
     },

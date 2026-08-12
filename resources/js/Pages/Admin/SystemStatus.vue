@@ -46,7 +46,7 @@ import OperationalMetricTile from '../../Components/OperationalMetricTile.vue';
 import OperationalTile from '../../Components/OperationalTile.vue';
 import SurfaceCard from '../../Components/SurfaceCard.vue';
 import AppLayout from '../../Layouts/AppLayout.vue';
-import { useTranslator } from '../../Localization/translator';
+import { isMissingTranslation, useTranslator } from '../../Localization/translator';
 import { formatDateTime, formatNumber, formatStatus } from '../../Utils/formatters';
 import { moduleLabel } from '../../Utils/moduleLabels';
 
@@ -237,7 +237,7 @@ function moduleIssueLabel(module: DashboardModule): string {
     const translationKey = `pages.admin.dashboard.issue.${key}`;
     const translated = t(translationKey, { value: module.issue.value ?? module.issueCount });
 
-    return translated === translationKey ? formatStatus(module.issue.label) : translated;
+    return isMissingTranslation(translated, translationKey) ? formatStatus(module.issue.label) : translated;
 }
 
 function moduleTooltip(module: DashboardModule): string {

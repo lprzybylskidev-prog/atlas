@@ -3,6 +3,7 @@ import type { Component } from 'vue';
 
 import { formatTimeTrackingDuration, timeTrackingContextLabel, timeTrackingStatusLabel } from './useTimeTrackingReportUi';
 import { formatStatus, formatTimestamp } from '../Utils/formatters';
+import { isMissingTranslation } from '../Localization/translator';
 
 export interface SummaryItem {
     key: string;
@@ -55,7 +56,7 @@ export function detailFieldLabel(key: string, t: Translator): string {
     const translationKey = `pages.time_tracking.admin_detail.fields.${key}`;
     const translated = t(translationKey);
 
-    return translated === translationKey ? formatStatus(key) : translated;
+    return isMissingTranslation(translated, translationKey) ? formatStatus(key) : translated;
 }
 
 export function detailValue(key: string, value: string | undefined, t: Translator, locale: string, format = fieldFormat(key)): string {
@@ -131,7 +132,7 @@ export function isContextKey(key: string): boolean {
 export function translatedToken(key: string, value: string, t: Translator): string {
     const translated = t(key);
 
-    return translated === key ? formatStatus(value) : translated;
+    return isMissingTranslation(translated, key) ? formatStatus(value) : translated;
 }
 
 export function adminDetailIcon(kind: 'break' | 'correction' | 'other_work' | 'work_session'): Component {

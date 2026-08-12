@@ -129,29 +129,6 @@ class LocalizationTest extends TestCase
 
     public function test_atlas_owned_json_language_keys_are_stable_semantic_keys(): void
     {
-        $atlasPrefixes = [
-            'actions',
-            'app',
-            'auth',
-            'brand',
-            'breadcrumbs',
-            'composable_view',
-            'datatable',
-            'errors',
-            'flash',
-            'form',
-            'glossary',
-            'mail',
-            'modal',
-            'navigation',
-            'network',
-            'notifications',
-            'pages',
-            'team',
-            'toast',
-            'user',
-        ];
-
         foreach (['pl', 'en'] as $locale) {
             $catalog = json_decode((string) file_get_contents(lang_path($locale.'.json')), true);
 
@@ -162,9 +139,7 @@ class LocalizationTest extends TestCase
                     continue;
                 }
 
-                $prefix = (string) str($key)->before('.');
-
-                if (! in_array($prefix, $atlasPrefixes, true)) {
+                if (preg_match('/^[a-z0-9_]+\./', $key) !== 1) {
                     continue;
                 }
 

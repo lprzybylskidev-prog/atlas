@@ -16,7 +16,6 @@ export const COMPOSABLE_HOST_VIEWS: readonly ComposableHostViewDefinition[] = [
         type: 'dashboard',
         layout: 'dashboard-sidebar',
         titleKey: 'views.dashboard.title',
-        fallbackTitle: 'Pulpit',
         acceptedElements: [],
     },
     {
@@ -24,7 +23,6 @@ export const COMPOSABLE_HOST_VIEWS: readonly ComposableHostViewDefinition[] = [
         type: 'operational-status',
         layout: 'operational-status',
         titleKey: 'views.admin.system_status.title',
-        fallbackTitle: 'Dashboard',
         acceptedElements: [
             {
                 elementKey: 'admin.system-status.release',
@@ -66,9 +64,7 @@ export const SYSTEM_STATUS_ELEMENTS: readonly ComposableViewElementDefinition[] 
         hostTypes: ['operational-status'],
         hostKeys: ['admin.system-status'],
         titleKey: 'views.admin.system_status.release.title',
-        fallbackTitle: 'Release',
         descriptionKey: 'views.admin.system_status.release.description',
-        fallbackDescription: 'Application version, release identifier, and last deployment metadata.',
         requirements: {
             permissions: ['admin.system-status.release'],
             modules: ['health'],
@@ -101,9 +97,7 @@ export const SYSTEM_STATUS_ELEMENTS: readonly ComposableViewElementDefinition[] 
         hostTypes: ['operational-status'],
         hostKeys: ['admin.system-status'],
         titleKey: 'views.admin.system_status.readiness.title',
-        fallbackTitle: 'Readiness',
         descriptionKey: 'views.admin.system_status.readiness.description',
-        fallbackDescription: 'Blocking and degraded operational dependencies.',
         requirements: {
             permissions: ['admin.system-status.readiness'],
             modules: ['health'],
@@ -136,9 +130,7 @@ export const SYSTEM_STATUS_ELEMENTS: readonly ComposableViewElementDefinition[] 
         hostTypes: ['operational-status'],
         hostKeys: ['admin.system-status'],
         titleKey: 'views.admin.system_status.modules.title',
-        fallbackTitle: 'Modules',
         descriptionKey: 'views.admin.system_status.modules.description',
-        fallbackDescription: 'Deployed modules, activation state, dependencies, and module-owned issues.',
         requirements: {
             permissions: ['admin.system-status.modules'],
             modules: ['authorization'],

@@ -1,13 +1,29 @@
 import type { Page } from '@playwright/test';
 
-import { expect, test } from './support/test';
+import { expect, expectNoUntranslatedAtlasCopy, test } from './support/test';
 
 const adminUser = {
     email: 'admin@example.test',
     password: 'password',
 };
 
-const applicationRoutes = ['/', '/user', '/user/notifications', '/manager'];
+const applicationRoutes = [
+    '/',
+    '/user',
+    '/user/notifications',
+    '/user/work-time',
+    '/user/work-time/break',
+    '/user/work-time/other-work',
+    '/user/work-time/other-work/start',
+    '/manager',
+    '/manager/work-time/summary',
+    '/manager/work-time/other-work',
+    '/manager/work-time/other-work/categories',
+    '/manager/work-time/other-work/categories/create',
+    '/manager/work-time/breaks',
+    '/manager/work-time/corrections',
+    '/manager/work-time/work-sessions',
+];
 
 const adminRoutes = [
     '/admin',
@@ -38,6 +54,14 @@ const adminRoutes = [
     '/admin/teams/create',
     '/admin/users',
     '/admin/users/create',
+    '/admin/work-time/summary',
+    '/admin/work-time/other-work',
+    '/admin/work-time/other-work/categories',
+    '/admin/work-time/other-work/categories/create',
+    '/admin/work-time/breaks',
+    '/admin/work-time/corrections',
+    '/admin/work-time/corrections/manual-entry',
+    '/admin/work-time/work-sessions',
 ];
 
 async function signIn(page: Page): Promise<void> {
@@ -76,7 +100,15 @@ async function ensureDarkTheme(page: Page): Promise<void> {
         return;
     }
 
-    await page.getByRole('button', { name: /Włącz ciemny motyw|Enable dark theme/ }).click();
+    const currentPath = new URL(page.url()).pathname;
+
+    await Promise.all([
+        page.waitForResponse(
+            (response) =>
+                new URL(response.url()).pathname === currentPath && response.request().method() === 'GET' && response.status() < 400,
+        ),
+        page.getByRole('button', { name: /Włącz ciemny motyw|Enable dark theme/ }).click(),
+    ]);
     await expect(page.locator('html')).toHaveClass(/dark/);
     await waitForIdle(page);
 }
@@ -85,7 +117,12 @@ async function ensurePolishLocale(page: Page): Promise<void> {
     await page.goto('/');
 
     if (await page.getByRole('heading', { level: 1, name: 'Application dashboard' }).isVisible()) {
-        await page.getByRole('button', { name: 'Change language' }).click();
+        await Promise.all([
+            page.waitForResponse(
+                (response) => new URL(response.url()).pathname === '/' && response.request().method() === 'GET' && response.status() < 400,
+            ),
+            page.getByRole('button', { name: 'Change language' }).click(),
+        ]);
     }
 
     await expect(page.getByRole('heading', { level: 1, name: 'Pulpit aplikacji' })).toBeVisible();
@@ -96,7 +133,12 @@ async function ensureEnglishLocale(page: Page): Promise<void> {
     await page.goto('/');
 
     if (await page.getByRole('heading', { level: 1, name: 'Pulpit aplikacji' }).isVisible()) {
-        await page.getByRole('button', { name: 'Zmień język' }).click();
+        await Promise.all([
+            page.waitForResponse(
+                (response) => new URL(response.url()).pathname === '/' && response.request().method() === 'GET' && response.status() < 400,
+            ),
+            page.getByRole('button', { name: 'Zmień język' }).click(),
+        ]);
     }
 
     await expect(page.getByRole('heading', { level: 1, name: 'Application dashboard' })).toBeVisible();
@@ -109,11 +151,12 @@ async function expectUsableMain(page: Page): Promise<void> {
     await expect(main).toBeVisible();
     await expect(main).not.toContainText('Server Error');
     await expect(main).not.toContainText('This page could not be found');
+    await expectNoUntranslatedAtlasCopy(page);
     await waitForIdle(page);
 }
 
 async function waitForIdle(page: Page): Promise<void> {
-    await page.waitForLoadState('networkidle', { timeout: 5000 }).catch(() => undefined);
+    await page.waitForLoadState('networkidle', { timeout: 250 }).catch(() => undefined);
 }
 
 async function sweepFrontendRoutes(page: Page): Promise<void> {

@@ -96,7 +96,7 @@ Test seeders must:
 
 Playwright tests must import `test` and `expect` from `tests/e2e/support/test`.
 
-`tests/e2e/frontend-surfaces.spec.ts` is the route-backed UI migration sweep. It covers the static application and Admin index/create surfaces in Polish/light and English/dark variants, plus focused canonical-copy assertions for critical user, manager, authorization, team, user, and module workflows. Dynamic object and action paths remain covered by their focused workflow specs. The shared fixture makes console cleanliness, runtime errors, monitored request failures, and unexpected 4xx/5xx responses part of every sweep assertion.
+`tests/e2e/frontend-surfaces.spec.ts` is the route-backed UI migration and localization sweep. It covers every canonical static application, user, manager, and Admin page route in Polish/light and English/dark variants, plus focused canonical-copy assertions for critical user, manager, authorization, team, user, and module workflows. Dynamic object and action paths remain covered by their focused workflow specs. Every visited surface rejects `[translation:...]` and visible untranslated Atlas key namespaces. The shared fixture applies the same rendered-copy assertion to the final page of every browser test and makes console cleanliness, runtime errors, monitored request failures, and unexpected 4xx/5xx responses part of every sweep assertion.
 
 The shared fixture fails browser tests on:
 

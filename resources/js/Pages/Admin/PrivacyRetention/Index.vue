@@ -16,7 +16,7 @@ import OperationalMetricTile from '../../../Components/OperationalMetricTile.vue
 import PageStack from '../../../Components/PageStack.vue';
 import SurfaceCard from '../../../Components/SurfaceCard.vue';
 import AppLayout from '../../../Layouts/AppLayout.vue';
-import { useTranslator } from '../../../Localization/translator';
+import { isMissingTranslation, useTranslator } from '../../../Localization/translator';
 import { applyTableFilters, clearTableFilters } from '../../../Composables/useTableFilterControls';
 import type { DataTableColumn, DataTableMeta } from '../../../Types/data-table';
 import { optionsWithAll } from '../../../Utils/filterOptions';
@@ -254,49 +254,49 @@ function ownerLabel(value: string): string {
     const key = `pages.admin.privacy_retention.owner.${value}`;
     const translated = t(key);
 
-    return translated === key ? formatStatus(value) : translated;
+    return isMissingTranslation(translated, key) ? formatStatus(value) : translated;
 }
 
 function coverageLabel(value: string): string {
     const key = `pages.admin.privacy_retention.coverage.${value}`;
     const translated = t(key);
 
-    return translated === key ? formatStatus(value) : translated;
+    return isMissingTranslation(translated, key) ? formatStatus(value) : translated;
 }
 
 function policyLabel(value: string): string {
     const key = `pages.admin.privacy_retention.policy.${value}`;
     const translated = t(key);
 
-    return translated === key ? formatStatus(value) : translated;
+    return isMissingTranslation(translated, key) ? formatStatus(value) : translated;
 }
 
 function operationLabel(value: string): string {
     const key = `pages.admin.privacy_retention.operation.${value}`;
     const translated = t(key);
 
-    return translated === key ? formatStatus(value) : translated;
+    return isMissingTranslation(translated, key) ? formatStatus(value) : translated;
 }
 
 function statusLabel(value: string): string {
     const key = `pages.admin.privacy_retention.preview.status.${value}`;
     const translated = t(key);
 
-    return translated === key ? formatStatus(value) : translated;
+    return isMissingTranslation(translated, key) ? formatStatus(value) : translated;
 }
 
 function blockerCodeLabel(value: string): string {
     const key = `pages.admin.privacy_retention.blocker.${value}`;
     const translated = t(key);
 
-    return translated === key ? formatStatus(value) : translated;
+    return isMissingTranslation(translated, key) ? formatStatus(value) : translated;
 }
 
 function blockerMessage(blocker: PrivacyPreviewBlocker): string {
     const key = `pages.admin.privacy_retention.blocker_message.${blocker.code}`;
     const translated = t(key);
 
-    return translated === key ? blocker.message : translated;
+    return isMissingTranslation(translated, key) ? blocker.message : translated;
 }
 </script>
 

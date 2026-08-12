@@ -10,7 +10,7 @@ import OperationalMetricTile from '../../../Components/OperationalMetricTile.vue
 import PageStack from '../../../Components/PageStack.vue';
 import { applyTableFilters, clearTableFilters } from '../../../Composables/useTableFilterControls';
 import AppLayout from '../../../Layouts/AppLayout.vue';
-import { useTranslator } from '../../../Localization/translator';
+import { isMissingTranslation, useTranslator } from '../../../Localization/translator';
 import type { DataTableColumn, DataTableMeta } from '../../../Types/data-table';
 import { optionsWithAll, yesNoOptionsWithAll } from '../../../Utils/filterOptions';
 import { formatStatus } from '../../../Utils/formatters';
@@ -139,21 +139,21 @@ function operationLabel(value: string): string {
     const key = `pages.admin.privacy_retention.operation.${value}`;
     const translated = t(key);
 
-    return translated === key ? formatStatus(value) : translated;
+    return isMissingTranslation(translated, key) ? formatStatus(value) : translated;
 }
 
 function statusLabel(value: string): string {
     const key = `pages.admin.privacy_retention.preview.status.${value}`;
     const translated = t(key);
 
-    return translated === key ? formatStatus(value) : translated;
+    return isMissingTranslation(translated, key) ? formatStatus(value) : translated;
 }
 
 function subjectTypeLabel(value: string): string {
     const key = `pages.admin.privacy_retention.subject_type.${value}`;
     const translated = t(key);
 
-    return translated === key ? formatStatus(value) : translated;
+    return isMissingTranslation(translated, key) ? formatStatus(value) : translated;
 }
 
 function teamLabel(value: string): string {

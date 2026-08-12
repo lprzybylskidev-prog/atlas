@@ -36,8 +36,8 @@ onMounted(async () => {
 
 <template>
     <SurfaceCard
-        :title="element.definition.fallbackTitle"
-        :subtitle="element.definition.fallbackDescription ?? undefined"
+        :title="t(element.definition.titleKey)"
+        :subtitle="element.definition.descriptionKey === null ? undefined : t(element.definition.descriptionKey)"
         :icon="IconLayoutDashboard"
         :padded="false"
         overflow="hidden"

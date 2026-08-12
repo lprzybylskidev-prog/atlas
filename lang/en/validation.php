@@ -234,6 +234,7 @@ return [
         'state.sort' => 'sort',
         'table_key' => 'table key',
         'team_assignments' => 'team assignments',
+        'user' => 'user',
         'team_assignments.*.copy_authorization_from_user' => 'source user in the team assignment',
         'team_assignments.*.direct_permission_names' => 'direct permissions in the team assignment',
         'team_assignments.*.direct_permission_names.*' => 'direct permission in the team assignment',
