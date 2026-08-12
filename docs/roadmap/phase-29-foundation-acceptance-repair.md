@@ -527,27 +527,29 @@ Acceptance evidence: Team Structure now owns active members, effective-dated mem
 
 ### P29-W04 — TimeTracking browser-level E2E closure
 
-* [ ] Add deterministic E2E fixture support required by the browser workflows without bypassing domain invariants.
-* [ ] Add TimeTracking user workflow Playwright coverage.
-* [ ] Add session/break/other-work representative browser lifecycle coverage.
-* [ ] Add correction-request browser coverage.
-* [ ] Add manager report/scope browser coverage.
-* [ ] Add manager correction/decision browser coverage.
-* [ ] Add out-of-scope authorization negative coverage.
-* [ ] Add Admin TimeTracking operations browser coverage.
-* [ ] Add maintenance/affected-session representative browser coverage.
-* [ ] Add resulting notification/user-visible delivery assertion where promised by the accepted workflow.
-* [ ] Add high-risk confirmation coverage where the accepted workflow requires it.
-* [ ] Verify canonical statuses/actions/tables in tested workflows.
-* [ ] Verify Polish rendered TimeTracking copy.
-* [ ] Verify English rendered TimeTracking copy.
-* [ ] Add mobile coverage for a critical user or manager TimeTracking workflow.
-* [ ] Reject unexpected browser console errors.
-* [ ] Reject unexpected failed asset/API requests.
-* [ ] Confirm legacy manager-report routes remain absent.
-* [ ] Run TimeTracking scenarios in all browser projects required by the repository Playwright gate.
-* [ ] Update TimeTracking/testing documentation.
-* [ ] Close `P29-TT-001` through `P29-TT-004`.
+* [x] Add deterministic E2E fixture support required by the browser workflows without bypassing domain invariants.
+* [x] Add TimeTracking user workflow Playwright coverage.
+* [x] Add session/break/other-work representative browser lifecycle coverage.
+* [x] Add correction-request browser coverage.
+* [x] Add manager report/scope browser coverage.
+* [x] Add manager correction/decision browser coverage.
+* [x] Add out-of-scope authorization negative coverage.
+* [x] Add Admin TimeTracking operations browser coverage.
+* [x] Add maintenance/affected-session representative browser coverage.
+* [x] Add resulting notification/user-visible delivery assertion where promised by the accepted workflow.
+* [x] Add high-risk confirmation coverage where the accepted workflow requires it.
+* [x] Verify canonical statuses/actions/tables in tested workflows.
+* [x] Verify Polish rendered TimeTracking copy.
+* [x] Verify English rendered TimeTracking copy.
+* [x] Add mobile coverage for a critical user or manager TimeTracking workflow.
+* [x] Reject unexpected browser console errors.
+* [x] Reject unexpected failed asset/API requests.
+* [x] Confirm legacy manager-report routes remain absent.
+* [x] Run TimeTracking scenarios in all browser projects required by the repository Playwright gate.
+* [x] Update TimeTracking/testing documentation.
+* [x] Close `P29-TT-001` through `P29-TT-004`.
+
+Acceptance evidence: the isolated Playwright bootstrap now composes `E2eVisibilitySeeder` with the non-production TimeTracking owner fixture builder. Stable maintenance and cross-team work-session identifiers support deterministic positive and negative assertions without adding test-only routes. The serial workflow spec creates project-specific records and proves the Polish mobile user session/break/Other-work/correction lifecycle, password-confirmed return, manager report scope and decisions, user-visible notifications, a 403 for a real South-team record outside the North hierarchy, and permanent 404 removal of `/time-tracking/manager-report`. English Admin coverage proves the canonical summary and break tables, excess-break action, and maintenance-affected session detail. All six Chromium/Firefox scenarios pass through the shared untranslated-copy, browser-console, failed-request, and unexpected-HTTP guards.
 
 ### P29-W05 — Final Phase 29 regression and acceptance gate
 
@@ -581,23 +583,23 @@ Acceptance evidence: Team Structure now owns active members, effective-dated mem
 * [x] Team Structure canonical-mutation-surface guard.
 * [x] Team hierarchy atomic move/reparent tests.
 * [x] Team hierarchy DAG/self/head-manager/membership/stale/blocker regression tests.
-* [ ] Legacy TimeTracking manager-report absence guard.
-* [ ] TimeTracking user/manager/Admin Playwright workflow coverage.
-* [ ] Browser console and failed-request assertions for new critical E2E flows.
+* [x] Legacy TimeTracking manager-report absence guard.
+* [x] TimeTracking user/manager/Admin Playwright workflow coverage.
+* [x] Browser console and failed-request assertions for new critical E2E flows.
 
 ## Completion criteria
 
 * [x] Every `P29-LOC-*` issue is complete.
 * [ ] Every `P29-TABLE-*` issue is complete.
 * [x] Every `P29-TEAM-*` issue is complete.
-* [ ] Every `P29-TT-*` issue is complete.
+* [x] Every `P29-TT-*` issue is complete.
 * [ ] `P29-GATE-001` is complete.
 * [x] No Atlas-owned translation key is visibly rendered as untranslated product copy in the accepted browser route matrix.
 * [x] Polish and English Atlas translation catalogs are complete and permanently guarded against drift.
 * [ ] `DataTable.vue` is genuinely composed from focused responsibility units rather than passing only a size threshold.
 * [x] Team Structure is the canonical complete team membership and manager-hierarchy editing surface.
 * [x] Manager move/reparent is atomic, validated, concurrency-safe, effective-dated, and audited.
-* [ ] TimeTracking has representative browser-level user, manager, and Admin workflow coverage rather than only route smoke tests.
+* [x] TimeTracking has representative browser-level user, manager, and Admin workflow coverage rather than only route smoke tests.
 * [ ] Intentionally empty user and manager dashboards remain intentionally empty.
 * [ ] No Phase 30 deployment implementation has been pulled into Phase 29.
 * [ ] No Phase 31 final whole-app verification has been falsely claimed by Phase 29.

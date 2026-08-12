@@ -92,6 +92,8 @@ Test seeders must:
 
 `Database\Seeders\E2eVisibilitySeeder` is the deterministic fixture set for current Admin visibility coverage. It runs the production-safe technical seeders, then creates stable administrator and limited-user accounts, an active team, module states, and the exact records needed by the browser scenarios through public contracts and owner fixture builders. Repeated runs preserve public IDs and do not duplicate hierarchy, managed-process, import, row-error, or audit fixtures.
 
+`Database\Seeders\E2eTimeTrackingSeeder` extends that isolated browser state through the non-production TimeTracking owner fixture builder. It creates the tracked user and manager hierarchy, representative historical and active records, stable maintenance and out-of-scope work-session identifiers, and the administrator's accepted access to the fixture team. The fixture grants the realtime endpoint permission required by the rendered TimeTracking client, so unexpected realtime authorization failures remain visible to the shared browser guards instead of being suppressed. The seeder never runs in production and contains no persistence shortcuts of its own.
+
 ## Browser Coverage
 
 Playwright tests must import `test` and `expect` from `tests/e2e/support/test`.
@@ -106,6 +108,8 @@ The shared fixture fails browser tests on:
 - unexpected HTTP 4xx/5xx responses for monitored resources.
 
 Permission-gated and module-gated UI behavior needs Playwright coverage when manual visibility checks would be error-prone. UI visibility tests do not replace backend authorization tests.
+
+`tests/e2e/time-tracking-workflows.spec.ts` is the Phase 29 TimeTracking workflow closure. It runs serially per browser project because each project creates and decides its own uniquely named operational records. It covers the mobile Polish user lifecycle, password-confirmed break and Other-work returns, correction creation, manager reports and decisions, direct notification delivery, hierarchy-scope denial, the removed legacy manager-report route, English Admin tables and filters, and maintenance-affected session details. Chromium and Firefox are both mandatory for this spec.
 
 ## Future CI
 

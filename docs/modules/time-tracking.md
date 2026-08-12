@@ -6,6 +6,8 @@ Canonical complete behavior of the optional TimeTracking module. Read this only 
 
 Phase 27 and Phase 27a are complete history. Phase 28 consolidated the module onto one route-backed user/manager/Admin delivery model and closed the remaining ownership, UI, audit, and transaction gaps.
 
+Phase 29 added deterministic browser acceptance coverage for the route-backed model. The isolated E2E scenario now exercises a tracked user's work-session, break, Other work, correction-request, and password-confirmed return lifecycle on mobile; manager scope, reporting, decisions, denial outside the hierarchy, and resulting user notifications; and English Admin reporting plus maintenance-affected work-session evidence. The same scenarios run in Chromium and Firefox through the shared console, failed-request, HTTP-error, and untranslated-copy guards. The removed `/time-tracking/manager-report` route is asserted to remain absent.
+
 The current implementation provides the optional `time_tracking` module manifest, exact interval allocation primitives, user-team tracking enablement, official work-session persistence, module-context segments, break/Other work locks, policies and review states, maintenance handling, inactivity/offline reconciliation, correction and settlement flows, ModuleGate enforcement, public analytical contracts, route-backed user reporting, parity manager/Admin operations, Admin exports, report charts, period comparison, impersonation-safe simulation, development demo data, and deactivation guard integration.
 
 ## TimeTracking Optional Module

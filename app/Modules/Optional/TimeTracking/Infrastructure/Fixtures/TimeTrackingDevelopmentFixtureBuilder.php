@@ -29,6 +29,10 @@ use Illuminate\Support\Str;
 
 final class TimeTrackingDevelopmentFixtureBuilder implements TimeTrackingFixtureBuilder
 {
+    public const E2E_MAINTENANCE_WORK_SESSION_PUBLIC_ID = '01K00000000000000000000001';
+
+    public const E2E_OUT_OF_SCOPE_WORK_SESSION_PUBLIC_ID = '01K00000000000000000000002';
+
     private const TEAMS = [
         'north' => 'TT Demo Team North',
         'south' => 'TT Demo Team South',
@@ -220,6 +224,7 @@ final class TimeTrackingDevelopmentFixtureBuilder implements TimeTrackingFixture
             NotificationPermissionNames::NOTIFICATIONS_INDEX,
             NotificationPermissionNames::NOTIFICATIONS_READ,
             NotificationPermissionNames::NOTIFICATIONS_READ_BULK,
+            NotificationPermissionNames::REALTIME_EVENTS,
             UserPermissionNames::USERS_PROFILE,
             UserPermissionNames::USERS_PROFILE_AVATAR_IMAGE,
             UserPermissionNames::USERS_PROFILE_AVATAR_UPDATE,
@@ -454,6 +459,7 @@ final class TimeTrackingDevelopmentFixtureBuilder implements TimeTrackingFixture
                     sprintf('%s %02d:30:00+00', $date, $startHour + 7),
                     27000,
                     $day % 3 === 0 ? 'logout' : 'inactivity',
+                    $this->deterministicWorkSessionPublicId($user, $day),
                 );
 
                 $this->moduleSegment($sessionId, sprintf('%s %02d:00:00+00', $date, $startHour), sprintf('%s %02d:00:00+00', $date, $startHour + 4), 14400);
@@ -552,10 +558,30 @@ final class TimeTrackingDevelopmentFixtureBuilder implements TimeTrackingFixture
         }
     }
 
-    private function workSession(TimeTrackingFixtureTeam $team, VerifiedUserFixture $user, string $startedAt, ?string $endedAt, ?int $seconds, ?string $reason): int
+    private function deterministicWorkSessionPublicId(VerifiedUserFixture $user, int $day): ?string
     {
+        if ($user->email === 'tt.user.002.north@example.test' && $day === 3) {
+            return self::E2E_MAINTENANCE_WORK_SESSION_PUBLIC_ID;
+        }
+
+        if ($user->email === 'tt.user.026.south@example.test' && $day === 0) {
+            return self::E2E_OUT_OF_SCOPE_WORK_SESSION_PUBLIC_ID;
+        }
+
+        return null;
+    }
+
+    private function workSession(
+        TimeTrackingFixtureTeam $team,
+        VerifiedUserFixture $user,
+        string $startedAt,
+        ?string $endedAt,
+        ?int $seconds,
+        ?string $reason,
+        ?string $publicId = null,
+    ): int {
         return (int) DB::table(TimeTrackingDatabaseTable::WORK_SESSIONS)->insertGetId([
-            'public_id' => (string) Str::ulid(),
+            'public_id' => $publicId ?? (string) Str::ulid(),
             'user_id' => $user->internalId,
             'team_id' => $team->internalId,
             'laravel_session_id' => 'demo-'.Str::lower((string) Str::ulid()),
