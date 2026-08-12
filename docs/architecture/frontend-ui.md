@@ -125,6 +125,8 @@ Every Inertia Admin page rendered through `AppLayout mode="admin"` uses `PageSta
 
 Do not nest `SurfaceCard` inside another `SurfaceCard`. If a subsection contains filters plus a table, use an unframed `SectionHeader`, then `FilterPanel` and `DataTable` as siblings.
 
+`DataTable.vue` is the stable composition host, not the owner of table behavior. Its focused controller and state units own query synchronization, sorting/pagination, columns, selection, persistence, saved views, actions, formatting, and result states. Preserve the host's public consumer API unless one workstream migrates every consumer coherently. Permanent structural tests must reject moving those responsibilities back into the host; a line-count ceiling alone is not acceptance evidence.
+
 ### Third-Party UI Assets
 
 Atlas uses project-owned Vue components and Tailwind CSS for its UI foundation.

@@ -37,15 +37,15 @@ final class RegisteredTablesTest extends TestCase
 
     public function test_shared_frontend_and_routes_do_not_reference_admin_saved_view_endpoints(): void
     {
-        $dataTable = file_get_contents(resource_path('js/Components/DataTable.vue'));
+        $savedViews = file_get_contents(resource_path('js/Components/DataTable/useDataTableSavedViews.ts'));
         $applicationRoutes = file_get_contents(base_path('routes/web/application.php'));
         $adminRoutes = file_get_contents(base_path('routes/web/admin.php'));
 
-        self::assertIsString($dataTable);
+        self::assertIsString($savedViews);
         self::assertIsString($applicationRoutes);
         self::assertIsString($adminRoutes);
-        self::assertStringNotContainsString('/admin/table-views', $dataTable);
-        self::assertStringContainsString("'/table-views'", $dataTable);
+        self::assertStringNotContainsString('/admin/table-views', $savedViews);
+        self::assertStringContainsString("'/table-views'", $savedViews);
         self::assertStringContainsString("'/table-views'", $applicationRoutes);
         self::assertStringNotContainsString('table-views', $adminRoutes);
         self::assertFileDoesNotExist(app_path('Shared/Application/Tables/AdminTableDefinitions.php'));

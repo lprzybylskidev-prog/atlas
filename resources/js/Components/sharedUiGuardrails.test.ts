@@ -465,14 +465,25 @@ describe('shared UI guardrails', () => {
     it('keeps actions, DataTable responsibilities, and ordinary tables on the canonical contracts', () => {
         const recordActions = Object.entries(vueFiles).find(([file]) => file.endsWith('/RecordActions.vue'))?.[1];
         const dataTable = Object.entries(vueFiles).find(([file]) => file.endsWith('/DataTable.vue'))?.[1] ?? '';
+        const dataTableController =
+            Object.entries(tsFiles).find(([file]) => file.endsWith('/DataTable/useDataTableController.ts'))?.[1] ?? '';
+        const dataTableResponsibilityGuard =
+            Object.entries(tsFiles).find(([file]) => file.endsWith('/DataTable/tableResponsibilityGuard.ts'))?.[1] ?? '';
         const actionContract = Object.entries(tsFiles).find(([file]) => file.endsWith('/Types/actions.ts'))?.[1] ?? '';
 
         expect(recordActions).toBeUndefined();
-        expect(dataTable.split('\n').length).toBeLessThan(1200);
+        expect(dataTable).toContain('useDataTableController');
         expect(dataTable).toContain('DataTableSavedViewsMenu');
         expect(dataTable).toContain('DataTableStateRow');
         expect(dataTable).toContain('DataTablePagination');
-        expect(dataTable).toContain('createDataTableFormatting');
+        expect(dataTableController).toContain('createDataTableFormatting');
+        expect(dataTableController).toContain('useDataTableActions');
+        expect(dataTableController).toContain('useDataTableSavedViews');
+        expect(dataTableController).toContain('tableQueryPayload');
+        expect(dataTableController).toContain('buildSavedViewState');
+        expect(dataTableController).toContain('selectedTableRowIds');
+        expect(dataTableResponsibilityGuard).toContain('centralOwnershipPatterns');
+        expect(dataTable).not.toMatch(/function\s+(?:applySavedView|runRowAction|persistState|selectAllFiltered)\b/);
         expect(dataTable).not.toContain('function bulkActionIcon');
 
         for (const field of [

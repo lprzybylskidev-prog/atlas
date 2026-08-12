@@ -475,23 +475,25 @@ The final gate must prove:
 
 ### P29-W02 — DataTable responsibility decomposition
 
-* [ ] Inventory responsibilities still directly owned by `DataTable.vue`.
-* [ ] Extract query/applied state coordination.
-* [ ] Extract sorting/pagination coordination.
-* [ ] Extract column visibility/order responsibility.
-* [ ] Extract selection responsibility.
-* [ ] Extract persisted local table-state responsibility.
-* [ ] Extract saved-view orchestration.
-* [ ] Extract row/bulk action execution and confirmation responsibility.
-* [ ] Keep formatting in focused formatting services/composables.
-* [ ] Keep loading/empty/error/result states in focused shared units.
-* [ ] Preserve current DataTable consumer API or migrate all consumers coherently in this workstream.
-* [ ] Add direct tests for extracted units.
-* [ ] Replace line-count-only responsibility evidence with permanent structural/responsibility guards.
-* [ ] Add mutation fixtures proving responsibility guardrails fail when known logic is moved back into the central component.
-* [ ] Re-run DataTable saved-view/filter/sort/pagination/selection/action/export/state tests.
-* [ ] Update frontend/table architecture documentation.
-* [ ] Close `P29-TABLE-001` and `P29-TABLE-002`.
+* [x] Inventory responsibilities still directly owned by `DataTable.vue`.
+* [x] Extract query/applied state coordination.
+* [x] Extract sorting/pagination coordination.
+* [x] Extract column visibility/order responsibility.
+* [x] Extract selection responsibility.
+* [x] Extract persisted local table-state responsibility.
+* [x] Extract saved-view orchestration.
+* [x] Extract row/bulk action execution and confirmation responsibility.
+* [x] Keep formatting in focused formatting services/composables.
+* [x] Keep loading/empty/error/result states in focused shared units.
+* [x] Preserve current DataTable consumer API or migrate all consumers coherently in this workstream.
+* [x] Add direct tests for extracted units.
+* [x] Replace line-count-only responsibility evidence with permanent structural/responsibility guards.
+* [x] Add mutation fixtures proving responsibility guardrails fail when known logic is moved back into the central component.
+* [x] Re-run DataTable saved-view/filter/sort/pagination/selection/action/export/state tests.
+* [x] Update frontend/table architecture documentation.
+* [x] Close `P29-TABLE-001` and `P29-TABLE-002`.
+
+Acceptance evidence: the 1,173-line host inventory identified direct ownership of every registered responsibility. The host now retains its existing props and `bulkAction` event as a 352-line composition surface backed by `useDataTableController`, focused pure state units, existing saved-view/pagination/result components, and the existing formatting service. Vitest directly covers the extracted query, filter, sorting, pagination, column, selection, local-persistence, and saved-view units. The permanent responsibility guard rejects re-centralization and its mutation fixtures cover every known responsibility family plus removal of a required focused unit. The targeted PHP table-registration test and the full frontend Vitest/typecheck/lint/build gates pass.
 
 ### P29-W03 — Complete Team Structure Editor
 

@@ -2,9 +2,9 @@
 
 Canonical shared contract for data tables, query strings, saved views, exports, report headers, charts, report generation, browser print, and PDF rendering.
 
-## Phase 28 closure state
+## Phase 29 DataTable closure state
 
-The Phase 28 shared DataTable, action, filter, state, status, safe-column, effective-locale, and saved-view contracts are implemented. Saved-view mutations use the shell-neutral `/table-views` routes and `RegisteredTables` validates each table against its owning surface permission and ModuleGate state. Notifications, route-backed regular-user TimeTracking sections, and manager operation tables opt in alongside eligible Admin tables. Reports/Core Exports ownership, existing-view migration, and Chromium/PDF runtime parity are closed and covered by the foundation gate.
+The shared DataTable, action, filter, state, status, safe-column, effective-locale, and saved-view contracts are implemented. Phase 29 decomposed the central host into focused state units after the Phase 28 size-only acceptance evidence proved insufficient. Saved-view mutations use the shell-neutral `/table-views` routes and `RegisteredTables` validates each table against its owning surface permission and ModuleGate state. Notifications, route-backed regular-user TimeTracking sections, and manager operation tables opt in alongside eligible Admin tables. Reports/Core Exports ownership, existing-view migration, and Chromium/PDF runtime parity are closed and covered by the foundation gate.
 
 Target state: normal tabular data uses the shared DataTable contract; saved views are explicitly enabled per surface; exports/print/PDF values use the effective locale; Reports and Core Exports have explicit ownership and dependency classification; and PDF runtime is smoke-tested before Phase 30.
 
@@ -20,7 +20,11 @@ Tables keep readable minimum widths for data cells and row actions. When the vis
 
 Row actions use the canonical typed `AtlasAction` contract and shared modal flow, including row-specific operation copy when needed. Pages must not implement separate row-action confirmation dialogs, native browser confirmations, or local action icon/button styling for normal tabular rows.
 
-The DataTable host composes focused state-row and pagination units and delegates action semantics, status resolution, locale formatting, filters, saved-view capability, and safe-column metadata to their shared contracts. Normal tabular datasets use this composition. A specialized timeline or code/log reader may use a different responsive presentation, but it must reuse shared states and actions and document why a normal table is not appropriate.
+The DataTable host is a composition-only Vue surface. `useDataTableController` assembles TanStack integration and lifecycle wiring while focused units own query/applied-state serialization, sorting/pagination adaptation, column visibility/order, current-page selection, local persistence, saved-view payloads, row/bulk action execution, and locale-aware formatting. State-row and pagination rendering remain focused shared components. The public DataTable props and `bulkAction` event remain the canonical consumer API.
+
+This boundary is permanent executable architecture, not a line-count convention. A source guard rejects known responsibility implementations when they return to `DataTable.vue`, mutation fixtures exercise every guarded responsibility family, and direct Vitest coverage protects the extracted pure units. New table behavior belongs in the corresponding focused unit or another explicitly named table unit; do not re-centralize it in the host.
+
+Normal tabular datasets use this composition. A specialized timeline or code/log reader may use a different responsive presentation, but it must reuse shared states and actions and document why a normal table is not appropriate.
 
 Saved views are explicitly enabled per eligible table, independent of shell mode. The shared component uses the shell-neutral `/table-views` route contract and never hardcodes `/admin`. Table definitions and their saved-view access contracts are registered through the typed shared `RegisteredTables` registry. Eligible regular-user and manager tables—including Notifications and accepted TimeTracking reports/operations—receive the same safe capability without Admin mode; Admin registrations still require an active Admin-mode session. Manager operation tables use manager-specific keys rather than reusing Admin keys, so their permissions and persisted state cannot cross shell boundaries. A table may disable persistence only when its registered contract documents why saved state has no product value.
 
