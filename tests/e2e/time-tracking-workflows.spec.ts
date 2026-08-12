@@ -20,7 +20,11 @@ async function signIn(page: Page, email: string): Promise<void> {
 
 async function signOut(page: Page): Promise<void> {
     await page.getByRole('button', { name: /Menu użytkownika|User menu/ }).click();
-    await page.getByRole('menuitem', { name: /Wyloguj|Log out/ }).click();
+    const [loginResponse] = await Promise.all([
+        page.waitForResponse((response) => response.request().method() === 'GET' && new URL(response.url()).pathname === '/login'),
+        page.getByRole('menuitem', { name: /Wyloguj|Log out/ }).click(),
+    ]);
+    await loginResponse.finished();
     await expect(page).toHaveURL(/\/login$/);
 }
 
@@ -104,11 +108,13 @@ test.describe.serial('TimeTracking browser workflows', () => {
 
         await page.goto('/user/work-time?section=work_sessions&range=year');
         await expect(page.getByText('Sesje pracy', { exact: true }).first()).toBeVisible();
-        await page.getByRole('button', { name: 'Zgłoś korektę' }).first().click();
+        const activeWorkSessionRow = page.getByRole('cell', { name: '-', exact: true }).locator('..');
+        await expect(activeWorkSessionRow).toHaveCount(1);
+        await activeWorkSessionRow.getByRole('button', { name: 'Zgłoś korektę' }).click();
 
         const correctionDescription = `E2E korekta czasu ${testInfo.project.name}`;
         await page.getByLabel('Opis korekty').fill(correctionDescription);
-        const [, correctionReturnResponse] = await Promise.all([
+        const [correctionResponse, correctionReturnResponse] = await Promise.all([
             page.waitForResponse(
                 (response) => response.request().method() === 'POST' && new URL(response.url()).pathname === '/user/work-time/corrections',
             ),
@@ -123,11 +129,26 @@ test.describe.serial('TimeTracking browser workflows', () => {
             }),
             page.getByRole('button', { name: 'Wyślij zgłoszenie' }).click(),
         ]);
+        const correctionPayload = correctionResponse.request().postDataJSON() as { source_public_id: string };
+        const activeWorkSessionPublicId = correctionPayload.source_public_id;
+        expect(activeWorkSessionPublicId).toMatch(/^[0-9A-HJKMNP-TV-Z]{26}$/);
         await correctionReturnResponse.finished();
         await expect(page.getByRole('button', { name: 'Wyślij zgłoszenie' })).toHaveCount(0);
         await page.goto('/user/work-time?section=corrections&range=year');
         await expect(page.getByText(correctionDescription)).toBeVisible();
         await expect(page.getByText('Oczekujące', { exact: true }).first()).toBeVisible();
+
+        await signOut(page);
+        await signIn(page, 'admin@example.test');
+        await ensureEnglishLocale(page);
+        await page.goto(`/admin/work-time/work-sessions/${activeWorkSessionPublicId}`);
+        await confirmAdminMode(page);
+        await expect(page.getByRole('heading', { level: 1, name: 'Work session details' })).toBeVisible();
+        await expect(page.getByText('TT User 004 - North', { exact: true }).first()).toBeVisible();
+        await expect(page.getByText('Closure reason', { exact: true }).locator('..')).toContainText('Logout');
+        const endedAtField = page.getByText('Ended at', { exact: true }).first().locator('..');
+        await expect(endedAtField).not.toContainText('-');
+        await expect(page.getByRole('button', { name: 'Terminate session' })).toHaveCount(0);
     });
 
     test('proves manager scope, report composition, decisions, notification delivery and legacy-route removal', async ({
