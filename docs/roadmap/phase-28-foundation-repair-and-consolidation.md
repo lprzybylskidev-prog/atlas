@@ -16,8 +16,8 @@ Known foundation debt must not be deferred beyond this phase. A later phase may 
 
 - [Phase 27 — Optional TimeTracking module](phase-27-time-tracking.md)
 - [Phase 27a — Foundation architecture and quality-gate hardening](phase-27a-foundation-architecture-quality-hardening.md)
-- [Phase 30 — Production deployment, backup, restore, and rollback](phase-30-deployment-backup-rollback.md), which depends on this phase for a reproducible runtime foundation
-- [Phase 31 — Final test audit, full-app E2E review, and foundation verification](phase-31-final-verification.md), which depends on this phase and Phases 29 and 30
+- [Phase 31 — Production deployment, backup, restore, and rollback](phase-31-deployment-backup-rollback.md), renumbered after Phase 28 completion and still dependent on this phase for a reproducible runtime foundation
+- [Phase 32 — Final test audit, full-app E2E review, and foundation verification](phase-32-final-verification.md), renumbered after Phase 28 completion and dependent on this phase and Phases 29 through 31
 - [Modular-monolith architecture](../architecture/modular-monolith.md)
 - [Module registry and activation](../architecture/module-registry-and-activation.md)
 - [Audit, privacy, deletion, and anonymization](../architecture/audit-privacy-and-deletion.md)

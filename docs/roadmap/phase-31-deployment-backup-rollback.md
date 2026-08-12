@@ -1,4 +1,4 @@
-# Phase 30 — Private production deployment, installer, backup, restore, and rollback
+# Phase 31 — Private production deployment, installer, backup, restore, and rollback
 
 **Status:** `not started`
 
@@ -8,12 +8,14 @@ Deliver a reproducible, private, self-hosted production deployment model for Atl
 
 Atlas is primarily an internal company system. The baseline production deployment does not require public Internet exposure.
 
-Phase 30 must provide:
+Phase 31 must provide:
 
 - private/intranet production topology;
 - one supported production installation workflow;
 - an interactive production installer;
 - durable PostgreSQL and Files storage;
+- infrastructure-level encryption at rest for persistent production storage;
+- independently encrypted portable/off-host backup artifacts;
 - backup and restore for database and Files;
 - exact-release deployment;
 - readiness-gated release switching;
@@ -28,7 +30,7 @@ Kubernetes, Docker Swarm, distributed clustering, multi-node high availability, 
 
 ## Dependencies
 
-Phase 30 depends on the completed technical foundation, including:
+Phase 31 depends on the completed technical foundation, including:
 
 - production runtime images;
 - runtime configuration validation;
@@ -44,10 +46,11 @@ Phase 30 depends on the completed technical foundation, including:
 - runtime smoke;
 - security and privacy foundations;
 - completed Phase 28 and Phase 29 acceptance work.
+- completed Phase 30 Chat module and its Reverb/runtime requirements.
 
-Phase 30 must build on those capabilities instead of replacing or redesigning them.
+Phase 31 must build on those capabilities instead of replacing or redesigning them.
 
-## P30-W01 — Private production topology
+## P31-W01 — Private production topology
 
 ### Contract
 
@@ -95,7 +98,7 @@ Host/network administrators remain responsible for infrastructure-level network 
 - [ ] Add production topology checks where practical.
 - [ ] Document Kubernetes, Swarm, clustering, and public SaaS deployment as out of baseline scope.
 
-## P30-W02 — Production TLS and reverse proxy
+## P31-W02 — Production TLS and reverse proxy
 
 ### Contract
 
@@ -125,7 +128,7 @@ Public DNS and public certificate issuance are not baseline requirements.
 - [ ] Document trusted internal HTTP deployment only where explicitly accepted by the installation operator.
 - [ ] Keep certificate secrets outside source control.
 
-## P30-W03 — Durable PostgreSQL and local Files storage
+## P31-W03 — Durable PostgreSQL and local Files storage
 
 ### Contract
 
@@ -152,7 +155,7 @@ storage abstraction
 
 Atlas business code and the Files module must not become hardcoded to a specific storage backend.
 
-S3-compatible storage is not required by Phase 30.
+S3-compatible storage is not required by Phase 31.
 
 Do not implement AWS-specific coupling merely for future flexibility.
 
@@ -169,7 +172,151 @@ Do not implement AWS-specific coupling merely for future flexibility.
 - [ ] Preserve the existing backend-neutral storage abstraction.
 - [ ] Document S3-compatible storage as an optional/future backend, not the baseline.
 
-## P30-W04 — Interactive production installer
+## P31-W04 — Production storage and backup encryption at rest
+
+### Contract
+
+Atlas production persistent data must support infrastructure-level encryption at rest.
+
+This is a shared production-infrastructure requirement for Atlas as a whole, not a Chat-specific encryption feature.
+
+The objective is to protect persistent data if physical or virtual storage, offline snapshots, or portable backup artifacts are lost or accessed outside the running authorized production system.
+
+The preferred security boundary is:
+
+```text
+Atlas application
+        |
+        v
+PostgreSQL / Files / Meilisearch / other persistent runtime data
+        |
+        v
+persistent host/VM storage
+        |
+        v
+infrastructure-level encryption at rest
+```
+
+Where the production topology stores persistent state on the same protected filesystem/volume, encryption at rest should protect as applicable:
+
+- PostgreSQL data;
+- Atlas Files;
+- Meilisearch indexes;
+- persistent Redis data where enabled;
+- application/runtime logs where persisted there;
+- local backup storage;
+- future module-owned persistent data stored on that protected production storage.
+
+Do not implement separate application-level encryption systems for every Atlas module.
+
+Do not implement custom Chat message encryption merely to satisfy this infrastructure requirement.
+
+### Supported encryption model
+
+The concrete encryption mechanism is deployment-specific.
+
+Accepted deployment models may include:
+
+- Linux full-disk or filesystem encryption such as LUKS;
+- encrypted VM/hypervisor volumes;
+- company-managed encrypted storage;
+- infrastructure/provider-managed encrypted disks;
+- another reviewed equivalent mechanism.
+
+Atlas must not invent its own disk-encryption cryptography.
+
+### Installer boundary
+
+The Atlas production installer must not automatically repartition disks, format disks, or silently configure destructive full-disk encryption.
+
+Disk/storage encryption is a host/infrastructure responsibility.
+
+The installer should, where safely practical:
+
+- detect or accept declared encryption-at-rest status;
+- present the detected/configured status to the operator;
+- warn clearly when the selected persistent production storage is not known to be encrypted;
+- document the accepted risk if the operator intentionally continues without infrastructure-level encryption.
+
+Do not claim perfect automatic detection on every Linux/storage platform when the state cannot be established reliably.
+
+### Running-system boundary
+
+Encryption at rest does not claim to protect data from an authorized root/infrastructure administrator while the production system is running and the storage is unlocked.
+
+Direct root/database access is governed by organizational access procedures.
+
+Atlas application authorization remains responsible for preventing ordinary users and application Administrators from accessing data they are not allowed to access.
+
+### Portable and off-host backup artifacts
+
+Encryption of the production disk alone is not sufficient for backup artifacts copied away from that encrypted filesystem.
+
+Portable/off-host backup artifacts must support independent encryption before leaving the trusted protected storage boundary.
+
+This applies to backup material containing:
+
+- PostgreSQL dumps;
+- Files backup archives;
+- combined recovery bundles;
+- other sensitive Atlas backup artifacts.
+
+The backup encryption must not be hardcoded to AWS or S3.
+
+Encrypted artifacts may later be copied to deployment-specific destinations such as:
+
+- NAS;
+- NFS;
+- another company host;
+- removable backup media;
+- enterprise backup systems;
+- S3-compatible object storage.
+
+### Key handling
+
+Encryption keys/passphrases must:
+
+- remain outside source control;
+- never be committed to the repository;
+- never appear in normal application logs;
+- not be bundled inside the backup artifact they protect;
+- be handled through documented operator/infrastructure procedures.
+
+Do not build a custom enterprise key-management system in Atlas.
+
+### Restore
+
+The canonical restore workflow must support the encrypted backup format.
+
+Restore must:
+
+1. identify the encrypted artifact;
+2. obtain the required key/secret through the approved external mechanism;
+3. decrypt in a controlled temporary/recovery location;
+4. verify the backup before destructive restore work;
+5. follow the existing pre-restore-backup contract;
+6. restore the data;
+7. remove temporary plaintext recovery artifacts safely when they are no longer required;
+8. run normal post-restore readiness.
+
+### Tasks
+
+- [ ] Define the supported infrastructure-level encryption-at-rest production contract.
+- [ ] Document accepted host/VM encrypted-storage models.
+- [ ] Keep encryption implementation deployment-specific rather than Atlas-cryptography-specific.
+- [ ] Cover PostgreSQL, Files, Search indexes, and other applicable persistent Atlas state.
+- [ ] Add installer reporting/warning for storage encryption status where safely practical.
+- [ ] Prevent the installer from destructively configuring disk encryption automatically.
+- [ ] Define independently encrypted portable/off-host backup artifacts.
+- [ ] Keep backup encryption destination-neutral.
+- [ ] Keep encryption keys outside source control and normal logs.
+- [ ] Integrate encrypted backup artifacts with the canonical backup command.
+- [ ] Integrate encrypted artifacts with restore.
+- [ ] Remove temporary plaintext restore artifacts safely.
+- [ ] Document organizational/root-access boundaries accurately.
+- [ ] Add production-like verification for encrypted backup/decrypt/verify/restore behavior.
+
+## P31-W05 — Interactive production installer
 
 ### Contract
 
@@ -287,6 +434,20 @@ The installer must detect an existing installation and stop safely or guide the 
 
 Safe/idempotent validation steps may be repeated. Destructive initialization must not.
 
+### Storage-encryption awareness
+
+The installer does not own destructive disk-encryption provisioning.
+
+During preflight/configuration it should, where safely practical:
+
+- identify the selected persistent Atlas storage location;
+- determine or accept operator-declared encryption-at-rest status;
+- show that status before installation;
+- warn when production persistent storage is not known to be encrypted;
+- direct the operator to the canonical production encryption documentation.
+
+The installer must not automatically repartition, format, or encrypt host disks.
+
 ### Tasks
 
 - [ ] Add one canonical interactive production installer entry point.
@@ -297,6 +458,11 @@ Safe/idempotent validation steps may be repeated. Destructive initialization mus
 - [ ] Configure HTTP/TLS mode without assuming public Internet.
 - [ ] Configure local persistent Files storage.
 - [ ] Configure PostgreSQL persistent storage.
+- [ ] Identify the selected persistent Atlas storage location.
+- [ ] Determine or accept operator-declared encryption-at-rest status where safely practical.
+- [ ] Show storage-encryption status and warn when it is not known to be encrypted.
+- [ ] Link the operator to canonical production encryption documentation.
+- [ ] Keep disk repartitioning, formatting, and encryption outside installer automation.
 - [ ] Configure backup location, schedule, and retention.
 - [ ] Generate required secrets securely.
 - [ ] Keep generated secrets outside source control.
@@ -313,7 +479,7 @@ Safe/idempotent validation steps may be repeated. Destructive initialization mus
 - [ ] Document the fresh-host installation procedure.
 - [ ] Test installation against a clean supported production-like host/VM.
 
-## P30-W05 — Database and Files backup
+## P31-W06 — Database and Files backup
 
 ### Contract
 
@@ -349,9 +515,18 @@ Possible deployment-specific destinations may include:
 - S3-compatible object storage;
 - another future backend.
 
-Phase 30 must not build multiple speculative backup adapters merely to support every possible destination.
+Phase 31 must not build multiple speculative backup adapters merely to support every possible destination.
 
 It is acceptable for Atlas to produce stable backup artifacts that company infrastructure then copies off-host.
+
+Portable/off-host backup artifacts must be independently encrypted before leaving the trusted encrypted storage boundary.
+
+Backup tooling must verify both:
+
+- the backup's internal validity;
+- the expected encrypted artifact lifecycle.
+
+The backup destination must remain deployment-neutral and must not be hardcoded to S3.
 
 ### Tasks
 
@@ -359,6 +534,8 @@ It is acceptable for Atlas to produce stable backup artifacts that company infra
 - [ ] Create compressed timestamped PostgreSQL dumps.
 - [ ] Verify PostgreSQL dump integrity/catalog.
 - [ ] Store backup artifacts outside ephemeral containers.
+- [ ] Independently encrypt portable/off-host backup artifacts before they leave the trusted encrypted storage boundary.
+- [ ] Verify backup internal validity and the encrypted artifact lifecycle.
 - [ ] Add configurable local backup retention.
 - [ ] Include persistent Atlas Files in the recovery strategy.
 - [ ] Define a safe Files backup procedure.
@@ -369,7 +546,7 @@ It is acceptable for Atlas to produce stable backup artifacts that company infra
 - [ ] Keep S3-compatible backup storage optional.
 - [ ] Document that same-host-only backup does not protect against complete host loss.
 
-## P30-W06 — Restore and recovery
+## P31-W07 — Restore and recovery
 
 ### Contract
 
@@ -390,20 +567,40 @@ Backup existence alone is not sufficient.
 
 Restore must be actually tested.
 
+Restore must understand the encrypted backup artifact lifecycle:
+
+```text
+encrypted artifact
+→
+controlled decryption
+→
+verification
+→
+pre-restore backup
+→
+restore
+→
+readiness
+→
+safe cleanup of temporary plaintext material
+```
+
 ### Tasks
 
 - [ ] Add a canonical host restore command.
 - [ ] Require explicit confirmation.
 - [ ] Verify selected backups before restore.
+- [ ] Decrypt encrypted artifacts in a controlled recovery location through the approved operator path.
 - [ ] Always create a pre-restore backup.
 - [ ] Restore PostgreSQL safely.
 - [ ] Restore Files according to the documented recovery model.
 - [ ] Run post-restore readiness.
+- [ ] Safely remove temporary plaintext recovery material when no longer required.
 - [ ] Document complete restore procedures.
 - [ ] Execute and verify a real restore drill.
 - [ ] Verify representative restored application data.
 
-## P30-W07 — Exact-release deployment
+## P31-W08 — Exact-release deployment
 
 ### Contract
 
@@ -459,7 +656,7 @@ Do not edit application source manually inside running production containers.
 - [ ] Run post-switch readiness.
 - [ ] Keep application source immutable inside running containers.
 
-## P30-W08 — Rollback and migration safety
+## P31-W09 — Rollback and migration safety
 
 ### Contract
 
@@ -485,7 +682,7 @@ Risky or irreversible migrations require:
 - [ ] Document risky/irreversible migration procedure.
 - [ ] Test representative safe rollback.
 
-## P30-W09 — Operator commands and release metadata
+## P31-W10 — Operator commands and release metadata
 
 ### Contract
 
@@ -540,11 +737,11 @@ Release information should be available to appropriate operational surfaces such
 - [ ] Record release metadata.
 - [ ] Expose release metadata through appropriate Admin/readiness/log/Sentry surfaces.
 
-## P30-W10 — Production durability and operational acceptance
+## P31-W11 — Production durability and operational acceptance
 
 ### Contract
 
-Phase 30 must finish with a real production-like proof, not only configuration-file inspection.
+Phase 31 must finish with a real production-like proof, not only configuration-file inspection.
 
 At minimum test a clean supported host/VM installation workflow:
 
@@ -571,11 +768,21 @@ PostgreSQL data survives
 ↓
 Files survive
 ↓
+production storage encryption-at-rest status is verified/documented
+↓
 backup succeeds
 ↓
 backup verifies
 ↓
+encrypted database and Files/recovery artifacts are created
+↓
+encrypted artifacts are decrypted through the approved operator path
+↓
+decrypted artifacts verify
+↓
 restore drill succeeds
+↓
+temporary plaintext recovery material is cleaned up
 ↓
 readiness succeeds
 ↓
@@ -592,13 +799,20 @@ representative safe rollback succeeds
 - [ ] Verify first-admin bootstrap.
 - [ ] Verify PostgreSQL persistence across container recreation.
 - [ ] Verify Files persistence across container recreation.
+- [ ] Verify and document persistent production storage encryption-at-rest status without requiring destructive disk formatting or encryption in the test.
 - [ ] Verify ClamAV/File behavior after recreation.
 - [ ] Verify recurring backup configuration.
 - [ ] Verify manual backup.
 - [ ] Verify backup integrity.
+- [ ] Verify encrypted database backup artifact creation.
+- [ ] Verify encrypted Files/recovery artifact creation.
+- [ ] Verify encrypted artifact decryption through the approved operator path.
+- [ ] Verify the decrypted artifact.
 - [ ] Verify pre-restore backup.
 - [ ] Execute a restore drill.
 - [ ] Verify representative application state after restore.
+- [ ] Verify temporary plaintext recovery material is cleaned up.
+- [ ] Verify Atlas readiness after restoring from encrypted artifacts.
 - [ ] Verify exact-release deployment.
 - [ ] Verify readiness-gated release switch.
 - [ ] Verify safe rollback.
@@ -616,6 +830,9 @@ representative safe rollback succeeds
 - [ ] Production installation must identify an exact release.
 - [ ] Installer rerun cannot destroy an existing installation.
 - [ ] Secrets cannot enter source control.
+- [ ] Persistent production storage encryption status must be verified or its risk explicitly documented.
+- [ ] Portable/off-host backup artifacts must be independently encrypted before leaving trusted protected storage.
+- [ ] Backup encryption keys cannot be stored in source control, normal logs, or the protected artifact.
 - [ ] Restore must require explicit confirmation.
 - [ ] Restore must create a pre-restore backup.
 - [ ] Deployment switching must require readiness.
@@ -624,7 +841,7 @@ representative safe rollback succeeds
 
 ## Completion criteria
 
-Phase 30 is complete only when:
+Phase 31 is complete only when:
 
 - [ ] Atlas can be installed on a clean supported internal production host using the canonical installer.
 - [ ] Production baseline is private/intranet/LAN/VPN rather than public-Internet dependent.
@@ -649,4 +866,7 @@ Phase 30 is complete only when:
 - [ ] Canonical operator commands are available.
 - [ ] Release metadata identifies the deployed system.
 - [ ] Secrets remain outside source control.
+- [ ] Infrastructure-level persistent storage encryption-at-rest is supported and documented.
+- [ ] Portable/off-host database and Files/recovery backup artifacts support independent encryption.
+- [ ] Encrypted backup artifacts can be decrypted, verified, restored, and cleaned up through the approved operator workflow.
 - [ ] Canonical production documentation matches the implementation.

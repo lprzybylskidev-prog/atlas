@@ -1,4 +1,4 @@
-# Phase 31 — Final test audit, full-app E2E review, and foundation verification
+# Phase 32 — Final test audit, full-app E2E review, and foundation verification
 
 **Status:** `not started`
 
@@ -10,7 +10,8 @@ Verify the complete technical foundation after every prerequisite phase is finis
 
 - [Phase 28 — Foundation repair and consolidation](phase-28-foundation-repair-and-consolidation.md)
 - [Phase 29 — Foundation acceptance repair and rendered workflow closure](phase-29-foundation-acceptance-repair.md)
-- [Phase 30 — Production deployment, backup, restore, and rollback](phase-30-deployment-backup-rollback.md)
+- [Phase 30 — Optional internal company chat and realtime messaging](phase-30-chat.md)
+- [Phase 31 — Private production deployment, installer, backup, restore, and rollback](phase-31-deployment-backup-rollback.md)
 - [Quality gates and git](../operations/quality-gates-and-git.md)
 - [Testing environment](../operations/testing-environment.md)
 - [Production deployment, backup, and recovery](../operations/production-deployment-backup-and-recovery.md)
@@ -18,17 +19,18 @@ Verify the complete technical foundation after every prerequisite phase is finis
 ## Implementation contract
 
 - Final verification is not a superficial test pass. It must prove that the Atlas can be cloned as a stable corporate base and that its important behavior is protected by meaningful automated tests.
-- Phase 31 owns the full test-suite review. It must identify weak, missing, duplicated, overly implementation-focused, or misleading tests across PHPUnit, Vitest, and Playwright.
-- Phase 31 owns a full browser-level application review through E2E coverage. Every shipped shell, major Admin area, operational workflow, localization surface, theme surface, permission/module gate, export/import/file/search/notification workflow, and critical error/empty/loading state must be exercised either by Playwright or by a documented lower-level test with a clear rationale.
+- Phase 32 owns the full test-suite review. It must identify weak, missing, duplicated, overly implementation-focused, or misleading tests across PHPUnit, Vitest, and Playwright.
+- Phase 32 owns a full browser-level application review through E2E coverage. Every shipped shell, major Admin area, operational workflow, localization surface, theme surface, permission/module gate, export/import/file/search/notification workflow, and critical error/empty/loading state must be exercised either by Playwright or by a documented lower-level test with a clear rationale.
 - Existing tests must be evaluated for product value, not only pass/fail status. Tests that only prove that an implementation detail exists must be strengthened, replaced, or documented as structural guardrails.
 - Rendered UI behavior must be verified where backend tests cannot prove the user experience. This includes visible copy, language switching, toast/notification behavior, table interactions, dialogs, destructive confirmations, empty states, dark/light theme rendering, browser console cleanliness, and asset/API request cleanliness.
-- For localization, Phase 31 must prove that Polish and English are complete in rendered UI, backend-provided props, validation messages, flash/toast messages, notification text, breadcrumbs, forms, tables, and operational helper copy. It must include negative assertions against accidental English user-facing copy in Polish mode except for allowed technical diagnostic values.
-- For messaging, Phase 31 must prove ownership and noise limits for user feedback. Workflows such as exports, imports, retries, scans, rebuilds, managed processes, and integrations must not create duplicate flashes, toast storms, or competing terminal notifications.
+- For localization, Phase 32 must prove that Polish and English are complete in rendered UI, backend-provided props, validation messages, flash/toast messages, notification text, breadcrumbs, forms, tables, and operational helper copy. It must include negative assertions against accidental English user-facing copy in Polish mode except for allowed technical diagnostic values.
+- For messaging, Phase 32 must prove ownership and noise limits for user feedback. Workflows such as exports, imports, retries, scans, rebuilds, managed processes, and integrations must not create duplicate flashes, toast storms, or competing terminal notifications.
 - The E2E suite must be treated as an application walkthrough, not just a smoke test. It should cover the real login path, active-team selection, Admin mode, navigation, permissions, module activation, core operational screens, and representative successful/failing workflows.
 - The review must produce either implemented test hardening in this phase or explicit follow-up phases for any remaining gaps that are too large to close safely before final release.
 - Cross-check every accepted decision against `AGENTS.md`, this file, documentation, ADRs, and tests.
 - No accepted behavior may exist only in historical chat.
-- Verify module activation, dependency blocking, ineffective permissions, role template behavior, admin mode, impersonation, manager hierarchy, TimeTracking isolation, reports, exports, imports, files, search, notifications, managed processes, light/dark themes, translations, backup/restore, deploy/rollback, liveness/readiness, and security controls.
+- Verify module activation, dependency blocking, ineffective permissions, role template behavior, admin mode, impersonation, manager hierarchy, TimeTracking isolation, Chat, reports, exports, imports, files, search, notifications, managed processes, light/dark themes, translations, backup/restore, deploy/rollback, liveness/readiness, and security controls.
+- Chat verification must cover module activation, permission behavior, canonical direct-conversation uniqueness, Team Chat membership synchronization, the Admin privacy boundary, Search authorization, Files/ClamAV attachments, voice messages, Reverb/realtime and reconciliation, unread/dropdown/modal behavior, browser-native notifications, retention, localization, mobile behavior, and browser console/network cleanliness.
 - Review starter cloning and namespace/application identity replacement.
 - Tag a stable release only after complete verification.
 - `PRODUCTION_DEPLOYED=true` is set only in a Atlas after its first actual production deployment, not merely when the Atlas is released.
@@ -72,6 +74,14 @@ Verify the complete technical foundation after every prerequisite phase is finis
 - [ ] Verify flash/toast/notification behavior manually and through E2E for representative workflows.
 - [ ] Verify impersonation.
 - [ ] Verify module activation.
+- [ ] Verify Chat module activation and permission behavior.
+- [ ] Verify canonical Chat direct-conversation uniqueness and Team Chat membership synchronization.
+- [ ] Verify that Admin cannot bypass private Chat content authorization.
+- [ ] Verify Chat Search authorization and delete-for-me privacy.
+- [ ] Verify Chat Files/ClamAV attachments and voice messages.
+- [ ] Verify Chat Reverb delivery, authorization, reconnect reconciliation, presence, typing, unread, and read state.
+- [ ] Verify Chat unread dropdown, modal, browser-native notifications, retention, localization, and mobile workflows.
+- [ ] Verify Chat browser console and network cleanliness.
 - [ ] Verify backup.
 - [ ] Verify restore.
 - [ ] Verify deploy.
@@ -99,6 +109,6 @@ Verify the complete technical foundation after every prerequisite phase is finis
 - [ ] The Playwright suite covers a full representative walkthrough of the application rather than only smoke-level shell checks.
 - [ ] Rendered UI localization, theme behavior, permissions/module gates, operational workflows, and message ownership are protected by automated tests where browser behavior matters.
 - [ ] No major shipped screen or workflow relies only on manual confidence without a documented testing rationale.
-- [ ] Backup, restore, deploy, rollback, readiness, security controls, module activation, Admin mode, impersonation, manager hierarchy, TimeTracking isolation, reports, translations, and themes are verified.
+- [ ] Backup, restore, deploy, rollback, readiness, security controls, module activation, Admin mode, impersonation, manager hierarchy, TimeTracking isolation, Chat, reports, translations, and themes are verified.
 - [ ] No accepted behavior exists only in chat history or working-only files.
 - [ ] Atlas is ready for debt collection business-module phases.

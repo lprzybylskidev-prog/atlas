@@ -17,6 +17,7 @@ Each module document contains a Phase 28 closure note recording the implemented 
 - [Imports](imports.md) — mapping, validation, preview, execution, progress, and errors.
 - [Integrations](integrations.md) — external adapters, retries, idempotency, and visibility.
 - [Notifications](notifications.md) — notification types, channels, preferences, and delivery.
+- [Chat](chat.md) — accepted future optional internal messaging, realtime, privacy, Files, Search, and retention contract.
 - [Settings](settings.md) — typed settings, scope, precedence, validation, and caching.
 - [Health](health.md) — liveness, readiness, dependency classification, and Admin diagnostics.
 - [Search](search.md) — Meilisearch projections, indexing, rebuild, and health.

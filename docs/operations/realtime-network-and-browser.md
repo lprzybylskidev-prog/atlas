@@ -40,6 +40,16 @@ Current implementation foundation:
 - `/realtime/events` is the authorized active-team-aware browser feed used by the initial notification foundation;
 - browser WebSocket channel wiring is implemented only when a genuine server-push workflow needs it beyond the current minimal feed.
 
+### Future Phase 30 Chat contract
+
+The optional internal-company Chat module is the concrete workflow that requires full browser WebSocket delivery. Phase 30 will use canonical Laravel broadcasting and Laravel Reverb to extend the existing Atlas realtime foundation; it will not replace Notifications ownership, turn Chat messages into Notifications records, build a custom WebSocket server, or introduce a competing realtime architecture.
+
+WebSocket delivery remains a transport rather than the source of truth. Chat application and persistence state is authoritative. Every conversation/private/presence channel requires explicit authorization, and reconnect must reconcile authoritative state and backfill missed data without duplicate messages or permanently incorrect unread/read state.
+
+Typing and presence events are ephemeral and must expire without unnecessary persistent writes. Ordinary non-realtime CRUD, forms, filters, pagination, and user-triggered actions continue through HTTP/Inertia.
+
+This is an accepted future contract and is not yet implemented.
+
 Preserve non-sensitive form data where appropriate.
 
 Retry only idempotent safe requests.
