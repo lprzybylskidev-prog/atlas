@@ -13,6 +13,7 @@ use App\Shared\Application\Teams\Contracts\UserTeamMembershipManager;
 use App\Shared\Presentation\Support\FlashMessage;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -43,6 +44,16 @@ final class TeamStructureController
                 'label' => $team->name,
             ], $this->memberships->activeTeamOptions()),
             'teamMembers' => $teamPublicId === '' ? [] : $this->teamMembers($teamPublicId),
+            'membershipHistory' => $teamPublicId === '' ? [] : array_map(static fn ($membership): array => [
+                'userPublicId' => $membership->userPublicId,
+                'userName' => $membership->userName,
+                'userEmail' => $membership->userEmail,
+                'validFrom' => $membership->validFrom,
+                'validTo' => $membership->validTo,
+                'headManager' => $membership->headManager,
+                'active' => $membership->active,
+            ], $this->memberships->membershipHistoryForTeam($teamPublicId)),
+            'assignableUsers' => $teamPublicId === '' ? [] : $this->memberships->assignableUsersForTeam($teamPublicId),
             'manager' => $manager,
             'relationships' => $teamPublicId === '' || $selectedManagerPublicId === '' ? [] : array_values(array_filter(
                 array_map($this->relationship(...), $this->hierarchy->activeRelationships($teamPublicId)),
@@ -80,18 +91,20 @@ final class TeamStructureController
             /** @var string|null $expectedVersion */
             $expectedVersion = isset($values['structure_version']) ? $this->string($values['structure_version']) : null;
 
-            foreach ($reportUserPublicIds as $reportUserPublicId) {
-                $this->hierarchy->assign(
-                    actorUserPublicId: $this->actorPublicId($request),
-                    teamPublicId: $team,
-                    managerUserPublicId: $this->string($values['manager_user_public_id'] ?? ''),
-                    reportUserPublicId: $reportUserPublicId,
-                    validFrom: $this->string($values['valid_from'] ?? ''),
-                    reason: $this->string($values['reason'] ?? ''),
-                    expectedVersion: $expectedVersion,
-                );
-                $expectedVersion = null;
-            }
+            DB::transaction(function () use ($request, $team, $values, $reportUserPublicIds, $expectedVersion): void {
+                foreach ($reportUserPublicIds as $reportUserPublicId) {
+                    $this->hierarchy->assign(
+                        actorUserPublicId: $this->actorPublicId($request),
+                        teamPublicId: $team,
+                        managerUserPublicId: $this->string($values['manager_user_public_id'] ?? ''),
+                        reportUserPublicId: $reportUserPublicId,
+                        validFrom: $this->string($values['valid_from'] ?? ''),
+                        reason: $this->string($values['reason'] ?? ''),
+                        expectedVersion: $expectedVersion,
+                    );
+                    $expectedVersion = null;
+                }
+            });
         } catch (ManagerHierarchyViolation $exception) {
             $errorKey = array_key_exists('report_user_public_ids', $values) ? 'report_user_public_ids' : 'manager_user_public_id';
 
@@ -176,6 +189,58 @@ final class TeamStructureController
             ->with('flash.messages', [
                 FlashMessage::success('flash.teams.head_manager_updated'),
             ]);
+    }
+
+    public function addMember(Request $request, string $team): RedirectResponse
+    {
+        $validated = $request->validate(['user_public_id' => ['required', 'string']]);
+        $userPublicId = $this->string(is_array($validated) ? ($validated['user_public_id'] ?? '') : '');
+        $this->memberships->addAccess($this->actorPublicId($request), $userPublicId, $team);
+
+        return redirect()->route('admin.teams.structure.show', ['team' => $team])->with('flash.messages', [
+            FlashMessage::success('flash.teams.access_added'),
+        ]);
+    }
+
+    public function removeMember(Request $request, string $team, string $user): RedirectResponse
+    {
+        $validated = $request->validate(['reason' => ['required', 'string', 'min:3', 'max:500']]);
+        $reason = $this->string(is_array($validated) ? ($validated['reason'] ?? '') : '');
+        $this->memberships->removeAccess($this->actorPublicId($request), $user, $team, $reason);
+
+        return redirect()->route('admin.teams.structure.show', ['team' => $team])->with('flash.messages', [
+            FlashMessage::success('flash.teams.access_removed'),
+        ]);
+    }
+
+    public function reparent(Request $request, string $team, string $relationship): RedirectResponse
+    {
+        $validated = $request->validate([
+            'new_manager_user_public_id' => ['required', 'string'],
+            'effective_at' => ['required', 'date'],
+            'reason' => ['required', 'string', 'min:3', 'max:2000'],
+            'structure_version' => ['required', 'string', 'size:64'],
+        ]);
+        $values = is_array($validated) ? $validated : [];
+
+        try {
+            $this->hierarchy->reparent(
+                actorUserPublicId: $this->actorPublicId($request),
+                teamPublicId: $team,
+                relationshipPublicId: $relationship,
+                newManagerUserPublicId: $this->string($values['new_manager_user_public_id'] ?? ''),
+                effectiveAt: $this->string($values['effective_at'] ?? ''),
+                reason: $this->string($values['reason'] ?? ''),
+                expectedVersion: $this->string($values['structure_version'] ?? ''),
+            );
+        } catch (ManagerHierarchyViolation $exception) {
+            throw ValidationException::withMessages(['new_manager_user_public_id' => $exception->getMessage()]);
+        }
+
+        return redirect()->route('admin.teams.structure.show', [
+            'team' => $team,
+            'preview_manager' => $this->string($values['new_manager_user_public_id'] ?? ''),
+        ])->with('flash.messages', [FlashMessage::success('flash.teams.manager_relationship_reparented')]);
     }
 
     /**

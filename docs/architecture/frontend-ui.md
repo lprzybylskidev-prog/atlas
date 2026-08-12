@@ -127,6 +127,8 @@ Do not nest `SurfaceCard` inside another `SurfaceCard`. If a subsection contains
 
 `DataTable.vue` is the stable composition host, not the owner of table behavior. Its focused controller and state units own query synchronization, sorting/pagination, columns, selection, persistence, saved views, actions, formatting, and result states. Preserve the host's public consumer API unless one workstream migrates every consumer coherently. Permanent structural tests must reject moving those responsibilities back into the host; a line-count ceiling alone is not acceptance evidence.
 
+The Team Structure view is the canonical team-context membership and hierarchy editor. It composes active membership, keyboard-expandable membership history, add/end membership, head-manager state, hierarchy visualization, relationship creation/end, and semantic reparenting in one responsive surface. Team Edit may link to this view but must not recreate membership mutation controls. Browser coverage exercises the desktop lifecycle plus mobile and keyboard disclosure behavior, and the permanent foundation guard rejects restoring the duplicate Team Edit workflow or a separate Managers area.
+
 ### Third-Party UI Assets
 
 Atlas uses project-owned Vue components and Tailwind CSS for its UI foundation.

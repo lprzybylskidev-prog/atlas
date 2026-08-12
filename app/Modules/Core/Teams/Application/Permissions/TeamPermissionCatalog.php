@@ -44,9 +44,15 @@ final class TeamPermissionCatalog implements ModulePermissionContribution
 
     public const ADMIN_TEAMS_STRUCTURE_SHOW = 'admin.teams.structure.show';
 
+    public const ADMIN_TEAMS_STRUCTURE_MEMBERS_STORE = 'admin.teams.structure.members.store';
+
+    public const ADMIN_TEAMS_STRUCTURE_MEMBERS_DESTROY = 'admin.teams.structure.members.destroy';
+
     public const ADMIN_TEAMS_STRUCTURE_RELATIONSHIPS_STORE = 'admin.teams.structure.relationships.store';
 
     public const ADMIN_TEAMS_STRUCTURE_RELATIONSHIPS_END = 'admin.teams.structure.relationships.end';
+
+    public const ADMIN_TEAMS_STRUCTURE_RELATIONSHIPS_REPARENT = 'admin.teams.structure.relationships.reparent';
 
     public const ADMIN_TEAMS_STRUCTURE_HEAD_MANAGER_UPDATE = 'admin.teams.structure.head-manager.update';
 
@@ -82,8 +88,11 @@ final class TeamPermissionCatalog implements ModulePermissionContribution
             new ModulePermissionDefinition(self::TEAMS_DELETE, 'Delete teams.'),
             new ModulePermissionDefinition(self::MANAGERS_VIEW, 'View manager hierarchy.'),
             new ModulePermissionDefinition(self::ADMIN_TEAMS_STRUCTURE_SHOW, 'View the integrated team structure editor.'),
+            new ModulePermissionDefinition(self::ADMIN_TEAMS_STRUCTURE_MEMBERS_STORE, 'Add team members through the integrated structure editor.'),
+            new ModulePermissionDefinition(self::ADMIN_TEAMS_STRUCTURE_MEMBERS_DESTROY, 'End team membership through the integrated structure editor.'),
             new ModulePermissionDefinition(self::ADMIN_TEAMS_STRUCTURE_RELATIONSHIPS_STORE, 'Create manager relationships through Admin UI.'),
             new ModulePermissionDefinition(self::ADMIN_TEAMS_STRUCTURE_RELATIONSHIPS_END, 'End manager relationships through Admin UI.'),
+            new ModulePermissionDefinition(self::ADMIN_TEAMS_STRUCTURE_RELATIONSHIPS_REPARENT, 'Atomically reparent manager relationships through Admin UI.'),
             new ModulePermissionDefinition(self::ADMIN_TEAMS_STRUCTURE_HEAD_MANAGER_UPDATE, 'Update head manager status through Admin UI.'),
             new ModulePermissionDefinition(self::MANAGERS_CREATE, 'Create manager relationships.'),
             new ModulePermissionDefinition(self::MANAGERS_UPDATE, 'Update manager hierarchy.'),

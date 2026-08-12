@@ -48,7 +48,7 @@ Current implementation foundation:
 - Admin permission administration screens are available at `/admin/authorization/permissions` and show permission name, owning module, team scope, current module activation state, effective assignment state, and ineffectiveness reason in the selected active-team context.
 - Admin role administration screens are available at `/admin/authorization/roles`; role creation and editing use separate Admin views instead of inline index forms and let administrators manage the role's direct permission membership.
 - Admin preset administration is available at `/admin/authorization/packages`; preset creation and editing use separate Admin views and let administrators manage team-scoped local presets from existing roles and permissions.
-- Admin team administration screens are available at `/admin/teams`; team creation and editing use separate Admin views, show team identity and active state, and manage team members with team-scoped roles and direct permissions.
+- Admin team administration screens are available at `/admin/teams`; team creation and editing use separate Admin views and show team identity and active state. After creation, team-context membership mutation is owned exclusively by `/admin/teams/{team}/structure`; user-context access and authorization assignments remain available from User administration.
 - Admin module activation screens are available at `/admin/modules`; module activation can also be managed from team creation and editing workflows.
 - Admin user administration is available at `/admin/users`, shows users in the shared TanStack `DataTable`, supports current account-status actions, requires at least one team assignment during user creation, shows exact effective team-scoped assignments before submission, can apply a package or copy another user's role/direct-permission assignments in the selected team, manages user team access and team-scoped role/direct-permission assignments, and routes account creation through the normal user creation use case.
 - Current Admin tables use the shared `DataTable` wrapper with backend-validated query-string state, server-side pagination/sorting/filtering, and saved views. Report/export actions are owned by the Reports module lifecycle rather than generated locally in the browser.
@@ -102,7 +102,7 @@ Permission catalog Admin read surfaces and exports resolve active-team context t
 
 ## Phase 28 foundation repair target
 
-Current state: Authorization uses owner-owned Identity/Teams lookups and membership provisioning. Phase 28 consolidated user/team assignment administration into one workflow/use case, added truthful persisted provenance and stale-write protection, and retained atomic security audit evidence for assignment replacement.
+Current state: Authorization uses owner-owned Identity/Teams lookups and membership provisioning. Phase 28 consolidated assignment handling on owner use cases, added truthful persisted provenance and stale-write protection, and retained atomic security audit evidence for assignment replacement. Phase 29 made Team Structure the canonical team-context membership surface; Team Edit no longer duplicates add/remove membership controls.
 
 Target state achieved for seeding: Authorization depends only through owner-owned public contracts, delegates membership mutation to the Teams owner, uses one user-team assignment workflow from user, team, and deterministic fixture contexts, persists truthful manual/preset/copy provenance, and has complete audit, authorization, UI, seeder, and architecture coverage.
 

@@ -1,6 +1,17 @@
 <script setup lang="ts">
 import { Head, router, useForm } from '@inertiajs/vue3';
-import { IconArrowLeft, IconDeviceFloppy, IconGitBranch, IconSitemap, IconStar, IconUserPlus, IconUserX } from '@tabler/icons-vue';
+import {
+    IconArrowLeft,
+    IconArrowsExchange,
+    IconDeviceFloppy,
+    IconGitBranch,
+    IconHistory,
+    IconSitemap,
+    IconStar,
+    IconUserPlus,
+    IconUsersGroup,
+    IconUserX,
+} from '@tabler/icons-vue';
 import { computed, reactive, watch } from 'vue';
 
 import ActionLink from '../../../Components/ActionLink.vue';
@@ -66,8 +77,30 @@ interface AssignmentPreview {
     warnings: string[];
 }
 
+interface MembershipHistoryRow {
+    userPublicId: string;
+    userName: string;
+    userEmail: string;
+    validFrom: string | null;
+    validTo: string | null;
+    headManager: boolean;
+    active: boolean;
+}
+
 interface EndDraft {
     valid_to: string;
+    reason: string;
+    processing: boolean;
+}
+
+interface MemberRemovalDraft {
+    reason: string;
+    processing: boolean;
+}
+
+interface ReparentDraft {
+    new_manager_user_public_id: string;
+    move_date: string;
     reason: string;
     processing: boolean;
 }
@@ -78,6 +111,8 @@ const props = defineProps<{
     selectedManagerPublicId: string;
     teamOptions: FormSelectOption[];
     teamMembers: TeamMember[];
+    membershipHistory: MembershipHistoryRow[];
+    assignableUsers: FormSelectOption[];
     manager: ManagerRow | null;
     relationships: ManagerRelationship[];
     tree: ManagerHierarchyNode[];
@@ -109,6 +144,18 @@ const headForm = useForm({
 const endDrafts = reactive<Record<string, EndDraft>>(
     Object.fromEntries(
         props.relationships.map((relationship) => [relationship.publicId, { valid_to: today, reason: '', processing: false }]),
+    ),
+);
+const addMemberForm = useForm({ user_public_id: '' });
+const memberRemovalDrafts = reactive<Record<string, MemberRemovalDraft>>(
+    Object.fromEntries(props.teamMembers.map((member) => [member.value, { reason: '', processing: false }])),
+);
+const reparentDrafts = reactive<Record<string, ReparentDraft>>(
+    Object.fromEntries(
+        props.relationships.map((relationship) => [
+            relationship.publicId,
+            { new_manager_user_public_id: '', move_date: today, reason: '', processing: false },
+        ]),
     ),
 );
 
@@ -202,6 +249,32 @@ watch(
     },
 );
 
+watch(
+    () => props.teamMembers,
+    (members) => {
+        for (const member of members) {
+            memberRemovalDrafts[member.value] ??= { reason: '', processing: false };
+        }
+    },
+    { deep: true },
+);
+
+watch(
+    () => props.relationships,
+    (relationships) => {
+        for (const relationship of relationships) {
+            endDrafts[relationship.publicId] ??= { valid_to: today, reason: '', processing: false };
+            reparentDrafts[relationship.publicId] ??= {
+                new_manager_user_public_id: '',
+                move_date: today,
+                reason: '',
+                processing: false,
+            };
+        }
+    },
+    { deep: true },
+);
+
 function refreshContext(): void {
     const query: Record<string, string> = {};
 
@@ -287,8 +360,50 @@ function submitEnd(relationship: ManagerRelationship): void {
     );
 }
 
+function submitAddMember(): void {
+    if (addMemberForm.user_public_id === '') return;
+    addMemberForm.post(`/admin/teams/${encodeURIComponent(props.selectedTeamPublicId)}/structure/members`, { preserveScroll: true });
+}
+
+function submitRemoveMember(member: TeamMember): void {
+    const draft = memberRemovalDrafts[member.value];
+    if (draft === undefined || draft.reason.trim() === '') return;
+    draft.processing = true;
+    router.delete(`/admin/teams/${encodeURIComponent(props.selectedTeamPublicId)}/structure/members/${encodeURIComponent(member.value)}`, {
+        data: { reason: draft.reason },
+        preserveScroll: true,
+        onFinish: () => (draft.processing = false),
+    });
+}
+
+function reparentOptions(relationship: ManagerRelationship): FormSelectOption[] {
+    return props.teamMembers
+        .filter((member) => member.value !== relationship.reportUserPublicId && member.value !== relationship.managerUserPublicId)
+        .map((member) => ({ value: member.value, label: member.label }));
+}
+
+function submitReparent(relationship: ManagerRelationship): void {
+    const draft = reparentDrafts[relationship.publicId];
+    if (draft === undefined || draft.new_manager_user_public_id === '' || draft.reason.trim() === '') return;
+    draft.processing = true;
+    router.patch(
+        `/admin/teams/${encodeURIComponent(props.selectedTeamPublicId)}/structure/relationships/${encodeURIComponent(relationship.publicId)}/reparent`,
+        {
+            new_manager_user_public_id: draft.new_manager_user_public_id,
+            effective_at: draft.move_date,
+            reason: draft.reason,
+            structure_version: props.structureVersion,
+        },
+        { preserveScroll: true, onFinish: () => (draft.processing = false) },
+    );
+}
+
 function relationshipDate(value: string): string {
     return formatDate(value, locale.value);
+}
+
+function optionalDate(value: string | null): string {
+    return value === null ? t('pages.admin.teams.structure.members.current') : relationshipDate(value);
 }
 </script>
 
@@ -322,6 +437,120 @@ function relationshipDate(value: string): string {
                     </FormButton>
                 </div>
             </SurfaceCard>
+
+            <div class="grid gap-4 xl:grid-cols-[minmax(0,1.2fr)_minmax(22rem,0.8fr)]">
+                <SurfaceCard :title="t('pages.admin.teams.structure.members.active_title')" :icon="IconUsersGroup" tone="sky">
+                    <UiState
+                        v-if="teamMembers.length === 0"
+                        variant="empty"
+                        size="compact"
+                        :title="t('pages.admin.teams.structure.members.empty_title')"
+                        :description="t('pages.admin.teams.structure.members.empty_description')"
+                    />
+                    <div v-else class="divide-y divide-zinc-200 dark:divide-zinc-800">
+                        <div
+                            v-for="member in teamMembers"
+                            :key="member.value"
+                            :data-testid="`team-member-${member.value}`"
+                            class="grid gap-3 py-3 lg:grid-cols-[minmax(0,1fr)_minmax(16rem,0.7fr)_auto]"
+                        >
+                            <div class="min-w-0">
+                                <p class="font-medium text-zinc-950 dark:text-zinc-50">{{ member.name }}</p>
+                                <p class="break-all text-xs text-zinc-500 dark:text-zinc-400">{{ member.email }}</p>
+                                <StatusBadge
+                                    v-if="member.headManager"
+                                    class="mt-2"
+                                    :label="t('pages.admin.teams.structure.tree.head_manager')"
+                                    tone="warning"
+                                />
+                            </div>
+                            <FormInput
+                                v-model="memberRemovalDrafts[member.value].reason"
+                                :label="t('pages.admin.teams.structure.members.end_reason')"
+                                :placeholder="t('pages.admin.teams.structure.members.end_reason_placeholder')"
+                            />
+                            <FormButton
+                                type="button"
+                                tone="danger"
+                                class="mt-0 lg:mt-6"
+                                :icon="IconUserX"
+                                :loading="memberRemovalDrafts[member.value].processing"
+                                :disabled="memberRemovalDrafts[member.value].reason.trim() === ''"
+                                @click="submitRemoveMember(member)"
+                            >
+                                {{ t('pages.admin.teams.structure.members.end_action') }}
+                            </FormButton>
+                        </div>
+                    </div>
+                </SurfaceCard>
+
+                <div class="space-y-4">
+                    <SurfaceCard :title="t('pages.admin.teams.structure.members.add_title')" :icon="IconUserPlus" tone="teal">
+                        <AtlasForm :processing="addMemberForm.processing" @submit="submitAddMember">
+                            <div class="grid gap-3">
+                                <FormSelect
+                                    v-model="addMemberForm.user_public_id"
+                                    :label="t('pages.admin.teams.structure.members.user')"
+                                    :options="assignableUsers"
+                                    :placeholder="t('pages.admin.teams.structure.members.user_placeholder')"
+                                    :error="addMemberForm.errors.user_public_id"
+                                />
+                                <FormActions>
+                                    <FormButton
+                                        type="submit"
+                                        :icon="IconUserPlus"
+                                        :loading="addMemberForm.processing"
+                                        :disabled="addMemberForm.user_public_id === ''"
+                                    >
+                                        {{ t('pages.admin.teams.structure.members.add_action') }}
+                                    </FormButton>
+                                </FormActions>
+                            </div>
+                        </AtlasForm>
+                    </SurfaceCard>
+
+                    <details class="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+                        <summary
+                            class="flex cursor-pointer items-center gap-2 font-semibold text-zinc-950 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-teal-600 dark:text-zinc-50"
+                        >
+                            <IconHistory class="size-5" aria-hidden="true" />
+                            {{ t('pages.admin.teams.structure.members.history_title') }}
+                        </summary>
+                        <div class="mt-4 space-y-3">
+                            <UiState
+                                v-if="membershipHistory.length === 0"
+                                variant="empty"
+                                size="compact"
+                                :title="t('pages.admin.teams.structure.members.history_empty')"
+                            />
+                            <div
+                                v-for="(membership, index) in membershipHistory"
+                                v-else
+                                :key="`${membership.userPublicId}-${membership.validFrom}-${index}`"
+                                class="rounded-lg border border-zinc-200 p-3 text-sm dark:border-zinc-800"
+                            >
+                                <div class="flex flex-wrap items-start justify-between gap-2">
+                                    <div>
+                                        <p class="font-medium text-zinc-950 dark:text-zinc-50">{{ membership.userName }}</p>
+                                        <p class="text-xs text-zinc-500 dark:text-zinc-400">{{ membership.userEmail }}</p>
+                                    </div>
+                                    <StatusBadge
+                                        :label="
+                                            membership.active
+                                                ? t('pages.admin.teams.structure.members.active')
+                                                : t('pages.admin.teams.structure.members.ended')
+                                        "
+                                        :tone="membership.active ? 'success' : 'neutral'"
+                                    />
+                                </div>
+                                <p class="mt-2 text-xs text-zinc-600 dark:text-zinc-300">
+                                    {{ optionalDate(membership.validFrom) }} – {{ optionalDate(membership.validTo) }}
+                                </p>
+                            </div>
+                        </div>
+                    </details>
+                </div>
+            </div>
 
             <UiState
                 v-if="manager === null || !contextMatchesLoadedManager"
@@ -481,7 +710,12 @@ function relationshipDate(value: string): string {
                             </AtlasForm>
                         </SurfaceCard>
 
-                        <SurfaceCard :title="t('pages.admin.teams.structure.forms.head_title')" :icon="IconStar" tone="amber">
+                        <SurfaceCard
+                            data-testid="head-manager-card"
+                            :title="t('pages.admin.teams.structure.forms.head_title')"
+                            :icon="IconStar"
+                            tone="amber"
+                        >
                             <AtlasForm :processing="headForm.processing" @submit="submitHead">
                                 <div class="grid gap-3">
                                     <FormSelect
@@ -523,6 +757,7 @@ function relationshipDate(value: string): string {
                         <div
                             v-for="relationship in relationships"
                             :key="relationship.publicId"
+                            :data-testid="`manager-relationship-${relationship.publicId}`"
                             class="grid gap-4 p-4 xl:grid-cols-[minmax(0,1fr)_minmax(18rem,0.7fr)_auto]"
                         >
                             <div class="min-w-0">
@@ -545,6 +780,34 @@ function relationshipDate(value: string): string {
                             </div>
 
                             <div class="grid gap-3">
+                                <FormSelect
+                                    v-model="reparentDrafts[relationship.publicId].new_manager_user_public_id"
+                                    :label="t('pages.admin.teams.structure.move.new_manager')"
+                                    :options="reparentOptions(relationship)"
+                                    :placeholder="t('pages.admin.teams.structure.move.new_manager_placeholder')"
+                                />
+                                <FormDateInput
+                                    v-model="reparentDrafts[relationship.publicId].move_date"
+                                    :label="t('pages.admin.teams.structure.move.effective_at')"
+                                />
+                                <FormInput
+                                    v-model="reparentDrafts[relationship.publicId].reason"
+                                    :label="t('pages.admin.teams.structure.move.reason')"
+                                    :placeholder="t('pages.admin.teams.structure.move.reason_placeholder')"
+                                />
+                                <FormButton
+                                    type="button"
+                                    tone="neutral"
+                                    :icon="IconArrowsExchange"
+                                    :loading="reparentDrafts[relationship.publicId].processing"
+                                    :disabled="
+                                        reparentDrafts[relationship.publicId].new_manager_user_public_id === '' ||
+                                        reparentDrafts[relationship.publicId].reason.trim() === ''
+                                    "
+                                    @click="submitReparent(relationship)"
+                                >
+                                    {{ t('pages.admin.teams.structure.move.action') }}
+                                </FormButton>
                                 <FormDateInput
                                     v-model="endDrafts[relationship.publicId].valid_to"
                                     :label="t('pages.admin.teams.structure.forms.valid_to')"

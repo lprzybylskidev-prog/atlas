@@ -48,6 +48,7 @@ const props = withDefaults(
         rootError?: string;
         errors?: Record<string, string>;
         errorPrefix?: string;
+        membershipMutation?: boolean;
     }>(),
     {
         processing: false,
@@ -56,6 +57,7 @@ const props = withDefaults(
         errorPrefix: 'team_assignments',
         contextAxis: 'user',
         userOptions: () => [],
+        membershipMutation: true,
         fixedTeamPublicId: '',
         fixedTeamName: '',
     },
@@ -248,7 +250,7 @@ watch(
         :icon="IconUsersGroup"
         tone="sky"
     >
-        <div v-if="contextAxis === 'user'" class="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto]">
+        <div v-if="membershipMutation && contextAxis === 'user'" class="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto]">
             <FormSelect
                 v-model="pendingTeamPublicId"
                 :label="t('pages.admin.users.team_access.add_team')"
@@ -267,7 +269,7 @@ watch(
             </FormButton>
         </div>
 
-        <div v-else class="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto]">
+        <div v-else-if="membershipMutation" class="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto]">
             <FormSelect
                 v-model="pendingUserPublicId"
                 :label="t('pages.admin.teams.members.add_user')"
@@ -483,7 +485,7 @@ watch(
                         :effective-permissions="listLabel(effectivePermissions(assignment), permissionLabelByValue)"
                     />
 
-                    <div v-if="mode === 'edit'" class="grid gap-3 xl:grid-cols-[minmax(0,1fr)_auto]">
+                    <div v-if="mode === 'edit' && membershipMutation" class="grid gap-3 xl:grid-cols-[minmax(0,1fr)_auto]">
                         <FormInput
                             v-model="assignment.reason"
                             :label="t('pages.admin.users.team_access.authorization_reason')"

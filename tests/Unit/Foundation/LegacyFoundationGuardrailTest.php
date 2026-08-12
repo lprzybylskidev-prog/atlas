@@ -74,6 +74,28 @@ final class LegacyFoundationGuardrailTest extends TestCase
         ], $violations);
     }
 
+    public function test_team_structure_remains_the_canonical_team_context_membership_surface(): void
+    {
+        $structure = file_get_contents(base_path('resources/js/Pages/Admin/Teams/Structure.vue'));
+        $teamEdit = file_get_contents(base_path('resources/js/Pages/Admin/Teams/Edit.vue'));
+        $controller = file_get_contents(base_path('app/Modules/Core/Teams/Presentation/Http/Controllers/TeamStructureController.php'));
+
+        self::assertIsString($structure);
+        self::assertIsString($teamEdit);
+        self::assertIsString($controller);
+        self::assertStringContainsString('membershipHistory', $structure);
+        self::assertStringContainsString('/structure/members', $structure);
+        self::assertStringContainsString('/reparent', $structure);
+        self::assertStringContainsString('membershipHistoryForTeam', $controller);
+        self::assertStringContainsString('function reparent(', $controller);
+        self::assertStringContainsString('UserTeamAuthorizationWorkflow', $teamEdit);
+        self::assertStringContainsString(':membership-mutation="false"', $teamEdit);
+        self::assertStringNotContainsString('function addUser(', $teamEdit);
+        self::assertStringNotContainsString('function removeUser(', $teamEdit);
+        self::assertStringNotContainsString('router.post(', $teamEdit);
+        self::assertStringNotContainsString('router.delete(', $teamEdit);
+    }
+
     /** @return array<string, string> */
     private function activeSources(): array
     {

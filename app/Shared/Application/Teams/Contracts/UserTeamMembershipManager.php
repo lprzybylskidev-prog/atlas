@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Shared\Application\Teams\Contracts;
 
 use App\Shared\Application\Teams\DTOs\AdminTeamUserMembership;
+use App\Shared\Application\Teams\DTOs\AdminTeamUserMembershipHistory;
 use App\Shared\Application\Teams\DTOs\AdminUserTeamMembership;
 use App\Shared\Application\Teams\DTOs\TeamOption;
 
@@ -23,6 +24,11 @@ interface UserTeamMembershipManager
      * @return list<AdminTeamUserMembership>
      */
     public function activeMembershipsForTeam(string $teamPublicId): array;
+
+    /**
+     * @return list<AdminTeamUserMembershipHistory>
+     */
+    public function membershipHistoryForTeam(string $teamPublicId): array;
 
     /**
      * @return list<array{value: string, label: string}>

@@ -22,10 +22,10 @@ Current implementation foundation:
 Admin user-team access management:
 
 - Admin user creation requires at least one team assignment;
-- Admin user creation/editing and team creation/editing list and manage active user-team memberships;
+- Admin user creation/editing manages user-context team access. Team creation may establish initial assignments, while Team Structure is the only team-context surface that adds or ends memberships after creation. Team Edit links to Team Structure and does not expose a competing membership mutation workflow;
 - Admin team creation/editing also manages team-scoped module activation overrides. The same override can be managed from `/admin/modules/{module}` by attaching teams to a module, and from `/admin/teams/{team}/edit` by attaching modules to a team.
 - Admin can add access to an active team the user does not currently belong to, including team-scoped roles and direct permissions;
-- Admin can update a user's team-scoped roles and direct permissions from either User or Team administration;
+- Admin can update a user's team-scoped roles and direct permissions from User administration; Team Structure owns team-context membership and hierarchy mutations;
 - Admin can remove access from a team only with a reason;
 - removing access ends the effective `team_user_assignments` row through `valid_to`, removes user-specific role and direct-permission assignments in that team, audits the operation, and invalidates user sessions operating in that team.
 
@@ -55,8 +55,11 @@ A head manager sees the entire subtree under them, still constrained by permissi
 
 Manager hierarchy administration is integrated into the owning team at `/admin/teams/{team}/structure`. The Team Edit action opens this editor; there is no separate Managers Admin area. The editor supports:
 
+- viewing active members and keyboard-expandable effective-dated membership history;
+- adding team members and ending active membership with a mandatory reason through the Teams-owned membership use case;
 - selecting a manager context and adding multiple direct-report relationships with one effective date and reason;
 - ending manager relationships;
+- atomically moving an existing report/subtree to a new manager while ending the previous relationship and preserving both history rows;
 - assigning head managers;
 - viewing the hierarchy tree below one manager;
 - seeing active direct-report relationship start dates and creation reasons;
@@ -67,11 +70,12 @@ Manager hierarchy administration is integrated into the owning team at `/admin/t
 - mandatory reason;
 - audit;
 - optimistic concurrency through a structure version;
+- a `TeamStructureMutationGuard` port consulted inside the atomic move transaction so an active-process owner can reject unsafe reparenting without a Core-to-Optional dependency; the default reduced mode permits the move when no process owner contributes a blocker;
 - protection against removing the last active head manager;
 - membership-removal blocking while the member is a head manager or participates in active manager relationships;
 - one responsive and keyboard-accessible team-context surface with an explicit empty state.
 
-Audited manager hierarchy actions include `team.manager_relationship.created`, `team.manager_relationship.ended`, and `team.head_manager.updated`.
+Audited manager hierarchy actions include `team.manager_relationship.created`, `team.manager_relationship.ended`, `team.manager_relationship.reparented`, `team.manager_relationship.reparent_rejected`, and `team.head_manager.updated`. Successful membership and hierarchy evidence is persisted in the same transaction as the state change; an audit failure rolls the mutation back. Rejected reparent evidence is recorded only after the attempted business-state transaction has rolled back.
 
 Granular Admin route permissions are `admin.teams.structure.show`, `admin.teams.structure.relationships.store`, `admin.teams.structure.relationships.end`, and `admin.teams.structure.head-manager.update`. Manager application/scope permissions remain `teams.managers.view`, `teams.managers.create`, `teams.managers.update`, `teams.managers.terminate`, `teams.managers.tree`, `teams.managers.history`, and `teams.managers.head.update`.
 
@@ -83,7 +87,7 @@ The exception uses Teams membership and `ManagerHierarchy` contracts. Repeated s
 
 ## Phase 28 foundation repair target
 
-Current state: Teams owns membership and the integrated team structure editor. Phase 28 removed the duplicated separate Admin Managers area after route, permission, UI, DAG, audit, concurrency, and legacy-reference coverage was moved to the Teams surface.
+Current state: Teams owns membership and the integrated team structure editor. Phase 29 completed active/history membership management and semantic atomic reparenting in that editor, removed the competing Team Edit membership UI, and added desktop/mobile browser acceptance. Phase 28 removed the duplicated separate Admin Managers area after route, permission, UI, DAG, audit, concurrency, and legacy-reference coverage was moved to the Teams surface.
 
 Target state: Teams owns team membership, active-team validation, public team summaries, manager DAG, head-manager protection, and the integrated team structure editor. The separate Managers CRUD/Admin area is removed while manager panel and manager scope remain. Phase 28 boundary slices added `TeamLookup` display summaries, public/internal ID resolution, active-team validation, active user-team assignment ID/summary lookups, active head-manager checks, all-team internal ID enumeration, all-team summaries, and internal-ID summary maps so Audit browser filters, Notifications delivery/realtime paths, ModuleGate, module activation cache invalidation, Admin System Status active-team resolution, TimeTracking tracked assignment/report/break-policy reads, TimeTracking closed-period eligibility, and Admin module activation team/history/schedule surfaces no longer query Teams tables directly. Teams membership, session-limit, privacy lifecycle, and manager hierarchy surfaces now use Identity `UserLookup` for user ID/display enrichment instead of importing Identity persistence table constants.
 

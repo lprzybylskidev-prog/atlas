@@ -28,8 +28,6 @@ const props = defineProps<{
         userPublicId: string;
         userName: string;
         userEmail: string;
-        validFrom: string | null;
-        validTo: string | null;
         roleNames: string[];
         directPermissionNames: string[];
         inactivityTimeoutMinutes: number | null;
@@ -145,20 +143,6 @@ function submit(): void {
     form.patch(`/admin/teams/${encodeURIComponent(props.team.publicId)}`, { preserveScroll: true });
 }
 
-function addUser(userPublicId: string): void {
-    memberProcessing.value = true;
-    router.post(
-        `/admin/teams/${encodeURIComponent(props.team.publicId)}/users`,
-        { user_public_id: userPublicId },
-        {
-            preserveScroll: true,
-            onFinish: () => {
-                memberProcessing.value = false;
-            },
-        },
-    );
-}
-
 function saveAuthorization(assignment: UserTeamAccessAssignment): void {
     if (assignment.user_public_id === undefined) {
         return;
@@ -177,30 +161,8 @@ function saveAuthorization(assignment: UserTeamAccessAssignment): void {
             reason: assignment.reason ?? '',
             expected_version: assignment.provenance_version ?? 0,
         },
-        {
-            preserveScroll: true,
-            onFinish: () => {
-                memberProcessing.value = false;
-            },
-        },
+        { preserveScroll: true, onFinish: () => (memberProcessing.value = false) },
     );
-}
-
-function removeUser(assignment: UserTeamAccessAssignment): void {
-    if (assignment.user_public_id === undefined || (assignment.removal_reason ?? '').trim() === '') {
-        return;
-    }
-
-    memberProcessing.value = true;
-    router.delete(`/admin/teams/${encodeURIComponent(props.team.publicId)}/users/${encodeURIComponent(assignment.user_public_id)}`, {
-        data: {
-            reason: assignment.removal_reason ?? '',
-        },
-        preserveScroll: true,
-        onFinish: () => {
-            memberProcessing.value = false;
-        },
-    });
 }
 </script>
 
@@ -233,6 +195,7 @@ function removeUser(assignment: UserTeamAccessAssignment): void {
                 <UserTeamAuthorizationWorkflow
                     mode="edit"
                     context-axis="team"
+                    :membership-mutation="false"
                     :assignments="memberAssignments"
                     :user-options="assignableUsers"
                     :team-options="[]"
@@ -244,9 +207,7 @@ function removeUser(assignment: UserTeamAccessAssignment): void {
                     :session-defaults="sessionDefaults"
                     :team-policy-defaults="{ [team.publicId]: policyDefaults }"
                     :processing="memberProcessing"
-                    @add-user="addUser"
                     @save="saveAuthorization($event.assignment)"
-                    @remove="removeUser($event.assignment)"
                 />
             </TeamForm>
         </PageStack>

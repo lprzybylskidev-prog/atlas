@@ -62,6 +62,9 @@ Breadcrumbs::for('admin.teams.structure.show', function (Generator $breadcrumbs,
 });
 
 Breadcrumbs::for('admin.teams.structure.relationships.store', fn (Generator $breadcrumbs, string $team) => $breadcrumbs->parent('admin.teams.structure.show', $team));
+Breadcrumbs::for('admin.teams.structure.members.store', fn (Generator $breadcrumbs, string $team) => $breadcrumbs->parent('admin.teams.structure.show', $team));
+Breadcrumbs::for('admin.teams.structure.members.destroy', fn (Generator $breadcrumbs, string $team, string $user) => $breadcrumbs->parent('admin.teams.structure.show', $team));
+Breadcrumbs::for('admin.teams.structure.relationships.reparent', fn (Generator $breadcrumbs, string $team, string $relationship) => $breadcrumbs->parent('admin.teams.structure.show', $team));
 Breadcrumbs::for('admin.teams.structure.head-manager.update', fn (Generator $breadcrumbs, string $team) => $breadcrumbs->parent('admin.teams.structure.show', $team));
 Breadcrumbs::for('admin.teams.structure.relationships.end', fn (Generator $breadcrumbs, string $team) => $breadcrumbs->parent('admin.teams.structure.show', $team));
 

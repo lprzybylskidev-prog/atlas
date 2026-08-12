@@ -497,31 +497,33 @@ Acceptance evidence: the 1,173-line host inventory identified direct ownership o
 
 ### P29-W03 — Complete Team Structure Editor
 
-* [ ] Make active team membership visible in Team Structure.
-* [ ] Make membership history accessible in Team Structure.
-* [ ] Add member workflow in Team Structure.
-* [ ] End/remove membership workflow in Team Structure.
-* [ ] Preserve/reuse canonical Teams-owned backend membership use cases.
-* [ ] Remove competing membership mutation UI outside Team Structure after replacement is complete.
-* [ ] Preserve a summary/link from Team Edit if useful, but not a second mutation workflow.
-* [ ] Keep head-manager management inside Team Structure.
-* [ ] Keep manager/report hierarchy inside Team Structure.
-* [ ] Implement semantic atomic move/reparent use case.
-* [ ] Preserve effective-dated relationship history.
-* [ ] Enforce active membership validation.
-* [ ] Enforce self-cycle and DAG validation.
-* [ ] Enforce stale-write/optimistic-concurrency validation.
-* [ ] Enforce head-manager invariant.
-* [ ] Enforce accepted active-process blocker behavior.
-* [ ] Ensure failed mutations roll back completely.
-* [ ] Add canonical audit evidence for move/reparent and membership/hierarchy mutations.
-* [ ] Add backend tests for add/remove/history/move/reparent/invariants/concurrency/rollback/audit.
-* [ ] Add desktop Playwright Team Structure workflow.
-* [ ] Add mobile Playwright Team Structure workflow.
-* [ ] Add keyboard/focus assertions for the critical editor interactions.
-* [ ] Confirm `/admin/managers` and duplicate Managers CRUD remain absent.
-* [ ] Update Teams/Authorization/frontend documentation.
-* [ ] Close `P29-TEAM-001` through `P29-TEAM-004`.
+* [x] Make active team membership visible in Team Structure.
+* [x] Make membership history accessible in Team Structure.
+* [x] Add member workflow in Team Structure.
+* [x] End/remove membership workflow in Team Structure.
+* [x] Preserve/reuse canonical Teams-owned backend membership use cases.
+* [x] Remove competing membership mutation UI outside Team Structure after replacement is complete.
+* [x] Preserve a summary/link from Team Edit if useful, but not a second mutation workflow.
+* [x] Keep head-manager management inside Team Structure.
+* [x] Keep manager/report hierarchy inside Team Structure.
+* [x] Implement semantic atomic move/reparent use case.
+* [x] Preserve effective-dated relationship history.
+* [x] Enforce active membership validation.
+* [x] Enforce self-cycle and DAG validation.
+* [x] Enforce stale-write/optimistic-concurrency validation.
+* [x] Enforce head-manager invariant.
+* [x] Enforce accepted active-process blocker behavior.
+* [x] Ensure failed mutations roll back completely.
+* [x] Add canonical audit evidence for move/reparent and membership/hierarchy mutations.
+* [x] Add backend tests for add/remove/history/move/reparent/invariants/concurrency/rollback/audit.
+* [x] Add desktop Playwright Team Structure workflow.
+* [x] Add mobile Playwright Team Structure workflow.
+* [x] Add keyboard/focus assertions for the critical editor interactions.
+* [x] Confirm `/admin/managers` and duplicate Managers CRUD remain absent.
+* [x] Update Teams/Authorization/frontend documentation.
+* [x] Close `P29-TEAM-001` through `P29-TEAM-004`.
+
+Acceptance evidence: Team Structure now owns active members, effective-dated membership history, add/end membership, head-manager state, hierarchy creation/end, and semantic reparenting. Re-adding a former member creates a new effective row instead of overwriting history. Reparent locks the team structure, validates the expected version, active memberships, self/DAG rules, effective date and the active-process guard, then ends the old relationship, creates the new one, and records `team.manager_relationship.reparented` in one transaction. Rejected attempts record `team.manager_relationship.reparent_rejected` after business-state rollback; mandatory audit failure and guard rejection tests prove rollback. Team Edit retains the Team Structure action but no membership mutation component. Focused backend tests, the canonical-surface guard, and deterministic desktop/mobile/keyboard Playwright workflows cover the accepted surface while `/admin/managers` remains absent.
 
 ### P29-W04 — TimeTracking browser-level E2E closure
 
@@ -575,10 +577,10 @@ Acceptance evidence: the 1,173-line host inventory identified direct ownership o
 * [x] Rendered missing-key Playwright assertion.
 * [ ] DataTable responsibility-boundary guard.
 * [ ] DataTable responsibility mutation fixture.
-* [ ] No separate Managers-area regression guard.
-* [ ] Team Structure canonical-mutation-surface guard.
-* [ ] Team hierarchy atomic move/reparent tests.
-* [ ] Team hierarchy DAG/self/head-manager/membership/stale/blocker regression tests.
+* [x] No separate Managers-area regression guard.
+* [x] Team Structure canonical-mutation-surface guard.
+* [x] Team hierarchy atomic move/reparent tests.
+* [x] Team hierarchy DAG/self/head-manager/membership/stale/blocker regression tests.
 * [ ] Legacy TimeTracking manager-report absence guard.
 * [ ] TimeTracking user/manager/Admin Playwright workflow coverage.
 * [ ] Browser console and failed-request assertions for new critical E2E flows.
@@ -587,14 +589,14 @@ Acceptance evidence: the 1,173-line host inventory identified direct ownership o
 
 * [x] Every `P29-LOC-*` issue is complete.
 * [ ] Every `P29-TABLE-*` issue is complete.
-* [ ] Every `P29-TEAM-*` issue is complete.
+* [x] Every `P29-TEAM-*` issue is complete.
 * [ ] Every `P29-TT-*` issue is complete.
 * [ ] `P29-GATE-001` is complete.
 * [x] No Atlas-owned translation key is visibly rendered as untranslated product copy in the accepted browser route matrix.
 * [x] Polish and English Atlas translation catalogs are complete and permanently guarded against drift.
 * [ ] `DataTable.vue` is genuinely composed from focused responsibility units rather than passing only a size threshold.
-* [ ] Team Structure is the canonical complete team membership and manager-hierarchy editing surface.
-* [ ] Manager move/reparent is atomic, validated, concurrency-safe, effective-dated, and audited.
+* [x] Team Structure is the canonical complete team membership and manager-hierarchy editing surface.
+* [x] Manager move/reparent is atomic, validated, concurrency-safe, effective-dated, and audited.
 * [ ] TimeTracking has representative browser-level user, manager, and Admin workflow coverage rather than only route smoke tests.
 * [ ] Intentionally empty user and manager dashboards remain intentionally empty.
 * [ ] No Phase 30 deployment implementation has been pulled into Phase 29.

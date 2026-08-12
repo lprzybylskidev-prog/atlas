@@ -30,6 +30,8 @@ final class E2eVisibilitySeeder extends Seeder
 
     public const LIMITED_EMAIL = 'limited@example.test';
 
+    public const STRUCTURE_CANDIDATE_EMAIL = 'structure.candidate@example.test';
+
     public const PASSWORD = 'password';
 
     public const TEAM_NAME = 'E2E Visibility Team';
@@ -45,6 +47,7 @@ final class E2eVisibilitySeeder extends Seeder
         $team = app(BootstrapTeamProvider::class)->provide(self::TEAM_NAME);
         $admin = $this->user(self::ADMIN_EMAIL, 'Visibility Admin', 'sensitive');
         $limited = $this->user(self::LIMITED_EMAIL, 'Visibility User');
+        $this->user(self::STRUCTURE_CANDIDATE_EMAIL, 'Structure Candidate');
         $memberships = app(UserTeamMembershipProvisioner::class);
         $memberships->ensureUserTeamMembership($admin->publicId, $team->publicId);
         $memberships->ensureUserTeamMembership($limited->publicId, $team->publicId);

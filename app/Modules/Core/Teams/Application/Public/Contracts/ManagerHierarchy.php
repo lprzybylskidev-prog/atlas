@@ -42,6 +42,16 @@ interface ManagerHierarchy
         ?string $expectedVersion = null,
     ): void;
 
+    public function reparent(
+        string $actorUserPublicId,
+        string $teamPublicId,
+        string $relationshipPublicId,
+        string $newManagerUserPublicId,
+        string $effectiveAt,
+        string $reason,
+        ?string $expectedVersion = null,
+    ): void;
+
     public function end(string $actorUserPublicId, string $relationshipPublicId, string $validTo, string $reason, ?string $expectedVersion = null): void;
 
     public function setHeadManager(

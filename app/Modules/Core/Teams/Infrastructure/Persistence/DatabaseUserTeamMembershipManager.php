@@ -15,6 +15,7 @@ use App\Shared\Application\Teams\Contracts\TeamLookup;
 use App\Shared\Application\Teams\Contracts\UserTeamMembershipManager;
 use App\Shared\Application\Teams\Contracts\UserTeamMembershipProvisioner;
 use App\Shared\Application\Teams\DTOs\AdminTeamUserMembership;
+use App\Shared\Application\Teams\DTOs\AdminTeamUserMembershipHistory;
 use App\Shared\Application\Teams\DTOs\AdminUserTeamMembership;
 use App\Shared\Application\Teams\DTOs\TeamDisplaySummary;
 use App\Shared\Application\Teams\DTOs\TeamLookupSummary;
@@ -369,6 +370,53 @@ final class DatabaseUserTeamMembershipManager implements TeamLookup, UserTeamMem
         return $memberships;
     }
 
+    public function membershipHistoryForTeam(string $teamPublicId): array
+    {
+        $rows = DB::table(TeamsDatabaseTable::TEAM_USER_ASSIGNMENTS)
+            ->join(TeamsDatabaseTable::TEAMS, 'team_user_assignments.team_id', '=', 'teams.id')
+            ->where('teams.public_id', $teamPublicId)
+            ->orderByDesc('team_user_assignments.valid_from')
+            ->orderByDesc('team_user_assignments.id')
+            ->get([
+                'team_user_assignments.user_id',
+                'team_user_assignments.is_head_manager',
+                'team_user_assignments.valid_from',
+                'team_user_assignments.valid_to',
+            ])
+            ->all();
+        $users = $this->users->displaySummariesForInternalIds(array_values(array_unique(array_map(
+            fn (object $row): int => $this->intValue(get_object_vars($row)['user_id'] ?? null),
+            $rows,
+        ))));
+        $history = [];
+        $now = Carbon::now();
+
+        foreach ($rows as $row) {
+            $values = get_object_vars($row);
+            $user = $users[$this->intValue($values['user_id'] ?? null)] ?? null;
+
+            if ($user === null) {
+                continue;
+            }
+
+            $validFrom = $this->nullableString($values['valid_from'] ?? null);
+            $validTo = $this->nullableString($values['valid_to'] ?? null);
+            $active = ($validFrom === null || Carbon::parse($validFrom)->lte($now))
+                && ($validTo === null || Carbon::parse($validTo)->gt($now));
+            $history[] = new AdminTeamUserMembershipHistory(
+                userPublicId: $user->publicId,
+                userName: $user->name,
+                userEmail: $user->email,
+                validFrom: $validFrom,
+                validTo: $validTo,
+                headManager: (bool) ($values['is_head_manager'] ?? false),
+                active: $active,
+            );
+        }
+
+        return $history;
+    }
+
     public function assignableUsersForTeam(string $teamPublicId): array
     {
         $activeUserIds = [];
@@ -464,10 +512,21 @@ final class DatabaseUserTeamMembershipManager implements TeamLookup, UserTeamMem
             return;
         }
 
-        DB::table(TeamsDatabaseTable::TEAM_USER_ASSIGNMENTS)->updateOrInsert([
+        $active = DB::table(TeamsDatabaseTable::TEAM_USER_ASSIGNMENTS)
+            ->where('team_id', $teamId)
+            ->where('user_id', $userId)
+            ->whereNull('valid_to')
+            ->exists();
+
+        if ($active) {
+            return;
+        }
+
+        DB::table(TeamsDatabaseTable::TEAM_USER_ASSIGNMENTS)->insert([
             'team_id' => $teamId,
             'user_id' => $userId,
-        ], [
+            'valid_from' => now(),
+            'valid_to' => null,
             'created_at' => now(),
             'updated_at' => now(),
         ]);
@@ -496,21 +555,25 @@ final class DatabaseUserTeamMembershipManager implements TeamLookup, UserTeamMem
         [$userId, $teamId] = $this->resolveIds($userPublicId, $teamPublicId);
         $before = $this->membershipSnapshot($userId, $teamId);
 
-        DB::transaction(function () use ($userId, $teamId): void {
-            DB::table(TeamsDatabaseTable::TEAM_USER_ASSIGNMENTS)->updateOrInsert([
+        if (($before['active'] ?? false) === true) {
+            return;
+        }
+
+        DB::transaction(function () use ($actorPublicId, $userPublicId, $teamPublicId, $userId, $teamId, $before): void {
+            DB::table(TeamsDatabaseTable::TEAM_USER_ASSIGNMENTS)->insert([
                 'team_id' => $teamId,
                 'user_id' => $userId,
-            ], [
                 'valid_from' => now(),
                 'valid_to' => null,
+                'is_head_manager' => false,
                 'updated_at' => now(),
                 'created_at' => now(),
             ]);
-        });
 
-        $this->recordAudit($actorPublicId, $userPublicId, $teamPublicId, 'team.user_access_added', 'succeeded', $before, [
-            'active' => true,
-        ]);
+            $this->recordAudit($actorPublicId, $userPublicId, $teamPublicId, 'team.user_access_added', 'succeeded', $before, [
+                'active' => true,
+            ]);
+        });
     }
 
     public function removeAccess(string $actorPublicId, string $userPublicId, string $teamPublicId, string $reason): void
@@ -552,24 +615,26 @@ final class DatabaseUserTeamMembershipManager implements TeamLookup, UserTeamMem
             ]);
         }
 
-        DB::transaction(function () use ($userId, $teamId, $userPublicId, $teamPublicId): void {
+        DB::transaction(function () use ($actorPublicId, $userId, $teamId, $userPublicId, $teamPublicId, $reason, $before): void {
             DB::table(TeamsDatabaseTable::TEAM_USER_ASSIGNMENTS)
                 ->where('team_id', $teamId)
                 ->where('user_id', $userId)
+                ->whereNull('valid_to')
                 ->update([
                     'valid_to' => now(),
                     'updated_at' => now(),
                 ]);
 
             $this->authorization->removeAssignmentsForUserTeam($userPublicId, $teamPublicId);
+
+            $this->recordAudit($actorPublicId, $userPublicId, $teamPublicId, 'team.user_access_removed', 'succeeded', $before, [
+                'active' => false,
+                'reason' => $reason,
+            ]);
         });
 
         $this->sessions->invalidateUserTeam($userPublicId, $teamPublicId);
 
-        $this->recordAudit($actorPublicId, $userPublicId, $teamPublicId, 'team.user_access_removed', 'succeeded', $before, [
-            'active' => false,
-            'reason' => $reason,
-        ]);
     }
 
     /**
@@ -595,6 +660,7 @@ final class DatabaseUserTeamMembershipManager implements TeamLookup, UserTeamMem
         $row = DB::table(TeamsDatabaseTable::TEAM_USER_ASSIGNMENTS)
             ->where('team_id', $teamId)
             ->where('user_id', $userId)
+            ->orderByDesc('id')
             ->first(['valid_from', 'valid_to']);
 
         if (! is_object($row)) {

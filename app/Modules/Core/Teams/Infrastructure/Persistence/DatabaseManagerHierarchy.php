@@ -7,6 +7,7 @@ namespace App\Modules\Core\Teams\Infrastructure\Persistence;
 use App\Modules\Core\Identity\Application\Public\Contracts\UserLookup;
 use App\Modules\Core\Teams\Application\Exceptions\ManagerHierarchyViolation;
 use App\Modules\Core\Teams\Application\Public\Contracts\ManagerHierarchy;
+use App\Modules\Core\Teams\Application\Public\Contracts\TeamStructureMutationGuard;
 use App\Modules\Core\Teams\Application\Public\DTOs\ManagerHierarchyNode;
 use App\Modules\Core\Teams\Application\Public\DTOs\ManagerImpactPreview;
 use App\Modules\Core\Teams\Application\Public\DTOs\ManagerRelationshipSummary;
@@ -27,6 +28,7 @@ final class DatabaseManagerHierarchy implements ManagerHierarchy
     public function __construct(
         private readonly AuditRecorder $audit,
         private readonly UserLookup $users,
+        private readonly TeamStructureMutationGuard $mutationGuard,
     ) {}
 
     public function version(string $teamPublicId): string
@@ -157,7 +159,7 @@ final class DatabaseManagerHierarchy implements ManagerHierarchy
 
         $publicId = (string) Str::ulid();
 
-        DB::transaction(static function () use ($teamId, $managerUserId, $reportUserId, $actorUserId, $validFromAt, $reason, $publicId): void {
+        DB::transaction(function () use ($actorUserPublicId, $teamPublicId, $managerUserPublicId, $reportUserPublicId, $teamId, $managerUserId, $reportUserId, $actorUserId, $validFromAt, $reason, $publicId): void {
             DB::table(TeamsDatabaseTable::TEAM_MANAGER_RELATIONSHIPS)->insert([
                 'public_id' => $publicId,
                 'team_id' => $teamId,
@@ -172,14 +174,125 @@ final class DatabaseManagerHierarchy implements ManagerHierarchy
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
-        });
 
-        $this->recordAudit($actorUserPublicId, $teamPublicId, 'team.manager_relationship.created', 'succeeded', 'manager_relationship', $publicId, [], [
-            'managerUserPublicId' => $managerUserPublicId,
-            'reportUserPublicId' => $reportUserPublicId,
-            'validFrom' => $validFromAt->toISOString(),
-            'reason' => $reason,
-        ]);
+            $this->recordAudit($actorUserPublicId, $teamPublicId, 'team.manager_relationship.created', 'succeeded', 'manager_relationship', $publicId, [], [
+                'managerUserPublicId' => $managerUserPublicId,
+                'reportUserPublicId' => $reportUserPublicId,
+                'validFrom' => $validFromAt->toISOString(),
+                'reason' => $reason,
+            ]);
+        });
+    }
+
+    public function reparent(
+        string $actorUserPublicId,
+        string $teamPublicId,
+        string $relationshipPublicId,
+        string $newManagerUserPublicId,
+        string $effectiveAt,
+        string $reason,
+        ?string $expectedVersion = null,
+    ): void {
+        try {
+            DB::transaction(function () use ($actorUserPublicId, $teamPublicId, $relationshipPublicId, $newManagerUserPublicId, $effectiveAt, $reason, $expectedVersion): void {
+                $teamId = $this->teamId($teamPublicId);
+                DB::table(TeamsDatabaseTable::TEAMS)->where('id', $teamId)->lockForUpdate()->first();
+                $this->assertVersion($teamPublicId, $expectedVersion);
+
+                $relationshipRow = DB::table(TeamsDatabaseTable::TEAM_MANAGER_RELATIONSHIPS)
+                    ->where('public_id', $relationshipPublicId)
+                    ->where('team_id', $teamId)
+                    ->where(fn (Builder $query) => $this->currentlyValidWhere($query))
+                    ->lockForUpdate()
+                    ->first(['manager_user_id', 'report_user_id', 'valid_from']);
+
+                if (! is_object($relationshipRow)) {
+                    throw ManagerHierarchyViolation::missingActiveRelationship();
+                }
+
+                $relationship = get_object_vars($relationshipRow);
+                $currentManagerUserId = $this->int($relationship['manager_user_id'] ?? null);
+                $reportUserId = $this->int($relationship['report_user_id'] ?? null);
+                $newManagerUserId = $this->userId($newManagerUserPublicId);
+                $currentManagerUserPublicId = $this->users->publicIdForInternalId($currentManagerUserId) ?? '';
+                $reportUserPublicId = $this->users->publicIdForInternalId($reportUserId) ?? '';
+                $effectiveAtValue = Carbon::parse($effectiveAt);
+                $currentValidFrom = Carbon::parse($this->string($relationship['valid_from'] ?? ''));
+
+                if ($effectiveAtValue->lt($currentValidFrom) || $effectiveAtValue->gt(now())) {
+                    throw ManagerHierarchyViolation::invalidEffectiveDate();
+                }
+
+                if ($newManagerUserId === $reportUserId) {
+                    throw ManagerHierarchyViolation::selfManagement();
+                }
+
+                if ($newManagerUserId === $currentManagerUserId) {
+                    throw ManagerHierarchyViolation::sameParent();
+                }
+
+                if (! $this->hasActiveMembership($teamId, $newManagerUserId) || ! $this->hasActiveMembership($teamId, $reportUserId)) {
+                    throw ManagerHierarchyViolation::inactiveMembership();
+                }
+
+                if ($this->wouldCreateCycle($teamId, $newManagerUserId, $reportUserId)) {
+                    throw ManagerHierarchyViolation::cycle();
+                }
+
+                $this->mutationGuard->assertReparentAllowed(
+                    $teamPublicId,
+                    $reportUserPublicId,
+                    $currentManagerUserPublicId,
+                    $newManagerUserPublicId,
+                );
+
+                $newRelationshipPublicId = (string) Str::ulid();
+                $actorUserId = $this->userId($actorUserPublicId);
+
+                DB::table(TeamsDatabaseTable::TEAM_MANAGER_RELATIONSHIPS)
+                    ->where('public_id', $relationshipPublicId)
+                    ->update([
+                        'valid_to' => $effectiveAtValue,
+                        'ended_by_user_id' => $actorUserId,
+                        'end_reason' => $reason,
+                        'updated_at' => now(),
+                    ]);
+                DB::table(TeamsDatabaseTable::TEAM_MANAGER_RELATIONSHIPS)->insert([
+                    'public_id' => $newRelationshipPublicId,
+                    'team_id' => $teamId,
+                    'manager_user_id' => $newManagerUserId,
+                    'report_user_id' => $reportUserId,
+                    'valid_from' => $effectiveAtValue,
+                    'valid_to' => null,
+                    'created_by_user_id' => $actorUserId,
+                    'ended_by_user_id' => null,
+                    'reason' => $reason,
+                    'end_reason' => null,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+
+                $this->recordAudit($actorUserPublicId, $teamPublicId, 'team.manager_relationship.reparented', 'succeeded', 'manager_relationship', $newRelationshipPublicId, [
+                    'relationshipPublicId' => $relationshipPublicId,
+                    'managerUserPublicId' => $currentManagerUserPublicId,
+                    'reportUserPublicId' => $reportUserPublicId,
+                ], [
+                    'managerUserPublicId' => $newManagerUserPublicId,
+                    'reportUserPublicId' => $reportUserPublicId,
+                    'effectiveAt' => $effectiveAtValue->toISOString(),
+                    'reason' => $reason,
+                ]);
+            });
+        } catch (ManagerHierarchyViolation $exception) {
+            $this->recordAudit($actorUserPublicId, $teamPublicId, 'team.manager_relationship.reparent_rejected', 'rejected', 'manager_relationship', $relationshipPublicId, [], [
+                'newManagerUserPublicId' => $newManagerUserPublicId,
+                'effectiveAt' => $effectiveAt,
+                'reason' => $reason,
+                'violation' => $exception->getMessage(),
+            ]);
+
+            throw $exception;
+        }
     }
 
     public function end(string $actorUserPublicId, string $relationshipPublicId, string $validTo, string $reason, ?string $expectedVersion = null): void
@@ -195,7 +308,8 @@ final class DatabaseManagerHierarchy implements ManagerHierarchy
         $actorUserId = $this->userId($actorUserPublicId);
         $validToAt = Carbon::parse($validTo);
 
-        DB::transaction(static function () use ($relationshipPublicId, $actorUserId, $validToAt, $reason): void {
+        $teamPublicId = $this->teamPublicId($relationship['team_id']);
+        DB::transaction(function () use ($actorUserPublicId, $teamPublicId, $relationshipPublicId, $actorUserId, $validToAt, $reason): void {
             DB::table(TeamsDatabaseTable::TEAM_MANAGER_RELATIONSHIPS)
                 ->where('public_id', $relationshipPublicId)
                 ->whereNull('valid_to')
@@ -205,15 +319,14 @@ final class DatabaseManagerHierarchy implements ManagerHierarchy
                     'end_reason' => $reason,
                     'updated_at' => now(),
                 ]);
-        });
 
-        $teamPublicId = $this->teamPublicId($relationship['team_id']);
-        $this->recordAudit($actorUserPublicId, $teamPublicId, 'team.manager_relationship.ended', 'succeeded', 'manager_relationship', $relationshipPublicId, [
-            'validTo' => null,
-        ], [
-            'validTo' => $validToAt->toISOString(),
-            'reason' => $reason,
-        ]);
+            $this->recordAudit($actorUserPublicId, $teamPublicId, 'team.manager_relationship.ended', 'succeeded', 'manager_relationship', $relationshipPublicId, [
+                'validTo' => null,
+            ], [
+                'validTo' => $validToAt->toISOString(),
+                'reason' => $reason,
+            ]);
+        });
     }
 
     public function setHeadManager(
@@ -256,21 +369,23 @@ final class DatabaseManagerHierarchy implements ManagerHierarchy
             ->where(fn (Builder $query) => $this->currentlyValidWhere($query))
             ->value('is_head_manager');
 
-        DB::table(TeamsDatabaseTable::TEAM_USER_ASSIGNMENTS)
-            ->where('team_id', $teamId)
-            ->where('user_id', $userId)
-            ->where(fn (Builder $query) => $this->currentlyValidWhere($query))
-            ->update([
-                'is_head_manager' => $headManager,
-                'updated_at' => now(),
-            ]);
+        DB::transaction(function () use ($actorUserPublicId, $teamPublicId, $teamId, $userId, $userPublicId, $headManager, $reason, $before): void {
+            DB::table(TeamsDatabaseTable::TEAM_USER_ASSIGNMENTS)
+                ->where('team_id', $teamId)
+                ->where('user_id', $userId)
+                ->where(fn (Builder $query) => $this->currentlyValidWhere($query))
+                ->update([
+                    'is_head_manager' => $headManager,
+                    'updated_at' => now(),
+                ]);
 
-        $this->recordAudit($actorUserPublicId, $teamPublicId, 'team.head_manager.updated', 'succeeded', 'team_user_assignment', $userPublicId, [
-            'headManager' => (bool) $before,
-        ], [
-            'headManager' => $headManager,
-            'reason' => $reason,
-        ]);
+            $this->recordAudit($actorUserPublicId, $teamPublicId, 'team.head_manager.updated', 'succeeded', 'team_user_assignment', $userPublicId, [
+                'headManager' => (bool) $before,
+            ], [
+                'headManager' => $headManager,
+                'reason' => $reason,
+            ]);
+        });
     }
 
     private function assertVersion(string $teamPublicId, ?string $expectedVersion): void
