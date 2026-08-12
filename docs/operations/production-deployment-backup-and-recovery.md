@@ -1,48 +1,248 @@
-# Production deployment, backup, restore, and recovery
+# Private production deployment, installation, backup, restore, and recovery
 
-Canonical production topology and operational procedures. This document complements the binding deployment roadmap phase.
+Canonical production topology and operational procedures. This document complements the binding [Phase 30 deployment roadmap](../roadmap/phase-30-deployment-backup-rollback.md).
+
+## Deployment baseline
+
+Atlas is a self-hosted internal company system. Its baseline production deployment is private and does not require public Internet exposure, public DNS, or a public endpoint.
+
+The supported baseline target is one company-controlled Linux host or VM running Docker Compose. Kubernetes, Docker Swarm, distributed clustering, multi-node high availability, and public SaaS deployment are outside this baseline.
+
+Phase 30 provides one canonical production installation workflow through an interactive installer. It builds on the existing production images, runtime configuration validation, readiness, runtime smoke, queues, scheduler, Files, ClamAV, PDF, search, security, and privacy foundations rather than replacing them.
 
 ## Phase 28 prerequisite boundary
 
-Current state: production deployment is planned for Phase 30. Phase 28 completed the prerequisite production image build, runtime configuration, `.dockerignore`/COPY boundaries, secrets handling, internal HTTP smoke stack, queue/scheduler parity, ClamAV/PDF/Search/File readiness, PostgreSQL volume verification, and backup-image buildability.
+Phase 28 completed the prerequisite production image build, runtime configuration, `.dockerignore`/COPY boundaries, secrets handling, internal HTTP smoke stack, queue/scheduler parity, ClamAV/PDF/Search/File readiness, PostgreSQL volume verification, and backup-image buildability.
 
-Target state before Phase 30: application and nginx production images are reproducible and smoke-tested; production runtime secrets are externalized; broad `DB_SEARCH_PATH` masking is removed; non-HTTP services remain private; and Phase 30 can build HTTPS, deployment, backup, restore, and rollback on a verified runtime foundation.
+Application and nginx production images are reproducible and smoke-tested; production runtime secrets are externalized; broad `DB_SEARCH_PATH` masking is removed; and non-HTTP services remain private. Phase 30 adds the private host installation workflow, optional TLS configuration, durable local Files storage, deployment, backup, restore, and rollback on that verified runtime foundation.
 
-Tracked issue IDs: `P28-RUNTIME-001` through `P28-RUNTIME-014`.
+Tracked Phase 28 issue IDs: `P28-RUNTIME-001` through `P28-RUNTIME-014`.
 
-## Production Topology
+## Private production topology
 
-- The baseline production topology is one application host or VM running Docker Compose.
-- In the Phase 30 deployment topology, public traffic will enter only through the TLS reverse proxy on ports 80/443. The Phase 28 smoke stack intentionally provides HTTP only, bound to `127.0.0.1:8080` by default.
-- PostgreSQL runs inside the production Docker Compose stack under project control and uses a durable persistent volume.
-- Redis, Meilisearch, ClamAV, Horizon, queue workers, scheduler, and the Chromium renderer remain private.
-- The production PHP runtime image includes Node.js, the runtime `playwright` package, and system Chromium so queued PDF exports can render through the same Node/Playwright/Chromium chain that readiness verifies. Chromium runs as the unprivileged `www-data` user. Playwright's inner Chromium user-namespace sandbox is explicitly disabled because Docker's default seccomp profile blocks that namespace operation; never compensate with `SYS_ADMIN`, privileged mode, or an unconfined seccomp profile. The non-root private container boundary is the accepted runtime sandbox.
-- Queue workers and Horizon are configured to tolerate long managed-process and import jobs. Keep worker timeout and Redis `retry_after` aligned so operational scripts that may run for hours are not duplicated while still executing.
-- Use versioned releases tied to exact commits/tags/images and switch through a `current` symlink only after readiness succeeds.
-- Do not introduce Kubernetes, Docker Swarm, or a distributed cluster unless explicitly requested for a concrete project.
-- Secrets stay outside the repository and application containers are never edited manually in place.
+```text
+trusted company network / LAN / VPN
+                |
+                v
+        Atlas reverse proxy
+                |
+                v
+       private Docker network
+       ├── PHP-FPM
+       ├── Horizon
+       ├── queue workers
+       ├── scheduler
+       ├── PostgreSQL
+       ├── Redis
+       ├── Meilisearch
+       ├── ClamAV
+       └── Chromium/PDF
+```
 
-## Phase 28 immutable image contract
+Only the reverse proxy may be reachable from the trusted client network. PostgreSQL, Redis, Meilisearch, ClamAV, PHP-FPM, Horizon, queue workers, scheduler, and Chromium/PDF remain on private Docker networks and must not be exposed to clients.
 
-`docker/production/php/Dockerfile` builds one versioned `atlas-runtime:<release-id>` artifact used unchanged by php-fpm, Horizon, and the scheduler. Composer installs from `composer.lock` with development dependencies and Composer itself absent from the final image. Vite assets are built from `pnpm-lock.yaml`; only production Node dependencies, the Node binary, system Chromium, application source, and runtime PHP extensions enter the final stage. Tests, host `vendor`, host `node_modules`, package managers, documentation, caches, local configuration, and secret files are excluded by `.dockerignore` and explicit COPY allowlists.
+The host administrator can bind the reverse proxy to an internal interface, trusted subnet, VPN-accessible interface, or equivalent company-controlled network. Clients may reach Atlas through a LAN, company network, VPN, or another controlled private segment. Atlas does not implement a VPN, firewall, or enterprise network-policy product; infrastructure-level access policy remains the host/network administrator's responsibility.
 
-The PHP container starts with the minimum privilege needed to read owner-only Compose secret files, validates and exports the registered `_FILE` values, and immediately executes its configured command as `www-data`. PHP-FPM logs to the writable application storage volume. Application commands never run as root. The image build performs package discovery, authoritative autoload generation, and view compilation; runtime configuration and route caches remain deployment-time concerns because they depend on external environment values.
+The Phase 28 smoke stack remains intentionally internal HTTP, bound to `127.0.0.1:8080` by default. It is a runtime proof, not the Phase 30 deployment topology.
 
-`docker/production/nginx/Dockerfile` independently builds the same locked Vite inputs, copies real public files and generated assets into nginx, and serves them with immutable caching. It forwards only `index.php` to PHP-FPM, rejects arbitrary PHP paths, and listens on internal HTTP port `8080`. It does not claim TLS termination.
+## TLS and reverse proxy
 
-Pinned PHP, Node.js, Composer, pnpm, nginx, PostgreSQL, Redis, and Meilisearch image tags are intentional runtime inputs. Upgrade them as a separate reviewed change, validate lockfile compatibility, rebuild all affected artifacts, and rerun the runtime smoke. The build context must remain source-only; `.dockerignore` and the explicit Dockerfile COPY lists are permanent reproducibility and secret-exclusion controls.
+HTTPS/TLS is supported and recommended for production, including internal deployments, but public Let's Encrypt and public ACME access are not required. A concrete installation may use:
 
-## Production environment and secrets contract
+- a certificate issued by an internal or company CA;
+- an administrator-supplied certificate and key;
+- TLS terminated by existing company infrastructure;
+- an external reverse proxy or load balancer;
+- Let's Encrypt or another ACME provider when that installation chooses it.
 
-Use `docker/production/.env.example` only as the non-secret Compose schema. Set a unique `ATLAS_RELEASE_ID` and meaningful release metadata. Every application container receives the same explicit production settings, `Europe/Warsaw`, and minimal PostgreSQL `DB_SEARCH_PATH=public`; module schemas are always referenced explicitly by application code.
+When Atlas terminates TLS, certificate and key material remains outside source control, appropriate security headers apply, and HTTP redirects to HTTPS. Trusted internal HTTP is permitted only when the installation operator explicitly accepts it for the controlled deployment environment. External TLS termination must preserve the same private backend topology and trusted proxy configuration.
 
-Secret values are external files described in `docker/production/secrets/README.md`. The runtime supports `<VARIABLE>_FILE` for the application key, PostgreSQL, Redis, Meilisearch, SMTP, Sentry, and Files S3 credentials, rejects simultaneous plain and file values, and fails startup when a configured secret is unreadable. The repository templates contain paths only. The Compose stack keeps PostgreSQL, Redis, Meilisearch, PHP-FPM, workers, scheduler, and operational backup traffic on the internal network.
+## Durable PostgreSQL and Files storage
 
-Run one-off Artisan operations with `docker compose run --rm --no-deps php-fpm ...`, not `docker compose exec`. A new Compose run passes through the image entrypoint and therefore loads mounted `_FILE` secrets before dropping privileges; an exec-created process bypasses the entrypoint and must not be used for secret-dependent application commands.
+PostgreSQL runs inside the production Docker Compose stack under project control and uses durable persistent storage. A container recreation, image rebuild, or release deployment must not remove database data.
 
-Production validation is fail-fast: debug mode must be disabled, the deployed marker must be true, timezone and database search path must match the Atlas contract, ports and booleans must be typed correctly, required settings must be non-empty, and the fake Files scanner is forbidden. Phase 28 establishes this schema; Phase 30 owns host secret provisioning and rotation.
+Atlas production Files use local persistent private storage as the baseline/default backend. The Files path is mounted into the required runtime services from a durable volume or host path outside ephemeral application-container storage. Ownership, permissions, backup access, and the minimum runtime write access must be explicit. Container recreation, image rebuild, and release deployment must not remove application files.
 
-## Internal HTTP smoke stack
+```text
+Atlas Files
+     |
+     v
+storage abstraction
+     |
+     ├── local persistent storage   <- baseline/default
+     |
+     └── S3-compatible storage      <- optional/future deployment choice
+```
+
+The existing backend-neutral Files storage abstraction remains authoritative. Business code and the Files module must not be coupled to the local filesystem, S3, or AWS-specific behavior. S3-compatible Files storage is an optional/future deployment backend and is not required by Phase 30. Local persistence must retain the existing ClamAV, quarantine, validation, metadata, and audit behavior.
+
+### PostgreSQL 18 durability boundary
+
+The Compose service declares `PGDATA=/var/lib/postgresql/18/docker` and mounts the durable `postgres-data` volume at `/var/lib/postgresql`. This parent mount is required by the PostgreSQL 18 image layout and prevents an image update or container recreation from silently selecting an unmounted data directory. The runtime smoke proves survival across container recreation. Do not change either path independently; a future major PostgreSQL upgrade requires a planned data migration and recovery proof.
+
+## Interactive production installation
+
+A fresh supported production host is installed through one canonical interactive entry point. The exact command name follows repository conventions; the intended operator flow is:
+
+```text
+clone repository
+↓
+checkout exact release/tag/commit
+↓
+run production installer
+↓
+preflight
+↓
+interactive configuration
+↓
+secrets and persistent storage created
+↓
+canonical production Compose stack started
+↓
+migrations executed
+↓
+first administrator bootstrapped
+↓
+backup schedule configured
+↓
+readiness verified
+↓
+installation completed
+```
+
+The installer is an orchestrator/bootstrapper, not a second deployment framework. It reuses the canonical Docker Compose, deployment, secret, migration, readiness, backup, and application commands. It does not reimplement Docker, PostgreSQL, networking, certificate management, or service management.
+
+Before destructive or persistent changes, preflight verifies the supported operating environment, Docker and Docker Compose availability, permissions, filesystem access, practical disk-space requirements, requested network binding, storage paths, existing Atlas installation state, and exact release identity. A failed preflight stops before leaving a partially installed system whenever possible.
+
+Interactive configuration collects the installation/company name, hostname or internal address, timezone, internal network binding, HTTP/TLS mode, supplied certificate paths, persistent Files path, PostgreSQL storage, backup location/retention/schedule, required SMTP configuration, optional Sentry configuration, and first-administrator identity where applicable. Values that Atlas can safely own are generated rather than requested.
+
+Secrets are generated securely, remain outside source control, and are not printed in normal logs. Generated `.env` or secret values are never committed. The installer bootstraps the first production administrator securely and never relies on known development credentials such as `admin@example.test` and `password`.
+
+Re-running the installer never wipes or silently reinitializes an existing installation. It detects that installation and stops safely or directs the operator to canonical operational commands. Safe and idempotent validation may repeat; destructive initialization may not.
+
+## Production images and secrets
+
+`docker/production/php/Dockerfile` builds one versioned `atlas-runtime:<release-id>` artifact used unchanged by PHP-FPM, Horizon, and the scheduler. Composer installs from `composer.lock`; Vite assets build from `pnpm-lock.yaml`. Runtime artifacts come from repository source and lockfiles, not host `vendor`, `node_modules`, or local build leftovers. Application commands and runtime services operate as non-root users.
+
+`docker/production/nginx/Dockerfile` builds the same locked Vite inputs, copies public files and generated assets into nginx, and forwards only `index.php` to PHP-FPM. Its internal HTTP listener does not itself claim TLS termination; Phase 30 supplies the selected reverse-proxy/TLS deployment configuration.
+
+Use `docker/production/.env.example` only as the non-secret Compose schema. Set a unique `ATLAS_RELEASE_ID` and meaningful release metadata. Secret values are external files described in `docker/production/secrets/README.md`. The repository templates contain paths only.
+
+Production validation remains fail-fast: debug mode is disabled, the deployed marker is true, timezone and database search path match the Atlas contract, typed settings are valid, required values are non-empty, and the fake Files scanner is forbidden. Phase 30 owns host secret provisioning and rotation without weakening these Phase 28 rules.
+
+One-off Artisan operations use the canonical operator wrapper. At the underlying Compose boundary, a new `docker compose run --rm --no-deps php-fpm ...` process passes through the image entrypoint and loads mounted `_FILE` secrets before dropping privileges; `docker compose exec` bypasses that entrypoint and is not suitable for secret-dependent application commands.
+
+## Database and Files backup
+
+A PostgreSQL persistent volume is not a backup. The supported production recovery strategy covers two distinct assets:
+
+```text
+PostgreSQL backup
++
+Files storage backup
+```
+
+Database backup produces verified, compressed, timestamped PostgreSQL dumps. It writes through a partial artifact, verifies the dump catalog, and atomically publishes the complete artifact. Files backup safely captures the durable local Files store while avoiding inconsistent or partial state where practical. Both artifact types remain outside ephemeral application containers and have configurable local retention.
+
+Local persistent backup storage is the baseline destination. A second or off-host copy is strongly recommended because same-host-only backups do not protect against complete host loss. The destination is installation-specific and may be a NAS, mounted company backup storage, NFS, another host, enterprise backup software, S3-compatible object storage, or a future backend. Atlas does not hardcode AWS/S3 or build speculative adapters for every destination; it may produce stable artifacts for company infrastructure to copy off-host.
+
+The canonical host `backup` command performs the supported database and Files backup procedure, verifies the produced artifacts, reports failure clearly, and supports recurring execution according to the configured schedule and retention.
+
+### Preliminary Phase 28 backup image
+
+The opt-in `operations` profile builds `atlas-backup:<release-id>` from the PostgreSQL 18 client image. Its narrow preliminary interface accepts only:
+
+```text
+atlas-backup create
+atlas-backup verify /backups/<artifact>.dump
+```
+
+This is a safe buildable foundation, not the complete production backup system. Phase 30 adds scheduling, retention, Files coverage, off-host strategy, restore, application verification, monitoring, and operational runbooks.
+
+## Restore and recovery
+
+Restore is a first-class supported production operation. The canonical host `restore` command:
+
+1. identifies and verifies the selected backup before destructive work;
+2. requires explicit operator confirmation;
+3. creates and verifies a new pre-restore backup of the current production state;
+4. restores the selected PostgreSQL state safely;
+5. restores Files according to the selected documented recovery procedure;
+6. runs application verification and readiness;
+7. fails safely and reports clearly when recovery cannot complete.
+
+Backup existence alone is insufficient. Phase 30 requires a real restore drill and verification of representative restored application data. Restore procedures must state how database and Files artifacts relate so the operator does not unknowingly restore an inconsistent pair.
+
+## Exact-release deployment
+
+Production never deploys a floating `main` branch or floating image. The operator selects an exact release, tag, or commit and exact image identifiers. Releases are prepared separately from the active release whenever possible:
+
+```text
+exact release selected
+↓
+release prepared in a versioned location
+↓
+locked production dependencies and frontend built
+↓
+required checks
+↓
+database backup when required
+↓
+compatible migrations
+↓
+new-release readiness
+↓
+atomic current-release switch
+↓
+PHP-FPM/Horizon/workers/scheduler reload
+↓
+post-switch readiness
+```
+
+Application source remains immutable inside running containers. Operators do not edit production container files manually. Maintenance mode is reserved for incompatible operations that cannot be performed safely while serving traffic.
+
+## Rollback and migration safety
+
+The previous deployable release is tracked. If post-switch readiness fails, Atlas returns automatically to that release only when database migrations remain compatible. Automatic rollback must never imply that every migration can be reversed safely.
+
+Risky or irreversible migrations require explicit recognition, a fresh verified backup, a documented deployment plan, and a documented recovery strategy. When compatibility cannot be established, the rollback command refuses automatic action or requires an explicit operator-led recovery procedure.
+
+## Operator interface and release metadata
+
+Routine production work uses one small canonical operator interface rather than memorized internal Docker commands. It provides or wraps at least:
+
+- `install`;
+- `deploy`;
+- `rollback`;
+- `status`;
+- `restart`;
+- `logs`;
+- `artisan`;
+- `composer`;
+- `pnpm`;
+- `backup`;
+- `restore`.
+
+Release metadata records the release ID, Git commit, Git tag, exact image identifiers, deployment timestamp, and operator identity where available. Appropriate operational surfaces expose it through Admin System Status, readiness, logs, and Sentry without leaking secrets.
+
+## Production acceptance and recovery drills
+
+Phase 30 acceptance uses a clean supported production-like host or VM. The proof covers installer preflight, exact-release identity, interactive configuration, first-admin bootstrap, readiness, administrator sign-in, representative Files storage and ClamAV behavior, PostgreSQL and Files survival across container recreation, recurring and manual backup, backup verification, pre-restore backup, a real restore drill, representative restored state, exact-release deployment, readiness-gated switching, safe rollback, backend network isolation, configured TLS, and release metadata.
+
+The permanent operational guardrails are:
+
+- only the reverse proxy may become reachable from the trusted client network;
+- backend/runtime services remain private;
+- PostgreSQL and Files never rely on ephemeral container storage;
+- installation uses an exact release and never development credentials;
+- installer reruns never destroy an existing installation;
+- secrets never enter source control;
+- restore requires confirmation and a pre-restore backup;
+- readiness gates deployment switching;
+- automatic rollback respects migration compatibility;
+- running containers are not modified manually as a normal deployment procedure.
+
+## Internal HTTP runtime smoke
 
 Run static validation without starting services:
 
@@ -56,43 +256,15 @@ Run the isolated build and runtime proof from a Docker-capable trusted developme
 composer runtime:smoke
 ```
 
-The smoke command builds all three artifacts from repository source, verifies the final-image allowlists and non-root application UID, rejects unsupported backup commands, starts isolated PostgreSQL, Redis, Meilisearch, ClamAV, PHP-FPM, nginx, Horizon, and scheduler services, and applies fresh migrations. It checks liveness/readiness and a generated Vite asset, executes a harmless probe through every canonical queue, proves scheduler heartbeat freshness, rejects the EICAR test payload through real ClamAV signatures, renders and validates a true PDF through Node/Playwright/system Chromium, recreates PostgreSQL, and proves a probe row survived in the PostgreSQL volume. It then performs a clean Compose teardown. `ATLAS_SMOKE_HTTP_PORT` may select a different loopback port; inside the Dev Container, retain `ATLAS_WORKSPACE_SOURCE` so the host Docker daemon can resolve temporary secret paths.
+The smoke command builds the production artifacts, verifies final-image boundaries and non-root execution, starts isolated PostgreSQL, Redis, Meilisearch, ClamAV, PHP-FPM, nginx, Horizon, and scheduler services, applies fresh migrations, and checks liveness/readiness and generated assets. It exercises queues, scheduler, ClamAV, PDF rendering, and PostgreSQL persistence across recreation before clean teardown.
 
-This is deliberately not a deployment procedure. It provides no HTTPS, certificates, public host routing, release switching, backup schedule, retention, encryption, off-host copy, restore drill, or rollback. Those remain Phase 30.
-
-## PostgreSQL 18 durability boundary
-
-The Compose service declares `PGDATA=/var/lib/postgresql/18/docker` and mounts the durable `postgres-data` volume at `/var/lib/postgresql`. This parent mount is required by the PostgreSQL 18 image layout and prevents an image update or container recreation from silently selecting an unmounted data directory. The runtime smoke explicitly proves survival across container recreation. Do not change either path independently; a future major PostgreSQL upgrade requires a planned data migration and recovery proof.
-
-## Preliminary backup image
-
-The opt-in `operations` profile builds `atlas-backup:<release-id>` from the PostgreSQL 18 client image. Its narrow interface accepts only:
-
-```text
-atlas-backup create
-atlas-backup verify /backups/<artifact>.dump
-```
-
-`create` reads the database password from a mounted secret, writes a compressed custom-format dump below `/backups` through a `.partial` file, verifies its catalog, refuses overwrites and paths outside the backup volume, and atomically publishes the completed artifact. `verify` checks only that an existing dump catalog is readable. The service runs as the PostgreSQL image's unprivileged user and is never started by the default profile.
-
-This interface is only a safe buildable foundation. It is not an accepted production backup system: scheduling, retention, encryption, off-host replication, restore into an isolated database, application-level verification, monitoring, runbooks, and rollback remain binding Phase 30 work.
+This smoke remains a runtime prerequisite, not a deployment procedure. It does not install a production host, configure the selected network/TLS mode, manage releases, schedule database and Files backups, restore production state, or perform rollback. Those remain Phase 30 work.
 
 ## Manual Ubuntu/Debian runtime parity
 
-Atlas may also be installed directly on an Ubuntu/Debian-style server without the production containers. That installation must satisfy the same external mechanism contract as the Dev Container and production image:
+The non-container Ubuntu/Debian runtime contract remains relevant for behavioral parity, external dependency documentation, and supported operational mechanisms. It requires the same PHP extensions, locked Composer and Node dependencies, Chromium, ClamAV, PostgreSQL, Redis, Meilisearch, queues, scheduler, writable application storage, private Files storage, health checks, and non-root execution as the container runtime.
 
-- PHP with the extensions used by the production PHP image;
-- Composer dependencies installed from the committed lockfile;
-- Node.js available on `PATH`;
-- production Node dependencies installed with `pnpm install --frozen-lockfile --prod`;
-- an executable Chromium-compatible browser, preferably the distribution `chromium` package or an explicit path configured with `ATLAS_HEALTH_CHROMIUM_BINARY`;
-- ClamAV `clamd` reachable on the private network (normally TCP 3310), with `freshclam` signature updates and a persistent signature directory;
-- PostgreSQL, Redis, Meilisearch, queue workers, and scheduler configured to the same service contracts as the container topology;
-- writable application storage and private file storage paths owned by the runtime user.
-
-After installation, run `/health/ready` before accepting traffic. Admin System Status must show the same external mechanism state that would be expected in the Dev Container and production Docker stack. Chromium/PDF is healthy only when Node, the Atlas renderer script, the runtime `playwright` package, and an executable browser are all available to the PHP runtime user.
-
-Manual services run `php artisan horizon` and `php artisan schedule:work` as the same non-root release user. Configure the service manager with a 60-second stop allowance, restart-on-failure, and graceful release switching via `php artisan horizon:terminate`. Validate with `php artisan horizon:status`, `php artisan system:queue-smoke`, and `php artisan system:scheduler-status`.
+This parity contract does not replace the Phase 30 baseline installation workflow: the canonical production installer targets the company-controlled single-host/VM Docker Compose topology.
 
 ## Release checklist
 

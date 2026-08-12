@@ -39,7 +39,7 @@ Do not replace this index after the initial technical foundation is completed. C
 
 ## Current phase
 
-- Phase: [Phase 30 — Production deployment, backup, restore, and rollback](docs/roadmap/phase-30-deployment-backup-rollback.md)
+- Phase: [Phase 30 — Private production deployment, installer, backup, restore, and rollback](docs/roadmap/phase-30-deployment-backup-rollback.md)
 - Status: `not started`
 
 ## Roadmap dependency repair note
@@ -344,13 +344,13 @@ Close concrete post-Phase-28 acceptance gaps in localization, DataTable responsi
 
 [Open implementation contract and tasks](docs/roadmap/phase-29-foundation-acceptance-repair.md)
 
-### Phase 30 — Production deployment, backup, restore, and rollback
+### Phase 30 — Private production deployment, installer, backup, restore, and rollback
 
 **Status:** `not started`
 
-Implement the single-host production Docker topology, HTTPS, deployment releases, PostgreSQL backups, restore, readiness, and rollback.
+Implement the private single-host/VM Docker Compose topology, interactive installer, durable PostgreSQL and local Files storage, database and Files backup, restore, exact-release deployment, readiness, and rollback.
 
-Depends on Phases 28 and 29. Phase 28 provides reproducible images, runtime configuration, dependency readiness, queue/scheduler parity, ClamAV/PDF/Search/File smoke foundations, and an internal HTTP smoke stack. Production HTTPS, deployment, backup, restore, and rollback remain Phase 30 scope.
+Depends on Phases 28 and 29. Phase 28 provides reproducible images, runtime configuration, dependency readiness, queue/scheduler parity, ClamAV/PDF/Search/File smoke foundations, and an internal HTTP smoke stack. The Phase 30 baseline is private/intranet and does not require public Internet exposure; TLS supports internal/company certificates and keeps Let's Encrypt/ACME optional. Interactive installation, deployment, database and Files backup, restore, and rollback remain Phase 30 scope.
 
 [Open implementation contract and tasks](docs/roadmap/phase-30-deployment-backup-rollback.md)
 
