@@ -1,6 +1,6 @@
 # Phase 31 — Optional internal company chat, calendar, calls, meetings, and realtime communication
 
-**Status:** `in progress` (`P31-W01` complete; `P31-W02` is next)
+**Status:** `in progress` (`P31-W01` and `P31-W02` complete; `P31-W03` is next)
 
 ## Objective
 
@@ -432,23 +432,23 @@ Conflicts do not block Meeting creation.
 
 ### Tasks
 
-- [ ] Create the shared Core Calendar capability.
-- [ ] Add personal private Calendar events.
-- [ ] Add title/description/start/end/all-day/location.
-- [ ] Add recurrence.
-- [ ] Add multiple reminders.
-- [ ] Add user default reminder preference.
-- [ ] Add per-event reminder override.
-- [ ] Add Free/Busy state.
-- [ ] Add privacy-safe Free/Busy lookup.
-- [ ] Add conflict warnings without blocking scheduling.
-- [ ] Add Month / Week / Day / Agenda views.
-- [ ] Preserve Europe/Warsaw recurrence semantics.
-- [ ] Keep personal events participant-free.
-- [ ] Keep Calendar independent from Chat persistence.
-- [ ] Add Calendar authorization/privacy tests.
-- [ ] Add recurrence and DST regression tests.
-- [ ] Add Calendar browser coverage.
+- [x] Create the shared Core Calendar capability.
+- [x] Add personal private Calendar events.
+- [x] Add title/description/start/end/all-day/location.
+- [x] Add recurrence.
+- [x] Add multiple reminders.
+- [x] Add user default reminder preference.
+- [x] Add per-event reminder override.
+- [x] Add Free/Busy state.
+- [x] Add privacy-safe Free/Busy lookup.
+- [x] Add conflict warnings without blocking scheduling.
+- [x] Add Month / Week / Day / Agenda views.
+- [x] Preserve Europe/Warsaw recurrence semantics.
+- [x] Keep personal events participant-free.
+- [x] Keep Calendar independent from Chat persistence.
+- [x] Add Calendar authorization/privacy tests.
+- [x] Add recurrence and DST regression tests.
+- [x] Add Calendar browser coverage.
 
 ---
 

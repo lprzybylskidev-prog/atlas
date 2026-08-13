@@ -15,4 +15,6 @@ final class CalendarDatabaseTable
     public const REMINDERS = DatabaseSchema::CORE_CALENDAR.'.reminders';
 
     public const RECURRENCE_EXCEPTIONS = DatabaseSchema::CORE_CALENDAR.'.recurrence_exceptions';
+
+    public const USER_PREFERENCES = DatabaseSchema::CORE_CALENDAR.'.user_preferences';
 }

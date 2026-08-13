@@ -42,7 +42,7 @@ return [
         'managers' => 'Managerowie', 'manual_entry' => 'Wpis ręczny', 'members' => 'Członkowie', 'mfa_reset' => 'Reset MFA',
         'meeting_host' => 'Prowadzenie spotkań', 'meetings' => 'Spotkania', 'moderate' => 'Moderowanie', 'module_activation' => 'Aktywacja modułów', 'modules' => 'Moduły', 'notification_emails' => 'Adresy powiadomień',
         'notifications' => 'Powiadomienia', 'operations' => 'Operacje', 'other_work' => 'Inna praca', 'override' => 'Nadpisanie',
-        'packages' => 'Presety', 'panels' => 'Panele', 'password' => 'Hasło', 'permissions' => 'Uprawnienia',
+        'packages' => 'Presety', 'panels' => 'Panele', 'password' => 'Hasło', 'permissions' => 'Uprawnienia', 'preferences' => 'Ustawienia',
         'preview' => 'Podgląd', 'print' => 'Drukowanie', 'privacy_retention' => 'Prywatność i retencja', 'profile' => 'Profil',
         'pulse' => 'Pulse', 'query' => 'Wyszukiwanie', 'queues' => 'Kolejki', 'rate_limits' => 'Limity żądań', 'read' => 'Odczyt',
         'readiness' => 'Gotowość', 'realtime' => 'Czas rzeczywisty', 'rebuild' => 'Przebudowa', 'record' => 'Rejestrowanie',

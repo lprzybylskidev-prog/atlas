@@ -44,6 +44,11 @@ Breadcrumbs::for('dashboard', function (Generator $breadcrumbs): void {
     atlas_application_root($breadcrumbs);
 });
 
+Breadcrumbs::for('calendar.index', function (Generator $breadcrumbs): void {
+    atlas_application_root($breadcrumbs);
+    $breadcrumbs->push(__('breadcrumbs.calendar'), route('calendar.index'));
+});
+
 Breadcrumbs::for('users.notifications.index', function (Generator $breadcrumbs): void {
     atlas_user_panel_root($breadcrumbs);
     $breadcrumbs->push(__('breadcrumbs.notifications'), route('users.notifications.index'));

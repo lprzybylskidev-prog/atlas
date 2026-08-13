@@ -10,6 +10,7 @@ const adminUser = {
 
 const applicationRoutes = [
     '/',
+    '/calendar?view=month&date=2026-08-13',
     '/user',
     '/user/notifications',
     '/user/work-time',

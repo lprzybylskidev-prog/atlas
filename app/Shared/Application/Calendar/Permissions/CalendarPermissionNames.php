@@ -13,4 +13,6 @@ final class CalendarPermissionNames
     public const EVENT_UPDATE = 'calendar.events.update';
 
     public const EVENT_DESTROY = 'calendar.events.destroy';
+
+    public const PREFERENCE_UPDATE = 'calendar.preferences.update';
 }

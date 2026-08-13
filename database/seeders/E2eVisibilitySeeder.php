@@ -8,6 +8,7 @@ use App\Modules\Core\Audit\Application\Public\Contracts\AuditEventLookup;
 use App\Modules\Core\Authorization\Application\Permissions\CoreAuthorizationPermissionCatalog;
 use App\Modules\Core\Authorization\Application\Public\Contracts\AdministratorAccessManager;
 use App\Modules\Core\Authorization\Application\Roles\StarterRoleName;
+use App\Modules\Core\Calendar\Application\Contracts\CalendarFixtureBuilder;
 use App\Modules\Core\Identity\Application\Public\Contracts\VerifiedUserFixtureBuilder;
 use App\Modules\Core\Identity\Application\Public\DTOs\VerifiedUserFixture;
 use App\Modules\Core\Teams\Application\Public\Contracts\BootstrapTeamProvider;
@@ -83,6 +84,7 @@ final class E2eVisibilitySeeder extends Seeder
         );
         $this->activateModules($team->publicId);
         app(ImportFixtureBuilder::class)->provideVisibilityImport($admin->publicId, $team->publicId);
+        app(CalendarFixtureBuilder::class)->provideVisibilityEvents($admin->internalId);
 
         $this->seedCopiedAuthorizationAssignment($admin, $limited, $team->publicId);
         $this->seedManagerScope($admin, $limited, $extraReport, $head, $team->publicId);

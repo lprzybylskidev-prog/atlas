@@ -362,7 +362,7 @@ Depends on the completed Authorization, Teams, manager hierarchy, Audit, Setting
 
 ### Phase 31 — Optional internal company chat, calendar, calls, meetings, and realtime communication
 
-**Status:** `in progress` (`P31-W01` complete)
+**Status:** `in progress` (`P31-W01` and `P31-W02` complete; `P31-W03` is next)
 
 Implement Atlas-owned internal communication with direct/group/Team/Meeting Chat, a shared Core Calendar, audio/video Calls, Meetings, screen sharing, Files-owned Meeting recordings, provider-neutral transcription readiness, Reverb and self-hosted LiveKit/Egress infrastructure, authorization-safe Search, privacy, retention, participant exports, and browser alerts.
 

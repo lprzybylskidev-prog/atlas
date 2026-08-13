@@ -6,6 +6,7 @@ namespace Tests\Unit\Calendar;
 
 use App\Modules\Core\Calendar\Application\Public\DTOs\CalendarEventContribution;
 use App\Modules\Core\Calendar\Application\Public\DTOs\FreeBusyQuery;
+use App\Modules\Core\Calendar\Domain\Events\PersonalCalendarEvent;
 use DateTimeImmutable;
 use InvalidArgumentException;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -13,6 +14,18 @@ use PHPUnit\Framework\TestCase;
 
 final class CalendarBoundaryTest extends TestCase
 {
+    public function test_personal_events_have_no_participant_or_invitation_state(): void
+    {
+        $properties = array_map(
+            static fn (\ReflectionProperty $property): string => $property->getName(),
+            (new \ReflectionClass(PersonalCalendarEvent::class))->getProperties(),
+        );
+
+        self::assertNotContains('participants', $properties);
+        self::assertNotContains('participantUserPublicIds', $properties);
+        self::assertNotContains('invitations', $properties);
+    }
+
     public function test_module_event_contribution_has_an_owner_and_authorized_participants(): void
     {
         $event = new CalendarEventContribution(

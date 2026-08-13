@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use App\Modules\Core\Calendar\Application\Permissions\CalendarPermissionCatalog;
+use App\Modules\Core\Calendar\Presentation\Http\Controllers\CalendarController;
 use App\Modules\Core\Exports\Presentation\Http\Controllers\AdminDataTableExportController;
 use App\Modules\Core\Exports\Presentation\Http\Controllers\DownloadReportArtifactController;
 use App\Modules\Core\Exports\Presentation\Http\Controllers\PrintReportExportController;
@@ -51,6 +53,11 @@ Route::middleware('auth')->group(function (): void {
 
 Route::middleware(['auth', 'route.permission'])->group(function (): void {
     Route::get('/', fn () => Inertia::render('Dashboard'))->name('dashboard');
+    Route::get('/calendar', [CalendarController::class, 'index'])->name(CalendarPermissionCatalog::INDEX);
+    Route::post('/calendar/events', [CalendarController::class, 'store'])->name(CalendarPermissionCatalog::EVENT_STORE);
+    Route::patch('/calendar/events/{event}', [CalendarController::class, 'update'])->name(CalendarPermissionCatalog::EVENT_UPDATE);
+    Route::delete('/calendar/events/{event}', [CalendarController::class, 'destroy'])->name(CalendarPermissionCatalog::EVENT_DESTROY);
+    Route::patch('/calendar/preferences', [CalendarController::class, 'updatePreference'])->name(CalendarPermissionCatalog::PREFERENCE_UPDATE);
     Route::get('/user', UserProfileController::class)->name(UserPermissionCatalog::USERS_PROFILE);
     Route::get('/user/avatar-image', UserProfileAvatarImageController::class)->name(UserPermissionCatalog::USERS_PROFILE_AVATAR_IMAGE);
     Route::put('/user/password', UpdateUserProfilePasswordController::class)->name(UserPermissionCatalog::USERS_PROFILE_PASSWORD_UPDATE);

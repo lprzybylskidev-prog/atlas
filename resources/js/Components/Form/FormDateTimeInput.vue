@@ -8,12 +8,22 @@ import { useTranslator } from '../../Localization/translator';
 
 const model = defineModel<string>({ required: true });
 
-defineProps<{
-    label?: string;
-    ariaLabel?: string;
-    id?: string;
-    error?: string;
-}>();
+const props = withDefaults(
+    defineProps<{
+        label?: string;
+        ariaLabel?: string;
+        id?: string;
+        error?: string;
+        includeOffset?: boolean;
+    }>(),
+    {
+        label: undefined,
+        ariaLabel: undefined,
+        id: undefined,
+        error: undefined,
+        includeOffset: true,
+    },
+);
 
 const { t } = useTranslator();
 const dateValue = computed({
@@ -66,7 +76,7 @@ function serialize(date: string, hour: string, minute: string, second: string): 
     const normalizedHour = clampPart(hour, 23);
     const normalizedMinute = clampPart(minute, 59);
     const normalizedSecond = clampPart(second, 59);
-    const offset = timezoneOffset(date, normalizedHour, normalizedMinute, normalizedSecond);
+    const offset = props.includeOffset ? timezoneOffset(date, normalizedHour, normalizedMinute, normalizedSecond) : '';
 
     return `${date}T${normalizedHour}:${normalizedMinute}:${normalizedSecond}${offset}`;
 }

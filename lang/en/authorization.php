@@ -42,7 +42,7 @@ return [
         'managers' => 'Managers', 'manual_entry' => 'Manual entry', 'members' => 'Members', 'mfa_reset' => 'Reset MFA',
         'meeting_host' => 'Meeting host', 'meetings' => 'Meetings', 'moderate' => 'Moderate', 'module_activation' => 'Module activation', 'modules' => 'Modules', 'notification_emails' => 'Notification addresses',
         'notifications' => 'Notifications', 'operations' => 'Operations', 'other_work' => 'Other work', 'override' => 'Override',
-        'packages' => 'Presets', 'panels' => 'Panels', 'password' => 'Password', 'permissions' => 'Permissions',
+        'packages' => 'Presets', 'panels' => 'Panels', 'password' => 'Password', 'permissions' => 'Permissions', 'preferences' => 'Preferences',
         'preview' => 'Preview', 'print' => 'Print', 'privacy_retention' => 'Privacy and retention', 'profile' => 'Profile',
         'pulse' => 'Pulse', 'query' => 'Query', 'queues' => 'Queues', 'rate_limits' => 'Rate limits', 'read' => 'Read',
         'readiness' => 'Readiness', 'realtime' => 'Realtime', 'rebuild' => 'Rebuild', 'record' => 'Record',

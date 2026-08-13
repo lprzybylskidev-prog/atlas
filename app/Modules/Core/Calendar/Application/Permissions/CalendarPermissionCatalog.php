@@ -18,6 +18,8 @@ final class CalendarPermissionCatalog implements ModulePermissionContribution
 
     public const EVENT_DESTROY = CalendarPermissionNames::EVENT_DESTROY;
 
+    public const PREFERENCE_UPDATE = CalendarPermissionNames::PREFERENCE_UPDATE;
+
     public function permissions(): array
     {
         return [
@@ -25,6 +27,7 @@ final class CalendarPermissionCatalog implements ModulePermissionContribution
             new ModulePermissionDefinition(self::EVENT_STORE, 'Create personal Calendar events.'),
             new ModulePermissionDefinition(self::EVENT_UPDATE, 'Update own personal Calendar events.'),
             new ModulePermissionDefinition(self::EVENT_DESTROY, 'Delete own personal Calendar events.'),
+            new ModulePermissionDefinition(self::PREFERENCE_UPDATE, 'Update own Calendar reminder preferences.'),
         ];
     }
 }
