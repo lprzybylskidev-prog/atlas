@@ -79,7 +79,6 @@ final readonly class EditUserAccountController
                     'provenancePublicId' => $assignments->provenancePublicId,
                     'provenanceSourceType' => $assignments->sourceType,
                     'provenanceSourceLabel' => $assignments->sourceDisplayNameSnapshot,
-                    'provenanceDivergedAt' => $assignments->divergedAt,
                     'provenanceVersion' => $assignments->version,
                 ];
             }, $this->memberships->activeMembershipsForUser($account->publicId)),

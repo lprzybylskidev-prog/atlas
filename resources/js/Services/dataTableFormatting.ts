@@ -11,6 +11,7 @@ import {
     formatPercent,
     formatTimestamp,
     formatTime,
+    formatStatus,
 } from '../Utils/formatters';
 import { statusBadgeToneForToken } from '../Utils/statusBadge';
 import SeverityBadge from '../Components/SeverityBadge.vue';
@@ -24,7 +25,11 @@ export function createDataTableFormatting(t: Translator, locale?: string) {
     function localizedStatus(value: string): string {
         const key = statusTranslationKey(value);
 
-        return key === undefined ? `[status:${value}]` : t(key);
+        if (key !== undefined) {
+            return t(key);
+        }
+
+        return /\s/u.test(value) && !/[-_.]/u.test(value) ? value : formatStatus(value);
     }
 
     function statusBadge(value: string): VNodeChild {

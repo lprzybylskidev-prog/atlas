@@ -1,6 +1,6 @@
 # Phase 30 — Authorization, Team Structure, and mutation feedback repair
 
-**Status:** `not started`
+**Status:** `in progress`
 
 ## Objective
 
@@ -288,25 +288,27 @@ Technical permission keys may remain as secondary Admin metadata where useful, b
 
 ### Tasks
 
-- [ ] Preserve the role-grant plus direct-grant authorization model.
-- [ ] Explicitly document that no permission deny layer exists.
-- [ ] Keep User Edit as the canonical authorization-mutation surface.
-- [ ] Compute role-derived permission state for the direct-permission selector.
-- [ ] Render role-derived permissions as checked and disabled.
-- [ ] Show the role or roles granting each role-derived permission.
-- [ ] Preserve real overlapping direct grants without converting role grants into direct grants.
-- [ ] Recompute role-derived/direct/effective state immediately when roles change.
-- [ ] Replace user-facing `Original source` semantics with `Source`.
-- [ ] Make source describe the current assignment state.
-- [ ] Convert manually changed preset/copy assignments to current source `manual`.
-- [ ] Preserve optimistic assignment versioning.
-- [ ] Migrate existing diverged assignment provenance to truthful current-source semantics.
-- [ ] Remove obsolete divergence-specific persistence/contracts where no longer needed.
-- [ ] Keep provenance history in Audit rather than the main edit UI.
-- [ ] Remove the user-facing divergence/snapshot message.
-- [ ] Fix unresolved `:source` interpolation.
-- [ ] Add localized human-readable authorization labels.
-- [ ] Add backend, frontend, persistence, and migration tests for the new current-source contract.
+- [x] Preserve the role-grant plus direct-grant authorization model.
+- [x] Explicitly document that no permission deny layer exists.
+- [x] Keep User Edit as the canonical authorization-mutation surface.
+- [x] Compute role-derived permission state for the direct-permission selector.
+- [x] Render role-derived permissions as checked and disabled.
+- [x] Show the role or roles granting each role-derived permission.
+- [x] Preserve real overlapping direct grants without converting role grants into direct grants.
+- [x] Recompute role-derived/direct/effective state immediately when roles change.
+- [x] Replace user-facing `Original source` semantics with `Source`.
+- [x] Make source describe the current assignment state.
+- [x] Convert manually changed preset/copy assignments to current source `manual`.
+- [x] Preserve optimistic assignment versioning.
+- [x] Migrate existing diverged assignment provenance to truthful current-source semantics.
+- [x] Remove obsolete divergence-specific persistence/contracts where no longer needed.
+- [x] Keep provenance history in Audit rather than the main edit UI.
+- [x] Remove the user-facing divergence/snapshot message.
+- [x] Fix unresolved `:source` interpolation.
+- [x] Add localized human-readable authorization labels.
+- [x] Add backend, frontend, persistence, and migration tests for the new current-source contract.
+
+Completion evidence (2026-08-13): User Edit now keeps role-derived, persisted direct, and effective permission state separate; role grants render as checked/disabled with localized granting-role labels and recompute reactively. Manual changes replace preset/copy current-source metadata with `manual` while optimistic versions and audit before/after source evidence remain. The pre-production canonical create migration removes `diverged_at`; existing development databases adopt the new schema through the standard fresh-migration workflow. The shared translator accepts Laravel colon placeholders, the shared DataTable formatter no longer emits `[status:...]`, and browser copy guards reject that diagnostic globally. Focused backend/frontend/persistence/schema tests, the full frontend check/build, and the affected schema-ownership test pass; the full PHPStan command remains affected by the documented native exit-139 tool failure.
 
 ---
 
@@ -1371,14 +1373,14 @@ The following decisions are binding:
 
 - [ ] Team Edit cannot mutate member authorization.
 - [ ] Team Edit cannot mutate Team membership.
-- [ ] User Edit remains capable of role/direct-permission mutation.
-- [ ] Role-derived permissions cannot be toggled off through direct grants.
-- [ ] No explicit deny permission layer is introduced.
-- [ ] Role-derived UI state cannot accidentally become a persisted direct grant.
-- [ ] Existing overlapping direct grants are not silently destroyed.
-- [ ] Current Source becomes Manual after manual edit.
-- [ ] Normal authorization UI does not expose original-source divergence wording.
-- [ ] Normal rendered UI cannot expose unresolved `:source`.
+- [x] User Edit remains capable of role/direct-permission mutation.
+- [x] Role-derived permissions cannot be toggled off through direct grants.
+- [x] No explicit deny permission layer is introduced.
+- [x] Role-derived UI state cannot accidentally become a persisted direct grant.
+- [x] Existing overlapping direct grants are not silently destroyed.
+- [x] Current Source becomes Manual after manual edit.
+- [x] Normal authorization UI does not expose original-source divergence wording.
+- [x] Normal rendered UI cannot expose unresolved `:source`.
 - [ ] Team Structure owns team-context membership mutation.
 - [ ] Every active member has exactly one structural role.
 - [ ] Head Managers cannot participate in normal Manager relationship edges.
@@ -1405,11 +1407,11 @@ The following decisions are binding:
 
 Phase 30 is complete only when:
 
-- [ ] authorization semantics remain role grants plus direct grants with no deny model;
-- [ ] role-derived permissions are clearly checked/disabled and source-labelled;
-- [ ] current assignment Source semantics are implemented;
-- [ ] historical provenance is removed from the ordinary editing presentation;
-- [ ] unresolved `:source` is permanently prevented;
+- [x] authorization semantics remain role grants plus direct grants with no deny model;
+- [x] role-derived permissions are clearly checked/disabled and source-labelled;
+- [x] current assignment Source semantics are implemented;
+- [x] historical provenance is removed from the ordinary editing presentation;
+- [x] unresolved `:source` is permanently prevented;
 - [ ] Team Edit member authorization is clearly read-only;
 - [ ] Team Edit contains no dead Save/remove member controls;
 - [ ] assignment summaries and expansion affordances are understandable;

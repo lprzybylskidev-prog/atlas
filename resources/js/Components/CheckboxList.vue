@@ -7,6 +7,8 @@ export interface CheckboxListOption {
     value: string;
     label: string;
     description?: string;
+    disabled?: boolean;
+    checked?: boolean;
 }
 
 withDefaults(
@@ -38,6 +40,14 @@ function optionLabel(option: string | CheckboxListOption): string {
 function optionDescription(option: string | CheckboxListOption): string | undefined {
     return typeof option === 'string' ? undefined : option.description;
 }
+
+function optionDisabled(option: string | CheckboxListOption): boolean {
+    return typeof option === 'string' ? false : (option.disabled ?? false);
+}
+
+function optionChecked(option: string | CheckboxListOption): boolean {
+    return typeof option === 'string' ? false : (option.checked ?? false);
+}
 </script>
 
 <template>
@@ -54,6 +64,8 @@ function optionDescription(option: string | CheckboxListOption): string | undefi
                 v-model="model"
                 class="w-full"
                 :value="optionValue(option)"
+                :disabled="optionDisabled(option)"
+                :forced-checked="optionChecked(option)"
                 align="start"
             >
                 <span class="flex min-w-0 flex-col gap-0.5">

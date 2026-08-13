@@ -127,7 +127,7 @@ Do not nest `SurfaceCard` inside another `SurfaceCard`. If a subsection contains
 
 `DataTable.vue` is the stable composition host, not the owner of table behavior. Its focused controller and state units own query synchronization, sorting/pagination, columns, selection, persistence, saved views, actions, formatting, and result states. Preserve the host's public consumer API unless one workstream migrates every consumer coherently. Permanent structural tests must reject moving those responsibilities back into the host; a line-count ceiling alone is not acceptance evidence.
 
-The Team Structure view is the canonical team-context membership and hierarchy editor. It composes active membership, keyboard-expandable membership history, add/end membership, head-manager state, hierarchy visualization, relationship creation/end, and semantic reparenting in one responsive surface. Team Edit may link to this view but must not recreate membership mutation controls. Browser coverage exercises the desktop lifecycle plus mobile and keyboard disclosure behavior, and the permanent foundation guard rejects restoring the duplicate Team Edit workflow or a separate Managers area.
+The Team Structure view is the canonical team-context membership and hierarchy editor. It composes active membership, keyboard-expandable membership history, add/end membership, head-manager state, hierarchy visualization, relationship creation/end, and semantic reparenting in one responsive surface. Team Edit may link to this view but must not recreate membership mutation controls. User Edit is the canonical authorization-mutation surface. Its direct-permission selector presents role-derived grants as checked, disabled effective access with localized granting-role labels while retaining the persisted direct-grant model separately. Browser coverage exercises the desktop lifecycle plus mobile and keyboard disclosure behavior, and the permanent foundation guard rejects restoring the duplicate Team Edit workflow or a separate Managers area.
 
 ### Third-Party UI Assets
 
@@ -470,6 +470,8 @@ The shared modal host supports focus trap, Escape close for confirm dialogs, foc
 Use one shared system for backend and frontend messages.
 
 Use standardized Inertia flash/shared contracts and translation keys.
+
+The frontend translator accepts both Atlas `{parameter}` placeholders and Laravel `:parameter` placeholders because Laravel translation files are the shared source of truth. Rendered UI must never expose unresolved placeholders or internal formatter diagnostics such as `[status:...]`. Unknown DataTable status-like values fall back to readable text, while known semantic statuses continue to use the localized status catalog.
 
 Support:
 

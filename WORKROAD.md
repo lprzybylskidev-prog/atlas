@@ -40,7 +40,7 @@ Do not replace this index after the initial technical foundation is completed. C
 ## Current phase
 
 - Phase: [Phase 30 — Authorization, Team Structure, and mutation feedback repair](docs/roadmap/phase-30-authorization-team-structure-feedback-repair.md)
-- Status: `not started`
+- Status: `in progress`
 
 ## Roadmap dependency repair note
 
@@ -350,7 +350,7 @@ Close concrete post-Phase-28 acceptance gaps in localization, DataTable responsi
 
 ### Phase 30 — Authorization, Team Structure, and mutation feedback repair
 
-**Status:** `not started`
+**Status:** `in progress`
 
 Repair Authorization assignment presentation and provenance semantics, make Team Edit authorization read-only, rebuild Team Structure around explicit structural roles and multi-manager relationships, and close silent mutation and flash-message feedback defects before Chat begins.
 

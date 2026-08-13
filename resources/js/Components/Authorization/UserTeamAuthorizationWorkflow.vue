@@ -7,11 +7,13 @@ import FormButton from '../Form/FormButton.vue';
 import FormInput from '../Form/FormInput.vue';
 import FormSelect, { type FormSelectOption } from '../Form/FormSelect.vue';
 import SearchableCheckboxList from '../SearchableCheckboxList.vue';
+import type { CheckboxListOption } from '../CheckboxList.vue';
 import SurfaceCard from '../SurfaceCard.vue';
 import UiState from '../UiState.vue';
 import {
     authorizationListLabel,
     effectivePermissions as resolveEffectivePermissions,
+    roleGrantsByPermission,
     selectedCountLabel,
 } from '../../Composables/useAuthorizationAssignmentUi';
 import { useTranslator } from '../../Localization/translator';
@@ -208,9 +210,54 @@ function selectedRolesLabel(assignment: UserTeamAccessAssignment): string {
 }
 
 function selectedPermissionsLabel(assignment: UserTeamAccessAssignment): string {
-    return selectedCountLabel(assignment.direct_permission_names.length, props.permissionOptions.length, (replacements) =>
+    return selectedCountLabel(effectivePermissions(assignment).length, props.permissionOptions.length, (replacements) =>
         t('pages.admin.users.assignment.selected_permissions', replacements),
     );
+}
+
+function permissionOptionsForAssignment(assignment: UserTeamAccessAssignment): CheckboxListOption[] {
+    const grants = roleGrantsByPermission(assignment, props.rolePermissionMap);
+
+    return props.permissionOptions.map((option) => {
+        const roles = grants[option.value] ?? [];
+
+        if (roles.length === 0) {
+            return option;
+        }
+
+        const roleLabels = roles.map((role) => roleLabelByValue.value.get(role) ?? role).join(', ');
+        const grantedBy = t('pages.admin.users.assignment.granted_by_roles', { roles: roleLabels });
+
+        return {
+            ...option,
+            checked: true,
+            disabled: true,
+            description: option.description === undefined ? grantedBy : `${option.description} · ${grantedBy}`,
+        };
+    });
+}
+
+function currentSourceLabel(assignment: UserTeamAccessAssignment): string {
+    const sourceType = assignment.provenance_source_type ?? 'manual';
+    const sourceLabel = assignment.provenance_source_label;
+
+    if (sourceType === 'preset' && sourceLabel) {
+        return t('pages.admin.users.assignment.current_source.preset', { source: sourceLabel });
+    }
+
+    if (sourceType === 'copy' && sourceLabel) {
+        return t('pages.admin.users.assignment.current_source.copy', { source: sourceLabel });
+    }
+
+    if (sourceType === 'preset') {
+        return t('pages.admin.users.assignment.source.package');
+    }
+
+    if (sourceType === 'copy') {
+        return t('pages.admin.users.assignment.source.copy');
+    }
+
+    return t('pages.admin.users.assignment.source.manual');
 }
 
 function fieldError(index: number, field: string): string | undefined {
@@ -352,16 +399,7 @@ watch(
                         v-if="assignment.provenance_public_id != null"
                         class="rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-xs text-sky-900 dark:border-sky-900 dark:bg-sky-950/40 dark:text-sky-100"
                     >
-                        {{
-                            t('pages.admin.users.assignment.provenance', {
-                                source:
-                                    assignment.provenance_source_label ??
-                                    t(`pages.admin.users.assignment.source.${assignment.provenance_source_type ?? 'manual'}`),
-                            })
-                        }}
-                        <span v-if="assignment.provenance_diverged_at != null">
-                            {{ t('pages.admin.users.assignment.provenance_diverged') }}
-                        </span>
+                        {{ t('pages.admin.users.assignment.provenance', { source: currentSourceLabel(assignment) }) }}
                     </p>
 
                     <div class="rounded-lg border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-800 dark:bg-zinc-900/40">
@@ -452,7 +490,7 @@ watch(
                         @update:model-value="applyCopySource(assignment)"
                     />
 
-                    <div v-if="assignment.source === 'manual'" class="grid gap-4 xl:grid-cols-2">
+                    <div v-if="assignment.source === 'manual' || mode === 'edit'" class="grid gap-4 xl:grid-cols-2">
                         <SearchableCheckboxList
                             v-model="assignment.role_names"
                             :label="t('pages.admin.users.assignment.roles')"
@@ -469,7 +507,7 @@ watch(
                             :search-label="t('pages.admin.users.assignment.permission_search')"
                             :search-placeholder="t('pages.admin.users.assignment.permission_search_placeholder')"
                             :selected-label="selectedPermissionsLabel(assignment)"
-                            :options="permissionOptions"
+                            :options="permissionOptionsForAssignment(assignment)"
                             :empty-text="t('pages.admin.users.assignment.no_permissions')"
                             :error="fieldError(index, 'direct_permission_names')"
                         />

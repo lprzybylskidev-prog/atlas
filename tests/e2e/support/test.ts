@@ -54,6 +54,7 @@ export async function expectNoUntranslatedAtlasCopy(page: Page): Promise<void> {
     const visibleCopy = await page.locator('body').innerText();
 
     expect(visibleCopy, 'rendered UI must not expose a missing-translation marker').not.toContain('[translation:');
+    expect(visibleCopy, 'rendered UI must not expose a DataTable status diagnostic').not.toContain('[status:');
     expect(visibleCopy, 'rendered UI must not expose an untranslated Atlas key').not.toMatch(untranslatedAtlasCopyPattern);
 }
 

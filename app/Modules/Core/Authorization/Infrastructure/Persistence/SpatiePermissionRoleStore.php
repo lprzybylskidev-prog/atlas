@@ -18,6 +18,7 @@ use App\Shared\Application\Authorization\DTOs\UserTeamAuthorizationAssignments;
 use App\Shared\Application\Teams\Contracts\TeamLookup;
 use App\Shared\Application\Teams\Contracts\UserTeamMembershipProvisioner;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Lang;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Spatie\Permission\Models\Permission;
@@ -321,7 +322,13 @@ final class SpatiePermissionRoleStore implements AdministratorAccessLookup, Perm
                     ? $displayNameValue
                     : str($name)->replace(['.', '-', '_'], ' ')->headline()->toString();
 
-                return ['value' => $name, 'label' => $displayName];
+                $translationKey = 'authorization.role_labels.'.str_replace(['.', '-'], '_', $name);
+
+                return [
+                    'value' => $name,
+                    'label' => Lang::has($translationKey) ? __($translationKey) : $displayName,
+                    'description' => $name,
+                ];
             })
             ->filter(static fn (array $option): bool => $option['value'] !== '')
             ->values()
@@ -339,9 +346,13 @@ final class SpatiePermissionRoleStore implements AdministratorAccessLookup, Perm
 
             return [
                 'value' => $permission->name,
-                'label' => is_string($stored) && $stored !== $permission->name
-                    ? $stored
-                    : ($permission->displayName ?? $this->humanizeName($permission->name)),
+                'label' => $this->localizedPermissionLabel(
+                    $permission->name,
+                    is_string($stored) && $stored !== $permission->name
+                        ? $stored
+                        : ($permission->displayName ?? $this->humanizeName($permission->name)),
+                ),
+                'description' => $permission->name,
             ];
         }, $this->permissionCatalog->all());
     }
@@ -406,7 +417,6 @@ final class SpatiePermissionRoleStore implements AdministratorAccessLookup, Perm
             appliedAt: $this->nullableString($values['applied_at'] ?? null),
             reason: $this->nullableString($values['reason'] ?? null),
             resultingLimits: $this->jsonLimits($values['resulting_limits'] ?? null),
-            divergedAt: $this->nullableString($values['diverged_at'] ?? null),
             version: $this->nullableInt($values['version'] ?? null) ?? 0,
         );
     }
@@ -452,19 +462,13 @@ final class SpatiePermissionRoleStore implements AdministratorAccessLookup, Perm
         }
 
         $isInitialApplication = $before->provenancePublicId === null;
-        $effectiveSourceType = $isInitialApplication ? $sourceType : $before->sourceType;
-        $effectiveSourcePublicId = $isInitialApplication ? $sourcePublicId : $before->sourcePublicId;
-        $effectiveSourceDisplay = $isInitialApplication ? $sourceDisplayNameSnapshot : $before->sourceDisplayNameSnapshot;
-        $effectiveCopiedFromUserId = $isInitialApplication ? $copiedFromUserId : ($before->copiedFromUserPublicId === null ? null : $this->userId($before->copiedFromUserPublicId));
-        $effectivePresetVersion = $isInitialApplication ? $presetVersion : $before->presetVersion;
-        $effectivePresetSnapshot = $isInitialApplication ? $presetSnapshot : $before->presetSnapshot;
-        $diverged = ! $isInitialApplication && (
-            $before->roleNames !== $roleNames
-            || $before->directPermissionNames !== $directPermissionNames
-            || $before->resultingLimits !== $resultingLimits
-        );
+        $effectiveSourcePublicId = $sourceType === 'manual' ? null : $sourcePublicId;
+        $effectiveSourceDisplay = $sourceType === 'manual' ? null : $sourceDisplayNameSnapshot;
+        $effectiveCopiedFromUserId = $sourceType === 'copy' ? $copiedFromUserId : null;
+        $effectivePresetVersion = $sourceType === 'preset' ? $presetVersion : null;
+        $effectivePresetSnapshot = $sourceType === 'preset' ? $presetSnapshot : null;
 
-        DB::transaction(function () use ($userId, $teamId, $roleNames, $directPermissionNames, $actorUserId, $reason, $isInitialApplication, $effectiveSourceType, $effectiveSourcePublicId, $effectiveSourceDisplay, $effectiveCopiedFromUserId, $effectivePresetVersion, $effectivePresetSnapshot, $resultingLimits, $diverged, $before, $actorPublicId, $userPublicId, $teamPublicId): void {
+        DB::transaction(function () use ($userId, $teamId, $roleNames, $directPermissionNames, $actorUserId, $reason, $sourceType, $isInitialApplication, $effectiveSourcePublicId, $effectiveSourceDisplay, $effectiveCopiedFromUserId, $effectivePresetVersion, $effectivePresetSnapshot, $resultingLimits, $before, $actorPublicId, $userPublicId, $teamPublicId): void {
             DB::table(AuthorizationDatabaseTable::MODEL_HAS_ROLES)
                 ->where('model_type', config('auth.providers.users.model'))
                 ->where('model_id', $userId)
@@ -497,7 +501,7 @@ final class SpatiePermissionRoleStore implements AdministratorAccessLookup, Perm
 
             $now = now();
             $provenanceValues = [
-                'source_type' => $effectiveSourceType,
+                'source_type' => $sourceType,
                 'source_public_id' => $effectiveSourcePublicId,
                 'source_display_name_snapshot' => $effectiveSourceDisplay,
                 'copied_from_user_id' => $effectiveCopiedFromUserId,
@@ -507,7 +511,6 @@ final class SpatiePermissionRoleStore implements AdministratorAccessLookup, Perm
                 'resulting_role_names' => json_encode($roleNames, JSON_THROW_ON_ERROR),
                 'resulting_direct_permission_names' => json_encode($directPermissionNames, JSON_THROW_ON_ERROR),
                 'resulting_limits' => json_encode($resultingLimits, JSON_THROW_ON_ERROR),
-                'diverged_at' => $diverged ? ($before->divergedAt ?? $now) : $before->divergedAt,
                 'updated_by_user_id' => $actorUserId,
                 'update_reason' => $isInitialApplication ? null : ($reason !== '' ? $reason : null),
                 'version' => max(1, $before->version + 1),
@@ -530,7 +533,7 @@ final class SpatiePermissionRoleStore implements AdministratorAccessLookup, Perm
                 $provenanceValues,
             );
 
-            if ($isInitialApplication && $effectiveSourceType === 'preset' && is_array($effectivePresetSnapshot)) {
+            if ($isInitialApplication && $sourceType === 'preset' && is_array($effectivePresetSnapshot)) {
                 $packageName = $effectivePresetSnapshot['name'] ?? null;
 
                 if (is_string($packageName) && $packageName !== '') {
@@ -553,13 +556,15 @@ final class SpatiePermissionRoleStore implements AdministratorAccessLookup, Perm
                 before: [
                     'roles' => $before->roleNames,
                     'direct_permissions' => $before->directPermissionNames,
+                    'source_type' => $before->sourceType,
+                    'source_public_id' => $before->sourcePublicId,
+                    'source_display_name' => $before->sourceDisplayNameSnapshot,
                     'version' => $before->version,
                 ],
                 after: [
                     'roles' => $roleNames,
                     'direct_permissions' => $directPermissionNames,
-                    'source_type' => $effectiveSourceType,
-                    'diverged' => $diverged,
+                    'source_type' => $sourceType,
                     'version' => max(1, $before->version + 1),
                     'reason' => $reason,
                 ],
@@ -572,6 +577,23 @@ final class SpatiePermissionRoleStore implements AdministratorAccessLookup, Perm
     private function nullableInt(mixed $value): ?int
     {
         return is_numeric($value) ? (int) $value : null;
+    }
+
+    private function localizedPermissionLabel(string $permissionName, string $fallback): string
+    {
+        $labels = [];
+
+        foreach (explode('.', $permissionName) as $segment) {
+            $key = 'authorization.permission_segments.'.str_replace('-', '_', $segment);
+
+            if (! Lang::has($key)) {
+                return $fallback;
+            }
+
+            $labels[] = __($key);
+        }
+
+        return implode(' · ', $labels);
     }
 
     private function nullableString(mixed $value): ?string

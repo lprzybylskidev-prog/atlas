@@ -12,4 +12,14 @@ describe('frontend translator diagnostics', () => {
         expect(isMissingTranslation(key, key)).toBe(true);
         expect(isMissingTranslation('Translated copy', key)).toBe(false);
     });
+
+    it('interpolates both Atlas braces and Laravel colon placeholders', () => {
+        const catalog = {
+            'pages.example.braces': 'Source: {source}',
+            'pages.example.colon': 'Source: :source',
+        };
+
+        expect(translate('pages.example.braces', catalog, { source: 'Manual' })).toBe('Source: Manual');
+        expect(translate('pages.example.colon', catalog, { source: 'Manual' })).toBe('Source: Manual');
+    });
 });

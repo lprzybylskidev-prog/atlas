@@ -112,7 +112,6 @@ return new class extends Migration
             $table->json('resulting_role_names');
             $table->json('resulting_direct_permission_names');
             $table->json('resulting_limits');
-            $table->timestampTz('diverged_at')->nullable();
             $table->foreignId('updated_by_user_id')->nullable()->constrained(IdentityDatabaseTable::USERS)->nullOnDelete();
             $table->text('update_reason')->nullable();
             $table->unsignedBigInteger('version')->default(1);

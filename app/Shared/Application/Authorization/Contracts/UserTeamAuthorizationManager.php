@@ -9,12 +9,12 @@ use App\Shared\Application\Authorization\DTOs\UserTeamAuthorizationAssignments;
 interface UserTeamAuthorizationManager
 {
     /**
-     * @return list<array{value: string, label: string}>
+     * @return list<array{value: string, label: string, description: string}>
      */
     public function roleOptions(): array;
 
     /**
-     * @return list<array{value: string, label: string}>
+     * @return list<array{value: string, label: string, description: string}>
      */
     public function permissionOptions(): array;
 

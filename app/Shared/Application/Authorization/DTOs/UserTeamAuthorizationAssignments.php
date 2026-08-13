@@ -27,7 +27,6 @@ final readonly class UserTeamAuthorizationAssignments
         public ?string $appliedAt = null,
         public ?string $reason = null,
         public array $resultingLimits = [],
-        public ?string $divergedAt = null,
         public int $version = 0,
     ) {}
 }

@@ -22,6 +22,8 @@ use DateTimeInterface;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Validation\ValidationException;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
@@ -70,7 +72,6 @@ final class AdminUserCreationTest extends TestCase
             'source_display_name_snapshot' => 'collections.agent',
             'preset_version' => 1,
             'version' => 1,
-            'diverged_at' => null,
         ]);
 
         $this->app->make(UserTeamAuthorizationManager::class)->replaceAssignmentsForUserTeam(
@@ -78,8 +79,8 @@ final class AdminUserCreationTest extends TestCase
             userPublicId: (string) $created->public_id,
             teamPublicId: (string) $team->public_id,
             roleNames: [],
-            directPermissionNames: [],
-            reason: 'Approved departure from the original preset.',
+            directPermissionNames: [CoreAuthorizationPermissionCatalog::DASHBOARD],
+            reason: 'Manual authorization update.',
             expectedVersion: 1,
         );
 
@@ -88,10 +89,104 @@ final class AdminUserCreationTest extends TestCase
             ->where('team_id', $team->id)
             ->first();
         self::assertIsObject($provenance);
-        self::assertSame('preset', get_object_vars($provenance)['source_type'] ?? null);
+        self::assertSame('manual', get_object_vars($provenance)['source_type'] ?? null);
+        self::assertNull(get_object_vars($provenance)['source_public_id'] ?? null);
+        self::assertNull(get_object_vars($provenance)['source_display_name_snapshot'] ?? null);
+        self::assertNull(get_object_vars($provenance)['preset_version'] ?? null);
+        self::assertNull(get_object_vars($provenance)['preset_snapshot'] ?? null);
         self::assertSame(2, get_object_vars($provenance)['version'] ?? null);
-        self::assertNotNull(get_object_vars($provenance)['diverged_at'] ?? null);
+        self::assertFalse(Schema::hasColumn(AuthorizationDatabaseTable::USER_TEAM_ASSIGNMENT_PROVENANCE, 'diverged_at'));
+        self::assertDatabaseHas(AuthorizationDatabaseTable::MODEL_HAS_PERMISSIONS, [
+            'model_id' => $created->id,
+            'team_id' => $team->id,
+            'permission_id' => Permission::query()->where('name', CoreAuthorizationPermissionCatalog::DASHBOARD)->value('id'),
+        ]);
         Notification::assertSentOnDemand(FirstPasswordSetupNotification::class);
+    }
+
+    public function test_overlapping_direct_grant_survives_role_assignment_and_becomes_independently_effective_after_role_removal(): void
+    {
+        $actor = User::factory()->create();
+        $user = User::factory()->create();
+        $team = Team::query()->create(['name' => 'Overlapping grants']);
+        $this->assignStarterRoleInTeam($actor, $team, StarterRoleName::Administrator->value);
+        $manager = $this->app->make(UserTeamAuthorizationManager::class);
+
+        $manager->replaceAssignmentsForUserTeam(
+            actorPublicId: (string) $actor->public_id,
+            userPublicId: (string) $user->public_id,
+            teamPublicId: (string) $team->public_id,
+            roleNames: [StarterRoleName::WorkspaceAccess->value],
+            directPermissionNames: [CoreAuthorizationPermissionCatalog::DASHBOARD],
+        );
+
+        $overlapping = $manager->assignmentsForUserTeam((string) $user->public_id, (string) $team->public_id);
+        self::assertSame([CoreAuthorizationPermissionCatalog::DASHBOARD], $overlapping->directPermissionNames);
+
+        $manager->replaceAssignmentsForUserTeam(
+            actorPublicId: (string) $actor->public_id,
+            userPublicId: (string) $user->public_id,
+            teamPublicId: (string) $team->public_id,
+            roleNames: [],
+            directPermissionNames: $overlapping->directPermissionNames,
+            expectedVersion: $overlapping->version,
+        );
+
+        $withoutRole = $manager->assignmentsForUserTeam((string) $user->public_id, (string) $team->public_id);
+        self::assertSame([], $withoutRole->roleNames);
+        self::assertSame([CoreAuthorizationPermissionCatalog::DASHBOARD], $withoutRole->directPermissionNames);
+    }
+
+    public function test_assignment_optimistic_version_still_rejects_stale_manual_updates(): void
+    {
+        $actor = User::factory()->create();
+        $user = User::factory()->create();
+        $team = Team::query()->create(['name' => 'Optimistic assignments']);
+        $this->assignStarterRoleInTeam($actor, $team, StarterRoleName::Administrator->value);
+        $manager = $this->app->make(UserTeamAuthorizationManager::class);
+
+        $manager->replaceAssignmentsForUserTeam(
+            actorPublicId: (string) $actor->public_id,
+            userPublicId: (string) $user->public_id,
+            teamPublicId: (string) $team->public_id,
+            roleNames: [],
+            directPermissionNames: [CoreAuthorizationPermissionCatalog::DASHBOARD],
+        );
+
+        try {
+            $manager->replaceAssignmentsForUserTeam(
+                actorPublicId: (string) $actor->public_id,
+                userPublicId: (string) $user->public_id,
+                teamPublicId: (string) $team->public_id,
+                roleNames: [],
+                directPermissionNames: [],
+                expectedVersion: 0,
+            );
+            self::fail('A stale authorization assignment update was accepted.');
+        } catch (ValidationException $exception) {
+            self::assertArrayHasKey('expected_version', $exception->errors());
+        }
+
+        $current = $manager->assignmentsForUserTeam((string) $user->public_id, (string) $team->public_id);
+        self::assertSame(1, $current->version);
+        self::assertSame([CoreAuthorizationPermissionCatalog::DASHBOARD], $current->directPermissionNames);
+    }
+
+    public function test_authorization_options_use_localized_human_labels_and_keep_technical_keys_as_metadata(): void
+    {
+        $actor = User::factory()->create();
+        $team = Team::query()->create(['name' => 'Localized labels']);
+        $this->assignStarterRoleInTeam($actor, $team, StarterRoleName::Administrator->value);
+        app()->setLocale('pl');
+
+        $manager = $this->app->make(UserTeamAuthorizationManager::class);
+        $permission = collect($manager->permissionOptions())->firstWhere('value', 'admin.users.index');
+        $role = collect($manager->roleOptions())->firstWhere('value', StarterRoleName::WorkspaceAccess->value);
+
+        self::assertSame('Administracja · Użytkownicy · Lista', $permission['label'] ?? null);
+        self::assertSame('admin.users.index', $permission['description']);
+        self::assertSame('Dostęp do przestrzeni roboczej', $role['label'] ?? null);
+        self::assertSame(StarterRoleName::WorkspaceAccess->value, $role['description']);
     }
 
     public function test_admin_user_creation_accepts_selected_account_sensitivity(): void

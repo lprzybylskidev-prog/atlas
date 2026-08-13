@@ -19,6 +19,8 @@ Use `spatie/laravel-permission` with teams.
 Rules:
 
 - permission is the smallest authorization unit;
+- effective access is the union of permissions granted by assigned roles and direct permission grants;
+- direct grants only add access; Atlas has no permission deny layer, negative permission, or deny-overrides precedence mechanism;
 - every protected route has a permission exactly equal to its route name;
 - public and purely technical routes are exceptions;
 - add business permissions where route permission alone is insufficient;
@@ -50,7 +52,9 @@ Current implementation foundation:
 - Admin preset administration is available at `/admin/authorization/packages`; preset creation and editing use separate Admin views and let administrators manage team-scoped local presets from existing roles and permissions.
 - Admin team administration screens are available at `/admin/teams`; team creation and editing use separate Admin views and show team identity and active state. After creation, team-context membership mutation is owned exclusively by `/admin/teams/{team}/structure`; user-context access and authorization assignments remain available from User administration.
 - Admin module activation screens are available at `/admin/modules`; module activation can also be managed from team creation and editing workflows.
-- Admin user administration is available at `/admin/users`, shows users in the shared TanStack `DataTable`, supports current account-status actions, requires at least one team assignment during user creation, shows exact effective team-scoped assignments before submission, can apply a package or copy another user's role/direct-permission assignments in the selected team, manages user team access and team-scoped role/direct-permission assignments, and routes account creation through the normal user creation use case.
+- Admin user administration is available at `/admin/users`, shows users in the shared TanStack `DataTable`, supports current account-status actions, requires at least one team assignment during user creation, shows exact effective team-scoped assignments before submission, can apply a package or copy another user's role/direct-permission assignments in the selected team, and is the canonical authorization-mutation surface for user team access, roles, direct permissions, and supported user-team policy overrides. It routes account creation through the normal user creation use case.
+- User Edit keeps persisted direct grants separate from role-derived grants. A permission granted by a selected role is shown checked and disabled with every granting role identified; removing a role immediately recomputes the role-derived, direct, and effective states without creating or deleting an overlapping real direct grant.
+- interactive role and permission options use active-locale human labels. Their technical keys remain secondary Admin metadata.
 - Current Admin tables use the shared `DataTable` wrapper with backend-validated query-string state, server-side pagination/sorting/filtering, and saved views. Report/export actions are owned by the Reports module lifecycle rather than generated locally in the browser.
 
 Starter roles:
@@ -83,8 +87,9 @@ Presets:
 - user creation may alternatively copy the source user's selected-team role and direct-permission assignments as a one-time snapshot, and the source user must have active access to that selected team.
 - user and team creation may also provide explicit team-scoped user role and direct-permission assignments;
 - user-side and team-side administration compose the same `UserTeamAuthorizationWorkflow` frontend workflow and call the same `UserTeamAuthorizationManager` backend use case;
-- `user_team_assignment_provenance` stores the truthful current assignment origin (`manual`, `preset`, or `copy`), source public identifier and display-name snapshot, copied-from user, preset version and snapshot, applying actor/time/reason, resulting roles/direct permissions/policy limits, divergence time, update reason, and optimistic version;
-- later manual edits preserve the original source and mark divergence instead of rewriting preset/copy provenance as manual;
+- `user_team_assignment_provenance` stores the truthful current assignment source (`manual`, `preset`, or `copy`), current source metadata where applicable, applying/updating context, resulting roles/direct permissions/policy limits, and optimistic version;
+- a manual authorization edit changes the current source to `manual` and clears obsolete preset/copy source metadata. Historical source and mutation facts remain in Audit rather than a divergence field or message in the main editing UI;
+- the pre-production canonical create migration no longer creates `diverged_at`; existing development databases are rebuilt through the documented `migrate:fresh` workflow so no historical divergence column survives into the accepted schema;
 - stale assignment updates are rejected by the persisted optimistic version;
 - users do not receive global role or permission assignments outside a team context.
 - removing a user's team access also removes that user's direct role and permission assignments in the removed team.

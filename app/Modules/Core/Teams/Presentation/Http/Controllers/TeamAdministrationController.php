@@ -207,7 +207,6 @@ final class TeamAdministrationController
                     'provenancePublicId' => $assignments->provenancePublicId,
                     'provenanceSourceType' => $assignments->sourceType,
                     'provenanceSourceLabel' => $assignments->sourceDisplayNameSnapshot,
-                    'provenanceDivergedAt' => $assignments->divergedAt,
                     'provenanceVersion' => $assignments->version,
                 ];
             }, $this->memberships->activeMembershipsForTeam((string) $record->public_id)),

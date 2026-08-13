@@ -10,6 +10,7 @@ const props = withDefaults(
         value?: string;
         ariaLabel?: string;
         disabled?: boolean;
+        forcedChecked?: boolean;
         indeterminate?: boolean;
         align?: 'center' | 'start';
     }>(),
@@ -18,12 +19,17 @@ const props = withDefaults(
         value: undefined,
         ariaLabel: undefined,
         disabled: false,
+        forcedChecked: false,
         indeterminate: false,
         align: 'center',
     },
 );
 
 const checked = computed(() => {
+    if (props.forcedChecked) {
+        return true;
+    }
+
     if (Array.isArray(model.value)) {
         return props.value !== undefined && model.value.includes(props.value);
     }

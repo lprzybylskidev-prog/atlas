@@ -790,6 +790,12 @@ describe('shared UI guardrails', () => {
         expect(workflow).toContain("mode: 'create' | 'edit'");
         expect(workflow).toContain("contextAxis?: 'user' | 'team'");
         expect(workflow).toContain(':aria-expanded="expandedIndex === index"');
+        expect(workflow).toContain('roleGrantsByPermission');
+        expect(workflow).toContain('checked: true');
+        expect(workflow).toContain('disabled: true');
+        expect(workflow).toContain('granted_by_roles');
+        expect(workflow).not.toContain('provenance_diverged');
+        expect(workflow).not.toContain('Original source');
     });
 
     it('keeps rebuilt Users actions and sensitivity options shared', () => {

@@ -46,7 +46,6 @@ export interface UserTeamAccessAssignment {
     provenance_public_id?: string | null;
     provenance_source_type?: 'manual' | 'preset' | 'copy';
     provenance_source_label?: string | null;
-    provenance_diverged_at?: string | null;
     provenance_version?: number;
 }
 

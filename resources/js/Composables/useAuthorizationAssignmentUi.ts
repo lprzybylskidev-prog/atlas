@@ -7,6 +7,21 @@ export function roleGrantedPermissions(assignment: AuthorizationAssignmentState,
     return Array.from(new Set(assignment.role_names.flatMap((role) => rolePermissionMap[role] ?? []))).sort();
 }
 
+export function roleGrantsByPermission(
+    assignment: AuthorizationAssignmentState,
+    rolePermissionMap: Record<string, string[]>,
+): Record<string, string[]> {
+    const grants: Record<string, string[]> = {};
+
+    assignment.role_names.forEach((role) => {
+        (rolePermissionMap[role] ?? []).forEach((permission) => {
+            grants[permission] = [...(grants[permission] ?? []), role];
+        });
+    });
+
+    return grants;
+}
+
 export function effectivePermissions(assignment: AuthorizationAssignmentState, rolePermissionMap: Record<string, string[]>): string[] {
     return Array.from(new Set([...roleGrantedPermissions(assignment, rolePermissionMap), ...assignment.direct_permission_names])).sort();
 }

@@ -37,7 +37,6 @@ const props = defineProps<{
         provenancePublicId: string | null;
         provenanceSourceType: 'manual' | 'preset' | 'copy';
         provenanceSourceLabel: string | null;
-        provenanceDivergedAt: string | null;
         provenanceVersion: number;
     }>;
     assignableUsers: FormSelectOption[];
@@ -98,7 +97,6 @@ const memberAssignments = ref<UserTeamAccessAssignment[]>(
         provenance_public_id: membership.provenancePublicId,
         provenance_source_type: membership.provenanceSourceType,
         provenance_source_label: membership.provenanceSourceLabel,
-        provenance_diverged_at: membership.provenanceDivergedAt,
         provenance_version: membership.provenanceVersion,
     })),
 );

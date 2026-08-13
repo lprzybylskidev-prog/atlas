@@ -66,11 +66,6 @@ export const dynamicTranslationFamilies: readonly DynamicTranslationFamily[] = [
         'service',
         'integration',
     ]),
-    family("pages.admin.users.assignment.source.${assignment.provenance_source_type ?? 'manual'}", 'pages.admin.users.assignment.source.', [
-        'manual',
-        'package',
-        'copy',
-    ]),
     family('pages.time_tracking.admin_operations.dialog.${action}', 'pages.time_tracking.admin_operations.dialog.', [
         'approve_other_work',
         'convert_excess_break',

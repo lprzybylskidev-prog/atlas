@@ -5,12 +5,14 @@ declare(strict_types=1);
 namespace Tests\Unit\Foundation;
 
 use App\Modules\Core\Authorization\Application\Permissions\PermissionCatalogRegistry;
+use App\Modules\Core\Authorization\Application\Roles\StarterRoleName;
 use App\Modules\Core\Authorization\Infrastructure\Persistence\SpatieEffectivePermissionChecker;
 use App\Modules\Core\Teams\Application\Permissions\TeamPermissionCatalog;
 use App\Modules\Core\Users\Application\Permissions\UserPermissionCatalog;
 use App\Shared\Application\Authorization\Contracts\EffectivePermissionChecker;
 use App\Shared\Application\Authorization\DTOs\EffectivePermissionRequest;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Lang;
 use Illuminate\Support\Facades\Route;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
@@ -35,6 +37,25 @@ final class AuthorizationFoundationTest extends TestCase
         self::assertContains(TeamPermissionCatalog::TEAMS_VIEW, $registry->names());
         self::assertContains('authorization.roles.view', $registry->names());
         self::assertSame($registry->names(), array_values(array_unique($registry->names())));
+    }
+
+    public function test_every_authorization_option_segment_and_starter_role_has_polish_and_english_copy(): void
+    {
+        $registry = $this->app->make(PermissionCatalogRegistry::class);
+
+        foreach (['pl', 'en'] as $locale) {
+            foreach ($registry->names() as $permission) {
+                foreach (explode('.', $permission) as $segment) {
+                    $key = 'authorization.permission_segments.'.str_replace('-', '_', $segment);
+                    self::assertTrue(Lang::has($key, $locale), sprintf('Missing %s authorization label [%s].', $locale, $key));
+                }
+            }
+
+            foreach (StarterRoleName::cases() as $role) {
+                $key = 'authorization.role_labels.'.str_replace(['.', '-'], '_', $role->value);
+                self::assertTrue(Lang::has($key, $locale), sprintf('Missing %s starter-role label [%s].', $locale, $key));
+            }
+        }
     }
 
     public function test_effective_permission_checker_is_a_public_authorization_contract(): void
@@ -97,6 +118,29 @@ final class AuthorizationFoundationTest extends TestCase
                 $contents,
                 sprintf('Business code must not check role names in [%s].', $candidate->getPathname()),
             );
+        }
+    }
+
+    public function test_authorization_model_has_no_permission_deny_layer(): void
+    {
+        $basePath = dirname(__DIR__, 3);
+
+        foreach ([$basePath.'/app', $basePath.'/resources/js'] as $root) {
+            $iterator = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($root));
+
+            foreach ($iterator as $candidate) {
+                if (! $candidate instanceof SplFileInfo || ! $candidate->isFile() || ! in_array($candidate->getExtension(), ['php', 'ts', 'vue'], true)) {
+                    continue;
+                }
+
+                $contents = file_get_contents($candidate->getPathname());
+                self::assertIsString($contents);
+                self::assertDoesNotMatchRegularExpression(
+                    '/\b(?:direct_deny|denied_permissions?|deny_permissions?|negative_permissions?)\b/i',
+                    $contents,
+                    sprintf('Authorization deny-layer semantics are forbidden in [%s].', $candidate->getPathname()),
+                );
+            }
         }
     }
 

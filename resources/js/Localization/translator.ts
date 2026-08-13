@@ -9,7 +9,7 @@ export function translate(key: TranslationKey, catalog: Record<string, string> =
     let message: string = catalog[key] ?? `[translation:${key}]`;
 
     Object.entries(params).forEach(([name, value]) => {
-        message = message.replaceAll(`{${name}}`, String(value));
+        message = message.replaceAll(`{${name}}`, String(value)).replaceAll(`:${name}`, String(value));
     });
 
     return message;
