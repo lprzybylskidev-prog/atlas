@@ -126,7 +126,7 @@ final class AdminClosedPeriodCorrectionRouteTest extends TestCase
         DB::table(TeamsDatabaseTable::TEAM_USER_ASSIGNMENTS)->insert([
             'team_id' => $team->id,
             'user_id' => $user->id,
-            'is_head_manager' => $headManager,
+            'structural_role' => $headManager ? 'head_manager' : 'employee',
             'created_at' => now(),
             'updated_at' => now(),
         ]);

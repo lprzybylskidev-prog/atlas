@@ -68,7 +68,7 @@ final class CoreRelatedDataLifecycleTest extends TestCase
         DB::table(TeamsDatabaseTable::TEAM_USER_ASSIGNMENTS)->insert([
             'team_id' => $team->id,
             'user_id' => $user->id,
-            'is_head_manager' => true,
+            'structural_role' => 'employee',
             'created_at' => now(),
             'updated_at' => now(),
         ]);
@@ -151,7 +151,7 @@ final class CoreRelatedDataLifecycleTest extends TestCase
         self::assertDatabaseMissing(AuthorizationDatabaseTable::USER_ONBOARDING_PACKAGES, ['user_id' => $user->id]);
         self::assertDatabaseHas(TeamsDatabaseTable::TEAM_USER_ASSIGNMENTS, [
             'user_id' => $user->id,
-            'is_head_manager' => false,
+            'structural_role' => 'employee',
         ]);
 
         self::assertNotNull(DB::table(TeamsDatabaseTable::TEAM_USER_ASSIGNMENTS)->where('user_id', $user->id)->value('valid_to'));

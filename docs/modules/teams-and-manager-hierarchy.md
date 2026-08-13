@@ -17,7 +17,7 @@ Current implementation foundation:
 - `App\Shared\Application\Teams\Contracts\TeamLookup` exposes owner-owned public ID/internal ID resolution, active-team validation lookups, active user-team assignment ID/summary lookups, active head-manager existence checks, all-team cache invalidation IDs, all-team lookup summaries, internal-ID summary maps, and display summaries for cross-module read/runtime surfaces that need team labels, assignment labels, head-manager eligibility, active-team state, authorization context, or impersonation/session display without querying Teams tables.
 - `App\Shared\Application\Teams\Contracts\UserTeamMembershipManager` exposes Admin user-team membership operations for adding and removing user-team access from User and Team administration workflows. Teams resolves user public IDs, names, and email labels through Identity `UserLookup`; membership reads do not query Identity tables directly.
 - `App\Shared\Application\Teams\Contracts\UserTeamMembershipProvisioner` exposes the narrow owner-owned membership provisioning operation used by Authorization assignment/bootstrap/copy flows that must ensure a team assignment exists before assigning team-scoped roles or permissions.
-- `App\Modules\Core\Teams\Application\Public\Contracts\ManagerHierarchy` exposes stable manager hierarchy reads, impact previews, relationship changes, head-manager changes, and direct-report/subtree scopes for TimeTracking and later modules. Manager hierarchy persistence reads Teams-owned relationship rows first and enriches user display data through Identity `UserLookup`.
+- `App\Modules\Core\Teams\Application\Public\Contracts\ManagerHierarchy` exposes stable manager hierarchy reads, relationship and structural-role impact previews, atomic relationship and structural-role changes, and manager scopes for TimeTracking and later modules. Manager hierarchy persistence reads Teams-owned relationship rows first and enriches user display data through Identity `UserLookup`.
 
 Admin user-team access management:
 
@@ -32,7 +32,7 @@ Admin user-team access management:
 
 ## Privacy Lifecycle
 
-Teams registers `TeamUserDataLifecycleParticipant` for `user` subjects. Privacy execution does not delete teams or historical relationship rows. It ends active team assignments for the user, clears the head-manager marker on those assignments, ends active manager relationships where the user is manager or report, and redacts actor-only references (`created_by_user_id`, `ended_by_user_id`) to preserve hierarchy history without keeping unnecessary personal actor links.
+Teams registers `TeamUserDataLifecycleParticipant` for `user` subjects. Privacy execution does not delete teams or historical relationship rows. It ends active team assignments while preserving their structural-role history, ends active manager relationships where the user is manager or report, and redacts actor-only references (`created_by_user_id`, `ended_by_user_id`) to preserve hierarchy history without keeping unnecessary personal actor links.
 
 Manager relationships are team-scoped and stored in `core_teams.team_manager_relationships`.
 
@@ -41,7 +41,7 @@ Support:
 - multiple direct managers;
 - managers supervising managers;
 - hierarchical directed acyclic graphs;
-- head manager flag per team assignment;
+- one explicit Teams-owned structural role (`employee`, `manager`, or `head_manager`) per team assignment, separate from Authorization roles;
 - `valid_from`;
 - `valid_to`;
 - full history;
@@ -50,9 +50,9 @@ Support:
 
 An active relationship is one whose `valid_from` is null or not in the future and whose `valid_to` is null or in the future. Ending a relationship sets `valid_to`, `ended_by_user_id`, and `end_reason`; historical relationship rows are not destructively deleted.
 
-A normal manager sees direct reports only.
+A normal Manager may exist with zero direct reports. Normal relationship edges may connect a Manager to an Employee or another Manager, and one subordinate may have multiple Managers while the graph remains acyclic. An Employee cannot own outgoing relationships, and a Head Manager cannot participate in incoming or outgoing normal relationship edges.
 
-A head manager sees the entire subtree under them, still constrained by permissions.
+A normal Manager sees direct reports according to the current manager-scope consumer contract. A Head Manager sees the whole active Team without synthetic relationship edges, still constrained by permissions.
 
 Manager hierarchy administration is integrated into the owning team at `/admin/teams/{team}/structure`. The Team Edit action opens this editor; there is no separate Managers Admin area. The editor supports:
 
@@ -61,7 +61,7 @@ Manager hierarchy administration is integrated into the owning team at `/admin/t
 - selecting a manager context and adding multiple direct-report relationships with one effective date and reason;
 - ending manager relationships;
 - atomically moving an existing report/subtree to a new manager while ending the previous relationship and preserving both history rows;
-- assigning head managers;
+- previewing and changing a member's structural role with a mandatory reason, optimistic concurrency, last-required-Head-Manager protection, and atomic cleanup of relationship edges invalidated by the transition;
 - viewing the hierarchy tree below one manager;
 - seeing active direct-report relationship start dates and creation reasons;
 - filtering by team;
@@ -76,13 +76,15 @@ Manager hierarchy administration is integrated into the owning team at `/admin/t
 - membership-removal blocking while the member is a head manager or participates in active manager relationships;
 - one responsive and keyboard-accessible team-context surface with an explicit empty state.
 
-Audited manager hierarchy actions include `team.manager_relationship.created`, `team.manager_relationship.ended`, `team.manager_relationship.reparented`, `team.manager_relationship.reparent_rejected`, and `team.head_manager.updated`. Successful membership and hierarchy evidence is persisted in the same transaction as the state change; an audit failure rolls the mutation back. Rejected reparent evidence is recorded only after the attempted business-state transaction has rolled back.
+Audited manager hierarchy actions include `team.manager_relationship.created`, `team.manager_relationship.ended`, `team.manager_relationship.reparented`, `team.manager_relationship.reparent_rejected`, `team.structural_role.changed`, and `team.structural_role.change_rejected`. Successful membership, relationship, and structural-role evidence is persisted in the same transaction as the state change; an audit failure rolls the mutation back. Rejected reparent and structural-role evidence is recorded only after the attempted business-state transaction has rolled back.
 
 Granular Admin route permissions are `admin.teams.structure.show`, `admin.teams.structure.relationships.store`, `admin.teams.structure.relationships.end`, and `admin.teams.structure.head-manager.update`. Manager application/scope permissions remain `teams.managers.view`, `teams.managers.create`, `teams.managers.update`, `teams.managers.terminate`, `teams.managers.tree`, `teams.managers.history`, and `teams.managers.head.update`.
 
 Development reset does not seed generic representative manager hierarchies after Phase 25 cleanup. The Phase 27 TimeTracking development demo is the current explicit exception: it creates a small manager hierarchy only for TimeTracking review data. Tests and future business modules must create their own explicit manager fixtures.
 
-The exception uses Teams membership and `ManagerHierarchy` contracts. Repeated seeding preserves active membership validity, the two head-manager assignments, the 54-edge acyclic hierarchy, and existing relationship public IDs; seeder classes do not write Teams tables.
+The exception uses Teams membership and `ManagerHierarchy` contracts. Repeated seeding preserves active membership validity, the two Head Manager structural roles, the three Manager structural roles, the 51-edge acyclic hierarchy, and existing relationship public IDs; seeder classes do not write Teams tables.
+
+Atlas is still before its first production deployment, so the explicit structural-role column and constraint replace the legacy boolean in the canonical Teams create migration rather than in a follow-up compatibility migration. Existing development and test databases adopt that canonical schema through the standard fresh-migration workflow. Deterministic development/e2e reconstruction assigns every Head Manager first, then every active relationship owner as Manager, and leaves remaining members as Employee; it preserves effective-dated membership and relationship history instead of rewriting old rows into synthetic role history.
 
 ---
 

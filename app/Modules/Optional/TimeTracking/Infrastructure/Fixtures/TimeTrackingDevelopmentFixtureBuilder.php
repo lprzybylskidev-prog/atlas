@@ -306,18 +306,18 @@ final class TimeTrackingDevelopmentFixtureBuilder implements TimeTrackingFixture
         $southManagers = [$managers['tt.manager.03.south@example.test']];
 
         if (! $this->hierarchy->scopeFor($teams['north']->publicId, $northHead->publicId)->headManager) {
-            $this->hierarchy->setHeadManager($northHead->publicId, $teams['north']->publicId, $northHead->publicId, true, 'Development TimeTracking fixture.');
+            $this->hierarchy->changeStructuralRole($northHead->publicId, $teams['north']->publicId, $northHead->publicId, 'head_manager', 'Development TimeTracking fixture.');
         }
         if (! $this->hierarchy->scopeFor($teams['south']->publicId, $southHead->publicId)->headManager) {
-            $this->hierarchy->setHeadManager($southHead->publicId, $teams['south']->publicId, $southHead->publicId, true, 'Development TimeTracking fixture.');
+            $this->hierarchy->changeStructuralRole($southHead->publicId, $teams['south']->publicId, $southHead->publicId, 'head_manager', 'Development TimeTracking fixture.');
         }
 
         foreach ($northManagers as $manager) {
-            $this->createManagerRelationship($northHead, $manager, $teams['north']);
+            $this->ensureManagerRole($manager, $teams['north']);
         }
 
         foreach ($southManagers as $manager) {
-            $this->createManagerRelationship($southHead, $manager, $teams['south']);
+            $this->ensureManagerRole($manager, $teams['south']);
         }
 
         foreach ($regularUsers as $index => $user) {
@@ -345,6 +345,21 @@ final class TimeTrackingDevelopmentFixtureBuilder implements TimeTrackingFixture
             validFrom: '2026-08-01 00:00:00+00',
             reason: 'Development TimeTracking fixture.',
         );
+    }
+
+    private function ensureManagerRole(VerifiedUserFixture $manager, TimeTrackingFixtureTeam $team): void
+    {
+        $preview = $this->hierarchy->previewStructuralRoleChange($team->publicId, $manager->publicId, 'manager');
+
+        if ($preview->currentRole !== 'manager') {
+            $this->hierarchy->changeStructuralRole(
+                $manager->publicId,
+                $team->publicId,
+                $manager->publicId,
+                'manager',
+                'Development TimeTracking fixture.',
+            );
+        }
     }
 
     private function enableTracking(VerifiedUserFixture $user, TimeTrackingFixtureTeam $team): int

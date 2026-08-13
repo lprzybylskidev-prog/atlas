@@ -87,7 +87,7 @@ final class ActivityTrackerRouteTest extends TestCase
         $assignmentId = (int) DB::table(TeamsDatabaseTable::TEAM_USER_ASSIGNMENTS)->insertGetId([
             'team_id' => $team->id,
             'user_id' => $user->id,
-            'is_head_manager' => false,
+            'structural_role' => 'employee',
             'inactivity_timeout_minutes' => $inactivityTimeoutMinutes,
             'created_at' => now(),
             'updated_at' => now(),

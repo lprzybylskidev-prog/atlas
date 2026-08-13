@@ -12,6 +12,6 @@ final readonly class AdminTeamUserMembership
         public string $userEmail,
         public ?string $validFrom,
         public ?string $validTo,
-        public bool $headManager = false,
+        public string $structuralRole = 'employee',
     ) {}
 }

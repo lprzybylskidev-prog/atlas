@@ -58,6 +58,13 @@ final class PostgreSqlSchemaInvariantTest extends TestCase
         ]));
         self::assertTrue(Schema::hasColumns(NotificationsDatabaseTable::NOTIFICATION_EMAIL_ADDRESSES, ['user_id', 'team_id', 'email', 'primary']));
         self::assertTrue(Schema::hasColumns(FilesDatabaseTable::FILE_OBJECTS, ['retention_source_file_object_id', 'acknowledged_by_user_id', 'acknowledged_at']));
+        self::assertTrue(Schema::hasColumns(TeamsDatabaseTable::TEAM_USER_ASSIGNMENTS, ['structural_role']));
+        self::assertTrue($this->checkConstraintContains(
+            'core_teams',
+            'team_user_assignments',
+            'team_user_assignments_structural_role_check',
+            "'employee'::character varying, 'manager'::character varying, 'head_manager'::character varying",
+        ));
 
         self::assertForeignKey(IdentityDatabaseTable::SESSIONS, 'user_id', IdentityDatabaseTable::USERS, 'n');
         self::assertForeignKey(AuthorizationDatabaseTable::ROLES, 'team_id', TeamsDatabaseTable::TEAMS, 'r');
@@ -147,6 +154,20 @@ final class PostgreSqlSchemaInvariantTest extends TestCase
             ->where('event_object_table', $table)
             ->where('trigger_name', $trigger)
             ->exists();
+    }
+
+    private function checkConstraintContains(string $schema, string $table, string $constraint, string $expected): bool
+    {
+        $definition = DB::table('pg_catalog.pg_constraint as c')
+            ->join('pg_catalog.pg_class as t', 't.oid', '=', 'c.conrelid')
+            ->join('pg_catalog.pg_namespace as n', 'n.oid', '=', 't.relnamespace')
+            ->where('n.nspname', $schema)
+            ->where('t.relname', $table)
+            ->where('c.conname', $constraint)
+            ->selectRaw('pg_get_constraintdef(c.oid) as definition')
+            ->value('definition');
+
+        return is_string($definition) && str_contains($definition, $expected);
     }
 
     private function functionExists(string $schema, string $function): bool

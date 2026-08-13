@@ -12,7 +12,7 @@ final readonly class AdminTeamUserMembershipHistory
         public string $userEmail,
         public ?string $validFrom,
         public ?string $validTo,
-        public bool $headManager,
+        public string $structuralRole,
         public bool $active,
     ) {}
 }

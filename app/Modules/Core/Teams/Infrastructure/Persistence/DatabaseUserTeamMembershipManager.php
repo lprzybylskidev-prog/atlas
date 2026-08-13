@@ -142,7 +142,7 @@ final class DatabaseUserTeamMembershipManager implements TeamLookup, UserTeamMem
         return DB::table(TeamsDatabaseTable::TEAM_USER_ASSIGNMENTS)
             ->join(TeamsDatabaseTable::TEAMS, 'team_user_assignments.team_id', '=', 'teams.id')
             ->where('teams.public_id', $teamPublicId)
-            ->where('team_user_assignments.is_head_manager', true)
+            ->where('team_user_assignments.structural_role', 'head_manager')
             ->where(static function (Builder $query): void {
                 $query->whereNull('team_user_assignments.valid_from')->orWhere('team_user_assignments.valid_from', '<=', now());
             })
@@ -336,7 +336,7 @@ final class DatabaseUserTeamMembershipManager implements TeamLookup, UserTeamMem
             })
             ->get([
                 'team_user_assignments.user_id',
-                'team_user_assignments.is_head_manager',
+                'team_user_assignments.structural_role',
                 'team_user_assignments.valid_from',
                 'team_user_assignments.valid_to',
             ])
@@ -361,7 +361,7 @@ final class DatabaseUserTeamMembershipManager implements TeamLookup, UserTeamMem
                 userEmail: $user->email,
                 validFrom: $this->nullableString($values['valid_from'] ?? null),
                 validTo: $this->nullableString($values['valid_to'] ?? null),
-                headManager: (bool) ($values['is_head_manager'] ?? false),
+                structuralRole: $this->scalarString($values['structural_role'] ?? 'employee'),
             );
         }
 
@@ -379,7 +379,7 @@ final class DatabaseUserTeamMembershipManager implements TeamLookup, UserTeamMem
             ->orderByDesc('team_user_assignments.id')
             ->get([
                 'team_user_assignments.user_id',
-                'team_user_assignments.is_head_manager',
+                'team_user_assignments.structural_role',
                 'team_user_assignments.valid_from',
                 'team_user_assignments.valid_to',
             ])
@@ -409,7 +409,7 @@ final class DatabaseUserTeamMembershipManager implements TeamLookup, UserTeamMem
                 userEmail: $user->email,
                 validFrom: $validFrom,
                 validTo: $validTo,
-                headManager: (bool) ($values['is_head_manager'] ?? false),
+                structuralRole: $this->scalarString($values['structural_role'] ?? 'employee'),
                 active: $active,
             );
         }
@@ -565,7 +565,7 @@ final class DatabaseUserTeamMembershipManager implements TeamLookup, UserTeamMem
                 'user_id' => $userId,
                 'valid_from' => now(),
                 'valid_to' => null,
-                'is_head_manager' => false,
+                'structural_role' => 'employee',
                 'updated_at' => now(),
                 'created_at' => now(),
             ]);
@@ -592,7 +592,7 @@ final class DatabaseUserTeamMembershipManager implements TeamLookup, UserTeamMem
         $isHeadManager = DB::table(TeamsDatabaseTable::TEAM_USER_ASSIGNMENTS)
             ->where('team_id', $teamId)
             ->where('user_id', $userId)
-            ->where('is_head_manager', true)
+            ->where('structural_role', 'head_manager')
             ->exists();
         $activeRelationshipExists = DB::table(TeamsDatabaseTable::TEAM_MANAGER_RELATIONSHIPS)
             ->where('team_id', $teamId)

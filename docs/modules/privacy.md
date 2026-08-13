@@ -97,7 +97,7 @@ Current known controlled-copy areas are:
 
 Users/Identity provides a registered lifecycle participant for `user` subjects. It reports and executes against the user account row, password history, reset tokens, and database-backed sessions. Execution removes credential/session-derived rows and redacts the user account into an inactive neutral record so existing audit and foreign-key references keep a non-personal technical anchor.
 
-Teams and Authorization provide registered lifecycle participants for `user` subjects. Teams ends active team assignments, clears head-manager status, ends active manager relationships involving the user, and removes creator/ender references where they are only actor metadata. Authorization removes the user's role assignments, direct permission assignments, and onboarding-package snapshots while leaving role, permission, and package definitions intact.
+Teams and Authorization provide registered lifecycle participants for `user` subjects. Teams ends active team assignments while preserving their recorded structural role, ends active manager relationships involving the user, and removes creator/ender references where they are only actor metadata. Authorization removes the user's role assignments, direct permission assignments, and onboarding-package snapshots while leaving role, permission, and package definitions intact.
 
 Files provide a registered privacy lifecycle participant for `file` and `file_object` subjects. The participant reports `files.private_objects` preview impact for live file public IDs and delegates idempotent delete/anonymize execution to the existing Files `FileLifecycle` contract.
 

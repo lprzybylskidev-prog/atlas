@@ -8,6 +8,7 @@ use App\Modules\Core\Teams\Application\Public\DTOs\ManagerHierarchyNode;
 use App\Modules\Core\Teams\Application\Public\DTOs\ManagerImpactPreview;
 use App\Modules\Core\Teams\Application\Public\DTOs\ManagerRelationshipSummary;
 use App\Modules\Core\Teams\Application\Public\DTOs\ManagerScope;
+use App\Modules\Core\Teams\Application\Public\DTOs\StructuralRoleChangePreview;
 
 interface ManagerHierarchy
 {
@@ -54,11 +55,13 @@ interface ManagerHierarchy
 
     public function end(string $actorUserPublicId, string $relationshipPublicId, string $validTo, string $reason, ?string $expectedVersion = null): void;
 
-    public function setHeadManager(
+    public function previewStructuralRoleChange(string $teamPublicId, string $userPublicId, string $targetRole): StructuralRoleChangePreview;
+
+    public function changeStructuralRole(
         string $actorUserPublicId,
         string $teamPublicId,
         string $userPublicId,
-        bool $headManager,
+        string $targetRole,
         string $reason,
         ?string $expectedVersion = null,
     ): void;

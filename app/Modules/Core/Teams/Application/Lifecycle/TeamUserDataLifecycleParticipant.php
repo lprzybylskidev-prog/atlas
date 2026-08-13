@@ -41,7 +41,7 @@ final readonly class TeamUserDataLifecycleParticipant implements DataLifecyclePa
                 'teams.user_assignments',
                 $this->assignments($userId)->count(),
                 true,
-                $this->records($this->assignments($userId), ['id', 'team_id', 'user_id', 'is_head_manager', 'valid_from', 'valid_to', 'created_at']),
+                $this->records($this->assignments($userId), ['id', 'team_id', 'user_id', 'structural_role', 'valid_from', 'valid_to', 'created_at']),
             ),
             new DataLifecycleImpact(
                 'teams.manager_relationships',
@@ -70,7 +70,6 @@ final readonly class TeamUserDataLifecycleParticipant implements DataLifecyclePa
                         $query->whereNull('valid_to')->orWhere('valid_to', '>', $now);
                     })
                     ->update([
-                        'is_head_manager' => false,
                         'valid_to' => $now,
                         'updated_at' => $now,
                     ]),

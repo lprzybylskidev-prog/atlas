@@ -52,4 +52,34 @@ final class ManagerHierarchyViolation extends RuntimeException
     {
         return new self($message);
     }
+
+    public static function invalidStructuralRole(): self
+    {
+        return new self('Select a valid structural role.');
+    }
+
+    public static function unchangedStructuralRole(): self
+    {
+        return new self('The selected structural role is already active.');
+    }
+
+    public static function structuralRoleReasonRequired(): self
+    {
+        return new self('A reason is required to change the structural role.');
+    }
+
+    public static function managerRoleRequired(): self
+    {
+        return new self('Only a structural Manager can own direct-report relationships.');
+    }
+
+    public static function headManagerRelationshipForbidden(): self
+    {
+        return new self('A Head Manager cannot participate in normal manager relationships.');
+    }
+
+    public static function lastHeadManager(): self
+    {
+        return new self('The last active head manager cannot be changed. Assign another head manager first.');
+    }
 }

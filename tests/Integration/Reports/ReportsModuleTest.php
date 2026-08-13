@@ -1243,7 +1243,7 @@ final class ReportsModuleTest extends TestCase
         DB::table(TeamsDatabaseTable::TEAM_USER_ASSIGNMENTS)->insert([
             'team_id' => $team->id,
             'user_id' => $user->id,
-            'is_head_manager' => false,
+            'structural_role' => 'employee',
             'valid_from' => now()->subMinute(),
             'valid_to' => null,
             'created_at' => now(),

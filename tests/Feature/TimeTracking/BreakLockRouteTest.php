@@ -102,7 +102,7 @@ final class BreakLockRouteTest extends TestCase
         DB::table(TeamsDatabaseTable::TEAM_USER_ASSIGNMENTS)->insert([
             'team_id' => $team->id,
             'user_id' => $user->id,
-            'is_head_manager' => false,
+            'structural_role' => 'employee',
             'created_at' => now(),
             'updated_at' => now(),
         ]);

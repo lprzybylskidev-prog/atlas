@@ -33,7 +33,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('team_id')->constrained(TeamsDatabaseTable::TEAMS)->restrictOnDelete();
             $table->foreignId('user_id')->constrained(IdentityDatabaseTable::USERS)->restrictOnDelete();
-            $table->boolean('is_head_manager')->default(false);
+            $table->string('structural_role')->default('employee');
             $table->unsignedSmallInteger('inactivity_timeout_minutes')->nullable();
             $table->unsignedSmallInteger('session_max_lifetime_minutes')->nullable();
             $table->timestampTz('valid_from')->nullable();
@@ -42,8 +42,10 @@ return new class extends Migration
 
             $table->index(['team_id', 'user_id']);
             $table->index(['user_id', 'team_id']);
+            $table->index(['team_id', 'structural_role', 'valid_to']);
         });
 
+        DB::statement('alter table '.TeamsDatabaseTable::TEAM_USER_ASSIGNMENTS." add constraint team_user_assignments_structural_role_check check (structural_role in ('employee', 'manager', 'head_manager'))");
         DB::statement('create unique index team_user_assignments_active_unique on '.TeamsDatabaseTable::TEAM_USER_ASSIGNMENTS.' (team_id, user_id) where valid_to is null');
 
         Schema::create(TeamsDatabaseTable::TEAM_MANAGER_RELATIONSHIPS, static function (Blueprint $table): void {

@@ -564,24 +564,26 @@ Existing TimeTracking and other current manager-scope consumers must be verified
 
 ### Tasks
 
-- [ ] Introduce the explicit Employee / Manager / Head Manager structural-role contract.
-- [ ] Keep structural role separate from Authorization roles.
-- [ ] Migrate existing active Team structure state deterministically.
-- [ ] Preserve membership and relationship history.
-- [ ] Allow Managers with zero direct reports.
-- [ ] Preserve multiple Managers per subordinate.
-- [ ] Preserve Manager-to-Manager relationships.
-- [ ] Make Head Manager scope equal to the whole Team.
-- [ ] Prevent Head Managers from participating in normal relationship edges.
-- [ ] Add one canonical structural-role change use case.
-- [ ] Require a reason for structural-role changes.
-- [ ] Add impact preview for transitions that end relationships.
-- [ ] Make role transition plus relationship cleanup atomic.
-- [ ] Preserve optimistic concurrency.
-- [ ] Preserve last-required-Head-Manager protection.
-- [ ] Preserve self/cycle/duplicate/stale/process-blocker validation.
-- [ ] Update manager-scope consumers for whole-Team Head Manager scope.
-- [ ] Add migration, domain, integration, Audit, and scope regression tests.
+- [x] Introduce the explicit Employee / Manager / Head Manager structural-role contract.
+- [x] Keep structural role separate from Authorization roles.
+- [x] Migrate existing active Team structure state deterministically.
+- [x] Preserve membership and relationship history.
+- [x] Allow Managers with zero direct reports.
+- [x] Preserve multiple Managers per subordinate.
+- [x] Preserve Manager-to-Manager relationships.
+- [x] Make Head Manager scope equal to the whole Team.
+- [x] Prevent Head Managers from participating in normal relationship edges.
+- [x] Add one canonical structural-role change use case.
+- [x] Require a reason for structural-role changes.
+- [x] Add impact preview for transitions that end relationships.
+- [x] Make role transition plus relationship cleanup atomic.
+- [x] Preserve optimistic concurrency.
+- [x] Preserve last-required-Head-Manager protection.
+- [x] Preserve self/cycle/duplicate/stale/process-blocker validation.
+- [x] Update manager-scope consumers for whole-Team Head Manager scope.
+- [x] Add migration, domain, integration, Audit, and scope regression tests.
+
+Completion evidence (2026-08-13): Teams now owns a constrained `employee` / `manager` / `head_manager` structural role on every effective-dated membership, independently of Authorization roles. The pre-production canonical migration replaces the legacy boolean; fresh development/e2e reconstruction deterministically designates Head Managers, promotes active relationship owners to Managers, and leaves remaining members as Employees without rewriting membership or relationship history. The public `ManagerHierarchy` contract exposes one preview and one reasoned, optimistic structural-role transition operation. Invalidated edges are effective-dated in the same transaction as the role and mandatory Audit event, with rollback on audit failure; last-Head, inactive, stale, role, DAG, duplicate, self, and active-process safeguards remain enforced. Normal Managers retain explicit identity with zero reports and support Manager-to-Manager and multiple-manager edges, while Head Managers cannot own normal edges and receive the whole active Team through canonical scope. Unit, PostgreSQL schema, integration/feature, Audit rollback, Privacy history, deterministic demo reset, and TimeTracking manager-scope regressions cover the contract.
 
 ---
 

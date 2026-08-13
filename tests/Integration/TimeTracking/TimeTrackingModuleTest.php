@@ -1296,7 +1296,7 @@ final class TimeTrackingModuleTest extends TestCase
         return (int) DB::table(TeamsDatabaseTable::TEAM_USER_ASSIGNMENTS)->insertGetId([
             'team_id' => $teamId,
             'user_id' => $userId,
-            'is_head_manager' => false,
+            'structural_role' => 'employee',
             'valid_from' => '2026-08-01 08:00:00+00',
             'valid_to' => $validTo,
             'created_at' => now(),

@@ -50,7 +50,8 @@ final class TeamStructureController
                 'userEmail' => $membership->userEmail,
                 'validFrom' => $membership->validFrom,
                 'validTo' => $membership->validTo,
-                'headManager' => $membership->headManager,
+                'headManager' => $membership->structuralRole === 'head_manager',
+                'structuralRole' => $membership->structuralRole,
                 'active' => $membership->active,
             ], $this->memberships->membershipHistoryForTeam($teamPublicId)),
             'assignableUsers' => $teamPublicId === '' ? [] : $this->memberships->assignableUsersForTeam($teamPublicId),
@@ -169,11 +170,11 @@ final class TeamStructureController
         $values['team_public_id'] = $team;
 
         try {
-            $this->hierarchy->setHeadManager(
+            $this->hierarchy->changeStructuralRole(
                 actorUserPublicId: $this->actorPublicId($request),
                 teamPublicId: $team,
                 userPublicId: $this->string($values['user_public_id'] ?? ''),
-                headManager: (bool) ($values['head_manager'] ?? false),
+                targetRole: (bool) ($values['head_manager'] ?? false) ? 'head_manager' : 'manager',
                 reason: $this->string($values['reason'] ?? ''),
                 expectedVersion: isset($values['structure_version']) ? $this->string($values['structure_version']) : null,
             );
@@ -264,7 +265,7 @@ final class TeamStructureController
             $userPublicId = $member['value'];
             $directReportsCount = $directCounts[$userPublicId] ?? 0;
 
-            if ($directReportsCount === 0 && $member['headManager'] !== true) {
+            if (! in_array($member['structuralRole'], ['manager', 'head_manager'], true)) {
                 continue;
             }
 
@@ -275,7 +276,7 @@ final class TeamStructureController
                 'teamName' => $this->teamName($teamPublicId),
                 'name' => $member['name'],
                 'email' => $member['email'],
-                'managerType' => $member['headManager'] === true ? 'head' : 'regular',
+                'managerType' => $member['structuralRole'] === 'head_manager' ? 'head' : 'regular',
                 'directReportsCount' => $directReportsCount,
                 'subtreeReportsCount' => $subtreeReportsCount,
             ];
@@ -320,7 +321,7 @@ final class TeamStructureController
                 'teamName' => $this->teamName($teamPublicId),
                 'name' => $member['name'],
                 'email' => $member['email'],
-                'managerType' => $member['headManager'] === true ? 'head' : 'regular',
+                'managerType' => $member['structuralRole'] === 'head_manager' ? 'head' : 'regular',
                 'directReportsCount' => 0,
                 'subtreeReportsCount' => 0,
             ];
@@ -486,17 +487,11 @@ final class TeamStructureController
     }
 
     /**
-     * @return list<array{value: string, label: string, name: string, email: string, headManager: bool, manager: bool}>
+     * @return list<array{value: string, label: string, name: string, email: string, headManager: bool, structuralRole: string, manager: bool}>
      */
     private function teamMembers(string $teamPublicId): array
     {
         $members = [];
-        $managerUserPublicIds = [];
-
-        foreach ($this->hierarchy->activeRelationships($teamPublicId) as $relationship) {
-            $managerUserPublicIds[$relationship->managerUserPublicId] = true;
-        }
-
         foreach ($this->memberships->activeMembershipsForTeam($teamPublicId) as $member) {
             $name = $member->userName;
             $email = $member->userEmail;
@@ -505,8 +500,9 @@ final class TeamStructureController
                 'label' => trim($name.' · '.$email),
                 'name' => $name,
                 'email' => $email,
-                'headManager' => $member->headManager,
-                'manager' => $member->headManager || isset($managerUserPublicIds[$member->userPublicId]),
+                'headManager' => $member->structuralRole === 'head_manager',
+                'structuralRole' => $member->structuralRole,
+                'manager' => $member->structuralRole === 'manager',
             ];
         }
 

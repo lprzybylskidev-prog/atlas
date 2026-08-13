@@ -90,8 +90,9 @@ return [
         ], ['table_view'], ['table_saved_view']),
         'teams' => $catalog([
             'team.activated', 'team.created', 'team.deactivated', 'team.delete_rejected', 'team.deleted',
-            'team.head_manager.updated', 'team.manager_relationship.created', 'team.manager_relationship.ended',
+            'team.manager_relationship.created', 'team.manager_relationship.ended',
             'team.manager_relationship.reparent_rejected', 'team.manager_relationship.reparented',
+            'team.structural_role.change_rejected', 'team.structural_role.changed',
             'team.updated', 'team.user_access_added', 'team.user_access_remove_rejected', 'team.user_access_removed',
         ], ['team', 'user', 'manager_relationship', 'team_user_assignment'], ['team', 'manager_relationship']),
         'settings' => $catalog(['settings.security.updated'], ['security_setting', 'setting'], ['settings']),

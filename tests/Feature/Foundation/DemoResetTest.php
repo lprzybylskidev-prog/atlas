@@ -147,8 +147,8 @@ final class DemoResetTest extends TestCase
         ]);
         $this->assertDatabaseHas(TeamsDatabaseTable::TEAMS, ['name' => 'TT Demo Team North']);
         $this->assertDatabaseHas(TeamsDatabaseTable::TEAMS, ['name' => 'TT Demo Team South']);
-        $this->assertDatabaseCount(TeamsDatabaseTable::TEAM_MANAGER_RELATIONSHIPS, 54);
-        $this->assertSame(2, DB::table(TeamsDatabaseTable::TEAM_USER_ASSIGNMENTS)->where('is_head_manager', true)->count());
+        $this->assertDatabaseCount(TeamsDatabaseTable::TEAM_MANAGER_RELATIONSHIPS, 51);
+        $this->assertSame(2, DB::table(TeamsDatabaseTable::TEAM_USER_ASSIGNMENTS)->where('structural_role', 'head_manager')->count());
         $this->assertSame(0, DB::table(TeamsDatabaseTable::TEAM_MANAGER_RELATIONSHIPS)
             ->whereColumn('manager_user_id', 'report_user_id')
             ->count());

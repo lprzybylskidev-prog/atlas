@@ -10,6 +10,7 @@ use App\Modules\Core\Identity\Application\Admin\AdministrativeSessionManager;
 use App\Modules\Core\Identity\Application\Admin\ImpersonationManager;
 use App\Modules\Core\Identity\Application\Admin\ImpersonationSimulationStore;
 use App\Modules\Core\Identity\Infrastructure\Persistence\User;
+use App\Modules\Core\Teams\Application\Public\Contracts\ManagerHierarchy;
 use App\Modules\Core\Teams\Infrastructure\Persistence\TableNames\TeamsDatabaseTable;
 use App\Modules\Core\Teams\Infrastructure\Persistence\Team;
 use App\Modules\Core\Users\Application\Permissions\UserPermissionCatalog;
@@ -21,6 +22,7 @@ use App\Shared\Application\Modules\Activation\ModuleActivationChange;
 use App\Shared\Application\Modules\Activation\ModuleActivationScope;
 use App\Shared\Application\Modules\Activation\ModuleActivationSource;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Inertia\Testing\AssertableInertia;
@@ -324,6 +326,77 @@ final class UserTimeReportRouteTest extends TestCase
             ->assertForbidden();
     }
 
+    public function test_head_manager_time_tracking_scope_covers_the_whole_active_team_without_relationship_edges(): void
+    {
+        [$headManager, $team] = $this->userWithTeam();
+        $firstMember = User::factory()->create(['name' => 'Whole Team First']);
+        $secondMember = User::factory()->create(['name' => 'Whole Team Second']);
+        $this->addUserToTeam($firstMember, $team);
+        $this->addUserToTeam($secondMember, $team);
+        $this->activateTimeTracking($team);
+        $this->enableTracking($firstMember, $team);
+        $this->enableTracking($secondMember, $team);
+        $this->assignDirectPermissionInTeam($headManager, $team, TimeTrackingPermissionCatalog::MANAGER_WORK_TIME_WORK_SESSIONS);
+        $this->assignDirectPermissionInTeam($headManager, $team, TimeTrackingPermissionCatalog::MANAGER_WORK_TIME_WORK_SESSION_SHOW);
+
+        $this->app->make(ManagerHierarchy::class)->changeStructuralRole(
+            (string) $headManager->public_id,
+            (string) $team->public_id,
+            (string) $headManager->public_id,
+            'head_manager',
+            'Verify whole-Team TimeTracking scope.',
+        );
+
+        foreach ([
+            [$firstMember, 3600, 'whole-team-first', '2026-08-01 09:00:00+00'],
+            [$secondMember, 7200, 'whole-team-second', '2026-08-01 10:00:00+00'],
+        ] as [$member, $seconds, $sessionId, $endedAt]) {
+            self::assertInstanceOf(User::class, $member);
+            DB::table(TimeTrackingDatabaseTable::WORK_SESSIONS)->insert([
+                'public_id' => (string) Str::ulid(),
+                'user_id' => $member->id,
+                'team_id' => $team->id,
+                'laravel_session_id' => $sessionId,
+                'started_at' => '2026-08-01 08:00:00+00',
+                'ended_at' => $endedAt,
+                'exact_seconds' => $seconds,
+                'closure_reason' => 'logout',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
+
+        self::assertDatabaseCount(TeamsDatabaseTable::TEAM_MANAGER_RELATIONSHIPS, 0);
+        $this->actingAs($headManager)
+            ->withSession(['active_team_public_id' => $team->public_id])
+            ->get('/manager/work-time/work-sessions?team='.$team->public_id.'&range=custom&from=2026-08-01&to=2026-08-01')
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->component('TimeTracking/AdminOperations')
+                ->where('surface', 'manager')
+                ->where('summary.totalSeconds', 10800)
+                ->has('workSessionRows', 2)
+                ->has('userOptions', 2));
+
+        $activation = $this->app->make(ModuleActivationService::class);
+        $activation->change(new ModuleActivationChange(
+            moduleKey: 'time_tracking',
+            scope: ModuleActivationScope::Team,
+            enabled: false,
+            reason: 'Feature test cleanup',
+            teamId: $team->id,
+            source: ModuleActivationSource::Manual,
+        ));
+        $activation->change(new ModuleActivationChange(
+            moduleKey: 'time_tracking',
+            scope: ModuleActivationScope::Global,
+            enabled: false,
+            reason: 'Feature test cleanup',
+            source: ModuleActivationSource::Manual,
+        ));
+        Cache::flush();
+    }
+
     public function test_manager_operations_require_route_permission_and_legacy_report_stays_absent(): void
     {
         [$user, $team] = $this->userWithTeam();
@@ -342,6 +415,7 @@ final class UserTimeReportRouteTest extends TestCase
 
     public function test_saved_view_mutation_requires_the_registered_table_module_gate(): void
     {
+        Cache::flush();
         [$user, $team] = $this->userWithTeam();
         $this->assignDirectPermissionInTeam($user, $team, TimeTrackingPermissionCatalog::USER_REPORT);
 
@@ -513,6 +587,11 @@ final class UserTimeReportRouteTest extends TestCase
 
     private function createManagerRelationship(User $manager, User $report, Team $team): void
     {
+        DB::table(TeamsDatabaseTable::TEAM_USER_ASSIGNMENTS)
+            ->where('team_id', $team->id)
+            ->where('user_id', $manager->id)
+            ->update(['structural_role' => 'manager', 'updated_at' => now()]);
+
         DB::table(TeamsDatabaseTable::TEAM_MANAGER_RELATIONSHIPS)->insert([
             'public_id' => (string) Str::ulid(),
             'team_id' => $team->id,

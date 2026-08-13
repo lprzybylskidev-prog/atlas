@@ -105,6 +105,16 @@ final class E2eVisibilitySeeder extends Seeder
     {
         $hierarchy = app(ManagerHierarchy::class);
 
+        if ($hierarchy->previewStructuralRoleChange($teamPublicId, $manager->publicId, 'manager')->currentRole !== 'manager') {
+            $hierarchy->changeStructuralRole(
+                actorUserPublicId: $manager->publicId,
+                teamPublicId: $teamPublicId,
+                userPublicId: $manager->publicId,
+                targetRole: 'manager',
+                reason: 'E2E visibility fixture.',
+            );
+        }
+
         foreach ($hierarchy->activeRelationships($teamPublicId) as $relationship) {
             if ($relationship->managerUserPublicId === $manager->publicId && $relationship->reportUserPublicId === $report->publicId) {
                 return;
