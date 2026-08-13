@@ -60,7 +60,8 @@ Current implementation foundation:
 
 Starter roles:
 
-- Atlas starter roles are small functional permission bundles such as `workspace.access`, `admin.users.read`, `admin.users.manage`, `admin.teams.read`, `admin.teams.manage`, `authorization.roles.read`, `authorization.roles.manage`, `authorization.presets.manage`, `authorization.permissions.read`, `teams.managers.read`, `teams.managers.manage`, `system.status.read`, and `system.operations.manage`;
+- Atlas starter roles are small functional permission bundles such as `workspace.access`, `communication.access`, `communication.meeting-host`, `communication.operations`, `admin.users.read`, `admin.users.manage`, `admin.teams.read`, `admin.teams.manage`, `authorization.roles.read`, `authorization.roles.manage`, `authorization.presets.manage`, `authorization.permissions.read`, `teams.managers.read`, `teams.managers.manage`, `system.status.read`, and `system.operations.manage`;
+- `workspace.access` and `communication.access` include ordinary Calendar and internal-communication capabilities; Meeting moderation/recording control and content-free Chat operations remain separate bundles, and no role or Admin permission bypasses conversation, invitation, recording, or personal-event ownership checks;
 - cumulative starter roles include the lower-level permissions required for that functional area, for example manage-level roles include their read/index permissions;
 - `teams.managers.*` roles grant only manager-administration permissions; manager hierarchy scope still comes from the team-scoped manager hierarchy, not from the role name;
 - `teams.managers.read` grants Team Structure read/tree/history permissions, and `teams.managers.manage` additionally grants relationship creation, termination, and structural-role update permissions;

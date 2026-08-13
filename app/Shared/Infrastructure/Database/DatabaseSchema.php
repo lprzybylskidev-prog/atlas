@@ -14,6 +14,8 @@ final class DatabaseSchema
 
     public const CORE_AUTHORIZATION = 'core_authorization';
 
+    public const CORE_CALENDAR = 'core_calendar';
+
     public const CORE_AUDIT = 'core_audit';
 
     public const CORE_SETTINGS = 'core_settings';
@@ -36,6 +38,8 @@ final class DatabaseSchema
 
     public const OPTIONAL_TIME_TRACKING = 'optional_time_tracking';
 
+    public const OPTIONAL_CHAT = 'optional_chat';
+
     public const SHARED = 'shared';
 
     /**
@@ -47,6 +51,7 @@ final class DatabaseSchema
             self::CORE_IDENTITY,
             self::CORE_TEAMS,
             self::CORE_AUTHORIZATION,
+            self::CORE_CALENDAR,
             self::CORE_AUDIT,
             self::CORE_SETTINGS,
             self::CORE_NOTIFICATIONS,
@@ -58,6 +63,7 @@ final class DatabaseSchema
             self::OPTIONAL_IMPORTS,
             self::OPTIONAL_FEATURE_FLAGS,
             self::OPTIONAL_TIME_TRACKING,
+            self::OPTIONAL_CHAT,
             self::SHARED,
         ];
     }

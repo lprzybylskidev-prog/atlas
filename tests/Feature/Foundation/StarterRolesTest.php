@@ -8,6 +8,8 @@ use App\Modules\Core\Authorization\Application\Permissions\PermissionCatalogRegi
 use App\Modules\Core\Authorization\Application\Roles\InstallStarterRoles;
 use App\Modules\Core\Authorization\Application\Roles\StarterRoleName;
 use App\Modules\Core\Authorization\Infrastructure\Persistence\TableNames\AuthorizationDatabaseTable;
+use App\Shared\Application\Calendar\Permissions\CalendarPermissionNames;
+use App\Shared\Application\Chat\Permissions\ChatPermissionNames;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
@@ -53,5 +55,26 @@ final class StarterRolesTest extends TestCase
         $administrator->refresh();
 
         self::assertSame($originalCount, $administrator->permissions()->count());
+    }
+
+    public function test_communication_starter_roles_separate_standard_host_and_content_free_operations(): void
+    {
+        $this->app->make(InstallStarterRoles::class)->handle();
+
+        $workspace = Role::query()->where('name', StarterRoleName::WorkspaceAccess->value)->firstOrFail();
+        $standard = Role::query()->where('name', StarterRoleName::CommunicationAccess->value)->firstOrFail();
+        $host = Role::query()->where('name', StarterRoleName::CommunicationMeetingHost->value)->firstOrFail();
+        $operations = Role::query()->where('name', StarterRoleName::CommunicationOperations->value)->firstOrFail();
+
+        self::assertTrue($workspace->hasPermissionTo(CalendarPermissionNames::INDEX));
+        self::assertTrue($workspace->hasPermissionTo(ChatPermissionNames::INDEX));
+        self::assertTrue($standard->hasPermissionTo(ChatPermissionNames::DIRECT_CONVERSATION_STORE));
+        self::assertFalse($standard->hasPermissionTo(ChatPermissionNames::MEETING_MODERATE));
+        self::assertTrue($host->hasPermissionTo(ChatPermissionNames::MEETING_MODERATE));
+        self::assertTrue($host->hasPermissionTo(ChatPermissionNames::RECORDING_MANAGE));
+        self::assertTrue($operations->hasPermissionTo(ChatPermissionNames::INDEX));
+        self::assertTrue($operations->hasPermissionTo(ChatPermissionNames::ADMIN_OPERATIONS_INDEX));
+        self::assertFalse($operations->hasPermissionTo(ChatPermissionNames::RECORDING_SHOW));
+        self::assertFalse($operations->hasPermissionTo(ChatPermissionNames::TRANSCRIPTION_SHOW));
     }
 }

@@ -6,6 +6,7 @@ namespace Tests\Unit\Foundation;
 
 use App\Modules\Core\Audit\AuditModule;
 use App\Modules\Core\Authorization\AuthorizationModule;
+use App\Modules\Core\Calendar\CalendarModule;
 use App\Modules\Core\Exports\ExportsModule;
 use App\Modules\Core\Files\FilesModule;
 use App\Modules\Core\Health\HealthModule;
@@ -15,6 +16,7 @@ use App\Modules\Core\Privacy\PrivacyModule;
 use App\Modules\Core\Settings\SettingsModule;
 use App\Modules\Core\Teams\TeamsModule;
 use App\Modules\Core\Users\UsersModule;
+use App\Modules\Optional\Chat\ChatModule;
 use App\Modules\Optional\FeatureFlags\FeatureFlagsModule;
 use App\Modules\Optional\Imports\ImportsModule;
 use App\Modules\Optional\Integrations\IntegrationsModule;
@@ -70,6 +72,7 @@ final class ModuleRegistryTest extends TestCase
         $registry = new ModuleRegistry([
             new IdentityModule,
             new AuthorizationModule,
+            new CalendarModule,
             new TeamsModule,
             new UsersModule,
             new AuditModule,
@@ -81,9 +84,9 @@ final class ModuleRegistryTest extends TestCase
             new PrivacyModule,
         ]);
 
-        self::assertCount(11, $registry->all());
+        self::assertCount(12, $registry->all());
         self::assertFalse($registry->has(new ModuleKey('managed_processes')));
-        self::assertCount(11, $registry->startupOrder());
+        self::assertCount(12, $registry->startupOrder());
     }
 
     public function test_it_rejects_dependency_cycles(): void
@@ -239,6 +242,7 @@ final class ModuleRegistryTest extends TestCase
         self::assertSame([
             IdentityModule::class,
             AuthorizationModule::class,
+            CalendarModule::class,
             TeamsModule::class,
             UsersModule::class,
             AuditModule::class,
@@ -255,6 +259,7 @@ final class ModuleRegistryTest extends TestCase
             SearchModule::class,
             ReportsModule::class,
             TimeTrackingModule::class,
+            ChatModule::class,
         ], $moduleClasses);
 
         foreach ($moduleClasses as $moduleClass) {
@@ -274,10 +279,11 @@ final class ModuleRegistryTest extends TestCase
 
         $registry = new ModuleRegistry($modules);
 
-        self::assertCount(18, $registry->all());
+        self::assertCount(20, $registry->all());
         self::assertSame([
             'identity',
             'authorization',
+            'calendar',
             'teams',
             'audit',
             'files',
@@ -294,6 +300,7 @@ final class ModuleRegistryTest extends TestCase
             'search',
             'reports',
             'time_tracking',
+            'chat',
         ], array_map(
             static fn (ModuleDefinition $module): string => $module->key()->value,
             $registry->startupOrder(),

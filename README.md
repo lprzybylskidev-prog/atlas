@@ -120,6 +120,8 @@ The planned shared system capabilities include:
 - Audit and security audit
 - Settings and localization
 - Notifications
+- Shared Core Calendar boundary
+- Optional internal Chat boundary for conversations, Calls, and Meetings (Phase 31 implementation in progress)
 - Files
 - Privacy, retention, hard-delete, and anonymization readiness
 - Admin operations

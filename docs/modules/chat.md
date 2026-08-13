@@ -1,10 +1,10 @@
 # Internal communication and Chat module
 
-Canonical accepted product boundary for the future Atlas internal-communication capability. Implementation is scheduled in [Phase 31](../roadmap/phase-31-chat.md) and has not started. This document records the target at a high level; the phase file is the binding implementation and acceptance contract.
+Canonical current boundary and accepted target for the Atlas internal-communication capability. Phase 31 is in progress: P31-W01 has established module, persistence, authorization, scope, and cross-module boundaries; P31-W02 is the next sequential workstream. The phase file remains the binding implementation and acceptance contract.
 
 ## Purpose and boundary
 
-The target supports human-to-human Chat, a shared Core Calendar, internal Calls, Meetings, screen sharing, Meeting recording, and provider-neutral future transcription readiness for Atlas users. It is not a business-module event bus, generic conversation-context framework, public messaging/conferencing service, social network, bot platform, or replacement for Notifications. Business modules continue to communicate system events through Notifications.
+The accepted capability supports human-to-human Chat, a shared Core Calendar, internal Calls, Meetings, screen sharing, Meeting recording, and provider-neutral future transcription readiness for Atlas users. It is not a business-module event bus, generic conversation-context framework, public messaging/conferencing service, social network, bot platform, or replacement for Notifications. Business modules continue to communicate system events through Notifications.
 
 Atlas owns Chat, Calendar, Call, Meeting, invitation, recording-metadata, sharing, retention, and transcript state. It does not use a ready-made Chat/conferencing product or an external SDK that owns those domains. Laravel broadcasting and Laravel Reverb remain the application-event and text-message realtime transport. A narrow Atlas RTC boundary uses Atlas-managed self-hosted LiveKit only for realtime media transport and separate self-hosted Egress only for Meeting recording; LiveKit data channels do not replace Reverb Chat delivery.
 
@@ -12,11 +12,13 @@ The expected deployment has roughly 400 users with reasonable future growth. Thi
 
 ## Availability, activation, and authorization
 
-Chat is an optional Atlas module governed by the canonical module registry, Module Availability, ModuleGate, and Authorization foundations. Global deactivation hides and blocks Chat UI, HTTP/application actions, Search, and realtime channels while preserving historical data.
+Chat is an optional Atlas module with key `chat`. It supports global activation and deliberately does not support team activation. The canonical ModuleGate wrapper is the common entry point for UI capability contribution and future Chat/Call/Meeting application actions. Global deactivation therefore removes offered capabilities and denies backend access while preserving historical data.
 
-Permissions cover using Chat, starting direct conversations, creating groups, uploading attachments, sending voice messages, operational Admin access, and retention administration. Starter roles normally allow standard employees to use these capabilities unless project permissions restrict them.
+Chat owns its persistence in `optional_chat`, including conversations, memberships, messages, Calls, Meetings, invitations, recording metadata, and transcription metadata. Calendar owns `core_calendar`; Chat reaches it only through Calendar's `Application/Public` API.
 
-No permission equivalent to `chat.admin.read` may grant Administrators general access to private Chat content.
+The module catalog includes granular route-aligned permissions for Chat use, direct/group creation, attachments, voice messages, Call start/join, screen sharing, Meetings and invitations, moderation, recording, transcription, and content-free operational/retention administration. Calendar permissions remain Calendar-owned. Standard communication capabilities are included in `workspace.access` and the reusable `communication.access` bundle; `communication.meeting-host` and `communication.operations` separate host and content-free operational capabilities.
+
+No permission equivalent to `chat.admin.read` exists. Operational Admin permissions do not include conversation or message read routes. Administrator permissions never replace participant/Meeting scope checks.
 
 ## Conversation types and scope
 
@@ -26,6 +28,8 @@ Chat supports exactly four conversation types:
 - `group` — a global user-created conversation;
 - `team` — a system-owned Team-scoped conversation.
 - `meeting` — a system-owned persistent conversation attached to one Meeting or recurring Meeting series.
+
+The implemented domain scope policy makes direct and group access depend on conversation membership and explicitly ignores the active Team. Team conversation access requires both membership and a conversation Team matching the active Team. Meeting conversation access depends on Meeting invitation/participant membership and explicitly ignores the active Team. Persistence-backed membership behavior follows in P31-W03.
 
 Direct and group conversations belong to the Atlas user account context, not the active Team. Switching active Team does not duplicate, switch, or hide them. Every active user may start a direct conversation with every other active user regardless of Team membership. Each unordered user pair has exactly one canonical direct conversation, including under concurrent creation. There are no message requests, contact approval, friend requests, or user blocking.
 
@@ -51,9 +55,9 @@ Uploads support file selection, drag and drop, clipboard paste, progress, quaran
 
 Voice messages are Files-owned attachments with a maximum recording length of 15 minutes. The explicit browser flow is record, stop, preview/listen, then send or discard and re-record. Stopping never sends automatically. Voice messages require an intentional microphone action, pass through Files and ClamAV, and use an accessible audio player.
 
-## Shared Core Calendar target
+## Shared Core Calendar boundary and target
 
-Phase 31 adds Calendar as a shared Core capability rather than Chat-owned storage or a Meeting-only widget. It supports private personal events, Meeting-backed events, Month/Week/Day/Agenda views, Europe/Warsaw business-time behavior, recurrence, reminders, invitations/RSVP composition, and privacy-preserving Free/Busy that reveals availability without private event details. Calendar does not become a task-management product or expose private personal events to Administrators.
+Calendar is registered as a shared Core capability rather than Chat-owned storage or a Meeting-only widget. Its narrow public API accepts owner-tagged event contributions and exposes privacy-safe Free/Busy windows. Chat's Meeting Calendar adapter uses that API and never Calendar persistence. The P31-W02 target adds private personal events, Month/Week/Day/Agenda views, Europe/Warsaw recurrence, reminders, and Free/Busy behavior without turning Calendar into task management or exposing private personal events to Administrators.
 
 ## Calls and Meetings target
 

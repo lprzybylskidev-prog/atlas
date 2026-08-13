@@ -20,7 +20,7 @@ final class ModuleGraphArchitectureTest extends TestCase
         $modules = $this->deployedModules();
         $registry = new ModuleRegistry($modules);
 
-        self::assertCount(18, $modules);
+        self::assertCount(20, $modules);
         self::assertSame(
             array_keys($modules),
             array_map(
@@ -28,7 +28,7 @@ final class ModuleGraphArchitectureTest extends TestCase
                 $registry->all(),
             ),
         );
-        self::assertCount(18, $registry->startupOrder());
+        self::assertCount(20, $registry->startupOrder());
     }
 
     public function test_real_module_imports_match_declared_dependencies(): void
@@ -78,7 +78,7 @@ final class ModuleGraphArchitectureTest extends TestCase
         }
 
         self::assertSame([], $legacyCatalogs);
-        self::assertCount(14, $this->publicPersistenceModuleMap());
+        self::assertCount(16, $this->publicPersistenceModuleMap());
     }
 
     public function test_config_bootstrap_and_migrations_reference_only_explicit_module_surfaces(): void

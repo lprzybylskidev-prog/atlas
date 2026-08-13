@@ -23,6 +23,45 @@ final class ModuleGateRuntimeTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_chat_global_activation_controls_runtime_access(): void
+    {
+        $this->seed(E2eVisibilitySeeder::class);
+
+        $activation = app(ModuleActivationService::class);
+        $gate = app(ModuleGate::class);
+        $team = DB::table(TeamsDatabaseTable::TEAMS)->where('name', E2eVisibilitySeeder::TEAM_NAME)->first();
+
+        self::assertIsObject($team);
+        self::assertIsString($team->public_id);
+
+        $activation->change(new ModuleActivationChange(
+            moduleKey: 'chat',
+            scope: ModuleActivationScope::Global,
+            enabled: true,
+            reason: 'Enable Chat for its global activation boundary test.',
+        ));
+
+        self::assertTrue($gate->allows(new ModuleAccessRequest(
+            moduleKey: 'chat',
+            activeTeamPublicId: $team->public_id,
+        )));
+
+        $activation->change(new ModuleActivationChange(
+            moduleKey: 'chat',
+            scope: ModuleActivationScope::Global,
+            enabled: false,
+            reason: 'Verify that global Chat deactivation blocks access.',
+        ));
+
+        $decision = $gate->inspect(new ModuleAccessRequest(
+            moduleKey: 'chat',
+            activeTeamPublicId: $team->public_id,
+        ));
+
+        self::assertFalse($decision->allowed);
+        self::assertSame(ModuleAccessDenialReason::GloballyInactive, $decision->denialReason);
+    }
+
     public function test_runtime_module_gate_uses_registry_active_team_and_permission_state(): void
     {
         $this->seed(E2eVisibilitySeeder::class);

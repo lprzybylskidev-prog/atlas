@@ -7,8 +7,10 @@ namespace Tests\Unit\Foundation;
 use App\Modules\Core\Authorization\Application\Permissions\PermissionCatalogRegistry;
 use App\Modules\Core\Authorization\Application\Roles\StarterRoleName;
 use App\Modules\Core\Authorization\Infrastructure\Persistence\SpatieEffectivePermissionChecker;
+use App\Modules\Core\Calendar\Application\Permissions\CalendarPermissionCatalog;
 use App\Modules\Core\Teams\Application\Permissions\TeamPermissionCatalog;
 use App\Modules\Core\Users\Application\Permissions\UserPermissionCatalog;
+use App\Modules\Optional\Chat\Application\Permissions\ChatPermissionCatalog;
 use App\Shared\Application\Authorization\Contracts\EffectivePermissionChecker;
 use App\Shared\Application\Authorization\DTOs\EffectivePermissionRequest;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -35,6 +37,8 @@ final class AuthorizationFoundationTest extends TestCase
 
         self::assertContains(UserPermissionCatalog::USERS_VIEW, $registry->names());
         self::assertContains(TeamPermissionCatalog::TEAMS_VIEW, $registry->names());
+        self::assertContains(CalendarPermissionCatalog::INDEX, $registry->names());
+        self::assertContains(ChatPermissionCatalog::INDEX, $registry->names());
         self::assertContains('authorization.roles.view', $registry->names());
         self::assertSame($registry->names(), array_values(array_unique($registry->names())));
     }

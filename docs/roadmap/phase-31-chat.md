@@ -1,6 +1,6 @@
 # Phase 31 — Optional internal company chat, calendar, calls, meetings, and realtime communication
 
-**Status:** `not started`
+**Status:** `in progress` (`P31-W01` complete; `P31-W02` is next)
 
 ## Objective
 
@@ -289,19 +289,19 @@ Admin status alone must never grant private content access.
 
 ### Tasks
 
-- [ ] Preserve the optional Chat module boundary.
-- [ ] Define the shared Core Calendar boundary.
-- [ ] Define Chat/Call/Meeting persistence ownership.
-- [ ] Define Calendar persistence ownership.
-- [ ] Add only required public contracts.
-- [ ] Add the expanded permission catalog.
-- [ ] Add appropriate starter-role capabilities.
-- [ ] Gate Chat/Call/Meeting UI and application actions.
-- [ ] Preserve global direct/group scope.
-- [ ] Preserve Team-scoped Team conversation behavior.
-- [ ] Define Meeting invitation-based scope.
-- [ ] Add architecture/module-boundary guardrails.
-- [ ] Update planning/current documentation boundaries without duplicating module internals.
+- [x] Preserve the optional Chat module boundary.
+- [x] Define the shared Core Calendar boundary.
+- [x] Define Chat/Call/Meeting persistence ownership.
+- [x] Define Calendar persistence ownership.
+- [x] Add only required public contracts.
+- [x] Add the expanded permission catalog.
+- [x] Add appropriate starter-role capabilities.
+- [x] Gate Chat/Call/Meeting UI and application actions.
+- [x] Preserve global direct/group scope.
+- [x] Preserve Team-scoped Team conversation behavior.
+- [x] Define Meeting invitation-based scope.
+- [x] Add architecture/module-boundary guardrails.
+- [x] Update planning/current documentation boundaries without duplicating module internals.
 
 ---
 

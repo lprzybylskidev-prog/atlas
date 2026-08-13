@@ -7,6 +7,9 @@ namespace App\Modules\Core\Authorization\Application\Roles;
 enum StarterRoleName: string
 {
     case WorkspaceAccess = 'workspace.access';
+    case CommunicationAccess = 'communication.access';
+    case CommunicationMeetingHost = 'communication.meeting-host';
+    case CommunicationOperations = 'communication.operations';
     case AdminUsersRead = 'admin.users.read';
     case AdminUsersManage = 'admin.users.manage';
     case AdminTeamsRead = 'admin.teams.read';

@@ -26,6 +26,8 @@ Current foundation structure:
 
 - `app/Modules/Core/Identity` owns the current Fortify authentication actions, Identity presentation provider, and user persistence model.
 - `app/Modules/Core/Users` is the Core user-lifecycle module root and currently depends on Identity while user administration use cases are being built.
+- `app/Modules/Core/Calendar` owns reusable Calendar persistence and its narrow module-event and Free/Busy public contracts.
+- `app/Modules/Optional/Chat` owns internal conversations, Calls, Meetings, and communication metadata while depending on Calendar only through `Calendar/Application/Public`.
 - `app/Modules/Optional` is reserved for optional foundation modules.
 - `app/Modules/Application` is reserved for concrete business-domain modules.
 - `app/Shared/Domain/Money` owns framework-independent money and currency primitives.
@@ -370,6 +372,7 @@ Privacy administrative orchestration executes registered lifecycle participants 
 - Files
 - Admin
 - Health
+- Calendar
 
 ### Optional Foundation
 
@@ -379,6 +382,7 @@ Privacy administrative orchestration executes registered lifecycle participants 
 - Search
 - Integrations
 - FeatureFlags
+- Chat
 
 Reports/exports/print and realtime/WebSockets are shared cross-cutting capabilities by default, not automatically activatable modules. A Atlas may introduce a dedicated Reports or Realtime module only when it has an independent business boundary, lifecycle, permissions, or activation needs.
 

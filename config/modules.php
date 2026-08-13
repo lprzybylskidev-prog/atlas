@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Modules\Core\Audit\AuditModule;
 use App\Modules\Core\Authorization\AuthorizationModule;
+use App\Modules\Core\Calendar\CalendarModule;
 use App\Modules\Core\Exports\ExportsModule;
 use App\Modules\Core\Files\FilesModule;
 use App\Modules\Core\Health\HealthModule;
@@ -13,6 +14,7 @@ use App\Modules\Core\Privacy\PrivacyModule;
 use App\Modules\Core\Settings\SettingsModule;
 use App\Modules\Core\Teams\TeamsModule;
 use App\Modules\Core\Users\UsersModule;
+use App\Modules\Optional\Chat\ChatModule;
 use App\Modules\Optional\FeatureFlags\FeatureFlagsModule;
 use App\Modules\Optional\Imports\ImportsModule;
 use App\Modules\Optional\Integrations\IntegrationsModule;
@@ -25,6 +27,7 @@ return [
     'deployed' => [
         IdentityModule::class,
         AuthorizationModule::class,
+        CalendarModule::class,
         TeamsModule::class,
         UsersModule::class,
         AuditModule::class,
@@ -41,5 +44,6 @@ return [
         SearchModule::class,
         ReportsModule::class,
         TimeTrackingModule::class,
+        ChatModule::class,
     ],
 ];

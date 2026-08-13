@@ -17,7 +17,8 @@ Each module document contains a Phase 28 closure note recording the implemented 
 - [Imports](imports.md) — mapping, validation, preview, execution, progress, and errors.
 - [Integrations](integrations.md) — external adapters, retries, idempotency, and visibility.
 - [Notifications](notifications.md) — notification types, channels, preferences, and delivery.
-- [Internal communication and Chat](chat.md) — accepted future Chat, shared Calendar, Calls, Meetings, recording, provider-neutral transcription, realtime, privacy, Files, Search, and retention contract.
+- [Calendar](calendar.md) — shared Core Calendar ownership, public contribution and Free/Busy boundaries, persistence, privacy, and permissions.
+- [Internal communication and Chat](chat.md) — optional Chat boundary plus the accepted Calls, Meetings, recording, provider-neutral transcription, realtime, privacy, Files, Search, and retention contract.
 - [Settings](settings.md) — typed settings, scope, precedence, validation, and caching.
 - [Health](health.md) — liveness, readiness, dependency classification, and Admin diagnostics.
 - [Search](search.md) — Meilisearch projections, indexing, rebuild, and health.

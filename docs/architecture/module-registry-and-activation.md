@@ -38,6 +38,8 @@ Optional dependencies may be absent from the deployed registry, but the consumin
 
 Phase 28 completed validation of the real dependency graph, optional-dependency reduced modes, technical availability, activation state, and metadata execution.
 
+Phase 31 registers Calendar as a non-activatable Core module and Chat as an Optional module requiring Calendar. Chat supports global activation only: direct/group scope is account-global, Team conversation scope is enforced by the owning Chat policy, and Meeting scope is invitation-based. Team activation overrides are intentionally unsupported for Chat. Its UI availability contributor and application access service both pass through the central ModuleGate; global deactivation preserves owner data while denying offered capabilities and actions.
+
 ### Executable metadata policy
 
 Every `ModuleDefinition` metadata category has one accepted runtime meaning:
