@@ -400,6 +400,23 @@ function optionalDate(value: string | null): string {
                 </div>
             </div>
 
+            <SurfaceCard :title="t('pages.admin.teams.structure.members.add_title')" :icon="IconUserPlus" tone="teal">
+                <AtlasForm class="space-y-4" :processing="addMemberForm.processing" @submit="submitAddMember">
+                    <FormSelect
+                        v-model="addMemberForm.user_public_id"
+                        :label="t('pages.admin.teams.structure.members.user')"
+                        :options="assignableUsers"
+                        :placeholder="t('pages.admin.teams.structure.members.user_placeholder')"
+                        :error="addMemberForm.errors.user_public_id"
+                    />
+                    <FormActions>
+                        <FormButton type="submit" :icon="IconUserPlus" :loading="addMemberForm.processing">
+                            {{ t('pages.admin.teams.structure.members.add_action') }}
+                        </FormButton>
+                    </FormActions>
+                </AtlasForm>
+            </SurfaceCard>
+
             <UiState
                 v-if="teamMembers.length === 0"
                 variant="empty"
@@ -449,21 +466,9 @@ function optionalDate(value: string | null): string {
                                 class="mt-1 hidden h-5 w-5 shrink-0 text-zinc-400 lg:block"
                             />
                             <div class="min-w-0 flex-1">
-                                <div class="flex flex-wrap items-start justify-between gap-2">
-                                    <div class="min-w-0">
-                                        <p class="font-semibold text-zinc-950 dark:text-zinc-50">{{ member.name }}</p>
-                                        <p class="break-all text-xs text-zinc-500 dark:text-zinc-400">{{ member.email }}</p>
-                                    </div>
-                                    <StatusBadge
-                                        :label="roleLabel(member.structuralRole)"
-                                        :tone="
-                                            member.structuralRole === 'head_manager'
-                                                ? 'warning'
-                                                : member.structuralRole === 'manager'
-                                                  ? 'info'
-                                                  : 'neutral'
-                                        "
-                                    />
+                                <div class="min-w-0">
+                                    <p class="font-semibold text-zinc-950 dark:text-zinc-50">{{ member.name }}</p>
+                                    <p class="break-all text-xs text-zinc-500 dark:text-zinc-400">{{ member.email }}</p>
                                 </div>
 
                                 <p v-if="member.structuralRole === 'head_manager'" class="mt-3 text-sm text-zinc-700 dark:text-zinc-200">
@@ -485,15 +490,6 @@ function optionalDate(value: string | null): string {
                                 <div class="mt-4 flex flex-wrap gap-2">
                                     <FormButton type="button" tone="neutral" :icon="IconUserCog" @click="openRoleDialog(member)">
                                         {{ t('pages.admin.teams.structure.actions.change_role') }}
-                                    </FormButton>
-                                    <FormButton
-                                        v-if="member.structuralRole !== 'head_manager'"
-                                        type="button"
-                                        tone="neutral"
-                                        :icon="IconUserPlus"
-                                        @click="openRelationshipDialog(member)"
-                                    >
-                                        {{ t('pages.admin.teams.structure.actions.assign_manager') }}
                                     </FormButton>
                                     <button
                                         :id="`member-details-trigger-${member.value}`"
@@ -528,27 +524,7 @@ function optionalDate(value: string | null): string {
                             <p v-if="member.structuralRole === 'head_manager'" class="text-sm text-zinc-600 dark:text-zinc-300">
                                 {{ t('pages.admin.teams.structure.cards.head_manager_details') }}
                             </p>
-                            <div v-else class="grid gap-4 lg:grid-cols-2">
-                                <div>
-                                    <h3 class="text-sm font-semibold text-zinc-950 dark:text-zinc-50">
-                                        {{ t('pages.admin.teams.structure.cards.current_managers') }}
-                                    </h3>
-                                    <p v-if="managersFor(member).length === 0" class="mt-2 text-sm text-zinc-500 dark:text-zinc-400">
-                                        {{ t('pages.admin.teams.structure.cards.no_managers') }}
-                                    </p>
-                                    <ul v-else class="mt-2 space-y-2">
-                                        <li v-for="relationship in managersFor(member)" :key="relationship.publicId" class="text-sm">
-                                            <span class="font-medium text-zinc-900 dark:text-zinc-100">{{ relationship.managerName }}</span>
-                                            <span class="block text-xs text-zinc-500 dark:text-zinc-400">
-                                                {{
-                                                    t('pages.admin.teams.structure.cards.since', {
-                                                        date: relationshipDate(relationship.validFrom),
-                                                    })
-                                                }}
-                                            </span>
-                                        </li>
-                                    </ul>
-                                </div>
+                            <div v-else>
                                 <div v-if="member.structuralRole === 'manager'">
                                     <h3 class="text-sm font-semibold text-zinc-950 dark:text-zinc-50">
                                         {{ t('pages.admin.teams.structure.cards.direct_reports') }}
@@ -556,7 +532,7 @@ function optionalDate(value: string | null): string {
                                     <p v-if="directReports(member).length === 0" class="mt-2 text-sm text-zinc-500 dark:text-zinc-400">
                                         {{ t('pages.admin.teams.structure.cards.no_direct_reports') }}
                                     </p>
-                                    <div v-else class="mt-2 space-y-3">
+                                    <div v-else class="mt-2 grid gap-3 sm:grid-cols-2">
                                         <SurfaceCard
                                             v-for="relationship in directReports(member)"
                                             :key="relationship.publicId"
@@ -594,59 +570,40 @@ function optionalDate(value: string | null): string {
                 </div>
             </section>
 
-            <div class="grid gap-4 xl:grid-cols-2">
-                <SurfaceCard :title="t('pages.admin.teams.structure.members.add_title')" :icon="IconUserPlus" tone="teal">
-                    <AtlasForm :processing="addMemberForm.processing" @submit="submitAddMember">
-                        <FormSelect
-                            v-model="addMemberForm.user_public_id"
-                            :label="t('pages.admin.teams.structure.members.user')"
-                            :options="assignableUsers"
-                            :placeholder="t('pages.admin.teams.structure.members.user_placeholder')"
-                            :error="addMemberForm.errors.user_public_id"
-                        />
-                        <FormActions>
-                            <FormButton type="submit" :icon="IconUserPlus" :loading="addMemberForm.processing">
-                                {{ t('pages.admin.teams.structure.members.add_action') }}
-                            </FormButton>
-                        </FormActions>
-                    </AtlasForm>
-                </SurfaceCard>
-
-                <SurfaceCard :title="t('pages.admin.teams.structure.members.history_title')" :icon="IconHistory" tone="zinc">
-                    <details class="group">
-                        <summary
-                            class="flex cursor-pointer list-none items-center gap-2 rounded-lg px-2 py-2 font-medium text-zinc-800 focus-visible:outline focus-visible:outline-amber-500 dark:text-zinc-100"
+            <SurfaceCard :title="t('pages.admin.teams.structure.members.history_title')" :icon="IconHistory" tone="zinc">
+                <details class="group">
+                    <summary
+                        class="flex cursor-pointer list-none items-center gap-2 rounded-lg px-2 py-2 font-medium text-zinc-800 focus-visible:outline focus-visible:outline-amber-500 dark:text-zinc-100"
+                    >
+                        <IconChevronRight aria-hidden="true" class="h-4 w-4 transition group-open:rotate-90" />
+                        {{ t('pages.admin.teams.structure.members.history_title') }}
+                    </summary>
+                    <UiState
+                        v-if="membershipHistory.length === 0"
+                        variant="empty"
+                        size="compact"
+                        :title="t('pages.admin.teams.structure.members.history_empty')"
+                    />
+                    <div v-else class="mt-3 max-h-96 space-y-2 overflow-y-auto">
+                        <div
+                            v-for="membership in membershipHistory"
+                            :key="`${membership.userPublicId}-${membership.validFrom ?? 'unknown'}`"
+                            class="rounded-lg border border-zinc-200 p-3 dark:border-zinc-800"
                         >
-                            <IconChevronRight aria-hidden="true" class="h-4 w-4 transition group-open:rotate-90" />
-                            {{ t('pages.admin.teams.structure.members.history_title') }}
-                        </summary>
-                        <UiState
-                            v-if="membershipHistory.length === 0"
-                            variant="empty"
-                            size="compact"
-                            :title="t('pages.admin.teams.structure.members.history_empty')"
-                        />
-                        <div v-else class="mt-3 max-h-96 space-y-2 overflow-y-auto">
-                            <div
-                                v-for="membership in membershipHistory"
-                                :key="`${membership.userPublicId}-${membership.validFrom ?? 'unknown'}`"
-                                class="rounded-lg border border-zinc-200 p-3 dark:border-zinc-800"
-                            >
-                                <div class="flex flex-wrap justify-between gap-2">
-                                    <div>
-                                        <p class="font-medium text-zinc-950 dark:text-zinc-50">{{ membership.userName }}</p>
-                                        <p class="text-xs text-zinc-500 dark:text-zinc-400">{{ membership.userEmail }}</p>
-                                    </div>
-                                    <StatusBadge :label="roleLabel(membership.structuralRole)" tone="neutral" />
+                            <div class="flex flex-wrap justify-between gap-2">
+                                <div>
+                                    <p class="font-medium text-zinc-950 dark:text-zinc-50">{{ membership.userName }}</p>
+                                    <p class="text-xs text-zinc-500 dark:text-zinc-400">{{ membership.userEmail }}</p>
                                 </div>
-                                <p class="mt-2 text-xs text-zinc-600 dark:text-zinc-300">
-                                    {{ optionalDate(membership.validFrom) }} – {{ optionalDate(membership.validTo) }}
-                                </p>
+                                <StatusBadge :label="roleLabel(membership.structuralRole)" tone="neutral" />
                             </div>
+                            <p class="mt-2 text-xs text-zinc-600 dark:text-zinc-300">
+                                {{ optionalDate(membership.validFrom) }} – {{ optionalDate(membership.validTo) }}
+                            </p>
                         </div>
-                    </details>
-                </SurfaceCard>
-            </div>
+                    </div>
+                </details>
+            </SurfaceCard>
         </PageStack>
 
         <DialogPanel

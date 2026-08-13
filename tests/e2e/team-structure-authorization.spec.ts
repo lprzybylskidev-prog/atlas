@@ -463,10 +463,8 @@ test.describe('Integrated team structure and authorization workflow', () => {
         await expect(candidate).toContainText(/Managerowie: 1|Managers: 1/);
         await expect(initialManager).toContainText(/Bezpośredni podwładni: 3|Direct reports: 3/);
 
-        await candidate.getByRole('button', { name: /Przypisz managera|Assign manager/ }).click();
+        await candidate.dragTo(initialManager);
         let relationshipDialog = page.getByRole('dialog');
-        await relationshipDialog.getByLabel(/Manager/).click();
-        await page.getByRole('option', { name: /Visibility Admin/ }).click();
         await relationshipDialog.getByLabel(/^Powód$|^Reason$/).fill('E2E duplicate rejection.');
         await Promise.all([
             page.waitForResponse(
@@ -480,10 +478,8 @@ test.describe('Integrated team structure and authorization workflow', () => {
             .last()
             .click();
 
-        await initialManager.getByRole('button', { name: /Przypisz managera|Assign manager/ }).click();
+        await initialManager.dragTo(candidate);
         relationshipDialog = page.getByRole('dialog');
-        await relationshipDialog.getByLabel(/Manager/).click();
-        await page.getByRole('option', { name: candidateName }).click();
         await relationshipDialog.getByLabel(/^Powód$|^Reason$/).fill('E2E cycle rejection.');
         await Promise.all([
             page.waitForResponse(
@@ -559,7 +555,7 @@ test.describe('Integrated team structure and authorization workflow', () => {
         await expect(candidate).toHaveCount(0);
     });
 
-    test('keeps disclosure and relationship assignment keyboard-accessible on mobile', async ({ page }, testInfo: TestInfo) => {
+    test('keeps disclosure and membership actions keyboard-accessible on mobile', async ({ page }, testInfo: TestInfo) => {
         const candidateName = testInfo.project.name === 'chromium' ? 'Structure Mobile Chromium' : 'Structure Mobile Firefox';
         const candidateEmail =
             testInfo.project.name === 'chromium' ? 'structure.mobile.chromium@example.test' : 'structure.mobile.firefox@example.test';
@@ -582,25 +578,7 @@ test.describe('Integrated team structure and authorization workflow', () => {
         await disclosure.press('Enter');
         await expect(employee.getByRole('button', { name: /Zwiń szczegóły|Collapse details/ })).toHaveAttribute('aria-expanded', 'true');
 
-        const assign = employee.getByRole('button', { name: /Przypisz managera|Assign manager/ });
-        await assign.focus();
-        await expect(assign).toBeFocused();
-        await assign.press('Enter');
-        const dialog = page.getByRole('dialog');
-        await expect(dialog).toBeVisible();
-        await dialog.getByLabel(/Manager/).click();
-        await page.getByRole('option', { name: candidateName }).click();
-        await dialog.getByLabel(/^Powód$|^Reason$/).fill('E2E keyboard and mobile assignment.');
-        await Promise.all([
-            page.waitForResponse(
-                (response) => response.request().method() === 'POST' && response.url().endsWith('/structure/relationships'),
-            ),
-            dialog.getByRole('button', { name: /Dodaj relację z managerem|Add manager relationship/ }).click(),
-        ]);
-        await expect(dialog).toHaveCount(0);
-        await expect(assign).toBeFocused();
-        await expect(employee).toContainText(candidateName);
-        await expect(employee).toContainText('Visibility Admin');
+        await expect(employee.getByRole('button', { name: /Przypisz managera|Assign manager/ })).toHaveCount(0);
 
         const history = page.getByText(/Historia członkostwa|Membership history/, { exact: true }).last();
         await history.focus();

@@ -815,6 +815,7 @@ describe('shared UI guardrails', () => {
         expect(teamEdit).not.toContain('router.patch(');
 
         const teamStructure = Object.entries(vueFiles).find(([file]) => file.endsWith('/Pages/Admin/Teams/Structure.vue'))?.[1];
+        const teamStructureSource = teamStructure ?? '';
 
         expect(teamStructure).toBeDefined();
         expect(teamStructure).toContain(':aria-expanded="isExpanded(member)"');
@@ -822,6 +823,12 @@ describe('shared UI guardrails', () => {
         expect(teamStructure).toContain(':id="`member-details-trigger-${member.value}`"');
         expect(teamStructure).toContain('role="region"');
         expect(teamStructure).toContain(':aria-labelledby="`member-details-trigger-${member.value}`"');
+        expect(teamStructure).toContain('<AtlasForm class="space-y-4"');
+        expect(teamStructureSource.indexOf('members.add_title')).toBeLessThan(teamStructureSource.indexOf('v-for="role in roleOrder"'));
+        expect(teamStructure).toContain('class="mt-2 grid gap-3 sm:grid-cols-2"');
+        expect(teamStructure).not.toContain('actions.assign_manager');
+        expect(teamStructure).not.toContain('cards.current_managers');
+        expect(teamStructure).not.toContain(':label="roleLabel(member.structuralRole)"');
     });
 
     it('keeps rebuilt Users actions and sensitivity options shared', () => {
