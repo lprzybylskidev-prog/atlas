@@ -18,6 +18,20 @@ final class ChatDatabaseTable
 
     public const MESSAGES = DatabaseSchema::OPTIONAL_CHAT.'.messages';
 
+    public const MESSAGE_EDIT_HISTORY = DatabaseSchema::OPTIONAL_CHAT.'.message_edit_history';
+
+    public const MESSAGE_DELETIONS = DatabaseSchema::OPTIONAL_CHAT.'.message_deletions';
+
+    public const MESSAGE_REACTIONS = DatabaseSchema::OPTIONAL_CHAT.'.message_reactions';
+
+    public const MESSAGE_MENTIONS = DatabaseSchema::OPTIONAL_CHAT.'.message_mentions';
+
+    public const MESSAGE_PINS = DatabaseSchema::OPTIONAL_CHAT.'.message_pins';
+
+    public const MESSAGE_BOOKMARKS = DatabaseSchema::OPTIONAL_CHAT.'.message_bookmarks';
+
+    public const MESSAGE_DRAFTS = DatabaseSchema::OPTIONAL_CHAT.'.message_drafts';
+
     public const CALLS = DatabaseSchema::OPTIONAL_CHAT.'.calls';
 
     public const MEETINGS = DatabaseSchema::OPTIONAL_CHAT.'.meetings';

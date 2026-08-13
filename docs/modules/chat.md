@@ -1,6 +1,6 @@
 # Internal communication and Chat module
 
-Canonical current boundary and accepted target for the Atlas internal-communication capability. Phase 31 is in progress: P31-W01 through P31-W03 established the module boundary, shared Calendar, and persistent conversation ownership; P31-W04 is the next sequential workstream. The phase file remains the binding implementation and acceptance contract.
+Canonical current boundary and accepted target for the Atlas internal-communication capability. Phase 31 is in progress: P31-W01 through P31-W04 established the module boundary, shared Calendar, persistent conversation ownership, and canonical message behavior; P31-W05 is the next sequential workstream. The phase file remains the binding implementation and acceptance contract.
 
 ## Purpose and boundary
 
@@ -14,7 +14,7 @@ The expected deployment has roughly 400 users with reasonable future growth. Thi
 
 Chat is an optional Atlas module with key `chat`. It supports global activation and deliberately does not support team activation. The canonical ModuleGate wrapper is the common entry point for UI capability contribution and future Chat/Call/Meeting application actions. Global deactivation therefore removes offered capabilities and denies backend access while preserving historical data.
 
-Chat owns its persistence in `optional_chat`. The implemented conversation foundation stores conversations, canonical unordered DM pairs, historical memberships, and immutable structural timeline entries. Later workstreams add messages, Calls, full Meeting definitions and invitations, recording metadata, and transcription metadata. Calendar owns `core_calendar`; Chat reaches it only through Calendar's `Application/Public` API.
+Chat owns its persistence in `optional_chat`. The implemented foundation stores conversations, canonical unordered DM pairs, historical memberships, immutable structural timeline entries, messages, immutable message revisions, per-user deletions, reactions, mentions, pins, private bookmarks, and backend drafts. Later workstreams add Calls, full Meeting definitions and invitations, recording metadata, and transcription metadata. Calendar owns `core_calendar`; Chat reaches it only through Calendar's `Application/Public` API.
 
 The module catalog includes granular route-aligned permissions for Chat use, direct/group creation, attachments, voice messages, Call start/join, screen sharing, Meetings and invitations, moderation, recording, transcription, and content-free operational/retention administration. Calendar permissions remain Calendar-owned. Standard communication capabilities are included in `workspace.access` and the reusable `communication.access` bundle; `communication.meeting-host` and `communication.operations` separate host and content-free operational capabilities.
 
@@ -43,9 +43,15 @@ Meeting chat is persistent, system-owned, participant-authorized, and governed b
 
 Messages support plain and multiline text, Unicode emoji, safe links, safe Markdown-lite, replies/quotes, unlimited author editing with a visible edited state and participant-visible edit history, reactions, individual/`@everyone`/`@online` mentions, authorization-safe forwarding, participant pins, private bookmarks, and backend-backed per-user/per-conversation drafts. Raw untrusted HTML and nested threads are not supported.
 
-Editing uses explicit stale-write protection. Sending is idempotent across double submission, retry, and reconnect.
+Markdown-lite is rendered with the explicitly pinned CommonMark dependency, raw HTML stripping, unsafe-link rejection, bounded nesting, and only the accepted CommonMark/autolink behavior. Message bodies are stored as source text; rendered HTML is derived at the authorized read boundary.
 
-The only normal user-facing removal action is `Delete for me`. It changes only that user's visibility, retains a tombstone for that user, and must also be respected by Search, exports, and content viewers. It is separate from lifecycle deletion by retention. Draft content is not stored in browser local or session storage.
+Editing uses an expected version and atomically appends every accepted revision to immutable edit history. Sending uses an author-scoped client message key, canonical request hash, transaction-scoped advisory arbitration, and a database unique constraint so double submission, retry, and reconnect return the original message while reuse for different content is rejected. Replies must target a visible message in the same conversation. Forwarding copies the current authorized content into a new destination message and exposes only a forwarded marker, never source-conversation or source-message metadata.
+
+Individual mention targets must be active Atlas users with active conversation membership. `@everyone` and `@online` are derived from message content and remain Chat-owned mention state. Reactions are unique per user/message/emoji, one participant-owned pin exists per message, and bookmarks remain private per user.
+
+The only normal user-facing removal action is `Delete for me`. It changes only that user's visibility and produces an immutable per-user deletion record. The central authorized message view returns a content-free tombstone to that user and blocks replies, edit-history access, reactions, pins, bookmarks, and forwarding through the hidden message, while other participants retain the content. Later Search, export, and content-viewer workstreams must consume the same authoritative visibility rule. It is separate from lifecycle deletion by retention.
+
+Exactly one draft is stored per user and conversation. Draft updates retain a backend version, may retain a same-conversation reply target, are private to their owner, and are cleared after a successful send. Draft content is never delegated to browser local or session storage. HTTP presentation, the final Chat modal, realtime delivery, Search projections, and participant exports remain owned by their later sequential Phase 31 workstreams rather than being introduced prematurely by P31-W04.
 
 ## Files, content browsing, and voice messages
 

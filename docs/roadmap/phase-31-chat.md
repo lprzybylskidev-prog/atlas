@@ -1,6 +1,6 @@
 # Phase 31 — Optional internal company chat, calendar, calls, meetings, and realtime communication
 
-**Status:** `in progress` (`P31-W01` through `P31-W03` complete; `P31-W04` is next)
+**Status:** `in progress` (`P31-W01` through `P31-W04` complete; `P31-W05` is next)
 
 ## Objective
 
@@ -734,20 +734,20 @@ Prevent duplicate sends from:
 
 ### Tasks
 
-- [ ] Implement canonical messages.
-- [ ] Add safe Markdown-lite.
-- [ ] Add replies.
-- [ ] Add editing and edit history.
-- [ ] Add optimistic message edit protection.
-- [ ] Add delete-for-me.
-- [ ] Add reactions.
-- [ ] Add mentions.
-- [ ] Add forwarding.
-- [ ] Add pins.
-- [ ] Add private bookmarks.
-- [ ] Add backend drafts.
-- [ ] Add send idempotency.
-- [ ] Add negative authorization tests.
+- [x] Implement canonical messages.
+- [x] Add safe Markdown-lite.
+- [x] Add replies.
+- [x] Add editing and edit history.
+- [x] Add optimistic message edit protection.
+- [x] Add delete-for-me.
+- [x] Add reactions.
+- [x] Add mentions.
+- [x] Add forwarding.
+- [x] Add pins.
+- [x] Add private bookmarks.
+- [x] Add backend drafts.
+- [x] Add send idempotency.
+- [x] Add negative authorization tests.
 
 ---
 

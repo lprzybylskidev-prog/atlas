@@ -20,6 +20,7 @@
         "laravel/pulse": "^1.7",
         "laravel/scout": "^11.3",
         "laravel/tinker": "^3.0",
+        "league/commonmark": "^2.8.3",
         "meilisearch/meilisearch-php": "^1.16",
         "phpoffice/phpspreadsheet": "^5.9",
         "sentry/sentry-laravel": "^4.26",
