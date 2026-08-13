@@ -147,7 +147,22 @@ async function expectUsableMain(page: Page): Promise<void> {
 }
 
 async function waitForIdle(page: Page): Promise<void> {
-    await page.waitForLoadState('networkidle', { timeout: 250 }).catch(() => undefined);
+    await page.waitForLoadState('networkidle', { timeout: 1_000 }).catch(() => undefined);
+    await page.evaluate(async () => {
+        await document.fonts.ready;
+        await Promise.all(
+            Array.from(document.images, (image) => {
+                if (image.complete) {
+                    return Promise.resolve();
+                }
+
+                return new Promise<void>((resolve) => {
+                    image.addEventListener('load', () => resolve(), { once: true });
+                    image.addEventListener('error', () => resolve(), { once: true });
+                });
+            }),
+        );
+    });
 }
 
 async function sweepFrontendRoutes(page: Page): Promise<void> {

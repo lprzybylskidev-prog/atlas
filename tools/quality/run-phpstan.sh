@@ -4,7 +4,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 PHPSTAN_CONFIG="${ROOT_DIR}/phpstan.neon"
 MEMORY_LIMIT="${PHPSTAN_MEMORY_LIMIT:-512M}"
-DISABLE_PARALLEL="${PHPSTAN_DISABLE_PARALLEL:-0}"
+DISABLE_PARALLEL="${PHPSTAN_DISABLE_PARALLEL:-1}"
 
 configured_paths() {
   awk '
@@ -136,10 +136,52 @@ if [[ ${#targets[@]} -eq 0 ]]; then
   exit 1
 fi
 
-args=(analyse "${targets[@]}" --memory-limit="${MEMORY_LIMIT}")
+run_analysis() {
+  local -a batch=("$@")
+  local -a args=(analyse "${batch[@]}" --memory-limit="${MEMORY_LIMIT}")
 
-if [[ "${DISABLE_PARALLEL}" == "1" ]]; then
-  args+=(--debug)
+  if [[ "${DISABLE_PARALLEL}" == "1" ]]; then
+    args+=(--debug)
+  fi
+
+  vendor/bin/phpstan "${args[@]}"
+}
+
+main_targets=()
+analyse_tests=false
+
+for target in "${targets[@]}"; do
+  if [[ "${target}" == "tests" ]]; then
+    analyse_tests=true
+    continue
+  fi
+
+  main_targets+=("${target}")
+done
+
+if [[ ${#main_targets[@]} -gt 0 ]]; then
+  run_analysis "${main_targets[@]}"
 fi
 
-vendor/bin/phpstan "${args[@]}"
+if [[ "${analyse_tests}" == true ]]; then
+  while IFS= read -r test_target; do
+    if [[ "${test_target}" == "tests/Unit" ]]; then
+      while IFS= read -r unit_target; do
+        run_analysis "${unit_target}"
+      done < <(
+        find "${ROOT_DIR}/tests/Unit" -mindepth 1 -maxdepth 1 \( -type d -o -type f -name '*.php' \) \
+          | sed "s#^${ROOT_DIR}/##" \
+          | sort \
+          | while IFS= read -r unit_target; do append_existing_php_target "${unit_target}"; done
+      )
+      continue
+    fi
+
+    run_analysis "${test_target}"
+  done < <(
+    find "${ROOT_DIR}/tests" -mindepth 1 -maxdepth 1 \( -type d -o -type f -name '*.php' \) \
+      | sed "s#^${ROOT_DIR}/##" \
+      | sort \
+      | while IFS= read -r test_target; do append_existing_php_target "${test_target}"; done
+  )
+fi

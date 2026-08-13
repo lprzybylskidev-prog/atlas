@@ -105,7 +105,7 @@ final class TeamStructureController
         } catch (ManagerHierarchyViolation $exception) {
             $errorKey = array_key_exists('report_user_public_ids', $values) ? 'report_user_public_ids' : 'manager_user_public_id';
 
-            throw ValidationException::withMessages([$errorKey => $exception->getMessage()]);
+            throw ValidationException::withMessages([$errorKey => $this->hierarchyError($exception)]);
         }
 
         return redirect()
@@ -136,7 +136,7 @@ final class TeamStructureController
                 expectedVersion: isset($values['structure_version']) ? $this->string($values['structure_version']) : null,
             );
         } catch (ManagerHierarchyViolation $exception) {
-            throw ValidationException::withMessages(['operation' => $exception->getMessage()]);
+            throw ValidationException::withMessages(['operation' => $this->hierarchyError($exception)]);
         }
 
         $redirect = redirect()->route('admin.teams.structure.show', [
@@ -172,7 +172,7 @@ final class TeamStructureController
                 expectedVersion: isset($values['structure_version']) ? $this->string($values['structure_version']) : null,
             );
         } catch (ManagerHierarchyViolation $exception) {
-            throw ValidationException::withMessages(['user_public_id' => $exception->getMessage()]);
+            throw ValidationException::withMessages(['user_public_id' => $this->hierarchyError($exception)]);
         }
 
         return redirect()
@@ -234,6 +234,11 @@ final class TeamStructureController
         $single = $this->string($values['report_user_public_id'] ?? '');
 
         return $single === '' ? [] : [$single];
+    }
+
+    private function hierarchyError(ManagerHierarchyViolation $exception): string
+    {
+        return __('validation.custom.manager_hierarchy.'.$exception->errorKey);
     }
 
     /**

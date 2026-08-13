@@ -33,6 +33,7 @@ Use centralized handling for:
 Current implementation foundation:
 
 - `resources/js/Services/networkHandling.ts` registers browser online/offline handling and centralizes messages for 401, 403, 419, 422, 429, and 500-class failures;
+- backend Inertia flashes carry a unique transport ID and `ToastViewport` consumes each ID once, so partial reloads, preserved state, and shell remounts cannot replay a completed mutation message;
 - automatic retry is allowed only for safe idempotent HTTP methods (`GET`, `HEAD`, `OPTIONS`);
 - unsafe mutations are never retried automatically and CSRF failures surface as a refresh/sign-in problem instead of entering retry loops;
 - `resources/js/Services/teamScopedState.ts` clears Atlas-owned team-scoped browser storage prefixes when the active team changes.

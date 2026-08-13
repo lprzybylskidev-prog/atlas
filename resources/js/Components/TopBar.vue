@@ -271,7 +271,9 @@ watch(
                 : 'border-zinc-200 bg-white/95 dark:border-zinc-800 dark:bg-zinc-950/90'
         "
     >
-        <div class="flex min-h-16 flex-wrap items-center justify-between gap-3 px-4 py-2 sm:flex-nowrap sm:px-6 sm:py-0 lg:px-8">
+        <div
+            class="flex min-h-16 flex-wrap items-center justify-between gap-3 px-4 py-2 sm:flex-nowrap sm:px-6 sm:py-0 lg:flex-wrap lg:px-8 lg:py-2 2xl:flex-nowrap 2xl:py-0"
+        >
             <div class="flex w-full min-w-0 items-center gap-3 sm:w-auto">
                 <button
                     type="button"
@@ -331,14 +333,22 @@ watch(
 
                 <ShellSubnavigation
                     v-if="subnavigation.length > 0"
-                    class="hidden min-w-0 shrink lg:flex"
+                    class="hidden min-w-0 shrink 2xl:flex"
                     :items="subnavigation"
                     :label="subnavigationLabel ?? t('navigation.aria.section')"
                     variant="inline"
                 />
             </div>
 
-            <div class="flex w-full min-w-0 items-center justify-end gap-2 sm:w-auto">
+            <ShellSubnavigation
+                v-if="subnavigation.length > 0"
+                class="order-3 hidden w-full min-w-0 lg:flex 2xl:hidden"
+                :items="subnavigation"
+                :label="subnavigationLabel ?? t('navigation.aria.section')"
+                variant="inline"
+            />
+
+            <div class="order-2 flex w-full min-w-0 items-center justify-end gap-2 sm:w-auto">
                 <IconButton
                     :label="isDark ? t('actions.switch_light_theme') : t('actions.switch_dark_theme')"
                     :icon="isDark ? IconSun : IconMoon"

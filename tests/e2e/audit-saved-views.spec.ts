@@ -81,6 +81,10 @@ function moduleOption(value: string): RegExp {
         return /Tożsamość|Identity/;
     }
 
+    if (value === 'shared') {
+        return /Infrastruktura współdzielona|Shared infrastructure/;
+    }
+
     return readableOption(value);
 }
 
@@ -186,6 +190,7 @@ async function saveView(page: Page, name: string, type: 'private' | 'team' = 'pr
     await mutation;
     await reload;
     await expect.poll(async () => savedViewNames(page)).toContain(name);
+    await expect(page.getByText(/Widok tabeli został zapisany|Table view was saved/, { exact: true })).toHaveCount(1);
     await page.waitForLoadState('networkidle');
     await page.waitForTimeout(100);
 }
@@ -218,6 +223,7 @@ async function updateCurrentView(page: Page): Promise<void> {
     await page.getByRole('button', { name: /Aktualizuj|Update/ }).click();
     await mutation;
     await reload;
+    await expect(page.getByText(/Widok tabeli został zaktualizowany|Table view was updated/, { exact: true })).toHaveCount(1);
     await page.waitForLoadState('networkidle');
 }
 
@@ -353,6 +359,7 @@ test.describe('Audit DataTable saved views', () => {
         await copyMutation;
         await copyReload;
         await expect.poll(async () => savedViewNames(page)).toContain(copiedView);
+        await expect(page.getByText(/Widok tabeli został skopiowany|Table view was copied/, { exact: true })).toHaveCount(1);
         await selectView(page, copiedView);
         await expectAuditFilterState(page, { module: 'shared', action: 'e2e.audit.beta' });
     });

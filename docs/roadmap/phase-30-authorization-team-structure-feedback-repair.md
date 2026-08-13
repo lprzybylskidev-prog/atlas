@@ -1,6 +1,6 @@
 # Phase 30 — Authorization, Team Structure, and mutation feedback repair
 
-**Status:** `in progress`
+**Status:** `complete`
 
 ## Objective
 
@@ -308,7 +308,7 @@ Technical permission keys may remain as secondary Admin metadata where useful, b
 - [x] Add localized human-readable authorization labels.
 - [x] Add backend, frontend, persistence, and migration tests for the new current-source contract.
 
-Completion evidence (2026-08-13): User Edit now keeps role-derived, persisted direct, and effective permission state separate; role grants render as checked/disabled with localized granting-role labels and recompute reactively. Manual changes replace preset/copy current-source metadata with `manual` while optimistic versions and audit before/after source evidence remain. The pre-production canonical create migration removes `diverged_at`; existing development databases adopt the new schema through the standard fresh-migration workflow. The shared translator accepts Laravel colon placeholders, the shared DataTable formatter no longer emits `[status:...]`, and browser copy guards reject that diagnostic globally. Focused backend/frontend/persistence/schema tests, the full frontend check/build, and the affected schema-ownership test pass; the full PHPStan command remains affected by the documented native exit-139 tool failure.
+Completion evidence (2026-08-13): User Edit now keeps role-derived, persisted direct, and effective permission state separate; role grants render as checked/disabled with localized granting-role labels and recompute reactively. Manual changes replace preset/copy current-source metadata with `manual` while optimistic versions and audit before/after source evidence remain. The pre-production canonical create migration removes `diverged_at`; existing development databases adopt the new schema through the standard fresh-migration workflow. The shared translator accepts Laravel colon placeholders, the shared DataTable formatter no longer emits `[status:...]`, and browser copy guards reject that diagnostic globally. Focused backend/frontend/persistence/schema tests, the full frontend check/build, the affected schema-ownership test, and the maximum-level PHPStan gate through its bounded public runner pass.
 
 ---
 
@@ -1033,26 +1033,28 @@ Do not create a giant bureaucratic document disconnected from tests.
 
 ### Tasks
 
-- [ ] Inventory current user-triggered mutation entry points.
-- [ ] Audit `useForm` mutation error rendering.
-- [ ] Audit direct Inertia router mutations.
-- [ ] Audit emitted component mutation events and listeners.
-- [ ] Audit shared Action/confirmation mutation flows.
-- [ ] Audit expected validation-error visibility.
-- [ ] Audit expected domain-blocker visibility.
-- [ ] Audit stale/conflict feedback.
-- [ ] Find and remove or repair dead mutation controls.
-- [ ] Inventory current backend FlashMessage producers.
-- [ ] Verify flash transport through redirect and Inertia shared props.
-- [ ] Verify expected flash rendering in the shell.
-- [ ] Check partial reload and preserve-state/scroll mutation behavior.
-- [ ] Remove duplicate flash/toast feedback for the same terminal action.
-- [ ] Prevent stale/replayed success feedback.
-- [ ] Prevent success feedback after rejected mutations.
-- [ ] Verify localized flash keys and interpolation.
-- [ ] Create/update the durable mutation-feedback coverage map.
-- [ ] Add permanent tests for the shared mutation/flash contracts.
-- [ ] Add representative browser tests proving failed mutations are not silent.
+- [x] Inventory current user-triggered mutation entry points.
+- [x] Audit `useForm` mutation error rendering.
+- [x] Audit direct Inertia router mutations.
+- [x] Audit emitted component mutation events and listeners.
+- [x] Audit shared Action/confirmation mutation flows.
+- [x] Audit expected validation-error visibility.
+- [x] Audit expected domain-blocker visibility.
+- [x] Audit stale/conflict feedback.
+- [x] Find and remove or repair dead mutation controls.
+- [x] Inventory current backend FlashMessage producers.
+- [x] Verify flash transport through redirect and Inertia shared props.
+- [x] Verify expected flash rendering in the shell.
+- [x] Check partial reload and preserve-state/scroll mutation behavior.
+- [x] Remove duplicate flash/toast feedback for the same terminal action.
+- [x] Prevent stale/replayed success feedback.
+- [x] Prevent success feedback after rejected mutations.
+- [x] Verify localized flash keys and interpolation.
+- [x] Create/update the durable mutation-feedback coverage map.
+- [x] Add permanent tests for the shared mutation/flash contracts.
+- [x] Add representative browser tests proving failed mutations are not silent.
+
+Completion evidence (2026-08-13): the repository mutation audit is recorded as a compact ownership-and-coverage map in the canonical frontend contract. User Edit and Team Structure now keep expected validation, domain, and stale-write failures in their owning workflow, while cross-application saved-view acceptance proves one terminal success flash for create, update, and copy operations. Backend flashes carry unique transport IDs and the sole shell renderer consumes each ID once across partial reloads and remounts; service, feature, and browser tests protect successful delivery, rejected-mutation behavior, non-duplication, and stale-replay prevention.
 
 ---
 
@@ -1287,29 +1289,31 @@ Historical Phase 17/28/29 documents remain historical.
 
 ### Tasks
 
-- [ ] Add Team Edit read-only Playwright acceptance.
-- [ ] Add User Edit role-derived permission Playwright acceptance.
-- [ ] Add current-source/manual-edit Playwright acceptance.
-- [ ] Add successful membership-removal Playwright acceptance.
-- [ ] Add blocked membership-removal visible-error acceptance.
-- [ ] Add Team Structure three-section layout acceptance.
-- [ ] Add structural-role transition acceptance.
-- [ ] Add Head Manager whole-Team-scope acceptance.
-- [ ] Add Manager multi-parent/multi-report acceptance.
-- [ ] Add drag-and-drop relationship acceptance.
-- [ ] Add keyboard/mobile relationship-assignment acceptance.
-- [ ] Add relationship-removal modal acceptance.
-- [ ] Add cycle/self/duplicate/stale rejection coverage.
-- [ ] Add representative cross-application mutation-feedback browser coverage.
-- [ ] Add flash-message rendering and non-duplication coverage.
-- [ ] Run targeted backend tests.
-- [ ] Run targeted frontend tests.
-- [ ] Run Chromium Playwright coverage.
-- [ ] Run Firefox Playwright coverage.
-- [ ] Run the complete required foundation quality gate.
-- [ ] Update all affected canonical current-state documentation.
-- [ ] Remove obsolete UI/contracts/code superseded by this phase.
-- [ ] Confirm Phase 31 Chat has not started before Phase 30 closure.
+- [x] Add Team Edit read-only Playwright acceptance.
+- [x] Add User Edit role-derived permission Playwright acceptance.
+- [x] Add current-source/manual-edit Playwright acceptance.
+- [x] Add successful membership-removal Playwright acceptance.
+- [x] Add blocked membership-removal visible-error acceptance.
+- [x] Add Team Structure three-section layout acceptance.
+- [x] Add structural-role transition acceptance.
+- [x] Add Head Manager whole-Team-scope acceptance.
+- [x] Add Manager multi-parent/multi-report acceptance.
+- [x] Add drag-and-drop relationship acceptance.
+- [x] Add keyboard/mobile relationship-assignment acceptance.
+- [x] Add relationship-removal modal acceptance.
+- [x] Add cycle/self/duplicate/stale rejection coverage.
+- [x] Add representative cross-application mutation-feedback browser coverage.
+- [x] Add flash-message rendering and non-duplication coverage.
+- [x] Run targeted backend tests.
+- [x] Run targeted frontend tests.
+- [x] Run Chromium Playwright coverage.
+- [x] Run Firefox Playwright coverage.
+- [x] Run the complete required foundation quality gate.
+- [x] Update all affected canonical current-state documentation.
+- [x] Remove obsolete UI/contracts/code superseded by this phase.
+- [x] Confirm Phase 31 Chat has not started before Phase 30 closure.
+
+Completion evidence (2026-08-13): targeted backend coverage passed with 20 tests and 11,563 assertions, and targeted frontend coverage passed with 40 tests. The integrated Phase 30 browser specification passed all 10 project scenarios across Chromium and Firefox. The complete foundation gate passed its application lanes with 617 PHPUnit tests and 60,007 assertions, 112 Vitest tests, a production frontend build, and all 52 Playwright scenarios across both browser engines; the production image and internal HTTP runtime smoke also passed. Canonical Authorization, Teams, frontend, network/browser, testing, and quality-gate documentation is current, superseded tree/reparent and competing feedback contracts are absent, and Phase 31 remains `not started` with every implementation checkbox unchecked at Phase 30 closure.
 
 ---
 
@@ -1381,8 +1385,8 @@ The following decisions are binding:
 
 ## Permanent guardrails
 
-- [ ] Team Edit cannot mutate member authorization.
-- [ ] Team Edit cannot mutate Team membership.
+- [x] Team Edit cannot mutate member authorization.
+- [x] Team Edit cannot mutate Team membership.
 - [x] User Edit remains capable of role/direct-permission mutation.
 - [x] Role-derived permissions cannot be toggled off through direct grants.
 - [x] No explicit deny permission layer is introduced.
@@ -1391,25 +1395,25 @@ The following decisions are binding:
 - [x] Current Source becomes Manual after manual edit.
 - [x] Normal authorization UI does not expose original-source divergence wording.
 - [x] Normal rendered UI cannot expose unresolved `:source`.
-- [ ] Team Structure owns team-context membership mutation.
-- [ ] Every active member has exactly one structural role.
-- [ ] Head Managers cannot participate in normal Manager relationship edges.
-- [ ] Head Manager scope is the whole active Team.
-- [ ] Employees cannot own direct reports.
-- [ ] Managers may have multiple reports and multiple Managers.
-- [ ] Manager hierarchy remains acyclic.
-- [ ] Structural-role transitions are atomic.
-- [ ] Last-required-Head-Manager protection remains.
-- [ ] Drag/drop assignment adds rather than replaces Manager relationships.
-- [ ] Drag/drop cannot bypass backend validation.
-- [ ] Keyboard/mobile relationship assignment uses the same business use case.
-- [ ] Destructive relationship/membership actions require reasons.
-- [ ] Mutation domain errors are visible.
-- [ ] No rendered mutation control is intentionally inert.
-- [ ] Expected flash success is delivered exactly through the canonical feedback owner.
-- [ ] Rejected mutations cannot render success feedback.
-- [ ] Flash/toast ownership does not duplicate terminal feedback.
-- [ ] PL/EN, light/dark, keyboard, mobile, console, and request-quality guardrails remain intact.
+- [x] Team Structure owns team-context membership mutation.
+- [x] Every active member has exactly one structural role.
+- [x] Head Managers cannot participate in normal Manager relationship edges.
+- [x] Head Manager scope is the whole active Team.
+- [x] Employees cannot own direct reports.
+- [x] Managers may have multiple reports and multiple Managers.
+- [x] Manager hierarchy remains acyclic.
+- [x] Structural-role transitions are atomic.
+- [x] Last-required-Head-Manager protection remains.
+- [x] Drag/drop assignment adds rather than replaces Manager relationships.
+- [x] Drag/drop cannot bypass backend validation.
+- [x] Keyboard/mobile relationship assignment uses the same business use case.
+- [x] Destructive relationship/membership actions require reasons.
+- [x] Mutation domain errors are visible.
+- [x] No rendered mutation control is intentionally inert.
+- [x] Expected flash success is delivered exactly through the canonical feedback owner.
+- [x] Rejected mutations cannot render success feedback.
+- [x] Flash/toast ownership does not duplicate terminal feedback.
+- [x] PL/EN, light/dark, keyboard, mobile, console, and request-quality guardrails remain intact.
 
 ---
 
@@ -1422,29 +1426,29 @@ Phase 30 is complete only when:
 - [x] current assignment Source semantics are implemented;
 - [x] historical provenance is removed from the ordinary editing presentation;
 - [x] unresolved `:source` is permanently prevented;
-- [ ] Team Edit member authorization is clearly read-only;
-- [ ] Team Edit contains no dead Save/remove member controls;
-- [ ] assignment summaries and expansion affordances are understandable;
-- [ ] Team Structure uses explicit Employee / Manager / Head Manager roles;
-- [ ] Head Manager scope is the whole Team;
-- [ ] Head Managers have no normal direct-report relationship edges;
-- [ ] Managers can have zero direct reports;
-- [ ] multiple Managers per subordinate work;
-- [ ] Manager-to-Manager relationships work without cycles;
-- [ ] structural-role transitions and automatic relationship cleanup are atomic;
-- [ ] Team Structure primary layout is Head Managers / Managers / Employees;
-- [ ] desktop drag-and-drop relationship assignment works;
-- [ ] accessible/mobile relationship assignment works;
-- [ ] relationship and membership removal use focused reason modals;
-- [ ] backend blockers are visibly rendered;
-- [ ] current repository mutations have been audited for silent failures;
-- [ ] dead mutation controls have been removed or repaired;
-- [ ] flash-message production, transport, and rendering have been audited;
-- [ ] expected success messages render without duplication/stale replay;
-- [ ] relevant Polish and English UI is complete;
-- [ ] relevant light/dark/mobile/keyboard behavior is protected;
-- [ ] relevant PHPUnit/Vitest/Playwright tests pass;
-- [ ] the complete required foundation quality gate passes;
-- [ ] canonical current-state Authorization and Teams documentation reflects the new contract;
-- [ ] historical completed-phase documentation remains historically accurate;
-- [ ] Phase 31 Chat remains `not started` until this phase is complete.
+- [x] Team Edit member authorization is clearly read-only;
+- [x] Team Edit contains no dead Save/remove member controls;
+- [x] assignment summaries and expansion affordances are understandable;
+- [x] Team Structure uses explicit Employee / Manager / Head Manager roles;
+- [x] Head Manager scope is the whole Team;
+- [x] Head Managers have no normal direct-report relationship edges;
+- [x] Managers can have zero direct reports;
+- [x] multiple Managers per subordinate work;
+- [x] Manager-to-Manager relationships work without cycles;
+- [x] structural-role transitions and automatic relationship cleanup are atomic;
+- [x] Team Structure primary layout is Head Managers / Managers / Employees;
+- [x] desktop drag-and-drop relationship assignment works;
+- [x] accessible/mobile relationship assignment works;
+- [x] relationship and membership removal use focused reason modals;
+- [x] backend blockers are visibly rendered;
+- [x] current repository mutations have been audited for silent failures;
+- [x] dead mutation controls have been removed or repaired;
+- [x] flash-message production, transport, and rendering have been audited;
+- [x] expected success messages render without duplication/stale replay;
+- [x] relevant Polish and English UI is complete;
+- [x] relevant light/dark/mobile/keyboard behavior is protected;
+- [x] relevant PHPUnit/Vitest/Playwright tests pass;
+- [x] the complete required foundation quality gate passes;
+- [x] canonical current-state Authorization and Teams documentation reflects the new contract;
+- [x] historical completed-phase documentation remains historically accurate;
+- [x] Phase 31 Chat remains `not started` until this phase is complete.

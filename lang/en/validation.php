@@ -190,6 +190,20 @@ return [
         'authorization_assignment' => [
             'stale' => 'This authorization assignment changed after the page was opened. Reload it and review the current values before saving again.',
         ],
+        'manager_hierarchy' => [
+            'self_management' => 'A user cannot manage themselves.',
+            'cycle' => 'This relationship would create a manager hierarchy cycle.',
+            'inactive_membership' => 'Both users must have active access to the selected team.',
+            'duplicate_active_relationship' => 'This manager relationship is already active.',
+            'missing_active_relationship' => 'The selected manager relationship is not active.',
+            'stale_structure' => 'The team structure changed after this page was opened. Reload it before saving.',
+            'invalid_structural_role' => 'Select a valid structural role.',
+            'unchanged_structural_role' => 'The selected structural role is already active.',
+            'structural_role_reason_required' => 'A reason is required to change the structural role.',
+            'manager_role_required' => 'Only a structural Manager can own direct-report relationships.',
+            'head_manager_relationship_forbidden' => 'A Head Manager cannot participate in normal manager relationships.',
+            'last_head_manager' => 'The last active Head Manager cannot be changed. Assign another Head Manager first.',
+        ],
     ],
 
     'attributes' => [

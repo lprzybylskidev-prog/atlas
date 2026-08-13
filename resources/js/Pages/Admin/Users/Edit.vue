@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Head, router, useForm } from '@inertiajs/vue3';
 import { IconUserEdit } from '@tabler/icons-vue';
-import { computed, reactive } from 'vue';
+import { computed, reactive, ref } from 'vue';
 
 import AtlasForm from '../../../Components/Form/AtlasForm.vue';
 import FormInput from '../../../Components/Form/FormInput.vue';
@@ -22,6 +22,8 @@ import type {
     UserTeamAccessAssignment,
     UserTeamAccessCopySource,
     UserTeamAccessPackage,
+    UserTeamAccessRemovePayload,
+    UserTeamAccessSavePayload,
 } from '../../../Types/user-team-access';
 
 interface UserFormData {
@@ -82,6 +84,7 @@ const form = useForm({
 const teamForm = useForm({
     team_public_id: '',
 });
+const assignmentErrors = ref<Record<string, string>>({});
 const teamAccessAssignments = reactive<UserTeamAccessAssignment[]>(
     props.teamMemberships.map((membership) => ({
         team_public_id: membership.teamPublicId,
@@ -124,16 +127,33 @@ function addTeamAccessFromWorkflow(teamPublicId: string): void {
     addTeamAccess();
 }
 
-function removeTeamAccess(assignment: UserTeamAccessAssignment): void {
-    router.delete(`/admin/users/${props.user.publicId}/teams/${assignment.team_public_id}`, {
+function mappedAssignmentErrors(
+    index: number,
+    errors: Record<string, string>,
+    aliases: Record<string, string> = {},
+): Record<string, string> {
+    return Object.fromEntries(
+        Object.entries(errors).map(([field, message]) => [
+            `team_assignments.${index}.${field === 'expected_version' || field === 'operation' ? '_operation' : (aliases[field] ?? field)}`,
+            message,
+        ]),
+    );
+}
+
+function removeTeamAccess(payload: UserTeamAccessRemovePayload): void {
+    assignmentErrors.value = {};
+    router.delete(`/admin/users/${props.user.publicId}/teams/${payload.assignment.team_public_id}`, {
         data: {
-            reason: assignment.removal_reason ?? '',
+            reason: payload.assignment.removal_reason ?? '',
         },
         preserveScroll: true,
+        onError: (errors) => (assignmentErrors.value = mappedAssignmentErrors(payload.index, errors, { reason: 'removal_reason' })),
     });
 }
 
-function updateTeamAuthorization(assignment: UserTeamAccessAssignment): void {
+function updateTeamAuthorization(payload: UserTeamAccessSavePayload): void {
+    const assignment = payload.assignment;
+    assignmentErrors.value = {};
     router.patch(
         `/admin/users/${props.user.publicId}/teams/${assignment.team_public_id}/authorization`,
         {
@@ -146,7 +166,35 @@ function updateTeamAuthorization(assignment: UserTeamAccessAssignment): void {
             reason: assignment.reason ?? '',
             expected_version: assignment.provenance_version ?? 0,
         },
-        { preserveScroll: true },
+        {
+            preserveScroll: true,
+            onSuccess: () => {
+                const membership = props.teamMemberships.find((candidate) => candidate.teamPublicId === assignment.team_public_id);
+
+                if (membership === undefined) {
+                    return;
+                }
+
+                Object.assign(assignment, {
+                    source: membership.provenanceSourceType === 'preset' ? 'package' : membership.provenanceSourceType,
+                    role_names: [...membership.roleNames],
+                    direct_permission_names: [...membership.directPermissionNames],
+                    inactivity_timeout_minutes:
+                        membership.inactivityTimeoutMinutes === null ? '' : String(membership.inactivityTimeoutMinutes),
+                    session_max_lifetime_minutes:
+                        membership.sessionMaxLifetimeMinutes === null ? '' : String(membership.sessionMaxLifetimeMinutes),
+                    break_daily_limit_minutes: membership.breakDailyLimitMinutes === null ? '' : String(membership.breakDailyLimitMinutes),
+                    break_maximum_single_minutes:
+                        membership.breakMaximumSingleMinutes === null ? '' : String(membership.breakMaximumSingleMinutes),
+                    reason: '',
+                    provenance_public_id: membership.provenancePublicId,
+                    provenance_source_type: membership.provenanceSourceType,
+                    provenance_source_label: membership.provenanceSourceLabel,
+                    provenance_version: membership.provenanceVersion,
+                });
+            },
+            onError: (errors) => (assignmentErrors.value = mappedAssignmentErrors(payload.index, errors)),
+        },
     );
 }
 </script>
@@ -289,9 +337,10 @@ function updateTeamAuthorization(assignment: UserTeamAccessAssignment): void {
                     :team-policy-defaults="teamPolicyDefaults"
                     :processing="teamForm.processing"
                     :root-error="teamForm.errors.team_public_id"
+                    :errors="assignmentErrors"
                     @add-team="addTeamAccessFromWorkflow"
-                    @save="updateTeamAuthorization($event.assignment)"
-                    @remove="removeTeamAccess($event.assignment)"
+                    @save="updateTeamAuthorization"
+                    @remove="removeTeamAccess"
                 />
             </div>
         </PageStack>

@@ -4,6 +4,7 @@ import { computed, onMounted, watch } from 'vue';
 
 import { useToast, type ToastMessage } from '../Composables/useToast';
 import { useTranslator } from '../Localization/translator';
+import { consumeFlashMessages } from '../Services/flashMessages';
 import type { AtlasPageProps } from '../Types/inertia';
 import { usePage } from '@inertiajs/vue3';
 
@@ -57,7 +58,7 @@ function descriptionText(message: ToastMessage): string | null {
 function pushFlashMessages(): void {
     const flash = page.props.flash;
 
-    flash.messages?.forEach((message) => {
+    consumeFlashMessages(flash.messages).forEach((message) => {
         push({
             type: message.type,
             key: message.key as ToastMessage['key'],

@@ -190,6 +190,20 @@ return [
         'authorization_assignment' => [
             'stale' => 'To przypisanie uprawnień zmieniło się po otwarciu strony. Odśwież stronę i sprawdź aktualne wartości przed ponownym zapisem.',
         ],
+        'manager_hierarchy' => [
+            'self_management' => 'Użytkownik nie może być swoim własnym managerem.',
+            'cycle' => 'Ta relacja utworzyłaby cykl w strukturze managerów.',
+            'inactive_membership' => 'Obaj użytkownicy muszą mieć aktywny dostęp do wybranego zespołu.',
+            'duplicate_active_relationship' => 'Ta relacja managera jest już aktywna.',
+            'missing_active_relationship' => 'Wybrana relacja managera nie jest aktywna.',
+            'stale_structure' => 'Struktura zespołu zmieniła się po otwarciu tej strony. Odśwież ją przed zapisem.',
+            'invalid_structural_role' => 'Wybierz prawidłową rolę w strukturze.',
+            'unchanged_structural_role' => 'Wybrana rola w strukturze jest już aktywna.',
+            'structural_role_reason_required' => 'Zmiana roli w strukturze wymaga podania powodu.',
+            'manager_role_required' => 'Tylko Manager w strukturze może mieć bezpośrednich podwładnych.',
+            'head_manager_relationship_forbidden' => 'Główny manager nie może uczestniczyć w zwykłych relacjach manager–podwładny.',
+            'last_head_manager' => 'Nie można zmienić ostatniego aktywnego Głównego managera. Najpierw przypisz innego Głównego managera.',
+        ],
     ],
 
     'attributes' => [

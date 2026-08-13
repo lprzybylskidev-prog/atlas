@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Foundation;
 
+use App\Shared\Presentation\Support\FlashMessage;
 use PHPUnit\Framework\Attributes\Test;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
@@ -12,6 +13,16 @@ use Tests\TestCase;
 
 final class FlashMessageDisciplineTest extends TestCase
 {
+    #[Test]
+    public function atlas_flash_messages_have_unique_transport_ids_for_exactly_once_rendering(): void
+    {
+        $first = FlashMessage::success('flash.teams.updated');
+        $second = FlashMessage::success('flash.teams.updated');
+
+        self::assertMatchesRegularExpression('/^[0-9A-HJKMNP-TV-Z]{26}$/', $first['id']);
+        self::assertNotSame($first['id'], $second['id']);
+    }
+
     #[Test]
     public function atlas_http_responses_queue_at_most_one_flash_message_per_action(): void
     {

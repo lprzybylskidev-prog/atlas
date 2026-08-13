@@ -275,6 +275,10 @@ function fieldError(index: number, field: string): string | undefined {
     return props.errors[`${props.errorPrefix}.${index}.${field}`];
 }
 
+function assignmentError(index: number): string | undefined {
+    return props.errors[`${props.errorPrefix}.${index}._operation`];
+}
+
 function policyDefaults(assignment: UserTeamAccessAssignment): TeamPolicyDefaults {
     return (
         props.teamPolicyDefaults[assignment.team_public_id] ?? {
@@ -428,10 +432,17 @@ watch(
 
                     <p
                         v-if="authorizationReadOnly || assignment.provenance_public_id != null"
-                        :data-testid="authorizationReadOnly ? `authorization-assignment-source-${index}` : undefined"
+                        :data-testid="`authorization-assignment-source-${index}`"
                         class="rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-xs text-sky-900 dark:border-sky-900 dark:bg-sky-950/40 dark:text-sky-100"
                     >
                         {{ t('pages.admin.users.assignment.provenance', { source: currentSourceLabel(assignment) }) }}
+                    </p>
+
+                    <p
+                        v-if="assignmentError(index)"
+                        class="rounded-md bg-rose-50 px-3 py-2 text-sm text-rose-700 dark:bg-rose-950/40 dark:text-rose-200"
+                    >
+                        {{ assignmentError(index) }}
                     </p>
 
                     <div class="rounded-lg border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-800 dark:bg-zinc-900/40">
@@ -564,6 +575,7 @@ watch(
                             v-model="assignment.reason"
                             :label="t('pages.admin.users.team_access.authorization_reason')"
                             :placeholder="t('pages.admin.users.team_access.authorization_reason_placeholder')"
+                            :error="fieldError(index, 'reason')"
                         />
                         <FormButton
                             type="button"

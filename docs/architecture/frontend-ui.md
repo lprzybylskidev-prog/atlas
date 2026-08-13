@@ -490,7 +490,27 @@ Support:
 
 No native alerts and no local ad hoc toast systems.
 
-The Inertia flash contract accepts queued messages with type, translation key or message text, optional translated description key, configurable timeout, and a critical flag for manual dismissal. A single user action must produce at most one immediate request-result toast/flash. For asynchronous workflows, progress belongs in the owning detail/list view and the terminal outcome may create one durable notification; realtime progress events must not create toast stacks. Frontend events use `useToast` and render through `ToastViewport`.
+The Inertia flash contract accepts queued messages with a unique transport ID, type, translation key or message text, optional translated description key, configurable timeout, and a critical flag for manual dismissal. `ToastViewport` is the only flash renderer and consumes each transport ID once, including across Inertia partial reloads and shell remounts. A single user action must produce at most one immediate request-result toast/flash. For asynchronous workflows, progress belongs in the owning detail/list view and the terminal outcome may create one durable notification; realtime progress events must not create toast stacks. Frontend events use `useToast` and render through `ToastViewport`.
+
+### Mutation feedback contract and coverage map
+
+Every enabled user-triggered mutation has one observable terminal outcome. Backend validation is rendered beside the owning field when practical; domain, conflict, stale-write, and rejected-precondition errors remain visible in the owning form, dialog, or action surface. Central network feedback is reserved for session, authorization, throttling, offline, invalid-response, and server failures. A rejected request never emits success feedback. Preserve-state or preserve-scroll requests must not replay an already consumed flash.
+
+`useForm` is the default owner for ordinary forms because it maps Laravel validation errors and processing state into the shared form controls. A direct Inertia router mutation is appropriate for table/bulk actions, shell actions, or a composed workflow only when the page explicitly maps expected errors into its local surface or the operation has no field/domain error contract. Child components that emit mutations must receive an explicit listener at the canonical page owner; read-only modes must remove or disable the corresponding emitter and explain the state. `AtlasAction`, the shared modal host, and DataTable bulk actions own confirmation and processing, while the destination controller owns the single success flash.
+
+The current shipped mutation inventory is grouped below so coverage follows product ownership rather than individual HTTP calls:
+
+| Product surface | Mutation owner and entry point | Success feedback | Expected failure surface | Browser coverage |
+| --- | --- | --- | --- | --- |
+| Authentication and shell | Fortify `useForm`; TopBar/team-select, locale, theme, logout, notification-read direct router actions | Redirect/state change; flash only where the operation promises one | Form fields for credentials; centralized session/network feedback for shell actions | authentication, shell/navigation, notification and locale/theme suites |
+| User account and MFA | User Panel forms plus explicit MFA/recovery-code requests | Canonical account/security flash or updated section state | Field errors; local MFA/recovery error and retry state | profile/security acceptance and static view-contract coverage |
+| Users, Authorization, and Teams | User/role/package/team `useForm`; User Edit direct authorization and membership mutations; Team Structure dialog-owned mutations | One controller-owned flash | Field error beside the active control; operation/domain/stale error in the active assignment or dialog | integrated authorization/team-structure suite in PL/EN, desktop/mobile, Chromium/Firefox |
+| Modules and settings | Module activation/settings forms and reasoned schedule/deactivation actions | One module/settings flash or refreshed status | Owning form/dialog plus module blocker detail | module administration acceptance and feature tests |
+| DataTable saved views, exports, notifications, queues, Files, and managed processes | Shared DataTable/action contracts and bounded direct router bulk requests | One flash, refreshed table, or queued-operation state according to the action | Confirmation/action context; centralized unexpected network failure | Audit saved-view lifecycle, exports, notifications, queue/Files/managed-process suites |
+| Privacy and irreversible administration | High-risk confirmed `useForm` workflows | One flash and authoritative detail/list state | Confirmation fields and operation blocker in the owning page | privacy/legal-hold and Admin high-risk acceptance |
+| Time Tracking | Page forms, shared correction dialog, and activity/shell requests | One operation flash or authoritative work-state transition | Field/dialog errors and explicit lock/conflict state | user/Admin Time Tracking workflow suites |
+
+Static frontend guardrails cover the full Vue/TypeScript tree for route-backed view and shared-action contracts. Feature tests cover localized backend validation/domain mapping and flash production; service tests cover exact-once flash consumption; browser tests are required where rendered ownership, focus, state preservation, or non-duplication cannot be proven below the browser.
 
 ### States and formatters
 

@@ -73,6 +73,20 @@ final class ManagerHierarchyAdministrationTest extends TestCase
             ->post('/admin/teams/'.$team->public_id.'/structure/relationships', [
                 'team_public_id' => $team->public_id,
                 'manager_user_public_id' => $firstManager->public_id,
+                'report_user_public_id' => $teamLead->public_id,
+                'valid_from' => now()->toDateString(),
+                'reason' => 'Duplicate active relationship.',
+                'structure_version' => $hierarchy->version((string) $team->public_id),
+            ])
+            ->assertSessionHasErrors([
+                'manager_user_public_id' => __('validation.custom.manager_hierarchy.duplicate_active_relationship'),
+            ]);
+
+        $this->actingAs($actor)
+            ->withSession($session)
+            ->post('/admin/teams/'.$team->public_id.'/structure/relationships', [
+                'team_public_id' => $team->public_id,
+                'manager_user_public_id' => $firstManager->public_id,
                 'report_user_public_id' => $extraReport->public_id,
                 'valid_from' => now()->toDateString(),
                 'reason' => 'Stale structure attempt.',

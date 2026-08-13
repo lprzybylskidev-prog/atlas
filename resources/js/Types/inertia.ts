@@ -86,6 +86,7 @@ export interface AtlasPageProps {
     };
     flash: {
         messages?: {
+            id?: string;
             type: 'success' | 'info' | 'warning' | 'error';
             key?: string;
             message?: string;
