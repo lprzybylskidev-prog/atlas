@@ -18,7 +18,9 @@ Implement Atlas-owned internal company communication covering:
 - a shared Core Calendar capability;
 - immediate and scheduled Meetings;
 - recurring Meetings;
-- Meeting invitations and attendance;
+- explicit online, in-person, and hybrid Meeting modes;
+- first-class physical Meeting location where applicable;
+- Meeting invitations and RTC-derived attendance without false physical-presence inference;
 - persistent Meeting chat;
 - Meeting moderation;
 - Meeting recording;
@@ -121,6 +123,16 @@ Atlas owns:
 - Audit;
 - frontend product UX.
 
+Every Meeting has exactly one canonical mode:
+
+- `online`;
+- `in_person`;
+- `hybrid`.
+
+A Meeting is an Atlas business object whose identity and lifecycle do not depend on a LiveKit room. Atlas owns its title, description, schedule, recurrence, organizer, invitations, RSVP, reminders, Calendar contribution, Meeting chat, location, mode, and history. LiveKit provides only the optional live-media capability of an RTC-enabled `online` or `hybrid` Meeting.
+
+An `in_person` Meeting remains a full Meeting without an Atlas RTC session. A `hybrid` Meeting is one Meeting combining a physical location with an optional Atlas RTC session; it is not split into physical and online records.
+
 Do not use a ready-made Chat product/framework such as:
 
 - Wirechat;
@@ -149,7 +161,7 @@ Self-hosted LiveKit Egress is the canonical Meeting-recording engine.
 
 Normal direct/group/Team ad-hoc Calls are not recordable.
 
-Only Meetings may be recorded.
+Only RTC-enabled `online` and `hybrid` Meetings may be recorded. Pure `in_person` Meetings cannot invoke Atlas/LiveKit recording.
 
 ---
 
@@ -166,7 +178,7 @@ Workstreams are strictly sequential:
 7. `P31-W07` — Self-hosted LiveKit RTC and development runtime foundation
 8. `P31-W08` — Direct/group/Team ad-hoc Calls and Call history
 9. `P31-W09` — Meeting scheduling, invitations, recurrence, Meeting chat, and Calendar composition
-10. `P31-W10` — Live Meeting session, moderation, devices, screen sharing, and lifecycle
+10. `P31-W10` — RTC-enabled Meeting session, moderation, devices, screen sharing, and lifecycle
 11. `P31-W11` — Meeting recording, Egress, Files ownership, retention, and controlled sharing
 12. `P31-W12` — Provider-neutral asynchronous transcription boundary
 13. `P31-W13` — Shell/modal UX, Calendar UI, notifications, reminders, and preferences
@@ -938,6 +950,8 @@ Use self-hosted LiveKit as the canonical RTC media infrastructure.
 
 Atlas owns business/session authorization.
 
+Meeting domain identity and lifecycle remain independent from RTC room existence. LiveKit rooms are created only for RTC-enabled `online` and `hybrid` Meetings. An `in_person` Meeting must never create or require a LiveKit room or participant token.
+
 LiveKit carries:
 
 - microphone audio;
@@ -1010,9 +1024,11 @@ Text Chat must continue working if RTC is unavailable.
 
 RTC failures produce a clear user-facing unavailable/error state.
 
-Meeting/Call errors must not take down message persistence.
+Meeting/Call errors must not take down message persistence, Meeting chat, Calendar/Meeting metadata, invitations, or RSVP.
 
-Egress failure must not end an active Meeting.
+When LiveKit or TURN is unavailable, `online` and `hybrid` live media is unavailable with a clear state, while `in_person` Meetings remain fully usable.
+
+Egress failure must not end an active RTC-enabled Meeting and has no effect on an `in_person` Meeting.
 
 If recording cannot start, show a clear recording error while the Meeting continues.
 
@@ -1038,6 +1054,9 @@ Such capacity failures must produce a clear user-facing result rather than a han
 - [ ] Add RTC health/readiness hooks.
 - [ ] Isolate RTC failures from Chat messaging.
 - [ ] Isolate Egress failure from live Meetings.
+- [ ] Keep Meeting domain state independent from LiveKit room existence.
+- [ ] Prevent in-person Meetings from creating LiveKit rooms or participant tokens.
+- [ ] Keep in-person Meetings usable while LiveKit, TURN, or Egress is unavailable.
 - [ ] Add deterministic RTC integration test infrastructure.
 - [ ] Add unauthorized-room negative tests.
 
@@ -1265,6 +1284,26 @@ They are not attached to an existing DM/group/Team conversation.
 
 Each Meeting has its own system Meeting conversation.
 
+Every Meeting has exactly one canonical mode:
+
+- `online` — Atlas online joining and the existing LiveKit RTC behavior are available; physical location is not required;
+- `in_person` — a physical Meeting with no Atlas RTC room, token, online join, media controls, recording, or transcription workflow;
+- `hybrid` — one Meeting with both a physical text location and an Atlas online join option.
+
+Meeting identity, scheduling, invitations, RSVP, recurrence, reminders, Calendar event, Meeting chat, cancellation, and history are Atlas-owned and apply across all three modes. Meeting creation must not be modeled around LiveKit room existence.
+
+### Meeting creation and location
+
+The organizer explicitly selects Online, In person, or Hybrid in the Meeting form.
+
+The form is mode-aware:
+
+- Online exposes relevant online Meeting configuration and does not require physical location;
+- In person requires/shows the physical text location and does not show RTC, device, recording, or transcription configuration;
+- Hybrid requires/shows the physical text location and explains that Atlas online joining is also available.
+
+Location is first-class Meeting product data for `in_person` and `hybrid`, using a normal text value such as a room or floor description. Do not introduce room inventory, booking, capacity, maps, resource scheduling, or a room-conflict engine.
+
 ### Internal-only participants
 
 Only active Atlas users may be invited.
@@ -1293,7 +1332,7 @@ Do not add:
 
 Organizer retains Meeting administration capabilities.
 
-Normal participants still have broad in-Meeting media capabilities.
+Normal participants in RTC-enabled `online` and `hybrid` Meetings still have broad in-Meeting media capabilities.
 
 ### Invitations
 
@@ -1330,11 +1369,11 @@ Removal:
 
 Do not add a waiting room/lobby.
 
-An eligible invited user may join without organizer approval.
+An eligible invited user may join an RTC-enabled `online` or `hybrid` Meeting without organizer approval.
 
 ### Join timing
 
-An invited eligible user may join before the scheduled start time.
+An invited eligible user may join the RTC session of an `online` or `hybrid` Meeting before the scheduled start time.
 
 Do not impose an arbitrary 15-minute early-join limit.
 
@@ -1363,16 +1402,20 @@ One recurring series has one shared Meeting chat.
 
 Each occurrence has separate:
 
-- live RTC session;
-- attendance;
-- recording;
-- transcript.
+- optional live RTC session for `online` or `hybrid` mode;
+- RTC-derived attendance where an RTC session exists;
+- recording where the occurrence is RTC-enabled and recording is started;
+- transcript only where an eligible retained recording exists.
+
+Meeting mode is coherent across a recurring series and its occurrence/future/series edits. Mode changes must preserve one Meeting series and must not create a second physical or online Meeting record.
 
 ### Meeting Calendar event
 
 Meeting events appear in the Calendar of authorized invitees.
 
 Meeting Calendar data contains appropriate Meeting details for invitees.
+
+Calendar presentation distinguishes Online, In person, and Hybrid without exposing LiveKit, RTC, or SFU terminology. It shows physical location for `in_person` and `hybrid`, and indicates Atlas online joining for `online` and `hybrid` where authorized.
 
 Non-invitees do not receive the Meeting event in their Calendar.
 
@@ -1386,7 +1429,8 @@ Support at least:
 - description;
 - start/end;
 - recurrence;
-- location where useful;
+- explicit `online`, `in_person`, or `hybrid` mode;
+- physical text location for `in_person` and `hybrid`;
 - organizer;
 - invitees;
 - RSVP state;
@@ -1404,7 +1448,9 @@ Send appropriate update/cancellation delivery.
 
 Meeting chat exists from Meeting creation.
 
-It remains accessible before/during/after the live session according to authorization.
+It remains accessible before/during/after the Meeting according to invitation/removal authorization, independently from Meeting mode or RTC availability.
+
+An `in_person` Meeting retains the complete Meeting chat even though no LiveKit session exists.
 
 Newly invited authorized participants may access the existing Meeting conversation history.
 
@@ -1412,6 +1458,9 @@ Newly invited authorized participants may access the existing Meeting conversati
 
 - [ ] Implement Meet now.
 - [ ] Implement scheduled Meetings.
+- [ ] Add explicit online / in-person / hybrid Meeting mode.
+- [ ] Keep Meeting domain ownership independent from RTC room existence.
+- [ ] Add physical location behavior for in-person/hybrid Meetings.
 - [ ] Implement organizer/participant roles.
 - [ ] Implement invitation state.
 - [ ] Add accept/decline/change-response.
@@ -1425,16 +1474,25 @@ Newly invited authorized participants may access the existing Meeting conversati
 - [ ] Add recurring Meeting rules.
 - [ ] Add occurrence/future/series editing.
 - [ ] Add one Meeting chat per recurring series.
-- [ ] Add occurrence-specific RTC/attendance/recording.
+- [ ] Keep all invitation/RSVP/recurrence/Calendar/chat behavior across all Meeting modes.
+- [ ] Prevent in-person Meetings from creating LiveKit rooms/tokens.
+- [ ] Preserve RTC capability only for online/hybrid Meetings.
+- [ ] Add occurrence-specific optional RTC/attendance/recording.
 - [ ] Publish Meetings into Core Calendar.
+- [ ] Add Calendar mode/location presentation.
 - [ ] Add conflict warnings.
 - [ ] Preserve cancelled history.
 - [ ] Add Meeting invitation/update/cancellation Notifications/email behavior.
+- [ ] Add mode-specific authorization/domain tests.
 - [ ] Add authorization/recurrence/browser tests.
 
 ---
 
-## P31-W10 — Live Meeting session, moderation, devices, screen sharing, and lifecycle
+## P31-W10 — RTC-enabled Meeting session, moderation, devices, screen sharing, and lifecycle
+
+This workstream applies only to `online` and `hybrid` Meetings that have an active RTC session. An `in_person` Meeting has no Join online action, pre-call screen, microphone/camera/speaker controls, screen sharing, RTC moderation, RTC kick/room-lock behavior, empty-room timer, minimized RTC session, or Rejoin flow.
+
+A `hybrid` Meeting remains one Meeting with a physical location and one optional Atlas RTC session. Do not create separate physical and online Meeting objects.
 
 ### Pre-Meeting
 
@@ -1547,9 +1605,11 @@ If a user rejoins before the 15-minute window expires:
 
 - reset/cancel the empty-room shutdown timer.
 
+Empty-room cleanup ends only the LiveKit RTC session and releases its media resources. It does not cancel, end, or delete the Meeting domain object, cancel its Calendar event, close Meeting chat, or change invitations or RSVP. It never applies to an `in_person` Meeting.
+
 ### Attendance
 
-Persist occurrence attendance including:
+Persist RTC-derived occurrence attendance for users who actually join an `online` or `hybrid` RTC session, including:
 
 - participant;
 - join time;
@@ -1559,6 +1619,8 @@ Persist occurrence attendance including:
 Every authorized Meeting participant may see full attendance information.
 
 Do not restrict complete attendance to organizer only.
+
+RTC-derived attendance describes online participation only. For `in_person` and `hybrid` Meetings, absence of an RTC join must never be treated as proof that an invitee was physically absent. Atlas does not automatically know physical presence and this phase adds no QR, NFC, room-hardware, or geolocation attendance system.
 
 ### Minimize/rejoin
 
@@ -1571,6 +1633,10 @@ After browser refresh, offer Rejoin rather than silently recreating media state.
 ### Tasks
 
 - [ ] Add Meeting pre-call device screen.
+- [ ] Keep RTC session controls limited to online/hybrid Meetings.
+- [ ] Keep in-person Meetings free of Join online/pre-call/media controls.
+- [ ] Keep in-person Meetings independent from LiveKit/TURN availability.
+- [ ] Keep Hybrid as one Meeting combining physical location with an optional Atlas RTC session.
 - [ ] Add mic/camera/device controls.
 - [ ] Add one active screen share.
 - [ ] Add organizer stop-screen-share.
@@ -1583,7 +1649,9 @@ After browser refresh, offer Rejoin rather than silently recreating media state.
 - [ ] Add Leave.
 - [ ] Add organizer End for everyone.
 - [ ] Add 15-minute empty-room termination.
+- [ ] Limit empty-room cleanup to RTC resources without changing Meeting domain state.
 - [ ] Add attendance join/leave/duration.
+- [ ] Prevent RTC attendance from falsely classifying physical attendance.
 - [ ] Expose attendance to participants.
 - [ ] Add minimized session state.
 - [ ] Add Rejoin behavior.
@@ -1596,7 +1664,9 @@ After browser refresh, offer Rejoin rather than silently recreating media state.
 
 ### Recording boundary
 
-Only Meetings may be recorded.
+Only RTC-enabled `online` and `hybrid` Meetings may be recorded through Atlas/LiveKit Egress.
+
+An `in_person` Meeting without an RTC session cannot start Atlas recording and must not expose recording controls, REC/Paused state, processing state, or an occurrence recording viewer.
 
 Do not allow recording for:
 
@@ -1669,6 +1739,8 @@ Record:
 - participant video where enabled;
 - active screen share;
 - the composed Meeting result.
+
+For a `hybrid` Meeting, recording contains only media actually published into the LiveKit RTC session. Atlas does not claim to record people physically present in a room unless a room laptop/browser or other authorized participant publishes their microphone/camera into that RTC session.
 
 ### Recording output
 
@@ -1802,7 +1874,12 @@ Use queue/Managed Processes for large cleanup.
 
 ### Tasks
 
-- [ ] Add Meeting-only recording permission/organizer enforcement.
+- [ ] Add RTC-enabled Meeting recording permission/organizer enforcement.
+- [ ] Allow online Meetings to be recorded under the existing organizer/permission rules.
+- [ ] Allow hybrid Meetings to be recorded under the existing organizer/permission rules.
+- [ ] Prevent in-person Meetings from starting Atlas RTC recording.
+- [ ] Keep in-person Meeting UI free of recording controls.
+- [ ] Limit hybrid recordings to media actually published into LiveKit.
 - [ ] Keep all ad-hoc Calls non-recordable.
 - [ ] Add start/pause/resume/stop UX.
 - [ ] Add clear REC/Paused participant state.
@@ -1814,6 +1891,7 @@ Use queue/Managed Processes for large cleanup.
 - [ ] Add Processing/Ready/Failed states.
 - [ ] Add recording structural timeline events.
 - [ ] Import final recording into Files.
+- [ ] Keep recording lifecycle Files-owned after Egress finalization.
 - [ ] Clean Egress staging safely.
 - [ ] Add participant recording view/download authorization.
 - [ ] Add explicit participant-created recording shares.
@@ -1933,6 +2011,13 @@ Do not claim transcription is available in production when no provider exists/co
 
 When no provider is configured/enabled, normal users must see no transcription product UI.
 
+Transcription UI is eligible only when both conditions are true:
+
+- an eligible retained recording from an `online` or `hybrid` Meeting exists;
+- a transcription provider is available, configured, and enabled.
+
+A pure `in_person` Meeting without an RTC recording never exposes transcription actions merely because a provider is configured.
+
 Hide:
 
 - Transcript tab;
@@ -2029,6 +2114,8 @@ No public/external sharing.
 
 Transcript lifecycle follows its recording.
 
+Transcription cannot be requested without an eligible retained Meeting recording. Do not add live transcription or direct microphone-to-transcript processing outside the recording workflow.
+
 When recording retention deletes the recording:
 
 - delete transcript;
@@ -2049,6 +2136,9 @@ When recording retention deletes the recording:
 - [ ] Keep concrete production provider optional/unimplemented.
 - [ ] Add deterministic test provider.
 - [ ] Hide user transcript UI while provider unavailable.
+- [ ] Require an eligible retained online/hybrid Meeting recording for transcription.
+- [ ] Keep in-person Meetings without recordings free of transcript UI and jobs.
+- [ ] Preserve transcript eligibility for retained online/hybrid recordings when the provider is enabled.
 - [ ] Add manual Create transcript flow when enabled.
 - [ ] Allow historical recording transcription.
 - [ ] Prevent duplicate active transcription requests.
@@ -2059,6 +2149,7 @@ When recording retention deletes the recording:
 - [ ] Prevent onward sharing by recipient.
 - [ ] Hide edit history from share recipient.
 - [ ] Delete transcript with recording retention.
+- [ ] Prevent live or microphone-direct transcription outside the recording workflow.
 - [ ] Add provider/queue/privacy/versioning tests.
 
 ---
@@ -2106,7 +2197,7 @@ No Archive.
 
 ### Live Call/Meeting modal
 
-Calls and Meetings use a large live-session modal.
+Calls and RTC-enabled `online`/`hybrid` Meetings use a large live-session modal. An `in_person` Meeting does not render this media surface.
 
 It can be minimized.
 
@@ -2122,6 +2213,16 @@ When minimized, provide a persistent compact control containing at least:
 - organizer End where applicable.
 
 The user may navigate elsewhere in Atlas while the live session continues.
+
+### Meeting creation UI
+
+Meeting creation explicitly offers localized Online, In person, and Hybrid mode choices.
+
+- Online does not require a physical location and exposes the applicable online Meeting configuration;
+- In person exposes the physical text location and hides online join, device, screen-share, recording, and transcription controls;
+- Hybrid exposes the physical text location and clearly indicates that Atlas online joining is available.
+
+The mode-aware form creates one Meeting in every case.
 
 ### Incoming Call
 
@@ -2145,6 +2246,14 @@ Expose the shared Calendar using:
 - Agenda.
 
 Support personal events and Meeting events in one coherent Calendar.
+
+Meeting entries present mode and location in product language:
+
+- Online indicates that joining in Atlas is available;
+- In person shows the physical location;
+- Hybrid shows the physical location and that online joining is available.
+
+Do not expose LiveKit room, RTC session, or SFU terminology in Calendar UI.
 
 ### Browser-native notifications
 
@@ -2226,8 +2335,11 @@ Protect:
 - [ ] Preserve full-screen mobile Chat.
 - [ ] Add minimizable Call/Meeting modal.
 - [ ] Add persistent minimized controls.
+- [ ] Add mode-aware Meeting creation UI.
+- [ ] Hide RTC/recording/transcription controls for in-person Meeting creation and use.
 - [ ] Add global incoming Call UI.
 - [ ] Add Calendar Month/Week/Day/Agenda UI.
+- [ ] Add localized Meeting mode/location presentation in Calendar.
 - [ ] Add Meeting invitation/update/cancellation notifications.
 - [ ] Add Meeting email preferences.
 - [ ] Add Meeting reminder preferences.
@@ -2614,6 +2726,9 @@ Cover:
 - Meet now;
 - scheduled Meeting;
 - recurring Meeting;
+- explicit Online, In person, and Hybrid selection;
+- in-person physical location;
+- hybrid physical location plus Atlas online joining;
 - invite;
 - accept;
 - decline;
@@ -2635,6 +2750,14 @@ Cover:
 - Leave;
 - End for everyone;
 - empty-room auto-end.
+
+In-person coverage must prove invitation/RSVP, Calendar mode/location, reminders, Meeting chat, recurrence, and cancellation without Join online, pre-call/device controls, screen sharing, RTC moderation, recording, transcription, or a LiveKit/TURN dependency.
+
+Online coverage preserves the complete existing RTC workflow.
+
+Hybrid coverage proves one Meeting with physical location plus online Join, RTC controls, screen sharing, and authorized recording. An invitee who does not join RTC must not be classified as physically absent.
+
+Recurring coverage proves coherent mode behavior across the series and occurrence/future/series edits without creating separate physical and online Meeting objects.
 
 #### Recording
 
@@ -2658,7 +2781,11 @@ Cover:
 - revoke;
 - no Admin bypass;
 - retention deletion;
-- transcript deleted with recording.
+- transcript deleted with recording;
+- online Meeting recording under organizer/permission rules;
+- hybrid Meeting recording under organizer/permission rules;
+- no in-person Meeting recording controls;
+- hybrid recording limited to media actually published into LiveKit.
 
 #### Transcription
 
@@ -2680,7 +2807,8 @@ Using a deterministic fake provider:
 - recipient current-version-only;
 - no recipient edit/re-share;
 - Search authorization;
-- no Admin bypass.
+- no Admin bypass;
+- no transcript action for an in-person Meeting without an eligible retained recording.
 
 Do not install a production AI/STT provider merely to make tests pass.
 
@@ -2725,11 +2853,17 @@ Update production requirements consumed by Phase 33.
 - [ ] Add device/pre-call E2E.
 - [ ] Add Busy/Rejoin E2E.
 - [ ] Add Meeting scheduling/invitation E2E.
+- [ ] Add in-person Meeting mode/location/Calendar/chat E2E without RTC controls or dependency.
+- [ ] Preserve online Meeting RTC E2E.
+- [ ] Add hybrid Meeting location plus RTC E2E.
+- [ ] Prove hybrid physical attendance is not inferred from RTC absence.
 - [ ] Add recurring Meeting E2E.
 - [ ] Add Meeting moderation E2E.
 - [ ] Add attendance E2E.
 - [ ] Add screen-share E2E.
 - [ ] Add Meeting recording E2E.
+- [ ] Prove recording is limited to RTC-enabled online/hybrid Meetings.
+- [ ] Prove in-person Meetings expose no recording or transcription controls.
 - [ ] Add recording sharing/retention E2E.
 - [ ] Add provider-disabled transcription UI coverage.
 - [ ] Add fake-provider transcription E2E.
@@ -2778,7 +2912,7 @@ The following decisions are binding:
 23. Screen sharing is supported.
 24. Only one active screen share exists per live session.
 25. Ad-hoc Calls cannot be recorded.
-26. Only Meetings may be recorded.
+26. Only RTC-enabled online/hybrid Meetings may be recorded.
 27. Meetings may be immediate or scheduled.
 28. Recurring Meetings are supported.
 29. Calendar is a shared Core capability, not Chat-owned.
@@ -2803,7 +2937,7 @@ The following decisions are binding:
 48. Invited users may join before scheduled time.
 49. Meeting may operate without organizer present.
 50. Roles are organizer and participant only.
-51. Participants may use microphone/camera/screen share.
+51. Participants in RTC-enabled online/hybrid Meetings may use microphone/camera/screen share.
 52. Organizer may mute.
 53. Normal mute allows self-unmute.
 54. Organizer may disable microphone as a speaking ban.
@@ -2812,17 +2946,17 @@ The following decisions are binding:
 57. Organizer may turn off another user's camera.
 58. Organizer never remotely enables another user's camera.
 59. Organizer may stop another user's screen share.
-60. Organizer may kick.
+60. Organizer may kick a participant from an RTC-enabled Meeting occurrence.
 61. Kick bans the user for the remainder of the occurrence.
 62. Kick removes active Meeting/chat access.
-63. Organizer may lock/unlock Meeting.
+63. Organizer may lock/unlock an RTC-enabled live Meeting room.
 64. Locked Meeting prevents joins and new invitations.
 65. Organizer may End meeting for everyone.
 66. Organizer Leave alone does not end Meeting.
-67. Empty RTC room ends after 15 continuous minutes.
-68. Attendance stores join/leave/duration.
-69. All authorized participants may see full attendance.
-70. Live session uses a minimizable modal.
+67. Empty RTC session ends and releases media resources after 15 continuous minutes without ending the Meeting domain object.
+68. RTC attendance stores online join/leave/duration without claiming physical presence or absence.
+69. All authorized participants may see the available RTC-derived attendance without claims about physical presence.
+70. RTC-enabled live session uses a minimizable modal.
 71. Minimized persistent controls remain while navigating Atlas.
 72. Browser refresh uses Rejoin rather than silent media reactivation.
 73. LiveKit is self-hosted and Atlas-managed.
@@ -2883,6 +3017,22 @@ The following decisions are binding:
 128. Personal Calendar reminder email may be user-configurable.
 129. Missed Calls use normal Notification/browser alert but no email.
 130. No E2EE/application-level Chat content encryption is introduced.
+131. Every Meeting mode is exactly `online`, `in_person`, or `hybrid`.
+132. Meeting domain identity and lifecycle do not depend on LiveKit room existence.
+133. Online Meetings preserve the complete accepted RTC behavior.
+134. In-person Meetings are full Atlas Meetings without an RTC session or RTC dependency.
+135. Hybrid Meetings are one Meeting with physical location and optional Atlas RTC.
+136. Physical location is first-class Meeting product data for in-person/hybrid modes.
+137. All modes preserve invitations, RSVP, recurrence, Calendar, reminders, cancellation, history, and Meeting chat.
+138. In-person Meetings remain usable while LiveKit, TURN, or Egress is unavailable.
+139. Recording is available only to RTC-enabled online/hybrid Meetings under the existing organizer/permission rules.
+140. Hybrid recording includes only media actually published into LiveKit.
+141. Transcription requires an eligible retained Meeting recording and an enabled provider.
+142. In-person Meetings without recordings expose no transcription workflow.
+143. RTC-derived attendance never proves physical absence.
+144. Empty-room cleanup terminates RTC resources only, not the Meeting domain object.
+145. Hybrid mode does not create separate physical and online Meeting records.
+146. No automatic physical attendance subsystem is introduced.
 
 ---
 
@@ -2917,6 +3067,21 @@ Do not implement in Phase 31:
 - ICS synchronization;
 - calendar task manager/completed-task workflow;
 - Calendar categories/colors;
+- meeting-room inventory;
+- room booking or resource reservation;
+- room capacity management;
+- physical office maps;
+- room availability/conflict engine;
+- NFC attendance;
+- QR attendance or check-in;
+- geolocation attendance;
+- automatic physical-presence detection;
+- conference-room hardware integration;
+- SIP/PSTN room systems;
+- automatic physical-room recording without media published into RTC;
+- live speech transcription;
+- microphone-to-transcript processing outside the retained-recording workflow;
+- a second Meeting object for the physical side of a Hybrid Meeting;
 - concrete OpenAI transcription provider;
 - concrete Whisper/whisper.cpp provider;
 - Python transcription service implementation;
@@ -2950,6 +3115,20 @@ Do not create another future phase for these items during this planning task.
 - [ ] Team Chat membership remains Teams-owned.
 - [ ] Meeting conversation is system-owned and invitation-scoped.
 - [ ] Recurring series has one shared Meeting chat.
+- [ ] Meeting mode is explicitly `online`, `in_person`, or `hybrid`.
+- [ ] Meeting domain state does not depend on LiveKit room existence.
+- [ ] In-person Meetings never create LiveKit RTC sessions or participant tokens.
+- [ ] Hybrid Meetings remain one Meeting rather than separate physical/online records.
+- [ ] In-person Meetings remain usable while LiveKit, TURN, or Egress is unavailable.
+- [ ] Meeting chat works independently from RTC mode and availability.
+- [ ] Physical location is Meeting product data rather than RTC metadata.
+- [ ] In-person Meetings expose no RTC device, screen-share, moderation, or rejoin controls.
+- [ ] In-person Meetings expose no Atlas recording controls.
+- [ ] Recording remains limited to RTC-enabled online/hybrid Meetings.
+- [ ] Transcript creation requires an eligible retained recording.
+- [ ] RTC attendance is never treated as proof of physical absence.
+- [ ] The 15-minute empty-room rule terminates RTC resources rather than the Meeting domain object.
+- [ ] No physical-room hardware, check-in, geolocation, or automatic attendance system is introduced.
 - [ ] Admin never gains private Chat/Call/Meeting content access by status alone.
 - [ ] Chat Search cannot leak unauthorized content.
 - [ ] Reverb remains canonical message/application realtime.
@@ -2980,7 +3159,7 @@ Do not create another future phase for these items during this planning task.
 - [ ] Kick blocks rejoin for the current occurrence.
 - [ ] Organizer cannot remotely enable another user's mic/camera.
 - [ ] Only one screen share is active.
-- [ ] Empty rooms terminate after 15 continuous minutes.
+- [ ] Empty RTC rooms release live-media resources after 15 continuous minutes without ending the Meeting domain object.
 - [ ] Chat messages remain outside Notifications persistence/email.
 - [ ] Calls/Meetings do not introduce application-level E2EE.
 - [ ] No public guest/public Meeting mode appears.
@@ -3010,16 +3189,22 @@ Phase 31 is complete only when:
 - [ ] self-hosted LiveKit development/runtime integration works;
 - [ ] Calls/Meetings remain authorization-safe;
 - [ ] Meetings can be immediate or scheduled;
+- [ ] online Meetings preserve the accepted RTC workflow;
+- [ ] in-person Meetings work without LiveKit, TURN, Egress, online Join, or media controls;
+- [ ] hybrid Meetings combine one physical location with an Atlas RTC option;
+- [ ] Calendar clearly presents Meeting mode and physical location where applicable;
+- [ ] every Meeting mode preserves invitations, RSVP, recurrence, reminders, cancellation, and Meeting chat;
 - [ ] recurring Meetings work;
 - [ ] invitation/RSVP/invite-more/remove behavior works;
 - [ ] Meeting chat works before/during/after;
 - [ ] participant moderation works;
 - [ ] one screen share works;
 - [ ] lock/kick/End/empty-room behavior works;
-- [ ] attendance works;
+- [ ] RTC attendance works without falsely inferring physical presence or absence;
 - [ ] live modal may be minimized and rejoined;
 - [ ] ad-hoc Calls cannot be recorded;
-- [ ] Meeting recording start/pause/resume/stop works;
+- [ ] Meeting recording start/pause/resume/stop works only for RTC-enabled online/hybrid Meetings;
+- [ ] in-person Meetings expose no recording controls;
 - [ ] LiveKit Egress composite recording works;
 - [ ] final recording is one Files-owned file;
 - [ ] recording sharing works without Meeting-membership leakage;
@@ -3028,6 +3213,8 @@ Phase 31 is complete only when:
 - [ ] transcription remains queued;
 - [ ] no concrete production STT provider is required;
 - [ ] transcript UI is absent with no provider;
+- [ ] transcription requires an eligible retained Meeting recording;
+- [ ] in-person Meetings without recordings expose no transcription workflow;
 - [ ] fake-provider tests prove transcription lifecycle;
 - [ ] transcript editing/versioning/sharing works under authorization;
 - [ ] transcript is removed with recording retention;
@@ -3037,6 +3224,7 @@ Phase 31 is complete only when:
 - [ ] Notifications/browser/email preferences follow accepted ownership;
 - [ ] participant-authorized exports remain functional;
 - [ ] Chromium and Firefox cover critical workflows;
+- [ ] browser tests cover online, in-person, hybrid, and recurring mode behavior;
 - [ ] mobile flows are covered;
 - [ ] Polish and English UI is complete;
 - [ ] light/dark UI is covered;

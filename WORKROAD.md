@@ -366,7 +366,7 @@ Depends on the completed Authorization, Teams, manager hierarchy, Audit, Setting
 
 **Status:** `in progress` (`P31-W01` and `P31-W02` complete; `P31-W03` is next)
 
-Implement Atlas-owned internal communication with direct/group/Team/Meeting Chat, a shared Core Calendar, audio/video Calls, Meetings, screen sharing, Files-owned Meeting recordings, provider-neutral transcription readiness, Reverb and self-hosted LiveKit/Egress infrastructure, authorization-safe Search, privacy, retention, participant exports, and browser alerts.
+Implement Atlas-owned internal communication with direct/group/Team/Meeting Chat, a shared Core Calendar, audio/video Calls, online/in-person/hybrid Meetings, optional RTC for online/hybrid modes, screen sharing, Files-owned Meeting recordings, provider-neutral transcription readiness, Reverb and self-hosted LiveKit/Egress infrastructure, authorization-safe Search, privacy, retention, participant exports, and browser alerts.
 
 Depends on the completed Files, Search, Teams, Authorization, Module Activation, shared UI, Notifications/realtime, Audit, Settings, Health, queue/scheduler, and export foundations, plus Phases 28, 29, and 30. Calendar is a shared Core capability; Chat remains optional, and LiveKit owns RTC transport rather than Atlas domain state.
 
