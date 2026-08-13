@@ -22,7 +22,11 @@ Phase 32 must provide:
 - rollback;
 - release metadata;
 - simple host/operator commands;
-- documented recovery procedures.
+- documented recovery procedures;
+- Atlas-managed self-hosted LiveKit RTC and TURN connectivity;
+- a separate self-hosted LiveKit Egress recording service;
+- protected temporary recording staging and Files-owned final recordings;
+- RTC/Egress health, capacity, secret, backup, restore, deploy, and rollback coverage.
 
 The baseline deployment target is one company-controlled Linux host or VM running Docker Compose.
 
@@ -46,7 +50,7 @@ Phase 32 depends on the completed technical foundation, including:
 - runtime smoke;
 - security and privacy foundations;
 - completed Phase 28 and Phase 29 acceptance work.
-- completed Phase 31 Chat module and its Reverb/runtime requirements.
+- completed Phase 31 communication scope, including Chat, Core Calendar, Calls, Meetings, Reverb, self-hosted LiveKit, Egress, recordings, and provider-neutral transcription state.
 
 Phase 32 must build on those capabilities instead of replacing or redesigning them.
 
@@ -59,27 +63,32 @@ The baseline Atlas production topology is:
 ```text
 trusted company network / LAN / VPN
                 |
-                v
-        Atlas reverse proxy
+                +--> Atlas reverse proxy
                 |
-                v
-       private Docker network
-       ├── PHP-FPM
-       ├── Horizon
-       ├── queue workers
-       ├── scheduler
-       ├── PostgreSQL
-       ├── Redis
-       ├── Meilisearch
-       ├── ClamAV
-       └── Chromium/PDF
+                +--> required configured LiveKit WebRTC/TURN endpoints
+                                  |
+                                  v
+                         private runtime network
+                         ├── PHP-FPM
+                         ├── Horizon and queue workers
+                         ├── scheduler
+                         ├── PostgreSQL
+                         ├── Redis
+                         ├── Meilisearch
+                         ├── ClamAV
+                         ├── Chromium/PDF
+                         ├── Reverb
+                         ├── LiveKit
+                         └── LiveKit Egress
 ```
 
 Atlas does not require a public Internet-facing endpoint.
 
-Only the reverse proxy may be reachable from the trusted client network.
+Normal Atlas HTTP remains reverse-proxy fronted. Browser WebRTC is an intentional narrow exception: trusted LAN/VPN clients may also reach only the configured LiveKit signaling/media and TURN endpoints required by the deployed LiveKit version and network policy.
 
-PostgreSQL, Redis, Meilisearch, ClamAV, PHP-FPM, Horizon, workers, scheduler, and Chromium must remain private.
+PostgreSQL, Redis, Meilisearch, ClamAV, PHP-FPM, Horizon, workers, scheduler, Chromium, Egress control/health endpoints, recording staging, and LiveKit API/Admin credentials must remain private.
+
+The roadmap does not freeze default port numbers. Phase 32 must derive and document the concrete firewall exposure from the pinned LiveKit configuration and version selected for the release, following current official LiveKit self-hosting guidance.
 
 Network exposure must be configurable so the host administrator can bind Atlas to an internal interface, trusted subnet, VPN-accessible interface, or equivalent company-controlled network.
 
@@ -91,10 +100,12 @@ Host/network administrators remain responsible for infrastructure-level network 
 
 - [ ] Finalize the single-host/VM Docker Compose production topology.
 - [ ] Keep all backend/runtime services on private Docker networks.
-- [ ] Make the reverse proxy the only normal client-facing service.
+- [ ] Keep normal Atlas HTTP reverse-proxy fronted and expose only the configured LiveKit WebRTC/TURN endpoints additionally required by trusted clients.
 - [ ] Support binding the reverse proxy to a trusted/internal network interface.
 - [ ] Document LAN/VPN/internal-network deployment.
 - [ ] Confirm no backend service is unintentionally exposed to the client network.
+- [ ] Keep Egress control/health endpoints, recording staging, and LiveKit service credentials private.
+- [ ] Document and verify the concrete release-pinned LiveKit/TURN firewall exposure without relying on stale hardcoded port assumptions.
 - [ ] Add production topology checks where practical.
 - [ ] Document Kubernetes, Swarm, clustering, and public SaaS deployment as out of baseline scope.
 
@@ -116,6 +127,8 @@ Supported deployment models may include:
 
 Public DNS and public certificate issuance are not baseline requirements.
 
+LiveKit signaling/media and TURN/TLS must work for the selected LAN/VPN/browser topology according to the current official self-hosting guidance for the deployed version. Atlas may use a company/internal trusted certificate, an administrator-supplied certificate, or existing company TLS termination where technically valid. A self-signed certificate that browsers do not trust is not an accepted production shortcut. Public Let's Encrypt remains optional.
+
 ### Tasks
 
 - [ ] Finalize production reverse-proxy configuration.
@@ -127,6 +140,8 @@ Public DNS and public certificate issuance are not baseline requirements.
 - [ ] Support HTTP-to-HTTPS redirect when TLS is enabled.
 - [ ] Document trusted internal HTTP deployment only where explicitly accepted by the installation operator.
 - [ ] Keep certificate secrets outside source control.
+- [ ] Configure and verify trusted LiveKit and TURN/TLS endpoints for the selected LAN/VPN topology.
+- [ ] Document the concrete configured RTC/TURN firewall and certificate requirements.
 
 ## P32-W03 — Durable PostgreSQL and local Files storage
 
@@ -159,6 +174,8 @@ S3-compatible storage is not required by Phase 32.
 
 Do not implement AWS-specific coupling merely for future flexibility.
 
+Final Meeting recordings are Files-owned durable artifacts. LiveKit Egress output and local recording staging are temporary/intermediate state, not a second permanent recording store. Staging must use protected storage, least-privilege permissions, bounded cleanup, and the applicable encryption-at-rest boundary. Transcript state remains PostgreSQL-owned and participates in database recovery.
+
 ### Tasks
 
 - [ ] Finalize PostgreSQL persistent-volume configuration.
@@ -171,6 +188,9 @@ Do not implement AWS-specific coupling merely for future flexibility.
 - [ ] Verify Files remain compatible with existing ClamAV/security behavior.
 - [ ] Preserve the existing backend-neutral storage abstraction.
 - [ ] Document S3-compatible storage as an optional/future backend, not the baseline.
+- [ ] Define protected temporary Egress recording staging and deterministic cleanup.
+- [ ] Verify finalized Meeting recordings enter canonical Files persistence and survive container recreation.
+- [ ] Include transcript database state in PostgreSQL durability and recovery planning.
 
 ## P32-W04 — Production storage and backup encryption at rest
 
@@ -399,6 +419,9 @@ The installer should collect the deployment-specific configuration required by t
 - backup location;
 - backup retention;
 - backup schedule;
+- LiveKit signaling/media and TURN endpoint/network configuration;
+- LiveKit and Egress capacity/resource settings;
+- protected Egress recording staging location;
 - required SMTP configuration;
 - optional Sentry configuration;
 - first administrator identity.
@@ -410,6 +433,8 @@ Do not ask questions for values that can safely be generated automatically.
 Generate secure secrets where Atlas can safely own them, including the required application/service secrets.
 
 Secrets must remain outside source control.
+
+The installer must generate and handle Atlas-managed LiveKit service credentials. Those credentials are consumed only by required Atlas, LiveKit, and Egress services; they are not shown in ordinary Admin UI or normal logs. The baseline installs Atlas-managed self-hosted LiveKit and Egress rather than offering an external-existing-LiveKit mode.
 
 Do not print sensitive secrets into normal logs.
 
@@ -464,7 +489,10 @@ The installer must not automatically repartition, format, or encrypt host disks.
 - [ ] Link the operator to canonical production encryption documentation.
 - [ ] Keep disk repartitioning, formatting, and encryption outside installer automation.
 - [ ] Configure backup location, schedule, and retention.
+- [ ] Configure Atlas-managed self-hosted LiveKit, required RTC/TURN endpoints, and the separate Egress service.
+- [ ] Preflight CPU, RAM, network, and protected recording-staging capacity and report concrete limitations without imposing a fake product limit.
 - [ ] Generate required secrets securely.
+- [ ] Generate and provision LiveKit API/service credentials securely for only the services that require them.
 - [ ] Keep generated secrets outside source control.
 - [ ] Create required persistent directories.
 - [ ] Apply correct ownership and permissions.
@@ -538,6 +566,9 @@ The backup destination must remain deployment-neutral and must not be hardcoded 
 - [ ] Verify backup internal validity and the encrypted artifact lifecycle.
 - [ ] Add configurable local backup retention.
 - [ ] Include persistent Atlas Files in the recovery strategy.
+- [ ] Include Files-owned final Meeting recordings in Files backup and recovery.
+- [ ] Include transcript records and versions in PostgreSQL backup and recovery.
+- [ ] Exclude or safely clean temporary Egress staging rather than treating it as a second canonical recording backup.
 - [ ] Define a safe Files backup procedure.
 - [ ] Avoid inconsistent/partial Files backup state where possible.
 - [ ] Add a canonical host backup command.
@@ -594,6 +625,7 @@ safe cleanup of temporary plaintext material
 - [ ] Always create a pre-restore backup.
 - [ ] Restore PostgreSQL safely.
 - [ ] Restore Files according to the documented recovery model.
+- [ ] Restore Files-owned Meeting recordings and PostgreSQL-owned transcript state through their canonical stores.
 - [ ] Run post-restore readiness.
 - [ ] Safely remove temporary plaintext recovery material when no longer required.
 - [ ] Document complete restore procedures.
@@ -644,6 +676,7 @@ Do not edit application source manually inside running production containers.
 - [ ] Define the current release pointer/symlink or equally simple atomic release pointer.
 - [ ] Deploy exact release/tag/commit.
 - [ ] Record exact image identifiers.
+- [ ] Pin compatible LiveKit and Egress images/configuration as part of the exact Atlas release.
 - [ ] Build/prepare releases separately from the active release.
 - [ ] Install production dependencies from lockfiles.
 - [ ] Build production frontend assets.
@@ -653,6 +686,7 @@ Do not edit application source manually inside running production containers.
 - [ ] Gate release switching on readiness.
 - [ ] Switch releases atomically.
 - [ ] Reload/restart PHP-FPM, Horizon, workers, and scheduler safely.
+- [ ] Coordinate compatible Reverb, LiveKit, and Egress rollout/restart behavior without unnecessarily terminating active RTC sessions.
 - [ ] Run post-switch readiness.
 - [ ] Keep application source immutable inside running containers.
 
@@ -722,6 +756,8 @@ Release information should be available to appropriate operational surfaces such
 - logs;
 - Sentry.
 
+Status, readiness, logs, and Admin System Status must include safe aggregate LiveKit RTC, TURN where practical, Egress availability, and recording-processing health. They must not expose private Meeting names, participant lists, media, recordings, transcripts, or service credentials. Egress/recording failure must remain isolated so normal Chat and unrecorded Meetings can continue where their own dependencies are healthy.
+
 ### Tasks
 
 - [ ] Add/document canonical operator commands.
@@ -736,6 +772,8 @@ Release information should be available to appropriate operational surfaces such
 - [ ] Integrate rollback.
 - [ ] Record release metadata.
 - [ ] Expose release metadata through appropriate Admin/readiness/log/Sentry surfaces.
+- [ ] Add safe LiveKit RTC, TURN, Egress, and recording-processing status/readiness checks.
+- [ ] Verify Egress failure isolation from normal Chat and Meeting participation.
 
 ## P32-W11 — Production durability and operational acceptance
 
@@ -791,6 +829,8 @@ representative deploy succeeds
 representative safe rollback succeeds
 ```
 
+The proof must also exercise Atlas-managed LiveKit and separate Egress startup/readiness, trusted-network RTC/TURN connectivity, safe aggregate health reporting, resource/preflight visibility, a finalized Files-owned recording, transcript-state backup/restore, and compatible exact-release deploy/rollback for Atlas, Reverb, LiveKit, and Egress.
+
 ### Tasks
 
 - [ ] Test fresh production installation on a clean supported production-like host/VM.
@@ -817,13 +857,23 @@ representative safe rollback succeeds
 - [ ] Verify readiness-gated release switch.
 - [ ] Verify safe rollback.
 - [ ] Verify backend services remain inaccessible from the normal client network.
+- [ ] Verify trusted clients can reach only the configured LiveKit WebRTC/TURN endpoints in addition to the Atlas reverse proxy.
+- [ ] Verify LiveKit RTC, TURN connectivity where practical, Egress, and recording-processing readiness.
+- [ ] Verify Egress control endpoints, staging, and credentials remain private.
+- [ ] Verify a finalized Meeting recording is Files-owned, backed up, restored, and protected by the production storage encryption boundary.
+- [ ] Verify transcript PostgreSQL state is backed up and restored.
+- [ ] Verify Egress failure does not make normal Chat or unrecorded Meetings unavailable.
+- [ ] Verify exact-release compatibility and rollback planning cover Reverb, LiveKit, and Egress.
 - [ ] Verify TLS deployment where configured.
 - [ ] Verify release metadata.
 - [ ] Update production operations documentation.
 
 ## Required permanent operational guardrails
 
-- [ ] No backend/runtime service may become client-network facing by accident.
+- [ ] No backend/runtime service may become client-network facing by accident; only the reverse proxy and explicitly configured LiveKit WebRTC/TURN endpoints are reachable by trusted clients.
+- [ ] LiveKit/Egress credentials, Egress control endpoints, and recording staging remain private.
+- [ ] LiveKit and Egress versions/configuration are pinned and participate in exact-release deploy/rollback.
+- [ ] Egress failure cannot unnecessarily disable normal Chat or unrecorded Meetings.
 - [ ] Production Files cannot use ephemeral container storage.
 - [ ] PostgreSQL cannot use ephemeral database storage.
 - [ ] Production installation cannot use known development credentials.
@@ -845,7 +895,7 @@ Phase 32 is complete only when:
 
 - [ ] Atlas can be installed on a clean supported internal production host using the canonical installer.
 - [ ] Production baseline is private/intranet/LAN/VPN rather than public-Internet dependent.
-- [ ] Only the reverse proxy is reachable from the trusted client network.
+- [ ] Only the reverse proxy and the explicitly configured LiveKit WebRTC/TURN endpoints required by browser clients are reachable from the trusted client network.
 - [ ] Backend/runtime services remain private.
 - [ ] TLS can be configured without requiring public Let's Encrypt.
 - [ ] PostgreSQL uses durable persistent storage.
@@ -869,4 +919,10 @@ Phase 32 is complete only when:
 - [ ] Infrastructure-level persistent storage encryption-at-rest is supported and documented.
 - [ ] Portable/off-host database and Files/recovery backup artifacts support independent encryption.
 - [ ] Encrypted backup artifacts can be decrypted, verified, restored, and cleaned up through the approved operator workflow.
+- [ ] The installer provisions Atlas-managed self-hosted LiveKit and separate self-hosted Egress with secret-safe configuration.
+- [ ] LiveKit/TURN browser connectivity works under the accepted private LAN/VPN policy without requiring public Atlas exposure.
+- [ ] LiveKit, TURN where practical, Egress, and recording processing have actionable readiness and safe aggregate Admin visibility.
+- [ ] Final Meeting recordings are canonical Files artifacts; temporary Egress staging is protected and cleaned.
+- [ ] Files-owned recordings and PostgreSQL-owned transcript state are covered by encryption, backup, restore, and recovery drills.
+- [ ] Exact-release deployment and rollback keep Atlas, Reverb, LiveKit, and Egress compatible.
 - [ ] Canonical production documentation matches the implementation.

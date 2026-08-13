@@ -11,7 +11,7 @@ Verify the complete technical foundation after every prerequisite phase is finis
 - [Phase 28 — Foundation repair and consolidation](phase-28-foundation-repair-and-consolidation.md)
 - [Phase 29 — Foundation acceptance repair and rendered workflow closure](phase-29-foundation-acceptance-repair.md)
 - [Phase 30 — Authorization, Team Structure, and mutation feedback repair](phase-30-authorization-team-structure-feedback-repair.md)
-- [Phase 31 — Optional internal company chat and realtime messaging](phase-31-chat.md)
+- [Phase 31 — Optional internal company chat, calendar, calls, meetings, and realtime communication](phase-31-chat.md)
 - [Phase 32 — Private production deployment, installer, backup, restore, and rollback](phase-32-deployment-backup-rollback.md)
 - [Quality gates and git](../operations/quality-gates-and-git.md)
 - [Testing environment](../operations/testing-environment.md)
@@ -32,7 +32,8 @@ Verify the complete technical foundation after every prerequisite phase is finis
 - No accepted behavior may exist only in historical chat.
 - Verify module activation, dependency blocking, ineffective permissions, role template behavior, admin mode, impersonation, manager hierarchy, TimeTracking isolation, Chat, reports, exports, imports, files, search, notifications, managed processes, light/dark themes, translations, backup/restore, deploy/rollback, liveness/readiness, and security controls.
 - Reverify the repaired Teams and Authorization foundation: Team Edit read-only authorization, User Edit role-derived permission behavior, current Source semantics, the Employee / Manager / Head Manager Team Structure role model, Head Manager whole-Team scope, multi-manager relationships, Team Structure drag and drop plus its mobile/keyboard alternative, visible mutation errors, flash-message delivery and non-duplication, and the unresolved-interpolation guard.
-- Chat verification must cover module activation, permission behavior, canonical direct-conversation uniqueness, Team Chat membership synchronization, the Admin privacy boundary, Search authorization, Files/ClamAV attachments, voice messages, Reverb/realtime and reconciliation, unread/dropdown/modal behavior, browser-native notifications, retention, localization, mobile behavior, and browser console/network cleanliness.
+- Phase 31 communication verification must preserve the complete messaging audit and additionally cover the shared Core Calendar, private personal events, Europe/Warsaw recurrence, Month/Week/Day/Agenda views, Free/Busy privacy, direct/group/Team Calls, device setup/preferences, Atlas-authorized LiveKit access, Calls that cannot be recorded, one active RTC session per user, Meetings, invitations/RSVP, recurring Meetings, persistent Meeting chat, moderation, lock/kick semantics, attendance, screen sharing, empty-room cleanup, minimize/rejoin, Meeting-only recording, pause/resume/finalization, Files-owned recordings, controlled recording sharing, separate recording retention, provider-disabled transcription UI, the provider-neutral queued transcription boundary, transcript versioning/sharing/Search, and the Admin privacy boundary.
+- Deployment verification must cover Atlas-managed self-hosted LiveKit, trusted-network RTC/TURN connectivity, separate Egress readiness/failure isolation, protected recording staging, compatible pinned runtime versions, and backup/restore of Files-owned recordings and PostgreSQL-owned transcript state without exposing private Meeting content in operational surfaces.
 - Review starter cloning and namespace/application identity replacement.
 - Tag a stable release only after complete verification.
 - `PRODUCTION_DEPLOYED=true` is set only in a Atlas after its first actual production deployment, not merely when the Atlas is released.
@@ -85,6 +86,18 @@ Verify the complete technical foundation after every prerequisite phase is finis
 - [ ] Verify Chat Reverb delivery, authorization, reconnect reconciliation, presence, typing, unread, and read state.
 - [ ] Verify Chat unread dropdown, modal, browser-native notifications, retention, localization, and mobile workflows.
 - [ ] Verify Chat browser console and network cleanliness.
+- [ ] Verify shared Core Calendar Month/Week/Day/Agenda views, private personal events, Europe/Warsaw recurrence, reminders, and privacy-preserving Free/Busy.
+- [ ] Verify direct, group, and Team audio/video Calls, device setup/preferences and switching, screen sharing, missed-call behavior, one active RTC session per user, rejoin, and the prohibition on ad-hoc Call recording.
+- [ ] Verify LiveKit room/token authorization cannot be bypassed and Laravel Reverb remains the application-event and text-message realtime transport.
+- [ ] Verify immediate, scheduled, and recurring Meetings, invitation/RSVP/invite-more/remove behavior, one persistent Meeting chat per Meeting series, Calendar composition, and operation without the organizer present.
+- [ ] Verify Meeting moderation, one active screen share, occurrence-ban kick semantics, Meeting lock, attendance visibility, minimize/rejoin, and 15-minute empty-room cleanup.
+- [ ] Verify Meeting-only recording authorization, visible REC/Paused states, pause/resume/finalization, one composed Files artifact, participant access, controlled sharing to active Atlas users, and the no-reshare recipient boundary.
+- [ ] Verify recording retention is separate, defaults to indefinite, deletes dependent transcript state, and leaves no orphan Files or stale Search projections.
+- [ ] Verify transcription UI is hidden when no provider is configured, all transcription work is queued, the provider-neutral contract works with the deterministic fake adapter, and historical recordings can be requested after later provider enablement.
+- [ ] Verify transcript editing/version history, participant and controlled external-user sharing, current-version-only recipient visibility, recording dependency, and authorization-safe Meilisearch behavior.
+- [ ] Verify Admin cannot bypass private Chat, Meeting, recording, transcript, Search, download, or export authorization and sees only safe operational aggregates.
+- [ ] Verify Atlas-managed self-hosted LiveKit, RTC/TURN connectivity, separate Egress readiness and failure isolation, protected recording staging, and compatible pinned runtime versions.
+- [ ] Verify backup and restore of Files-owned Meeting recordings and PostgreSQL-owned transcript state.
 - [ ] Verify backup.
 - [ ] Verify restore.
 - [ ] Verify deploy.
@@ -112,6 +125,6 @@ Verify the complete technical foundation after every prerequisite phase is finis
 - [ ] The Playwright suite covers a full representative walkthrough of the application rather than only smoke-level shell checks.
 - [ ] Rendered UI localization, theme behavior, permissions/module gates, operational workflows, and message ownership are protected by automated tests where browser behavior matters.
 - [ ] No major shipped screen or workflow relies only on manual confidence without a documented testing rationale.
-- [ ] Backup, restore, deploy, rollback, readiness, security controls, module activation, Admin mode, impersonation, manager hierarchy, TimeTracking isolation, Chat, reports, translations, and themes are verified.
+- [ ] Backup, restore, deploy, rollback, readiness, security controls, module activation, Admin mode, impersonation, manager hierarchy, TimeTracking isolation, Chat, Core Calendar, Calls, Meetings, LiveKit/TURN/Egress, recordings, provider-neutral transcription behavior, reports, translations, and themes are verified.
 - [ ] No accepted behavior exists only in chat history or working-only files.
 - [ ] Atlas is ready for debt collection business-module phases.

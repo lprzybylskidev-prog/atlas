@@ -6,7 +6,7 @@ Canonical testing environment strategy for backend tests, frontend tests, browse
 
 PHPUnit, Vitest, and Playwright lanes are documented and isolated. Bilingual mail has PL-first/EN-first rendering, plain-text, locale-precedence, notification-preference, translation-parity, and hardcoded-copy guardrails. Phase 28 added the aggregate foundation gate and production runtime smoke coverage. Phase 29 completed the rendered localization, decomposed DataTable, Team Structure, and TimeTracking acceptance coverage. Phase 30 closed with 52 Playwright scenarios across Chromium and Firefox, including the read-only Team Edit, role-derived User Edit authorization, structural-role and multi-manager Team Structure workflows, desktop drag-and-drop, keyboard/mobile assignment, visible mutation blockers, and exact-once flash delivery.
 
-`composer check` remains the standard local gate. `composer check:foundation` is the full foundation gate and runs the standard gate, full Playwright, and the production runtime smoke sequentially. Phase 33 later owns the distinct final release gate after the Phase 30 Authorization/Team Structure repair, Phase 31 Chat, and Phase 32 production deployment, backup, restore, and rollback are implemented.
+`composer check` remains the standard local gate. `composer check:foundation` is the full foundation gate and runs the standard gate, full Playwright, and the production runtime smoke sequentially. Phase 33 later owns the distinct final release gate after the completed Phase 30 Authorization/Team Structure repair, Phase 31 internal Chat/Calendar/Calls/Meetings communication scope, and Phase 32 production deployment, backup, restore, and rollback are implemented.
 
 Tracked issue IDs: `P28-GUARD-001`, `P28-GUARD-002`, `P28-GUARD-003`.
 

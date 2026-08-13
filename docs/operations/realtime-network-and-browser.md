@@ -41,13 +41,17 @@ Current implementation foundation:
 - `/realtime/events` is the authorized active-team-aware browser feed used by the initial notification foundation;
 - browser WebSocket channel wiring is implemented only when a genuine server-push workflow needs it beyond the current minimal feed.
 
-### Future Phase 31 Chat contract
+### Future Phase 31 communication contract
 
-The optional internal-company Chat module is the concrete workflow that requires full browser WebSocket delivery. Phase 31 will use canonical Laravel broadcasting and Laravel Reverb to extend the existing Atlas realtime foundation; it will not replace Notifications ownership, turn Chat messages into Notifications records, build a custom WebSocket server, or introduce a competing realtime architecture.
+The optional internal-company Chat module is the concrete workflow that requires full browser WebSocket delivery. Phase 31 will use canonical Laravel broadcasting and Laravel Reverb to extend the existing Atlas application-event and text-message realtime foundation; it will not replace Notifications ownership, turn Chat messages into Notifications records, build a custom WebSocket server, or introduce a competing application-event architecture.
 
 WebSocket delivery remains a transport rather than the source of truth. Chat application and persistence state is authoritative. Every conversation/private/presence channel requires explicit authorization, and reconnect must reconcile authoritative state and backfill missed data without duplicate messages or permanently incorrect unread/read state.
 
 Typing and presence events are ephemeral and must expire without unnecessary persistent writes. Ordinary non-realtime CRUD, forms, filters, pagination, and user-triggered actions continue through HTTP/Inertia.
+
+Calls and Meetings add a separate, narrow media-transport boundary: Atlas authorizes users and owns Call/Meeting state, while Atlas-managed self-hosted LiveKit transports realtime audio, video, and screen-share media. LiveKit data channels do not carry canonical Chat messages. Browser clients receive short-lived, least-privilege room credentials only after Atlas authorization. One active RTC session per user, reconnect reconciliation, device-permission UX, and room lifecycle remain Atlas application concerns.
+
+Self-hosted LiveKit Egress is a separate recording service used only for Meeting recording. Ad-hoc Calls cannot invoke it. Egress failure must not unnecessarily disable normal Chat or unrecorded Meetings, and finalized recordings move into Files ownership after controlled processing. The future production topology permits trusted LAN/VPN clients to reach only the configured LiveKit WebRTC/TURN endpoints in addition to the Atlas reverse proxy; internal API/control, Egress, Redis, staging, and credentials remain private.
 
 This is an accepted future contract and is not yet implemented.
 

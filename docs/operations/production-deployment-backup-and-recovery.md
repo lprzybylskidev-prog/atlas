@@ -8,7 +8,7 @@ Atlas is a self-hosted internal company system. Its baseline production deployme
 
 The supported baseline target is one company-controlled Linux host or VM running Docker Compose. Kubernetes, Docker Swarm, distributed clustering, multi-node high availability, and public SaaS deployment are outside this baseline.
 
-Phase 32 provides one canonical production installation workflow through an interactive installer after Phase 31 Chat is complete. It builds on the existing production images, runtime configuration validation, readiness, runtime smoke, queues, scheduler, Files, ClamAV, PDF, search, security, privacy, and realtime foundations rather than replacing them.
+Phase 32 provides one canonical production installation workflow through an interactive installer after the expanded Phase 31 internal-communication scope is complete. It builds on the existing production images, runtime configuration validation, readiness, runtime smoke, queues, scheduler, Files, ClamAV, PDF, search, security, privacy, Reverb, self-hosted LiveKit, and Egress foundations rather than replacing them.
 
 ## Phase 28 prerequisite boundary
 
@@ -39,11 +39,21 @@ trusted company network / LAN / VPN
        └── Chromium/PDF
 ```
 
-Only the reverse proxy may be reachable from the trusted client network. PostgreSQL, Redis, Meilisearch, ClamAV, PHP-FPM, Horizon, queue workers, scheduler, and Chromium/PDF remain on private Docker networks and must not be exposed to clients.
+Normal Atlas HTTP remains reverse-proxy fronted. After Phase 31 adds RTC, trusted LAN/VPN clients may additionally reach only the configured LiveKit WebRTC/TURN endpoints required by browser media connectivity. PostgreSQL, Redis, Meilisearch, ClamAV, PHP-FPM, Horizon, queue workers, scheduler, Chromium/PDF, LiveKit API/Admin surfaces, Egress control/health endpoints, and recording staging remain private and must not be exposed to normal clients.
 
 The host administrator can bind the reverse proxy to an internal interface, trusted subnet, VPN-accessible interface, or equivalent company-controlled network. Clients may reach Atlas through a LAN, company network, VPN, or another controlled private segment. Atlas does not implement a VPN, firewall, or enterprise network-policy product; infrastructure-level access policy remains the host/network administrator's responsibility.
 
 The Phase 28 smoke stack remains intentionally internal HTTP, bound to `127.0.0.1:8080` by default. It is a runtime proof, not the Phase 32 deployment topology.
+
+### Future LiveKit, TURN, and Egress production boundary
+
+Phase 32 installs and configures Atlas-managed self-hosted LiveKit; the baseline does not connect to an already-existing external LiveKit installation and does not require LiveKit Cloud. LiveKit service credentials are generated and externalized like other production secrets, consumed only by required services, omitted from normal logs, and unavailable to ordinary Admin UI.
+
+The installed LiveKit version and configuration determine the exact WebRTC, signaling, ICE, and TURN exposure. Deployment and firewall documentation must follow current official LiveKit self-hosting guidance for that pinned release rather than treating historical default port numbers as permanent. TURN/TLS must support the accepted LAN/VPN/browser topology using a company/internal trusted certificate, administrator-supplied certificate, or existing company TLS termination where technically valid; public Let's Encrypt remains optional.
+
+Self-hosted LiveKit Egress runs as a separate private service, uses the LiveKit-compatible Redis/control path, exposes only private health/metrics as configured, and receives explicit CPU/RAM/storage capacity planning. Recording failure is isolated from normal Chat and unrecorded Meeting participation. Temporary recording staging is protected, permission-scoped, encrypted at rest where applicable, bounded, and cleaned. The finalized Meeting recording becomes a Files-owned artifact; transcript records and versions remain PostgreSQL state.
+
+Readiness and Admin System Status expose safe aggregate LiveKit RTC, TURN where practical, Egress, and recording-processing health without Meeting names, participant lists, media, recordings, transcripts, or credentials. Exact-release deployment and rollback pin compatible Atlas, Reverb, LiveKit, and Egress versions/configuration. Files backup/restore includes finalized Meeting recordings, and PostgreSQL backup/restore includes transcript state; Egress staging is not a second canonical data store.
 
 ## TLS and reverse proxy
 
@@ -247,11 +257,11 @@ Release metadata records the release ID, Git commit, Git tag, exact image identi
 
 ## Production acceptance and recovery drills
 
-Phase 32 acceptance uses a clean supported production-like host or VM. The proof covers installer preflight, exact-release identity, interactive configuration, first-admin bootstrap, readiness, administrator sign-in, representative Files storage and ClamAV behavior, PostgreSQL and Files survival across container recreation, documented persistent-storage encryption status, recurring and manual backup, independently encrypted database and Files/recovery artifacts, approved-path decryption, decrypted-artifact verification, pre-restore backup, a real restore drill, plaintext-temporary cleanup, representative restored state and readiness, exact-release deployment, readiness-gated switching, safe rollback, backend network isolation, configured TLS, and release metadata. It may use an appropriate production-like encrypted-volume or environment fixture and does not need to format or encrypt the test machine's disk automatically.
+Phase 32 acceptance uses a clean supported production-like host or VM. The proof covers installer preflight, exact-release identity, interactive configuration, first-admin bootstrap, readiness, administrator sign-in, representative Files storage and ClamAV behavior, Atlas-managed LiveKit/TURN connectivity, separate Egress readiness and failure isolation, a finalized Files-owned recording, PostgreSQL and Files survival across container recreation, documented persistent-storage encryption status, recurring and manual backup, independently encrypted database and Files/recovery artifacts, recording and transcript backup/restore, approved-path decryption, decrypted-artifact verification, pre-restore backup, a real restore drill, plaintext-temporary cleanup, representative restored state and readiness, exact-release deployment, readiness-gated switching, safe rollback, backend network isolation, configured TLS, and release metadata. It may use an appropriate production-like encrypted-volume or environment fixture and does not need to format or encrypt the test machine's disk automatically.
 
 The permanent operational guardrails are:
 
-- only the reverse proxy may become reachable from the trusted client network;
+- only the reverse proxy and explicitly configured LiveKit WebRTC/TURN endpoints may become reachable from the trusted client network;
 - backend/runtime services remain private;
 - PostgreSQL and Files never rely on ephemeral container storage;
 - installation uses an exact release and never development credentials;

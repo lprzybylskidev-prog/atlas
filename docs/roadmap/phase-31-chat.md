@@ -1,348 +1,608 @@
-# Phase 31 — Optional internal company chat and realtime messaging
+# Phase 31 — Optional internal company chat, calendar, calls, meetings, and realtime communication
 
 **Status:** `not started`
 
 ## Objective
 
-Implement a complete optional internal-company Chat module for Atlas.
+Implement Atlas-owned internal company communication covering:
 
-Chat exists only for human-to-human communication between Atlas users.
-
-It is not a business-module event bus, generic conversation-context framework, social network, public messaging platform, bot platform, or replacement for the Notifications module.
-
-System and business-module communication continues to use the existing Notifications module.
-
-Chat must provide:
-
-- canonical direct conversations;
-- user-created group conversations;
-- system-owned Team conversations;
-- realtime messaging;
-- presence;
-- typing indicators;
-- delivery and read state;
-- unread state;
-- message editing and edit history;
-- replies and quotes;
-- reactions;
-- mentions;
-- forwarding;
-- pinned messages;
-- private bookmarks;
-- backend-backed drafts;
-- Files-owned attachments;
+- direct messaging;
+- group messaging;
+- system Team messaging;
 - voice messages;
-- Media / Files / Links browsing;
-- full-text Search through the existing Meilisearch foundation;
+- realtime presence and unread state;
+- direct audio/video calls;
+- group audio/video calls;
+- Team audio/video calls;
+- screen sharing;
+- a shared Core Calendar capability;
+- immediate and scheduled Meetings;
+- recurring Meetings;
+- Meeting invitations and attendance;
+- persistent Meeting chat;
+- Meeting moderation;
+- Meeting recording;
+- recording retention and sharing;
+- a provider-neutral future transcription boundary;
+- authorization-safe Search;
 - browser-native alerts;
-- user presence/status information;
 - participant-authorized exports;
-- configurable retention;
-- Admin operational visibility without Admin access to private conversation content.
+- operational visibility without privileged access to private communication content.
 
-The implementation must remain appropriate for an internal company deployment of roughly 400 users while allowing reasonable future growth.
+Atlas communication remains an internal company capability.
 
-Do not create an artificial 400-user product limit.
+It is not:
+
+- a public messaging product;
+- a social network;
+- a business-event bus;
+- a generic business-object conversation framework;
+- a public video-conferencing service;
+- a bot platform;
+- a replacement for Notifications;
+- an external guest-conferencing system.
+
+System and business-module events continue to use the existing Notifications module.
+
+The known initial deployment is approximately 400 company users with expected future growth.
+
+Do not impose an artificial product-wide 400-user or Meeting-participant limit.
+
+Do not overengineer for public Internet-scale social-network traffic.
 
 ## Dependencies
 
-Phase 31 builds on the already completed Atlas foundations, including:
+Phase 31 depends on the completed Atlas foundations, including:
 
 - modular architecture and public contracts;
-- Authorization and Teams;
+- Authorization;
+- Teams;
 - PostgreSQL module schemas;
 - Audit;
 - Settings and Localization;
-- Sessions and active team;
+- Sessions and active Team;
 - Module availability and activation;
-- Notifications and realtime foundation;
+- Notifications and realtime;
 - Admin operations and health;
 - Files and ClamAV;
 - Search and Meilisearch;
-- shared frontend and UI foundations;
+- shared frontend/UI;
 - export/PDF foundations;
 - queues and scheduler;
+- Managed Processes;
 - Phase 28 foundation repair;
-- Phase 29 foundation acceptance closure.
-- Phase 30 Authorization, Team Structure, and mutation feedback repair.
+- Phase 29 foundation acceptance closure;
+- completed Phase 30 Authorization, Team Structure, and mutation feedback repair.
 
-Chat must not depend on TimeTracking or future debt-collection business modules.
+Phase 31 must not depend on TimeTracking or future debt-collection business modules.
 
 ## Related documentation
 
-Create and maintain canonical Chat module documentation under the existing `docs/modules/` convention.
+Maintain canonical current-state documentation under the existing conventions.
 
-Update canonical realtime/browser documentation where this phase extends the existing server-push architecture.
+At completion update as applicable:
 
-Link existing canonical Files, Search, Teams, Module Activation, Audit, Settings, and export documentation instead of duplicating their contracts.
+- Chat module documentation;
+- Calendar documentation;
+- realtime/network/browser operations;
+- Files;
+- Search;
+- Notifications;
+- Authorization;
+- Audit;
+- Settings/Integrations;
+- production/runtime documentation;
+- testing documentation.
+
+Do not duplicate existing cross-cutting contracts unnecessarily.
 
 ## Fundamental implementation boundary
 
-Atlas Chat is implemented as an Atlas-owned module.
+Atlas owns:
 
-Do not install or use a ready-made Chat product or Chat framework.
+- conversations;
+- messages;
+- groups;
+- Team Chat;
+- Calls;
+- Meeting definitions;
+- invitations;
+- recurring Meeting rules;
+- Calendar composition;
+- Meeting chat;
+- RTC authorization;
+- recording lifecycle metadata;
+- recording access grants;
+- transcription lifecycle metadata;
+- permissions;
+- retention;
+- Search projections;
+- privacy;
+- Audit;
+- frontend product UX.
 
-Do not use:
+Do not use a ready-made Chat product/framework such as:
 
-- Wirechat as a runtime dependency;
+- Wirechat;
 - Chatify;
-- a hosted Chat SaaS;
-- a third-party Chat backend;
-- a third-party Chat UI framework;
-- an external messaging SDK that owns the Chat domain.
+- hosted Chat SaaS;
+- third-party Chat backend;
+- third-party Chat UI product.
 
-Wirechat may be treated only as a historical feature-comparison reference.
+Wirechat may remain only a historical feature-comparison reference.
 
-Do not copy its source or architecture.
+Laravel Reverb and Laravel broadcasting remain the canonical Atlas server-push foundation for messaging/application events.
 
-Reuse existing Atlas foundations instead of rebuilding them.
+Audio/video media uses self-hosted LiveKit.
 
-Laravel Reverb and Laravel broadcasting are accepted infrastructure for the realtime transport layer.
+LiveKit is RTC infrastructure, not the Chat domain.
 
-Reverb is not a ready-made Chat implementation.
+Do not build a custom WebRTC/SFU server.
 
-Do not build a custom WebSocket server.
+Do not require LiveKit Cloud.
 
-Do not introduce a second competing realtime architecture.
+The baseline implementation is Atlas-managed self-hosted LiveKit.
+
+Do not implement a baseline option to connect an already-existing external LiveKit installation.
+
+Self-hosted LiveKit Egress is the canonical Meeting-recording engine.
+
+Normal direct/group/Team ad-hoc Calls are not recordable.
+
+Only Meetings may be recorded.
 
 ---
 
-## P31-W01 — Module boundary, activation, persistence, and permissions
+## Execution discipline
 
-### Contract
+Workstreams are strictly sequential:
 
-Chat is a fully optional Atlas module and must use the canonical Module Availability and ModuleGate foundations.
+1. `P31-W01` — Module boundaries, persistence, permissions, and cross-cutting contracts
+2. `P31-W02` — Shared Core Calendar foundation
+3. `P31-W03` — Direct, group, Team, and Meeting conversation ownership
+4. `P31-W04` — Message behavior, editing, reactions, forwarding, pins, bookmarks, and drafts
+5. `P31-W05` — Files, attachments, content viewer, and voice messages
+6. `P31-W06` — Reverb messaging realtime, presence, typing, delivery, read, and unread state
+7. `P31-W07` — Self-hosted LiveKit RTC and development runtime foundation
+8. `P31-W08` — Direct/group/Team ad-hoc Calls and Call history
+9. `P31-W09` — Meeting scheduling, invitations, recurrence, Meeting chat, and Calendar composition
+10. `P31-W10` — Live Meeting session, moderation, devices, screen sharing, and lifecycle
+11. `P31-W11` — Meeting recording, Egress, Files ownership, retention, and controlled sharing
+12. `P31-W12` — Provider-neutral asynchronous transcription boundary
+13. `P31-W13` — Shell/modal UX, Calendar UI, notifications, reminders, and preferences
+14. `P31-W14` — Search and Meilisearch
+15. `P31-W15` — Retention, privacy, Admin operations, Audit, and exports
+16. `P31-W16` — Scale, performance, browser workflows, and final acceptance closure
 
-Do not build Chat-specific substitutes for existing module activation.
+Only the earliest incomplete workstream is active.
 
-Chat owns its persistence in the appropriate Chat PostgreSQL module schema and must respect the established module ownership rules.
+Do not start a later workstream while any mandatory work remains in an earlier workstream.
 
-Cross-module behavior must use existing public contracts.
+Do not select work based on ease, speed, convenience, or file locality.
 
-Do not import another module's internals merely because Chat needs Files, Search, Teams, Audit, Settings, exports, or realtime behavior.
+Do not create endless suffix packages merely to report progress.
 
-### Activation behavior
+Preparation or partial implementation does not count as workstream completion.
+
+A workstream is complete only when:
+
+- implementation;
+- tests;
+- documentation;
+- legacy cleanup;
+- permanent guardrails;
+- browser acceptance where required
+
+are all complete.
+
+Do not calculate completion percentages or readiness percentages.
+
+---
+
+## P31-W01 — Module boundaries, persistence, permissions, and cross-cutting contracts
+
+### Chat module
+
+Chat is an optional Atlas module governed by canonical Module Availability, ModuleGate, and Authorization foundations.
 
 Global Chat deactivation must:
 
-- hide Chat launchers and Chat UI;
-- block Chat HTTP/application endpoints;
+- hide Chat/Call/Meeting launchers;
+- block Chat HTTP/application actions;
 - block Chat realtime channels;
-- prevent sending new Chat messages;
-- preserve all historical Chat data.
+- block starting/joining Calls and Meetings;
+- preserve historical Chat/Meeting data.
 
 Normal direct and user-created group conversations are global to the Atlas user account.
 
-They are not owned by the currently active Team.
-
-Changing the active Team must not duplicate, switch, or hide normal direct/group conversations.
+They are not scoped by the current active Team.
 
 System Team conversations are Team-scoped.
 
-If Chat is unavailable or inactive for a Team:
+Meeting conversations are scoped by Meeting invitation/membership, not by the user's current active Team.
 
-- that Team conversation is not usable;
-- its history is preserved;
-- reactivation returns the same canonical Team conversation.
+### Calendar boundary
 
-### Permissions
+Phase 31 introduces a shared Core Calendar capability.
 
-Add canonical Chat permissions using the existing Authorization foundations.
+Calendar is not owned by Chat.
 
-At minimum, cover permissions for:
+It must be reusable by future Atlas modules through a narrow public contract.
 
-- using Chat;
-- starting direct conversations;
-- creating groups;
-- uploading Chat attachments;
-- sending voice messages;
+Personal Calendar events remain useful independently from Chat messaging.
+
+Meetings contribute Calendar events through the canonical Calendar boundary.
+
+Do not build a second Meeting-only calendar engine.
+
+### Persistence
+
+Chat/Calls/Meetings own their persistence in the appropriate Chat-owned PostgreSQL schema.
+
+Calendar owns its persistence according to the existing Core schema/module ownership conventions.
+
+Do not query another module's persistence directly.
+
+Use owner-owned public contracts.
+
+### Authorization
+
+All protected operations use the normal Atlas route/use-case permission model.
+
+Add granular capabilities for at least:
+
+- use Chat;
+- start direct conversation;
+- create group;
+- upload Chat attachment;
+- send voice message;
+- start/join audio/video Calls;
+- share screen;
+- create Meetings;
+- invite participants;
+- moderate Meetings;
+- manage Meeting recording;
+- view recordings;
+- download recordings;
+- share recordings;
+- request transcription;
+- view transcription;
+- edit transcription;
+- share transcription;
+- Calendar use;
+- Calendar event mutation;
 - Chat operational Admin access;
-- Chat retention administration.
+- Chat retention administration;
+- recording retention administration.
 
-Starter roles should normally allow standard employees to use Chat, direct messages, groups, attachments, and voice messages unless explicitly restricted by project permissions.
+Follow canonical route-permission naming rather than creating role-name checks.
 
-There must never be an application permission equivalent to:
+Starter roles should normally allow ordinary employees to use the standard internal communication capabilities where product permissions allow.
+
+Do not create an application permission equivalent to:
 
 `chat.admin.read`
 
-that grants an Administrator general access to private Chat content.
+that grants Administrators general access to private communication content.
+
+Admin status alone must never grant private content access.
 
 ### Tasks
 
-- [ ] Create the optional Chat module using canonical Atlas module boundaries.
-- [ ] Register Chat availability and activation.
-- [ ] Define Chat persistence ownership and PostgreSQL schema usage.
-- [ ] Define only the required public contracts.
-- [ ] Add the canonical Chat permission catalog.
-- [ ] Add appropriate starter-role Chat permissions.
-- [ ] Gate Chat UI, HTTP/application actions, Search, and realtime channels.
-- [ ] Keep direct/group scope independent from active Team.
-- [ ] Apply Team activation semantics only to Team conversations.
-- [ ] Add module-boundary and architecture guardrails.
-- [ ] Create canonical Chat module documentation.
+- [ ] Preserve the optional Chat module boundary.
+- [ ] Define the shared Core Calendar boundary.
+- [ ] Define Chat/Call/Meeting persistence ownership.
+- [ ] Define Calendar persistence ownership.
+- [ ] Add only required public contracts.
+- [ ] Add the expanded permission catalog.
+- [ ] Add appropriate starter-role capabilities.
+- [ ] Gate Chat/Call/Meeting UI and application actions.
+- [ ] Preserve global direct/group scope.
+- [ ] Preserve Team-scoped Team conversation behavior.
+- [ ] Define Meeting invitation-based scope.
+- [ ] Add architecture/module-boundary guardrails.
+- [ ] Update planning/current documentation boundaries without duplicating module internals.
 
 ---
 
-## P31-W02 — Direct conversations, groups, membership, and Team conversations
+## P31-W02 — Shared Core Calendar foundation
+
+### Calendar purpose
+
+Create one shared Atlas Calendar capability.
+
+It supports:
+
+- personal events;
+- personal reminders;
+- future module-owned Calendar contributions;
+- Meeting events.
+
+Do not build Calendar as a Chat-only widget.
+
+Do not create a task-management product.
+
+Personal Calendar items do not have a `completed` task state.
+
+### Personal events
+
+A personal event belongs to exactly one user.
+
+It is private through the Atlas application.
+
+Administrator status does not grant access to another user's private personal-event details.
+
+Support:
+
+- title;
+- description;
+- start;
+- end;
+- all-day;
+- text location;
+- recurrence;
+- reminders;
+- Free/Busy availability state.
+
+Do not add:
+
+- colors;
+- categories;
+- invited participants to ordinary personal events;
+- public sharing.
+
+Invitations belong to Meetings, not ordinary personal Calendar events.
+
+### Calendar timezone
+
+Use the existing canonical Atlas timezone behavior.
+
+The accepted system timezone is:
+
+`Europe/Warsaw`
+
+Do not introduce a new per-user timezone subsystem in this phase.
+
+Recurring events must preserve the intended local Europe/Warsaw clock time through DST transitions.
+
+### Views
+
+Provide:
+
+- Month;
+- Week;
+- Day;
+- Agenda.
+
+### Recurrence
+
+Support recurring personal events and Meetings with useful rules including:
+
+- daily;
+- weekly;
+- monthly;
+- selected weekdays;
+- end date;
+- occurrence count.
+
+Recurring edits support:
+
+- this occurrence;
+- this and future occurrences;
+- entire series.
+
+### Reminders
+
+Default Meeting/Calendar reminder timing is:
+
+15 minutes before.
+
+The user profile may change the default.
+
+A specific event/Meeting may override the user's default.
+
+Allow multiple reminders on one event.
+
+Personal Calendar reminders use existing Atlas notification delivery.
+
+Allow the user to control whether personal Calendar reminder email delivery is enabled.
+
+### Free/Busy
+
+Personal events may be marked:
+
+- Busy;
+- Free.
+
+Meeting scheduling may query another user's availability.
+
+Free/Busy lookup must disclose only availability windows.
+
+It must not expose another user's private:
+
+- event title;
+- description;
+- location;
+- reminder;
+- other private event content.
+
+Scheduling a Meeting warns about conflicts for each invited user.
+
+Conflicts do not block Meeting creation.
+
+### Tasks
+
+- [ ] Create the shared Core Calendar capability.
+- [ ] Add personal private Calendar events.
+- [ ] Add title/description/start/end/all-day/location.
+- [ ] Add recurrence.
+- [ ] Add multiple reminders.
+- [ ] Add user default reminder preference.
+- [ ] Add per-event reminder override.
+- [ ] Add Free/Busy state.
+- [ ] Add privacy-safe Free/Busy lookup.
+- [ ] Add conflict warnings without blocking scheduling.
+- [ ] Add Month / Week / Day / Agenda views.
+- [ ] Preserve Europe/Warsaw recurrence semantics.
+- [ ] Keep personal events participant-free.
+- [ ] Keep Calendar independent from Chat persistence.
+- [ ] Add Calendar authorization/privacy tests.
+- [ ] Add recurrence and DST regression tests.
+- [ ] Add Calendar browser coverage.
+
+---
+
+## P31-W03 — Direct, group, Team, and Meeting conversation ownership
 
 ### Conversation types
 
-Chat supports exactly three core conversation types:
+Chat supports four conversation types:
 
 - `direct`;
 - `group`;
-- `team`.
+- `team`;
+- `meeting`.
 
-Do not add a generic business-object conversation context.
-
-Do not add case/customer/task/process conversations.
-
-If users need to discuss a business object, they may send its ID or normal Atlas link in a regular conversation.
-
-Business modules continue to communicate system events through Notifications.
+Do not add generic business-object conversation contexts.
 
 ### Direct conversations
 
 Every unordered pair of users has exactly one canonical direct conversation.
 
-Do not allow multiple independent 1:1 conversations for the same pair.
+Creation must remain concurrency-safe.
 
-Canonical direct-conversation uniqueness must remain safe under concurrent creation.
-
-Every active Atlas user may start a direct conversation with every other active Atlas user, regardless of Team membership.
+Every active Atlas user may start a direct conversation with every other active Atlas user regardless of Team membership.
 
 Do not implement:
 
-- friend requests;
+- friends;
 - message requests;
-- contact approval;
-- user blocking.
+- approval before DM;
+- blocking.
 
-Atlas Chat is an internal company tool.
+Inactive users cannot participate in new communication but historical data remains.
 
-An inactive user cannot actively participate in new messaging, but historical messages remain.
+### Groups
 
-Reactivating the same account returns access to the same canonical historical direct conversation where authorization permits.
+A user-created group has:
 
-### User-created groups
+- exactly one owner;
+- members;
+- name;
+- optional avatar;
+- historical membership.
 
-A group has:
+Roles are exactly:
 
-- one owner;
-- zero or more additional members;
-- a name;
-- an optional avatar;
-- historical membership records.
+- owner;
+- member.
 
-Group roles are exactly:
-
-- `owner`;
-- `member`.
-
-Do not add:
-
-- admin;
-- moderator;
-- custom per-conversation roles.
+No moderator/admin/custom group role.
 
 The owner may:
 
-- rename the group;
-- change its avatar;
+- rename;
+- change avatar;
 - add members;
 - remove members;
 - transfer ownership.
 
-Adding a user does not require approval.
+No invitation acceptance is needed for normal Chat groups.
 
-Do not implement:
+Members may leave.
 
-- invite links;
-- public links;
-- join requests;
-- invitation acceptance.
+Owner must transfer ownership before leaving while another active member remains.
 
-A normal member may leave the group at any time.
+Last owner/member may leave and close the group historically.
 
-An owner must transfer ownership before leaving when another active member remains.
+Newly added members may see existing available history from the beginning.
 
-If the owner is the last remaining member, the owner may leave and the conversation becomes closed/inactive while remaining historically preserved.
+### Team conversations
 
-Do not destructively delete the conversation when the last participant leaves.
+Every Team with Chat active has one canonical Team conversation.
 
-A newly added member may see the available conversation history from the beginning.
+It is:
 
-Historical membership changes must remain traceable.
+- system-owned;
+- not manually deletable;
+- not manually leaveable;
+- membership-synchronized from Teams;
+- not affected by Manager/Head Manager status;
+- not a second Team administration surface.
 
-### System Team conversations
+### Meeting conversations
 
-Every Team for which Chat is active has exactly one canonical system Team conversation.
+Every Meeting has a system-owned Meeting chat.
 
-The Team conversation:
+For a recurring Meeting series:
 
-- is created idempotently;
-- is system-owned;
-- has no human owner;
-- cannot be manually deleted;
-- cannot be manually left;
-- does not allow manual membership management from Chat;
-- derives active membership from canonical Teams membership;
-- synchronizes membership changes from Teams;
-- preserves historical membership/conversation information;
-- derives its identity/name from the Team;
-- is not affected by head-manager changes;
-- gives managers no special Chat authority.
+- the series has one shared Meeting conversation;
+- all occurrences use the same chat;
+- attendance and recordings remain occurrence-specific.
 
-Team Structure remains the canonical source for Team membership.
+Meeting chat is available:
 
-Chat must never become a second Team membership editor.
+- before the live Meeting;
+- during the Meeting;
+- after the Meeting.
+
+Invitation grants access to the Meeting chat according to the accepted Meeting access state.
+
+A user who explicitly declines an invitation remains able to see the Meeting chat because the user was invited and may later change RSVP.
+
+A removed invitee loses Meeting chat access.
+
+A user kicked from a live Meeting loses active Meeting access including Meeting chat for that occurrence/access state.
+
+Meeting chat history remains preserved.
 
 ### System timeline entries
 
-Conversation timelines should contain immutable system entries for relevant structural events such as:
+Use immutable system entries for structural events where appropriate, including:
 
-- member added;
-- member removed;
-- member left;
+- group member added/removed/left;
 - ownership transferred;
-- group renamed;
-- group avatar changed;
+- group metadata changed;
 - Team membership synchronized;
-- conversation closed.
+- group closed;
+- Call started/ended/missed;
+- Meeting scheduled;
+- Meeting rescheduled;
+- Meeting cancelled;
+- participant invited/removed;
+- recording started/paused/resumed/stopped.
 
-System timeline entries are not Notifications records.
+System timeline entries are not Notifications persistence.
+
+Do not put private message body content into structural entries.
 
 ### Tasks
 
-- [ ] Implement direct, group, and Team conversation models.
-- [ ] Enforce one canonical direct conversation per user pair.
-- [ ] Add concurrency protection for direct-conversation creation.
-- [ ] Support cross-Team direct conversations.
-- [ ] Implement group ownership and membership history.
-- [ ] Implement owner/member invariants.
-- [ ] Implement ownership transfer.
-- [ ] Implement member removal and voluntary leave.
-- [ ] Implement safe last-member group closure.
-- [ ] Implement one canonical system Team conversation per enabled Team.
-- [ ] Synchronize Team conversation membership from canonical Teams membership.
-- [ ] Reject manual Team-conversation membership mutation.
-- [ ] Preserve historical membership records.
-- [ ] Add immutable system timeline entries.
-- [ ] Add authorization, membership, and concurrency tests.
+- [ ] Implement direct/group/team/meeting conversation models.
+- [ ] Enforce canonical DM uniqueness.
+- [ ] Preserve group owner/member lifecycle.
+- [ ] Preserve Team-owned membership synchronization.
+- [ ] Add system-owned Meeting conversations.
+- [ ] Keep one Meeting conversation per recurring series.
+- [ ] Apply invitation/removal access to Meeting chat.
+- [ ] Keep declined invitee Meeting-chat visibility.
+- [ ] Preserve conversation history.
+- [ ] Add structural timeline entries.
+- [ ] Add membership/concurrency/authorization tests.
 
 ---
 
-## P31-W03 — Messages, editing, replies, reactions, forwarding, pins, bookmarks, and drafts
+## P31-W04 — Message behavior, editing, reactions, forwarding, pins, bookmarks, and drafts
 
-### Core message behavior
+### Core messages
 
-Chat messages support:
+Support:
 
-- plain text;
-- multiline text;
+- text;
+- multiline;
 - Unicode emoji;
-- safe links;
-- Markdown-lite formatting;
+- safe URLs;
+- Markdown-lite;
 - reply/quote;
 - edit;
 - edit history;
@@ -351,349 +611,254 @@ Chat messages support:
 - mentions;
 - forwarding;
 - pins;
-- private bookmarks;
+- bookmarks;
 - drafts.
 
 ### Markdown-lite
 
-Support safe lightweight formatting for:
+Support:
 
 - bold;
 - italic;
 - inline code;
-- fenced/code blocks;
+- code blocks;
 - lists;
 - block quotes;
 - links;
 - emoji.
 
-Do not support raw untrusted HTML.
+Do not allow raw untrusted HTML.
 
-Do not introduce a large rich-text editor framework when the accepted Markdown-lite contract is sufficient.
+Do not add a large rich-text framework unless genuinely required.
 
-Rendered content must be safe from script/content injection.
+### Replies
 
-### Reply / quote
-
-A reply references one existing message.
-
-Render a clear quoted/reference fragment.
+One reply references one message.
 
 Do not implement nested Slack-style threads.
 
 ### Editing
 
-The author may edit their own message without an arbitrary time limit.
+Authors may edit their own messages without an arbitrary time limit.
 
-Edited messages must visibly show an `edited` state.
+Show `edited`.
 
-Preserve historical message versions.
+Preserve edit history.
 
-Authorized conversation participants may inspect the edit history.
+Authorized conversation participants may inspect edit history.
 
-Admin status alone never grants edit-history access.
+Admin status alone never grants access.
 
-Protect edits against stale concurrent updates using optimistic concurrency or an equivalent explicit version check.
+Use optimistic concurrency/version protection.
 
 ### Delete for me
 
-The only normal user-facing message removal action is:
+Normal users have only:
 
-`Delete for me`.
+`Delete for me`
 
-Do not implement:
+Do not add delete-for-everyone or Admin arbitrary message deletion.
 
-- delete for everyone;
-- moderator message deletion;
-- privileged Admin deletion of arbitrary conversation messages.
+Delete-for-me affects only that user's visibility.
 
-Delete-for-me changes only that user's visibility.
+Other participants retain the content.
 
-Other participants continue to see the original content.
+The deleting user sees a tombstone.
 
-For the user who deleted the message, keep a tombstone such as:
-
-`Message deleted`.
-
-Delete-for-me must also be respected by:
+Respect delete-for-me in:
 
 - Search;
 - exports;
 - content viewers.
 
-It must not physically remove the message solely because one participant hid it.
-
-Global lifecycle deletion caused by retention is a separate operation.
-
 ### Reactions
 
 Support emoji reactions.
 
-A participant may toggle supported emoji reactions on a message.
-
-Enforce uniqueness for the same participant/message/emoji combination.
-
-Do not build a social-media reaction subsystem.
+Keep uniqueness for user/message/emoji.
 
 ### Mentions
 
 Support:
 
-- individual user mentions;
-- `@everyone` with localized UI wording;
+- individual mentions;
+- `@everyone`;
 - `@online`.
 
 Every active participant may use group mentions.
 
 Mentions remain Chat behavior.
 
-They do not create normal Notifications-module records or email delivery.
+They do not become email Chat messages.
 
 ### Forwarding
 
-A participant may forward a message or attachment to another conversation that the participant is authorized to access.
-
 Forwarding creates a new destination message.
 
-Do not leak private source-conversation information to destination participants.
+Never leak private source conversation metadata.
 
-Do not expose:
+### Pins and bookmarks
 
-- private source conversation names;
-- source member lists;
-- source authorization metadata.
+Every active participant may pin/unpin.
 
-### Pins
-
-Every active participant may pin or unpin messages.
-
-Expose a conversation-level pinned-message view.
-
-### Bookmarks
-
-A user may privately bookmark a message.
-
-Bookmarks:
-
-- belong only to that user;
-- are not visible to other participants;
-- do not alter shared conversation state.
+Bookmarks are private per user.
 
 ### Drafts
 
-Maintain one draft per user per conversation.
+Maintain one backend-owned draft per user/conversation.
 
-Drafts should survive:
+Drafts survive navigation and closing the Chat modal.
 
-- moving between conversations;
-- closing the Chat modal;
-- navigating to another Atlas area.
-
-Do not persist Chat draft content in `localStorage` or `sessionStorage`.
-
-Drafts may contain company/business data and must use backend-owned storage.
+Do not store company Chat drafts in `localStorage` or `sessionStorage`.
 
 ### Message idempotency
 
-Prevent duplicate messages caused by:
+Prevent duplicate sends from:
 
-- double-click/send;
+- double-click;
 - network retry;
-- WebSocket reconnect;
-- stale frontend retry.
-
-Use an explicit client/idempotency identifier or equivalent canonical mechanism.
+- reconnect;
+- frontend retry.
 
 ### Tasks
 
-- [ ] Implement the canonical message model.
-- [ ] Implement safe Markdown-lite rendering.
-- [ ] Implement reply/quote.
-- [ ] Implement unlimited author editing.
-- [ ] Show the edited state.
-- [ ] Preserve and expose participant-authorized edit history.
-- [ ] Protect message editing against stale concurrent writes.
-- [ ] Implement delete-for-me with a per-user tombstone.
-- [ ] Ensure delete-for-me is respected by Search and exports.
-- [ ] Implement emoji reactions.
-- [ ] Implement individual, everyone, and online mentions.
-- [ ] Implement authorization-safe forwarding.
-- [ ] Implement pinned messages.
-- [ ] Implement private bookmarks.
-- [ ] Implement backend-owned conversation drafts.
-- [ ] Add message-send idempotency.
-- [ ] Add message behavior and negative authorization tests.
+- [ ] Implement canonical messages.
+- [ ] Add safe Markdown-lite.
+- [ ] Add replies.
+- [ ] Add editing and edit history.
+- [ ] Add optimistic message edit protection.
+- [ ] Add delete-for-me.
+- [ ] Add reactions.
+- [ ] Add mentions.
+- [ ] Add forwarding.
+- [ ] Add pins.
+- [ ] Add private bookmarks.
+- [ ] Add backend drafts.
+- [ ] Add send idempotency.
+- [ ] Add negative authorization tests.
 
 ---
 
-## P31-W04 — Files, attachments, content viewer, and voice messages
+## P31-W05 — Files, attachments, content viewer, and voice messages
 
 ### Files ownership
 
-Chat must not implement a separate file-storage subsystem.
+Chat must not create a separate storage subsystem.
 
-Every Chat attachment must use the existing Files module through its canonical public contracts.
+All attachments use canonical Files contracts and policy.
 
-Reuse existing global policy for:
+Reuse:
 
-- file-size limits;
-- allowed content/MIME types;
+- size limits;
+- MIME/content rules;
 - validation;
 - authorization;
 - quarantine;
-- ClamAV scanning;
-- retention participation;
-- download/preview handling.
-
-Do not add separate Chat file policy unless a concrete Chat-specific requirement cannot be represented by the canonical Files policy.
-
-### ClamAV
-
-Every Chat attachment must pass through the existing Files/ClamAV lifecycle.
-
-Attachments must not become available to conversation participants before they are accepted by the existing scanner workflow.
-
-This applies to:
-
-- normal uploaded files;
-- images;
-- PDFs;
-- audio;
-- video;
-- voice messages;
-- clipboard-pasted files/images;
-- drag-and-drop uploads.
+- ClamAV;
+- retention;
+- download/preview.
 
 ### Upload UX
 
 Support:
 
-- file picker;
-- drag and drop;
-- clipboard paste, including screenshots;
+- picker;
+- drag/drop;
+- clipboard paste including screenshots;
 - upload progress;
-- scanner/quarantine state;
-- upload/scan failure state;
-- retry only where allowed by existing Files behavior.
+- scan/quarantine state;
+- failure state;
+- allowed retry.
 
-### Conversation content viewer
+### Content viewer
 
-Conversation details must provide:
+Conversation details provide:
 
 - Media;
 - Files;
 - Links.
 
-Media includes appropriate accessible rendering for:
-
-- images;
-- supported audio;
-- supported video;
-- voice messages.
-
 Use existing Files preview/download authorization.
 
-Do not fetch third-party page metadata for links.
+Do not fetch external URL metadata.
 
-Do not implement automatic external URL previews.
-
-The Links view lists only URLs contained in messages that the current participant is allowed to see.
+No automatic external link previews.
 
 ### Voice messages
 
-Voice messages are in scope.
+Voice messages remain in scope.
 
-Maximum recording length:
+Maximum recording duration:
 
 15 minutes.
 
-Required UX:
+UX:
 
-1. start recording;
-2. stop recording;
+1. start;
+2. stop;
 3. preview/listen;
 4. send;
    or
-5. discard and record again.
+5. discard/re-record.
 
-Do not automatically send a recording when recording stops.
+Never auto-send when recording stops.
 
-Voice messages must:
+Voice messages:
 
-- use the supported browser microphone/MediaRecorder capability;
-- request microphone access through an explicit user action;
+- use explicit browser microphone permission;
 - become Files-owned attachments;
-- pass through the canonical Files/ClamAV lifecycle;
-- follow the global Files size/content policy;
-- have an accessible audio player;
-- follow normal conversation authorization;
+- follow canonical Files/ClamAV lifecycle;
+- follow Files limits;
+- have accessible playback;
+- follow conversation authorization;
 - follow Chat retention.
 
-Audio calls, video calls, and screen sharing are outside this phase.
-
-Do not create a future calls phase in this task.
+Voice messages are not RTC Calls.
 
 ### Tasks
 
-- [ ] Integrate Chat attachments through Files public contracts.
-- [ ] Preserve the existing Files validation and authorization lifecycle.
-- [ ] Enforce ClamAV/quarantine before participant access.
-- [ ] Implement file-picker attachment upload.
-- [ ] Implement drag-and-drop upload.
-- [ ] Implement clipboard-paste upload.
-- [ ] Implement upload, scan, failure, and retry states.
-- [ ] Implement Media / Files / Links conversation browsing.
-- [ ] Implement safe existing image/PDF/audio/video preview behavior.
-- [ ] Implement voice recording with a 15-minute maximum.
-- [ ] Implement stop, preview, send, discard, and re-record behavior.
+- [ ] Integrate attachments through Files.
+- [ ] Preserve Files/ClamAV lifecycle.
+- [ ] Add picker/drop/clipboard upload.
+- [ ] Add upload/scan/failure states.
+- [ ] Add Media / Files / Links.
+- [ ] Add safe media preview.
+- [ ] Add 15-minute voice recording.
+- [ ] Add preview/send/discard/re-record.
 - [ ] Persist voice messages through Files.
-- [ ] Add attachment and scanner authorization tests.
-- [ ] Add browser coverage for representative attachments and voice recording.
+- [ ] Add attachment/scan authorization tests.
+- [ ] Add browser attachment/voice coverage.
 
 ---
 
-## P31-W05 — Realtime, Laravel Reverb, presence, typing, delivery, and read state
+## P31-W06 — Reverb messaging realtime, presence, typing, delivery, read, and unread state
 
 ### Realtime architecture
 
-Chat is a genuine server-push workflow.
+Continue using:
 
-Extend the existing Atlas realtime foundation using canonical Laravel broadcasting and Laravel Reverb.
+- Laravel broadcasting;
+- Laravel Reverb
 
-Do not build:
+for Atlas message/application realtime.
 
-- a custom WebSocket server;
-- a Chat-specific realtime stack;
-- a hosted Chat transport;
-- a second competing event architecture.
+Do not build a second Chat WebSocket architecture.
 
-Integrate Reverb with the existing Atlas network/realtime contracts.
+LiveKit later owns only RTC media.
 
 ### Source of truth
 
-WebSockets are a delivery mechanism, not the authoritative data store.
+WebSockets are delivery, not persistence.
 
-Authoritative Chat state remains application/persistence owned.
+After reconnect, reconcile authoritative application state.
 
-After disconnect/reconnect, the browser must reconcile authoritative state and retrieve anything it missed.
+Do not lose or duplicate persisted messages.
 
-A temporary realtime failure must not:
+### Channels
 
-- lose persisted messages;
-- create duplicate messages;
-- produce permanently incorrect unread/read state.
+Authorize every private conversation channel.
 
-### Channel authorization
-
-All private conversation channels must be explicitly authorized.
-
-A user may subscribe only to:
-
-- permitted user-level Chat events;
-- conversations they are authorized to access;
-- permitted Team conversations.
-
-Knowing or guessing a conversation identifier must never grant channel access.
+Guessing an identifier never grants subscription.
 
 ### Presence
 
@@ -703,344 +868,1388 @@ Support:
 - offline;
 - last seen.
 
-Avoid unnecessary high-frequency persistent writes for presence/last-seen updates.
+Use bounded/coalesced persistence.
 
-Use a bounded/coalesced mechanism appropriate for hundreds of users.
+### Manual status
 
-### Manual user status
-
-Support manual presence labels:
+Support:
 
 - Available;
 - Busy;
 - Do not disturb;
 - Out of office;
-- optional custom text and/or emoji.
+- optional custom text/emoji.
 
-These are informational status labels.
+These labels are informational.
 
-`Do not disturb` does not implement message muting or delivery suppression.
+DND does not suppress message persistence.
 
-Message delivery, unread state, and browser alerts remain controlled by their own contracts/preferences.
+### Typing
 
-### Typing indicators
+Typing is ephemeral.
 
-Show typing state such as:
+Do not persist or Audit typing.
 
-`Jan is typing…`
+Expire it automatically.
 
-Typing state is ephemeral.
+### Delivery/read
 
-Do not persist it to the database.
-
-Do not put typing events in Audit.
-
-Typing state must expire automatically.
-
-### Delivery and read state
-
-Direct conversations support meaningful:
+DM supports:
 
 - sent;
 - delivered;
-- read
+- read.
 
-state.
+Group/Team/Meeting chat supports viewing who read where appropriate.
 
-Group and Team conversations must allow a participant to inspect who has read a message.
+Prefer per-membership cursor structures rather than user × message receipt explosion.
 
-Do not create a wasteful permanent receipt row for every user/message combination when a conversation-membership cursor model can satisfy the behavior.
-
-Prefer scalable per-membership read/delivery cursors where appropriate.
-
-### Unread behavior
+### Unread
 
 Support:
 
-- unread count;
+- unread counts;
 - new-message separator;
 - last-read cursor;
-- mark as unread;
-- realtime unread updates.
+- mark unread;
+- realtime updates.
 
 ### Tasks
 
-- [ ] Integrate Laravel Reverb with the existing realtime foundation.
-- [ ] Add authorized private/presence Chat channels.
-- [ ] Add reconnect and authoritative-state reconciliation.
-- [ ] Protect message delivery against duplicate retries.
-- [ ] Implement online/offline/last-seen presence.
-- [ ] Implement manual user status.
-- [ ] Implement ephemeral typing indicators.
-- [ ] Implement direct-message delivery/read state.
-- [ ] Implement group/Team read visibility.
-- [ ] Implement unread counters and new-message separator.
-- [ ] Implement mark-as-unread.
-- [ ] Add multi-browser-context realtime tests.
-- [ ] Add unauthorized-channel negative tests.
-- [ ] Update canonical realtime/network documentation.
+- [ ] Extend existing Reverb foundation for Chat.
+- [ ] Add private/presence channels.
+- [ ] Add reconnect reconciliation.
+- [ ] Add presence.
+- [ ] Add manual status.
+- [ ] Add typing.
+- [ ] Add delivery/read state.
+- [ ] Add unread state.
+- [ ] Add multi-context browser tests.
+- [ ] Add channel-negative tests.
+- [ ] Update realtime documentation.
 
 ---
 
-## P31-W06 — Chat launcher, unread dropdown, modal UI, responsive behavior, and conversation navigation
+## P31-W07 — Self-hosted LiveKit RTC and development runtime foundation
 
-### Shell integration
+### RTC ownership
 
-The primary Chat interface is not a dedicated main-navigation application page.
+Use self-hosted LiveKit as the canonical RTC media infrastructure.
 
-Chat is opened through a shell-level launcher.
+Atlas owns business/session authorization.
 
-Place a small canonical Chat control near existing shell controls such as language/theme controls, following the current Atlas layout rather than creating a separate navigation architecture.
+LiveKit carries:
 
-The launcher:
+- microphone audio;
+- camera video;
+- screen-share media.
 
-- is visible only when Chat is available to the current user;
-- exposes an unread badge;
-- opens the Chat modal.
+Do not use LiveKit for normal Chat-message persistence.
 
-### Chat unread dropdown
+### Runtime services
 
-Chat owns a separate unread-message dropdown.
+The canonical development/runtime stack must support:
 
-Its visual language should intentionally match the existing Notifications dropdown so the shell feels consistent.
+- LiveKit server;
+- LiveKit Egress.
 
-Chat unread entries are not Notifications-module records.
+They are sibling infrastructure services.
 
-Show one unread entry per conversation, not one row for every unread message.
+Do not install LiveKit inside the PHP workspace/container.
 
-Example:
+Egress is deployed separately from the LiveKit server.
 
-`Jan Kowalski — 4 unread messages`
+Use canonical Redis connectivity required by the accepted LiveKit/Egress topology.
 
-Include an appropriate preview of the latest visible message.
+Production topology and installer work belongs to Phase 32, but Phase 31 must provide a reproducible development/test topology.
 
-Clicking an unread entry:
+### Media gateway
 
-- opens the Chat modal;
-- opens the exact conversation.
+Create a narrow Atlas-owned infrastructure boundary for operations such as:
 
-After the conversation is actually read, its unread dropdown entry disappears.
+- create/prepare RTC room;
+- issue authorized short-lived participant access;
+- remove participant;
+- end room/session;
+- start recording;
+- stop recording;
+- query required RTC/recording status.
 
-If the user later marks that conversation unread, it appears again.
+One LiveKit infrastructure implementation is sufficient.
 
-The Chat launcher badge represents the total Chat unread-message count.
+Do not build speculative multi-provider RTC abstraction complexity.
 
-### Desktop modal
+### Tokens/secrets
 
-Use one substantial Chat modal/window.
+Browser clients must receive only short-lived access required for the authorized room.
 
-Do not implement multiple Messenger-style floating chat windows.
+Never expose:
 
-Only one conversation is active at a time.
+- LiveKit API secret;
+- infrastructure credentials
 
-The desktop layout may include:
+to the browser.
 
-- conversation list;
-- active conversation;
-- details/content section where appropriate.
+### TURN/TLS planning
 
-### Mobile
+RTC must work for trusted company users over:
 
-On mobile, Chat becomes a full-screen interaction.
+- LAN;
+- VPN;
+- restrictive firewall environments where supported.
 
-Use a simple navigation model:
+Plan self-hosted TURN/TLS as part of the production baseline.
 
-conversation list
-→
-conversation
-→
-back
+Do not require public Internet exposure or public Let's Encrypt.
 
-Composer, attachments, content viewer, voice messages, and details must remain usable on touch devices.
+Internal/company certificates or existing company TLS infrastructure are valid.
 
-### Conversation list views
+### Health/failure isolation
 
-Provide at least:
+Text Chat must continue working if RTC is unavailable.
+
+RTC failures produce a clear user-facing unavailable/error state.
+
+Meeting/Call errors must not take down message persistence.
+
+Egress failure must not end an active Meeting.
+
+If recording cannot start, show a clear recording error while the Meeting continues.
+
+### Capacity
+
+Do not impose an artificial participant-count product limit.
+
+Infrastructure capacity may still reject or fail a session.
+
+Such capacity failures must produce a clear user-facing result rather than a hanging/broken call.
+
+### Tasks
+
+- [ ] Add self-hosted LiveKit development service.
+- [ ] Add self-hosted LiveKit Egress development service.
+- [ ] Keep services separate from PHP workspace.
+- [ ] Define RTC gateway boundary.
+- [ ] Add LiveKit infrastructure implementation.
+- [ ] Add short-lived room-token authorization.
+- [ ] Keep LiveKit secrets server-side.
+- [ ] Preserve Reverb as messaging realtime.
+- [ ] Add LAN/VPN/TURN/TLS production requirements to Phase 32 planning.
+- [ ] Add RTC health/readiness hooks.
+- [ ] Isolate RTC failures from Chat messaging.
+- [ ] Isolate Egress failure from live Meetings.
+- [ ] Add deterministic RTC integration test infrastructure.
+- [ ] Add unauthorized-room negative tests.
+
+---
+
+## P31-W08 — Direct/group/Team ad-hoc Calls and Call history
+
+### Call types
+
+Ad-hoc Calls exist inside existing:
+
+- direct conversations;
+- user-created group conversations;
+- Team conversations.
+
+They do not create a new conversation.
+
+A Call may begin with:
+
+- microphone only;
+- camera enabled.
+
+Camera may be toggled during the Call.
+
+There is no immutable distinction between an "audio call" and "video call" after connection.
+
+### Recording prohibition
+
+Ad-hoc Calls cannot be recorded.
+
+This applies to:
+
+- direct Calls;
+- group Calls;
+- Team Calls.
+
+Do not show recording controls.
+
+Do not invoke Egress for ad-hoc Calls.
+
+Meeting recording is a separate contract.
+
+### One active Call per conversation
+
+A conversation may have at most one active ad-hoc Call.
+
+If one exists, other users see:
+
+`Join`
+
+rather than starting a second parallel Call.
+
+### One active RTC session per user
+
+A user may participate in only one active Call/Meeting RTC session at a time.
+
+Do not implement:
+
+- call waiting;
+- holding one call;
+- switching between simultaneous active calls.
+
+If another direct/group caller reaches a busy user:
+
+- caller sees Busy/unavailable;
+- target may receive a missed-call indication.
+
+### Direct/group ringing
+
+Direct Calls use a normal incoming-call UX.
+
+User-created group Calls may notify/ring eligible group participants.
+
+### Team Call behavior
+
+Do not create a ringtone storm for an entire large Team.
+
+Starting a Team Call should create an active Team-call state and appropriate realtime/browser alert.
+
+Eligible Team members may join.
+
+### Incoming call UX
+
+Incoming video-capable Call presents explicit choices such as:
+
+- Decline;
+- Answer without camera;
+- Answer with camera.
+
+Do not automatically enable the camera merely because the caller initiated with video.
+
+### Device preferences
+
+Persist per-user preferences for:
+
+- preferred camera;
+- preferred microphone;
+- preferred speaker/output where supported;
+- whether outgoing Calls start with camera enabled.
+
+If a preferred device is unavailable:
+
+- fall back safely;
+- allow device choice;
+- do not hard-fail the Call.
+
+### Pre-call screen
+
+Calls use a pre-call device screen.
+
+Allow:
+
+- camera preview;
+- camera selection;
+- microphone selection;
+- speaker selection where supported;
+- camera on/off;
+- microphone on/off.
+
+Request camera/microphone browser permissions only after an explicit Call/Meeting action.
+
+Do not prompt during ordinary Atlas navigation.
+
+### Device switching
+
+Allow device changes while connected.
+
+### Screen sharing
+
+Ad-hoc Calls support screen sharing.
+
+Only one active screen share exists in a Call at a time.
+
+### Call lifecycle
+
+Support:
+
+- outgoing ringing;
+- incoming ringing;
+- accepted;
+- declined;
+- busy;
+- missed;
+- active;
+- ended;
+- failed.
+
+Persist useful Call metadata without recording content.
+
+### Call history
+
+Provide a user Call history with filters:
+
+- All;
+- Missed;
+- Incoming;
+- Outgoing.
+
+Show useful metadata such as:
+
+- person/group/Team;
+- initial audio/video mode;
+- direction;
+- missed/answered state;
+- start time;
+- duration.
+
+Add structural conversation timeline entries for relevant Call outcomes.
+
+### Missed call notification
+
+A missed Call also creates appropriate normal Atlas Notification/browser alert according to user preferences.
+
+Do not send Call emails.
+
+### Refresh/rejoin
+
+If the browser refreshes during an active Call:
+
+- detect the still-active authorized session;
+- offer `Rejoin call`.
+
+Do not silently create a second session.
+
+Do not automatically re-enable mic/camera without user interaction.
+
+### Tasks
+
+- [ ] Implement DM ad-hoc Calls.
+- [ ] Implement group ad-hoc Calls.
+- [ ] Implement Team ad-hoc Calls.
+- [ ] Enforce one active Call per conversation.
+- [ ] Enforce one active RTC session per user.
+- [ ] Add Busy behavior.
+- [ ] Add incoming Call UI state.
+- [ ] Add outgoing camera-default preference.
+- [ ] Persist preferred devices.
+- [ ] Add pre-call device screen.
+- [ ] Add in-call device switching.
+- [ ] Add camera toggle.
+- [ ] Add microphone toggle.
+- [ ] Add one-person screen share.
+- [ ] Keep ad-hoc Calls non-recordable.
+- [ ] Add Team join-style notification behavior.
+- [ ] Add Call history and filters.
+- [ ] Add missed Call timeline state.
+- [ ] Add missed Call Notifications/browser alert.
+- [ ] Add Rejoin Call flow.
+- [ ] Add Call lifecycle/idempotency/concurrency tests.
+
+---
+
+## P31-W09 — Meeting scheduling, invitations, recurrence, Meeting chat, and Calendar composition
+
+### Meeting types
+
+Support:
+
+- `Meet now`;
+- scheduled Meeting.
+
+Meetings are standalone objects.
+
+They are not attached to an existing DM/group/Team conversation.
+
+Each Meeting has its own system Meeting conversation.
+
+### Internal-only participants
+
+Only active Atlas users may be invited.
+
+Do not support:
+
+- external guests;
+- anonymous guests;
+- public join links;
+- external email-only participants.
+
+External company communication may continue through another product outside Atlas.
+
+### Roles
+
+Meeting roles are exactly:
+
+- organizer;
+- participant.
+
+Do not add:
+
+- co-organizer;
+- presenter role;
+- moderator role hierarchy.
+
+Organizer retains Meeting administration capabilities.
+
+Normal participants still have broad in-Meeting media capabilities.
+
+### Invitations
+
+A user must be invited to join a Meeting.
+
+Invitation states include at least:
+
+- no response;
+- accepted;
+- declined.
+
+Invitees may change their response later.
+
+A declined user remains historically invited and keeps accepted Meeting-chat visibility rules.
+
+A declined response must not be treated as permanent removal.
+
+Every invited/participating user may invite additional active Atlas users.
+
+A newly invited user receives a normal invitation and chooses accept/decline.
+
+Participant invitation does not automatically mark the new user Accepted.
+
+Organizer may remove an invited participant before the Meeting.
+
+Removal:
+
+- removes Calendar Meeting access;
+- removes join access;
+- removes Meeting-chat access;
+- preserves historical invitation evidence.
+
+### No lobby
+
+Do not add a waiting room/lobby.
+
+An eligible invited user may join without organizer approval.
+
+### Join timing
+
+An invited eligible user may join before the scheduled start time.
+
+Do not impose an arbitrary 15-minute early-join limit.
+
+A Meeting may run without the organizer present.
+
+### Recurring Meetings
+
+Support recurring Meetings using the Calendar recurrence foundation.
+
+Provide:
+
+- daily;
+- weekly;
+- monthly;
+- selected weekdays;
+- end date;
+- occurrence count.
+
+Editing supports:
+
+- this occurrence;
+- this and future;
+- whole series.
+
+One recurring series has one shared Meeting chat.
+
+Each occurrence has separate:
+
+- live RTC session;
+- attendance;
+- recording;
+- transcript.
+
+### Meeting Calendar event
+
+Meeting events appear in the Calendar of authorized invitees.
+
+Meeting Calendar data contains appropriate Meeting details for invitees.
+
+Non-invitees do not receive the Meeting event in their Calendar.
+
+Free/Busy scheduling checks do not expose private event details.
+
+### Meeting metadata
+
+Support at least:
+
+- title;
+- description;
+- start/end;
+- recurrence;
+- location where useful;
+- organizer;
+- invitees;
+- RSVP state;
+- reminders.
+
+### Cancellation
+
+Cancelled Meetings remain historical.
+
+Render them as cancelled rather than deleting them from history.
+
+Send appropriate update/cancellation delivery.
+
+### Meeting chat
+
+Meeting chat exists from Meeting creation.
+
+It remains accessible before/during/after the live session according to authorization.
+
+Newly invited authorized participants may access the existing Meeting conversation history.
+
+### Tasks
+
+- [ ] Implement Meet now.
+- [ ] Implement scheduled Meetings.
+- [ ] Implement organizer/participant roles.
+- [ ] Implement invitation state.
+- [ ] Add accept/decline/change-response.
+- [ ] Allow participants to invite additional Atlas users.
+- [ ] Keep newly invited users pending until response.
+- [ ] Allow organizer removal.
+- [ ] Keep Meeting internal-only.
+- [ ] Keep no-lobby behavior.
+- [ ] Allow joining before scheduled start.
+- [ ] Allow Meeting without organizer present.
+- [ ] Add recurring Meeting rules.
+- [ ] Add occurrence/future/series editing.
+- [ ] Add one Meeting chat per recurring series.
+- [ ] Add occurrence-specific RTC/attendance/recording.
+- [ ] Publish Meetings into Core Calendar.
+- [ ] Add conflict warnings.
+- [ ] Preserve cancelled history.
+- [ ] Add Meeting invitation/update/cancellation Notifications/email behavior.
+- [ ] Add authorization/recurrence/browser tests.
+
+---
+
+## P31-W10 — Live Meeting session, moderation, devices, screen sharing, and lifecycle
+
+### Pre-Meeting
+
+Use the same canonical media-device preparation foundation as Calls.
+
+Provide:
+
+- camera preview;
+- preferred devices;
+- microphone on/off;
+- camera on/off;
+- device selection.
+
+### Participant capabilities
+
+A normal participant may:
+
+- enable/disable own microphone;
+- enable/disable own camera;
+- change devices;
+- share screen;
+- stop own screen sharing;
+- invite additional users while the Meeting is unlocked.
+
+### Screen sharing
+
+Only one participant may actively share a screen at a time.
+
+If a screen share is active, another participant cannot start a second simultaneous share.
+
+Organizer may stop another participant's screen share.
+
+### Organizer moderation
+
+Organizer may:
+
+- mute a participant;
+- disable a participant's microphone;
+- restore permission to use microphone;
+- turn off a participant's camera;
+- remove/kick a participant;
+- lock/unlock Meeting;
+- stop another participant's screen share;
+- end Meeting for everyone.
+
+Remote moderation must never:
+
+- remotely enable another user's microphone;
+- remotely enable another user's camera.
+
+Normal mute:
+
+- turns microphone off;
+- participant may unmute again.
+
+Disable microphone:
+
+- is a temporary speaking ban;
+- participant cannot unmute until organizer restores microphone permission.
+
+Organizer camera-off action turns off the participant's camera.
+
+It never remotely turns camera on.
+
+### Kick
+
+Kicking a participant bans that user from the remainder of the current Meeting occurrence.
+
+The kicked user:
+
+- leaves the RTC room;
+- cannot immediately rejoin from the old invitation;
+- loses active Meeting access including Meeting chat for the occurrence.
+
+Historical participation remains.
+
+Do not silently convert kick into simple disconnect.
+
+### Meeting lock
+
+Lock prevents:
+
+- new joins;
+- new participant invitations.
+
+Existing connected participants remain.
+
+Unlock restores normal invitation/join behavior.
+
+### Leave/end
+
+Any participant may Leave.
+
+Organizer also has:
+
+`End meeting for everyone`.
+
+If organizer chooses only Leave:
+
+- Meeting continues for remaining users.
+
+### Empty room cleanup
+
+If an active RTC Meeting room has no human participants for 15 continuous minutes:
+
+- end the live session;
+- release RTC resources.
+
+If a user rejoins before the 15-minute window expires:
+
+- reset/cancel the empty-room shutdown timer.
+
+### Attendance
+
+Persist occurrence attendance including:
+
+- participant;
+- join time;
+- leave time;
+- total presence duration where derivable.
+
+Every authorized Meeting participant may see full attendance information.
+
+Do not restrict complete attendance to organizer only.
+
+### Minimize/rejoin
+
+The active Call/Meeting experience uses a large Atlas modal that may be minimized.
+
+A minimized persistent control remains available while navigating Atlas.
+
+After browser refresh, offer Rejoin rather than silently recreating media state.
+
+### Tasks
+
+- [ ] Add Meeting pre-call device screen.
+- [ ] Add mic/camera/device controls.
+- [ ] Add one active screen share.
+- [ ] Add organizer stop-screen-share.
+- [ ] Add organizer mute.
+- [ ] Add organizer microphone-disable/restore.
+- [ ] Add organizer camera-off.
+- [ ] Add kick/occurrence ban.
+- [ ] Add lock/unlock.
+- [ ] Disable invitations while locked.
+- [ ] Add Leave.
+- [ ] Add organizer End for everyone.
+- [ ] Add 15-minute empty-room termination.
+- [ ] Add attendance join/leave/duration.
+- [ ] Expose attendance to participants.
+- [ ] Add minimized session state.
+- [ ] Add Rejoin behavior.
+- [ ] Add moderation and negative authorization tests.
+- [ ] Add multi-user browser acceptance.
+
+---
+
+## P31-W11 — Meeting recording, Egress, Files ownership, retention, and controlled sharing
+
+### Recording boundary
+
+Only Meetings may be recorded.
+
+Do not allow recording for:
+
+- direct ad-hoc Calls;
+- group ad-hoc Calls;
+- Team ad-hoc Calls.
+
+### Permission and role
+
+Recording controls require the appropriate recording permission.
+
+In addition, only the Meeting organizer may:
+
+- start;
+- pause;
+- resume;
+- stop
+
+recording.
+
+A non-organizer cannot control Meeting recording merely because the user possesses a general recording permission.
+
+### Participant indication
+
+Every connected participant must clearly see:
+
+- recording active;
+- recording paused.
+
+Use an obvious REC/Paused state.
+
+Do not require a separate acceptance dialog before remaining in the Meeting.
+
+Recording start/resume still requires a clearly visible state change.
+
+### Recording lifecycle
+
+Support:
+
+- not recording;
+- starting;
+- recording;
+- pausing;
+- paused;
+- resuming;
+- stopping;
+- processing;
+- ready;
+- failed;
+- removed by retention.
+
+Do not block the Meeting while final recording processing occurs.
+
+### LiveKit Egress
+
+Use self-hosted LiveKit Egress for Meeting recording.
+
+Use room-composite recording.
+
+Create an Atlas-owned recording composition/template so recording appearance remains controlled by Atlas rather than depending on an incidental default vendor UI layout.
+
+Accepted composition:
+
+- when screen sharing is active, shared screen is primary and participant cameras are secondary;
+- without screen share, use a stable grid/active-speaker style appropriate to the Meeting.
+
+Record:
+
+- participant audio;
+- participant video where enabled;
+- active screen share;
+- the composed Meeting result.
+
+### Recording output
+
+Use one consistent final video format/lifecycle.
+
+Even an audio-only Meeting recording ultimately uses the canonical final Meeting recording representation rather than introducing a separate user-facing audio-recording product path.
+
+Final user-facing recording/download is one file.
+
+### Pause/resume
+
+User-facing recording is one logical recording.
+
+Pause/resume may internally create multiple recording segments.
+
+Do not expose those segments as separate recordings to users.
+
+Finalization must produce:
+
+- one playable recording;
+- one downloadable file.
+
+If finalization is still running:
+
+`Processing`
+
+is an accepted product state.
+
+### Recording system timeline
+
+Meeting timeline records structural entries for:
+
+- started;
+- paused;
+- resumed;
+- stopped
+
+including safe actor/time metadata.
+
+Do not put media contents into Audit or system timeline.
+
+### Files ownership
+
+Final recordings become canonical Atlas Files-owned private artifacts.
+
+LiveKit/Egress staging is not the long-term authorization/storage system.
+
+After successful finalization/import:
+
+- Files owns access/download;
+- Meeting metadata references the Files artifact.
+
+Clean temporary/staging artifacts safely.
+
+Do not leave a second permanent LiveKit recording-storage domain.
+
+### Recording access
+
+All currently authorized Meeting participants may view/download the final recording subject to the normal recording permissions.
+
+Admin status does not grant access.
+
+A user whose Meeting access was explicitly removed/kicked does not gain privileged access solely because historical participation metadata exists.
+
+### Sharing recording outside Meeting
+
+A Meeting participant with recording-share permission may share a specific recording with another active Atlas user who was not a Meeting participant.
+
+This is an explicit recording access grant.
+
+The recipient:
+
+- does not become a Meeting participant;
+- does not gain Meeting chat;
+- does not gain Calendar event;
+- does not gain attendance details merely from recording share;
+- cannot re-share the recording.
+
+The original participant who created a share may revoke that share.
+
+Only actual Meeting participants may create onward recording shares.
+
+No public links.
+
+No external/non-Atlas recipients.
+
+Admin does not gain a bypass.
+
+### Recording retention
+
+Recording retention is separate from normal Chat-message retention.
+
+Default:
+
+`null`
+
+meaning retain indefinitely.
+
+Admin may configure a positive retention period.
+
+Scheduled cleanup prevents indefinite disk growth when the company enables a finite policy.
+
+Do not send users pre-deletion warnings merely because recording retention will run.
+
+Retention cleanup removes heavy recording content and coordinated dependents.
+
+Preserve lightweight historical Meeting/recording metadata such as:
+
+- that recording occurred;
+- start/stop timing;
+- duration;
+- retention-removal state;
+- relevant structural/Audit history.
+
+When a recording is deleted by retention, also delete:
+
+- transcript;
+- transcript versions;
+- transcript Search projection;
+- transcript share grants;
+- recording share grants;
+- other content dependents that no longer have a valid source.
+
+Do not leave orphaned Files or stale Search documents.
+
+### Admin recording retention
+
+Provide aggregate operational retention visibility without private content.
+
+Use queue/Managed Processes for large cleanup.
+
+### Tasks
+
+- [ ] Add Meeting-only recording permission/organizer enforcement.
+- [ ] Keep all ad-hoc Calls non-recordable.
+- [ ] Add start/pause/resume/stop UX.
+- [ ] Add clear REC/Paused participant state.
+- [ ] Integrate self-hosted LiveKit Egress.
+- [ ] Add Atlas-owned composite recording template.
+- [ ] Add screen-share-first recording layout.
+- [ ] Add internal segment model where needed.
+- [ ] Produce one final playable/downloadable file.
+- [ ] Add Processing/Ready/Failed states.
+- [ ] Add recording structural timeline events.
+- [ ] Import final recording into Files.
+- [ ] Clean Egress staging safely.
+- [ ] Add participant recording view/download authorization.
+- [ ] Add explicit participant-created recording shares.
+- [ ] Prevent share recipient onward sharing.
+- [ ] Add share revocation.
+- [ ] Prevent public/external sharing.
+- [ ] Add nullable separate recording retention.
+- [ ] Add recording-retention cleanup.
+- [ ] Delete transcript and shares with removed recording.
+- [ ] Preserve lightweight recording metadata.
+- [ ] Add Admin aggregate recording-retention operations.
+- [ ] Add recording/privacy/retention browser and integration tests.
+
+---
+
+## P31-W12 — Provider-neutral asynchronous transcription boundary
+
+### Scope
+
+Phase 31 prepares Atlas for transcription.
+
+Do not make a specific production transcription provider mandatory.
+
+Do not require:
+
+- OpenAI;
+- Whisper;
+- whisper.cpp;
+- Python;
+- Azure;
+- AWS;
+- Google;
+- any other concrete STT vendor.
+
+Do not deploy a Whisper container in the Atlas baseline.
+
+Do not implement Atlas-owned speech-to-text/AI.
+
+Atlas responsibility is intentionally narrow:
+
+```text
+recording
+→ queue transcription request
+→ send recording to configured provider adapter
+→ provider processes
+→ Atlas receives result
+→ Atlas stores transcript
+```
+
+### Provider boundary
+
+Create a narrow provider-neutral transcription boundary.
+
+It must support providers that are:
+
+- synchronous;
+- asynchronous.
+
+An async provider may use:
+
+```text
+submit
+→ external job id
+→ poll/check
+→ result
+```
+
+The Atlas domain must not care which provider style is used.
+
+### Queue
+
+Transcription is always background work.
+
+Never run transcription synchronously inside the user HTTP request.
+
+Use the existing queue/Managed Process infrastructure.
+
+Requirements:
+
+- idempotency;
+- retry/backoff;
+- provider timeout handling;
+- failure state;
+- safe manual retry;
+- no duplicate active transcription job for one recording.
+
+A dedicated queue may be used if it fits current queue conventions.
+
+### Provider configuration
+
+Transcription is disabled unless a provider is:
+
+- available;
+- configured;
+- explicitly enabled.
+
+Admin Settings/Integrations may expose transcription provider configuration.
+
+Provider credentials:
+
+- remain secret;
+- never enter Git;
+- never enter normal logs;
+- never reach the browser.
+
+If multiple provider adapters exist in the future, configuration may select the active provider.
+
+### Baseline provider implementation
+
+Phase 31 does not require a concrete production STT adapter.
+
+Use deterministic fake/test infrastructure where needed to prove the contract.
+
+Do not claim transcription is available in production when no provider exists/configured.
+
+### Frontend gating
+
+When no provider is configured/enabled, normal users must see no transcription product UI.
+
+Hide:
+
+- Transcript tab;
+- Create transcript;
+- queue/processing status;
+- failed state;
+- retry;
+- transcript viewer;
+- transcript Search controls.
+
+Do not show a useless normal-user placeholder such as:
+
+`Transcription is not configured`.
+
+Admin configuration may show the disabled/unconfigured state.
+
+### Manual request
+
+When a provider is enabled:
+
+- transcription is initiated manually;
+- do not automatically transcribe every recording.
+
+Any authorized Meeting participant with transcription-request permission may request it.
+
+Allow manual transcription for historical retained recordings created before provider configuration.
+
+If one transcription job is already queued/processing:
+
+- other users see its state;
+- do not create duplicates.
+
+### Result
+
+Minimum provider result:
+
+- transcript text.
+
+If provider also returns:
+
+- timestamps;
+- speaker labels;
+- structured segments
+
+preserve them where useful.
+
+Do not require Atlas to perform its own diarization.
+
+### Transcript ownership/access
+
+Transcript belongs to the Meeting recording.
+
+Authorized Meeting participants with transcript-view permission may view it.
+
+Admin status does not bypass this.
+
+### Editing
+
+Every authorized Meeting participant with transcript-edit permission may edit the transcript.
+
+Preserve:
+
+- provider/original result as the initial version;
+- every later version;
+- editor;
+- timestamp;
+- previous content;
+- new/current content.
+
+Participants may inspect full edit history.
+
+Do not silently overwrite the transcript.
+
+### Transcript sharing
+
+A Meeting participant with transcript-share permission may share the current transcript with another active Atlas user outside the Meeting.
+
+Recipient:
+
+- receives transcript access only;
+- does not become Meeting participant;
+- does not receive Meeting chat;
+- does not receive recording automatically;
+- sees only the current transcript;
+- does not see transcript edit history;
+- cannot edit;
+- cannot re-share.
+
+The participant who created a transcript share may revoke it.
+
+No public/external sharing.
+
+### Recording dependency
+
+Transcript lifecycle follows its recording.
+
+When recording retention deletes the recording:
+
+- delete transcript;
+- delete transcript versions;
+- delete transcript shares;
+- remove transcript Search projection.
+
+### Tasks
+
+- [ ] Add provider-neutral transcription contract.
+- [ ] Support sync provider adapter behavior.
+- [ ] Support async submit/poll/result provider behavior.
+- [ ] Run all transcription through queue/Managed Processes.
+- [ ] Add idempotency.
+- [ ] Add retry/backoff/failure state.
+- [ ] Add provider configuration boundary.
+- [ ] Keep credentials secret.
+- [ ] Keep concrete production provider optional/unimplemented.
+- [ ] Add deterministic test provider.
+- [ ] Hide user transcript UI while provider unavailable.
+- [ ] Add manual Create transcript flow when enabled.
+- [ ] Allow historical recording transcription.
+- [ ] Prevent duplicate active transcription requests.
+- [ ] Persist text and optional timestamps/speaker segments.
+- [ ] Add transcript version history.
+- [ ] Allow participant editing with permission.
+- [ ] Add participant transcript sharing.
+- [ ] Prevent onward sharing by recipient.
+- [ ] Hide edit history from share recipient.
+- [ ] Delete transcript with recording retention.
+- [ ] Add provider/queue/privacy/versioning tests.
+
+---
+
+## P31-W13 — Shell/modal UX, Calendar UI, notifications, reminders, and preferences
+
+### Chat shell
+
+Chat remains primarily shell-launched.
+
+Do not create a dedicated full-page Chat application as the primary interface.
+
+Provide:
+
+- Chat launcher;
+- unread badge;
+- Chat unread dropdown.
+
+Chat unread data remains separate from Notifications persistence.
+
+One unread dropdown entry per conversation.
+
+### Chat modal
+
+Desktop uses one substantial Chat modal.
+
+One active conversation at a time.
+
+Do not create multiple floating Messenger windows.
+
+Mobile Chat becomes full-screen.
+
+Conversation list provides:
 
 - All;
 - Unread;
 - Direct;
 - Groups;
-- Team.
+- Team;
+- Meeting where appropriate.
 
-Do not add Archive.
+Preserve favorites/starred conversations.
 
-Archiving conversations is intentionally outside scope.
+No Archive.
 
-### Favorites
+### Live Call/Meeting modal
 
-Users may favorite/star conversations.
+Calls and Meetings use a large live-session modal.
 
-Favorites should be surfaced prominently at the top of the relevant conversation list.
+It can be minimized.
 
-### Conversation list metadata
+When minimized, provide a persistent compact control containing at least:
 
-Where applicable show:
+- session/Call/Meeting identity;
+- microphone state/control;
+- camera state/control;
+- screen-share indication;
+- REC/Paused state when a Meeting is recording;
+- return to full session;
+- Leave;
+- organizer End where applicable.
 
-- avatar;
-- display name;
-- last-message preview;
-- timestamp;
-- unread count;
-- DM presence;
-- favorite state;
-- Team/system marker.
+The user may navigate elsewhere in Atlas while the live session continues.
 
-### Conversation view
+### Incoming Call
 
-The main conversation UX includes:
+Incoming Call UI appears globally regardless of the current Atlas page.
 
-- timeline;
-- composer;
-- reply state;
-- attachment actions;
-- voice recording;
-- typing state;
-- delivery/read state;
-- pinned messages;
-- bookmarks;
-- content viewer;
-- conversation details.
+Use explicit ringtone/alert behavior.
 
-### Accessibility
+Video-capable incoming Calls provide:
 
-Follow existing Atlas UI/accessibility contracts for:
+- Decline;
+- Answer without camera;
+- Answer with camera.
 
-- keyboard navigation;
-- focus management;
-- focus trapping;
-- focus restoration;
-- Escape behavior;
-- screen-reader labels;
-- logical tab order;
-- mobile touch targets.
+### Calendar UI
 
-### Tasks
+Expose the shared Calendar using:
 
-- [ ] Add a shell-level Chat launcher near existing shell controls.
-- [ ] Add the Chat unread badge.
-- [ ] Add the separate Chat unread dropdown.
-- [ ] Use one unread entry per conversation.
-- [ ] Open the exact conversation from unread entries.
-- [ ] Implement the desktop Chat modal.
-- [ ] Implement one active conversation at a time.
-- [ ] Implement full-screen mobile Chat behavior.
-- [ ] Implement All / Unread / Direct / Groups / Team views.
-- [ ] Implement favorite/starred conversations.
-- [ ] Implement the conversation list and metadata states.
-- [ ] Implement the main conversation timeline/composer UI.
-- [ ] Implement conversation details, pins, bookmarks, and content-viewer integration.
-- [ ] Add keyboard/focus/accessibility behavior.
-- [ ] Add light/dark theme coverage.
-- [ ] Add responsive/mobile coverage.
+- Month;
+- Week;
+- Day;
+- Agenda.
 
----
+Support personal events and Meeting events in one coherent Calendar.
 
-## P31-W07 — Browser-native notifications and preferences
+### Browser-native notifications
 
-### Boundary with Notifications
+Preserve the shared browser-native notification capability for:
 
-Chat messages do not become normal Notifications-module records.
+- existing system Notifications;
+- Chat alerts;
+- incoming/missed Call alerts where appropriate.
+
+Control layers:
+
+1. application-level configuration;
+2. user preference;
+3. browser permission.
+
+Do not aggressively request browser permission.
+
+Request it only after intentional user action.
+
+### Chat messages
 
 Do not:
 
-- create an in-app Notifications record for every Chat message;
-- send Chat messages by email;
-- send Chat mentions by email.
+- create Notifications-module records for every Chat message;
+- email Chat messages;
+- email Chat mentions.
 
-The Chat unread dropdown remains a separate Chat-owned mechanism.
+### Meeting notifications
 
-### Shared browser-native capability
+Meetings may use existing Notifications and email.
 
-Add one shared browser-native notification delivery mechanism that may be used by:
+User preferences separately control at least:
 
-- existing Atlas system Notifications;
-- Chat new/unread-message alerts.
+- invitation/update/cancellation email;
+- Meeting reminder email.
 
-This is a shared browser delivery capability.
+Meeting reminder default:
 
-It does not merge the Chat persistence/domain with Notifications persistence.
+15 minutes before
 
-### Configuration and user control
+unless user profile default or per-Meeting override changes it.
 
-Browser-native notifications have three control layers:
+### Personal Calendar reminders
 
-1. application-level configuration;
-2. per-user preference;
-3. browser permission.
+Personal Calendar reminders may use:
 
-Application configuration may globally disable browser-native notifications.
+- Atlas Notifications;
+- browser-native alert where enabled;
+- email where user preferences allow.
 
-If globally disabled:
+### Missed Calls
 
-- do not ask for browser permission;
-- do not attempt native delivery.
+Missed Calls create:
 
-The user settings must allow the user to control browser-native alerts.
+- Call-history state;
+- conversation system entry;
+- appropriate Atlas Notification/browser alert.
 
-Provide independent user preferences for at least:
+No Call email.
 
-- system Notifications browser alerts;
-- Chat browser alerts.
+### Accessibility
 
-A global user master toggle may also be used if it does not remove the independent controls.
+Protect:
 
-Browser permission remains controlled by the browser:
-
-- default;
-- granted;
-- denied.
-
-### Permission UX
-
-Do not trigger an aggressive permission prompt automatically on every visit.
-
-Request browser permission only after an intentional user action in the relevant preference UI.
-
-Clearly expose states such as:
-
-- disabled by application;
-- disabled by user;
-- permission not requested;
-- permission denied;
-- permission granted.
-
-### Native Chat alert behavior
-
-A Chat browser notification may contain only an appropriate minimum preview.
-
-Clicking the browser notification must:
-
-- focus/open Atlas;
-- open the Chat modal;
-- navigate to the correct conversation.
-
-No dedicated Chat page is required.
+- keyboard navigation;
+- focus;
+- focus trapping/restoration;
+- Escape semantics;
+- screen-reader labels;
+- mobile touch targets;
+- device-control accessibility.
 
 ### Tasks
 
-- [ ] Add application-level browser-native notification configuration.
-- [ ] Add per-user browser-native notification settings.
-- [ ] Allow independent system-Notification and Chat browser alert preferences.
-- [ ] Add explicit browser-permission UX.
-- [ ] Add one shared browser-native notification frontend service.
-- [ ] Integrate existing system Notifications with that browser capability without changing their canonical ownership.
-- [ ] Integrate Chat new/unread-message alerts.
-- [ ] Keep Chat out of Notifications persistence and email delivery.
-- [ ] Open the correct Chat conversation from native Chat alerts.
-- [ ] Add browser-permission and browser-alert tests.
+- [ ] Preserve Chat shell launcher.
+- [ ] Preserve unread dropdown/badge.
+- [ ] Add Meeting conversation list integration.
+- [ ] Preserve desktop Chat modal.
+- [ ] Preserve full-screen mobile Chat.
+- [ ] Add minimizable Call/Meeting modal.
+- [ ] Add persistent minimized controls.
+- [ ] Add global incoming Call UI.
+- [ ] Add Calendar Month/Week/Day/Agenda UI.
+- [ ] Add Meeting invitation/update/cancellation notifications.
+- [ ] Add Meeting email preferences.
+- [ ] Add Meeting reminder preferences.
+- [ ] Add personal Calendar reminders.
+- [ ] Add personal Calendar email preference.
+- [ ] Preserve Chat browser notification separation.
+- [ ] Add missed Call notification behavior.
+- [ ] Preserve no-Chat-email rule.
+- [ ] Add accessibility/focus behavior.
+- [ ] Add mobile/light/dark coverage.
 
 ---
 
-## P31-W08 — Search and Meilisearch
+## P31-W14 — Search and Meilisearch
 
 ### Search foundation
 
-Use the existing Atlas Search/Meilisearch foundation.
+Use existing Atlas Search/Meilisearch.
 
-Do not create a second full-text search engine for Chat.
+Do not create a second search engine.
 
-Chat search should cover:
+Search Chat content including:
 
 - conversations;
 - users;
@@ -1048,347 +2257,304 @@ Chat search should cover:
 - attachment filenames;
 - links.
 
-Support useful filtering by:
+Support useful filters:
 
 - person/author;
 - conversation;
 - date;
-- content/attachment type.
+- type.
+
+### Meeting content
+
+When authorized and available, Search may include:
+
+- Meeting conversation messages;
+- current transcript text;
+- useful authorized Meeting metadata.
+
+Do not index raw audio/video content.
 
 ### Critical authorization invariant
 
-Meilisearch must never disclose any Chat data from a conversation that the current user is not authorized to access.
+Search must never reveal unauthorized communication content.
 
-This includes even partial result metadata such as:
+This includes:
 
-- message body;
+- body;
 - snippet;
-- attachment filename;
-- link;
-- conversation name;
-- matched text;
-- participant metadata.
+- filename;
+- URL;
+- Meeting name;
+- transcript text;
+- participant metadata;
+- matched fragment.
 
-Admin status does not bypass this rule.
+Admin has no private-content Search bypass.
 
-There is no privileged Admin Chat-content search.
+### Transcript Search
 
-Authorization must be enforced before rendering any result content.
+Only current transcript content is indexed.
+
+Update Search when transcript is edited.
+
+Historical transcript versions do not need to appear as ordinary Search results.
+
+Transcript Search access requires current authorization through:
+
+- Meeting participation;
+- or an explicit valid transcript-share grant where that grant gives transcript visibility.
+
+Revoking access removes future Search visibility.
+
+Recording retention deletion removes transcript Search documents.
 
 ### Visibility changes
 
-Search visibility must react correctly to:
+Update Search visibility on:
 
-- group member added;
-- group member removed;
-- participant leaving;
+- group membership changes;
 - Team membership changes;
-- Team Chat activation changes;
+- Meeting invitation/removal changes;
+- Meeting kick/access changes;
+- Chat activation changes;
 - user deactivation;
 - delete-for-me;
-- retention cleanup.
-
-A newly added group member may search the history that the member is allowed to see from the beginning.
-
-A removed participant must not continue receiving new search results from a conversation they no longer have access to.
-
-Delete-for-me must not be bypassed through Search.
-
-### Index lifecycle
-
-Keep Search projection synchronized with relevant events such as:
-
-- new message;
-- message edit;
-- retention deletion;
-- attachment metadata change;
-- conversation metadata change;
-- visibility/membership changes.
-
-Do not index unnecessary secrets or unrelated data.
+- transcript share/revocation;
+- retention.
 
 ### Tasks
 
-- [ ] Add the Chat Search/Meilisearch projection.
-- [ ] Search conversations and users.
-- [ ] Search message content.
-- [ ] Search attachment filenames and links.
-- [ ] Add author/conversation/date/type filters.
-- [ ] Enforce participant-only Search authorization.
-- [ ] Prevent Admin Chat-content Search bypass.
-- [ ] Prevent delete-for-me leakage through Search.
-- [ ] Update Search visibility when membership changes.
-- [ ] Synchronize message edits and retention with the index.
-- [ ] Add negative/mutation tests proving cross-conversation search leakage fails.
-- [ ] Add Search integration and browser coverage.
+- [ ] Preserve Chat Search projection.
+- [ ] Search conversations/users/messages/files/links.
+- [ ] Add Meeting chat Search.
+- [ ] Add current transcript Search.
+- [ ] Add filters.
+- [ ] Enforce content authorization before rendering results.
+- [ ] Prevent Admin bypass.
+- [ ] Respect delete-for-me.
+- [ ] Respect Meeting access removal.
+- [ ] Respect transcript shares/revocation.
+- [ ] Remove retained/deleted recording transcript documents.
+- [ ] Add negative mutation tests.
+- [ ] Add browser Search coverage.
 
 ---
 
-## P31-W09 — Retention, privacy boundary, Admin operations, and Audit
+## P31-W15 — Retention, privacy, Admin operations, Audit, and exports
 
-### Retention configuration
+### Chat retention
 
-Chat retention is configurable.
+Normal Chat retention remains configurable.
 
-The canonical default is:
+Default:
 
 `null`
 
-meaning:
+meaning retain indefinitely.
 
-`retain indefinitely`.
+Finite positive days enable cleanup.
 
-A configured positive day count means automatic Chat retention after that age.
-
-Do not invent a finite default period.
-
-### Retention lifecycle
-
-Automatic retention must consistently cover Chat-owned and Chat-related data, including as applicable:
+Coordinate as applicable across:
 
 - messages;
-- edit history;
+- edits;
 - reactions;
 - pins;
-- bookmarks whose source no longer exists;
-- system timeline entries according to the canonical retention policy;
-- Search projections;
-- Files attachments;
+- bookmarks;
+- system entries;
+- Search;
+- attachments;
 - voice messages;
-- dependent Chat records.
+- dependents.
 
-Do not leave orphaned Files or stale Meilisearch documents.
+Do not leave stale Search documents or orphan Files.
 
-A long retention operation should reuse existing queue/managed-process foundations rather than block an HTTP request.
+### Recording retention
 
-### Admin retention panel
+Meeting recording retention is a separate policy.
 
-Provide an Admin operational Chat-retention surface.
+It also defaults to:
 
-It may expose aggregate metadata such as:
+`null`.
 
-- current retention policy;
-- total conversation count;
-- total message count;
-- attachment/storage usage;
-- eligible message count;
-- eligible Files size;
-- last cleanup;
-- cleanup status.
+Do not silently inherit normal Chat-message retention as the recording policy.
 
-Admin may perform controlled actions such as:
+Recording retention cleanup follows the P31-W11 contract.
 
-- run the configured retention policy now;
-- purge data older than an explicitly selected cutoff/date.
+### Privacy boundary
 
-Manual retention actions must:
+Administrator status alone never allows an Admin through Atlas to:
 
-- require the appropriate Admin permission;
-- use the existing high-risk confirmation/reauthentication pattern where appropriate;
-- preview/count affected data before execution;
-- be audited;
-- use a managed process where the operation is large;
-- never expose private conversation contents merely to perform retention.
+- open another user's DM;
+- open a private group;
+- open private Meeting chat;
+- read messages;
+- inspect private edit history;
+- listen to voice messages;
+- view/download private attachments;
+- view/download Meeting recording;
+- read transcript;
+- inspect transcript edit history;
+- Search private content;
+- export private conversation content.
 
-### Application privacy boundary
-
-An Atlas Administrator does not gain access to private conversation content through the application.
-
-Admin status alone must never permit an Administrator to:
-
-- open another user's direct conversation;
-- open a private group solely because they are an Administrator;
-- read message bodies;
-- inspect message edit history;
-- listen to private voice messages;
-- download private Chat attachments;
-- search private Chat contents;
-- export private conversations.
-
-Direct database/root/infrastructure access is outside the Atlas application authorization model and is governed by organizational procedures.
-
-Do not attempt to cryptographically protect Chat from an authorized infrastructure/root administrator in this phase.
+Direct root/database/infrastructure access is outside application authorization and governed by company procedure.
 
 ### Encryption boundary
 
 Do not implement:
 
-- Chat-specific application-level message encryption;
-- per-message cryptographic envelopes;
-- end-to-end encryption;
-- conversation key management;
-- device key management.
+- E2EE;
+- application-level Chat encryption protocol;
+- per-message key management;
+- RTC E2EE system;
+- custom recording encryption layer.
 
-Production encryption at rest belongs to the production deployment/storage phase and protects Atlas persistent storage as a whole.
+Production encryption at rest belongs to Phase 32 infrastructure.
 
 ### Admin operational visibility
 
-Admin may inspect aggregate technical Chat metadata required for operations, such as:
+Admin may see safe aggregates such as:
 
-- Chat module health;
-- Reverb/realtime health;
-- failed Chat jobs;
+- Chat health;
+- Reverb health;
+- LiveKit RTC health;
+- Egress health;
+- failed jobs;
+- active Call/Meeting counts;
 - conversation count;
 - message count;
-- Files/storage usage;
-- voice/media usage;
-- Search index health;
-- retention state;
-- last retention cleanup.
+- attachment usage;
+- recording storage usage;
+- transcription queue/provider health;
+- Search health;
+- retention state.
+
+Do not expose private room names, participant lists, message bodies, recording contents, or transcripts without a concrete authorized reason.
 
 Prefer aggregates.
 
-Do not expose private conversation names or participant lists without a concrete operational need.
-
 ### Audit
 
-Audit structural and administrative Chat operations, for example:
+Audit structural/high-value operations such as:
 
 - group created;
 - membership changed;
 - ownership transferred;
-- group closed;
-- retention configuration changed;
-- manual retention started/completed;
+- Call started/ended;
+- Meeting created/rescheduled/cancelled;
+- participant invited/removed/kicked;
+- Meeting locked/unlocked;
+- organizer moderation action where security-relevant;
+- recording started/paused/resumed/stopped;
+- recording shared/revoked;
+- recording retention configuration/run;
+- transcription requested/completed/failed;
+- transcript shared/revoked;
 - privileged operational action.
 
-Do not copy normal Chat content into Audit.
-
-Audit must not store:
+Do not copy into Audit:
 
 - normal message bodies;
 - voice content;
+- audio/video recording content;
+- transcript body;
 - attachment content;
-- every ordinary Chat message.
+- every ordinary message.
 
-Use safe identifiers and metadata only where needed for traceability.
+Use safe identifiers/metadata.
 
-### Historical employee identity
+### Employee identity
 
-Deactivating or removing an employee account does not automatically anonymize historical Chat content.
+Employee deactivation does not automatically anonymize historical Chat/Meeting content.
 
-Historical messages remain attributable to their historical employee identity.
+Historical identity remains attributable, with inactive marker where appropriate.
 
-The UI may mark such a user as inactive.
+Do not apply debtor anonymization automatically.
 
-Do not apply debtor anonymization rules automatically to employee Chat history.
+### Exports
 
-### Tasks
+Preserve participant-authorized conversation exports through existing export foundation.
 
-- [ ] Add nullable automatic Chat-retention configuration.
-- [ ] Default Chat retention to indefinite.
-- [ ] Add scheduled retention when a finite policy is configured.
-- [ ] Coordinate retention across Chat data, Search, and Files.
-- [ ] Add the Admin Chat-retention operations surface.
-- [ ] Add retention preview/count behavior.
-- [ ] Add controlled manual purge-by-cutoff.
-- [ ] Add high-risk confirmation where required.
-- [ ] Audit structural and retention operations without copying message content.
-- [ ] Add Chat aggregate health/usage visibility.
-- [ ] Prevent Admin application access to private Chat content.
-- [ ] Preserve historical employee identity.
-- [ ] Add privacy and negative authorization tests.
-- [ ] Add retention lifecycle tests.
-
----
-
-## P31-W10 — Participant-authorized exports and conversation history
-
-### Export contract
-
-A conversation participant may export a conversation that the participant is currently authorized to access.
-
-Reuse the existing Atlas export/PDF foundation.
-
-Support appropriate existing export formats, including:
+Support appropriate:
 
 - PDF;
 - CSV;
 - JSON.
 
-Do not build a separate Chat export engine if the existing Core export foundation already provides the required mechanisms.
+Admin does not gain export bypass.
 
-Admin status alone does not grant export access to conversations the Administrator does not participate in.
+Exports respect:
 
-Exports must respect:
+- authorization;
+- delete-for-me;
+- retention;
+- attachments;
+- forwarding privacy.
 
-- conversation authorization;
-- delete-for-me state;
-- retention state;
-- message history;
-- attachment authorization.
-
-Exports must not expose private source metadata from forwarded messages.
+Recording download is handled by recording Files authorization rather than pretending video is a CSV export.
 
 ### Tasks
 
-- [ ] Integrate Chat exports with the existing export foundation.
-- [ ] Support participant-authorized PDF export.
-- [ ] Support participant-authorized CSV export where appropriate.
-- [ ] Support participant-authorized JSON export.
-- [ ] Respect delete-for-me and retention visibility.
-- [ ] Preserve safe message/edit-history representation.
-- [ ] Prevent privileged Admin export bypass.
-- [ ] Add export authorization and output tests.
+- [ ] Preserve nullable Chat retention.
+- [ ] Keep recording retention separate.
+- [ ] Add coordinated cleanup.
+- [ ] Add safe Admin Chat/RTC/Egress aggregates.
+- [ ] Add safe provider/transcription operational state.
+- [ ] Prevent Admin private-content access.
+- [ ] Audit structural Calls/Meetings/recording/transcription events.
+- [ ] Keep content bodies out of Audit.
+- [ ] Preserve historical employee identity.
+- [ ] Preserve participant-authorized Chat exports.
+- [ ] Prevent Admin export bypass.
+- [ ] Add retention/privacy/Audit/export tests.
 
 ---
 
-## P31-W11 — Scale, performance, full browser workflows, and acceptance closure
+## P31-W16 — Scale, performance, browser workflows, and final acceptance closure
 
-### Scale target
+### Scale
 
-The known deployment target is approximately 400 users with expected future growth.
+Target realistic company use around hundreds of users with future growth.
 
-Do not design the module around a tiny-team assumption.
+Do not add artificial user/participant limits.
 
-Do not add an artificial maximum-user cap.
+Do not load full conversation histories.
 
-At the same time, do not overengineer for Internet-scale social-network traffic.
+Use cursor/incremental pagination.
 
-### Required performance behavior
+Avoid obvious N+1 behavior.
 
-Message history must use cursor-based or equivalently stable incremental pagination.
+Bound presence/typing writes.
 
-Do not load the full conversation history into memory or browser state.
+Do not create per-user × per-message permanent structures where a cursor model works.
 
-Avoid obvious N+1 behavior for:
+### RTC capacity
 
-- participants;
-- unread state;
-- reactions;
-- read state;
-- attachments;
-- conversation list.
+No product participant limit is required.
 
-Do not implement per-user/per-message permanent data structures where a bounded per-membership cursor provides the required behavior.
+Infrastructure capacity remains finite.
 
-Presence/typing must not create excessive persistent writes.
+Capacity failure must produce:
 
-Conversation lists and unread state must remain usable with realistic company-scale data.
+- deterministic backend/session state;
+- clear user-facing error;
+- no half-created hanging session.
 
-### Browser acceptance workflows
+### Browser workflows
 
-Playwright must cover real multi-user browser workflows, not only isolated component rendering.
+Playwright must cover meaningful multi-user workflows using deterministic RTC/media fixtures where physical hardware cannot be used.
 
-At minimum verify:
+#### Messaging
 
-#### Direct conversation
+Cover:
 
-- user A opens Chat;
-- starts the canonical DM with user B;
-- sends text;
-- user B receives it through realtime;
-- unread dropdown appears;
-- clicking the unread entry opens the exact conversation;
-- reading removes the unread entry;
-- read state reaches user A;
-- duplicate DM creation is prevented.
-
-#### Message interactions
-
+- DM creation;
+- text realtime;
+- unread;
+- read;
 - reply;
 - edit;
-- visible edited marker;
 - edit history;
 - reaction;
 - mention;
@@ -1396,230 +2562,429 @@ At minimum verify:
 - bookmark;
 - forward;
 - delete-for-me;
-- mark unread;
-- draft persistence.
+- draft;
+- group lifecycle;
+- Team synchronization.
 
-#### Group
+#### Files/voice
 
-- create group;
-- owner/member behavior;
-- add member without invitation;
-- newly added member sees history;
-- member leaves;
-- ownership transfer;
-- owner-leave protection;
-- final-member closure.
+Cover:
 
-#### Team chat
-
-- canonical Team Chat exists;
-- active Team members participate automatically;
-- adding a Team member synchronizes Chat membership;
-- ending Team membership removes active Chat access;
-- history remains;
-- Team Chat cannot be manually left;
-- Team Chat membership cannot be manually edited;
-- changing head manager gives no special Chat capability.
-
-#### Attachments
-
-- normal file upload;
-- ClamAV lifecycle;
-- attachment unavailable before acceptance;
-- accepted file becomes accessible;
-- representative rejected scan state;
-- clipboard/drop behavior where browser automation permits.
-
-#### Voice message
-
-- microphone-capability flow using a deterministic supported browser fixture/mocking strategy where real hardware is unavailable;
-- recording lifecycle;
-- preview;
-- send;
-- Files/scan lifecycle;
+- file upload;
+- scan lifecycle;
+- voice recording lifecycle;
 - playback.
 
-Do not bypass production Chat/Files code solely to make the test easier.
+#### Ad-hoc Calls
 
-#### Realtime
+Cover:
 
-- two browser contexts;
-- message delivery;
-- typing;
-- presence;
-- unread;
-- read state;
-- reconnect/backfill;
-- no duplicate message.
+- direct outgoing/incoming;
+- answer without camera;
+- answer with camera;
+- camera toggle;
+- mic toggle;
+- device preference;
+- Busy behavior;
+- one active session/user;
+- Call history;
+- missed Call;
+- Rejoin;
+- group Call;
+- Team join-style Call;
+- screen share;
+- no recording control.
 
-#### Search
+#### Calendar
 
-- user finds authorized message content;
-- filters work;
-- user cannot find another conversation's private content;
-- Admin cannot bypass Chat content authorization;
-- delete-for-me content does not reappear through Search.
+Cover:
 
-#### Browser-native notifications
+- personal event;
+- recurrence;
+- reminders;
+- Month/Week/Day/Agenda;
+- Free/Busy privacy;
+- conflict warning;
+- Europe/Warsaw recurrence behavior.
 
-Where browser automation permits:
+#### Meetings
 
-- configuration state;
-- user preference state;
-- browser permission state;
-- Chat browser alert;
-- existing system Notification browser alert;
-- clicking a Chat alert opens the correct conversation.
+Cover:
 
-#### Mobile
+- Meet now;
+- scheduled Meeting;
+- recurring Meeting;
+- invite;
+- accept;
+- decline;
+- response change;
+- participant invites another user;
+- organizer removal;
+- no lobby;
+- early join;
+- Meeting without organizer;
+- shared series chat;
+- lock/unlock;
+- mute;
+- microphone disable/restore;
+- camera off;
+- screen share;
+- organizer stop share;
+- kick/ban;
+- attendance;
+- Leave;
+- End for everyone;
+- empty-room auto-end.
 
-Cover critical mobile workflows:
+#### Recording
 
-- open Chat;
-- conversation list;
-- conversation;
-- back navigation;
-- text/reply;
-- attachment;
-- voice controls where practical;
-- unread flow.
+Cover:
+
+- permission;
+- organizer-only control;
+- start;
+- REC visible;
+- pause;
+- Paused visible;
+- resume;
+- stop;
+- Processing;
+- Ready;
+- one final file;
+- Files authorization;
+- participant access;
+- outside-Meeting share;
+- no onward share;
+- revoke;
+- no Admin bypass;
+- retention deletion;
+- transcript deleted with recording.
+
+#### Transcription
+
+Using a deterministic fake provider:
+
+- UI hidden when no provider active;
+- provider enabled test configuration;
+- manual request;
+- queue;
+- duplicate-request prevention;
+- processing;
+- success;
+- failure/retry;
+- optional timestamps/segments;
+- transcript view;
+- participant edit;
+- version history;
+- outside-Meeting share;
+- recipient current-version-only;
+- no recipient edit/re-share;
+- Search authorization;
+- no Admin bypass.
+
+Do not install a production AI/STT provider merely to make tests pass.
 
 ### Browser quality
 
-Chat E2E remains subject to existing browser-quality guardrails:
+Protect:
 
+- Chromium;
+- Firefox;
+- PL;
+- EN;
+- light;
+- dark;
+- mobile;
+- keyboard/focus;
 - no unexpected console errors;
 - no uncaught runtime errors;
 - no unexpected failed asset/API requests;
-- no accidental raw translation keys;
-- Polish and English coverage;
-- light and dark theme coverage.
-
-### Backend/frontend test coverage
-
-Add meaningful coverage for:
-
-- domain invariants;
-- canonical DM uniqueness;
-- permissions;
-- group ownership;
-- Team synchronization;
-- membership authorization;
-- message edit concurrency;
-- idempotent send;
-- delete-for-me;
-- Files authorization;
-- Search authorization;
-- Reverb channel authorization;
-- retention;
-- Admin privacy;
-- browser notification preferences;
-- exports.
+- no raw translation keys;
+- no unresolved interpolation placeholders.
 
 ### Documentation closure
 
-Update:
+At Phase 31 completion update canonical documentation so current behavior is no longer described using the old "calls/video/screen sharing out of scope" contract.
 
-- canonical Chat module documentation;
-- realtime/network documentation;
-- Search integration documentation;
-- Files integration documentation where necessary;
-- Admin operational documentation where necessary;
-- testing/quality documentation where necessary.
-
-Do not rewrite unrelated completed phase history.
+Update production requirements consumed by Phase 32.
 
 ### Tasks
 
-- [ ] Add realistic company-scale Chat fixtures/tests.
-- [ ] Use incremental/cursor message-history loading.
-- [ ] Verify conversation-list query behavior.
-- [ ] Verify no obvious participant/message N+1 regressions.
-- [ ] Verify presence/typing write behavior remains bounded.
-- [ ] Add direct-conversation browser E2E.
-- [ ] Add message-interaction browser E2E.
-- [ ] Add group lifecycle browser E2E.
-- [ ] Add Team Chat synchronization browser E2E.
-- [ ] Add attachment/scanner browser E2E.
-- [ ] Add voice-message browser E2E.
-- [ ] Add realtime multi-context browser E2E.
-- [ ] Add authorized and unauthorized Search E2E.
+- [ ] Add realistic company-scale fixtures.
+- [ ] Add cursor message history.
+- [ ] Verify query/N+1 behavior.
+- [ ] Verify bounded presence/typing.
+- [ ] Add messaging multi-user E2E.
+- [ ] Add group E2E.
+- [ ] Add Team Chat E2E.
+- [ ] Add Files/voice E2E.
+- [ ] Add Calendar E2E.
+- [ ] Add direct Call E2E.
+- [ ] Add group Call E2E.
+- [ ] Add Team Call E2E.
+- [ ] Add device/pre-call E2E.
+- [ ] Add Busy/Rejoin E2E.
+- [ ] Add Meeting scheduling/invitation E2E.
+- [ ] Add recurring Meeting E2E.
+- [ ] Add Meeting moderation E2E.
+- [ ] Add attendance E2E.
+- [ ] Add screen-share E2E.
+- [ ] Add Meeting recording E2E.
+- [ ] Add recording sharing/retention E2E.
+- [ ] Add provider-disabled transcription UI coverage.
+- [ ] Add fake-provider transcription E2E.
+- [ ] Add Search authorization E2E.
 - [ ] Add browser-native notification coverage.
-- [ ] Add critical mobile Chat E2E.
-- [ ] Cover Polish and English Chat UI.
-- [ ] Cover light and dark themes.
+- [ ] Add critical mobile workflows.
+- [ ] Cover PL/EN.
+- [ ] Cover light/dark.
 - [ ] Enforce console/runtime/request cleanliness.
-- [ ] Run targeted Chat backend tests.
-- [ ] Run targeted Chat frontend tests.
-- [ ] Run the required full application quality gates.
+- [ ] Run targeted backend tests.
+- [ ] Run targeted frontend tests.
+- [ ] Run Chromium Playwright.
+- [ ] Run Firefox Playwright.
+- [ ] Run complete required foundation quality gate.
 - [ ] Update all affected canonical documentation.
+- [ ] Confirm Phase 32 has not been implemented from this Phase 31 planning task.
 
 ---
 
-## Explicit out-of-scope behavior
+## Explicit accepted decisions
 
-The following are intentionally outside Phase 31 unless a later explicit phase adds them:
+The following decisions are binding:
 
-- public/external users;
-- public Internet Chat;
+1. Chat remains internal-company only.
+2. Only active Atlas users participate.
+3. No external/public guests.
+4. Direct/group Chat remains global, not active-Team scoped.
+5. Team Chat remains Teams-membership owned.
+6. Meeting chat is a fourth system conversation type.
+7. Recurring Meeting series shares one Meeting chat.
+8. Ad-hoc Calls use the existing DM/group/Team conversation.
+9. Direct audio/video Calls are supported.
+10. Group ad-hoc audio/video Calls are supported.
+11. Team ad-hoc audio/video Calls are supported.
+12. Camera may be toggled during Calls/Meetings.
+13. Users persist preferred camera/microphone/speaker.
+14. Users persist outgoing start-with-camera preference.
+15. Incoming video Call offers answer with or without camera.
+16. Mic/camera permission is requested only after an explicit media action.
+17. Pre-call/pre-Meeting device setup exists.
+18. Devices may be changed while connected.
+19. One user participates in one active RTC session at a time.
+20. No call waiting/session switching.
+21. One ad-hoc Call exists per conversation at a time.
+22. Team Calls do not synchronously ring an entire large Team.
+23. Screen sharing is supported.
+24. Only one active screen share exists per live session.
+25. Ad-hoc Calls cannot be recorded.
+26. Only Meetings may be recorded.
+27. Meetings may be immediate or scheduled.
+28. Recurring Meetings are supported.
+29. Calendar is a shared Core capability, not Chat-owned.
+30. Personal Calendar events are private.
+31. Personal events have no invited users.
+32. Personal events have no task-completed state.
+33. Calendar has Month/Week/Day/Agenda.
+34. Personal events support title/description/start/end/all-day/location/recurrence/reminders/Free-Busy.
+35. No Calendar colors/categories are required.
+36. Atlas continues using canonical Europe/Warsaw timezone behavior.
+37. Free/Busy exposes availability only.
+38. Scheduling conflicts warn but do not block.
+39. Default reminder is 15 minutes.
+40. User profile may change reminder default.
+41. Per-event/Meeting reminders may override and may be multiple.
+42. Meeting invitations may be accepted/declined.
+43. RSVP may later change.
+44. Every invited/participating user may invite another active Atlas user.
+45. Newly invited users still receive their own RSVP.
+46. Organizer may remove invitees.
+47. No Meeting lobby.
+48. Invited users may join before scheduled time.
+49. Meeting may operate without organizer present.
+50. Roles are organizer and participant only.
+51. Participants may use microphone/camera/screen share.
+52. Organizer may mute.
+53. Normal mute allows self-unmute.
+54. Organizer may disable microphone as a speaking ban.
+55. Organizer may restore microphone permission.
+56. Organizer never remotely enables another user's mic.
+57. Organizer may turn off another user's camera.
+58. Organizer never remotely enables another user's camera.
+59. Organizer may stop another user's screen share.
+60. Organizer may kick.
+61. Kick bans the user for the remainder of the occurrence.
+62. Kick removes active Meeting/chat access.
+63. Organizer may lock/unlock Meeting.
+64. Locked Meeting prevents joins and new invitations.
+65. Organizer may End meeting for everyone.
+66. Organizer Leave alone does not end Meeting.
+67. Empty RTC room ends after 15 continuous minutes.
+68. Attendance stores join/leave/duration.
+69. All authorized participants may see full attendance.
+70. Live session uses a minimizable modal.
+71. Minimized persistent controls remain while navigating Atlas.
+72. Browser refresh uses Rejoin rather than silent media reactivation.
+73. LiveKit is self-hosted and Atlas-managed.
+74. No LiveKit Cloud requirement.
+75. No external-existing-LiveKit baseline mode.
+76. LiveKit handles RTC media only.
+77. Reverb remains message/application realtime.
+78. LiveKit/Egress are separate services from PHP.
+79. TURN/TLS is part of trusted LAN/VPN production planning.
+80. No artificial Meeting participant limit.
+81. Capacity failures must be visible.
+82. Only organizer may control Meeting recording.
+83. Recording additionally requires permission.
+84. All participants see REC/Paused state.
+85. No extra participant recording-consent modal is required.
+86. Recording captures audio/video/screen share in one composed result.
+87. Screen share is primary in recording layout while active.
+88. Recording uses an Atlas-owned composite template.
+89. User-facing pause/resume represents one logical recording.
+90. Final playback/download is one file.
+91. Processing state is acceptable.
+92. Final recordings are Files-owned.
+93. Recording retention is separate from Chat retention.
+94. Recording retention defaults to null/indefinite.
+95. Admin may configure finite recording retention.
+96. No pre-retention user warning is required.
+97. Lightweight recording metadata remains after heavy file deletion.
+98. Transcript is deleted with its recording.
+99. Recording participants may share recording with active Atlas users outside the Meeting.
+100. Shared recipient does not become Meeting participant.
+101. Share recipient cannot re-share.
+102. Participant who created share may revoke it.
+103. No public recording links.
+104. Admin has no recording-content bypass.
+105. Transcription is provider-neutral.
+106. Atlas does not perform speech recognition itself.
+107. No concrete production transcription provider is required in Phase 31.
+108. Transcription always runs through queue/background processing.
+109. Sync and async providers can be adapted.
+110. Transcription is manual, not automatic.
+111. Historical retained recordings may be transcribed later.
+112. No duplicate active transcription job per recording.
+113. Transcript UI is completely hidden when provider is disabled/unconfigured.
+114. Provider result minimum is text.
+115. Preserve timestamps/speaker data when returned.
+116. Every authorized participant with permission may edit transcript.
+117. Preserve original provider result and full transcript edit history.
+118. Transcript share recipient sees only current version.
+119. Transcript share recipient cannot edit or re-share.
+120. Participants may share transcript to active Atlas users outside Meeting.
+121. Admin has no transcript bypass.
+122. Current transcript may participate in Meilisearch under strict authorization.
+123. Transcript/search/share data is removed when recording retention deletes the recording.
+124. Chat messages do not become Notifications records.
+125. Chat messages are not emailed.
+126. Meeting invitations/updates/cancellations may use email.
+127. Meeting reminder emails are separately user-configurable.
+128. Personal Calendar reminder email may be user-configurable.
+129. Missed Calls use normal Notification/browser alert but no email.
+130. No E2EE/application-level Chat content encryption is introduced.
+
+---
+
+## Explicit out of scope
+
+Do not implement in Phase 31:
+
+- public/external Chat users;
+- external Meeting guests;
+- anonymous participants;
+- public Meeting links;
+- public Internet conferencing product;
+- friend/contact requests;
 - message requests;
 - user blocking;
-- friend/contact requests;
-- invite links;
-- join requests;
-- group moderator/admin roles beyond owner/member;
-- conversation archive;
-- conversation mute;
-- notification mute schedules;
-- scheduled messages;
-- nested message threads;
-- audio calls;
-- video calls;
-- screen sharing;
+- invite links for Chat groups;
+- public Chat groups;
+- group moderators/admins beyond owner/member;
+- Meeting co-organizer role;
+- Meeting presenter role;
+- Meeting lobby/waiting room;
+- recording of direct/group/Team ad-hoc Calls;
+- simultaneous multiple screen shares;
+- call waiting;
+- holding/switching simultaneous Calls;
+- public recording links;
+- external recording recipients;
+- external Calendar sync;
+- Google Calendar integration;
+- Outlook integration;
+- CalDAV;
+- ICS synchronization;
+- calendar task manager/completed-task workflow;
+- Calendar categories/colors;
+- concrete OpenAI transcription provider;
+- concrete Whisper/whisper.cpp provider;
+- Python transcription service implementation;
+- Atlas-owned speech recognition;
+- automatic transcription of every recording;
+- LiveKit Cloud requirement;
+- selectable external existing LiveKit baseline;
+- custom Atlas WebRTC/SFU server;
 - bots;
 - Chat webhooks;
-- generic slash-command platform;
-- GIF/Giphy integrations;
-- generic business-object conversation contexts;
+- slash-command platform;
+- GIF/Giphy integration;
+- generic business-object conversations;
 - business-module event delivery through Chat;
-- automatic external URL previews;
+- external URL previews;
 - multiple floating Chat windows;
-- a dedicated full-page Chat application as the primary UI;
-- Chat email delivery;
-- persistence of Chat messages inside the Notifications module;
+- dedicated full-page Chat as primary UI;
+- Chat message email;
+- Chat persistence inside Notifications;
 - E2EE;
-- Chat-specific application-level content encryption.
+- Chat-specific content cryptography.
 
-Do not create future phases for these items during this task.
+Do not create another future phase for these items during this planning task.
 
 ---
 
 ## Permanent guardrails
 
-- [ ] There is exactly one canonical direct conversation per unordered user pair.
-- [ ] Direct/group Chat remains global and is not accidentally scoped by active Team.
-- [ ] Team Chat has exactly one canonical conversation per enabled Team.
-- [ ] Team Chat membership is owned by Teams, not Chat.
-- [ ] Team Chat cannot become a second Team-management surface.
-- [ ] Admin status never grants private Chat-content access.
-- [ ] There is no `chat.admin.read` equivalent.
-- [ ] Chat Search cannot leak unauthorized snippets or metadata.
-- [ ] Reverb channels cannot be subscribed to without conversation authorization.
-- [ ] Chat attachments cannot bypass Files/ClamAV.
-- [ ] Voice messages cannot bypass Files/ClamAV.
-- [ ] Chat messages do not become Notifications-module records.
-- [ ] Chat messages are not delivered by email.
-- [ ] Browser-native notifications remain configurable globally and by user.
-- [ ] Draft contents are not stored in browser local/session storage.
-- [ ] Delete-for-me cannot be bypassed through Search or export.
-- [ ] Chat does not introduce a second full-text engine.
-- [ ] Chat does not introduce a second realtime architecture.
-- [ ] Retention does not leave orphaned Files or stale Search documents.
-- [ ] Admin operational surfaces expose aggregates rather than private content.
-- [ ] Normal Chat message bodies are not copied into Audit.
-- [ ] Historical employee Chat identity is preserved.
-- [ ] Chat does not implement E2EE or its own cryptographic protocol.
-- [ ] Chat does not become a generic business-module communication framework.
+- [ ] Exactly one canonical DM exists per unordered user pair.
+- [ ] Direct/group Chat does not become active-Team scoped.
+- [ ] Team Chat membership remains Teams-owned.
+- [ ] Meeting conversation is system-owned and invitation-scoped.
+- [ ] Recurring series has one shared Meeting chat.
+- [ ] Admin never gains private Chat/Call/Meeting content access by status alone.
+- [ ] Chat Search cannot leak unauthorized content.
+- [ ] Reverb remains canonical message/application realtime.
+- [ ] LiveKit remains RTC/media infrastructure only.
+- [ ] LiveKit secret never reaches browser.
+- [ ] Calls/Meetings cannot join unauthorized rooms.
+- [ ] One user cannot remain actively connected to multiple RTC sessions.
+- [ ] Ad-hoc Calls cannot invoke recording.
+- [ ] Meeting recording requires organizer + permission.
+- [ ] Recording participants always see REC/Paused state.
+- [ ] Final recording is one Files-owned artifact.
+- [ ] Egress staging is not permanent content storage.
+- [ ] Recording share does not grant Meeting membership.
+- [ ] Recording share recipient cannot re-share.
+- [ ] Recording retention does not leave orphan Files.
+- [ ] Recording deletion also deletes transcript content/shares/Search.
+- [ ] Transcript does not exist without a retained source recording.
+- [ ] Transcription cannot run synchronously in user HTTP request.
+- [ ] No concrete STT provider is required for baseline completion.
+- [ ] User transcript UI is absent while provider is disabled.
+- [ ] Transcript edit history cannot be silently overwritten.
+- [ ] Transcript share recipient cannot see edit history.
+- [ ] Transcript Search cannot bypass access.
+- [ ] Personal Calendar event contents remain private.
+- [ ] Free/Busy does not expose event details.
+- [ ] Europe/Warsaw recurrence behavior remains consistent.
+- [ ] Meeting lock prevents new joins/invites.
+- [ ] Kick blocks rejoin for the current occurrence.
+- [ ] Organizer cannot remotely enable another user's mic/camera.
+- [ ] Only one screen share is active.
+- [ ] Empty rooms terminate after 15 continuous minutes.
+- [ ] Chat messages remain outside Notifications persistence/email.
+- [ ] Calls/Meetings do not introduce application-level E2EE.
+- [ ] No public guest/public Meeting mode appears.
+- [ ] PL/EN/light/dark/mobile/accessibility/browser-quality guards remain intact.
 
 ---
 
@@ -1627,35 +2992,55 @@ Do not create future phases for these items during this task.
 
 Phase 31 is complete only when:
 
-- [ ] Chat is a fully optional Atlas module governed by ModuleGate and Authorization.
-- [ ] Direct conversations work globally across Teams.
-- [ ] Exactly one canonical direct conversation exists per user pair.
-- [ ] User-created groups support the accepted owner/member lifecycle.
-- [ ] System-owned Team conversations synchronize canonical Teams membership.
-- [ ] Team conversations cannot be manually left or membership-edited.
-- [ ] Text, Markdown-lite, reply/quote, editing, edit history, reactions, mentions, forwarding, pins, bookmarks, delete-for-me, and drafts work.
-- [ ] Files-owned attachments work through validation, quarantine, ClamAV, and authorization.
-- [ ] Drag/drop and clipboard attachment UX is implemented.
-- [ ] Media / Files / Links browsing works.
-- [ ] Voice messages up to 15 minutes work through Files and ClamAV.
-- [ ] Laravel Reverb provides the canonical Chat realtime transport.
-- [ ] Presence, typing, delivery/read state, unread state, and reconnect reconciliation work.
-- [ ] The shell Chat launcher, unread dropdown, desktop modal, and mobile full-screen workflow work.
-- [ ] Chat unread state remains separate from Notifications persistence.
-- [ ] Browser-native notifications support both system Notifications and Chat through global config, user preferences, and browser permission.
-- [ ] Meilisearch provides Chat search without unauthorized content leakage.
-- [ ] Admin cannot read, search, download, or export other users' private Chat content through the application.
-- [ ] Retention defaults to indefinite and supports configured automatic retention.
-- [ ] Admin has safe manual retention operations without private-content access.
-- [ ] Participant-authorized Chat export works through the existing export foundation.
-- [ ] Historical employee identity remains understandable after account deactivation.
-- [ ] Company-scale message/history/conversation behavior is incremental and bounded.
-- [ ] Chromium and Firefox browser workflows cover critical multi-user Chat behavior.
-- [ ] Critical mobile Chat workflows are covered.
-- [ ] Polish and English Chat UI is complete.
-- [ ] Light and dark Chat UI is covered.
-- [ ] Browser console/runtime/request cleanliness remains protected.
-- [ ] Relevant backend, frontend, Search, Files, realtime, and browser tests pass.
-- [ ] Canonical module and cross-cutting documentation is current.
-- [ ] No accepted Chat behavior exists only in historical chat context.
-- [ ] Phase 32 deployment has not been started as part of this phase-planning task.
+- [ ] original Chat messaging scope is complete;
+- [ ] direct/group/Team conversations work;
+- [ ] Meeting conversation type works;
+- [ ] messaging/replies/edits/history/reactions/mentions/forwarding/pins/bookmarks/drafts work;
+- [ ] Files attachments and voice messages work;
+- [ ] Reverb messaging/presence/read/unread/reconnect works;
+- [ ] Core Calendar works for private personal events;
+- [ ] Month/Week/Day/Agenda work;
+- [ ] recurrence/reminders/Free-Busy work;
+- [ ] direct audio/video Calls work;
+- [ ] group Calls work;
+- [ ] Team Calls work;
+- [ ] device preferences and pre-call setup work;
+- [ ] only one active RTC session per user is enforced;
+- [ ] Call history/missed Calls work;
+- [ ] self-hosted LiveKit development/runtime integration works;
+- [ ] Calls/Meetings remain authorization-safe;
+- [ ] Meetings can be immediate or scheduled;
+- [ ] recurring Meetings work;
+- [ ] invitation/RSVP/invite-more/remove behavior works;
+- [ ] Meeting chat works before/during/after;
+- [ ] participant moderation works;
+- [ ] one screen share works;
+- [ ] lock/kick/End/empty-room behavior works;
+- [ ] attendance works;
+- [ ] live modal may be minimized and rejoined;
+- [ ] ad-hoc Calls cannot be recorded;
+- [ ] Meeting recording start/pause/resume/stop works;
+- [ ] LiveKit Egress composite recording works;
+- [ ] final recording is one Files-owned file;
+- [ ] recording sharing works without Meeting-membership leakage;
+- [ ] separate recording retention works;
+- [ ] provider-neutral transcription boundary exists;
+- [ ] transcription remains queued;
+- [ ] no concrete production STT provider is required;
+- [ ] transcript UI is absent with no provider;
+- [ ] fake-provider tests prove transcription lifecycle;
+- [ ] transcript editing/versioning/sharing works under authorization;
+- [ ] transcript is removed with recording retention;
+- [ ] Meilisearch does not leak Chat/Meeting/transcript content;
+- [ ] Admin remains unable to read private communication content;
+- [ ] safe operational RTC/Egress/transcription aggregates exist;
+- [ ] Notifications/browser/email preferences follow accepted ownership;
+- [ ] participant-authorized exports remain functional;
+- [ ] Chromium and Firefox cover critical workflows;
+- [ ] mobile flows are covered;
+- [ ] Polish and English UI is complete;
+- [ ] light/dark UI is covered;
+- [ ] console/runtime/request cleanliness remains protected;
+- [ ] complete required foundation quality gates pass;
+- [ ] canonical documentation reflects the final contract;
+- [ ] Phase 32 deployment has not been implemented as part of this Phase 31 planning task.
