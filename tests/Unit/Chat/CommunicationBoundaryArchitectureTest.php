@@ -26,7 +26,10 @@ final class CommunicationBoundaryArchitectureTest extends TestCase
         self::assertSame(ModuleCategory::Optional, $chat->category());
         self::assertTrue($chat->supportsGlobalActivation());
         self::assertFalse($chat->supportsTeamActivation());
-        self::assertSame(['calendar'], array_map(static fn ($key): string => $key->value, $chat->requiredDependencies()));
+        self::assertSame(
+            ['identity', 'calendar', 'teams', 'audit'],
+            array_map(static fn ($key): string => $key->value, $chat->requiredDependencies()),
+        );
     }
 
     public function test_calendar_and_chat_have_distinct_owned_schemas(): void

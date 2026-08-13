@@ -12,6 +12,7 @@ use App\Shared\Application\Audit\DTOs\AuditEvent;
 use App\Shared\Application\Audit\Enums\SecurityAuditCategory;
 use App\Shared\Application\Authorization\Contracts\UserTeamAuthorizationCleaner;
 use App\Shared\Application\Teams\Contracts\TeamLookup;
+use App\Shared\Application\Teams\Contracts\TeamMembershipChangeParticipant;
 use App\Shared\Application\Teams\Contracts\UserTeamMembershipManager;
 use App\Shared\Application\Teams\Contracts\UserTeamMembershipProvisioner;
 use App\Shared\Application\Teams\DTOs\AdminTeamUserMembership;
@@ -34,6 +35,7 @@ final class DatabaseUserTeamMembershipManager implements TeamLookup, UserTeamMem
         private readonly UserTeamAuthorizationCleaner $authorization,
         private readonly UserSessionRegistry $sessions,
         private readonly UserLookup $users,
+        private readonly TeamMembershipChangeParticipant $membershipChanges,
     ) {}
 
     public function activeMembershipsForUser(string $userPublicId): array
@@ -522,14 +524,18 @@ final class DatabaseUserTeamMembershipManager implements TeamLookup, UserTeamMem
             return;
         }
 
-        DB::table(TeamsDatabaseTable::TEAM_USER_ASSIGNMENTS)->insert([
-            'team_id' => $teamId,
-            'user_id' => $userId,
-            'valid_from' => now(),
-            'valid_to' => null,
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
+        DB::transaction(function () use ($teamId, $userId, $teamPublicId): void {
+            DB::table(TeamsDatabaseTable::TEAM_USER_ASSIGNMENTS)->insert([
+                'team_id' => $teamId,
+                'user_id' => $userId,
+                'valid_from' => now(),
+                'valid_to' => null,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            $this->membershipChanges->teamMembershipChanged($teamPublicId);
+        });
     }
 
     public function activeTeamOptions(): array
@@ -569,6 +575,8 @@ final class DatabaseUserTeamMembershipManager implements TeamLookup, UserTeamMem
                 'updated_at' => now(),
                 'created_at' => now(),
             ]);
+
+            $this->membershipChanges->teamMembershipChanged($teamPublicId);
 
             $this->recordAudit($actorPublicId, $userPublicId, $teamPublicId, 'team.user_access_added', 'succeeded', $before, [
                 'active' => true,
@@ -626,6 +634,8 @@ final class DatabaseUserTeamMembershipManager implements TeamLookup, UserTeamMem
                 ]);
 
             $this->authorization->removeAssignmentsForUserTeam($userPublicId, $teamPublicId);
+
+            $this->membershipChanges->teamMembershipChanged($teamPublicId);
 
             $this->recordAudit($actorPublicId, $userPublicId, $teamPublicId, 'team.user_access_removed', 'succeeded', $before, [
                 'active' => false,

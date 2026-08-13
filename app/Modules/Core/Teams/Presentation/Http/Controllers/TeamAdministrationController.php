@@ -23,6 +23,7 @@ use App\Shared\Application\Tables\RegisteredTables;
 use App\Shared\Application\Tables\TableRequestContext;
 use App\Shared\Application\Tables\TableSavedViewService;
 use App\Shared\Application\Tables\TableState;
+use App\Shared\Application\Teams\Contracts\TeamMembershipChangeParticipant;
 use App\Shared\Application\Teams\Contracts\UserTeamMembershipManager;
 use App\Shared\Application\Teams\Contracts\UserTeamSessionLimitSettings;
 use App\Shared\Application\TimeTracking\Contracts\UserBreakPolicySettings;
@@ -45,6 +46,7 @@ final class TeamAdministrationController
         private readonly TableRequestContext $context,
         private readonly AuditRecorder $audit,
         private readonly UserTeamMembershipManager $memberships,
+        private readonly TeamMembershipChangeParticipant $membershipChanges,
         private readonly UserTeamAuthorizationManager $authorization,
         private readonly ModuleRegistry $modules,
         private readonly ModuleActivationService $activation,
@@ -278,6 +280,8 @@ final class TeamAdministrationController
         ]);
 
         $actorPublicId = data_get($request->user(), 'public_id');
+
+        $this->membershipChanges->teamMembershipChanged((string) $record->public_id);
 
         if (is_string($actorPublicId)) {
             foreach ($userAssignments as $assignment) {

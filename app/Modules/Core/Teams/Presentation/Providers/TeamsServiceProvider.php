@@ -17,9 +17,12 @@ use App\Modules\Core\Teams\Infrastructure\Persistence\EloquentBootstrapTeamProvi
 use App\Modules\Core\Teams\Presentation\Inertia\TeamsInertiaData;
 use App\Modules\Core\Teams\Presentation\Inertia\TeamsRouteAvailability;
 use App\Shared\Application\Teams\Contracts\TeamLookup;
+use App\Shared\Application\Teams\Contracts\TeamMembershipChangeParticipant;
 use App\Shared\Application\Teams\Contracts\UserTeamMembershipManager;
 use App\Shared\Application\Teams\Contracts\UserTeamMembershipProvisioner;
 use App\Shared\Application\Teams\Contracts\UserTeamSessionLimitSettings;
+use App\Shared\Infrastructure\Teams\TaggedTeamMembershipChangeParticipants;
+use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Support\ServiceProvider;
 
 final class TeamsServiceProvider extends ServiceProvider
@@ -32,6 +35,10 @@ final class TeamsServiceProvider extends ServiceProvider
         $this->app->bind(UserTeamMembershipProvisioner::class, DatabaseUserTeamMembershipManager::class);
         $this->app->bind(UserTeamSessionLimitSettings::class, DatabaseUserTeamSessionLimitSettings::class);
         $this->app->bind(ManagerHierarchy::class, DatabaseManagerHierarchy::class);
+        $this->app->singleton(
+            TeamMembershipChangeParticipant::class,
+            fn (Application $app): TaggedTeamMembershipChangeParticipants => new TaggedTeamMembershipChangeParticipants($app),
+        );
         $this->app->tag([TeamPermissionCatalog::class], 'atlas.permission_catalogs');
         $this->app->tag([TeamsInertiaData::class], 'atlas.inertia_shared_data');
         $this->app->tag([TeamsRouteAvailability::class], 'atlas.inertia_route_availability');

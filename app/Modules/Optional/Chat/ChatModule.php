@@ -23,7 +23,12 @@ final class ChatModule implements ModuleDefinition
 
     public function requiredDependencies(): array
     {
-        return [new ModuleKey('calendar')];
+        return [
+            new ModuleKey('identity'),
+            new ModuleKey('calendar'),
+            new ModuleKey('teams'),
+            new ModuleKey('audit'),
+        ];
     }
 
     public function optionalDependencies(): array

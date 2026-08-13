@@ -250,10 +250,12 @@ Current table ownership:
 | `core_identity` | `users`, `password_reset_tokens`, `user_password_histories`, `sessions` |
 | `core_teams` | `teams`, `team_user_assignments` |
 | `core_authorization` | `permissions`, `roles`, `model_has_permissions`, `model_has_roles`, `role_has_permissions`, `authorization_onboarding_packages`, `user_onboarding_packages` |
+| `core_calendar` | `personal_events`, `reminders`, `recurrence_exceptions`, `contributed_events`, `user_preferences` |
 | `core_audit` | `audit_events`, `audit_security_events` |
 | `core_settings` | `settings_global_values`, `settings_team_values`, `settings_user_values`, `settings_security_values` |
 | `core_notifications` | `notifications`, `notification_recipients`, `notification_email_addresses`, `notification_email_preferences`, `realtime_events` |
 | `core_exports` | `export_requests`, `export_artifacts`, `render_credentials` |
+| `optional_chat` | `conversations`, `direct_conversation_pairs`, `conversation_memberships`, `conversation_timeline_entries` |
 | `shared` | `cache`, `cache_locks`, `jobs`, `job_batches`, `failed_jobs`, `failed_job_acknowledgements`, `outbox_events`, `outbox_consumed_events`, `table_saved_views`, `table_saved_view_defaults`, `module_global_states`, `module_team_states`, `module_activation_schedules`, `module_activation_history` |
 | `public` allowlist | `migrations`, package-owned diagnostics tables such as Telescope and Pulse tables |
 

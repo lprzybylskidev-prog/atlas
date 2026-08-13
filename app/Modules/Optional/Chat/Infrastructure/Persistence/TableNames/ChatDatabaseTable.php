@@ -12,6 +12,10 @@ final class ChatDatabaseTable
 
     public const CONVERSATION_MEMBERSHIPS = DatabaseSchema::OPTIONAL_CHAT.'.conversation_memberships';
 
+    public const DIRECT_CONVERSATION_PAIRS = DatabaseSchema::OPTIONAL_CHAT.'.direct_conversation_pairs';
+
+    public const CONVERSATION_TIMELINE_ENTRIES = DatabaseSchema::OPTIONAL_CHAT.'.conversation_timeline_entries';
+
     public const MESSAGES = DatabaseSchema::OPTIONAL_CHAT.'.messages';
 
     public const CALLS = DatabaseSchema::OPTIONAL_CHAT.'.calls';

@@ -1,6 +1,6 @@
 # Phase 31 — Optional internal company chat, calendar, calls, meetings, and realtime communication
 
-**Status:** `in progress` (`P31-W01` and `P31-W02` complete; `P31-W03` is next)
+**Status:** `in progress` (`P31-W01` through `P31-W03` complete; `P31-W04` is next)
 
 ## Objective
 
@@ -590,17 +590,17 @@ Do not put private message body content into structural entries.
 
 ### Tasks
 
-- [ ] Implement direct/group/team/meeting conversation models.
-- [ ] Enforce canonical DM uniqueness.
-- [ ] Preserve group owner/member lifecycle.
-- [ ] Preserve Team-owned membership synchronization.
-- [ ] Add system-owned Meeting conversations.
-- [ ] Keep one Meeting conversation per recurring series.
-- [ ] Apply invitation/removal access to Meeting chat.
-- [ ] Keep declined invitee Meeting-chat visibility.
-- [ ] Preserve conversation history.
-- [ ] Add structural timeline entries.
-- [ ] Add membership/concurrency/authorization tests.
+- [x] Implement direct/group/team/meeting conversation models.
+- [x] Enforce canonical DM uniqueness.
+- [x] Preserve group owner/member lifecycle.
+- [x] Preserve Team-owned membership synchronization.
+- [x] Add system-owned Meeting conversations.
+- [x] Keep one Meeting conversation per recurring series.
+- [x] Apply invitation/removal access to Meeting chat.
+- [x] Keep declined invitee Meeting-chat visibility.
+- [x] Preserve conversation history.
+- [x] Add structural timeline entries.
+- [x] Add membership/concurrency/authorization tests.
 
 ---
 
