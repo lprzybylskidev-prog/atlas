@@ -1,6 +1,6 @@
 # Chat module
 
-Canonical accepted product contract for the future optional internal-company Chat module. Implementation is scheduled in [Phase 30](../roadmap/phase-30-chat.md) and has not started.
+Canonical accepted product contract for the future optional internal-company Chat module. Implementation is scheduled in [Phase 31](../roadmap/phase-31-chat.md) and has not started.
 
 ## Purpose and boundary
 
@@ -52,7 +52,7 @@ Voice messages are Files-owned attachments with a maximum recording length of 15
 
 ## Realtime, presence, and unread state
 
-Phase 30 extends the existing realtime foundation with canonical Laravel broadcasting and Laravel Reverb. WebSockets deliver events but are not the source of truth. Persisted application state remains authoritative, reconnect reconciles missed state, and retry cannot lose or duplicate persisted messages or permanently corrupt read state.
+Phase 31 extends the existing realtime foundation with canonical Laravel broadcasting and Laravel Reverb. WebSockets deliver events but are not the source of truth. Persisted application state remains authoritative, reconnect reconciles missed state, and retry cannot lose or duplicate persisted messages or permanently corrupt read state.
 
 Every private and presence channel requires explicit user/conversation/Team authorization. Guessing a conversation identifier grants no access.
 
@@ -68,7 +68,7 @@ The UI follows Atlas accessibility, keyboard/focus, responsive, localization, an
 
 ## Browser-native notifications
 
-Chat messages and mentions do not create Notifications-module records and are not emailed. Phase 30 adds one shared browser-native delivery capability usable by existing system Notifications and Chat without merging their persistence or domains.
+Chat messages and mentions do not create Notifications-module records and are not emailed. Phase 31 adds one shared browser-native delivery capability usable by existing system Notifications and Chat without merging their persistence or domains.
 
 Native delivery is controlled independently by application configuration, per-user system-Notification and Chat preferences, and browser permission. Permission is requested only after intentional user action. A minimal Chat preview may open/focus Atlas and navigate the Chat modal to the correct conversation.
 
@@ -92,10 +92,10 @@ Chat audits structural and administrative operations using its typed audit catal
 
 ## Encryption boundary
 
-Chat does not implement end-to-end encryption, application-level message encryption, per-message envelopes, or conversation/device key management. Infrastructure-level encryption at rest protects Atlas persistent production data as a whole in Phase 31. It does not replace Chat application authorization or claim protection from authorized root access while storage is unlocked.
+Chat does not implement end-to-end encryption, application-level message encryption, per-message envelopes, or conversation/device key management. Infrastructure-level encryption at rest protects Atlas persistent production data as a whole in Phase 32. It does not replace Chat application authorization or claim protection from authorized root access while storage is unlocked.
 
 ## Explicitly out of scope
 
-Phase 30 excludes public/external users, public Internet Chat, requests or blocking, friend/contact workflows, invite links, join requests, moderator/admin group roles, archive, conversation muting or schedules, scheduled messages, nested threads, calls, screen sharing, bots, webhooks, slash commands, GIF services, generic business-object contexts, business-module event delivery, external URL previews, multiple floating windows, a primary dedicated Chat page, email delivery, Notifications persistence, E2EE, and Chat-specific application encryption.
+Phase 31 excludes public/external users, public Internet Chat, requests or blocking, friend/contact workflows, invite links, join requests, moderator/admin group roles, archive, conversation muting or schedules, scheduled messages, nested threads, calls, screen sharing, bots, webhooks, slash commands, GIF services, generic business-object contexts, business-module event delivery, external URL previews, multiple floating windows, a primary dedicated Chat page, email delivery, Notifications persistence, E2EE, and Chat-specific application encryption.
 
-The complete binding implementation and acceptance checklist remains in [Phase 30](../roadmap/phase-30-chat.md).
+The complete binding implementation and acceptance checklist remains in [Phase 31](../roadmap/phase-31-chat.md).

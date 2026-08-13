@@ -1,4 +1,4 @@
-# Phase 30 — Optional internal company chat and realtime messaging
+# Phase 31 — Optional internal company chat and realtime messaging
 
 **Status:** `not started`
 
@@ -46,7 +46,7 @@ Do not create an artificial 400-user product limit.
 
 ## Dependencies
 
-Phase 30 builds on the already completed Atlas foundations, including:
+Phase 31 builds on the already completed Atlas foundations, including:
 
 - modular architecture and public contracts;
 - Authorization and Teams;
@@ -64,6 +64,7 @@ Phase 30 builds on the already completed Atlas foundations, including:
 - queues and scheduler;
 - Phase 28 foundation repair;
 - Phase 29 foundation acceptance closure.
+- Phase 30 Authorization, Team Structure, and mutation feedback repair.
 
 Chat must not depend on TimeTracking or future debt-collection business modules.
 
@@ -106,7 +107,7 @@ Do not introduce a second competing realtime architecture.
 
 ---
 
-## P30-W01 — Module boundary, activation, persistence, and permissions
+## P31-W01 — Module boundary, activation, persistence, and permissions
 
 ### Contract
 
@@ -182,7 +183,7 @@ that grants an Administrator general access to private Chat content.
 
 ---
 
-## P30-W02 — Direct conversations, groups, membership, and Team conversations
+## P31-W02 — Direct conversations, groups, membership, and Team conversations
 
 ### Conversation types
 
@@ -331,7 +332,7 @@ System timeline entries are not Notifications records.
 
 ---
 
-## P30-W03 — Messages, editing, replies, reactions, forwarding, pins, bookmarks, and drafts
+## P31-W03 — Messages, editing, replies, reactions, forwarding, pins, bookmarks, and drafts
 
 ### Core message behavior
 
@@ -525,7 +526,7 @@ Use an explicit client/idempotency identifier or equivalent canonical mechanism.
 
 ---
 
-## P30-W04 — Files, attachments, content viewer, and voice messages
+## P31-W04 — Files, attachments, content viewer, and voice messages
 
 ### Files ownership
 
@@ -651,7 +652,7 @@ Do not create a future calls phase in this task.
 
 ---
 
-## P30-W05 — Realtime, Laravel Reverb, presence, typing, delivery, and read state
+## P31-W05 — Realtime, Laravel Reverb, presence, typing, delivery, and read state
 
 ### Realtime architecture
 
@@ -781,7 +782,7 @@ Support:
 
 ---
 
-## P30-W06 — Chat launcher, unread dropdown, modal UI, responsive behavior, and conversation navigation
+## P31-W06 — Chat launcher, unread dropdown, modal UI, responsive behavior, and conversation navigation
 
 ### Shell integration
 
@@ -935,7 +936,7 @@ Follow existing Atlas UI/accessibility contracts for:
 
 ---
 
-## P30-W07 — Browser-native notifications and preferences
+## P31-W07 — Browser-native notifications and preferences
 
 ### Boundary with Notifications
 
@@ -1031,7 +1032,7 @@ No dedicated Chat page is required.
 
 ---
 
-## P30-W08 — Search and Meilisearch
+## P31-W08 — Search and Meilisearch
 
 ### Search foundation
 
@@ -1123,7 +1124,7 @@ Do not index unnecessary secrets or unrelated data.
 
 ---
 
-## P30-W09 — Retention, privacy boundary, Admin operations, and Audit
+## P31-W09 — Retention, privacy boundary, Admin operations, and Audit
 
 ### Retention configuration
 
@@ -1291,7 +1292,7 @@ Do not apply debtor anonymization rules automatically to employee Chat history.
 
 ---
 
-## P30-W10 — Participant-authorized exports and conversation history
+## P31-W10 — Participant-authorized exports and conversation history
 
 ### Export contract
 
@@ -1332,7 +1333,7 @@ Exports must not expose private source metadata from forwarded messages.
 
 ---
 
-## P30-W11 — Scale, performance, full browser workflows, and acceptance closure
+## P31-W11 — Scale, performance, full browser workflows, and acceptance closure
 
 ### Scale target
 
@@ -1557,7 +1558,7 @@ Do not rewrite unrelated completed phase history.
 
 ## Explicit out-of-scope behavior
 
-The following are intentionally outside Phase 30 unless a later explicit phase adds them:
+The following are intentionally outside Phase 31 unless a later explicit phase adds them:
 
 - public/external users;
 - public Internet Chat;
@@ -1624,7 +1625,7 @@ Do not create future phases for these items during this task.
 
 ## Completion criteria
 
-Phase 30 is complete only when:
+Phase 31 is complete only when:
 
 - [ ] Chat is a fully optional Atlas module governed by ModuleGate and Authorization.
 - [ ] Direct conversations work globally across Teams.
@@ -1657,4 +1658,4 @@ Phase 30 is complete only when:
 - [ ] Relevant backend, frontend, Search, Files, realtime, and browser tests pass.
 - [ ] Canonical module and cross-cutting documentation is current.
 - [ ] No accepted Chat behavior exists only in historical chat context.
-- [ ] Phase 31 deployment has not been started as part of this phase-planning task.
+- [ ] Phase 32 deployment has not been started as part of this phase-planning task.

@@ -39,7 +39,7 @@ Do not replace this index after the initial technical foundation is completed. C
 
 ## Current phase
 
-- Phase: [Phase 30 — Optional internal company chat and realtime messaging](docs/roadmap/phase-30-chat.md)
+- Phase: [Phase 30 — Authorization, Team Structure, and mutation feedback repair](docs/roadmap/phase-30-authorization-team-structure-feedback-repair.md)
 - Status: `not started`
 
 ## Roadmap dependency repair note
@@ -55,6 +55,8 @@ After Phase 27a completed, further foundation review consolidated the unstarted 
 After Phase 28 completed, an independent post-completion acceptance review identified concrete gaps in the implementation of some accepted contracts. Phase 28 remains complete and its historical implementation record is not rewritten. A new sequential Phase 29 was therefore added as a later foundation acceptance repair. The previously unstarted deployment Phase 29 moved to Phase 30, and the previously unstarted final-verification Phase 30 moved to Phase 31. No deployment or final-verification scope was removed.
 
 Before the then-current Phase 30 deployment began, a new internal company Chat requirement was accepted. Chat depends on the already completed Files, Search, Teams, Module Activation, shared UI, and realtime foundations, so Chat became the new Phase 30. The previously unstarted deployment Phase 30 moved to Phase 31, and the previously unstarted final-verification Phase 31 moved to Phase 32. No deployment or final-verification scope was removed, and the earlier Phase 29/30/31 reorder history above remains unchanged.
+
+Chat had already been planned as Phase 30 but had not started when manual review of the completed Teams and Authorization foundation exposed a coherent set of Team Structure, authorization presentation, mutation-feedback, and provenance problems. Because Teams and Authorization are shared foundations used by Chat and later modules, the repair must land before Chat. A new Phase 30 was inserted; the previous Chat Phase 30 moved to Phase 31, deployment Phase 31 moved to Phase 32, and final verification Phase 32 moved to Phase 33. No Chat, deployment, or final-verification scope was removed.
 
 ## Phase index
 
@@ -346,32 +348,42 @@ Close concrete post-Phase-28 acceptance gaps in localization, DataTable responsi
 
 [Open implementation contract and tasks](docs/roadmap/phase-29-foundation-acceptance-repair.md)
 
-### Phase 30 — Optional internal company chat and realtime messaging
+### Phase 30 — Authorization, Team Structure, and mutation feedback repair
+
+**Status:** `not started`
+
+Repair Authorization assignment presentation and provenance semantics, make Team Edit authorization read-only, rebuild Team Structure around explicit structural roles and multi-manager relationships, and close silent mutation and flash-message feedback defects before Chat begins.
+
+Depends on the completed Authorization, Teams, manager hierarchy, Audit, Settings and Localization, sessions/active-Team, shared UI, Admin mode, Phase 28, and Phase 29 foundations.
+
+[Open implementation contract and tasks](docs/roadmap/phase-30-authorization-team-structure-feedback-repair.md)
+
+### Phase 31 — Optional internal company chat and realtime messaging
 
 **Status:** `not started`
 
 Implement the optional Atlas-owned internal company Chat module with direct, group, and Team conversations, Files-owned attachments and voice messages, Reverb realtime delivery, authorization-safe Search, retention, participant exports, browser alerts, and an Admin privacy boundary.
 
-Depends on the completed Files, Search, Teams, Authorization, Module Activation, shared UI, Notifications/realtime, Audit, Settings, Health, queue/scheduler, and export foundations, plus Phases 28 and 29.
+Depends on the completed Files, Search, Teams, Authorization, Module Activation, shared UI, Notifications/realtime, Audit, Settings, Health, queue/scheduler, and export foundations, plus Phases 28, 29, and 30.
 
-[Open implementation contract and tasks](docs/roadmap/phase-30-chat.md)
+[Open implementation contract and tasks](docs/roadmap/phase-31-chat.md)
 
-### Phase 31 — Private production deployment, installer, backup, restore, and rollback
+### Phase 32 — Private production deployment, installer, backup, restore, and rollback
 
 **Status:** `not started`
 
 Implement the private single-host/VM Docker Compose topology, interactive installer, encrypted persistent production storage boundary, independently encrypted portable/off-host backup artifacts, database and Files backup, restore, exact-release deployment, readiness, and rollback.
 
-Depends on Phases 28, 29, and 30. Phase 28 provides reproducible images, runtime configuration, dependency readiness, queue/scheduler parity, ClamAV/PDF/Search/File smoke foundations, and an internal HTTP smoke stack. The Phase 31 baseline is private/intranet and does not require public Internet exposure; TLS supports internal/company certificates and keeps Let's Encrypt/ACME optional.
+Depends on Phases 28, 29, 30, and 31. Phase 28 provides reproducible images, runtime configuration, dependency readiness, queue/scheduler parity, ClamAV/PDF/Search/File smoke foundations, and an internal HTTP smoke stack. The Phase 32 baseline is private/intranet and does not require public Internet exposure; TLS supports internal/company certificates and keeps Let's Encrypt/ACME optional.
 
-[Open implementation contract and tasks](docs/roadmap/phase-31-deployment-backup-rollback.md)
+[Open implementation contract and tasks](docs/roadmap/phase-32-deployment-backup-rollback.md)
 
-### Phase 32 — Final test audit, full-app E2E review, and foundation verification
+### Phase 33 — Final test audit, full-app E2E review, and foundation verification
 
 **Status:** `not started`
 
 Perform a full test-suite audit, browser-level E2E review of the whole application, architecture/security/documentation verification, Chat and restore/deployment checks, and final technical-foundation hardening before debt collection business modules begin.
 
-Depends on Phases 28, 29, 30, and 31. Phase 32 remains the final full-app release verification and does not replace Phase 28 foundation repair, Phase 29 acceptance repair, Phase 30 Chat, or Phase 31 deployment/recovery work.
+Depends on Phases 28, 29, 30, 31, and 32. Phase 33 remains the final full-app release verification and does not replace Phase 28 foundation repair, Phase 29 acceptance repair, Phase 30 Authorization/Team Structure repair, Phase 31 Chat, or Phase 32 deployment/recovery work.
 
-[Open implementation contract and tasks](docs/roadmap/phase-32-final-verification.md)
+[Open implementation contract and tasks](docs/roadmap/phase-33-final-verification.md)

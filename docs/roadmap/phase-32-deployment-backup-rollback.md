@@ -1,4 +1,4 @@
-# Phase 31 — Private production deployment, installer, backup, restore, and rollback
+# Phase 32 — Private production deployment, installer, backup, restore, and rollback
 
 **Status:** `not started`
 
@@ -8,7 +8,7 @@ Deliver a reproducible, private, self-hosted production deployment model for Atl
 
 Atlas is primarily an internal company system. The baseline production deployment does not require public Internet exposure.
 
-Phase 31 must provide:
+Phase 32 must provide:
 
 - private/intranet production topology;
 - one supported production installation workflow;
@@ -30,7 +30,7 @@ Kubernetes, Docker Swarm, distributed clustering, multi-node high availability, 
 
 ## Dependencies
 
-Phase 31 depends on the completed technical foundation, including:
+Phase 32 depends on the completed technical foundation, including:
 
 - production runtime images;
 - runtime configuration validation;
@@ -46,11 +46,11 @@ Phase 31 depends on the completed technical foundation, including:
 - runtime smoke;
 - security and privacy foundations;
 - completed Phase 28 and Phase 29 acceptance work.
-- completed Phase 30 Chat module and its Reverb/runtime requirements.
+- completed Phase 31 Chat module and its Reverb/runtime requirements.
 
-Phase 31 must build on those capabilities instead of replacing or redesigning them.
+Phase 32 must build on those capabilities instead of replacing or redesigning them.
 
-## P31-W01 — Private production topology
+## P32-W01 — Private production topology
 
 ### Contract
 
@@ -98,7 +98,7 @@ Host/network administrators remain responsible for infrastructure-level network 
 - [ ] Add production topology checks where practical.
 - [ ] Document Kubernetes, Swarm, clustering, and public SaaS deployment as out of baseline scope.
 
-## P31-W02 — Production TLS and reverse proxy
+## P32-W02 — Production TLS and reverse proxy
 
 ### Contract
 
@@ -128,7 +128,7 @@ Public DNS and public certificate issuance are not baseline requirements.
 - [ ] Document trusted internal HTTP deployment only where explicitly accepted by the installation operator.
 - [ ] Keep certificate secrets outside source control.
 
-## P31-W03 — Durable PostgreSQL and local Files storage
+## P32-W03 — Durable PostgreSQL and local Files storage
 
 ### Contract
 
@@ -155,7 +155,7 @@ storage abstraction
 
 Atlas business code and the Files module must not become hardcoded to a specific storage backend.
 
-S3-compatible storage is not required by Phase 31.
+S3-compatible storage is not required by Phase 32.
 
 Do not implement AWS-specific coupling merely for future flexibility.
 
@@ -172,7 +172,7 @@ Do not implement AWS-specific coupling merely for future flexibility.
 - [ ] Preserve the existing backend-neutral storage abstraction.
 - [ ] Document S3-compatible storage as an optional/future backend, not the baseline.
 
-## P31-W04 — Production storage and backup encryption at rest
+## P32-W04 — Production storage and backup encryption at rest
 
 ### Contract
 
@@ -316,7 +316,7 @@ Restore must:
 - [ ] Document organizational/root-access boundaries accurately.
 - [ ] Add production-like verification for encrypted backup/decrypt/verify/restore behavior.
 
-## P31-W05 — Interactive production installer
+## P32-W05 — Interactive production installer
 
 ### Contract
 
@@ -479,7 +479,7 @@ The installer must not automatically repartition, format, or encrypt host disks.
 - [ ] Document the fresh-host installation procedure.
 - [ ] Test installation against a clean supported production-like host/VM.
 
-## P31-W06 — Database and Files backup
+## P32-W06 — Database and Files backup
 
 ### Contract
 
@@ -515,7 +515,7 @@ Possible deployment-specific destinations may include:
 - S3-compatible object storage;
 - another future backend.
 
-Phase 31 must not build multiple speculative backup adapters merely to support every possible destination.
+Phase 32 must not build multiple speculative backup adapters merely to support every possible destination.
 
 It is acceptable for Atlas to produce stable backup artifacts that company infrastructure then copies off-host.
 
@@ -546,7 +546,7 @@ The backup destination must remain deployment-neutral and must not be hardcoded 
 - [ ] Keep S3-compatible backup storage optional.
 - [ ] Document that same-host-only backup does not protect against complete host loss.
 
-## P31-W07 — Restore and recovery
+## P32-W07 — Restore and recovery
 
 ### Contract
 
@@ -600,7 +600,7 @@ safe cleanup of temporary plaintext material
 - [ ] Execute and verify a real restore drill.
 - [ ] Verify representative restored application data.
 
-## P31-W08 — Exact-release deployment
+## P32-W08 — Exact-release deployment
 
 ### Contract
 
@@ -656,7 +656,7 @@ Do not edit application source manually inside running production containers.
 - [ ] Run post-switch readiness.
 - [ ] Keep application source immutable inside running containers.
 
-## P31-W09 — Rollback and migration safety
+## P32-W09 — Rollback and migration safety
 
 ### Contract
 
@@ -682,7 +682,7 @@ Risky or irreversible migrations require:
 - [ ] Document risky/irreversible migration procedure.
 - [ ] Test representative safe rollback.
 
-## P31-W10 — Operator commands and release metadata
+## P32-W10 — Operator commands and release metadata
 
 ### Contract
 
@@ -737,11 +737,11 @@ Release information should be available to appropriate operational surfaces such
 - [ ] Record release metadata.
 - [ ] Expose release metadata through appropriate Admin/readiness/log/Sentry surfaces.
 
-## P31-W11 — Production durability and operational acceptance
+## P32-W11 — Production durability and operational acceptance
 
 ### Contract
 
-Phase 31 must finish with a real production-like proof, not only configuration-file inspection.
+Phase 32 must finish with a real production-like proof, not only configuration-file inspection.
 
 At minimum test a clean supported host/VM installation workflow:
 
@@ -841,7 +841,7 @@ representative safe rollback succeeds
 
 ## Completion criteria
 
-Phase 31 is complete only when:
+Phase 32 is complete only when:
 
 - [ ] Atlas can be installed on a clean supported internal production host using the canonical installer.
 - [ ] Production baseline is private/intranet/LAN/VPN rather than public-Internet dependent.

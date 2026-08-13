@@ -17,5 +17,5 @@ matching `ATLAS_SECRET_*_FILE` variable from `docker/production/.env.example`.
 The runtime entrypoint also accepts the standard `<VARIABLE>_FILE` convention
 when a different orchestrator mounts secrets outside this Compose definition.
 
-The files in this directory are ignored. Phase 31 will own host provisioning,
+The files in this directory are ignored. Phase 32 will own host provisioning,
 secret rotation, HTTPS, release switching, deployment, and rollback.

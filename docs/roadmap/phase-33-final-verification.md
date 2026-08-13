@@ -1,4 +1,4 @@
-# Phase 32 — Final test audit, full-app E2E review, and foundation verification
+# Phase 33 — Final test audit, full-app E2E review, and foundation verification
 
 **Status:** `not started`
 
@@ -10,8 +10,9 @@ Verify the complete technical foundation after every prerequisite phase is finis
 
 - [Phase 28 — Foundation repair and consolidation](phase-28-foundation-repair-and-consolidation.md)
 - [Phase 29 — Foundation acceptance repair and rendered workflow closure](phase-29-foundation-acceptance-repair.md)
-- [Phase 30 — Optional internal company chat and realtime messaging](phase-30-chat.md)
-- [Phase 31 — Private production deployment, installer, backup, restore, and rollback](phase-31-deployment-backup-rollback.md)
+- [Phase 30 — Authorization, Team Structure, and mutation feedback repair](phase-30-authorization-team-structure-feedback-repair.md)
+- [Phase 31 — Optional internal company chat and realtime messaging](phase-31-chat.md)
+- [Phase 32 — Private production deployment, installer, backup, restore, and rollback](phase-32-deployment-backup-rollback.md)
 - [Quality gates and git](../operations/quality-gates-and-git.md)
 - [Testing environment](../operations/testing-environment.md)
 - [Production deployment, backup, and recovery](../operations/production-deployment-backup-and-recovery.md)
@@ -19,17 +20,18 @@ Verify the complete technical foundation after every prerequisite phase is finis
 ## Implementation contract
 
 - Final verification is not a superficial test pass. It must prove that the Atlas can be cloned as a stable corporate base and that its important behavior is protected by meaningful automated tests.
-- Phase 32 owns the full test-suite review. It must identify weak, missing, duplicated, overly implementation-focused, or misleading tests across PHPUnit, Vitest, and Playwright.
-- Phase 32 owns a full browser-level application review through E2E coverage. Every shipped shell, major Admin area, operational workflow, localization surface, theme surface, permission/module gate, export/import/file/search/notification workflow, and critical error/empty/loading state must be exercised either by Playwright or by a documented lower-level test with a clear rationale.
+- Phase 33 owns the full test-suite review. It must identify weak, missing, duplicated, overly implementation-focused, or misleading tests across PHPUnit, Vitest, and Playwright.
+- Phase 33 owns a full browser-level application review through E2E coverage. Every shipped shell, major Admin area, operational workflow, localization surface, theme surface, permission/module gate, export/import/file/search/notification workflow, and critical error/empty/loading state must be exercised either by Playwright or by a documented lower-level test with a clear rationale.
 - Existing tests must be evaluated for product value, not only pass/fail status. Tests that only prove that an implementation detail exists must be strengthened, replaced, or documented as structural guardrails.
 - Rendered UI behavior must be verified where backend tests cannot prove the user experience. This includes visible copy, language switching, toast/notification behavior, table interactions, dialogs, destructive confirmations, empty states, dark/light theme rendering, browser console cleanliness, and asset/API request cleanliness.
-- For localization, Phase 32 must prove that Polish and English are complete in rendered UI, backend-provided props, validation messages, flash/toast messages, notification text, breadcrumbs, forms, tables, and operational helper copy. It must include negative assertions against accidental English user-facing copy in Polish mode except for allowed technical diagnostic values.
-- For messaging, Phase 32 must prove ownership and noise limits for user feedback. Workflows such as exports, imports, retries, scans, rebuilds, managed processes, and integrations must not create duplicate flashes, toast storms, or competing terminal notifications.
+- For localization, Phase 33 must prove that Polish and English are complete in rendered UI, backend-provided props, validation messages, flash/toast messages, notification text, breadcrumbs, forms, tables, and operational helper copy. It must include negative assertions against accidental English user-facing copy in Polish mode except for allowed technical diagnostic values.
+- For messaging, Phase 33 must prove ownership and noise limits for user feedback. Workflows such as exports, imports, retries, scans, rebuilds, managed processes, and integrations must not create duplicate flashes, toast storms, or competing terminal notifications.
 - The E2E suite must be treated as an application walkthrough, not just a smoke test. It should cover the real login path, active-team selection, Admin mode, navigation, permissions, module activation, core operational screens, and representative successful/failing workflows.
 - The review must produce either implemented test hardening in this phase or explicit follow-up phases for any remaining gaps that are too large to close safely before final release.
 - Cross-check every accepted decision against `AGENTS.md`, this file, documentation, ADRs, and tests.
 - No accepted behavior may exist only in historical chat.
 - Verify module activation, dependency blocking, ineffective permissions, role template behavior, admin mode, impersonation, manager hierarchy, TimeTracking isolation, Chat, reports, exports, imports, files, search, notifications, managed processes, light/dark themes, translations, backup/restore, deploy/rollback, liveness/readiness, and security controls.
+- Reverify the repaired Teams and Authorization foundation: Team Edit read-only authorization, User Edit role-derived permission behavior, current Source semantics, the Employee / Manager / Head Manager Team Structure role model, Head Manager whole-Team scope, multi-manager relationships, Team Structure drag and drop plus its mobile/keyboard alternative, visible mutation errors, flash-message delivery and non-duplication, and the unresolved-interpolation guard.
 - Chat verification must cover module activation, permission behavior, canonical direct-conversation uniqueness, Team Chat membership synchronization, the Admin privacy boundary, Search authorization, Files/ClamAV attachments, voice messages, Reverb/realtime and reconciliation, unread/dropdown/modal behavior, browser-native notifications, retention, localization, mobile behavior, and browser console/network cleanliness.
 - Review starter cloning and namespace/application identity replacement.
 - Tag a stable release only after complete verification.
@@ -74,6 +76,7 @@ Verify the complete technical foundation after every prerequisite phase is finis
 - [ ] Verify flash/toast/notification behavior manually and through E2E for representative workflows.
 - [ ] Verify impersonation.
 - [ ] Verify module activation.
+- [ ] Reverify Team Edit read-only authorization, User Edit role-derived permissions, current Source semantics, structural roles, Head Manager whole-Team scope, multi-manager relationships, drag/drop plus keyboard/mobile assignment, visible mutation errors, flash delivery/non-duplication, and unresolved-interpolation protection.
 - [ ] Verify Chat module activation and permission behavior.
 - [ ] Verify canonical Chat direct-conversation uniqueness and Team Chat membership synchronization.
 - [ ] Verify that Admin cannot bypass private Chat content authorization.
