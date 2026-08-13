@@ -532,6 +532,7 @@ describe('shared UI guardrails', () => {
         const uiState = Object.entries(vueFiles).find(([file]) => file.endsWith('/UiState.vue'))?.[1];
         const noticeBanner = Object.entries(vueFiles).find(([file]) => file.endsWith('/NoticeBanner.vue'))?.[1];
         const statusBadge = Object.entries(vueFiles).find(([file]) => file.endsWith('/StatusBadge.vue'))?.[1];
+        const severityBadge = Object.entries(vueFiles).find(([file]) => file.endsWith('/SeverityBadge.vue'))?.[1];
         const statusBadgeUtil = Object.entries(tsFiles).find(([file]) => file.endsWith('/statusBadge.ts'))?.[1];
         const iconTile = Object.entries(vueFiles).find(([file]) => file.endsWith('/IconTile.vue'))?.[1];
         const operationalTile = Object.entries(vueFiles).find(([file]) => file.endsWith('/OperationalTile.vue'))?.[1];
@@ -568,6 +569,9 @@ describe('shared UI guardrails', () => {
         expect(noticeBanner).toBeDefined();
         expect(noticeBanner).toContain("tone?: 'info' | 'success' | 'warning' | 'danger'");
         expect(statusBadge).toBeDefined();
+        expect(statusBadge).toContain('data-ui="status-badge"');
+        expect(severityBadge).toBeDefined();
+        expect(severityBadge).toContain('data-ui="status-badge"');
         expect(statusBadge).toContain('value?: boolean | string');
         expect(statusBadge).toContain('icon?: Component');
         expect(statusBadgeUtil).toBeDefined();

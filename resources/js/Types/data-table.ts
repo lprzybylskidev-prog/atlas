@@ -1,5 +1,24 @@
 import type { AtlasAction, AtlasBulkAction } from './actions';
 
+export const dataTableColumnFormats = [
+    'boolean',
+    'activation-status',
+    'count',
+    'date',
+    'datetime',
+    'file-size',
+    'list',
+    'money',
+    'number',
+    'percent',
+    'severity',
+    'status',
+    'status-badge',
+    'time',
+] as const;
+
+export type DataTableColumnFormat = (typeof dataTableColumnFormats)[number];
+
 export type DataTableColumnAccess = 'allowed' | 'forbidden';
 export type DataTableColumnVisibility = 'visible' | 'hidden';
 
@@ -10,21 +29,7 @@ export interface DataTableColumn<TRow extends Record<string, unknown>> {
     hidden?: boolean;
     access?: DataTableColumnAccess;
     visibility?: DataTableColumnVisibility;
-    format?:
-        | 'boolean'
-        | 'activation-status'
-        | 'count'
-        | 'date'
-        | 'datetime'
-        | 'file-size'
-        | 'list'
-        | 'money'
-        | 'number'
-        | 'percent'
-        | 'severity'
-        | 'status'
-        | 'status-badge'
-        | 'time';
+    format?: DataTableColumnFormat;
 }
 
 export type DataTableAction<TRow extends Record<string, unknown>> = AtlasAction<TRow>;

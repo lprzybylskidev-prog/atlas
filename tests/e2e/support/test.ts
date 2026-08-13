@@ -58,6 +58,29 @@ export async function expectNoUntranslatedAtlasCopy(page: Page): Promise<void> {
     expect(visibleCopy, 'rendered UI must not expose an untranslated Atlas key').not.toMatch(untranslatedAtlasCopyPattern);
 }
 
+export async function expectNoClippedDataTableBadges(page: Page): Promise<void> {
+    const clippedBadges = await page.locator('table [data-ui="status-badge"]').evaluateAll((badges) =>
+        badges.flatMap((badge) => {
+            const clippingAncestors: string[] = [];
+            let ancestor = badge.parentElement;
+
+            while (ancestor !== null && ancestor.tagName !== 'TD') {
+                const style = window.getComputedStyle(ancestor);
+
+                if ([style.overflow, style.overflowX, style.overflowY].some((overflow) => overflow === 'hidden' || overflow === 'clip')) {
+                    clippingAncestors.push(`${ancestor.tagName.toLowerCase()}.${String(ancestor.className)}`);
+                }
+
+                ancestor = ancestor.parentElement;
+            }
+
+            return clippingAncestors.length === 0 ? [] : [{ label: badge.textContent?.trim() ?? '', clippingAncestors }];
+        }),
+    );
+
+    expect(clippedBadges, 'DataTable badges must not be wrapped by clipping or truncating content').toEqual([]);
+}
+
 const test = base.extend<{ page: Page }>({
     page: async ({ page }, use) => {
         const browserErrors = attachBrowserConsoleGuards(page);
@@ -66,6 +89,7 @@ const test = base.extend<{ page: Page }>({
 
         if (!page.isClosed() && (await page.locator('body').count()) > 0) {
             await expectNoUntranslatedAtlasCopy(page);
+            await expectNoClippedDataTableBadges(page);
         }
 
         expect(browserErrors, 'browser console, runtime, and monitored asset requests should stay clean').toEqual([]);

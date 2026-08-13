@@ -50,7 +50,11 @@ const badgeClass = computed(() => {
 </script>
 
 <template>
-    <span class="inline-flex items-center gap-1.5 rounded-full px-2 py-1 text-xs font-medium ring-1" :class="badgeClass">
+    <span
+        data-ui="status-badge"
+        class="inline-flex items-center gap-1.5 rounded-full px-2 py-1 text-xs font-medium ring-1"
+        :class="badgeClass"
+    >
         <component :is="icon" aria-hidden="true" class="h-4 w-4" :stroke-width="1.8" />
         {{ label || 'Info' }}
     </span>

@@ -1,7 +1,7 @@
 import type { Page } from '@playwright/test';
 
 import { completeSignIn } from './support/auth';
-import { expect, expectNoUntranslatedAtlasCopy, test } from './support/test';
+import { expect, expectNoClippedDataTableBadges, expectNoUntranslatedAtlasCopy, test } from './support/test';
 
 const adminUser = {
     email: 'admin@example.test',
@@ -141,8 +141,9 @@ async function expectUsableMain(page: Page): Promise<void> {
     await expect(main).toBeVisible();
     await expect(main).not.toContainText('Server Error');
     await expect(main).not.toContainText('This page could not be found');
-    await expectNoUntranslatedAtlasCopy(page);
     await waitForIdle(page);
+    await expectNoUntranslatedAtlasCopy(page);
+    await expectNoClippedDataTableBadges(page);
 }
 
 async function waitForIdle(page: Page): Promise<void> {

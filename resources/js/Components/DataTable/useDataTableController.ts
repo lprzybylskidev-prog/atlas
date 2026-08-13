@@ -30,6 +30,7 @@ import {
     visibilityFromTableColumnKeys,
 } from './tableColumnState';
 import { readTableLocalState, tableStateStorageKey, writeTableLocalState } from './tableLocalState';
+import { dataTableCellContentClass, dataTableFormatUsesOverflowTooltip } from './dataTableCellPresentation';
 import {
     initialTablePagination,
     initialTableSorting,
@@ -332,14 +333,7 @@ export function useDataTableController<TRow extends Record<string, unknown>>(
 
     function cellTooltipText(value: unknown, columnId: string): string | null {
         const format = props.columns.find((candidate) => candidate.key === columnId)?.format;
-        if (
-            format === 'activation-status' ||
-            format === 'boolean' ||
-            format === 'severity' ||
-            format === 'status' ||
-            format === 'status-badge'
-        )
-            return null;
+        if (!dataTableFormatUsesOverflowTooltip(format)) return null;
         const text = formatting.formattedText(value, format);
         return text === '-' ? null : text;
     }
@@ -357,9 +351,7 @@ export function useDataTableController<TRow extends Record<string, unknown>>(
     function bodyCellContentClass(columnId: string): string {
         if (columnId === 'select') return 'flex justify-center';
         const format = props.columns.find((candidate) => candidate.key === columnId)?.format;
-        return format === 'boolean' || format === 'severity' || format === 'status-badge'
-            ? 'inline-flex max-w-full overflow-visible py-0.5 align-middle'
-            : 'block min-w-0 truncate';
+        return dataTableCellContentClass(format);
     }
 
     function persistLocalState(): void {

@@ -50,6 +50,7 @@ const resolvedIcon = computed(() => (isBoolean.value ? (props.value === true ? I
 
 <template>
     <span
+        data-ui="status-badge"
         class="inline-flex min-h-6 items-center gap-1.5 rounded-md px-2 py-1 text-xs font-semibold ring-1"
         :class="[toneClass[resolvedTone], uppercase ? 'uppercase' : '']"
     >
