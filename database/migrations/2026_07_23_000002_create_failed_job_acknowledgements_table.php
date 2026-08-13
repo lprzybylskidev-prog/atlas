@@ -21,8 +21,8 @@ return new class extends Migration
             $table->string('failed_job_uuid')->unique();
             $table->foreignId('acknowledged_by_user_id')->nullable()->constrained(IdentityDatabaseTable::USERS)->nullOnDelete();
             $table->text('reason')->nullable();
-            $table->timestamp('acknowledged_at');
-            $table->timestamps();
+            $table->timestampTz('acknowledged_at');
+            $table->timestampsTz();
 
             $table->index('acknowledged_at');
         });

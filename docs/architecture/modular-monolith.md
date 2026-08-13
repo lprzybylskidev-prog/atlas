@@ -484,6 +484,10 @@ Apply it consistently to:
 
 Store technical timestamps in UTC where appropriate and convert for presentation and business calendar rules.
 
+Every Atlas-owned date-time column represents a concrete instant unless a canonical domain contract explicitly models a calendar date instead. Such columns use PostgreSQL `timestamp with time zone` (`timestamptz`) through Laravel `timestampTz()`, `dateTimeTz()`, `timestampsTz()`, or `softDeletesTz()`. Atlas migrations must not use `timestamp()`, `dateTime()`, `timestamps()`, `nullableTimestamps()`, `softDeletes()`, or raw `timestamp`/`timestamp without time zone` definitions. Changing `APP_TIMEZONE` or a PostgreSQL session timezone must change presentation and business-calendar interpretation only; it must never reinterpret an already persisted instant.
+
+Use `date` for genuine calendar dates such as settlement-period boundaries. Integer Unix epoch fields are allowed only when required by an explicit framework/runtime persistence contract, such as Laravel queue scheduling and session activity fields; they are not a general alternative to `timestamptz`. A permanent architecture test scans Atlas-owned migrations for timezone-naive timestamp definitions. Vendor-owned development tables outside Atlas persistence, such as Telescope tables in `public`, are outside this migration contract.
+
 ### Migration lifecycle
 
 Maintain a production deployment flag such as:

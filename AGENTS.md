@@ -230,6 +230,7 @@ Read [`docs/architecture/modular-monolith.md`](docs/architecture/modular-monolit
 - Default foreign-key behavior is `RESTRICT`; do not introduce cascading deletion casually.
 - Use `BIGINT` internal identifiers and ULID public identifiers where resources are exposed.
 - Use `Europe/Warsaw` for business time unless a documented contract says otherwise.
+- Every Atlas-owned database column that stores a date-time or concrete instant must use PostgreSQL `timestamp with time zone` through Laravel `timestampTz()`, `dateTimeTz()`, `timestampsTz()`, or `softDeletesTz()`. Timezone-naive `timestamp()`, `dateTime()`, `timestamps()`, `nullableTimestamps()`, `softDeletes()`, and raw `timestamp`/`timestamp without time zone` definitions are forbidden because `APP_TIMEZONE` may change and stored instants must not be reinterpreted. Use `date` for genuine calendar dates and explicitly documented integer epoch fields only where a framework/runtime contract requires them.
 - Before the first production deployment, migrations may be edited in place.
 - Before the first production deployment, fix an incorrect not-yet-deployed create migration in its canonical create migration instead of adding a follow-up repair migration.
 - Do not use PostgreSQL column-position clauses such as `after`.

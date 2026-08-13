@@ -34,7 +34,7 @@ return new class extends Migration
             $table->string('name');
             $table->string('display_name')->nullable();
             $table->string('guard_name');
-            $table->timestamps();
+            $table->timestampsTz();
 
             $table->unique(['name', 'guard_name']);
         });
@@ -49,7 +49,7 @@ return new class extends Migration
             $table->string('name');
             $table->string('display_name')->nullable();
             $table->string('guard_name');
-            $table->timestamps();
+            $table->timestampsTz();
             if ($teams || config('permission.testing')) {
                 $table->unique([$teamForeignKey, 'name', 'guard_name']);
             } else {

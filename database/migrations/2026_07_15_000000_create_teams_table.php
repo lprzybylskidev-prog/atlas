@@ -26,7 +26,7 @@ return new class extends Migration
             $table->unsignedSmallInteger('inactivity_timeout_minutes')->nullable();
             $table->unsignedSmallInteger('session_max_lifetime_minutes')->nullable();
             $table->boolean('is_active')->default(true);
-            $table->timestamps();
+            $table->timestampsTz();
         });
 
         Schema::create(TeamsDatabaseTable::TEAM_USER_ASSIGNMENTS, static function (Blueprint $table): void {
@@ -38,7 +38,7 @@ return new class extends Migration
             $table->unsignedSmallInteger('session_max_lifetime_minutes')->nullable();
             $table->timestampTz('valid_from')->nullable();
             $table->timestampTz('valid_to')->nullable();
-            $table->timestamps();
+            $table->timestampsTz();
 
             $table->index(['team_id', 'user_id']);
             $table->index(['user_id', 'team_id']);
@@ -60,7 +60,7 @@ return new class extends Migration
             $table->foreignId('ended_by_user_id')->nullable()->constrained(IdentityDatabaseTable::USERS)->nullOnDelete();
             $table->text('reason');
             $table->text('end_reason')->nullable();
-            $table->timestamps();
+            $table->timestampsTz();
 
             $table->index(['team_id', 'manager_user_id', 'valid_to']);
             $table->index(['team_id', 'report_user_id', 'valid_to']);
@@ -80,7 +80,7 @@ return new class extends Migration
             $table->json('direct_permission_names');
             $table->json('template_permission_names');
             $table->boolean('is_active')->default(true);
-            $table->timestamps();
+            $table->timestampsTz();
 
             $table->unique(['team_id', 'name']);
             $table->index(['team_id', 'is_active']);
@@ -91,7 +91,7 @@ return new class extends Migration
             $table->foreignId('user_id')->constrained(IdentityDatabaseTable::USERS)->restrictOnDelete();
             $table->foreignId('team_id')->constrained(TeamsDatabaseTable::TEAMS)->restrictOnDelete();
             $table->string('package_name');
-            $table->timestamps();
+            $table->timestampsTz();
 
             $table->unique(['user_id', 'team_id']);
             $table->index(['team_id', 'package_name']);
@@ -117,7 +117,7 @@ return new class extends Migration
             $table->foreignId('updated_by_user_id')->nullable()->constrained(IdentityDatabaseTable::USERS)->nullOnDelete();
             $table->text('update_reason')->nullable();
             $table->unsignedBigInteger('version')->default(1);
-            $table->timestamps();
+            $table->timestampsTz();
 
             $table->unique(['user_id', 'team_id']);
             $table->index(['team_id', 'source_type']);

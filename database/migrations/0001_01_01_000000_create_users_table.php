@@ -19,11 +19,11 @@ return new class extends Migration
             $table->ulid('public_id')->unique();
             $table->string('name');
             $table->string('email')->unique();
-            $table->timestamp('email_verified_at')->nullable();
+            $table->timestampTz('email_verified_at')->nullable();
             $table->string('password');
             $table->text('two_factor_secret')->nullable();
             $table->text('two_factor_recovery_codes')->nullable();
-            $table->timestamp('two_factor_confirmed_at')->nullable();
+            $table->timestampTz('two_factor_confirmed_at')->nullable();
             $table->timestampTz('first_password_set_at')->nullable();
             $table->timestampTz('password_changed_at')->nullable();
             $table->boolean('is_active')->default(true);
@@ -35,7 +35,7 @@ return new class extends Migration
             $table->string('avatar_color', 7)->default('#0f766e');
             $table->ulid('avatar_image_file_public_id')->nullable();
             $table->rememberToken();
-            $table->timestamps();
+            $table->timestampsTz();
 
             $table->index(['is_active', 'email']);
             $table->index('login_locked_until');
@@ -46,7 +46,7 @@ return new class extends Migration
         Schema::create(IdentityDatabaseTable::PASSWORD_RESET_TOKENS, function (Blueprint $table) {
             $table->string('email')->primary();
             $table->string('token');
-            $table->timestamp('created_at')->nullable();
+            $table->timestampTz('created_at')->nullable();
         });
 
         Schema::create(IdentityDatabaseTable::USER_PASSWORD_HISTORIES, function (Blueprint $table) {

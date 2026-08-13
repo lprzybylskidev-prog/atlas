@@ -22,7 +22,7 @@ return new class extends Migration
             $table->ulid('public_id')->unique();
             $table->foreignId('team_user_assignment_id')->constrained(TeamsDatabaseTable::TEAM_USER_ASSIGNMENTS)->restrictOnDelete();
             $table->boolean('tracking_enabled')->default(false);
-            $table->timestamps();
+            $table->timestampsTz();
 
             $table->unique('team_user_assignment_id', 'tt_user_team_settings_assignment_unique');
             $table->index('tracking_enabled');
@@ -38,7 +38,7 @@ return new class extends Migration
             $table->timestampTz('ended_at')->nullable();
             $table->unsignedBigInteger('exact_seconds')->nullable();
             $table->string('closure_reason')->nullable();
-            $table->timestamps();
+            $table->timestampsTz();
 
             $table->index(['team_id', 'started_at']);
             $table->index(['user_id', 'team_id', 'started_at']);
@@ -56,7 +56,7 @@ return new class extends Migration
             $table->timestampTz('started_at');
             $table->timestampTz('ended_at')->nullable();
             $table->unsignedBigInteger('exact_seconds')->nullable();
-            $table->timestamps();
+            $table->timestampsTz();
 
             $table->index(['work_session_id', 'started_at']);
             $table->index(['module_key', 'started_at']);
@@ -75,7 +75,7 @@ return new class extends Migration
             $table->unsignedBigInteger('exact_seconds')->nullable();
             $table->string('closure_reason')->nullable();
             $table->boolean('requires_manager_review')->default(false);
-            $table->timestamps();
+            $table->timestampsTz();
 
             $table->index(['team_id', 'started_at']);
             $table->index(['user_id', 'started_at']);
@@ -90,7 +90,7 @@ return new class extends Migration
             $table->string('reminder_type');
             $table->timestampTz('due_at');
             $table->timestampTz('recorded_at');
-            $table->timestamps();
+            $table->timestampsTz();
 
             $table->unique(['break_id', 'reminder_type'], 'tt_break_reminders_break_type_unique');
             $table->index(['reminder_type', 'due_at']);
@@ -109,7 +109,7 @@ return new class extends Migration
             $table->boolean('requires_comment')->default(false);
             $table->boolean('auto_approval_enabled')->default(false);
             $table->boolean('is_active')->default(true);
-            $table->timestamps();
+            $table->timestampsTz();
 
             $table->unique(['scope_type', 'scope_id', 'category_key'], 'tt_other_work_categories_scope_key_unique');
             $table->index(['scope_type', 'scope_id', 'is_active']);
@@ -130,7 +130,7 @@ return new class extends Migration
             $table->unsignedBigInteger('exact_seconds')->nullable();
             $table->string('closure_reason')->nullable();
             $table->boolean('requires_manager_review')->default(true);
-            $table->timestamps();
+            $table->timestampsTz();
 
             $table->index(['team_id', 'started_at']);
             $table->index(['user_id', 'approval_status']);
@@ -146,7 +146,7 @@ return new class extends Migration
             $table->unsignedInteger('daily_limit_seconds');
             $table->unsignedInteger('maximum_single_break_seconds');
             $table->unsignedInteger('warning_before_maximum_seconds')->default(900);
-            $table->timestamps();
+            $table->timestampsTz();
 
             $table->unique(['scope_type', 'scope_id'], 'tt_break_policies_scope_unique');
         });
@@ -161,7 +161,7 @@ return new class extends Migration
             $table->timestampTz('completed_at')->nullable();
             $table->unsignedInteger('return_grace_seconds')->default(600);
             $table->text('reason');
-            $table->timestamps();
+            $table->timestampsTz();
 
             $table->index(['status', 'scheduled_start_at']);
             $table->index(['started_at', 'completed_at']);
@@ -177,7 +177,7 @@ return new class extends Migration
             $table->timestampTz('interrupted_at');
             $table->timestampTz('return_deadline_at')->nullable();
             $table->timestampTz('returned_at')->nullable();
-            $table->timestamps();
+            $table->timestampsTz();
 
             $table->unique(['maintenance_window_id', 'work_session_id'], 'tt_maintenance_sessions_window_session_unique');
             $table->index(['user_id', 'return_deadline_at']);
@@ -201,7 +201,7 @@ return new class extends Migration
             $table->timestampTz('decided_at')->nullable();
             $table->foreignId('decided_by_user_id')->nullable()->constrained(IdentityDatabaseTable::USERS)->restrictOnDelete();
             $table->text('decision_reason')->nullable();
-            $table->timestamps();
+            $table->timestampsTz();
 
             $table->index(['team_id', 'status']);
             $table->index(['user_id', 'status']);
@@ -221,7 +221,7 @@ return new class extends Migration
             $table->timestampTz('final_started_at')->nullable();
             $table->timestampTz('final_ended_at')->nullable();
             $table->unsignedBigInteger('final_exact_seconds')->nullable();
-            $table->timestamps();
+            $table->timestampsTz();
 
             $table->unique('correction_request_id', 'tt_correction_proposals_request_unique');
         });
@@ -235,7 +235,7 @@ return new class extends Migration
             $table->text('reason')->nullable();
             $table->jsonb('payload')->nullable();
             $table->timestampTz('occurred_at');
-            $table->timestamps();
+            $table->timestampsTz();
 
             $table->index(['correction_request_id', 'occurred_at']);
             $table->index(['actor_user_id', 'occurred_at']);
@@ -253,7 +253,7 @@ return new class extends Migration
             $table->boolean('before_after_preview_confirmed')->default(false);
             $table->text('reason');
             $table->timestampTz('authorized_at');
-            $table->timestamps();
+            $table->timestampsTz();
 
             $table->unique('correction_request_id', 'tt_closed_period_overrides_request_unique');
             $table->index(['actor_user_id', 'authorized_at']);
@@ -263,7 +263,7 @@ return new class extends Migration
             $table->id();
             $table->ulid('public_id')->unique();
             $table->unsignedTinyInteger('period_start_day')->default(10);
-            $table->timestamps();
+            $table->timestampsTz();
         });
 
         Schema::create(TimeTrackingDatabaseTable::SETTLEMENT_PERIODS, static function (Blueprint $table): void {
@@ -273,7 +273,7 @@ return new class extends Migration
             $table->date('ends_on');
             $table->string('status');
             $table->timestampTz('closed_at')->nullable();
-            $table->timestamps();
+            $table->timestampsTz();
 
             $table->unique(['starts_on', 'ends_on'], 'tt_settlement_periods_dates_unique');
             $table->index(['status', 'ends_on']);
