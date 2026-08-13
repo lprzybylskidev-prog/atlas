@@ -136,7 +136,7 @@ final class TeamStructureController
                 expectedVersion: isset($values['structure_version']) ? $this->string($values['structure_version']) : null,
             );
         } catch (ManagerHierarchyViolation $exception) {
-            throw ValidationException::withMessages(['relationship' => $exception->getMessage()]);
+            throw ValidationException::withMessages(['operation' => $exception->getMessage()]);
         }
 
         $redirect = redirect()->route('admin.teams.structure.show', [
@@ -199,7 +199,17 @@ final class TeamStructureController
     {
         $validated = $request->validate(['reason' => ['required', 'string', 'min:3', 'max:500']]);
         $reason = $this->string(is_array($validated) ? ($validated['reason'] ?? '') : '');
-        $this->memberships->removeAccess($this->actorPublicId($request), $user, $team, $reason);
+
+        try {
+            $this->memberships->removeAccess($this->actorPublicId($request), $user, $team, $reason);
+        } catch (ValidationException $exception) {
+            $errors = $exception->errors();
+            $operationError = $this->firstValidationError($errors['operation'] ?? null)
+                ?? $this->firstValidationError($errors['reason'] ?? null)
+                ?? $exception->getMessage();
+
+            throw ValidationException::withMessages(['operation' => $operationError]);
+        }
 
         return redirect()->route('admin.teams.structure.show', ['team' => $team])->with('flash.messages', [
             FlashMessage::success('flash.teams.access_removed'),
@@ -312,5 +322,16 @@ final class TeamStructureController
     private function string(mixed $value): string
     {
         return is_scalar($value) ? (string) $value : '';
+    }
+
+    private function firstValidationError(mixed $value): ?string
+    {
+        if (! is_array($value)) {
+            return null;
+        }
+
+        $message = reset($value);
+
+        return is_string($message) && $message !== '' ? $message : null;
     }
 }

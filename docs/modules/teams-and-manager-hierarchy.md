@@ -59,7 +59,7 @@ Manager hierarchy administration is integrated into the owning team at `/admin/t
 - viewing active members and keyboard-expandable effective-dated membership history;
 - adding team members and ending active membership with a mandatory reason through the Teams-owned membership use case;
 - adding a Manager relationship through desktop drag-and-drop or the equivalent keyboard/mobile action, with an effective date and reason while preserving existing Managers;
-- ending manager relationships;
+- ending manager relationships through a focused destructive confirmation that identifies the Manager and subordinate and requires an end date and reason;
 - previewing and changing a member's structural role with a mandatory reason, optimistic concurrency, last-required-Head-Manager protection, and atomic cleanup of relationship edges invalidated by the transition;
 - viewing concise role-specific cards and expandable relationship details instead of a primary hierarchy tree;
 - seeing active direct-report relationship start dates and creation reasons;
@@ -72,6 +72,8 @@ Manager hierarchy administration is integrated into the owning team at `/admin/t
 - optimistic concurrency through a structure version;
 - protection against removing the last active head manager;
 - membership-removal blocking while the member is a head manager or participates in active manager relationships;
+- focused membership-removal confirmation with user identity, impact context, and a mandatory reason instead of a permanently visible destructive-reason field;
+- field validation beside the relevant destructive-modal control and domain/operation failures inside the modal without closing it or changing accepted state;
 - one responsive and keyboard-accessible team-context surface with an explicit empty state.
 
 Audited manager hierarchy actions include `team.manager_relationship.created`, `team.manager_relationship.ended`, `team.structural_role.changed`, and `team.structural_role.change_rejected`. Successful membership, relationship, and structural-role evidence is persisted in the same transaction as the state change; an audit failure rolls the mutation back. Rejected structural-role evidence is recorded only after the attempted business-state transaction has rolled back.

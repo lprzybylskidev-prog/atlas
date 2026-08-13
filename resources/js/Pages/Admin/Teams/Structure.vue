@@ -12,7 +12,7 @@ import {
     IconUsers,
     IconUserX,
 } from '@tabler/icons-vue';
-import { computed, reactive, ref, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
 
 import ActionLink from '../../../Components/ActionLink.vue';
 import DialogPanel from '../../../Components/DialogPanel.vue';
@@ -20,7 +20,6 @@ import AtlasForm from '../../../Components/Form/AtlasForm.vue';
 import DialogFormActions from '../../../Components/Form/DialogFormActions.vue';
 import FormButton from '../../../Components/Form/FormButton.vue';
 import FormDateInput from '../../../Components/Form/FormDateInput.vue';
-import FormInput from '../../../Components/Form/FormInput.vue';
 import FormSelect, { type FormSelectOption } from '../../../Components/Form/FormSelect.vue';
 import FormTextarea from '../../../Components/Form/FormTextarea.vue';
 import FormActions from '../../../Components/FormActions.vue';
@@ -72,17 +71,6 @@ interface StructuralRolePreview {
     warnings: string[];
 }
 
-interface EndDraft {
-    valid_to: string;
-    reason: string;
-    processing: boolean;
-}
-
-interface MemberRemovalDraft {
-    reason: string;
-    processing: boolean;
-}
-
 const props = defineProps<{
     structureVersion: string;
     selectedTeamPublicId: string;
@@ -101,10 +89,14 @@ const expandedMemberIds = ref<string[]>([]);
 const draggedMember = ref<TeamMember | null>(null);
 const activeDropTarget = ref<string | null>(null);
 const relationshipDialogOpen = ref(false);
+const relationshipRemovalDialogOpen = ref(false);
+const membershipRemovalDialogOpen = ref(false);
 const roleDialogOpen = ref(false);
 const rolePreviewLoading = ref(false);
 const rolePreviewMemberId = ref<string | null>(null);
 const selectedMember = ref<TeamMember | null>(null);
+const selectedRelationship = ref<ManagerRelationship | null>(null);
+const selectedMembershipRemoval = ref<TeamMember | null>(null);
 
 const relationshipForm = useForm({
     team_public_id: props.selectedTeamPublicId,
@@ -122,14 +114,14 @@ const roleForm = useForm({
     structure_version: props.structureVersion,
 });
 const addMemberForm = useForm({ user_public_id: '' });
-const endDrafts = reactive<Record<string, EndDraft>>(
-    Object.fromEntries(
-        props.activeRelationships.map((relationship) => [relationship.publicId, { valid_to: today, reason: '', processing: false }]),
-    ),
-);
-const memberRemovalDrafts = reactive<Record<string, MemberRemovalDraft>>(
-    Object.fromEntries(props.teamMembers.map((member) => [member.value, { reason: '', processing: false }])),
-);
+const relationshipRemovalForm = useForm({
+    team_public_id: props.selectedTeamPublicId,
+    valid_to: today,
+    reason: '',
+    structure_version: props.structureVersion,
+    operation: '',
+});
+const membershipRemovalForm = useForm({ reason: '', operation: '' });
 
 const roleOrder: StructuralRole[] = ['head_manager', 'manager', 'employee'];
 const membersByRole = computed<Record<StructuralRole, TeamMember[]>>(() => ({
@@ -153,25 +145,8 @@ watch(
     (version) => {
         relationshipForm.structure_version = version;
         roleForm.structure_version = version;
+        relationshipRemovalForm.structure_version = version;
     },
-);
-
-watch(
-    () => props.teamMembers,
-    (members) => {
-        for (const member of members) memberRemovalDrafts[member.value] ??= { reason: '', processing: false };
-    },
-    { deep: true },
-);
-
-watch(
-    () => props.activeRelationships,
-    (relationships) => {
-        for (const relationship of relationships) {
-            endDrafts[relationship.publicId] ??= { valid_to: today, reason: '', processing: false };
-        }
-    },
-    { deep: true },
 );
 
 function roleLabel(role: StructuralRole): string {
@@ -339,31 +314,63 @@ function submitAddMember(): void {
     addMemberForm.post(`/admin/teams/${encodeURIComponent(props.selectedTeamPublicId)}/structure/members`, { preserveScroll: true });
 }
 
-function submitRemoveMember(member: TeamMember): void {
-    const draft = memberRemovalDrafts[member.value];
-    if (draft === undefined || draft.reason.trim() === '') return;
-    draft.processing = true;
-    router.delete(`/admin/teams/${encodeURIComponent(props.selectedTeamPublicId)}/structure/members/${encodeURIComponent(member.value)}`, {
-        data: { reason: draft.reason },
-        preserveScroll: true,
-        onFinish: () => (draft.processing = false),
-    });
+function openMembershipRemovalDialog(member: TeamMember): void {
+    selectedMembershipRemoval.value = member;
+    membershipRemovalForm.clearErrors();
+    membershipRemovalForm.reset();
+    membershipRemovalDialogOpen.value = true;
 }
 
-function submitEnd(relationship: ManagerRelationship): void {
-    const draft = endDrafts[relationship.publicId];
-    if (draft === undefined || draft.reason.trim() === '') return;
-    draft.processing = true;
-    router.patch(
+function closeMembershipRemovalDialog(): void {
+    membershipRemovalDialogOpen.value = false;
+    membershipRemovalForm.clearErrors();
+    selectedMembershipRemoval.value = null;
+}
+
+function submitRemoveMember(): void {
+    const member = selectedMembershipRemoval.value;
+    if (member === null) return;
+
+    membershipRemovalForm.delete(
+        `/admin/teams/${encodeURIComponent(props.selectedTeamPublicId)}/structure/members/${encodeURIComponent(member.value)}`,
+        {
+            preserveScroll: true,
+            onSuccess: closeMembershipRemovalDialog,
+        },
+    );
+}
+
+function openRelationshipRemovalDialog(relationship: ManagerRelationship): void {
+    selectedRelationship.value = relationship;
+    relationshipRemovalForm.clearErrors();
+    relationshipRemovalForm.reset();
+    relationshipRemovalForm.team_public_id = props.selectedTeamPublicId;
+    relationshipRemovalForm.valid_to = today;
+    relationshipRemovalForm.structure_version = props.structureVersion;
+    relationshipRemovalDialogOpen.value = true;
+}
+
+function closeRelationshipRemovalDialog(): void {
+    relationshipRemovalDialogOpen.value = false;
+    relationshipRemovalForm.clearErrors();
+    selectedRelationship.value = null;
+}
+
+function submitEnd(): void {
+    const relationship = selectedRelationship.value;
+    if (relationship === null) return;
+
+    relationshipRemovalForm.patch(
         `/admin/teams/${encodeURIComponent(props.selectedTeamPublicId)}/structure/relationships/${encodeURIComponent(relationship.publicId)}/end`,
         {
-            team_public_id: props.selectedTeamPublicId,
-            valid_to: draft.valid_to,
-            reason: draft.reason,
-            structure_version: props.structureVersion,
+            preserveScroll: true,
+            onSuccess: closeRelationshipRemovalDialog,
         },
-        { preserveScroll: true, onFinish: () => (draft.processing = false) },
     );
+}
+
+function activeRelationshipCount(member: TeamMember): number {
+    return directReports(member).length + managersFor(member).length;
 }
 
 function relationshipDate(value: string): string {
@@ -559,22 +566,12 @@ function optionalDate(value: string | null): string {
                                                 {{ relationship.reportName }}
                                             </p>
                                             <p class="text-xs text-zinc-500 dark:text-zinc-400">{{ relationship.reason }}</p>
-                                            <div class="mt-3 grid gap-2">
-                                                <FormDateInput
-                                                    v-model="endDrafts[relationship.publicId].valid_to"
-                                                    :label="t('pages.admin.teams.structure.forms.valid_to')"
-                                                />
-                                                <FormInput
-                                                    v-model="endDrafts[relationship.publicId].reason"
-                                                    :label="t('pages.admin.teams.structure.forms.end_reason')"
-                                                />
+                                            <div class="mt-3">
                                                 <FormButton
                                                     type="button"
                                                     tone="danger"
                                                     :icon="IconUserX"
-                                                    :loading="endDrafts[relationship.publicId].processing"
-                                                    :disabled="endDrafts[relationship.publicId].reason.trim() === ''"
-                                                    @click="submitEnd(relationship)"
+                                                    @click="openRelationshipRemovalDialog(relationship)"
                                                 >
                                                     {{ t('pages.admin.teams.structure.actions.end_report') }}
                                                 </FormButton>
@@ -585,24 +582,9 @@ function optionalDate(value: string | null): string {
                             </div>
 
                             <div class="mt-4 border-t border-zinc-200 pt-4 dark:border-zinc-800">
-                                <div class="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto]">
-                                    <FormInput
-                                        v-model="memberRemovalDrafts[member.value].reason"
-                                        :label="t('pages.admin.teams.structure.members.end_reason')"
-                                        :placeholder="t('pages.admin.teams.structure.members.end_reason_placeholder')"
-                                    />
-                                    <FormButton
-                                        type="button"
-                                        tone="danger"
-                                        class="sm:mt-6"
-                                        :icon="IconUserX"
-                                        :loading="memberRemovalDrafts[member.value].processing"
-                                        :disabled="memberRemovalDrafts[member.value].reason.trim() === ''"
-                                        @click="submitRemoveMember(member)"
-                                    >
-                                        {{ t('pages.admin.teams.structure.members.end_action') }}
-                                    </FormButton>
-                                </div>
+                                <FormButton type="button" tone="danger" :icon="IconUserX" @click="openMembershipRemovalDialog(member)">
+                                    {{ t('pages.admin.teams.structure.members.end_action') }}
+                                </FormButton>
                             </div>
                         </div>
                     </article>
@@ -701,6 +683,100 @@ function optionalDate(value: string | null): string {
                     :submit-icon="IconUserPlus"
                     :loading="relationshipForm.processing"
                     @cancel="closeRelationshipDialog"
+                />
+            </AtlasForm>
+        </DialogPanel>
+
+        <DialogPanel
+            v-model:open="relationshipRemovalDialogOpen"
+            :title="t('pages.admin.teams.structure.relationship_removal_dialog.title')"
+            :icon="IconUserX"
+            tone="rose"
+            :close-label="t('modal.cancel')"
+            @close="closeRelationshipRemovalDialog"
+        >
+            <AtlasForm :processing="relationshipRemovalForm.processing" @submit="submitEnd">
+                <div v-if="selectedRelationship !== null" class="space-y-4">
+                    <p class="text-sm text-zinc-700 dark:text-zinc-200">
+                        {{
+                            t('pages.admin.teams.structure.relationship_removal_dialog.description', {
+                                manager: selectedRelationship.managerName,
+                                report: selectedRelationship.reportName,
+                            })
+                        }}
+                    </p>
+                    <UiState
+                        v-if="relationshipRemovalForm.errors.operation"
+                        variant="error"
+                        size="compact"
+                        :title="t('pages.admin.teams.structure.feedback.relationship_removal_failed')"
+                        :description="relationshipRemovalForm.errors.operation"
+                    />
+                    <FormDateInput
+                        v-model="relationshipRemovalForm.valid_to"
+                        :label="t('pages.admin.teams.structure.forms.valid_to')"
+                        :error="relationshipRemovalForm.errors.valid_to"
+                    />
+                    <FormTextarea
+                        v-model="relationshipRemovalForm.reason"
+                        :label="t('pages.admin.teams.structure.forms.end_reason')"
+                        :placeholder="t('pages.admin.teams.structure.forms.end_reason_placeholder')"
+                        :error="relationshipRemovalForm.errors.reason"
+                    />
+                </div>
+                <DialogFormActions
+                    :cancel-label="t('modal.cancel')"
+                    :submit-label="t('pages.admin.teams.structure.relationship_removal_dialog.confirm')"
+                    :submit-icon="IconUserX"
+                    submit-tone="danger"
+                    :loading="relationshipRemovalForm.processing"
+                    @cancel="closeRelationshipRemovalDialog"
+                />
+            </AtlasForm>
+        </DialogPanel>
+
+        <DialogPanel
+            v-model:open="membershipRemovalDialogOpen"
+            :title="t('pages.admin.teams.structure.membership_removal_dialog.title')"
+            :icon="IconUserX"
+            tone="rose"
+            :close-label="t('modal.cancel')"
+            @close="closeMembershipRemovalDialog"
+        >
+            <AtlasForm :processing="membershipRemovalForm.processing" @submit="submitRemoveMember">
+                <div v-if="selectedMembershipRemoval !== null" class="space-y-4">
+                    <div>
+                        <p class="font-semibold text-zinc-950 dark:text-zinc-50">{{ selectedMembershipRemoval.name }}</p>
+                        <p class="text-xs text-zinc-500 dark:text-zinc-400">{{ selectedMembershipRemoval.email }}</p>
+                    </div>
+                    <p class="text-sm text-zinc-700 dark:text-zinc-200">
+                        {{
+                            t('pages.admin.teams.structure.membership_removal_dialog.impact', {
+                                count: activeRelationshipCount(selectedMembershipRemoval),
+                            })
+                        }}
+                    </p>
+                    <UiState
+                        v-if="membershipRemovalForm.errors.operation"
+                        variant="error"
+                        size="compact"
+                        :title="t('pages.admin.teams.structure.feedback.membership_removal_failed')"
+                        :description="membershipRemovalForm.errors.operation"
+                    />
+                    <FormTextarea
+                        v-model="membershipRemovalForm.reason"
+                        :label="t('pages.admin.teams.structure.members.end_reason')"
+                        :placeholder="t('pages.admin.teams.structure.members.end_reason_placeholder')"
+                        :error="membershipRemovalForm.errors.reason"
+                    />
+                </div>
+                <DialogFormActions
+                    :cancel-label="t('modal.cancel')"
+                    :submit-label="t('pages.admin.teams.structure.membership_removal_dialog.confirm')"
+                    :submit-icon="IconUserX"
+                    submit-tone="danger"
+                    :loading="membershipRemovalForm.processing"
+                    @cancel="closeMembershipRemovalDialog"
                 />
             </AtlasForm>
         </DialogPanel>

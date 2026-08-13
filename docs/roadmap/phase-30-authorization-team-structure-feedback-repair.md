@@ -876,18 +876,20 @@ The backend remains authoritative.
 
 ### Tasks
 
-- [ ] Keep Team Structure as the only team-context membership mutation surface.
-- [ ] Remove permanent destructive-reason inputs from the primary UI.
-- [ ] Add relationship-removal confirmation modal with required reason.
-- [ ] Add membership-removal confirmation modal with required reason.
-- [ ] Preserve effective-dated relationship history.
-- [ ] Preserve effective-dated membership history.
-- [ ] Preserve canonical Audit evidence.
-- [ ] Render domain blocker errors visibly.
-- [ ] Render field-specific validation errors next to the relevant modal field.
-- [ ] Render operation-level errors in the action/modal context.
-- [ ] Keep state unchanged after rejected operations.
-- [ ] Add browser coverage for successful and rejected destructive actions.
+- [x] Keep Team Structure as the only team-context membership mutation surface.
+- [x] Remove permanent destructive-reason inputs from the primary UI.
+- [x] Add relationship-removal confirmation modal with required reason.
+- [x] Add membership-removal confirmation modal with required reason.
+- [x] Preserve effective-dated relationship history.
+- [x] Preserve effective-dated membership history.
+- [x] Preserve canonical Audit evidence.
+- [x] Render domain blocker errors visibly.
+- [x] Render field-specific validation errors next to the relevant modal field.
+- [x] Render operation-level errors in the action/modal context.
+- [x] Keep state unchanged after rejected operations.
+- [x] Add browser coverage for successful and rejected destructive actions.
+
+Completion evidence (2026-08-13): Team Structure remains the sole team-context membership mutation surface, while Team Edit stays read-only for membership and authorization context. Permanent relationship- and membership-removal reason fields were removed from member cards and replaced with focused destructive dialogs that identify their targets, require a reason, and keep field validation beside the relevant control. Membership domain blockers and relationship operation failures are mapped into the open modal instead of disappearing or closing the workflow. Successful operations continue to effective-date the existing Teams-owned rows and persist canonical Audit evidence atomically; feature regressions prove rejected membership and relationship removals leave membership, relationship, and history state unchanged. The deterministic desktop browser lifecycle covers a blocked membership removal, rejected field validation, successful relationship removal, successful membership removal, modal focus flow, and the absence of permanent destructive inputs; a permanent source guard protects the canonical ownership and modal-only reason contract.
 
 ---
 

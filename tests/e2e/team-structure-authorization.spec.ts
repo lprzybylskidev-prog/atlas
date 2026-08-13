@@ -139,13 +139,46 @@ test.describe('Integrated team structure and authorization workflow', () => {
 
         const updatedReport = page.locator('[data-testid^="team-structure-member-"]').filter({ hasText: 'Visibility User' });
         await expect(updatedReport).toContainText(/Managerowie: 2|Managers: 2/);
+
+        const reportDetailsToggle = updatedReport.getByRole('button', { name: /Rozwiń szczegóły|Expand details/ });
+        await reportDetailsToggle.click();
+        await expect(updatedReport.getByLabel(/Powód zakończenia|End reason/)).toHaveCount(0);
+        await updatedReport.getByRole('button', { name: /Zakończ członkostwo|End membership/ }).click();
+        let destructiveDialog = page.getByRole('dialog');
+        await expect(destructiveDialog).toContainText('Visibility User');
+        await destructiveDialog.getByLabel(/Powód zakończenia|End reason/).fill('Blocked E2E membership removal.');
+        await Promise.all([
+            page.waitForResponse((response) => response.request().method() === 'DELETE' && response.url().includes('/structure/members/')),
+            destructiveDialog.getByRole('button', { name: /Zakończ członkostwo|End membership/ }).click(),
+        ]);
+        await expect(destructiveDialog).toContainText(
+            /Przed odebraniem dostępu do zespołu zakończ aktywne relacje|End active manager relationships/,
+        );
+        await expect(updatedReport).toHaveCount(1);
+        await destructiveDialog
+            .getByRole('button', { name: /Anuluj|Cancel/ })
+            .last()
+            .click();
+
         candidate = page.locator('[data-testid^="team-structure-member-"]').filter({ hasText: 'Structure Candidate' });
         await candidate.getByRole('button', { name: /Rozwiń szczegóły|Expand details/ }).click();
         const relationship = candidate.locator('[data-testid^="manager-relationship-"]').filter({ hasText: 'Visibility User' });
-        await relationship.getByLabel(/Powód zakończenia|End reason/).fill('E2E relationship cleanup.');
+        await expect(relationship.getByLabel(/Powód zakończenia|End reason/)).toHaveCount(0);
+        await relationship.getByRole('button', { name: /Usuń przypisanie|Remove assignment/ }).click();
+        destructiveDialog = page.getByRole('dialog');
+        await expect(destructiveDialog).toContainText('Structure Candidate');
+        await expect(destructiveDialog).toContainText('Visibility User');
+        await destructiveDialog.getByLabel(/Powód zakończenia|End reason/).fill('');
         await Promise.all([
             page.waitForResponse((response) => response.request().method() === 'PATCH' && response.url().endsWith('/end')),
-            relationship.getByRole('button', { name: /Zakończ|End/ }).click(),
+            destructiveDialog.getByRole('button', { name: /Usuń przypisanie|Remove assignment/ }).click(),
+        ]);
+        await expect(destructiveDialog.getByText(/jest wymagane|is required/i)).toBeVisible();
+        await expect(relationship).toHaveCount(1);
+        await destructiveDialog.getByLabel(/Powód zakończenia|End reason/).fill('E2E relationship cleanup.');
+        await Promise.all([
+            page.waitForResponse((response) => response.request().method() === 'PATCH' && response.url().endsWith('/end')),
+            destructiveDialog.getByRole('button', { name: /Usuń przypisanie|Remove assignment/ }).click(),
         ]);
         await expect(relationship).toHaveCount(0);
 
@@ -174,10 +207,14 @@ test.describe('Integrated team structure and authorization workflow', () => {
         if ((await detailsToggle.getAttribute('aria-expanded')) !== 'true') {
             await detailsToggle.click();
         }
-        await candidate.getByLabel(/Powód zakończenia|End reason/).fill('E2E membership lifecycle complete.');
+        await expect(candidate.getByLabel(/Powód zakończenia|End reason/)).toHaveCount(0);
+        await candidate.getByRole('button', { name: /Zakończ członkostwo|End membership/ }).click();
+        destructiveDialog = page.getByRole('dialog');
+        await expect(destructiveDialog).toContainText('Structure Candidate');
+        await destructiveDialog.getByLabel(/Powód zakończenia|End reason/).fill('E2E membership lifecycle complete.');
         await Promise.all([
             page.waitForResponse((response) => response.request().method() === 'DELETE' && response.url().includes('/structure/members/')),
-            candidate.getByRole('button', { name: /Zakończ członkostwo|End membership/ }).click(),
+            destructiveDialog.getByRole('button', { name: /Zakończ członkostwo|End membership/ }).click(),
         ]);
         await expect(candidate).toHaveCount(0);
     });

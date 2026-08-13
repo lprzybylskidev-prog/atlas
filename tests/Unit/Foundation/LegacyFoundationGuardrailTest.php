@@ -91,6 +91,10 @@ final class LegacyFoundationGuardrailTest extends TestCase
         self::assertStringContainsString("const roleOrder: StructuralRole[] = ['head_manager', 'manager', 'employee'];", $structure);
         self::assertStringContainsString(':draggable="member.structuralRole !== \'head_manager\'"', $structure);
         self::assertStringContainsString('openRelationshipDialog(report, manager)', $structure);
+        self::assertStringContainsString('relationshipRemovalDialogOpen', $structure);
+        self::assertStringContainsString('membershipRemovalDialogOpen', $structure);
+        self::assertStringNotContainsString('endDrafts', $structure);
+        self::assertStringNotContainsString('memberRemovalDrafts', $structure);
         self::assertStringContainsString('UserTeamAuthorizationWorkflow', $teamEdit);
         self::assertStringContainsString(':membership-mutation="false"', $teamEdit);
         self::assertStringContainsString(':authorization-mutation="false"', $teamEdit);

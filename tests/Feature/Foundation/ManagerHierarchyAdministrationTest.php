@@ -265,6 +265,102 @@ final class ManagerHierarchyAdministrationTest extends TestCase
         self::assertDatabaseHas(AuditDatabaseTable::AUDIT_EVENTS, ['action' => 'team.user_access_removed', 'result' => 'succeeded']);
     }
 
+    public function test_rejected_destructive_operations_return_contextual_errors_and_leave_history_unchanged(): void
+    {
+        $actor = User::factory()->create(['name' => 'Removal Actor']);
+        $manager = User::factory()->create(['name' => 'Removal Manager']);
+        $report = User::factory()->create(['name' => 'Removal Report']);
+        $team = Team::query()->create(['name' => 'Removal Safety Team']);
+        $this->assignStarterRoleInTeam($actor, $team, StarterRoleName::Administrator->value);
+        $this->assignMembership($manager, $team);
+        $this->assignMembership($report, $team);
+        $session = $this->adminSession($team);
+        $hierarchy = $this->app->make(ManagerHierarchy::class);
+        $this->ensureManagerRole($actor, $team, $manager);
+        $hierarchy->assign(
+            (string) $actor->public_id,
+            (string) $team->public_id,
+            (string) $manager->public_id,
+            (string) $report->public_id,
+            now()->toDateString(),
+            'Relationship that blocks membership removal.',
+        );
+        $relationshipPublicId = DB::table(TeamsDatabaseTable::TEAM_MANAGER_RELATIONSHIPS)
+            ->where('team_id', $team->id)
+            ->where('manager_user_id', $manager->id)
+            ->where('report_user_id', $report->id)
+            ->value('public_id');
+        self::assertIsString($relationshipPublicId);
+
+        $this->actingAs($actor)
+            ->withSession($session)
+            ->delete('/admin/teams/'.$team->public_id.'/structure/members/'.$manager->public_id, [
+                'reason' => 'Attempt while the Manager relationship is active.',
+            ])
+            ->assertSessionHasErrors('operation');
+
+        self::assertDatabaseHas(TeamsDatabaseTable::TEAM_USER_ASSIGNMENTS, [
+            'team_id' => $team->id,
+            'user_id' => $manager->id,
+            'valid_to' => null,
+        ]);
+        self::assertDatabaseHas(TeamsDatabaseTable::TEAM_MANAGER_RELATIONSHIPS, [
+            'public_id' => $relationshipPublicId,
+            'valid_to' => null,
+        ]);
+        self::assertDatabaseHas(AuditDatabaseTable::AUDIT_EVENTS, [
+            'action' => 'team.user_access_remove_rejected',
+            'result' => 'rejected',
+            'target_public_id' => $manager->public_id,
+            'team_public_id' => $team->public_id,
+        ]);
+
+        $this->actingAs($actor)
+            ->withSession($session)
+            ->patch('/admin/teams/'.$team->public_id.'/structure/relationships/'.$relationshipPublicId.'/end', [
+                'team_public_id' => $team->public_id,
+                'valid_to' => now()->toDateString(),
+                'reason' => 'x',
+            ])
+            ->assertSessionHasErrors('reason');
+        self::assertDatabaseHas(TeamsDatabaseTable::TEAM_MANAGER_RELATIONSHIPS, [
+            'public_id' => $relationshipPublicId,
+            'valid_to' => null,
+        ]);
+
+        $this->actingAs($actor)
+            ->withSession($session)
+            ->patch('/admin/teams/'.$team->public_id.'/structure/relationships/'.$relationshipPublicId.'/end', [
+                'team_public_id' => $team->public_id,
+                'valid_to' => now()->toDateString(),
+                'reason' => 'Approved relationship removal.',
+            ])
+            ->assertRedirect(route('admin.teams.structure.show', ['team' => $team->public_id]));
+        $validTo = DB::table(TeamsDatabaseTable::TEAM_MANAGER_RELATIONSHIPS)
+            ->where('public_id', $relationshipPublicId)
+            ->value('valid_to');
+        self::assertNotNull($validTo);
+
+        $this->actingAs($actor)
+            ->withSession($session)
+            ->patch('/admin/teams/'.$team->public_id.'/structure/relationships/'.$relationshipPublicId.'/end', [
+                'team_public_id' => $team->public_id,
+                'valid_to' => now()->addDay()->toDateString(),
+                'reason' => 'Duplicate relationship removal attempt.',
+            ])
+            ->assertSessionHasErrors('operation');
+
+        self::assertSame(1, DB::table(TeamsDatabaseTable::TEAM_MANAGER_RELATIONSHIPS)
+            ->where('public_id', $relationshipPublicId)
+            ->where('valid_to', $validTo)
+            ->count());
+        self::assertDatabaseHas(AuditDatabaseTable::AUDIT_EVENTS, [
+            'action' => 'team.manager_relationship.ended',
+            'result' => 'succeeded',
+            'target_public_id' => $relationshipPublicId,
+        ]);
+    }
+
     public function test_structural_role_transitions_are_explicit_atomic_audited_and_scope_head_managers_to_the_whole_team(): void
     {
         $actor = User::factory()->create(['name' => 'Structure Actor']);
