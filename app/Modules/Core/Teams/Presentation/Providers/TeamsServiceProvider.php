@@ -10,8 +10,6 @@ use App\Modules\Core\Teams\Application\Lifecycle\TeamUserDataLifecycleParticipan
 use App\Modules\Core\Teams\Application\Permissions\TeamPermissionCatalog;
 use App\Modules\Core\Teams\Application\Public\Contracts\BootstrapTeamProvider;
 use App\Modules\Core\Teams\Application\Public\Contracts\ManagerHierarchy;
-use App\Modules\Core\Teams\Application\Public\Contracts\TeamStructureMutationGuard;
-use App\Modules\Core\Teams\Application\Services\AllowTeamStructureMutations;
 use App\Modules\Core\Teams\Infrastructure\Persistence\DatabaseManagerHierarchy;
 use App\Modules\Core\Teams\Infrastructure\Persistence\DatabaseUserTeamMembershipManager;
 use App\Modules\Core\Teams\Infrastructure\Persistence\DatabaseUserTeamSessionLimitSettings;
@@ -34,7 +32,6 @@ final class TeamsServiceProvider extends ServiceProvider
         $this->app->bind(UserTeamMembershipProvisioner::class, DatabaseUserTeamMembershipManager::class);
         $this->app->bind(UserTeamSessionLimitSettings::class, DatabaseUserTeamSessionLimitSettings::class);
         $this->app->bind(ManagerHierarchy::class, DatabaseManagerHierarchy::class);
-        $this->app->bind(TeamStructureMutationGuard::class, AllowTeamStructureMutations::class);
         $this->app->tag([TeamPermissionCatalog::class], 'atlas.permission_catalogs');
         $this->app->tag([TeamsInertiaData::class], 'atlas.inertia_shared_data');
         $this->app->tag([TeamsRouteAvailability::class], 'atlas.inertia_route_availability');

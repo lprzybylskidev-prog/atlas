@@ -40,7 +40,7 @@ final readonly class BlockProhibitedImpersonationOperations
         'admin.teams.users.authorization.update',
         'admin.teams.structure.relationships.store',
         'admin.teams.structure.relationships.end',
-        'admin.teams.structure.head-manager.update',
+        'admin.teams.structure.structural-role.update',
         'admin.authorization.roles.store',
         'admin.authorization.roles.update',
         'admin.authorization.roles.destroy',

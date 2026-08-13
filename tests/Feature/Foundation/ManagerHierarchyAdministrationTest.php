@@ -12,7 +12,6 @@ use App\Modules\Core\Identity\Application\Public\Contracts\UserLookup;
 use App\Modules\Core\Identity\Infrastructure\Persistence\User;
 use App\Modules\Core\Teams\Application\Exceptions\ManagerHierarchyViolation;
 use App\Modules\Core\Teams\Application\Public\Contracts\ManagerHierarchy;
-use App\Modules\Core\Teams\Application\Public\Contracts\TeamStructureMutationGuard;
 use App\Modules\Core\Teams\Infrastructure\Persistence\DatabaseManagerHierarchy;
 use App\Modules\Core\Teams\Infrastructure\Persistence\TableNames\TeamsDatabaseTable;
 use App\Modules\Core\Teams\Infrastructure\Persistence\Team;
@@ -57,9 +56,8 @@ final class ManagerHierarchyAdministrationTest extends TestCase
             ->assertInertia(fn (AssertableInertia $page) => $page
                 ->component('Admin/Teams/Structure')
                 ->where('selectedTeamPublicId', $team->public_id)
-                ->where('selectedManagerPublicId', '')
-                ->where('manager', null)
                 ->has('teamMembers', 6)
+                ->has('activeRelationships', 0)
                 ->where('structureVersion', fn (mixed $version): bool => is_string($version) && strlen($version) === 64)
             );
 
@@ -84,12 +82,10 @@ final class ManagerHierarchyAdministrationTest extends TestCase
 
         $this->actingAs($actor)
             ->withSession($session)
-            ->get('/admin/teams/'.$team->public_id.'/structure?preview_manager='.$firstManager->public_id.'&preview_reports%5B%5D='.$report->public_id)
+            ->get('/admin/teams/'.$team->public_id.'/structure')
             ->assertOk()
             ->assertInertia(fn (AssertableInertia $page) => $page
                 ->component('Admin/Teams/Structure')
-                ->where('selectedManagerPublicId', $firstManager->public_id)
-                ->where('manager.userPublicId', $firstManager->public_id)
                 ->where('teamMembers', fn (Collection $members): bool => $members->contains(
                     fn (mixed $member): bool => is_array($member)
                         && ($member['value'] ?? null) === $firstManager->public_id
@@ -99,10 +95,19 @@ final class ManagerHierarchyAdministrationTest extends TestCase
                         && ($member['value'] ?? null) === $report->public_id
                         && ($member['manager'] ?? null) === false,
                 ))
-                ->has('relationships', 1)
-                ->has('tree', 1)
-                ->where('previewReportPublicIds', [$report->public_id])
-                ->has('assignmentPreviews', 1)
+                ->has('activeRelationships', 3)
+            );
+
+        $this->actingAs($actor)
+            ->withSession($session)
+            ->get('/admin/teams/'.$team->public_id.'/structure?role_preview_user='.$firstManager->public_id.'&role_preview_target=head_manager')
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('structuralRolePreview.allowed', true)
+                ->where('structuralRolePreview.currentRole', 'manager')
+                ->where('structuralRolePreview.targetRole', 'head_manager')
+                ->has('structuralRolePreview.endingRelationshipPublicIds', 1)
+                ->has('structuralRolePreview.affectedUserPublicIds', 1)
             );
 
         self::assertDatabaseHas(TeamsDatabaseTable::TEAM_MANAGER_RELATIONSHIPS, [
@@ -142,13 +147,13 @@ final class ManagerHierarchyAdministrationTest extends TestCase
 
         $this->actingAs($actor)
             ->withSession($session)
-            ->patch('/admin/teams/'.$team->public_id.'/structure/head-manager', [
+            ->patch('/admin/teams/'.$team->public_id.'/structure/structural-role', [
                 'team_public_id' => $team->public_id,
                 'user_public_id' => $firstManager->public_id,
-                'head_manager' => true,
+                'structural_role' => 'head_manager',
                 'reason' => 'Regional lead.',
             ])
-            ->assertRedirect(route('admin.teams.structure.show', ['team' => $team->public_id, 'preview_manager' => $firstManager->public_id]));
+            ->assertRedirect(route('admin.teams.structure.show', ['team' => $team->public_id]));
 
         $headScope = $hierarchy->scopeFor((string) $team->public_id, (string) $firstManager->public_id);
         $normalScope = $hierarchy->scopeFor((string) $team->public_id, (string) $secondManager->public_id);
@@ -161,10 +166,10 @@ final class ManagerHierarchyAdministrationTest extends TestCase
 
         $this->actingAs($actor)
             ->withSession($session)
-            ->patch('/admin/teams/'.$team->public_id.'/structure/head-manager', [
+            ->patch('/admin/teams/'.$team->public_id.'/structure/structural-role', [
                 'team_public_id' => $team->public_id,
                 'user_public_id' => $firstManager->public_id,
-                'head_manager' => false,
+                'structural_role' => 'manager',
                 'reason' => 'Attempt to remove the last head manager.',
                 'structure_version' => $hierarchy->version((string) $team->public_id),
             ])
@@ -179,7 +184,7 @@ final class ManagerHierarchyAdministrationTest extends TestCase
                 'valid_from' => now()->toDateString(),
                 'reason' => 'Approved reporting expansion.',
             ])
-            ->assertRedirect(route('admin.teams.structure.show', ['team' => $team->public_id, 'preview_manager' => $secondManager->public_id]));
+            ->assertRedirect(route('admin.teams.structure.show', ['team' => $team->public_id]));
 
         self::assertDatabaseHas(TeamsDatabaseTable::TEAM_MANAGER_RELATIONSHIPS, [
             'team_id' => $team->id,
@@ -202,7 +207,7 @@ final class ManagerHierarchyAdministrationTest extends TestCase
                 'valid_to' => now()->toDateString(),
                 'reason' => 'Reporting line changed.',
             ])
-            ->assertRedirect(route('admin.teams.structure.show', ['team' => $team->public_id, 'preview_manager' => $teamLead->public_id]));
+            ->assertRedirect(route('admin.teams.structure.show', ['team' => $team->public_id]));
 
         $ended = DB::table(TeamsDatabaseTable::TEAM_MANAGER_RELATIONSHIPS)->where('public_id', $relationshipPublicId)->first();
         self::assertIsObject($ended);
@@ -258,196 +263,6 @@ final class ManagerHierarchyAdministrationTest extends TestCase
 
         self::assertDatabaseHas(AuditDatabaseTable::AUDIT_EVENTS, ['action' => 'team.user_access_added', 'result' => 'succeeded']);
         self::assertDatabaseHas(AuditDatabaseTable::AUDIT_EVENTS, ['action' => 'team.user_access_removed', 'result' => 'succeeded']);
-    }
-
-    public function test_reparent_is_atomic_effective_dated_concurrency_safe_guarded_and_audited(): void
-    {
-        $actor = User::factory()->create();
-        $oldManager = User::factory()->create(['name' => 'Old Manager']);
-        $newManager = User::factory()->create(['name' => 'New Manager']);
-        $report = User::factory()->create(['name' => 'Moved Report']);
-        $team = Team::query()->create(['name' => 'Move Team']);
-        $this->assignStarterRoleInTeam($actor, $team, StarterRoleName::Administrator->value);
-        foreach ([$oldManager, $newManager, $report] as $member) {
-            $this->assignMembership($member, $team);
-        }
-        $session = $this->adminSession($team);
-        $this->createRelationship($actor, $session, $team, $oldManager, $report);
-        $this->ensureManagerRole($actor, $team, $newManager);
-        $hierarchy = $this->app->make(ManagerHierarchy::class);
-        $version = $hierarchy->version((string) $team->public_id);
-        $oldRelationshipPublicId = DB::table(TeamsDatabaseTable::TEAM_MANAGER_RELATIONSHIPS)
-            ->where('team_id', $team->id)->where('manager_user_id', $oldManager->id)->value('public_id');
-        self::assertIsString($oldRelationshipPublicId);
-
-        $this->actingAs($actor)->withSession($session)
-            ->patch('/admin/teams/'.$team->public_id.'/structure/relationships/'.$oldRelationshipPublicId.'/reparent', [
-                'new_manager_user_public_id' => $newManager->public_id,
-                'effective_at' => now()->toDateString(),
-                'reason' => 'Move the complete reporting subtree.',
-                'structure_version' => $version,
-            ])->assertRedirect(route('admin.teams.structure.show', [
-                'team' => $team->public_id,
-                'preview_manager' => $newManager->public_id,
-            ]));
-
-        self::assertDatabaseMissing(TeamsDatabaseTable::TEAM_MANAGER_RELATIONSHIPS, [
-            'public_id' => $oldRelationshipPublicId,
-            'valid_to' => null,
-        ]);
-        self::assertDatabaseHas(TeamsDatabaseTable::TEAM_MANAGER_RELATIONSHIPS, [
-            'team_id' => $team->id,
-            'manager_user_id' => $newManager->id,
-            'report_user_id' => $report->id,
-            'valid_to' => null,
-        ]);
-        self::assertSame(2, DB::table(TeamsDatabaseTable::TEAM_MANAGER_RELATIONSHIPS)->where('report_user_id', $report->id)->count());
-        self::assertDatabaseHas(AuditDatabaseTable::AUDIT_EVENTS, [
-            'action' => 'team.manager_relationship.reparented',
-            'result' => 'succeeded',
-            'team_public_id' => $team->public_id,
-        ]);
-
-        $activeRelationshipPublicId = DB::table(TeamsDatabaseTable::TEAM_MANAGER_RELATIONSHIPS)
-            ->where('team_id', $team->id)->where('manager_user_id', $newManager->id)->whereNull('valid_to')->value('public_id');
-        self::assertIsString($activeRelationshipPublicId);
-        $this->actingAs($actor)->withSession($session)
-            ->patch('/admin/teams/'.$team->public_id.'/structure/relationships/'.$activeRelationshipPublicId.'/reparent', [
-                'new_manager_user_public_id' => $oldManager->public_id,
-                'effective_at' => now()->toDateString(),
-                'reason' => 'Stale move.',
-                'structure_version' => $version,
-            ])->assertSessionHasErrors('new_manager_user_public_id');
-        self::assertDatabaseHas(TeamsDatabaseTable::TEAM_MANAGER_RELATIONSHIPS, ['public_id' => $activeRelationshipPublicId, 'valid_to' => null]);
-
-        foreach ([$report->public_id, User::factory()->create()->public_id] as $invalidManagerPublicId) {
-            try {
-                $hierarchy->reparent(
-                    (string) $actor->public_id,
-                    (string) $team->public_id,
-                    $activeRelationshipPublicId,
-                    (string) $invalidManagerPublicId,
-                    now()->toDateString(),
-                    'Invalid invariant move.',
-                    $hierarchy->version((string) $team->public_id),
-                );
-                self::fail('The invalid reparent should be rejected.');
-            } catch (ManagerHierarchyViolation) {
-                self::assertDatabaseHas(TeamsDatabaseTable::TEAM_MANAGER_RELATIONSHIPS, ['public_id' => $activeRelationshipPublicId, 'valid_to' => null]);
-            }
-        }
-
-        $this->ensureManagerRole($actor, $team, $report);
-        $hierarchy->assign(
-            (string) $actor->public_id,
-            (string) $team->public_id,
-            (string) $report->public_id,
-            (string) $oldManager->public_id,
-            now()->toDateString(),
-            'Cycle fixture relationship.',
-        );
-        $cycleRelationshipPublicId = DB::table(TeamsDatabaseTable::TEAM_MANAGER_RELATIONSHIPS)
-            ->where('team_id', $team->id)->where('manager_user_id', $report->id)->where('report_user_id', $oldManager->id)->value('public_id');
-        self::assertIsString($cycleRelationshipPublicId);
-        try {
-            $hierarchy->reparent(
-                (string) $actor->public_id,
-                (string) $team->public_id,
-                $activeRelationshipPublicId,
-                (string) $oldManager->public_id,
-                now()->toDateString(),
-                'Cycle move.',
-                $hierarchy->version((string) $team->public_id),
-            );
-            self::fail('The cyclic reparent should be rejected.');
-        } catch (ManagerHierarchyViolation $exception) {
-            self::assertStringContainsString('cycle', $exception->getMessage());
-        }
-        $hierarchy->end((string) $actor->public_id, $cycleRelationshipPublicId, now()->toDateString(), 'Remove cycle fixture.');
-
-        $this->app->bind(TeamStructureMutationGuard::class, static fn () => new class implements TeamStructureMutationGuard
-        {
-            public function assertReparentAllowed(string $teamPublicId, string $reportUserPublicId, string $currentManagerUserPublicId, string $newManagerUserPublicId): void
-            {
-                throw ManagerHierarchyViolation::activeProcess('An active work process blocks this move.');
-            }
-        });
-        $guardedHierarchy = $this->app->make(ManagerHierarchy::class);
-        $guardedVersion = $guardedHierarchy->version((string) $team->public_id);
-
-        try {
-            $guardedHierarchy->reparent(
-                (string) $actor->public_id,
-                (string) $team->public_id,
-                $activeRelationshipPublicId,
-                (string) $oldManager->public_id,
-                now()->toDateString(),
-                'Blocked move.',
-                $guardedVersion,
-            );
-            self::fail('The active-process guard should reject the move.');
-        } catch (ManagerHierarchyViolation $exception) {
-            self::assertStringContainsString('active work process', $exception->getMessage());
-        }
-        self::assertDatabaseHas(TeamsDatabaseTable::TEAM_MANAGER_RELATIONSHIPS, ['public_id' => $activeRelationshipPublicId, 'valid_to' => null]);
-        self::assertDatabaseHas(AuditDatabaseTable::AUDIT_EVENTS, [
-            'action' => 'team.manager_relationship.reparent_rejected',
-            'result' => 'rejected',
-            'target_public_id' => $activeRelationshipPublicId,
-        ]);
-    }
-
-    public function test_reparent_rolls_back_both_relationship_changes_when_mandatory_audit_fails(): void
-    {
-        $actor = User::factory()->create();
-        $oldManager = User::factory()->create();
-        $newManager = User::factory()->create();
-        $report = User::factory()->create();
-        $team = Team::query()->create(['name' => 'Audit Rollback Team']);
-        foreach ([$actor, $oldManager, $newManager, $report] as $member) {
-            $this->assignMembership($member, $team);
-        }
-        $hierarchy = $this->app->make(ManagerHierarchy::class);
-        $this->ensureManagerRole($actor, $team, $oldManager);
-        $hierarchy->assign((string) $actor->public_id, (string) $team->public_id, (string) $oldManager->public_id, (string) $report->public_id, now()->toDateString(), 'Initial relationship.');
-        $relationshipPublicId = DB::table(TeamsDatabaseTable::TEAM_MANAGER_RELATIONSHIPS)->where('team_id', $team->id)->value('public_id');
-        self::assertIsString($relationshipPublicId);
-
-        $audit = new class implements AuditRecorder
-        {
-            public function record(AuditEvent $event): void
-            {
-                throw new RuntimeException('Audit unavailable.');
-            }
-        };
-        $guard = $this->app->make(TeamStructureMutationGuard::class);
-        $failingHierarchy = new DatabaseManagerHierarchy(
-            $audit,
-            $this->app->make(UserLookup::class),
-            $guard,
-        );
-
-        try {
-            $failingHierarchy->reparent(
-                (string) $actor->public_id,
-                (string) $team->public_id,
-                $relationshipPublicId,
-                (string) $newManager->public_id,
-                now()->toDateString(),
-                'Move with failed evidence.',
-                $failingHierarchy->version((string) $team->public_id),
-            );
-            self::fail('Audit failure should abort the move.');
-        } catch (RuntimeException $exception) {
-            self::assertSame('Audit unavailable.', $exception->getMessage());
-        }
-
-        self::assertDatabaseHas(TeamsDatabaseTable::TEAM_MANAGER_RELATIONSHIPS, ['public_id' => $relationshipPublicId, 'valid_to' => null]);
-        self::assertDatabaseMissing(TeamsDatabaseTable::TEAM_MANAGER_RELATIONSHIPS, [
-            'team_id' => $team->id,
-            'manager_user_id' => $newManager->id,
-            'report_user_id' => $report->id,
-        ]);
     }
 
     public function test_structural_role_transitions_are_explicit_atomic_audited_and_scope_head_managers_to_the_whole_team(): void
@@ -645,7 +460,6 @@ final class ManagerHierarchyAdministrationTest extends TestCase
                 }
             },
             $this->app->make(UserLookup::class),
-            $this->app->make(TeamStructureMutationGuard::class),
         );
 
         try {
@@ -682,7 +496,7 @@ final class ManagerHierarchyAdministrationTest extends TestCase
                 'valid_from' => now()->toDateString(),
                 'reason' => 'Approved reporting line.',
             ])
-            ->assertRedirect(route('admin.teams.structure.show', ['team' => $team->public_id, 'preview_manager' => $manager->public_id]));
+            ->assertRedirect(route('admin.teams.structure.show', ['team' => $team->public_id]));
     }
 
     private function ensureManagerRole(User $actor, Team $team, User $manager): void

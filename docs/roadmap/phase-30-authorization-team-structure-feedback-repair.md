@@ -778,25 +778,27 @@ If it becomes dead/obsolete after the new UX is complete, remove its unused UI/c
 
 ### Tasks
 
-- [ ] Rebuild Team Structure into Head Managers / Managers / Employees sections.
-- [ ] Render each active member exactly once by structural role.
-- [ ] Remove the always-visible graph/tree as the primary editor.
-- [ ] Add concise Head Manager cards with whole-Team scope.
-- [ ] Add concise Manager cards with direct-report/parent counts.
-- [ ] Add concise Employee cards with Manager counts.
-- [ ] Add one structural-role change action and modal.
-- [ ] Add transition impact preview.
-- [ ] Implement desktop drag-and-drop assignment onto Managers.
-- [ ] Make drag-and-drop add a relationship rather than replace existing Managers.
-- [ ] Keep Head Managers out of normal relationship drag/drop.
-- [ ] Route drag/drop through the canonical backend mutation.
-- [ ] Add the required relationship reason confirmation.
-- [ ] Add accessible keyboard/mobile relationship assignment.
-- [ ] Add expandable member details.
-- [ ] Add visible expand/collapse chevrons.
-- [ ] Remove obsolete reparent-centric primary UI.
-- [ ] Remove dead reparent code/contracts only if they have no legitimate remaining consumer.
-- [ ] Preserve responsive, keyboard, and focus behavior.
+- [x] Rebuild Team Structure into Head Managers / Managers / Employees sections.
+- [x] Render each active member exactly once by structural role.
+- [x] Remove the always-visible graph/tree as the primary editor.
+- [x] Add concise Head Manager cards with whole-Team scope.
+- [x] Add concise Manager cards with direct-report/parent counts.
+- [x] Add concise Employee cards with Manager counts.
+- [x] Add one structural-role change action and modal.
+- [x] Add transition impact preview.
+- [x] Implement desktop drag-and-drop assignment onto Managers.
+- [x] Make drag-and-drop add a relationship rather than replace existing Managers.
+- [x] Keep Head Managers out of normal relationship drag/drop.
+- [x] Route drag/drop through the canonical backend mutation.
+- [x] Add the required relationship reason confirmation.
+- [x] Add accessible keyboard/mobile relationship assignment.
+- [x] Add expandable member details.
+- [x] Add visible expand/collapse chevrons.
+- [x] Remove obsolete reparent-centric primary UI.
+- [x] Remove dead reparent code/contracts only if they have no legitimate remaining consumer.
+- [x] Preserve responsive, keyboard, and focus behavior.
+
+Completion evidence (2026-08-13): Team Structure now renders every active member once in ordered Head Manager, Manager, or Employee card sections with role-specific scope/count summaries and explicit expandable details. One structural-role modal uses a backend impact preview before confirmation. Desktop drag-and-drop and the keyboard/mobile action share the canonical additive Manager-relationship mutation and reason dialog, while Head Managers remain outside normal relationship assignment. The obsolete always-visible hierarchy tree and its unconsumed reparent route, permission, audit events, contracts, and implementation were removed. Focused feature, architecture guardrail, type, lint, build, and Chromium/Firefox Playwright coverage protects the resulting workflow.
 
 ---
 

@@ -101,8 +101,7 @@ Route::middleware(['auth', 'admin.mode', 'route.permission'])->group(function ()
     Route::post('/admin/teams/{team}/structure/members', [TeamStructureController::class, 'addMember'])->name('admin.teams.structure.members.store');
     Route::delete('/admin/teams/{team}/structure/members/{user}', [TeamStructureController::class, 'removeMember'])->name('admin.teams.structure.members.destroy');
     Route::post('/admin/teams/{team}/structure/relationships', [TeamStructureController::class, 'store'])->name('admin.teams.structure.relationships.store');
-    Route::patch('/admin/teams/{team}/structure/relationships/{relationship}/reparent', [TeamStructureController::class, 'reparent'])->name('admin.teams.structure.relationships.reparent');
-    Route::patch('/admin/teams/{team}/structure/head-manager', [TeamStructureController::class, 'head'])->name('admin.teams.structure.head-manager.update');
+    Route::patch('/admin/teams/{team}/structure/structural-role', [TeamStructureController::class, 'changeStructuralRole'])->name('admin.teams.structure.structural-role.update');
     Route::patch('/admin/teams/{team}/structure/relationships/{relationship}/end', [TeamStructureController::class, 'end'])->name('admin.teams.structure.relationships.end');
     Route::get('/admin/authorization/roles', RoleAdministrationController::class)->name('admin.authorization.roles.index');
     Route::get('/admin/authorization/roles/create', CreateRoleController::class)->name('admin.authorization.roles.create');

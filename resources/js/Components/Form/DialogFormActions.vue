@@ -10,11 +10,13 @@ withDefaults(
         submitIcon?: Component;
         submitTone?: 'primary' | 'neutral' | 'danger';
         loading?: boolean;
+        disabled?: boolean;
     }>(),
     {
         submitIcon: undefined,
         submitTone: 'primary',
         loading: false,
+        disabled: false,
     },
 );
 
@@ -28,7 +30,7 @@ const emit = defineEmits<{
         <FormButton type="button" tone="neutral" @click="emit('cancel')">
             {{ cancelLabel }}
         </FormButton>
-        <FormButton type="submit" :tone="submitTone" :icon="submitIcon" :loading="loading">
+        <FormButton type="submit" :tone="submitTone" :icon="submitIcon" :loading="loading" :disabled="disabled">
             {{ submitLabel }}
         </FormButton>
     </div>

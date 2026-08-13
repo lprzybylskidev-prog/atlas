@@ -38,21 +38,6 @@ final class ManagerHierarchyViolation extends RuntimeException
         return new self('The team structure changed after this page was opened. Reload it before saving.');
     }
 
-    public static function sameParent(): self
-    {
-        return new self('Select a different manager for this move.');
-    }
-
-    public static function invalidEffectiveDate(): self
-    {
-        return new self('The move date must fall between the current relationship start and now.');
-    }
-
-    public static function activeProcess(string $message = 'An active process blocks this hierarchy change.'): self
-    {
-        return new self($message);
-    }
-
     public static function invalidStructuralRole(): self
     {
         return new self('Select a valid structural role.');

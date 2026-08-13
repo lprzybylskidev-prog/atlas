@@ -58,11 +58,10 @@ Manager hierarchy administration is integrated into the owning team at `/admin/t
 
 - viewing active members and keyboard-expandable effective-dated membership history;
 - adding team members and ending active membership with a mandatory reason through the Teams-owned membership use case;
-- selecting a manager context and adding multiple direct-report relationships with one effective date and reason;
+- adding a Manager relationship through desktop drag-and-drop or the equivalent keyboard/mobile action, with an effective date and reason while preserving existing Managers;
 - ending manager relationships;
-- atomically moving an existing report/subtree to a new manager while ending the previous relationship and preserving both history rows;
 - previewing and changing a member's structural role with a mandatory reason, optimistic concurrency, last-required-Head-Manager protection, and atomic cleanup of relationship edges invalidated by the transition;
-- viewing the hierarchy tree below one manager;
+- viewing concise role-specific cards and expandable relationship details instead of a primary hierarchy tree;
 - seeing active direct-report relationship start dates and creation reasons;
 - filtering by team;
 - validity periods;
@@ -71,14 +70,13 @@ Manager hierarchy administration is integrated into the owning team at `/admin/t
 - mandatory reason;
 - audit;
 - optimistic concurrency through a structure version;
-- a `TeamStructureMutationGuard` port consulted inside the atomic move transaction so an active-process owner can reject unsafe reparenting without a Core-to-Optional dependency; the default reduced mode permits the move when no process owner contributes a blocker;
 - protection against removing the last active head manager;
 - membership-removal blocking while the member is a head manager or participates in active manager relationships;
 - one responsive and keyboard-accessible team-context surface with an explicit empty state.
 
-Audited manager hierarchy actions include `team.manager_relationship.created`, `team.manager_relationship.ended`, `team.manager_relationship.reparented`, `team.manager_relationship.reparent_rejected`, `team.structural_role.changed`, and `team.structural_role.change_rejected`. Successful membership, relationship, and structural-role evidence is persisted in the same transaction as the state change; an audit failure rolls the mutation back. Rejected reparent and structural-role evidence is recorded only after the attempted business-state transaction has rolled back.
+Audited manager hierarchy actions include `team.manager_relationship.created`, `team.manager_relationship.ended`, `team.structural_role.changed`, and `team.structural_role.change_rejected`. Successful membership, relationship, and structural-role evidence is persisted in the same transaction as the state change; an audit failure rolls the mutation back. Rejected structural-role evidence is recorded only after the attempted business-state transaction has rolled back.
 
-Granular Admin route permissions are `admin.teams.structure.show`, `admin.teams.structure.relationships.store`, `admin.teams.structure.relationships.end`, and `admin.teams.structure.head-manager.update`. Manager application/scope permissions remain `teams.managers.view`, `teams.managers.create`, `teams.managers.update`, `teams.managers.terminate`, `teams.managers.tree`, `teams.managers.history`, and `teams.managers.head.update`.
+Granular Admin route permissions are `admin.teams.structure.show`, `admin.teams.structure.relationships.store`, `admin.teams.structure.relationships.end`, and `admin.teams.structure.structural-role.update`. Manager application/scope permissions remain `teams.managers.view`, `teams.managers.create`, `teams.managers.update`, `teams.managers.terminate`, `teams.managers.tree`, `teams.managers.history`, and `teams.managers.head.update`.
 
 Development reset does not seed generic representative manager hierarchies after Phase 25 cleanup. The Phase 27 TimeTracking development demo is the current explicit exception: it creates a small manager hierarchy only for TimeTracking review data. Tests and future business modules must create their own explicit manager fixtures.
 
@@ -90,7 +88,7 @@ Atlas is still before its first production deployment, so the explicit structura
 
 ## Phase 28 foundation repair target
 
-Current state: Teams owns membership and the integrated team structure editor. Phase 29 completed active/history membership management and semantic atomic reparenting in that editor, removed the competing Team Edit membership UI, and added desktop/mobile browser acceptance. Phase 28 removed the duplicated separate Admin Managers area after route, permission, UI, DAG, audit, concurrency, and legacy-reference coverage was moved to the Teams surface.
+Current state: Teams owns membership and the integrated team structure editor. The editor groups members once by explicit structural role, gives Head Managers whole-Team scope, adds Manager relationships through desktop drag-and-drop or the equivalent keyboard/mobile action, and changes structural roles through one reasoned impact-preview workflow. Adding a Manager preserves existing Manager relationships. The earlier tree/reparent-centric editor and its unused atomic reparent contract were removed after the additive relationship workflow became canonical. Phase 28 removed the duplicated separate Admin Managers area after route, permission, UI, DAG, audit, concurrency, and legacy-reference coverage was moved to the Teams surface.
 
 Target state: Teams owns team membership, active-team validation, public team summaries, manager DAG, head-manager protection, and the integrated team structure editor. The separate Managers CRUD/Admin area is removed while manager panel and manager scope remain. Phase 28 boundary slices added `TeamLookup` display summaries, public/internal ID resolution, active-team validation, active user-team assignment ID/summary lookups, active head-manager checks, all-team internal ID enumeration, all-team summaries, and internal-ID summary maps so Audit browser filters, Notifications delivery/realtime paths, ModuleGate, module activation cache invalidation, Admin System Status active-team resolution, TimeTracking tracked assignment/report/break-policy reads, TimeTracking closed-period eligibility, and Admin module activation team/history/schedule surfaces no longer query Teams tables directly. Teams membership, session-limit, privacy lifecycle, and manager hierarchy surfaces now use Identity `UserLookup` for user ID/display enrichment instead of importing Identity persistence table constants.
 

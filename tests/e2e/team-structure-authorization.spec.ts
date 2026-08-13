@@ -35,17 +35,6 @@ async function openVisibilityTeamEdit(page: Page): Promise<void> {
     await expect(page).toHaveURL(/\/admin\/teams\/[0-9A-HJKMNP-TV-Z]{26}\/edit/);
 }
 
-async function loadManager(page: Page, name: string): Promise<void> {
-    const managerSelect = page.getByLabel(/Użytkownicy|Users/);
-    await managerSelect.click();
-    await page.getByRole('option').filter({ hasText: name }).click();
-    await Promise.all([
-        page.waitForResponse((response) => response.request().method() === 'GET' && response.url().includes('preview_manager=')),
-        page.getByRole('button', { name: /Załaduj|Load/ }).click(),
-    ]);
-    await expect(page.getByRole('heading', { name, exact: true }).first()).toBeVisible();
-}
-
 test.describe('Integrated team structure and authorization workflow', () => {
     test('presents member authorization as an accessible read-only disclosure on Team Edit', async ({ page }) => {
         await signInAsAdmin(page);
@@ -67,9 +56,7 @@ test.describe('Integrated team structure and authorization workflow', () => {
 
         const checkboxes = assignment.getByRole('checkbox');
         expect(await checkboxes.count()).toBeGreaterThan(0);
-        for (let index = 0; index < (await checkboxes.count()); index += 1) {
-            await expect(checkboxes.nth(index)).toBeDisabled();
-        }
+        expect(await checkboxes.evaluateAll((nodes) => nodes.every((node) => (node as HTMLInputElement).disabled))).toBe(true);
 
         for (const field of [
             /Wylogowanie po bezczynności|Inactivity logout/,
@@ -95,14 +82,21 @@ test.describe('Integrated team structure and authorization workflow', () => {
         await expect(chevron).toHaveAttribute('data-state', 'expanded');
     });
 
-    test('administers membership, head manager and atomic reparent from Team Structure on desktop', async ({ page }) => {
+    test('administers the three-section additive Team Structure workflow on desktop', async ({ page }) => {
         await signInAsAdmin(page);
         await expect(page.locator('a[href="/admin/managers"]')).toHaveCount(0);
         await openVisibilityTeamStructure(page);
 
-        await expect(page.getByRole('heading', { name: /Aktywni członkowie zespołu|Active team members/ })).toBeVisible();
-        await expect(page.getByText('Visibility Admin', { exact: true }).first()).toBeVisible();
-        await expect(page.getByText('Visibility User', { exact: true }).first()).toBeVisible();
+        const headSection = page.getByRole('heading', { name: /Główni managerowie|Head Managers/, exact: true });
+        const managerSection = page.getByRole('heading', { name: /Managerowie|Managers/, exact: true });
+        const employeeSection = page.getByRole('heading', { name: /Pracownicy|Employees/, exact: true });
+        await expect(headSection).toBeVisible();
+        await expect(managerSection).toBeVisible();
+        await expect(employeeSection).toBeVisible();
+        await expect(page.locator('[data-testid^="team-structure-member-"]')).toHaveCount(2);
+        await expect(page.locator('[data-testid^="team-structure-member-"]').filter({ hasText: 'Visibility Admin' })).toHaveCount(1);
+        await expect(page.locator('[data-testid^="team-structure-member-"]').filter({ hasText: 'Visibility User' })).toHaveCount(1);
+        await expect(page.locator('[role="tree"]')).toHaveCount(0);
 
         await page.getByLabel(/^Użytkownik$|^User$/).click();
         await page.getByRole('option').filter({ hasText: 'Structure Candidate' }).click();
@@ -110,117 +104,111 @@ test.describe('Integrated team structure and authorization workflow', () => {
             page.waitForResponse((response) => response.request().method() === 'POST' && response.url().endsWith('/structure/members')),
             page.getByRole('button', { name: /Dodaj członka|Add member/ }).click(),
         ]);
-        await expect(page.getByText('Structure Candidate', { exact: true }).first()).toBeVisible();
 
-        const history = page.getByText(/Historia członkostwa|Membership history/, { exact: true });
-        await history.focus();
-        await expect(history).toBeFocused();
-        await history.press('Enter');
-        await expect(page.getByText(/Aktywne|Active/, { exact: true }).first()).toBeVisible();
-
-        await loadManager(page, 'Visibility Admin');
-        const headCard = page.getByTestId('head-manager-card');
-        await headCard.getByLabel(/Status managera|Manager status/).click();
-        await page
-            .getByRole('option', { name: /Główny manager|Head manager/ })
-            .last()
-            .click();
-        await headCard.getByLabel(/Powód|Reason/).fill('E2E head-manager acceptance.');
+        let candidate = page.locator('[data-testid^="team-structure-member-"]').filter({ hasText: 'Structure Candidate' });
+        await expect(candidate).toHaveAttribute('data-structural-role', 'employee');
+        await candidate.getByRole('button', { name: /Zmień rolę w strukturze|Change structure role/ }).click();
+        await page.getByLabel(/Nowa rola w strukturze|New structure role/).click();
+        await page.getByRole('option', { name: /^Manager$/ }).click();
+        await expect(page.getByTestId('structural-role-impact-preview')).toContainText(/0/);
+        await page.getByLabel(/^Powód$|^Reason$/).fill('E2E promotion for additive assignment.');
         await Promise.all([
             page.waitForResponse(
-                (response) => response.request().method() === 'PATCH' && response.url().endsWith('/structure/head-manager'),
+                (response) => response.request().method() === 'PATCH' && response.url().endsWith('/structure/structural-role'),
             ),
-            page.waitForResponse((response) => response.request().method() === 'GET' && response.url().includes('preview_manager=')),
-            headCard.getByRole('button', { name: /Zapisz status|Save status/ }).click(),
+            page
+                .getByRole('button', { name: /Zmień rolę w strukturze|Change structure role/ })
+                .last()
+                .click(),
         ]);
 
-        await loadManager(page, 'Visibility Admin');
-        const reportRow = page.locator('[data-testid^="manager-relationship-"]').filter({ hasText: 'Visibility User' });
-        await reportRow.getByLabel(/Nowy manager|New manager/).click();
-        await page.getByRole('option').filter({ hasText: 'Structure Candidate' }).click();
-        await reportRow.getByLabel(/Powód przeniesienia|Move reason/).fill('E2E atomic move.');
+        candidate = page.locator('[data-testid^="team-structure-member-"]').filter({ hasText: 'Structure Candidate' });
+        const report = page.locator('[data-testid^="team-structure-member-"]').filter({ hasText: 'Visibility User' });
+        await expect(candidate).toHaveAttribute('data-structural-role', 'manager');
+        await report.dragTo(candidate);
+        await expect(page.getByRole('dialog')).toContainText(
+            /Istniejące relacje z managerami pozostaną bez zmian|Existing Manager relationships will remain unchanged/,
+        );
+        await page.getByLabel(/^Powód$|^Reason$/).fill('E2E additive manager relationship.');
         await Promise.all([
-            page.waitForResponse((response) => response.request().method() === 'PATCH' && response.url().endsWith('/reparent')),
-            page.waitForResponse((response) => response.request().method() === 'GET' && response.url().includes('preview_manager=')),
-            reportRow.getByRole('button', { name: /Przenieś podwładnego|Move report/ }).click(),
+            page.waitForResponse(
+                (response) => response.request().method() === 'POST' && response.url().endsWith('/structure/relationships'),
+            ),
+            page.getByRole('button', { name: /Dodaj relację z managerem|Add manager relationship/ }).click(),
         ]);
 
-        await expect(page.getByRole('heading', { name: 'Structure Candidate', exact: true }).first()).toBeVisible();
-        await expect(page.getByText('Visibility User', { exact: true }).last()).toBeVisible();
-        await page.reload();
-        await expect(page.getByText('Visibility User', { exact: true }).last()).toBeVisible();
-
-        const movedReportRow = page.locator('[data-testid^="manager-relationship-"]').filter({ hasText: 'Visibility User' });
-        await movedReportRow.getByLabel(/Nowy manager|New manager/).click();
-        await page.getByRole('option').filter({ hasText: 'Visibility Admin' }).click();
-        await movedReportRow.getByLabel(/Powód przeniesienia|Move reason/).fill('Restore deterministic E2E hierarchy.');
+        const updatedReport = page.locator('[data-testid^="team-structure-member-"]').filter({ hasText: 'Visibility User' });
+        await expect(updatedReport).toContainText(/Managerowie: 2|Managers: 2/);
+        candidate = page.locator('[data-testid^="team-structure-member-"]').filter({ hasText: 'Structure Candidate' });
+        await candidate.getByRole('button', { name: /Rozwiń szczegóły|Expand details/ }).click();
+        const relationship = candidate.locator('[data-testid^="manager-relationship-"]').filter({ hasText: 'Visibility User' });
+        await relationship.getByLabel(/Powód zakończenia|End reason/).fill('E2E relationship cleanup.');
         await Promise.all([
-            page.waitForResponse((response) => response.request().method() === 'PATCH' && response.url().endsWith('/reparent')),
-            page.waitForResponse((response) => response.request().method() === 'GET' && response.url().includes('preview_manager=')),
-            movedReportRow.getByRole('button', { name: /Przenieś podwładnego|Move report/ }).click(),
+            page.waitForResponse((response) => response.request().method() === 'PATCH' && response.url().endsWith('/end')),
+            relationship.getByRole('button', { name: /Zakończ|End/ }).click(),
         ]);
+        await expect(relationship).toHaveCount(0);
 
-        const candidateMember = page.locator('[data-testid^="team-member-"]').filter({ hasText: 'Structure Candidate' });
-        await candidateMember.getByLabel(/Powód zakończenia|End reason/).fill('E2E membership lifecycle complete.');
+        candidate = page.locator('[data-testid^="team-structure-member-"]').filter({ hasText: 'Structure Candidate' });
+        await candidate.getByRole('button', { name: /Zmień rolę w strukturze|Change structure role/ }).click();
+        await page.getByLabel(/Nowa rola w strukturze|New structure role/).click();
+        await page.getByRole('option', { name: /Pracownik|Employee/ }).click();
+        await expect(page.getByTestId('structural-role-impact-preview')).toContainText(/0/);
+        await page.getByLabel(/^Powód$|^Reason$/).fill('Restore deterministic E2E role.');
+        await Promise.all([
+            page.waitForResponse(
+                (response) => response.request().method() === 'PATCH' && response.url().endsWith('/structure/structural-role'),
+            ),
+            page
+                .getByRole('button', { name: /Zmień rolę w strukturze|Change structure role/ })
+                .last()
+                .click(),
+        ]);
+        await expect(page.getByRole('dialog')).toHaveCount(0);
+
+        candidate = page.locator('[data-testid^="team-structure-member-"]').filter({ hasText: 'Structure Candidate' });
+        await expect(candidate).toHaveAttribute('data-structural-role', 'employee');
+        const detailsToggle = candidate.getByRole('button', {
+            name: /Rozwiń szczegóły|Zwiń szczegóły|Expand details|Collapse details/,
+        });
+        if ((await detailsToggle.getAttribute('aria-expanded')) !== 'true') {
+            await detailsToggle.click();
+        }
+        await candidate.getByLabel(/Powód zakończenia|End reason/).fill('E2E membership lifecycle complete.');
         await Promise.all([
             page.waitForResponse((response) => response.request().method() === 'DELETE' && response.url().includes('/structure/members/')),
-            candidateMember.getByRole('button', { name: /Zakończ członkostwo|End membership/ }).click(),
+            candidate.getByRole('button', { name: /Zakończ członkostwo|End membership/ }).click(),
         ]);
-        await expect(candidateMember).toHaveCount(0);
-        const completedHistory = page.getByText(/Historia członkostwa|Membership history/, { exact: true });
-        await completedHistory.press('Enter');
-        await expect(page.getByText('Structure Candidate', { exact: true }).first()).toBeVisible();
+        await expect(candidate).toHaveCount(0);
     });
 
-    test('keeps the critical Team Structure controls keyboard-accessible on mobile', async ({ page }) => {
+    test('keeps disclosure and relationship assignment keyboard-accessible on mobile', async ({ page }) => {
         await page.setViewportSize({ width: 390, height: 844 });
         await signInAsAdmin(page);
-        await expect(page.locator('a[href="/admin/managers"]')).toHaveCount(0);
         await openVisibilityTeamStructure(page);
 
-        await expect(page.getByRole('heading', { name: /Struktura zespołu|Team structure/, exact: true }).first()).toBeVisible();
-        const history = page.getByText(/Historia członkostwa|Membership history/, { exact: true });
+        const employee = page.locator('[data-testid^="team-structure-member-"]').filter({ hasText: 'Visibility User' });
+        const disclosure = employee.getByRole('button', { name: /Rozwiń szczegóły|Expand details/ });
+        await disclosure.focus();
+        await expect(disclosure).toBeFocused();
+        await disclosure.press('Enter');
+        await expect(employee.getByRole('button', { name: /Zwiń szczegóły|Collapse details/ })).toHaveAttribute('aria-expanded', 'true');
+
+        const assign = employee.getByRole('button', { name: /Przypisz managera|Assign manager/ });
+        await assign.focus();
+        await expect(assign).toBeFocused();
+        await assign.press('Enter');
+        const dialog = page.getByRole('dialog');
+        await expect(dialog).toBeVisible();
+        await dialog.getByLabel(/Manager/).click();
+        await expect(page.getByRole('option', { name: /Visibility Admin/ })).toBeVisible();
+        await page.keyboard.press('Escape');
+        await expect(dialog).toHaveCount(0);
+        await expect(assign).toBeFocused();
+
+        const history = page.getByText(/Historia członkostwa|Membership history/, { exact: true }).last();
         await history.focus();
-        await expect(history).toBeFocused();
         await history.press('Enter');
-        await expect(page.getByText('Visibility Admin', { exact: true }).first()).toBeVisible();
-
-        const teamSelect = page.getByLabel(/Zespół|Team/).first();
-        await teamSelect.click();
-        await Promise.all([
-            page.waitForEvent('requestfinished', {
-                predicate: (request) => request.method() === 'GET' && new URL(request.url()).pathname.endsWith('/structure'),
-            }),
-            page.getByRole('option', { name: 'Administration', exact: true }).click(),
-        ]);
-        await expect(page.getByLabel(/Użytkownicy|Users/)).toHaveText(/Wybierz użytkownika|Select user/);
-
-        await page
-            .getByLabel(/Zespół|Team/)
-            .first()
-            .click();
-        await Promise.all([
-            page.waitForEvent('requestfinished', {
-                predicate: (request) => request.method() === 'GET' && new URL(request.url()).pathname.endsWith('/structure'),
-            }),
-            page.getByRole('option', { name: 'E2E Visibility Team', exact: true }).click(),
-        ]);
-
-        const managerSelect = page.getByLabel(/Użytkownicy|Users/);
-        await managerSelect.click();
-        const existingManagerOption = page.getByRole('option').filter({ hasText: 'Visibility Admin' });
-        await expect(existingManagerOption).toContainText(/Manager|manager/);
-        await existingManagerOption.click();
-        await Promise.all([
-            page.waitForEvent('requestfinished', {
-                predicate: (request) => {
-                    const url = new URL(request.url());
-
-                    return request.method() === 'GET' && url.pathname.endsWith('/structure') && url.searchParams.has('preview_manager');
-                },
-            }),
-            page.getByRole('button', { name: /Załaduj|Load/ }).click(),
-        ]);
-        await expect(page.getByRole('heading', { name: /Struktura zespołu|Team hierarchy/, exact: true }).last()).toBeVisible();
+        await expect(page.getByText('Visibility Admin', { exact: true }).last()).toBeVisible();
     });
 });

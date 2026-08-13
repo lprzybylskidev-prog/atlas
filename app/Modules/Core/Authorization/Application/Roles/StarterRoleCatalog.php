@@ -110,7 +110,7 @@ final class StarterRoleCatalog
                 'admin.teams.structure.show',
                 'admin.teams.structure.relationships.store',
                 'admin.teams.structure.relationships.end',
-                'admin.teams.structure.head-manager.update',
+                'admin.teams.structure.structural-role.update',
                 TeamPermissionNames::MANAGERS_VIEW,
                 TeamPermissionNames::MANAGERS_CREATE,
                 TeamPermissionNames::MANAGERS_UPDATE,

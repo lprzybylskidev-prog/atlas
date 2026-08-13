@@ -52,9 +52,7 @@ final class TeamPermissionCatalog implements ModulePermissionContribution
 
     public const ADMIN_TEAMS_STRUCTURE_RELATIONSHIPS_END = 'admin.teams.structure.relationships.end';
 
-    public const ADMIN_TEAMS_STRUCTURE_RELATIONSHIPS_REPARENT = 'admin.teams.structure.relationships.reparent';
-
-    public const ADMIN_TEAMS_STRUCTURE_HEAD_MANAGER_UPDATE = 'admin.teams.structure.head-manager.update';
+    public const ADMIN_TEAMS_STRUCTURE_STRUCTURAL_ROLE_UPDATE = 'admin.teams.structure.structural-role.update';
 
     public const MANAGERS_CREATE = TeamPermissionNames::MANAGERS_CREATE;
 
@@ -92,8 +90,7 @@ final class TeamPermissionCatalog implements ModulePermissionContribution
             new ModulePermissionDefinition(self::ADMIN_TEAMS_STRUCTURE_MEMBERS_DESTROY, 'End team membership through the integrated structure editor.'),
             new ModulePermissionDefinition(self::ADMIN_TEAMS_STRUCTURE_RELATIONSHIPS_STORE, 'Create manager relationships through Admin UI.'),
             new ModulePermissionDefinition(self::ADMIN_TEAMS_STRUCTURE_RELATIONSHIPS_END, 'End manager relationships through Admin UI.'),
-            new ModulePermissionDefinition(self::ADMIN_TEAMS_STRUCTURE_RELATIONSHIPS_REPARENT, 'Atomically reparent manager relationships through Admin UI.'),
-            new ModulePermissionDefinition(self::ADMIN_TEAMS_STRUCTURE_HEAD_MANAGER_UPDATE, 'Update head manager status through Admin UI.'),
+            new ModulePermissionDefinition(self::ADMIN_TEAMS_STRUCTURE_STRUCTURAL_ROLE_UPDATE, 'Update structural roles through Admin UI.'),
             new ModulePermissionDefinition(self::MANAGERS_CREATE, 'Create manager relationships.'),
             new ModulePermissionDefinition(self::MANAGERS_UPDATE, 'Update manager hierarchy.'),
             new ModulePermissionDefinition(self::MANAGERS_TERMINATE, 'End manager relationships.'),
