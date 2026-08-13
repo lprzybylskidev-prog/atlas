@@ -390,21 +390,23 @@ Requirements:
 
 ### Tasks
 
-- [ ] Make Team Edit member authorization explicitly read-only.
-- [ ] Disable role checkboxes.
-- [ ] Disable direct-permission checkboxes.
-- [ ] Disable user-team policy override fields.
-- [ ] Render current Source as read-only state.
-- [ ] Remove member authorization Save controls from Team Edit.
-- [ ] Remove authorization mutation reason input from Team Edit.
-- [ ] Remove membership-removal reason input from Team Edit.
-- [ ] Remove the dead `Remove access` action from Team Edit.
-- [ ] Ensure no child component emits an unsupported mutation action in this context.
-- [ ] Replace ambiguous `roleCount / permissionCount` summary text.
-- [ ] Remove duplicated assignment name in expanded content.
-- [ ] Add a visible expand/collapse chevron.
-- [ ] Preserve keyboard/focus/accessibility behavior.
-- [ ] Add component and Playwright coverage for the read-only Team Edit contract.
+- [x] Make Team Edit member authorization explicitly read-only.
+- [x] Disable role checkboxes.
+- [x] Disable direct-permission checkboxes.
+- [x] Disable user-team policy override fields.
+- [x] Render current Source as read-only state.
+- [x] Remove member authorization Save controls from Team Edit.
+- [x] Remove authorization mutation reason input from Team Edit.
+- [x] Remove membership-removal reason input from Team Edit.
+- [x] Remove the dead `Remove access` action from Team Edit.
+- [x] Ensure no child component emits an unsupported mutation action in this context.
+- [x] Replace ambiguous `roleCount / permissionCount` summary text.
+- [x] Remove duplicated assignment name in expanded content.
+- [x] Add a visible expand/collapse chevron.
+- [x] Preserve keyboard/focus/accessibility behavior.
+- [x] Add component and Playwright coverage for the read-only Team Edit contract.
+
+Completion evidence (2026-08-13): Team Edit now invokes the shared authorization workflow with explicit membership and authorization mutation capabilities disabled and has no member PATCH handler or mutation listeners. The rendered workflow explains its read-only state, shows current Source as text, disables every role/direct-permission checkbox and policy override, retains the effective preview, and omits Save, mutation-reason, removal-reason, and Remove-access controls. Assignment headers use localized explicit role/direct-permission counts, render one member name, and expose a stable rotating chevron with authoritative `aria-expanded`, labelled region semantics, keyboard activation, and preserved focus. Static component guardrails and focused Chromium Playwright acceptance cover the permanent contract.
 
 ---
 

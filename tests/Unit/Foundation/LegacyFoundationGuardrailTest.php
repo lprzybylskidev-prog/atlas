@@ -90,8 +90,11 @@ final class LegacyFoundationGuardrailTest extends TestCase
         self::assertStringContainsString('function reparent(', $controller);
         self::assertStringContainsString('UserTeamAuthorizationWorkflow', $teamEdit);
         self::assertStringContainsString(':membership-mutation="false"', $teamEdit);
+        self::assertStringContainsString(':authorization-mutation="false"', $teamEdit);
         self::assertStringNotContainsString('function addUser(', $teamEdit);
         self::assertStringNotContainsString('function removeUser(', $teamEdit);
+        self::assertStringNotContainsString('@save=', $teamEdit);
+        self::assertStringNotContainsString('router.patch(', $teamEdit);
         self::assertStringNotContainsString('router.post(', $teamEdit);
         self::assertStringNotContainsString('router.delete(', $teamEdit);
     }

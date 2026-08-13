@@ -29,6 +29,12 @@ async function openVisibilityTeamStructure(page: Page): Promise<void> {
     await expect(page).toHaveURL(/\/admin\/teams\/[0-9A-HJKMNP-TV-Z]{26}\/structure/);
 }
 
+async function openVisibilityTeamEdit(page: Page): Promise<void> {
+    const teamRow = page.getByRole('row').filter({ hasText: 'E2E Visibility Team' });
+    await teamRow.getByRole('button', { name: /Edytuj|Edit/ }).click();
+    await expect(page).toHaveURL(/\/admin\/teams\/[0-9A-HJKMNP-TV-Z]{26}\/edit/);
+}
+
 async function loadManager(page: Page, name: string): Promise<void> {
     const managerSelect = page.getByLabel(/Użytkownicy|Users/);
     await managerSelect.click();
@@ -41,6 +47,54 @@ async function loadManager(page: Page, name: string): Promise<void> {
 }
 
 test.describe('Integrated team structure and authorization workflow', () => {
+    test('presents member authorization as an accessible read-only disclosure on Team Edit', async ({ page }) => {
+        await signInAsAdmin(page);
+        await openVisibilityTeamEdit(page);
+
+        await expect(page.getByTestId('authorization-read-only-notice')).toContainText(/tylko do odczytu|read-only/i);
+
+        const assignment = page.locator('[data-testid^="authorization-assignment-"]').filter({ hasText: 'Visibility Admin' }).first();
+        const disclosure = assignment.locator('button[aria-expanded]').first();
+        const chevron = disclosure.locator('svg[data-state]');
+
+        await expect(assignment.getByText('Visibility Admin', { exact: true })).toHaveCount(1);
+        await expect(disclosure).toHaveAttribute('aria-expanded', 'true');
+        await expect(disclosure).toContainText(/Role: \d+ · Bezpośrednie uprawnienia: \d+|Roles: \d+ · Direct permissions: \d+/);
+        await expect(chevron).toBeVisible();
+        await expect(chevron).toHaveAttribute('data-state', 'expanded');
+        await expect(assignment.getByTestId(/authorization-assignment-source-/)).toContainText(/Źródło:|Source:/);
+        await expect(assignment).not.toContainText(':source');
+
+        const checkboxes = assignment.getByRole('checkbox');
+        expect(await checkboxes.count()).toBeGreaterThan(0);
+        for (let index = 0; index < (await checkboxes.count()); index += 1) {
+            await expect(checkboxes.nth(index)).toBeDisabled();
+        }
+
+        for (const field of [
+            /Wylogowanie po bezczynności|Inactivity logout/,
+            /Maksymalny czas sesji|Maximum session lifetime/,
+            /Dzienny limit zwykłej przerwy|Daily regular break limit/,
+            /Maksymalny czas jednej przerwy|Maximum single break duration/,
+        ]) {
+            await expect(assignment.getByLabel(field)).toBeDisabled();
+        }
+
+        await expect(assignment.getByRole('button', { name: /Zapisz przypisania|Save assignments/ })).toHaveCount(0);
+        await expect(assignment.getByRole('button', { name: /Usuń dostęp|Remove access/ })).toHaveCount(0);
+        await expect(assignment.getByLabel(/Powód zmiany uprawnień|Authorization change reason/)).toHaveCount(0);
+        await expect(assignment.getByLabel(/Powód usunięcia|Removal reason/)).toHaveCount(0);
+
+        await disclosure.focus();
+        await expect(disclosure).toBeFocused();
+        await disclosure.press(' ');
+        await expect(disclosure).toHaveAttribute('aria-expanded', 'false');
+        await expect(chevron).toHaveAttribute('data-state', 'collapsed');
+        await disclosure.press('Enter');
+        await expect(disclosure).toHaveAttribute('aria-expanded', 'true');
+        await expect(chevron).toHaveAttribute('data-state', 'expanded');
+    });
+
     test('administers membership, head manager and atomic reparent from Team Structure on desktop', async ({ page }) => {
         await signInAsAdmin(page);
         await expect(page.locator('a[href="/admin/managers"]')).toHaveCount(0);

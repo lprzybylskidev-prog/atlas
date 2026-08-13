@@ -23,6 +23,7 @@ Admin user-team access management:
 
 - Admin user creation requires at least one team assignment;
 - Admin user creation/editing manages user-context team access. Team creation may establish initial assignments, while Team Structure is the only team-context surface that adds or ends memberships after creation. Team Edit links to Team Structure and does not expose a competing membership mutation workflow;
+- Team Edit shows current member authorization only as read-only context, with explicit role/direct-permission counts and no authorization or membership mutation controls;
 - Admin team creation/editing also manages team-scoped module activation overrides. The same override can be managed from `/admin/modules/{module}` by attaching teams to a module, and from `/admin/teams/{team}/edit` by attaching modules to a team.
 - Admin can add access to an active team the user does not currently belong to, including team-scoped roles and direct permissions;
 - Admin can update a user's team-scoped roles and direct permissions from User administration; Team Structure owns team-context membership and hierarchy mutations;

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { IconDeviceFloppy, IconPlus, IconTrash, IconUsersGroup } from '@tabler/icons-vue';
+import { IconChevronDown, IconDeviceFloppy, IconPlus, IconTrash, IconUsersGroup } from '@tabler/icons-vue';
 import { computed, ref, watch } from 'vue';
 
 import AuthorizationAssignmentPreview from './AuthorizationAssignmentPreview.vue';
@@ -51,6 +51,7 @@ const props = withDefaults(
         errors?: Record<string, string>;
         errorPrefix?: string;
         membershipMutation?: boolean;
+        authorizationMutation?: boolean;
     }>(),
     {
         processing: false,
@@ -60,6 +61,7 @@ const props = withDefaults(
         contextAxis: 'user',
         userOptions: () => [],
         membershipMutation: true,
+        authorizationMutation: true,
         fixedTeamPublicId: '',
         fixedTeamName: '',
     },
@@ -76,6 +78,7 @@ const { t } = useTranslator();
 const pendingTeamPublicId = ref('');
 const pendingUserPublicId = ref('');
 const expandedIndex = ref(props.assignments.length === 0 ? -1 : 0);
+const authorizationReadOnly = computed(() => !props.authorizationMutation);
 
 const sourceOptions = computed<FormSelectOption[]>(() => [
     { value: 'manual', label: t('pages.admin.users.assignment.source.manual') },
@@ -126,10 +129,10 @@ function assignmentLabel(assignment: UserTeamAccessAssignment): string {
 }
 
 function assignmentSummary(assignment: UserTeamAccessAssignment): string {
-    const roleCount = assignment.role_names.length;
-    const permissionCount = assignment.direct_permission_names.length;
-
-    return `${roleCount} / ${permissionCount}`;
+    return t('pages.admin.users.assignment.summary', {
+        roles: assignment.role_names.length,
+        permissions: assignment.direct_permission_names.length,
+    });
 }
 
 function teamPlaceholder(): string {
@@ -222,7 +225,7 @@ function permissionOptionsForAssignment(assignment: UserTeamAccessAssignment): C
         const roles = grants[option.value] ?? [];
 
         if (roles.length === 0) {
-            return option;
+            return authorizationReadOnly.value ? { ...option, disabled: true } : option;
         }
 
         const roleLabels = roles.map((role) => roleLabelByValue.value.get(role) ?? role).join(', ');
@@ -235,6 +238,14 @@ function permissionOptionsForAssignment(assignment: UserTeamAccessAssignment): C
             description: option.description === undefined ? grantedBy : `${option.description} · ${grantedBy}`,
         };
     });
+}
+
+function roleOptionsForAssignment(): CheckboxListOption[] {
+    if (!authorizationReadOnly.value) {
+        return props.roleOptions;
+    }
+
+    return props.roleOptions.map((option) => ({ ...option, disabled: true }));
 }
 
 function currentSourceLabel(assignment: UserTeamAccessAssignment): string {
@@ -338,6 +349,14 @@ watch(
             {{ rootError }}
         </p>
 
+        <p
+            v-if="authorizationReadOnly"
+            data-testid="authorization-read-only-notice"
+            class="mt-4 rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-700 dark:border-zinc-800 dark:bg-zinc-900/40 dark:text-zinc-200"
+        >
+            {{ t('pages.admin.users.assignment.read_only_notice') }}
+        </p>
+
         <div class="mt-5 divide-y divide-zinc-200 rounded-lg border border-zinc-200 dark:divide-zinc-800 dark:border-zinc-800">
             <UiState
                 v-if="assignments.length === 0"
@@ -351,8 +370,10 @@ watch(
                 v-for="(assignment, index) in assignments"
                 :key="assignment.user_public_id || assignment.team_public_id || index"
                 class="p-4"
+                :data-testid="`authorization-assignment-${index}`"
             >
                 <button
+                    :id="`authorization-assignment-trigger-${index}`"
                     type="button"
                     class="flex w-full items-center justify-between gap-4 rounded-md text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
                     :aria-expanded="expandedIndex === index"
@@ -360,20 +381,26 @@ watch(
                     @click="toggle(index)"
                 >
                     <span class="min-w-0 font-medium text-zinc-950 dark:text-zinc-50">{{ assignmentLabel(assignment) }}</span>
-                    <span class="shrink-0 text-xs text-zinc-500 dark:text-zinc-400">{{ assignmentSummary(assignment) }}</span>
+                    <span class="flex shrink-0 items-center gap-2 text-xs text-zinc-500 dark:text-zinc-400">
+                        <span>{{ assignmentSummary(assignment) }}</span>
+                        <IconChevronDown
+                            aria-hidden="true"
+                            class="h-4 w-4 shrink-0 transition-transform duration-150"
+                            :class="{ 'rotate-180': expandedIndex === index }"
+                            :data-state="expandedIndex === index ? 'expanded' : 'collapsed'"
+                            :stroke-width="2"
+                        />
+                    </span>
                 </button>
 
-                <div v-show="expandedIndex === index" :id="`authorization-assignment-${index}`" class="mt-4 space-y-4">
-                    <div class="grid gap-3 xl:grid-cols-[minmax(0,1fr)_16rem_auto]">
-                        <div>
-                            <p class="font-medium text-zinc-950 dark:text-zinc-50">
-                                {{ assignmentLabel(assignment) }}
-                            </p>
-                            <p v-if="fieldError(index, 'team_public_id')" class="mt-2 text-xs text-rose-600 dark:text-rose-300">
-                                {{ fieldError(index, 'team_public_id') }}
-                            </p>
-                        </div>
-
+                <div
+                    v-show="expandedIndex === index"
+                    :id="`authorization-assignment-${index}`"
+                    role="region"
+                    :aria-labelledby="`authorization-assignment-trigger-${index}`"
+                    class="mt-4 space-y-4"
+                >
+                    <div v-if="!authorizationReadOnly" class="grid gap-3 xl:grid-cols-[minmax(0,1fr)_auto]">
                         <FormSelect
                             v-model="assignment.source"
                             :label="t('pages.admin.users.assignment.source')"
@@ -395,8 +422,13 @@ watch(
                         </FormButton>
                     </div>
 
+                    <p v-if="fieldError(index, 'team_public_id')" class="text-xs text-rose-600 dark:text-rose-300">
+                        {{ fieldError(index, 'team_public_id') }}
+                    </p>
+
                     <p
-                        v-if="assignment.provenance_public_id != null"
+                        v-if="authorizationReadOnly || assignment.provenance_public_id != null"
+                        :data-testid="authorizationReadOnly ? `authorization-assignment-source-${index}` : undefined"
                         class="rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-xs text-sky-900 dark:border-sky-900 dark:bg-sky-950/40 dark:text-sky-100"
                     >
                         {{ t('pages.admin.users.assignment.provenance', { source: currentSourceLabel(assignment) }) }}
@@ -421,6 +453,7 @@ watch(
                                     })
                                 "
                                 :error="fieldError(index, 'inactivity_timeout_minutes')"
+                                :disabled="authorizationReadOnly"
                             />
                             <FormInput
                                 v-model="assignment.session_max_lifetime_minutes"
@@ -436,6 +469,7 @@ watch(
                                     })
                                 "
                                 :error="fieldError(index, 'session_max_lifetime_minutes')"
+                                :disabled="authorizationReadOnly"
                             />
                             <FormInput
                                 v-model="assignment.break_daily_limit_minutes"
@@ -451,6 +485,7 @@ watch(
                                     })
                                 "
                                 :error="fieldError(index, 'break_daily_limit_minutes')"
+                                :disabled="authorizationReadOnly"
                             />
                             <FormInput
                                 v-model="assignment.break_maximum_single_minutes"
@@ -466,12 +501,13 @@ watch(
                                     })
                                 "
                                 :error="fieldError(index, 'break_maximum_single_minutes')"
+                                :disabled="authorizationReadOnly"
                             />
                         </div>
                     </div>
 
                     <FormSelect
-                        v-if="assignment.source === 'package'"
+                        v-if="!authorizationReadOnly && assignment.source === 'package'"
                         v-model="assignment.onboarding_package"
                         :label="t('pages.admin.users.assignment.package')"
                         :options="packageOptionsForAssignment(assignment)"
@@ -481,7 +517,7 @@ watch(
                     />
 
                     <FormSelect
-                        v-if="assignment.source === 'copy'"
+                        v-if="!authorizationReadOnly && assignment.source === 'copy'"
                         v-model="assignment.copy_authorization_from_user"
                         :label="t('pages.admin.users.assignment.copy_from')"
                         :options="copySourceOptionsForAssignment(assignment)"
@@ -497,7 +533,7 @@ watch(
                             :search-label="t('pages.admin.users.assignment.role_search')"
                             :search-placeholder="t('pages.admin.users.assignment.role_search_placeholder')"
                             :selected-label="selectedRolesLabel(assignment)"
-                            :options="roleOptions"
+                            :options="roleOptionsForAssignment()"
                             :empty-text="t('pages.admin.users.assignment.no_roles')"
                             :error="fieldError(index, 'role_names')"
                         />
@@ -523,7 +559,7 @@ watch(
                         :effective-permissions="listLabel(effectivePermissions(assignment), permissionLabelByValue)"
                     />
 
-                    <div v-if="mode === 'edit' && membershipMutation" class="grid gap-3 xl:grid-cols-[minmax(0,1fr)_auto]">
+                    <div v-if="mode === 'edit' && authorizationMutation" class="grid gap-3 xl:grid-cols-[minmax(0,1fr)_auto]">
                         <FormInput
                             v-model="assignment.reason"
                             :label="t('pages.admin.users.team_access.authorization_reason')"
@@ -539,7 +575,7 @@ watch(
                         </FormButton>
                     </div>
 
-                    <div v-if="mode === 'edit'" class="grid gap-3 xl:grid-cols-[minmax(0,1fr)_auto]">
+                    <div v-if="mode === 'edit' && membershipMutation" class="grid gap-3 xl:grid-cols-[minmax(0,1fr)_auto]">
                         <FormInput
                             v-model="assignment.removal_reason"
                             :label="t('pages.admin.users.team_access.removal_reason')"

@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { Head, router, useForm } from '@inertiajs/vue3';
+import { Head, useForm } from '@inertiajs/vue3';
 import { IconUsersGroup } from '@tabler/icons-vue';
-import { computed, ref } from 'vue';
+import { computed } from 'vue';
 
 import ActionGroup from '../../../Components/Actions/ActionGroup.vue';
 import TeamForm from '../../../Components/Teams/TeamForm.vue';
@@ -77,30 +77,27 @@ const policyDefaults = computed(() => ({
             ? props.breakDefaults.maximumSingleBreakMinutes
             : Number(form.break_maximum_single_minutes),
 }));
-const memberAssignments = ref<UserTeamAccessAssignment[]>(
-    props.memberships.map((membership) => ({
-        team_public_id: props.team.publicId,
-        user_public_id: membership.userPublicId,
-        userName: membership.userName,
-        userEmail: membership.userEmail,
-        source: membership.provenanceSourceType === 'preset' ? 'package' : membership.provenanceSourceType,
-        onboarding_package: '',
-        copy_authorization_from_user: '',
-        role_names: [...membership.roleNames],
-        direct_permission_names: [...membership.directPermissionNames],
-        inactivity_timeout_minutes: membership.inactivityTimeoutMinutes === null ? '' : String(membership.inactivityTimeoutMinutes),
-        session_max_lifetime_minutes: membership.sessionMaxLifetimeMinutes === null ? '' : String(membership.sessionMaxLifetimeMinutes),
-        break_daily_limit_minutes: membership.breakDailyLimitMinutes === null ? '' : String(membership.breakDailyLimitMinutes),
-        break_maximum_single_minutes: membership.breakMaximumSingleMinutes === null ? '' : String(membership.breakMaximumSingleMinutes),
-        reason: '',
-        removal_reason: '',
-        provenance_public_id: membership.provenancePublicId,
-        provenance_source_type: membership.provenanceSourceType,
-        provenance_source_label: membership.provenanceSourceLabel,
-        provenance_version: membership.provenanceVersion,
-    })),
-);
-const memberProcessing = ref(false);
+const memberAssignments: UserTeamAccessAssignment[] = props.memberships.map((membership) => ({
+    team_public_id: props.team.publicId,
+    user_public_id: membership.userPublicId,
+    userName: membership.userName,
+    userEmail: membership.userEmail,
+    source: membership.provenanceSourceType === 'preset' ? 'package' : membership.provenanceSourceType,
+    onboarding_package: '',
+    copy_authorization_from_user: '',
+    role_names: [...membership.roleNames],
+    direct_permission_names: [...membership.directPermissionNames],
+    inactivity_timeout_minutes: membership.inactivityTimeoutMinutes === null ? '' : String(membership.inactivityTimeoutMinutes),
+    session_max_lifetime_minutes: membership.sessionMaxLifetimeMinutes === null ? '' : String(membership.sessionMaxLifetimeMinutes),
+    break_daily_limit_minutes: membership.breakDailyLimitMinutes === null ? '' : String(membership.breakDailyLimitMinutes),
+    break_maximum_single_minutes: membership.breakMaximumSingleMinutes === null ? '' : String(membership.breakMaximumSingleMinutes),
+    reason: '',
+    removal_reason: '',
+    provenance_public_id: membership.provenancePublicId,
+    provenance_source_type: membership.provenanceSourceType,
+    provenance_source_label: membership.provenanceSourceLabel,
+    provenance_version: membership.provenanceVersion,
+}));
 
 const recordActions = computed<AtlasAction<undefined>[]>(() => [
     {
@@ -140,28 +137,6 @@ const recordActions = computed<AtlasAction<undefined>[]>(() => [
 function submit(): void {
     form.patch(`/admin/teams/${encodeURIComponent(props.team.publicId)}`, { preserveScroll: true });
 }
-
-function saveAuthorization(assignment: UserTeamAccessAssignment): void {
-    if (assignment.user_public_id === undefined) {
-        return;
-    }
-
-    memberProcessing.value = true;
-    router.patch(
-        `/admin/teams/${encodeURIComponent(props.team.publicId)}/users/${encodeURIComponent(assignment.user_public_id)}/authorization`,
-        {
-            role_names: assignment.role_names,
-            direct_permission_names: assignment.direct_permission_names,
-            inactivity_timeout_minutes: assignment.inactivity_timeout_minutes,
-            session_max_lifetime_minutes: assignment.session_max_lifetime_minutes,
-            break_daily_limit_minutes: assignment.break_daily_limit_minutes,
-            break_maximum_single_minutes: assignment.break_maximum_single_minutes,
-            reason: assignment.reason ?? '',
-            expected_version: assignment.provenance_version ?? 0,
-        },
-        { preserveScroll: true, onFinish: () => (memberProcessing.value = false) },
-    );
-}
 </script>
 
 <template>
@@ -194,6 +169,7 @@ function saveAuthorization(assignment: UserTeamAccessAssignment): void {
                     mode="edit"
                     context-axis="team"
                     :membership-mutation="false"
+                    :authorization-mutation="false"
                     :assignments="memberAssignments"
                     :user-options="assignableUsers"
                     :team-options="[]"
@@ -204,8 +180,6 @@ function saveAuthorization(assignment: UserTeamAccessAssignment): void {
                     :role-permission-map="rolePermissionMap"
                     :session-defaults="sessionDefaults"
                     :team-policy-defaults="{ [team.publicId]: policyDefaults }"
-                    :processing="memberProcessing"
-                    @save="saveAuthorization($event.assignment)"
                 />
             </TeamForm>
         </PageStack>

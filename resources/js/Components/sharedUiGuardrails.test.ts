@@ -793,13 +793,26 @@ describe('shared UI guardrails', () => {
         expect(workflow).toContain('copySourceOptionsForAssignment');
         expect(workflow).toContain("mode: 'create' | 'edit'");
         expect(workflow).toContain("contextAxis?: 'user' | 'team'");
+        expect(workflow).toContain('authorizationMutation?: boolean');
+        expect(workflow).toContain('const authorizationReadOnly = computed');
+        expect(workflow).toContain('authorization-read-only-notice');
         expect(workflow).toContain(':aria-expanded="expandedIndex === index"');
+        expect(workflow).toContain('IconChevronDown');
+        expect(workflow).toContain("'rotate-180': expandedIndex === index");
+        expect(workflow).toContain("t('pages.admin.users.assignment.summary'");
+        expect(workflow).toContain(':disabled="authorizationReadOnly"');
+        expect(workflow).toContain('roleOptionsForAssignment()');
+        expect(workflow).toContain('v-if="mode === \'edit\' && authorizationMutation"');
+        expect(workflow).toContain('v-if="mode === \'edit\' && membershipMutation"');
         expect(workflow).toContain('roleGrantsByPermission');
         expect(workflow).toContain('checked: true');
         expect(workflow).toContain('disabled: true');
         expect(workflow).toContain('granted_by_roles');
         expect(workflow).not.toContain('provenance_diverged');
         expect(workflow).not.toContain('Original source');
+        expect(teamEdit).toContain(':authorization-mutation="false"');
+        expect(teamEdit).not.toContain('@save=');
+        expect(teamEdit).not.toContain('router.patch(');
     });
 
     it('keeps rebuilt Users actions and sensitivity options shared', () => {
