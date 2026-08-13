@@ -1,4 +1,4 @@
-# Phase 32 — Private production deployment, installer, backup, restore, and rollback
+# Phase 33 — Private production deployment, installer, backup, restore, and rollback
 
 **Status:** `not started`
 
@@ -8,7 +8,7 @@ Deliver a reproducible, private, self-hosted production deployment model for Atl
 
 Atlas is primarily an internal company system. The baseline production deployment does not require public Internet exposure.
 
-Phase 32 must provide:
+Phase 33 must provide:
 
 - private/intranet production topology;
 - one supported production installation workflow;
@@ -34,7 +34,7 @@ Kubernetes, Docker Swarm, distributed clustering, multi-node high availability, 
 
 ## Dependencies
 
-Phase 32 depends on the completed technical foundation, including:
+Phase 33 depends on the completed technical foundation, including:
 
 - production runtime images;
 - runtime configuration validation;
@@ -49,12 +49,29 @@ Phase 32 depends on the completed technical foundation, including:
 - readiness;
 - runtime smoke;
 - security and privacy foundations;
-- completed Phase 28 and Phase 29 acceptance work.
-- completed Phase 31 communication scope, including Chat, Core Calendar, Calls, Meetings, Reverb, self-hosted LiveKit, Egress, recordings, and provider-neutral transcription state.
+- completed Phase 28 and Phase 29 acceptance work;
+- completed Phase 31 communication scope, including Chat, Core Calendar, Calls, Meetings, Reverb, self-hosted LiveKit, Egress, recordings, and provider-neutral transcription state;
+- completed [Phase 32 Diagnostics and User Bug Reports](phase-32-error-reporting-and-diagnostics.md), including its persistence, Files, Health, retention, correlation, and private source-map contracts.
 
-Phase 32 must build on those capabilities instead of replacing or redesigning them.
+Phase 33 must build on those capabilities instead of replacing or redesigning them.
 
-## P32-W01 — Private production topology
+### Diagnostics deployment boundary
+
+Diagnostics PostgreSQL data is normal durable Atlas production data in the existing PostgreSQL deployment. Persistence, backup, and restore cover Technical Issues, aggregate history, retained detailed occurrences, User Bug Reports, issue/report links, lifecycle history, configuration, and safe Diagnostics settings. Do not create a separate Diagnostics database.
+
+User Bug Report screenshots and attachments are canonical Files artifacts. They use the same persistent Files storage, backup, restore, and infrastructure encryption-at-rest boundary. Do not create separate report-attachment volumes.
+
+Production builds retain release-matching frontend source maps as private diagnostic artifacts. Source maps must not be published as normal reverse-proxy assets. Exact-release deploy and rollback preserve the association between the Atlas release, browser assets, and private source maps. Historical source snippets may be unavailable when old release source is no longer retained.
+
+Release and Git commit identity remain available to Diagnostics. Production logging preserves correlation metadata required by the existing log viewer and the Diagnostics `Open related logs` action.
+
+Diagnostics operational severity may report Degraded or Unhealthy in System Status without, by itself, failing canonical `/health/live` or `/health/ready`. A broken Diagnostics capture pipeline remains visible as a non-recursive operational signal.
+
+The canonical scheduler and queue configuration runs Diagnostics retention. Large manual occurrence purge uses Managed Processes. Diagnostics adds no third-party runtime service.
+
+The production installer must not add Sentry, a Sentry DSN or Cloud requirement, self-hosted Sentry, or another external error-monitoring service. Atlas Diagnostics is first-party.
+
+## P33-W01 — Private production topology
 
 ### Contract
 
@@ -88,7 +105,7 @@ Normal Atlas HTTP remains reverse-proxy fronted. Browser WebRTC is an intentiona
 
 PostgreSQL, Redis, Meilisearch, ClamAV, PHP-FPM, Horizon, workers, scheduler, Chromium, Egress control/health endpoints, recording staging, and LiveKit API/Admin credentials must remain private.
 
-The roadmap does not freeze default port numbers. Phase 32 must derive and document the concrete firewall exposure from the pinned LiveKit configuration and version selected for the release, following current official LiveKit self-hosting guidance.
+The roadmap does not freeze default port numbers. Phase 33 must derive and document the concrete firewall exposure from the pinned LiveKit configuration and version selected for the release, following current official LiveKit self-hosting guidance.
 
 Network exposure must be configurable so the host administrator can bind Atlas to an internal interface, trusted subnet, VPN-accessible interface, or equivalent company-controlled network.
 
@@ -109,7 +126,7 @@ Host/network administrators remain responsible for infrastructure-level network 
 - [ ] Add production topology checks where practical.
 - [ ] Document Kubernetes, Swarm, clustering, and public SaaS deployment as out of baseline scope.
 
-## P32-W02 — Production TLS and reverse proxy
+## P33-W02 — Production TLS and reverse proxy
 
 ### Contract
 
@@ -143,7 +160,7 @@ LiveKit signaling/media and TURN/TLS must work for the selected LAN/VPN/browser 
 - [ ] Configure and verify trusted LiveKit and TURN/TLS endpoints for the selected LAN/VPN topology.
 - [ ] Document the concrete configured RTC/TURN firewall and certificate requirements.
 
-## P32-W03 — Durable PostgreSQL and local Files storage
+## P33-W03 — Durable PostgreSQL and local Files storage
 
 ### Contract
 
@@ -170,7 +187,7 @@ storage abstraction
 
 Atlas business code and the Files module must not become hardcoded to a specific storage backend.
 
-S3-compatible storage is not required by Phase 32.
+S3-compatible storage is not required by Phase 33.
 
 Do not implement AWS-specific coupling merely for future flexibility.
 
@@ -191,8 +208,10 @@ Final Meeting recordings are Files-owned durable artifacts. LiveKit Egress outpu
 - [ ] Define protected temporary Egress recording staging and deterministic cleanup.
 - [ ] Verify finalized Meeting recordings enter canonical Files persistence and survive container recreation.
 - [ ] Include transcript database state in PostgreSQL durability and recovery planning.
+- [ ] Keep Diagnostics persistence in the canonical durable PostgreSQL deployment without a separate database.
+- [ ] Keep User Bug Report screenshots and attachments in canonical Files storage without a separate volume.
 
-## P32-W04 — Production storage and backup encryption at rest
+## P33-W04 — Production storage and backup encryption at rest
 
 ### Contract
 
@@ -336,7 +355,7 @@ Restore must:
 - [ ] Document organizational/root-access boundaries accurately.
 - [ ] Add production-like verification for encrypted backup/decrypt/verify/restore behavior.
 
-## P32-W05 — Interactive production installer
+## P33-W05 — Interactive production installer
 
 ### Contract
 
@@ -423,7 +442,6 @@ The installer should collect the deployment-specific configuration required by t
 - LiveKit and Egress capacity/resource settings;
 - protected Egress recording staging location;
 - required SMTP configuration;
-- optional Sentry configuration;
 - first administrator identity.
 
 Do not ask questions for values that can safely be generated automatically.
@@ -501,13 +519,16 @@ The installer must not automatically repartition, format, or encrypt host disks.
 - [ ] Run readiness.
 - [ ] Bootstrap the first administrator securely.
 - [ ] Configure recurring backup execution.
+- [ ] Configure Diagnostics retention through the canonical scheduler and queue model.
+- [ ] Preserve Managed Processes execution for large manual diagnostic-occurrence purge.
+- [ ] Keep the installer free of Sentry and other external error-monitoring configuration.
 - [ ] Print useful release and operational information after success.
 - [ ] Fail safely when preflight or readiness fails.
 - [ ] Detect an existing installation and never destroy it on installer rerun.
 - [ ] Document the fresh-host installation procedure.
 - [ ] Test installation against a clean supported production-like host/VM.
 
-## P32-W06 — Database and Files backup
+## P33-W06 — Database and Files backup
 
 ### Contract
 
@@ -543,7 +564,7 @@ Possible deployment-specific destinations may include:
 - S3-compatible object storage;
 - another future backend.
 
-Phase 32 must not build multiple speculative backup adapters merely to support every possible destination.
+Phase 33 must not build multiple speculative backup adapters merely to support every possible destination.
 
 It is acceptable for Atlas to produce stable backup artifacts that company infrastructure then copies off-host.
 
@@ -568,6 +589,8 @@ The backup destination must remain deployment-neutral and must not be hardcoded 
 - [ ] Include persistent Atlas Files in the recovery strategy.
 - [ ] Include Files-owned final Meeting recordings in Files backup and recovery.
 - [ ] Include transcript records and versions in PostgreSQL backup and recovery.
+- [ ] Include Technical Issues, aggregates, retained occurrences, User Bug Reports, links, history, configuration, and safe Diagnostics settings in PostgreSQL backup and recovery.
+- [ ] Include User Bug Report Files-owned screenshots and attachments in Files backup and recovery.
 - [ ] Exclude or safely clean temporary Egress staging rather than treating it as a second canonical recording backup.
 - [ ] Define a safe Files backup procedure.
 - [ ] Avoid inconsistent/partial Files backup state where possible.
@@ -577,7 +600,7 @@ The backup destination must remain deployment-neutral and must not be hardcoded 
 - [ ] Keep S3-compatible backup storage optional.
 - [ ] Document that same-host-only backup does not protect against complete host loss.
 
-## P32-W07 — Restore and recovery
+## P33-W07 — Restore and recovery
 
 ### Contract
 
@@ -626,13 +649,14 @@ safe cleanup of temporary plaintext material
 - [ ] Restore PostgreSQL safely.
 - [ ] Restore Files according to the documented recovery model.
 - [ ] Restore Files-owned Meeting recordings and PostgreSQL-owned transcript state through their canonical stores.
+- [ ] Restore Diagnostics PostgreSQL state and User Bug Report Files through their canonical stores.
 - [ ] Run post-restore readiness.
 - [ ] Safely remove temporary plaintext recovery material when no longer required.
 - [ ] Document complete restore procedures.
 - [ ] Execute and verify a real restore drill.
 - [ ] Verify representative restored application data.
 
-## P32-W08 — Exact-release deployment
+## P33-W08 — Exact-release deployment
 
 ### Contract
 
@@ -680,6 +704,8 @@ Do not edit application source manually inside running production containers.
 - [ ] Build/prepare releases separately from the active release.
 - [ ] Install production dependencies from lockfiles.
 - [ ] Build production frontend assets.
+- [ ] Retain exact-release frontend source maps as private Diagnostics artifacts that are not served publicly.
+- [ ] Associate private source maps with the exact release, commit, and browser assets across deploy and rollback.
 - [ ] Run required checks.
 - [ ] Run required database backup before risky migration work.
 - [ ] Run compatible migrations.
@@ -690,7 +716,7 @@ Do not edit application source manually inside running production containers.
 - [ ] Run post-switch readiness.
 - [ ] Keep application source immutable inside running containers.
 
-## P32-W09 — Rollback and migration safety
+## P33-W09 — Rollback and migration safety
 
 ### Contract
 
@@ -716,7 +742,7 @@ Risky or irreversible migrations require:
 - [ ] Document risky/irreversible migration procedure.
 - [ ] Test representative safe rollback.
 
-## P32-W10 — Operator commands and release metadata
+## P33-W10 — Operator commands and release metadata
 
 ### Contract
 
@@ -754,7 +780,7 @@ Release information should be available to appropriate operational surfaces such
 - Admin System Status;
 - readiness;
 - logs;
-- Sentry.
+- Diagnostics.
 
 Status, readiness, logs, and Admin System Status must include safe aggregate LiveKit RTC, TURN where practical, Egress availability, and recording-processing health. They must not expose private Meeting names, participant lists, media, recordings, transcripts, or service credentials. Egress/recording failure must remain isolated so normal Chat and unrecorded Meetings can continue where their own dependencies are healthy.
 
@@ -771,15 +797,19 @@ Status, readiness, logs, and Admin System Status must include safe aggregate Liv
 - [ ] Integrate deploy.
 - [ ] Integrate rollback.
 - [ ] Record release metadata.
-- [ ] Expose release metadata through appropriate Admin/readiness/log/Sentry surfaces.
+- [ ] Expose exact release/commit identity to Diagnostics.
+- [ ] Preserve request/correlation metadata needed for Open related logs.
+- [ ] Keep Diagnostics operational severity separate from canonical liveness/readiness failure semantics.
+- [ ] Expose Diagnostics pipeline unavailability without recursive health failure.
+- [ ] Expose release metadata through appropriate Admin/readiness/log/Diagnostics surfaces.
 - [ ] Add safe LiveKit RTC, TURN, Egress, and recording-processing status/readiness checks.
 - [ ] Verify Egress failure isolation from normal Chat and Meeting participation.
 
-## P32-W11 — Production durability and operational acceptance
+## P33-W11 — Production durability and operational acceptance
 
 ### Contract
 
-Phase 32 must finish with a real production-like proof, not only configuration-file inspection.
+Phase 33 must finish with a real production-like proof, not only configuration-file inspection.
 
 At minimum test a clean supported host/VM installation workflow:
 
@@ -866,6 +896,11 @@ The proof must also exercise Atlas-managed LiveKit and separate Egress startup/r
 - [ ] Verify exact-release compatibility and rollback planning cover Reverb, LiveKit, and Egress.
 - [ ] Verify TLS deployment where configured.
 - [ ] Verify release metadata.
+- [ ] Verify Diagnostics PostgreSQL persistence and User Bug Report Files survive backup and restore.
+- [ ] Verify exact-release private source-map association and public source-map exclusion.
+- [ ] Verify Diagnostics operational severity does not by itself fail liveness/readiness.
+- [ ] Verify Diagnostics retention scheduling and Managed Processes purge integration.
+- [ ] Verify no Sentry or external error-monitoring service was added to the installer/runtime.
 - [ ] Update production operations documentation.
 
 ## Required permanent operational guardrails
@@ -891,7 +926,7 @@ The proof must also exercise Atlas-managed LiveKit and separate Egress startup/r
 
 ## Completion criteria
 
-Phase 32 is complete only when:
+Phase 33 is complete only when:
 
 - [ ] Atlas can be installed on a clean supported internal production host using the canonical installer.
 - [ ] Production baseline is private/intranet/LAN/VPN rather than public-Internet dependent.
@@ -925,4 +960,6 @@ Phase 32 is complete only when:
 - [ ] Final Meeting recordings are canonical Files artifacts; temporary Egress staging is protected and cleaned.
 - [ ] Files-owned recordings and PostgreSQL-owned transcript state are covered by encryption, backup, restore, and recovery drills.
 - [ ] Exact-release deployment and rollback keep Atlas, Reverb, LiveKit, and Egress compatible.
+- [ ] Diagnostics persistence, User Bug Report Files, private source maps, release identity, correlation metadata, retention, and Health semantics are covered by production deployment and recovery.
+- [ ] No Sentry or external error-monitoring service is introduced by the production installer.
 - [ ] Canonical production documentation matches the implementation.

@@ -961,7 +961,7 @@ Egress is deployed separately from the LiveKit server.
 
 Use canonical Redis connectivity required by the accepted LiveKit/Egress topology.
 
-Production topology and installer work belongs to Phase 32, but Phase 31 must provide a reproducible development/test topology.
+Production topology and installer work belongs to Phase 33, but Phase 31 must provide a reproducible development/test topology.
 
 ### Media gateway
 
@@ -1034,7 +1034,7 @@ Such capacity failures must produce a clear user-facing result rather than a han
 - [ ] Add short-lived room-token authorization.
 - [ ] Keep LiveKit secrets server-side.
 - [ ] Preserve Reverb as messaging realtime.
-- [ ] Add LAN/VPN/TURN/TLS production requirements to Phase 32 planning.
+- [ ] Add LAN/VPN/TURN/TLS production requirements to Phase 33 planning.
 - [ ] Add RTC health/readiness hooks.
 - [ ] Isolate RTC failures from Chat messaging.
 - [ ] Isolate Egress failure from live Meetings.
@@ -2410,7 +2410,7 @@ Do not implement:
 - RTC E2EE system;
 - custom recording encryption layer.
 
-Production encryption at rest belongs to Phase 32 infrastructure.
+Production encryption at rest belongs to Phase 33 infrastructure.
 
 ### Admin operational visibility
 
@@ -2706,7 +2706,7 @@ Protect:
 
 At Phase 31 completion update canonical documentation so current behavior is no longer described using the old "calls/video/screen sharing out of scope" contract.
 
-Update production requirements consumed by Phase 32.
+Update production requirements consumed by Phase 33.
 
 ### Tasks
 
@@ -2745,7 +2745,7 @@ Update production requirements consumed by Phase 32.
 - [ ] Run Firefox Playwright.
 - [ ] Run complete required foundation quality gate.
 - [ ] Update all affected canonical documentation.
-- [ ] Confirm Phase 32 has not been implemented from this Phase 31 planning task.
+- [ ] Confirm Phase 33 has not been implemented from this Phase 31 planning task.
 
 ---
 
@@ -3043,4 +3043,4 @@ Phase 31 is complete only when:
 - [ ] console/runtime/request cleanliness remains protected;
 - [ ] complete required foundation quality gates pass;
 - [ ] canonical documentation reflects the final contract;
-- [ ] Phase 32 deployment has not been implemented as part of this Phase 31 planning task.
+- [ ] Phase 33 deployment has not been implemented as part of this Phase 31 planning task.

@@ -1,6 +1,6 @@
 # Private production deployment, installation, backup, restore, and recovery
 
-Canonical production topology and operational procedures. This document complements the binding [Phase 32 deployment roadmap](../roadmap/phase-32-deployment-backup-rollback.md).
+Canonical production topology and operational procedures. This document complements the binding [Phase 33 deployment roadmap](../roadmap/phase-33-deployment-backup-rollback.md).
 
 ## Deployment baseline
 
@@ -8,13 +8,13 @@ Atlas is a self-hosted internal company system. Its baseline production deployme
 
 The supported baseline target is one company-controlled Linux host or VM running Docker Compose. Kubernetes, Docker Swarm, distributed clustering, multi-node high availability, and public SaaS deployment are outside this baseline.
 
-Phase 32 provides one canonical production installation workflow through an interactive installer after the expanded Phase 31 internal-communication scope is complete. It builds on the existing production images, runtime configuration validation, readiness, runtime smoke, queues, scheduler, Files, ClamAV, PDF, search, security, privacy, Reverb, self-hosted LiveKit, and Egress foundations rather than replacing them.
+Phase 33 provides one canonical production installation workflow through an interactive installer after the expanded Phase 31 internal-communication scope is complete. It builds on the existing production images, runtime configuration validation, readiness, runtime smoke, queues, scheduler, Files, ClamAV, PDF, search, security, privacy, Reverb, self-hosted LiveKit, and Egress foundations rather than replacing them.
 
 ## Phase 28 prerequisite boundary
 
 Phase 28 completed the prerequisite production image build, runtime configuration, `.dockerignore`/COPY boundaries, secrets handling, internal HTTP smoke stack, queue/scheduler parity, ClamAV/PDF/Search/File readiness, PostgreSQL volume verification, and backup-image buildability.
 
-Application and nginx production images are reproducible and smoke-tested; production runtime secrets are externalized; broad `DB_SEARCH_PATH` masking is removed; and non-HTTP services remain private. Phase 32 adds the private host installation workflow, optional TLS configuration, durable local Files storage, deployment, backup, restore, and rollback on that verified runtime foundation.
+Application and nginx production images are reproducible and smoke-tested; production runtime secrets are externalized; broad `DB_SEARCH_PATH` masking is removed; and non-HTTP services remain private. Phase 33 adds the private host installation workflow, optional TLS configuration, durable local Files storage, deployment, backup, restore, and rollback on that verified runtime foundation.
 
 Tracked Phase 28 issue IDs: `P28-RUNTIME-001` through `P28-RUNTIME-014`.
 
@@ -43,11 +43,11 @@ Normal Atlas HTTP remains reverse-proxy fronted. After Phase 31 adds RTC, truste
 
 The host administrator can bind the reverse proxy to an internal interface, trusted subnet, VPN-accessible interface, or equivalent company-controlled network. Clients may reach Atlas through a LAN, company network, VPN, or another controlled private segment. Atlas does not implement a VPN, firewall, or enterprise network-policy product; infrastructure-level access policy remains the host/network administrator's responsibility.
 
-The Phase 28 smoke stack remains intentionally internal HTTP, bound to `127.0.0.1:8080` by default. It is a runtime proof, not the Phase 32 deployment topology.
+The Phase 28 smoke stack remains intentionally internal HTTP, bound to `127.0.0.1:8080` by default. It is a runtime proof, not the Phase 33 deployment topology.
 
 ### Future LiveKit, TURN, and Egress production boundary
 
-Phase 32 installs and configures Atlas-managed self-hosted LiveKit; the baseline does not connect to an already-existing external LiveKit installation and does not require LiveKit Cloud. LiveKit service credentials are generated and externalized like other production secrets, consumed only by required services, omitted from normal logs, and unavailable to ordinary Admin UI.
+Phase 33 installs and configures Atlas-managed self-hosted LiveKit; the baseline does not connect to an already-existing external LiveKit installation and does not require LiveKit Cloud. LiveKit service credentials are generated and externalized like other production secrets, consumed only by required services, omitted from normal logs, and unavailable to ordinary Admin UI.
 
 The installed LiveKit version and configuration determine the exact WebRTC, signaling, ICE, and TURN exposure. Deployment and firewall documentation must follow current official LiveKit self-hosting guidance for that pinned release rather than treating historical default port numbers as permanent. TURN/TLS must support the accepted LAN/VPN/browser topology using a company/internal trusted certificate, administrator-supplied certificate, or existing company TLS termination where technically valid; public Let's Encrypt remains optional.
 
@@ -84,7 +84,7 @@ storage abstraction
      └── S3-compatible storage      <- optional/future deployment choice
 ```
 
-The existing backend-neutral Files storage abstraction remains authoritative. Business code and the Files module must not be coupled to the local filesystem, S3, or AWS-specific behavior. S3-compatible Files storage is an optional/future deployment backend and is not required by Phase 32. Local persistence must retain the existing ClamAV, quarantine, validation, metadata, and audit behavior.
+The existing backend-neutral Files storage abstraction remains authoritative. Business code and the Files module must not be coupled to the local filesystem, S3, or AWS-specific behavior. S3-compatible Files storage is an optional/future deployment backend and is not required by Phase 33. Local persistence must retain the existing ClamAV, quarantine, validation, metadata, and audit behavior.
 
 ### PostgreSQL 18 durability boundary
 
@@ -146,11 +146,11 @@ During preflight/configuration, the installer reports the known or declared encr
 
 `docker/production/php/Dockerfile` builds one versioned `atlas-runtime:<release-id>` artifact used unchanged by PHP-FPM, Horizon, and the scheduler. Composer installs from `composer.lock`; Vite assets build from `pnpm-lock.yaml`. Runtime artifacts come from repository source and lockfiles, not host `vendor`, `node_modules`, or local build leftovers. Application commands and runtime services operate as non-root users.
 
-`docker/production/nginx/Dockerfile` builds the same locked Vite inputs, copies public files and generated assets into nginx, and forwards only `index.php` to PHP-FPM. Its internal HTTP listener does not itself claim TLS termination; Phase 32 supplies the selected reverse-proxy/TLS deployment configuration.
+`docker/production/nginx/Dockerfile` builds the same locked Vite inputs, copies public files and generated assets into nginx, and forwards only `index.php` to PHP-FPM. Its internal HTTP listener does not itself claim TLS termination; Phase 33 supplies the selected reverse-proxy/TLS deployment configuration.
 
 Use `docker/production/.env.example` only as the non-secret Compose schema. Set a unique `ATLAS_RELEASE_ID` and meaningful release metadata. Secret values are external files described in `docker/production/secrets/README.md`. The repository templates contain paths only.
 
-Production validation remains fail-fast: debug mode is disabled, the deployed marker is true, timezone and database search path match the Atlas contract, typed settings are valid, required values are non-empty, and the fake Files scanner is forbidden. Phase 32 owns host secret provisioning and rotation without weakening these Phase 28 rules.
+Production validation remains fail-fast: debug mode is disabled, the deployed marker is true, timezone and database search path match the Atlas contract, typed settings are valid, required values are non-empty, and the fake Files scanner is forbidden. Phase 33 owns host secret provisioning and rotation without weakening these Phase 28 rules.
 
 One-off Artisan operations use the canonical operator wrapper. At the underlying Compose boundary, a new `docker compose run --rm --no-deps php-fpm ...` process passes through the image entrypoint and loads mounted `_FILE` secrets before dropping privileges; `docker compose exec` bypasses that entrypoint and is not suitable for secret-dependent application commands.
 
@@ -183,7 +183,7 @@ atlas-backup create
 atlas-backup verify /backups/<artifact>.dump
 ```
 
-This is a safe buildable foundation, not the complete production backup system. Phase 32 adds scheduling, retention, Files coverage, off-host strategy, restore, application verification, monitoring, and operational runbooks.
+This is a safe buildable foundation, not the complete production backup system. Phase 33 adds scheduling, retention, Files coverage, off-host strategy, restore, application verification, monitoring, and operational runbooks.
 
 ## Restore and recovery
 
@@ -201,7 +201,7 @@ Restore is a first-class supported production operation. The canonical host `res
 10. safely removes temporary plaintext recovery material when no longer required;
 11. fails safely and reports clearly when recovery cannot complete.
 
-Backup existence alone is insufficient. Phase 32 requires a real restore drill and verification of representative restored application data. Restore procedures must state how database and Files artifacts relate so the operator does not unknowingly restore an inconsistent pair.
+Backup existence alone is insufficient. Phase 33 requires a real restore drill and verification of representative restored application data. Restore procedures must state how database and Files artifacts relate so the operator does not unknowingly restore an inconsistent pair.
 
 ## Exact-release deployment
 
@@ -257,7 +257,7 @@ Release metadata records the release ID, Git commit, Git tag, exact image identi
 
 ## Production acceptance and recovery drills
 
-Phase 32 acceptance uses a clean supported production-like host or VM. The proof covers installer preflight, exact-release identity, interactive configuration, first-admin bootstrap, readiness, administrator sign-in, representative Files storage and ClamAV behavior, Atlas-managed LiveKit/TURN connectivity, separate Egress readiness and failure isolation, a finalized Files-owned recording, PostgreSQL and Files survival across container recreation, documented persistent-storage encryption status, recurring and manual backup, independently encrypted database and Files/recovery artifacts, recording and transcript backup/restore, approved-path decryption, decrypted-artifact verification, pre-restore backup, a real restore drill, plaintext-temporary cleanup, representative restored state and readiness, exact-release deployment, readiness-gated switching, safe rollback, backend network isolation, configured TLS, and release metadata. It may use an appropriate production-like encrypted-volume or environment fixture and does not need to format or encrypt the test machine's disk automatically.
+Phase 33 acceptance uses a clean supported production-like host or VM. The proof covers installer preflight, exact-release identity, interactive configuration, first-admin bootstrap, readiness, administrator sign-in, representative Files storage and ClamAV behavior, Atlas-managed LiveKit/TURN connectivity, separate Egress readiness and failure isolation, a finalized Files-owned recording, PostgreSQL and Files survival across container recreation, documented persistent-storage encryption status, recurring and manual backup, independently encrypted database and Files/recovery artifacts, recording and transcript backup/restore, approved-path decryption, decrypted-artifact verification, pre-restore backup, a real restore drill, plaintext-temporary cleanup, representative restored state and readiness, exact-release deployment, readiness-gated switching, safe rollback, backend network isolation, configured TLS, and release metadata. It may use an appropriate production-like encrypted-volume or environment fixture and does not need to format or encrypt the test machine's disk automatically.
 
 The permanent operational guardrails are:
 
@@ -291,13 +291,13 @@ composer runtime:smoke
 
 The smoke command builds the production artifacts, verifies final-image boundaries and non-root execution, starts isolated PostgreSQL, Redis, Meilisearch, ClamAV, PHP-FPM, nginx, Horizon, and scheduler services, applies fresh migrations, and checks liveness/readiness and generated assets. It exercises queues, scheduler, ClamAV, PDF rendering, and PostgreSQL persistence across recreation before clean teardown.
 
-This smoke remains a runtime prerequisite, not a deployment procedure. It does not install a production host, configure the selected network/TLS mode, manage releases, schedule database and Files backups, restore production state, or perform rollback. Those remain Phase 32 work.
+This smoke remains a runtime prerequisite, not a deployment procedure. It does not install a production host, configure the selected network/TLS mode, manage releases, schedule database and Files backups, restore production state, or perform rollback. Those remain Phase 33 work.
 
 ## Manual Ubuntu/Debian runtime parity
 
 The non-container Ubuntu/Debian runtime contract remains relevant for behavioral parity, external dependency documentation, and supported operational mechanisms. It requires the same PHP extensions, locked Composer and Node dependencies, Chromium, ClamAV, PostgreSQL, Redis, Meilisearch, queues, scheduler, writable application storage, private Files storage, health checks, and non-root execution as the container runtime.
 
-This parity contract does not replace the Phase 32 baseline installation workflow: the canonical production installer targets the company-controlled single-host/VM Docker Compose topology.
+This parity contract does not replace the Phase 33 baseline installation workflow: the canonical production installer targets the company-controlled single-host/VM Docker Compose topology.
 
 ## Release checklist
 

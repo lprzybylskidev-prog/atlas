@@ -40,7 +40,7 @@ Do not replace this index after the initial technical foundation is completed. C
 ## Current phase
 
 - Phase: [Phase 31 — Optional internal company chat, calendar, calls, meetings, and realtime communication](docs/roadmap/phase-31-chat.md)
-- Status: `in progress` (`P31-W01` complete; `P31-W02` is next)
+- Status: `in progress` (`P31-W01` and `P31-W02` complete; `P31-W03` is next)
 
 ## Roadmap dependency repair note
 
@@ -59,6 +59,8 @@ Before the then-current Phase 30 deployment began, a new internal company Chat r
 Chat had already been planned as Phase 30 but had not started when manual review of the completed Teams and Authorization foundation exposed a coherent set of Team Structure, authorization presentation, mutation-feedback, and provenance problems. Because Teams and Authorization are shared foundations used by Chat and later modules, the repair must land before Chat. A new Phase 30 was inserted; the previous Chat Phase 30 moved to Phase 31, deployment Phase 31 moved to Phase 32, and final verification Phase 32 moved to Phase 33. No Chat, deployment, or final-verification scope was removed.
 
 After Phase 30 completed and before Phase 31 implementation started, the internal communication requirements expanded to include a shared Core Calendar, direct/group/Team Calls, Meetings, screen sharing, Meeting recording, and provider-neutral future transcription readiness. Because Phase 31 remained unstarted, its contract was expanded in place. Phase 32 deployment planning now includes the required self-hosted LiveKit/TURN/Egress production boundary, and Phase 33 verification planning includes the expanded communication workflows. No existing Chat, deployment, or final-verification scope was removed.
+
+After Phase 31 implementation had started and its completed work had been committed, the future need for a first-party Diagnostics and User Bug Report capability was accepted and recorded immediately so its scope would not be lost. Diagnostics became the new Phase 32 but was not started; deployment moved from Phase 32 to Phase 33, and final verification moved from Phase 33 to Phase 34. This planning change did not interrupt or reopen Phase 31 implementation, and no deployment or final-verification scope was removed.
 
 ## Phase index
 
@@ -370,22 +372,32 @@ Depends on the completed Files, Search, Teams, Authorization, Module Activation,
 
 [Open implementation contract and tasks](docs/roadmap/phase-31-chat.md)
 
-### Phase 32 — Private production deployment, installer, backup, restore, and rollback
+### Phase 32 — Error reporting, user bug reports, and application diagnostics
 
 **Status:** `not started`
 
-Implement the private single-host/VM Docker Compose topology, interactive installer, encrypted persistent production storage boundary, independently encrypted portable/off-host backup artifacts, database and Files backup, restore, exact-release deployment, readiness, and rollback, including Atlas-managed LiveKit/TURN/Egress and recording/transcript recovery requirements.
+Add first-party automatic Technical Issues, manual User Bug Reports, safe correlation and context, deduplication, privacy-preserving Admin investigation, Health/System Status integration, Notifications, retention, and production-aware private source diagnostics without replacing logs, Pulse, or Telescope.
 
-Depends on Phases 28, 29, 30, and 31. Phase 28 provides reproducible images, runtime configuration, dependency readiness, queue/scheduler parity, ClamAV/PDF/Search/File smoke foundations, and an internal HTTP smoke stack. The Phase 32 baseline is private/intranet and does not require public Internet exposure; TLS supports internal/company certificates and keeps Let's Encrypt/ACME optional.
+Depends on the completed shared Atlas foundations and begins only after Phase 31 is complete.
 
-[Open implementation contract and tasks](docs/roadmap/phase-32-deployment-backup-rollback.md)
+[Open implementation contract and tasks](docs/roadmap/phase-32-error-reporting-and-diagnostics.md)
 
-### Phase 33 — Final test audit, full-app E2E review, and foundation verification
+### Phase 33 — Private production deployment, installer, backup, restore, and rollback
 
 **Status:** `not started`
 
-Perform a full test-suite audit, browser-level E2E review of the whole application, architecture/security/documentation verification, Chat/Calendar/Calls/Meetings/recording/transcription and restore/deployment checks, and final technical-foundation hardening before debt collection business modules begin.
+Implement the private single-host/VM Docker Compose topology, interactive installer, encrypted persistent production storage boundary, independently encrypted portable/off-host backup artifacts, database and Files backup, restore, exact-release deployment, readiness, and rollback, including Atlas-managed LiveKit/TURN/Egress, recording/transcript recovery, and Diagnostics production requirements.
 
-Depends on Phases 28, 29, 30, 31, and 32. Phase 33 remains the final full-app release verification and does not replace Phase 28 foundation repair, Phase 29 acceptance repair, Phase 30 Authorization/Team Structure repair, Phase 31 internal communication, or Phase 32 deployment/recovery work.
+Depends on Phases 28, 29, 30, 31, and 32. Phase 28 provides reproducible images, runtime configuration, dependency readiness, queue/scheduler parity, ClamAV/PDF/Search/File smoke foundations, and an internal HTTP smoke stack. The Phase 33 baseline is private/intranet and does not require public Internet exposure; TLS supports internal/company certificates and keeps Let's Encrypt/ACME optional.
 
-[Open implementation contract and tasks](docs/roadmap/phase-33-final-verification.md)
+[Open implementation contract and tasks](docs/roadmap/phase-33-deployment-backup-rollback.md)
+
+### Phase 34 — Final test audit, full-app E2E review, and foundation verification
+
+**Status:** `not started`
+
+Perform a full test-suite audit, browser-level E2E review of the whole application, architecture/security/documentation verification, Chat/Calendar/Calls/Meetings/recording/transcription, Diagnostics/User Bug Reports, and restore/deployment checks, and final technical-foundation hardening before debt collection business modules begin.
+
+Depends on Phases 28, 29, 30, 31, 32, and 33. Phase 34 remains the final full-app release verification and does not replace earlier foundation repair, internal communication, Diagnostics, or deployment/recovery work.
+
+[Open implementation contract and tasks](docs/roadmap/phase-34-final-verification.md)

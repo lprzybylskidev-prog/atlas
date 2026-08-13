@@ -113,7 +113,7 @@ Chat audits structural and administrative operations using its typed audit catal
 
 ## Encryption boundary
 
-Chat does not implement end-to-end encryption, application-level message encryption, per-message envelopes, or conversation/device key management. Infrastructure-level encryption at rest protects Atlas persistent production data as a whole in Phase 32. It does not replace Chat application authorization or claim protection from authorized root access while storage is unlocked.
+Chat does not implement end-to-end encryption, application-level message encryption, per-message envelopes, or conversation/device key management. Infrastructure-level encryption at rest protects Atlas persistent production data as a whole in Phase 33. It does not replace Chat application authorization or claim protection from authorized root access while storage is unlocked.
 
 ## Explicitly out of scope
 

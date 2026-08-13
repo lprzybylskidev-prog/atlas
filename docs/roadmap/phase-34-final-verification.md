@@ -1,4 +1,4 @@
-# Phase 33 — Final test audit, full-app E2E review, and foundation verification
+# Phase 34 — Final test audit, full-app E2E review, and foundation verification
 
 **Status:** `not started`
 
@@ -12,7 +12,8 @@ Verify the complete technical foundation after every prerequisite phase is finis
 - [Phase 29 — Foundation acceptance repair and rendered workflow closure](phase-29-foundation-acceptance-repair.md)
 - [Phase 30 — Authorization, Team Structure, and mutation feedback repair](phase-30-authorization-team-structure-feedback-repair.md)
 - [Phase 31 — Optional internal company chat, calendar, calls, meetings, and realtime communication](phase-31-chat.md)
-- [Phase 32 — Private production deployment, installer, backup, restore, and rollback](phase-32-deployment-backup-rollback.md)
+- [Phase 32 — Error reporting, user bug reports, and application diagnostics](phase-32-error-reporting-and-diagnostics.md)
+- [Phase 33 — Private production deployment, installer, backup, restore, and rollback](phase-33-deployment-backup-rollback.md)
 - [Quality gates and git](../operations/quality-gates-and-git.md)
 - [Testing environment](../operations/testing-environment.md)
 - [Production deployment, backup, and recovery](../operations/production-deployment-backup-and-recovery.md)
@@ -20,12 +21,12 @@ Verify the complete technical foundation after every prerequisite phase is finis
 ## Implementation contract
 
 - Final verification is not a superficial test pass. It must prove that the Atlas can be cloned as a stable corporate base and that its important behavior is protected by meaningful automated tests.
-- Phase 33 owns the full test-suite review. It must identify weak, missing, duplicated, overly implementation-focused, or misleading tests across PHPUnit, Vitest, and Playwright.
-- Phase 33 owns a full browser-level application review through E2E coverage. Every shipped shell, major Admin area, operational workflow, localization surface, theme surface, permission/module gate, export/import/file/search/notification workflow, and critical error/empty/loading state must be exercised either by Playwright or by a documented lower-level test with a clear rationale.
+- Phase 34 owns the full test-suite review. It must identify weak, missing, duplicated, overly implementation-focused, or misleading tests across PHPUnit, Vitest, and Playwright.
+- Phase 34 owns a full browser-level application review through E2E coverage. Every shipped shell, major Admin area, operational workflow, localization surface, theme surface, permission/module gate, export/import/file/search/notification workflow, and critical error/empty/loading state must be exercised either by Playwright or by a documented lower-level test with a clear rationale.
 - Existing tests must be evaluated for product value, not only pass/fail status. Tests that only prove that an implementation detail exists must be strengthened, replaced, or documented as structural guardrails.
 - Rendered UI behavior must be verified where backend tests cannot prove the user experience. This includes visible copy, language switching, toast/notification behavior, table interactions, dialogs, destructive confirmations, empty states, dark/light theme rendering, browser console cleanliness, and asset/API request cleanliness.
-- For localization, Phase 33 must prove that Polish and English are complete in rendered UI, backend-provided props, validation messages, flash/toast messages, notification text, breadcrumbs, forms, tables, and operational helper copy. It must include negative assertions against accidental English user-facing copy in Polish mode except for allowed technical diagnostic values.
-- For messaging, Phase 33 must prove ownership and noise limits for user feedback. Workflows such as exports, imports, retries, scans, rebuilds, managed processes, and integrations must not create duplicate flashes, toast storms, or competing terminal notifications.
+- For localization, Phase 34 must prove that Polish and English are complete in rendered UI, backend-provided props, validation messages, flash/toast messages, notification text, breadcrumbs, forms, tables, and operational helper copy. It must include negative assertions against accidental English user-facing copy in Polish mode except for allowed technical diagnostic values.
+- For messaging, Phase 34 must prove ownership and noise limits for user feedback. Workflows such as exports, imports, retries, scans, rebuilds, managed processes, and integrations must not create duplicate flashes, toast storms, or competing terminal notifications.
 - The E2E suite must be treated as an application walkthrough, not just a smoke test. It should cover the real login path, active-team selection, Admin mode, navigation, permissions, module activation, core operational screens, and representative successful/failing workflows.
 - The review must produce either implemented test hardening in this phase or explicit follow-up phases for any remaining gaps that are too large to close safely before final release.
 - Cross-check every accepted decision against `AGENTS.md`, this file, documentation, ADRs, and tests.
@@ -33,6 +34,7 @@ Verify the complete technical foundation after every prerequisite phase is finis
 - Verify module activation, dependency blocking, ineffective permissions, role template behavior, admin mode, impersonation, manager hierarchy, TimeTracking isolation, Chat, reports, exports, imports, files, search, notifications, managed processes, light/dark themes, translations, backup/restore, deploy/rollback, liveness/readiness, and security controls.
 - Reverify the repaired Teams and Authorization foundation: Team Edit read-only authorization, User Edit role-derived permission behavior, current Source semantics, the Employee / Manager / Head Manager Team Structure role model, Head Manager whole-Team scope, multi-manager relationships, Team Structure drag and drop plus its mobile/keyboard alternative, visible mutation errors, flash-message delivery and non-duplication, and the unresolved-interpolation guard.
 - Phase 31 communication verification must preserve the complete messaging audit and additionally cover the shared Core Calendar, private personal events, Europe/Warsaw recurrence, Month/Week/Day/Agenda views, Free/Busy privacy, direct/group/Team Calls, device setup/preferences, Atlas-authorized LiveKit access, Calls that cannot be recorded, one active RTC session per user, Meetings, invitations/RSVP, recurring Meetings, persistent Meeting chat, moderation, lock/kick semantics, attendance, screen sharing, empty-room cleanup, minimize/rejoin, Meeting-only recording, pause/resume/finalization, Files-owned recordings, controlled recording sharing, separate recording retention, provider-disabled transcription UI, the provider-neutral queued transcription boundary, transcript versioning/sharing/Search, and the Admin privacy boundary.
+- Diagnostics verification must cover automatic backend and frontend Technical Issues; queue, scheduler, and Managed Process failure capture; expected-error exclusions; fingerprinting and deduplication; exact aggregate counting under flood sampling; regression reopen; automatic severity and manual override; User Bug Reports; Files-owned screenshots and attachments; My Reports; Admin Errors & Reports; issue/report linking and Primary relation; issue merge aliases; sanitized text/JSON diagnostic copy; related-log correlation; sanitizer and privacy boundaries; private source maps; Technical Issue occurrence and User Bug Report retention; Health integration with liveness/readiness independence; Critical/regression Notifications and cooldown; backup/restore of Diagnostics and User Report Files; exact-release source-map association; and absence of any newly introduced Sentry or external error-monitoring dependency.
 - Deployment verification must cover Atlas-managed self-hosted LiveKit, trusted-network RTC/TURN connectivity, separate Egress readiness/failure isolation, protected recording staging, compatible pinned runtime versions, and backup/restore of Files-owned recordings and PostgreSQL-owned transcript state without exposing private Meeting content in operational surfaces.
 - Review starter cloning and namespace/application identity replacement.
 - Tag a stable release only after complete verification.
@@ -97,6 +99,23 @@ Verify the complete technical foundation after every prerequisite phase is finis
 - [ ] Verify transcript editing/version history, participant and controlled external-user sharing, current-version-only recipient visibility, recording dependency, and authorization-safe Meilisearch behavior.
 - [ ] Verify Admin cannot bypass private Chat, Meeting, recording, transcript, Search, download, or export authorization and sees only safe operational aggregates.
 - [ ] Verify Atlas-managed self-hosted LiveKit, RTC/TURN connectivity, separate Egress readiness and failure isolation, protected recording staging, and compatible pinned runtime versions.
+- [ ] Verify automatic backend and frontend Technical Issue capture.
+- [ ] Verify queue, scheduler, and Managed Process technical failure capture.
+- [ ] Verify expected 404/403/422/domain/offline exclusions.
+- [ ] Verify Technical Issue fingerprinting, deduplication, dynamic-route normalization, and cross-release identity.
+- [ ] Verify flood sampling preserves exact aggregates and affected-user impact.
+- [ ] Verify regression reopen plus automatic severity and authoritative manual override.
+- [ ] Verify global User Bug Report, Files-owned screenshots/attachments, safe screenshot fallback, and My Reports.
+- [ ] Verify Admin Errors & Reports tables, filters, details, privacy, linking, Primary relation, and report lifecycle.
+- [ ] Verify Technical Issue merge aliases and the absence of Undo Merge/manual Split.
+- [ ] Verify sanitized Copy diagnostics as text and JSON, related-log correlation, and on-demand source snippets.
+- [ ] Verify sanitizer/privacy boundaries, raw-session exclusion, bounded breadcrumbs, and private source-map serving restrictions.
+- [ ] Verify detailed occurrence retention, indefinite aggregate retention, User Bug Report retention, Files cleanup, and Managed Processes purge.
+- [ ] Verify Diagnostics Health/System Status integration while liveness/readiness remain independent.
+- [ ] Verify Critical/regression/impact Notifications and cooldown behavior.
+- [ ] Verify production backup and restore of Diagnostics PostgreSQL data and User Bug Report Files.
+- [ ] Verify exact-release private source-map and browser-asset association through deploy and rollback.
+- [ ] Verify no Sentry or external error-monitoring dependency was introduced by Phases 32 or 33.
 - [ ] Verify backup and restore of Files-owned Meeting recordings and PostgreSQL-owned transcript state.
 - [ ] Verify backup.
 - [ ] Verify restore.
@@ -125,6 +144,6 @@ Verify the complete technical foundation after every prerequisite phase is finis
 - [ ] The Playwright suite covers a full representative walkthrough of the application rather than only smoke-level shell checks.
 - [ ] Rendered UI localization, theme behavior, permissions/module gates, operational workflows, and message ownership are protected by automated tests where browser behavior matters.
 - [ ] No major shipped screen or workflow relies only on manual confidence without a documented testing rationale.
-- [ ] Backup, restore, deploy, rollback, readiness, security controls, module activation, Admin mode, impersonation, manager hierarchy, TimeTracking isolation, Chat, Core Calendar, Calls, Meetings, LiveKit/TURN/Egress, recordings, provider-neutral transcription behavior, reports, translations, and themes are verified.
+- [ ] Backup, restore, deploy, rollback, readiness, security controls, module activation, Admin mode, impersonation, manager hierarchy, TimeTracking isolation, Chat, Core Calendar, Calls, Meetings, LiveKit/TURN/Egress, recordings, provider-neutral transcription behavior, Diagnostics, User Bug Reports, reports, translations, and themes are verified.
 - [ ] No accepted behavior exists only in chat history or working-only files.
 - [ ] Atlas is ready for debt collection business-module phases.
