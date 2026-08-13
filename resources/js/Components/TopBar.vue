@@ -271,8 +271,8 @@ watch(
                 : 'border-zinc-200 bg-white/95 dark:border-zinc-800 dark:bg-zinc-950/90'
         "
     >
-        <div class="flex min-h-16 items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
-            <div class="flex min-w-0 items-center gap-3">
+        <div class="flex min-h-16 flex-wrap items-center justify-between gap-3 px-4 py-2 sm:flex-nowrap sm:px-6 sm:py-0 lg:px-8">
+            <div class="flex w-full min-w-0 items-center gap-3 sm:w-auto">
                 <button
                     type="button"
                     class="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-zinc-200 text-zinc-700 lg:hidden dark:border-zinc-800 dark:text-zinc-200"
@@ -338,7 +338,7 @@ watch(
                 />
             </div>
 
-            <div class="flex min-w-0 items-center gap-2">
+            <div class="flex w-full min-w-0 items-center justify-end gap-2 sm:w-auto">
                 <IconButton
                     :label="isDark ? t('actions.switch_light_theme') : t('actions.switch_dark_theme')"
                     :icon="isDark ? IconSun : IconMoon"

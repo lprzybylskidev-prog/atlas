@@ -496,6 +496,7 @@ function optionalDate(value: string | null): string {
                                         {{ t('pages.admin.teams.structure.actions.assign_manager') }}
                                     </FormButton>
                                     <button
+                                        :id="`member-details-trigger-${member.value}`"
                                         type="button"
                                         class="inline-flex h-10 items-center gap-2 rounded-lg px-3 text-sm font-medium text-zinc-700 hover:bg-zinc-100 focus-visible:outline focus-visible:outline-amber-500 dark:text-zinc-200 dark:hover:bg-zinc-900"
                                         :aria-expanded="isExpanded(member)"
@@ -520,6 +521,8 @@ function optionalDate(value: string | null): string {
                         <div
                             v-if="isExpanded(member)"
                             :id="`member-details-${member.value}`"
+                            role="region"
+                            :aria-labelledby="`member-details-trigger-${member.value}`"
                             class="border-t border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-900/40"
                         >
                             <p v-if="member.structuralRole === 'head_manager'" class="text-sm text-zinc-600 dark:text-zinc-300">

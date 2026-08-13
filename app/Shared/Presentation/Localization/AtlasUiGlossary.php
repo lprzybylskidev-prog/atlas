@@ -78,7 +78,18 @@ final class AtlasUiGlossary
             ]),
             'direct_permission' => self::entry('direct_permission', 'glossary.direct_permission'),
             'email_address' => self::entry('email_address', 'glossary.email_address'),
-            'manager' => self::entry('manager', 'glossary.manager'),
+            'employee' => self::entry('employee', 'glossary.employee', bindings: [
+                'pages.admin.teams.structure.roles.employee' => 'glossary.employee.singular',
+                'pages.admin.teams.structure.sections.employee' => 'glossary.employee.plural',
+            ]),
+            'manager' => self::entry('manager', 'glossary.manager', bindings: [
+                'pages.admin.teams.structure.roles.manager' => 'glossary.manager.singular',
+                'pages.admin.teams.structure.sections.manager' => 'glossary.manager.plural',
+            ]),
+            'head_manager' => self::entry('head_manager', 'glossary.head_manager', bindings: [
+                'pages.admin.teams.structure.roles.head_manager' => 'glossary.head_manager.singular',
+                'pages.admin.teams.structure.sections.head_manager' => 'glossary.head_manager.plural',
+            ]),
             'status' => self::entry('status', 'glossary.status_name', statusLabels: [
                 'active' => 'glossary.status.active',
                 'inactive' => 'glossary.status.inactive',

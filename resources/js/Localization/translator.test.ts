@@ -21,5 +21,6 @@ describe('frontend translator diagnostics', () => {
 
         expect(translate('pages.example.braces', catalog, { source: 'Manual' })).toBe('Source: Manual');
         expect(translate('pages.example.colon', catalog, { source: 'Manual' })).toBe('Source: Manual');
+        expect(translate('pages.example.colon', catalog, { source: 'Preset — Manager' })).not.toContain(':source');
     });
 });

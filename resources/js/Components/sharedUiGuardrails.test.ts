@@ -813,6 +813,15 @@ describe('shared UI guardrails', () => {
         expect(teamEdit).toContain(':authorization-mutation="false"');
         expect(teamEdit).not.toContain('@save=');
         expect(teamEdit).not.toContain('router.patch(');
+
+        const teamStructure = Object.entries(vueFiles).find(([file]) => file.endsWith('/Pages/Admin/Teams/Structure.vue'))?.[1];
+
+        expect(teamStructure).toBeDefined();
+        expect(teamStructure).toContain(':aria-expanded="isExpanded(member)"');
+        expect(teamStructure).toContain(':aria-controls="`member-details-${member.value}`"');
+        expect(teamStructure).toContain(':id="`member-details-trigger-${member.value}`"');
+        expect(teamStructure).toContain('role="region"');
+        expect(teamStructure).toContain(':aria-labelledby="`member-details-trigger-${member.value}`"');
     });
 
     it('keeps rebuilt Users actions and sensitivity options shared', () => {

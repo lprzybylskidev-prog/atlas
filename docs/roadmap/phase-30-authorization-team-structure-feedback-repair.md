@@ -1115,19 +1115,21 @@ Shared expandable assignment/member rows must:
 
 ### Tasks
 
-- [ ] Remove unresolved authorization interpolation.
-- [ ] Replace historical provenance wording with current-state wording.
-- [ ] Replace ambiguous assignment-count summaries.
-- [ ] Remove duplicated expanded assignment identity.
-- [ ] Add canonical expand/collapse affordances.
-- [ ] Localize human-readable authorization labels.
-- [ ] Localize Employee / Manager / Head Manager structure UI.
-- [ ] Add interpolation regression tests.
-- [ ] Add expandable-control accessibility tests.
-- [ ] Verify Polish and English rendered copy.
-- [ ] Verify light and dark rendering.
-- [ ] Verify responsive/mobile rendering.
-- [ ] Update UI glossary only where the new accepted terminology requires it.
+- [x] Remove unresolved authorization interpolation.
+- [x] Replace historical provenance wording with current-state wording.
+- [x] Replace ambiguous assignment-count summaries.
+- [x] Remove duplicated expanded assignment identity.
+- [x] Add canonical expand/collapse affordances.
+- [x] Localize human-readable authorization labels.
+- [x] Localize Employee / Manager / Head Manager structure UI.
+- [x] Add interpolation regression tests.
+- [x] Add expandable-control accessibility tests.
+- [x] Verify Polish and English rendered copy.
+- [x] Verify light and dark rendering.
+- [x] Verify responsive/mobile rendering.
+- [x] Update UI glossary only where the new accepted terminology requires it.
+
+Completion evidence (2026-08-13): the current-source authorization presentation, explicit role/direct-permission counts, single assignment identity, localized role and permission labels, and visible chevron disclosures from W01/W02 are protected by translator, rendered-copy, component-source, and browser regressions. Team Structure member details now expose a labelled disclosure region with authoritative `aria-expanded`, keyboard activation, and preserved focus. The executable UI glossary and canonical glossary document include and bind Employee, Manager, and Head Manager terminology in Polish and English. Focused browser coverage verifies Polish/light/desktop and English/dark/390 px mobile rendering, rejects unresolved `:source`, checks human labels and exact structural-role section copy, and proves no horizontal overflow; the shared TopBar now stacks page context and controls on mobile to satisfy that contract. The focused Chromium workflow suite, focused Firefox localization/theme/mobile scenario, Localization feature test, full frontend check, and production frontend build pass.
 
 ---
 
