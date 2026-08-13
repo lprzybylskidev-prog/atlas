@@ -8,7 +8,7 @@ The current roadmap begins with the technical and operational foundation require
 
 The current foundation includes a Core Audit module with append-only application and security audit records plus a read-only Admin audit browser. Earlier security-audit producers now write through this shared audit foundation instead of a separate legacy table.
 
-The foundation repair and consolidation work in [Phase 28](docs/roadmap/phase-28-foundation-repair-and-consolidation.md), acceptance closure in [Phase 29](docs/roadmap/phase-29-foundation-acceptance-repair.md), and Authorization/Team Structure repair in [Phase 30](docs/roadmap/phase-30-authorization-team-structure-feedback-repair.md) are complete. The current roadmap focus is [Phase 31 — optional internal Chat, Calendar, Calls, Meetings, and realtime communication](docs/roadmap/phase-31-chat.md), followed by Phase 32 production deployment/recovery and the Phase 33 final whole-application release audit.
+The foundation repair and consolidation work in [Phase 28](docs/roadmap/phase-28-foundation-repair-and-consolidation.md), acceptance closure in [Phase 29](docs/roadmap/phase-29-foundation-acceptance-repair.md), and Authorization/Team Structure repair in [Phase 30](docs/roadmap/phase-30-authorization-team-structure-feedback-repair.md) are complete. The current roadmap focus is [Phase 31 — optional internal Chat, Calendar, Calls, Meetings, and realtime communication](docs/roadmap/phase-31-chat.md), followed by Phase 32 Diagnostics and User Bug Reports, Phase 33 production deployment/recovery, the Phase 34 database query-efficiency and route audit, and the Phase 35 final whole-application release audit.
 
 ## Core principles
 
@@ -196,7 +196,7 @@ The Search foundation is available as an optional module for module-owned Meilis
 
 The Feature Flags foundation is available as an optional module for typed rollout flags. Current contracts cover code-owned boolean flag definitions, global and per-team values, effective-value precedence, append-only history, Audit events, Admin management at `/admin/feature-flags`, and the rule that flags cannot replace module activation or authorization.
 
-The implementation status and first unfinished phase are always shown in [`WORKROAD.md`](WORKROAD.md). Phases 28 through 30 are complete; the current roadmap focus is Phase 31 optional internal Chat, shared Calendar, Calls, Meetings, recording, and provider-neutral transcription readiness, followed by Phase 32 production deployment/recovery and Phase 33 final whole-application verification before the first debt collection business modules are introduced.
+The implementation status and first unfinished phase are always shown in [`WORKROAD.md`](WORKROAD.md). Phases 28 through 30 are complete; the current roadmap focus is Phase 31 optional internal Chat, shared Calendar, Calls, Meetings, recording, and provider-neutral transcription readiness, followed by Phase 32 Diagnostics and User Bug Reports, Phase 33 production deployment/recovery, Phase 34 database query-efficiency and route auditing, and Phase 35 final whole-application verification before the first debt collection business modules are introduced.
 
 As the project grows, this README must present the current high-level system scope, major modules, supported workflows, setup entry points, and operational expectations.
 

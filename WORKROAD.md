@@ -62,6 +62,8 @@ After Phase 30 completed and before Phase 31 implementation started, the interna
 
 After Phase 31 implementation had started and its completed work had been committed, the future need for a first-party Diagnostics and User Bug Report capability was accepted and recorded immediately so its scope would not be lost. Diagnostics became the new Phase 32 but was not started; deployment moved from Phase 32 to Phase 33, and final verification moved from Phase 33 to Phase 34. This planning change did not interrupt or reopen Phase 31 implementation, and no deployment or final-verification scope was removed.
 
+While Phase 31 remained active, a mandatory cross-cutting database query-efficiency and HTTP route audit was accepted for execution after deployment and before final verification. It became the new Phase 34; the previously unstarted final verification moved from Phase 34 to Phase 35 without losing scope. This planning change does not interrupt Phase 31 or alter the current implementation order.
+
 ## Phase index
 
 ### Phase 0 — Repository bootstrap
@@ -392,12 +394,22 @@ Depends on Phases 28, 29, 30, 31, and 32. Phase 28 provides reproducible images,
 
 [Open implementation contract and tasks](docs/roadmap/phase-33-deployment-backup-rollback.md)
 
-### Phase 34 — Final test audit, full-app E2E review, and foundation verification
+### Phase 34 — Database Query Efficiency and Route Performance Audit
+
+**Status:** `not started`
+
+Systematically audit Atlas HTTP entry points under representative authorization and dataset conditions, remove proven N+1 queries, duplicate and repeated request-scope database work, verify bounded query scaling, correct evidence-backed PostgreSQL query-plan and indexing problems, and add targeted regression protection.
+
+Depends on Phase 33 and all application foundations intended for the first base release. This is a database/request query-efficiency hardening phase, not a general application performance rewrite, and it must complete before Phase 35 begins.
+
+[Open implementation contract and tasks](docs/roadmap/phase-34-database-query-efficiency-and-route-performance-audit.md)
+
+### Phase 35 — Final test audit, full-app E2E review, and foundation verification
 
 **Status:** `not started`
 
 Perform a full test-suite audit, browser-level E2E review of the whole application, architecture/security/documentation verification, Chat/Calendar/Calls/Meetings/recording/transcription, Diagnostics/User Bug Reports, and restore/deployment checks, and final technical-foundation hardening before debt collection business modules begin.
 
-Depends on Phases 28, 29, 30, 31, 32, and 33. Phase 34 remains the final full-app release verification and does not replace earlier foundation repair, internal communication, Diagnostics, or deployment/recovery work.
+Depends on Phases 28, 29, 30, 31, 32, 33, and 34. Phase 35 remains the final full-app release verification and does not replace earlier foundation repair, internal communication, Diagnostics, deployment/recovery, or database query-efficiency hardening work.
 
-[Open implementation contract and tasks](docs/roadmap/phase-34-final-verification.md)
+[Open implementation contract and tasks](docs/roadmap/phase-35-final-verification.md)
