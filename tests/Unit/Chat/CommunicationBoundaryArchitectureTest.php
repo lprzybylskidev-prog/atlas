@@ -27,7 +27,7 @@ final class CommunicationBoundaryArchitectureTest extends TestCase
         self::assertTrue($chat->supportsGlobalActivation());
         self::assertFalse($chat->supportsTeamActivation());
         self::assertSame(
-            ['identity', 'calendar', 'teams', 'audit'],
+            ['identity', 'files', 'calendar', 'teams', 'audit'],
             array_map(static fn ($key): string => $key->value, $chat->requiredDependencies()),
         );
     }

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Modules\Core\Files\Application\Enums;
+namespace App\Modules\Core\Files\Application\Public\Enums;
 
 enum FileScanState: string
 {

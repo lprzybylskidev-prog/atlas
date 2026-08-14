@@ -54,8 +54,8 @@ return [
         'large_upload_scan_threshold_bytes' => (int) env('ATLAS_FILES_LARGE_UPLOAD_SCAN_THRESHOLD_BYTES', 10 * 1024 * 1024),
         'scan_queue' => env('ATLAS_FILES_SCAN_QUEUE', 'files'),
         'large_scan_queue' => env('ATLAS_FILES_LARGE_SCAN_QUEUE', 'files-large'),
-        'allowed_extensions' => array_values(array_filter(array_map('trim', explode(',', (string) env('ATLAS_FILES_ALLOWED_EXTENSIONS', 'pdf,png,jpg,jpeg,webp,txt,csv,xlsx,docx'))))),
-        'allowed_mime_types' => array_values(array_filter(array_map('trim', explode(',', (string) env('ATLAS_FILES_ALLOWED_MIME_TYPES', 'application/pdf,image/png,image/jpeg,image/webp,text/plain,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.openxmlformats-officedocument.wordprocessingml.document'))))),
+        'allowed_extensions' => array_values(array_filter(array_map('trim', explode(',', (string) env('ATLAS_FILES_ALLOWED_EXTENSIONS', 'pdf,png,jpg,jpeg,webp,txt,csv,xlsx,docx,webm,ogg,m4a,mp3,wav'))))),
+        'allowed_mime_types' => array_values(array_filter(array_map('trim', explode(',', (string) env('ATLAS_FILES_ALLOWED_MIME_TYPES', 'application/pdf,image/png,image/jpeg,image/webp,text/plain,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.openxmlformats-officedocument.wordprocessingml.document,audio/webm,video/webm,audio/ogg,audio/mp4,audio/mpeg,audio/wav,audio/x-wav'))))),
         'scan_max_attempts' => (int) env('ATLAS_FILES_SCAN_MAX_ATTEMPTS', 3),
         'temporary_ttl_minutes' => (int) env('ATLAS_FILES_TEMPORARY_TTL_MINUTES', 60),
         'temporary_scan_prefix' => env('ATLAS_FILES_TEMPORARY_SCAN_PREFIX', 'atlas-file-scan-'),
@@ -122,10 +122,10 @@ return [
         'headers' => [
             'content_security_policy' => env(
                 'ATLAS_SECURITY_CONTENT_SECURITY_POLICY',
-                "default-src 'self'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'; object-src 'none'; img-src 'self' data: blob:; font-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self' ws: wss:",
+                "default-src 'self'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'; object-src 'none'; img-src 'self' data: blob:; media-src 'self' blob:; font-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self' ws: wss:",
             ),
             'referrer_policy' => env('ATLAS_SECURITY_REFERRER_POLICY', 'strict-origin-when-cross-origin'),
-            'permissions_policy' => env('ATLAS_SECURITY_PERMISSIONS_POLICY', 'camera=(), microphone=(), geolocation=(), payment=(), usb=()'),
+            'permissions_policy' => env('ATLAS_SECURITY_PERMISSIONS_POLICY', 'camera=(), microphone=(self), geolocation=(), payment=(), usb=()'),
         ],
         'dependency_audits' => [
             'composer' => [

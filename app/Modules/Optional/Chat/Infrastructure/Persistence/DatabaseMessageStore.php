@@ -107,7 +107,7 @@ final readonly class DatabaseMessageStore implements MessageStore
             ->orderBy('version')
             ->get() as $row) {
             $values = get_object_vars($row);
-            $body = $this->string($values, 'body');
+            $body = $this->stringAllowEmpty($values, 'body');
             $revisions[] = new MessageRevision(
                 version: $this->int($values, 'version'),
                 body: $body,
@@ -355,7 +355,7 @@ final readonly class DatabaseMessageStore implements MessageStore
             publicId: $this->string($values, 'public_id'),
             conversationId: $this->int($values, 'conversation_id'),
             authorUserId: $this->int($values, 'author_user_id'),
-            body: $this->string($values, 'body'),
+            body: $this->stringAllowEmpty($values, 'body'),
             replyToMessageId: $this->nullableInt($values['reply_to_message_id'] ?? null),
             forwardedFromMessageId: $this->nullableInt($values['forwarded_from_message_id'] ?? null),
             clientMessageKey: $this->string($values, 'client_message_key'),

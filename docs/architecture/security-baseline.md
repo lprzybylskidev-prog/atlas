@@ -53,6 +53,8 @@ Atlas applies HTTP security headers through global middleware:
 - `Permissions-Policy`;
 - `Strict-Transport-Security` on HTTPS responses.
 
+The default policy keeps camera, geolocation, payment, and USB unavailable. Microphone access is limited to the Atlas same origin so explicit Chat voice-recording actions can request it; no page may request it implicitly. The content-security policy permits same-origin media plus local `blob:` media required for pre-send voice playback, while attachment preview responses apply their own restrictive no-store/nosniff policy.
+
 Dependency audit command coverage for Composer and pnpm lockfiles is tracked as technical configuration and test coverage. It is not exposed as an Admin screen because it does not provide an operator workflow.
 
 ## Malware Scanning

@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Modules\Core\Files\Infrastructure\Persistence;
 
 use App\Modules\Core\Files\Application\DTOs\MalwareScanResult;
-use App\Modules\Core\Files\Application\Enums\FileScanState;
 use App\Modules\Core\Files\Application\Public\Contracts\FileLifecycle;
 use App\Modules\Core\Files\Application\Public\Contracts\FileLookup;
 use App\Modules\Core\Files\Application\Public\Contracts\FileMaintenance;
@@ -14,7 +13,9 @@ use App\Modules\Core\Files\Application\Public\DTOs\DownloadableFile;
 use App\Modules\Core\Files\Application\Public\DTOs\FileDisplaySummary;
 use App\Modules\Core\Files\Application\Public\DTOs\FileLifecycleResult;
 use App\Modules\Core\Files\Application\Public\DTOs\FileMaintenanceResult;
+use App\Modules\Core\Files\Application\Public\DTOs\FileStatus;
 use App\Modules\Core\Files\Application\Public\DTOs\StoredFile;
+use App\Modules\Core\Files\Application\Public\Enums\FileScanState;
 use App\Modules\Core\Files\Application\Public\Exceptions\FileNotAvailableForDownload;
 use App\Modules\Core\Files\Infrastructure\Persistence\TableNames\FilesDatabaseTable;
 use App\Modules\Core\Files\Presentation\Jobs\ScanFileForMalware;
@@ -197,6 +198,26 @@ final readonly class DatabaseFileStorage implements FileAvailability, FileLifecy
         ksort($summaries);
 
         return $summaries;
+    }
+
+    public function status(string $publicId): ?FileStatus
+    {
+        $row = $this->db->table(FilesDatabaseTable::FILE_OBJECTS)
+            ->where('public_id', $publicId)
+            ->first(['public_id', 'original_name', 'mime_type', 'size_bytes', 'scan_state', 'deleted_at']);
+
+        if (! is_object($row)) {
+            return null;
+        }
+
+        return new FileStatus(
+            publicId: $publicId,
+            originalName: $this->string($row->original_name ?? null) ?? $publicId,
+            mimeType: $this->string($row->mime_type ?? null) ?? 'application/octet-stream',
+            sizeBytes: $this->intValue($row->size_bytes ?? null),
+            scanState: FileScanState::tryFrom($this->string($row->scan_state ?? null) ?? '') ?? FileScanState::Failed,
+            deleted: ($row->deleted_at ?? null) !== null,
+        );
     }
 
     public function clean(string $publicId): bool

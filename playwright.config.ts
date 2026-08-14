@@ -14,8 +14,13 @@ const e2eEnvironment = {
     DB_CONNECTION: 'pgsql',
     DB_DATABASE: 'atlas_e2e',
     ATLAS_RATE_LIMIT_AUTH_LOGIN_MAX_ATTEMPTS: '200',
+    ATLAS_SECURITY_CONTENT_SECURITY_POLICY:
+        "default-src 'self'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'; object-src 'none'; img-src 'self' data: blob:; media-src 'self' blob:; font-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' http://127.0.0.1:5174; connect-src 'self' http://127.0.0.1:5174 ws: wss:",
+    ATLAS_SECURITY_PERMISSIONS_POLICY: 'camera=(), microphone=(self), geolocation=(), payment=(), usb=()',
     MAIL_MAILER: 'array',
     QUEUE_CONNECTION: 'redis',
+    ATLAS_FILES_SCAN_QUEUE: 'atlas-e2e-unconsumed-files',
+    ATLAS_FILES_LARGE_SCAN_QUEUE: 'atlas-e2e-unconsumed-files-large',
     REDIS_CACHE_DB: '5',
     REDIS_DB: '4',
     SESSION_DRIVER: 'redis',

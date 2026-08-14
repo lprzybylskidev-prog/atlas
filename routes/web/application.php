@@ -20,6 +20,10 @@ use App\Modules\Core\Users\Presentation\Http\Controllers\UpdateUserProfilePasswo
 use App\Modules\Core\Users\Presentation\Http\Controllers\UserProfileAvatarImageController;
 use App\Modules\Core\Users\Presentation\Http\Controllers\UserProfileController;
 use App\Modules\Core\Users\Presentation\Http\Controllers\VerifyNotificationEmailAddressController;
+use App\Modules\Optional\Chat\Application\Permissions\ChatPermissionCatalog;
+use App\Modules\Optional\Chat\Presentation\Http\Controllers\ChatAttachmentController;
+use App\Modules\Optional\Chat\Presentation\Http\Controllers\ChatConversationController;
+use App\Modules\Optional\Chat\Presentation\Http\Controllers\ChatMessageController;
 use App\Modules\Optional\TimeTracking\Application\Permissions\TimeTrackingPermissionCatalog;
 use App\Modules\Optional\TimeTracking\Presentation\Http\Controllers\ActivityTrackerController;
 use App\Modules\Optional\TimeTracking\Presentation\Http\Controllers\AdminOtherWorkCategoryController;
@@ -54,6 +58,16 @@ Route::middleware('auth')->group(function (): void {
 Route::middleware(['auth', 'route.permission'])->group(function (): void {
     Route::get('/', fn () => Inertia::render('Dashboard'))->name('dashboard');
     Route::get('/calendar', [CalendarController::class, 'index'])->name(CalendarPermissionCatalog::INDEX);
+    Route::get('/chat/conversations/{conversation}/content', [ChatAttachmentController::class, 'content'])->name(ChatPermissionCatalog::CONTENT_INDEX);
+    Route::get('/chat/conversations/{conversation}/attachments/{attachment}', [ChatAttachmentController::class, 'show'])->name(ChatPermissionCatalog::ATTACHMENT_SHOW);
+    Route::post('/chat/conversations/{conversation}/attachments/{attachment}/retry', [ChatAttachmentController::class, 'retry'])->name(ChatPermissionCatalog::ATTACHMENT_RETRY);
+    Route::delete('/chat/conversations/{conversation}/attachments/{attachment}', [ChatAttachmentController::class, 'destroy'])->name(ChatPermissionCatalog::ATTACHMENT_DESTROY);
+    Route::get('/chat/conversations/{conversation}/attachments/{attachment}/download', [ChatAttachmentController::class, 'download'])->name(ChatPermissionCatalog::ATTACHMENT_DOWNLOAD);
+    Route::post('/chat/conversations/{conversation}/messages', [ChatMessageController::class, 'store'])->name(ChatPermissionCatalog::MESSAGE_STORE);
+    Route::get('/chat/team-conversation', [ChatConversationController::class, 'showTeam'])->name(ChatPermissionCatalog::TEAM_CONVERSATION_SHOW);
+    Route::post('/chat/conversations/{conversation}/attachments', [ChatAttachmentController::class, 'store'])->name(ChatPermissionCatalog::ATTACHMENT_STORE);
+    Route::post('/chat/conversations/{conversation}/voice-messages', [ChatAttachmentController::class, 'storeVoice'])->name(ChatPermissionCatalog::VOICE_MESSAGE_STORE);
+    Route::post('/chat/direct-conversations', [ChatConversationController::class, 'storeDirect'])->name(ChatPermissionCatalog::DIRECT_CONVERSATION_STORE);
     Route::post('/calendar/events', [CalendarController::class, 'store'])->name(CalendarPermissionCatalog::EVENT_STORE);
     Route::patch('/calendar/events/{event}', [CalendarController::class, 'update'])->name(CalendarPermissionCatalog::EVENT_UPDATE);
     Route::delete('/calendar/events/{event}', [CalendarController::class, 'destroy'])->name(CalendarPermissionCatalog::EVENT_DESTROY);

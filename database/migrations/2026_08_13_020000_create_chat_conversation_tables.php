@@ -258,6 +258,37 @@ SQL);
             $table->unique(['conversation_id', 'user_id']);
         });
 
+        Schema::create(ChatDatabaseTable::MESSAGE_ATTACHMENTS, static function (Blueprint $table): void {
+            $table->id();
+            $table->ulid('public_id')->unique();
+            $table->unsignedBigInteger('conversation_id');
+            $table->unsignedBigInteger('uploader_user_id');
+            $table->unsignedBigInteger('message_id')->nullable();
+            $table->string('file_public_id', 26)->unique();
+            $table->string('kind', 16);
+            $table->string('original_name', 255);
+            $table->string('mime_type', 150);
+            $table->unsignedBigInteger('size_bytes');
+            $table->unsignedInteger('duration_seconds')->nullable();
+            $table->timestampTz('attached_at')->nullable();
+            $table->timestampTz('discarded_at')->nullable();
+            $table->timestampsTz();
+
+            $table->foreign('conversation_id')->references('id')->on(ChatDatabaseTable::CONVERSATIONS)->restrictOnDelete();
+            $table->foreign('uploader_user_id')->references('id')->on(IdentityDatabaseTable::USERS)->restrictOnDelete();
+            $table->foreign('message_id')->references('id')->on(ChatDatabaseTable::MESSAGES)->restrictOnDelete();
+            $table->index(['conversation_id', 'message_id']);
+            $table->index(['uploader_user_id', 'discarded_at']);
+        });
+        DB::statement(sprintf(
+            "alter table %s add constraint chat_message_attachments_kind_check check (kind in ('file', 'voice'))",
+            ChatDatabaseTable::MESSAGE_ATTACHMENTS,
+        ));
+        DB::statement(sprintf(
+            "alter table %s add constraint chat_message_attachments_voice_check check ((kind = 'voice' and duration_seconds between 1 and 900 and mime_type like 'audio/%%') or (kind = 'file' and duration_seconds is null))",
+            ChatDatabaseTable::MESSAGE_ATTACHMENTS,
+        ));
+
         DB::statement(<<<'SQL'
 create or replace function optional_chat.prevent_message_history_update()
 returns trigger as $$
@@ -276,6 +307,7 @@ SQL);
         DB::statement('drop trigger if exists message_edit_history_immutable on '.ChatDatabaseTable::MESSAGE_EDIT_HISTORY);
         DB::statement('drop function if exists optional_chat.prevent_message_history_update()');
         Schema::dropIfExists(ChatDatabaseTable::MESSAGE_DRAFTS);
+        Schema::dropIfExists(ChatDatabaseTable::MESSAGE_ATTACHMENTS);
         Schema::dropIfExists(ChatDatabaseTable::MESSAGE_BOOKMARKS);
         Schema::dropIfExists(ChatDatabaseTable::MESSAGE_PINS);
         Schema::dropIfExists(ChatDatabaseTable::MESSAGE_MENTIONS);

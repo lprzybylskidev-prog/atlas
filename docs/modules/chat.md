@@ -1,6 +1,6 @@
 # Internal communication and Chat module
 
-Canonical current boundary and accepted target for the Atlas internal-communication capability. Phase 31 is in progress: P31-W01 through P31-W04 established the module boundary, shared Calendar, persistent conversation ownership, and canonical message behavior; P31-W05 is the next sequential workstream. The phase file remains the binding implementation and acceptance contract.
+Canonical current boundary and accepted target for the Atlas internal-communication capability. Phase 31 is in progress: P31-W01 through P31-W05 established the module boundary, shared Calendar, persistent conversation ownership, canonical message behavior, Files-backed attachments, content browsing, and voice messages; P31-W06 is the next sequential workstream. The phase file remains the binding implementation and acceptance contract.
 
 ## Purpose and boundary
 
@@ -55,11 +55,11 @@ Exactly one draft is stored per user and conversation. Draft updates retain a ba
 
 ## Files, content browsing, and voice messages
 
-Every attachment uses the Files module's public contracts and canonical global size, MIME/content, validation, authorization, quarantine, ClamAV, retention, preview, and download policies. Chat does not own a parallel file store or bypass scanning. Files are unavailable to participants until the accepted scanner lifecycle permits access.
+Every attachment uses the Files module's public contracts and canonical global size, MIME/content, validation, authorization, quarantine, ClamAV, lifecycle deletion, preview, and download policies. Chat stores only conversation/message ownership metadata and the Files public identifier; it does not own a parallel file store or bypass scanning. New uploads remain unavailable while pending or scanning and after failed, infected, or unsupported results. Only clean files cross the participant-authorized download/preview boundary. An uploader may retry only an allowed pending/failed scan and may discard only an unattached upload that they own.
 
-Uploads support file selection, drag and drop, clipboard paste, progress, quarantine/scanner status, failure, and allowed retries. Conversation details provide Media, Files, and Links browsing. Links are extracted only from messages visible to the participant; Atlas does not fetch third-party metadata or create external URL previews.
+Uploads support file selection, drag and drop, clipboard paste including screenshots, progress, quarantine/scanner status, localized failure, and allowed retries. Attachment-only messages are valid, but a pending attachment remains unavailable until Files marks it clean. Conversation details provide Media, Files, and Links browsing. Links are extracted only from messages visible to the participant, use safe HTTP(S)-only external navigation, and never trigger third-party metadata fetching or automatic previews. Inline media preview is restricted to an explicit raster-image/audio/video MIME allowlist and uses no-store, nosniff, and restrictive content-security headers; other clean files are downloads.
 
-Voice messages are Files-owned attachments with a maximum recording length of 15 minutes. The explicit browser flow is record, stop, preview/listen, then send or discard and re-record. Stopping never sends automatically. Voice messages require an intentional microphone action, pass through Files and ClamAV, and use an accessible audio player.
+Voice messages are Files-owned attachments with a server-enforced maximum recording length of 15 minutes. The explicit browser flow is record, stop, preview/listen, then send or discard and re-record. Stopping never sends automatically. Browser media permission is requested only by the intentional record action, media tracks and temporary object URLs are released, and the canonical Atlas security headers allow microphone access only to the same origin and local blob playback. Voice uploads pass through Files and ClamAV and use an accessible audio player.
 
 ## Shared Core Calendar boundary and target
 

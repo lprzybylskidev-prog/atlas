@@ -136,6 +136,17 @@ final class E2eVisibilitySeeder extends Seeder
 
         $activation = app(ModuleActivationService::class);
 
+        $chatState = $activation->effectiveState('chat', $teamId);
+        if (! $chatState->globallyEnabled) {
+            $activation->change(new ModuleActivationChange(
+                moduleKey: 'chat',
+                scope: ModuleActivationScope::Global,
+                enabled: true,
+                reason: 'E2E Chat attachment and voice-message setup.',
+                source: ModuleActivationSource::Manual,
+            ));
+        }
+
         foreach (['feature_flags', 'integrations', 'managed_processes', 'imports', 'search', 'time_tracking'] as $moduleKey) {
             $state = $activation->effectiveState($moduleKey, $teamId);
             if (! $state->globallyEnabled) {

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Core\Files\Presentation\Http\Controllers;
 
-use App\Modules\Core\Files\Application\Enums\FileScanState;
+use App\Modules\Core\Files\Application\Public\Enums\FileScanState;
 use App\Modules\Core\Files\Infrastructure\Persistence\DatabaseFileStorage;
 use App\Modules\Core\Files\Infrastructure\Persistence\TableNames\FilesDatabaseTable;
 use App\Modules\Core\Identity\Application\Public\Contracts\UserLookup;

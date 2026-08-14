@@ -12,7 +12,21 @@ final class ChatPermissionNames
 
     public const GROUP_STORE = 'chat.groups.store';
 
+    public const TEAM_CONVERSATION_SHOW = 'chat.team-conversation.show';
+
+    public const MESSAGE_STORE = 'chat.messages.store';
+
+    public const CONTENT_INDEX = 'chat.content.index';
+
     public const ATTACHMENT_STORE = 'chat.attachments.store';
+
+    public const ATTACHMENT_SHOW = 'chat.attachments.show';
+
+    public const ATTACHMENT_RETRY = 'chat.attachments.retry';
+
+    public const ATTACHMENT_DESTROY = 'chat.attachments.destroy';
+
+    public const ATTACHMENT_DOWNLOAD = 'chat.attachments.download';
 
     public const VOICE_MESSAGE_STORE = 'chat.voice-messages.store';
 

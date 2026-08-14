@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace App\Modules\Core\Files\Infrastructure\Scanning;
 
 use App\Modules\Core\Files\Application\Contracts\MalwareScanner;
-use App\Modules\Core\Files\Application\Enums\FileScanState;
 use App\Modules\Core\Files\Application\Public\Contracts\FileScanner;
+use App\Modules\Core\Files\Application\Public\Enums\FileScanState;
 use App\Modules\Core\Files\Infrastructure\Persistence\DatabaseFileStorage;
 use App\Modules\Core\Files\Infrastructure\Persistence\TableNames\FilesDatabaseTable;
 use App\Shared\Infrastructure\Operations\OperationalModuleGuard;

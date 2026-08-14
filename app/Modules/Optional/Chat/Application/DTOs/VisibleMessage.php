@@ -11,6 +11,7 @@ final readonly class VisibleMessage
     /**
      * @param  list<MessageReaction>  $reactions
      * @param  list<string>  $mentionedUserPublicIds
+     * @param  list<MessageAttachment>  $attachments
      */
     public function __construct(
         public string $publicId,
@@ -29,5 +30,6 @@ final readonly class VisibleMessage
         public bool $mentionsEveryone,
         public bool $mentionsOnline,
         public DateTimeImmutable $createdAt,
+        public array $attachments = [],
     ) {}
 }

@@ -33,6 +33,24 @@ function modalActionFamily(expression: string, suffix: 'confirm' | 'description'
  * deleting the same key from PL and EN cannot make the localization audit pass.
  */
 export const dynamicTranslationFamilies: readonly DynamicTranslationFamily[] = [
+    family('chat.attachments.state.${state}', 'chat.attachments.state.', [
+        'uploading',
+        'pending',
+        'scanning',
+        'clean',
+        'infected',
+        'failed',
+        'unsupported',
+    ]),
+    family('chat.attachments.state.${attachment.scanState}', 'chat.attachments.state.', [
+        'pending',
+        'scanning',
+        'clean',
+        'infected',
+        'failed',
+        'unsupported',
+    ]),
+    family('chat.content.${value}', 'chat.content.', ['media', 'files', 'links']),
     modalActionFamily('${key}.title', 'title'),
     modalActionFamily('${key}.description', 'description'),
     modalActionFamily('${key}.confirm', 'confirm'),

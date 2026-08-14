@@ -8,8 +8,8 @@ use App\Modules\Core\Audit\Infrastructure\Persistence\TableNames\AuditDatabaseTa
 use App\Modules\Core\Authorization\Application\Roles\InstallStarterRoles;
 use App\Modules\Core\Authorization\Application\Roles\StarterRoleName;
 use App\Modules\Core\Authorization\Infrastructure\Persistence\TableNames\AuthorizationDatabaseTable;
-use App\Modules\Core\Files\Application\Enums\FileScanState;
 use App\Modules\Core\Files\Application\Public\Contracts\FileStorage;
+use App\Modules\Core\Files\Application\Public\Enums\FileScanState;
 use App\Modules\Core\Files\Infrastructure\Persistence\TableNames\FilesDatabaseTable;
 use App\Modules\Core\Identity\Infrastructure\Persistence\User;
 use App\Modules\Core\Teams\Infrastructure\Persistence\TableNames\TeamsDatabaseTable;

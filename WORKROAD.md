@@ -40,7 +40,7 @@ Do not replace this index after the initial technical foundation is completed. C
 ## Current phase
 
 - Phase: [Phase 31 — Optional internal company chat, calendar, calls, meetings, and realtime communication](docs/roadmap/phase-31-chat.md)
-- Status: `in progress` (`P31-W01` through `P31-W04` complete; `P31-W05` is next)
+- Status: `in progress` (`P31-W01` through `P31-W05` complete; `P31-W06` is next)
 
 ## Roadmap dependency repair note
 
@@ -366,7 +366,7 @@ Depends on the completed Authorization, Teams, manager hierarchy, Audit, Setting
 
 ### Phase 31 — Optional internal company chat, calendar, calls, meetings, and realtime communication
 
-**Status:** `in progress` (`P31-W01` through `P31-W04` complete; `P31-W05` is next)
+**Status:** `in progress` (`P31-W01` through `P31-W05` complete; `P31-W06` is next)
 
 Implement Atlas-owned internal communication with direct/group/Team/Meeting Chat, a shared Core Calendar, audio/video Calls, online/in-person/hybrid Meetings, optional RTC for online/hybrid modes, screen sharing, Files-owned Meeting recordings, provider-neutral transcription readiness, Reverb and self-hosted LiveKit/Egress infrastructure, authorization-safe Search, privacy, retention, participant exports, and browser alerts.
 

@@ -160,7 +160,9 @@ for target in "${targets[@]}"; do
 done
 
 if [[ ${#main_targets[@]} -gt 0 ]]; then
-  run_analysis "${main_targets[@]}"
+  for main_target in "${main_targets[@]}"; do
+    run_analysis "${main_target}"
+  done
 fi
 
 if [[ "${analyse_tests}" == true ]]; then

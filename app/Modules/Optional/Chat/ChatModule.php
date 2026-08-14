@@ -25,6 +25,7 @@ final class ChatModule implements ModuleDefinition
     {
         return [
             new ModuleKey('identity'),
+            new ModuleKey('files'),
             new ModuleKey('calendar'),
             new ModuleKey('teams'),
             new ModuleKey('audit'),

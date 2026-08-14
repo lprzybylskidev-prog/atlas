@@ -1,6 +1,6 @@
 # Phase 31 — Optional internal company chat, calendar, calls, meetings, and realtime communication
 
-**Status:** `in progress` (`P31-W01` through `P31-W04` complete; `P31-W05` is next)
+**Status:** `in progress` (`P31-W01` through `P31-W05` complete; `P31-W06` is next)
 
 ## Objective
 
@@ -829,17 +829,17 @@ Voice messages are not RTC Calls.
 
 ### Tasks
 
-- [ ] Integrate attachments through Files.
-- [ ] Preserve Files/ClamAV lifecycle.
-- [ ] Add picker/drop/clipboard upload.
-- [ ] Add upload/scan/failure states.
-- [ ] Add Media / Files / Links.
-- [ ] Add safe media preview.
-- [ ] Add 15-minute voice recording.
-- [ ] Add preview/send/discard/re-record.
-- [ ] Persist voice messages through Files.
-- [ ] Add attachment/scan authorization tests.
-- [ ] Add browser attachment/voice coverage.
+- [x] Integrate attachments through Files.
+- [x] Preserve Files/ClamAV lifecycle.
+- [x] Add picker/drop/clipboard upload.
+- [x] Add upload/scan/failure states.
+- [x] Add Media / Files / Links.
+- [x] Add safe media preview.
+- [x] Add 15-minute voice recording.
+- [x] Add preview/send/discard/re-record.
+- [x] Persist voice messages through Files.
+- [x] Add attachment/scan authorization tests.
+- [x] Add browser attachment/voice coverage.
 
 ---
 

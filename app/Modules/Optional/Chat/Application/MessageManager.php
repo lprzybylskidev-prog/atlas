@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Optional\Chat\Application;
 
 use App\Modules\Core\Identity\Application\Public\Contracts\UserLookup;
+use App\Modules\Optional\Chat\Application\Contracts\AttachmentStore;
 use App\Modules\Optional\Chat\Application\Contracts\ChatTransaction;
 use App\Modules\Optional\Chat\Application\Contracts\ConversationStore;
 use App\Modules\Optional\Chat\Application\Contracts\MarkdownRenderer;
@@ -19,6 +20,7 @@ use App\Modules\Optional\Chat\Domain\Conversations\ConversationScopeContext;
 use App\Modules\Optional\Chat\Domain\Conversations\ConversationScopePolicy;
 use App\Modules\Optional\Chat\Domain\Conversations\ConversationType;
 use App\Modules\Optional\Chat\Domain\Conversations\Exceptions\ConversationNotFound;
+use App\Modules\Optional\Chat\Domain\Messages\AttachmentKind;
 use App\Modules\Optional\Chat\Domain\Messages\Exceptions\MessageIdempotencyConflict;
 use App\Modules\Optional\Chat\Domain\Messages\Exceptions\MessageOperationDenied;
 use App\Modules\Optional\Chat\Domain\Messages\Exceptions\StaleMessageEdit;
@@ -36,9 +38,13 @@ final readonly class MessageManager
         private UserLookup $users,
         private ConversationScopePolicy $scopePolicy,
         private MarkdownRenderer $markdown,
+        private ?AttachmentStore $attachments = null,
     ) {}
 
-    /** @param list<string> $mentionedUserPublicIds */
+    /**
+     * @param  list<string>  $mentionedUserPublicIds
+     * @param  list<string>  $attachmentPublicIds
+     */
     public function send(
         string $actorPublicId,
         string $activeTeamPublicId,
@@ -47,17 +53,20 @@ final readonly class MessageManager
         string $clientMessageKey,
         ?string $replyToMessagePublicId = null,
         array $mentionedUserPublicIds = [],
+        array $attachmentPublicIds = [],
     ): VisibleMessage {
-        $body = $this->body($body);
+        $attachmentPublicIds = array_values(array_unique($attachmentPublicIds));
+        $body = $this->body($body, $attachmentPublicIds !== []);
         $clientMessageKey = $this->clientMessageKey($clientMessageKey);
         $mentionedUserPublicIds = array_values(array_unique($mentionedUserPublicIds));
 
-        return $this->transaction->run(function () use ($actorPublicId, $activeTeamPublicId, $conversationPublicId, $body, $clientMessageKey, $replyToMessagePublicId, $mentionedUserPublicIds): VisibleMessage {
+        return $this->transaction->run(function () use ($actorPublicId, $activeTeamPublicId, $conversationPublicId, $body, $clientMessageKey, $replyToMessagePublicId, $mentionedUserPublicIds, $attachmentPublicIds): VisibleMessage {
             [$conversation, $actorId] = $this->participant($actorPublicId, $activeTeamPublicId, $conversationPublicId, true);
+            $attachmentIds = $this->sendableAttachments($attachmentPublicIds, $conversation->id, $actorId, $actorPublicId, $activeTeamPublicId);
             $reply = $this->referencedMessage($replyToMessagePublicId, $conversation->id, $actorId);
             $mentionIds = $this->mentionIds($conversation, $mentionedUserPublicIds);
             [$everyone, $online] = $this->groupMentions($body);
-            $hash = $this->requestHash($conversation->publicId, $body, $reply?->publicId, null, $mentionedUserPublicIds, $everyone, $online);
+            $hash = $this->requestHash($conversation->publicId, $body, $reply?->publicId, null, $mentionedUserPublicIds, $everyone, $online, $attachmentPublicIds);
             $this->conversations->lockCanonicalKey('chat:message:'.$actorId.':'.$clientMessageKey);
             $existing = $this->messages->findByIdempotencyKey($actorId, $clientMessageKey);
 
@@ -72,6 +81,7 @@ final readonly class MessageManager
             $message = $this->messages->create($conversation->id, $actorId, $body, $reply?->id, null, $clientMessageKey, $hash);
             $this->messages->addRevision($message->id, 1, $body, $actorId);
             $this->messages->replaceMentions($message->id, $mentionIds, $everyone, $online);
+            $this->attachments?->attachToMessage($attachmentIds, $message->id);
             $this->messages->clearDraft($conversation->id, $actorId);
 
             return $this->visible($message, $actorId);
@@ -397,6 +407,7 @@ final readonly class MessageManager
             mentionsEveryone: ! $hidden && $mentions['everyone'],
             mentionsOnline: ! $hidden && $mentions['online'],
             createdAt: $message->createdAt,
+            attachments: $hidden ? [] : ($this->attachments?->forMessage($message->id) ?? []),
         );
     }
 
@@ -407,11 +418,11 @@ final readonly class MessageManager
         }
     }
 
-    private function body(string $body): string
+    private function body(string $body, bool $allowEmpty = false): string
     {
         $body = trim(str_replace("\r\n", "\n", $body));
 
-        if ($body === '' || mb_strlen($body) > self::MAX_BODY_LENGTH) {
+        if ((! $allowEmpty && $body === '') || mb_strlen($body) > self::MAX_BODY_LENGTH) {
             throw new InvalidArgumentException('A Chat message must contain between 1 and 20000 characters.');
         }
 
@@ -449,10 +460,14 @@ final readonly class MessageManager
         ];
     }
 
-    /** @param list<string> $mentionedUserPublicIds */
-    private function requestHash(string $conversationPublicId, string $body, ?string $replyPublicId, ?string $forwardedPublicId, array $mentionedUserPublicIds, bool $everyone, bool $online): string
+    /**
+     * @param  list<string>  $mentionedUserPublicIds
+     * @param  list<string>  $attachmentPublicIds
+     */
+    private function requestHash(string $conversationPublicId, string $body, ?string $replyPublicId, ?string $forwardedPublicId, array $mentionedUserPublicIds, bool $everyone, bool $online, array $attachmentPublicIds = []): string
     {
         sort($mentionedUserPublicIds);
+        sort($attachmentPublicIds);
 
         return hash('sha256', json_encode([
             'conversation' => $conversationPublicId,
@@ -462,6 +477,37 @@ final readonly class MessageManager
             'mentions' => $mentionedUserPublicIds,
             'everyone' => $everyone,
             'online' => $online,
+            'attachments' => $attachmentPublicIds,
         ], JSON_THROW_ON_ERROR));
+    }
+
+    /**
+     * @param  list<string>  $publicIds
+     * @return list<int>
+     */
+    private function sendableAttachments(array $publicIds, int $conversationId, int $actorId, string $actorPublicId, string $activeTeamPublicId): array
+    {
+        if ($publicIds === []) {
+            return [];
+        }
+
+        if ($this->attachments === null) {
+            throw MessageOperationDenied::invalidReference();
+        }
+
+        $ids = [];
+        foreach ($publicIds as $publicId) {
+            $attachment = $this->attachments->findByPublicId($publicId, true);
+
+            if ($attachment === null || $attachment->conversationId !== $conversationId || $attachment->uploaderUserId !== $actorId || $attachment->messageId !== null || $attachment->discarded) {
+                throw MessageOperationDenied::invalidReference();
+            }
+
+            $permission = $attachment->kind === AttachmentKind::Voice ? ChatPermissionCatalog::VOICE_MESSAGE_STORE : ChatPermissionCatalog::ATTACHMENT_STORE;
+            $this->access->ensureAllowed($actorPublicId, $activeTeamPublicId, $permission);
+            $ids[] = $attachment->id;
+        }
+
+        return $ids;
     }
 }

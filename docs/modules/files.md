@@ -24,6 +24,7 @@ Rules:
 - antivirus scan and quarantine;
 - all operations audited;
 - anonymization covers files.
+- the canonical allowlist includes browser voice-message formats (`webm`, `ogg`, `m4a`, `mp3`, and `wav`) because Chat voice messages use the same validation and scanning boundary rather than a separate media store.
 
 ## Current implementation
 

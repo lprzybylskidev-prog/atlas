@@ -16,7 +16,21 @@ final class ChatPermissionCatalog implements ModulePermissionContribution
 
     public const GROUP_STORE = ChatPermissionNames::GROUP_STORE;
 
+    public const TEAM_CONVERSATION_SHOW = ChatPermissionNames::TEAM_CONVERSATION_SHOW;
+
+    public const MESSAGE_STORE = ChatPermissionNames::MESSAGE_STORE;
+
+    public const CONTENT_INDEX = ChatPermissionNames::CONTENT_INDEX;
+
     public const ATTACHMENT_STORE = ChatPermissionNames::ATTACHMENT_STORE;
+
+    public const ATTACHMENT_SHOW = ChatPermissionNames::ATTACHMENT_SHOW;
+
+    public const ATTACHMENT_RETRY = ChatPermissionNames::ATTACHMENT_RETRY;
+
+    public const ATTACHMENT_DESTROY = ChatPermissionNames::ATTACHMENT_DESTROY;
+
+    public const ATTACHMENT_DOWNLOAD = ChatPermissionNames::ATTACHMENT_DOWNLOAD;
 
     public const VOICE_MESSAGE_STORE = ChatPermissionNames::VOICE_MESSAGE_STORE;
 
@@ -60,7 +74,14 @@ final class ChatPermissionCatalog implements ModulePermissionContribution
             new ModulePermissionDefinition(self::INDEX, 'Use internal Chat.'),
             new ModulePermissionDefinition(self::DIRECT_CONVERSATION_STORE, 'Start direct conversations.'),
             new ModulePermissionDefinition(self::GROUP_STORE, 'Create Chat groups.'),
+            new ModulePermissionDefinition(self::TEAM_CONVERSATION_SHOW, 'Open the authorized active Team conversation.'),
+            new ModulePermissionDefinition(self::MESSAGE_STORE, 'Send messages in authorized conversations.'),
+            new ModulePermissionDefinition(self::CONTENT_INDEX, 'Browse authorized conversation media, files, and links.'),
             new ModulePermissionDefinition(self::ATTACHMENT_STORE, 'Upload Chat attachments through Files.'),
+            new ModulePermissionDefinition(self::ATTACHMENT_SHOW, 'View authorized Chat attachment status.'),
+            new ModulePermissionDefinition(self::ATTACHMENT_RETRY, 'Retry scanning an owned Chat attachment.'),
+            new ModulePermissionDefinition(self::ATTACHMENT_DESTROY, 'Discard an owned unsent Chat attachment.'),
+            new ModulePermissionDefinition(self::ATTACHMENT_DOWNLOAD, 'Download or preview an authorized clean Chat attachment.'),
             new ModulePermissionDefinition(self::VOICE_MESSAGE_STORE, 'Send Chat voice messages through Files.'),
             new ModulePermissionDefinition(self::CALL_START, 'Start direct, group, or Team audio/video Calls.'),
             new ModulePermissionDefinition(self::CALL_JOIN, 'Join authorized audio/video Calls and Meetings.'),
