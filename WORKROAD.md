@@ -64,6 +64,8 @@ After Phase 31 implementation had started and its completed work had been commit
 
 While Phase 31 remained active, a mandatory cross-cutting database query-efficiency and HTTP route audit was accepted for execution after deployment and before final verification. It became the new Phase 34; the previously unstarted final verification moved from Phase 34 to Phase 35 without losing scope. This planning change does not interrupt Phase 31 or alter the current implementation order.
 
+While Phase 31 remained active, the post-communication foundation backlog was reviewed against the current repository, existing public extension contracts, Settings, Integrations/Outbox, routing, Authorization, Identity, Calendar, and planned production boundaries. The accepted first-base-release foundation work was grouped into seven dependency-ordered phases after Diagnostics: a finite extension-point/duplication audit; module-owned routing/navigation/breadcrumb ownership; runtime Settings/localized reference data/Team timezones/Business Calendars; reusable data-integrity/business-support primitives; enterprise OIDC; Atlas API/Service Accounts/Integration Events/webhooks; and final developer extension/MDK hardening. The previously unstarted deployment phase moved to Phase 40, the database query-efficiency audit moved to Phase 41, and final verification moved to Phase 42. No deployment, query-audit, or final-verification scope was removed. Approvals were explicitly excluded from the base foundation because future business workflow belongs to Application business modules.
+
 ## Phase index
 
 ### Phase 0 — Repository bootstrap
@@ -378,38 +380,100 @@ Depends on the completed Files, Search, Teams, Authorization, Module Activation,
 
 **Status:** `not started`
 
-Add first-party automatic Technical Issues, manual User Bug Reports, safe correlation and context, deduplication, privacy-preserving Admin investigation, Health/System Status integration, Notifications, retention, and production-aware private source diagnostics without replacing logs, Pulse, or Telescope.
+Add first-party automatic Technical Issues, manual User Bug Reports, safe correlation and context, deduplication, privacy-preserving Admin investigation, Health/System Status integration, Notifications, retention, and production-aware private source diagnostics without replacing logs, Pulse, or Telescope, including explicit removal of the existing Sentry integration.
 
 Depends on the completed shared Atlas foundations and begins only after Phase 31 is complete.
 
 [Open implementation contract and tasks](docs/roadmap/phase-32-error-reporting-and-diagnostics.md)
 
-### Phase 33 — Private production deployment, installer, backup, restore, and rollback
+### Phase 33 — Foundation extension-point, duplication, and consumer audit
 
 **Status:** `not started`
 
-Implement the private single-host/VM Docker Compose topology, interactive installer, encrypted persistent production storage boundary, independently encrypted portable/off-host backup artifacts, database and Files backup, restore, exact-release deployment, readiness, and rollback, including Atlas-managed LiveKit/TURN/Egress, recording/transcript recovery, and Diagnostics production requirements.
+Perform a finite evidence-driven audit of current shared extension contracts, consumers, duplicates, and boundary leaks, then freeze the first-base-release foundation backlog with an owner or explicit disposition for every candidate.
 
-Depends on Phases 28, 29, 30, 31, and 32. Phase 28 provides reproducible images, runtime configuration, dependency readiness, queue/scheduler parity, ClamAV/PDF/Search/File smoke foundations, and an internal HTTP smoke stack. The Phase 33 baseline is private/intranet and does not require public Internet exposure; TLS supports internal/company certificates and keeps Let's Encrypt/ACME optional.
+Depends on completed Phases 31 and 32 and the current modular-monolith/public-contract foundation. It must complete before Phases 34 through 39.
 
-[Open implementation contract and tasks](docs/roadmap/phase-33-deployment-backup-rollback.md)
+[Open implementation contract and tasks](docs/roadmap/phase-33-foundation-extension-points-and-duplication-audit.md)
 
-### Phase 34 — Database Query Efficiency and Route Performance Audit
-
-**Status:** `not started`
-
-Systematically audit Atlas HTTP entry points under representative authorization and dataset conditions, remove proven N+1 queries, duplicate and repeated request-scope database work, verify bounded query scaling, correct evidence-backed PostgreSQL query-plan and indexing problems, and add targeted regression protection.
-
-Depends on Phase 33 and all application foundations intended for the first base release. This is a database/request query-efficiency hardening phase, not a general application performance rewrite, and it must complete before Phase 35 begins.
-
-[Open implementation contract and tasks](docs/roadmap/phase-34-database-query-efficiency-and-route-performance-audit.md)
-
-### Phase 35 — Final test audit, full-app E2E review, and foundation verification
+### Phase 34 — Module-owned routing, navigation, breadcrumbs, and application surfaces
 
 **Status:** `not started`
 
-Perform a full test-suite audit, browser-level E2E review of the whole application, architecture/security/documentation verification, Chat/Calendar/Calls/Meetings/recording/transcription, Diagnostics/User Bug Reports, and restore/deployment checks, and final technical-foundation hardening before debt collection business modules begin.
+Move module route and breadcrumb ownership out of central files while preserving natural URLs and permission-driven App/User, Manager, and Admin surfaces through one canonical navigation resolver.
 
-Depends on Phases 28, 29, 30, 31, 32, 33, and 34. Phase 35 remains the final full-app release verification and does not replace earlier foundation repair, internal communication, Diagnostics, deployment/recovery, or database query-efficiency hardening work.
+Depends on Phase 33 and the existing Authorization, ModuleGate, localization, shell, navigation, and module-provider contracts.
 
-[Open implementation contract and tasks](docs/roadmap/phase-35-final-verification.md)
+[Open implementation contract and tasks](docs/roadmap/phase-34-module-owned-routing-navigation-breadcrumbs.md)
+
+### Phase 35 — Runtime Settings, localized reference data, Team timezones, and Business Calendars
+
+**Status:** `not started`
+
+Harden Admin-manageable runtime Settings and write-only secrets, localized system/reference values, Team-scoped timezone context, and named working calendars.
+
+Depends on Phases 33 and 34 and the existing Settings, Localization, Teams, Authorization, Audit, and Calendar foundations.
+
+[Open implementation contract and tasks](docs/roadmap/phase-35-runtime-settings-localized-reference-data-team-timezones-business-calendars.md)
+
+### Phase 36 — Reusable data integrity and business-support primitives
+
+**Status:** `not started`
+
+Consolidate opt-in optimistic locking, Change Reason, effective ranges, provenance, safe cross-module references, and global/Team business sequences.
+
+[Open implementation contract and tasks](docs/roadmap/phase-36-reusable-data-integrity-business-primitives.md)
+
+### Phase 37 — Enterprise OIDC identities and authentication-method separation
+
+**Status:** `not started`
+
+Link enterprise Entra, Keycloak, and generic OIDC identities to pre-created Atlas Users with local+OIDC/OIDC-only policy and safe administrator recovery.
+
+[Open implementation contract and tasks](docs/roadmap/phase-37-enterprise-oidc-external-identities.md)
+
+### Phase 38 — Atlas API, Service Accounts, Integration Events, OpenAPI, and webhooks
+
+**Status:** `not started`
+
+Harden Integration Events/Outbox and provide module-owned `/api/v1`, machine principals, expiring tokens, OpenAPI, and signed Admin-managed webhooks.
+
+[Open implementation contract and tasks](docs/roadmap/phase-38-api-service-accounts-integration-events-webhooks.md)
+
+### Phase 39 — Developer extension contract, module documentation, and MDK
+
+**Status:** `not started`
+
+Finalize developer-facing public contracts, architecture guards, module documentation, and minimal Application/Optional module scaffolding.
+
+[Open implementation contract and tasks](docs/roadmap/phase-39-developer-extension-contract-and-mdk.md)
+
+### Phase 40 — Private production deployment, installer, backup, restore, and rollback
+
+**Status:** `not started`
+
+Implement the complete private single-host/VM deployment, installer, encrypted storage and backups, restore, exact-release deployment, readiness, rollback, LiveKit/TURN/Egress, and new foundation recovery boundaries under its new phase number.
+
+Depends on all accepted first-base-release foundation work through Phase 39.
+
+[Open implementation contract and tasks](docs/roadmap/phase-40-deployment-backup-rollback.md)
+
+### Phase 41 — Database Query Efficiency and Route Performance Audit
+
+**Status:** `not started`
+
+Preserve the complete query-efficiency audit under its new number and include all new foundation, OIDC, Service Account, API, webhook, and module-owned route surfaces.
+
+Depends on Phase 40 and all first-base-release foundations through Phase 39, and must complete before Phase 42.
+
+[Open implementation contract and tasks](docs/roadmap/phase-41-database-query-efficiency-and-route-performance-audit.md)
+
+### Phase 42 — Final test audit, full-app E2E review, and foundation verification
+
+**Status:** `not started`
+
+Preserve the complete full-app release verification and add acceptance coverage for every newly accepted foundation before debt collection business modules begin.
+
+Depends on every accepted prerequisite from Phase 31 through Phase 41.
+
+[Open implementation contract and tasks](docs/roadmap/phase-42-final-verification.md)

@@ -2,6 +2,8 @@
 
 Canonical runtime rules for health, readiness, maintenance, logging, correlation, alerts, diagnostics, and administrative operational visibility.
 
+Current pre-Phase-32 observability still includes Sentry wiring documented below. Phase 32 explicitly removes that integration, rewrites affected current-state guidance to first-party Atlas Diagnostics, and preserves the generic shared redaction capability. No new work may deepen the transitional Sentry dependency.
+
 ## Phase 28 closure state
 
 Current state: health/readiness and Admin diagnostics use real technical availability checks consumed by ModuleGate. The Phase 28 foundation smoke covers nginx, php-fpm, application readiness, Horizon and every configured queue, scheduler heartbeat, PostgreSQL, Redis, Meilisearch, ClamAV/EICAR, storage, Chromium/PDF, clean teardown, and persisted PostgreSQL data.
@@ -128,7 +130,7 @@ Cache and assets use release versioning.
 
 ### Time
 
-Business time uses `APP_TIMEZONE`, defaulting to `Europe/Warsaw`.
+Current pre-Phase-35 business time uses `APP_TIMEZONE`, defaulting to `Europe/Warsaw`. Phase 35 will make Team IANA timezone canonical for Team business context and retain `APP_TIMEZONE` only as the technical fallback; health metadata and checks must follow that final distinction once implemented.
 
 Technical storage timestamps use UTC unless a later module contract states otherwise.
 

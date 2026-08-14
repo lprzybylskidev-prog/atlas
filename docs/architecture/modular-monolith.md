@@ -213,7 +213,7 @@ Each module owns one Service Provider under its `Presentation/Providers` namespa
 
 Do not register module behavior through directory scanning. Module registration is explicit through the manifest and provider.
 
-Module web routes live under module-owned Presentation route files once module route registration is active. Until then, root route files remain split by delivery area. Controllers stay thin and route files do not contain business logic.
+Module web routes live under module-owned Presentation route files once module route registration is active. Until then, root route files remain split by delivery area. Controllers stay thin and route files do not contain business logic. Phase 34 owns the finite migration of module routes, breadcrumbs, and navigation declarations into explicit module/surface ownership while preserving natural URLs and permission-driven App/User, Manager, and Admin delivery surfaces.
 
 Module migrations are owned by the module whose tables they create or modify. Cross-module table changes require an explicit architecture decision and must not be hidden inside another module's migration.
 
@@ -469,7 +469,7 @@ Raw SQL is allowed when safer or faster and must be tested.
 
 ### Timezone
 
-Central timezone defaults to `Europe/Warsaw` through configuration such as `APP_TIMEZONE`.
+Current pre-Phase-35 runtime behavior defaults to `Europe/Warsaw` through `APP_TIMEZONE`. Phase 35 replaces that value as the universal business-time assumption: each Team receives one canonical IANA business timezone, while `APP_TIMEZONE` remains only the technical fallback where no Team/business context exists. Real instants remain `timestamptz`, dates remain `date`, and wall-clock schedules pin their resolved timezone.
 
 Apply it consistently to:
 

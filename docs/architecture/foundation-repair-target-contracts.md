@@ -5,7 +5,7 @@ This document records the accepted and implemented Phase 28 foundation contracts
 ## Status
 
 - Current implementation: Phases 27, 27a, 28, 29, and 30 are complete. All 110 Phase 28 issue IDs and all 15 Phase 29 acceptance-repair issue IDs are reconciled to implementation, tests, permanent guardrails, canonical documentation, and package evidence; Phase 30 completed its Authorization, Team Structure, and mutation-feedback repair contract.
-- Current roadmap order after the later accepted Team Structure repair insertion and Phase 30 completion: Phase 30 completed Authorization, Team Structure, and mutation feedback repair; Phase 31 is implementing optional internal Chat, shared Calendar, Calls, Meetings, recording, and provider-neutral transcription readiness; Phase 32 owns future first-party Diagnostics and User Bug Reports; Phase 33 owns production deployment, backup, restore, and rollback; Phase 34 owns the database query-efficiency and HTTP route audit; and Phase 35 owns the distinct final release audit. Phase 31 is `in progress`; Phases 32 through 35 remain `not started`.
+- Current roadmap order after the later accepted Team Structure repair insertion and Phase 30 completion: Phase 31 is implementing optional internal Chat, shared Calendar, Calls, Meetings, recording, and provider-neutral transcription readiness; Phase 32 owns first-party Diagnostics, User Bug Reports, and removal of the existing Sentry integration; Phases 33 through 39 own the dependency-ordered post-communication foundation backlog; Phase 40 owns deployment, backup, restore, and rollback; Phase 41 owns the database query-efficiency and HTTP route audit; and Phase 42 owns the distinct final release audit. Phase 31 is `in progress`; Phases 32 through 42 remain `not started`.
 
 ## Module graph and public contracts
 
@@ -132,7 +132,7 @@ Target contract:
 
 ## Runtime and guardrail architecture
 
-Current state: `P28-RUNTIME-001` through `P28-RUNTIME-014` are complete. The foundation gate runs the standard gate, full isolated Playwright suite, and production runtime smoke sequentially. Permanent mutation-tested source guards replace the temporary Phase 28 inventory generator and snapshots; removed legacy surfaces and components have active-tree no-reference coverage. Phase 35 owns the distinct final release gate after the completed Phase 30 Authorization/Team Structure repair, expanded Phase 31 internal communication scope, Phase 32 Diagnostics, Phase 33 deployment, and the Phase 34 database query-efficiency and HTTP route audit.
+Current state: `P28-RUNTIME-001` through `P28-RUNTIME-014` are complete. The foundation gate runs the standard gate, full isolated Playwright suite, and production runtime smoke sequentially. Permanent mutation-tested source guards replace the temporary Phase 28 inventory generator and snapshots; removed legacy surfaces and components have active-tree no-reference coverage. Phase 42 owns the distinct final release gate after Phase 31 internal communication, Phase 32 Diagnostics/Sentry removal, Phases 33-39 foundation work, Phase 40 deployment, and the Phase 41 database query-efficiency and HTTP route audit.
 
 Target contract:
 

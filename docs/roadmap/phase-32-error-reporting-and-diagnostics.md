@@ -38,7 +38,7 @@ Structured logs remain the fundamental diagnostic fallback when normal applicati
 
 This phase must not build a Sentry clone, Jira clone, APM platform, distributed tracing product, profiler, or session-replay engine.
 
-Do not add Sentry or another external error-monitoring dependency.
+Do not add Sentry or another external error-monitoring dependency. Phase 32 explicitly replaces and removes Atlas's existing Sentry integration; first-party Diagnostics must not be built on top of the dependency it supersedes.
 
 Atlas uses its own diagnostics capability.
 
@@ -133,6 +133,20 @@ Do not calculate completion percentages or readiness percentages.
 ---
 
 ## P32-W01 — Core boundary, persistence, permissions, privacy contracts
+
+### Existing Sentry transition and removal
+
+Before building the first-party capture path, audit the actual repository for all Sentry-specific runtime and development wiring and remove every application-owned integration still present when Phase 32 begins. This includes:
+
+- the direct `sentry/sentry-laravel` dependency and normal lockfile updates;
+- `config/sentry.php` and other Sentry-specific configuration;
+- DSN and runtime/environment/example configuration;
+- service-provider, bootstrap, backend, browser, and capture hooks;
+- source-map upload, release, and deployment hooks;
+- Sentry-specific tests and documentation, which must be removed or rewritten to the first-party Diagnostics contract;
+- obsolete Sentry-specific sanitizer integration.
+
+Preserve and harden any generic shared secret-redaction capability independently required by Atlas. Do not replace Sentry with another external error-monitoring system. The result must leave first-party Diagnostics as the owner of curated issue behavior while structured logs remain the durable fallback.
 
 ### Core domain
 
@@ -305,6 +319,12 @@ Explicit User Bug Report description/expected/actual fields are intentional repo
 
 ### Tasks
 
+- [ ] Audit the repository for all Sentry package, configuration, environment, bootstrap, runtime, browser, source-map, release, deployment, test, documentation, and sanitizer wiring.
+- [ ] Remove `sentry/sentry-laravel` if still present and update Composer lockfiles through the normal package workflow.
+- [ ] Remove Sentry configuration, DSN/environment examples, providers/bootstrap hooks, capture hooks, and source-map/release/deployment integration.
+- [ ] Remove or rewrite Sentry-specific tests and documentation to the first-party Diagnostics contract.
+- [ ] Preserve generic shared secret redaction independently required by Atlas and add regression coverage.
+- [ ] Verify first-party Diagnostics is not implemented on top of Sentry or another external monitor.
 - [ ] Create the Core Diagnostics ownership boundary.
 - [ ] Define Technical Issue persistence.
 - [ ] Define occurrence and aggregate persistence.
@@ -1657,7 +1677,8 @@ Do not add external infrastructure for this phase.
 - [ ] Add dev/test sensitive-data sanitizer fixture.
 - [ ] Make all generators impossible in production.
 - [ ] Add architecture tests proving production exclusion.
-- [ ] Confirm no external error-monitoring dependency was introduced.
+- [ ] Confirm no Atlas-owned Sentry package/config/env/runtime/browser/release/deployment hook remains and no replacement external monitor was introduced.
+- [ ] Confirm generic shared secret redaction remains functional after Sentry-specific sanitizer removal.
 
 ---
 
@@ -1832,7 +1853,7 @@ At completion update canonical current-state documentation for:
 - Admin operations;
 - testing.
 
-Do not document Sentry as a dependency.
+Do not document Sentry as a dependency. Rewrite current-state Sentry documentation to the first-party Diagnostics and generic redaction contracts after removal.
 
 ### Tasks
 
@@ -1861,6 +1882,8 @@ Do not document Sentry as a dependency.
 - [ ] Run targeted frontend tests.
 - [ ] Run required full Atlas quality gates.
 - [ ] Update all affected canonical documentation.
+- [ ] Run a repository-wide verification that no application-owned Sentry package, configuration, environment, runtime, browser, source-map, release, deployment, test, or documentation hook remains.
+- [ ] Verify generic secret redaction remains functional and first-party Diagnostics owns the resulting issue behavior.
 
 ---
 
@@ -2003,5 +2026,7 @@ Phase 32 is complete only when:
 - [ ] normal console/runtime/request cleanliness remains protected;
 - [ ] all required Atlas quality gates pass;
 - [ ] canonical documentation is current;
-- [ ] no Sentry/external error-monitoring dependency was added;
-- [ ] Phase 33 deployment implementation has not been started as part of this planning/implementation phase.
+- [ ] no Atlas Sentry package/integration/configuration/environment/runtime/browser/source-map/release/deployment hook remains;
+- [ ] no replacement external error-monitoring dependency was added;
+- [ ] generic shared secret redaction remains functional and first-party Diagnostics owns issue behavior;
+- [ ] Phase 40 deployment implementation has not been started as part of this planning/implementation phase.

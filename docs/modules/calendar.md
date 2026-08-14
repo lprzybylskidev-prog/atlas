@@ -2,6 +2,8 @@
 
 Canonical current boundary for the shared Core Calendar capability introduced in Phase 31.
 
+The current Phase 31 implementation uses the documented `Europe/Warsaw` recurrence behavior. Phase 35 is the explicit future migration owner for Team IANA business timezones, recurrence-timezone pinning, and separate named Business Calendars. This current-state document must not present those later capabilities as implemented before Phase 35 closes.
+
 ## Ownership and availability
 
 Calendar is a non-activatable Core module with key `calendar`. It owns Calendar persistence in the `core_calendar` PostgreSQL schema. Chat does not own Calendar tables and future modules must not create separate calendar engines or query Calendar persistence directly.

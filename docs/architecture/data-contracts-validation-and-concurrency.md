@@ -144,4 +144,6 @@ Financial operations require stricter conflict handling.
 
 Add a `version` column only where real concurrent editing risk exists.
 
+Phase 36 will consolidate the already used stale-write behavior into one opt-in optimistic-locking contract with canonical HTTP conflict mapping and shared frontend UX. This is a future hardening target, not authorization to add versions universally before that phase.
+
 ---

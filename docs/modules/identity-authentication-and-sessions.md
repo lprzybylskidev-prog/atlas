@@ -2,6 +2,8 @@
 
 Canonical module behavior for user lifecycle, passwords, login protection, MFA, sessions, activation, and authentication-related security.
 
+Phase 37 is the accepted later evolution for provider-neutral Entra, Keycloak, and generic OIDC identities linked only to pre-created Atlas Users. It will separate account eligibility from authentication method, allow one active provider, prohibit JIT User creation, and preserve emergency local Admin recovery. This paragraph records future ownership; OIDC is not current implemented behavior.
+
 ## Authentication and Users
 
 Use Fortify as backend authentication with Inertia/Vue UI.

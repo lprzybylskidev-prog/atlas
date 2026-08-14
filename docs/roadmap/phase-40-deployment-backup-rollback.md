@@ -1,4 +1,4 @@
-# Phase 33 — Private production deployment, installer, backup, restore, and rollback
+# Phase 40 — Private production deployment, installer, backup, restore, and rollback
 
 **Status:** `not started`
 
@@ -8,7 +8,7 @@ Deliver a reproducible, private, self-hosted production deployment model for Atl
 
 Atlas is primarily an internal company system. The baseline production deployment does not require public Internet exposure.
 
-Phase 33 must provide:
+Phase 40 must provide:
 
 - private/intranet production topology;
 - one supported production installation workflow;
@@ -34,7 +34,7 @@ Kubernetes, Docker Swarm, distributed clustering, multi-node high availability, 
 
 ## Dependencies
 
-Phase 33 depends on the completed technical foundation, including:
+Phase 40 depends on the completed technical foundation, including:
 
 - production runtime images;
 - runtime configuration validation;
@@ -52,8 +52,9 @@ Phase 33 depends on the completed technical foundation, including:
 - completed Phase 28 and Phase 29 acceptance work;
 - completed Phase 31 communication scope, including Chat, Core Calendar, Calls, Meetings, Reverb, self-hosted LiveKit, Egress, recordings, and provider-neutral transcription state;
 - completed [Phase 32 Diagnostics and User Bug Reports](phase-32-error-reporting-and-diagnostics.md), including its persistence, Files, Health, retention, correlation, and private source-map contracts.
+- completed [Phase 39 developer extension contract and MDK](phase-39-developer-extension-contract-and-mdk.md), and therefore all accepted first-base-release foundations in Phases 33 through 38.
 
-Phase 33 must build on those capabilities instead of replacing or redesigning them.
+Phase 40 must build on those capabilities instead of replacing or redesigning them.
 
 ### Diagnostics deployment boundary
 
@@ -69,9 +70,27 @@ Diagnostics operational severity may report Degraded or Unhealthy in System Stat
 
 The canonical scheduler and queue configuration runs Diagnostics retention. Large manual occurrence purge uses Managed Processes. Diagnostics adds no third-party runtime service.
 
-The production installer must not add Sentry, a Sentry DSN or Cloud requirement, self-hosted Sentry, or another external error-monitoring service. Atlas Diagnostics is first-party.
+The production installer must not add Sentry, a Sentry DSN or Cloud requirement, self-hosted Sentry, or another external error-monitoring service. Phase 40 must verify that Phase 32 removed the previous Atlas Sentry package, configuration, environment, runtime, browser, source-map upload, release, and deployment integration. Atlas Diagnostics is first-party.
 
-## P33-W01 — Private production topology
+### Runtime Settings and deployment boundary
+
+Phase 40 must respect the Phase 35 Settings boundary. The installer collects deployment/bootstrap values only and is not the normal editor for runtime Admin Settings. It must not configure OIDC business/runtime policy managed through Admin UI.
+
+`APP_TIMEZONE` is a technical fallback rather than the installation-wide business timezone. The installer may collect that fallback where required, but Team timezone is canonical for Team business context and is Admin-managed after bootstrap. Do not reintroduce hardcoded `Europe/Warsaw` as one universal installation timezone.
+
+### Runtime-secret recovery
+
+Admin-managed encrypted runtime settings are normal durable Atlas data. Backup and restore must preserve OIDC, Integration/webhook, and other encrypted runtime-setting state. Recovery documentation must preserve the deployment-owned application encryption key/material needed to decrypt restored values. That key must not be embedded in the database or backup artifact it protects.
+
+### New foundation durability coverage
+
+Production readiness, backup, and restore cover, where applicable, Team timezone settings, Reference Dictionaries, Business Calendar definitions/defaults, sequence state, consumer-owned provenance/safe-reference persistence, external OIDC mappings, Service Accounts, API token verification metadata, webhook subscriptions/delivery metadata, and Integration Event/Outbox state. Atlas cannot back up plaintext API token secrets because plaintext is never stored after creation.
+
+### Network and API boundary
+
+The baseline remains private, intranet, and self-hosted. Phase 38 API capability does not require public Internet exposure. Any future customer/partner exposure is an installation/network-policy decision and must not weaken the baseline firewall and security topology.
+
+## P40-W01 — Private production topology
 
 ### Contract
 
@@ -105,7 +124,7 @@ Normal Atlas HTTP remains reverse-proxy fronted. Browser WebRTC is an intentiona
 
 PostgreSQL, Redis, Meilisearch, ClamAV, PHP-FPM, Horizon, workers, scheduler, Chromium, Egress control/health endpoints, recording staging, and LiveKit API/Admin credentials must remain private.
 
-The roadmap does not freeze default port numbers. Phase 33 must derive and document the concrete firewall exposure from the pinned LiveKit configuration and version selected for the release, following current official LiveKit self-hosting guidance.
+The roadmap does not freeze default port numbers. Phase 40 must derive and document the concrete firewall exposure from the pinned LiveKit configuration and version selected for the release, following current official LiveKit self-hosting guidance.
 
 Network exposure must be configurable so the host administrator can bind Atlas to an internal interface, trusted subnet, VPN-accessible interface, or equivalent company-controlled network.
 
@@ -126,7 +145,7 @@ Host/network administrators remain responsible for infrastructure-level network 
 - [ ] Add production topology checks where practical.
 - [ ] Document Kubernetes, Swarm, clustering, and public SaaS deployment as out of baseline scope.
 
-## P33-W02 — Production TLS and reverse proxy
+## P40-W02 — Production TLS and reverse proxy
 
 ### Contract
 
@@ -160,7 +179,7 @@ LiveKit signaling/media and TURN/TLS must work for the selected LAN/VPN/browser 
 - [ ] Configure and verify trusted LiveKit and TURN/TLS endpoints for the selected LAN/VPN topology.
 - [ ] Document the concrete configured RTC/TURN firewall and certificate requirements.
 
-## P33-W03 — Durable PostgreSQL and local Files storage
+## P40-W03 — Durable PostgreSQL and local Files storage
 
 ### Contract
 
@@ -187,7 +206,7 @@ storage abstraction
 
 Atlas business code and the Files module must not become hardcoded to a specific storage backend.
 
-S3-compatible storage is not required by Phase 33.
+S3-compatible storage is not required by Phase 40.
 
 Do not implement AWS-specific coupling merely for future flexibility.
 
@@ -211,7 +230,7 @@ Final Meeting recordings are Files-owned durable artifacts. LiveKit Egress outpu
 - [ ] Keep Diagnostics persistence in the canonical durable PostgreSQL deployment without a separate database.
 - [ ] Keep User Bug Report screenshots and attachments in canonical Files storage without a separate volume.
 
-## P33-W04 — Production storage and backup encryption at rest
+## P40-W04 — Production storage and backup encryption at rest
 
 ### Contract
 
@@ -355,7 +374,7 @@ Restore must:
 - [ ] Document organizational/root-access boundaries accurately.
 - [ ] Add production-like verification for encrypted backup/decrypt/verify/restore behavior.
 
-## P33-W05 — Interactive production installer
+## P40-W05 — Interactive production installer
 
 ### Contract
 
@@ -429,7 +448,7 @@ The installer should collect the deployment-specific configuration required by t
 
 - Atlas installation/company name;
 - hostname or internal address;
-- timezone;
+- technical fallback timezone where required;
 - internal network binding;
 - HTTP/TLS mode;
 - certificate paths when supplied;
@@ -497,6 +516,8 @@ The installer must not automatically repartition, format, or encrypt host disks.
 - [ ] Add preflight checks.
 - [ ] Require/verify an exact release/tag/commit.
 - [ ] Collect production configuration interactively.
+- [ ] Collect deployment/bootstrap values only and leave normal runtime Admin Settings and OIDC policy to Atlas Admin UI.
+- [ ] Treat `APP_TIMEZONE` as technical fallback and do not configure one universal Team/business timezone.
 - [ ] Configure private/intranet network binding.
 - [ ] Configure HTTP/TLS mode without assuming public Internet.
 - [ ] Configure local persistent Files storage.
@@ -522,13 +543,14 @@ The installer must not automatically repartition, format, or encrypt host disks.
 - [ ] Configure Diagnostics retention through the canonical scheduler and queue model.
 - [ ] Preserve Managed Processes execution for large manual diagnostic-occurrence purge.
 - [ ] Keep the installer free of Sentry and other external error-monitoring configuration.
+- [ ] Verify Phase 32 left no Sentry package, configuration, environment, runtime, browser, release, or deployment hook.
 - [ ] Print useful release and operational information after success.
 - [ ] Fail safely when preflight or readiness fails.
 - [ ] Detect an existing installation and never destroy it on installer rerun.
 - [ ] Document the fresh-host installation procedure.
 - [ ] Test installation against a clean supported production-like host/VM.
 
-## P33-W06 — Database and Files backup
+## P40-W06 — Database and Files backup
 
 ### Contract
 
@@ -564,7 +586,7 @@ Possible deployment-specific destinations may include:
 - S3-compatible object storage;
 - another future backend.
 
-Phase 33 must not build multiple speculative backup adapters merely to support every possible destination.
+Phase 40 must not build multiple speculative backup adapters merely to support every possible destination.
 
 It is acceptable for Atlas to produce stable backup artifacts that company infrastructure then copies off-host.
 
@@ -591,6 +613,9 @@ The backup destination must remain deployment-neutral and must not be hardcoded 
 - [ ] Include transcript records and versions in PostgreSQL backup and recovery.
 - [ ] Include Technical Issues, aggregates, retained occurrences, User Bug Reports, links, history, configuration, and safe Diagnostics settings in PostgreSQL backup and recovery.
 - [ ] Include User Bug Report Files-owned screenshots and attachments in Files backup and recovery.
+- [ ] Include Team timezone settings, Reference Dictionaries, Business Calendars/defaults, sequence state, external OIDC mappings, Service Accounts, API token verification metadata, webhook metadata, and Integration Event/Outbox state where applicable.
+- [ ] Include consumer-owned provenance and safe-reference persistence through each owner's normal durable storage.
+- [ ] Preserve encrypted runtime-setting state without expecting plaintext API token secrets that Atlas never stores.
 - [ ] Exclude or safely clean temporary Egress staging rather than treating it as a second canonical recording backup.
 - [ ] Define a safe Files backup procedure.
 - [ ] Avoid inconsistent/partial Files backup state where possible.
@@ -600,7 +625,7 @@ The backup destination must remain deployment-neutral and must not be hardcoded 
 - [ ] Keep S3-compatible backup storage optional.
 - [ ] Document that same-host-only backup does not protect against complete host loss.
 
-## P33-W07 — Restore and recovery
+## P40-W07 — Restore and recovery
 
 ### Contract
 
@@ -650,13 +675,15 @@ safe cleanup of temporary plaintext material
 - [ ] Restore Files according to the documented recovery model.
 - [ ] Restore Files-owned Meeting recordings and PostgreSQL-owned transcript state through their canonical stores.
 - [ ] Restore Diagnostics PostgreSQL state and User Bug Report Files through their canonical stores.
+- [ ] Restore Team timezone/reference/calendar/sequence state, OIDC mappings, Service Accounts, token verification metadata, webhook metadata, Outbox state, and applicable consumer-owned foundation persistence.
+- [ ] Preserve the deployment-owned application encryption key/material required to decrypt restored runtime secrets without embedding it in the protected backup.
 - [ ] Run post-restore readiness.
 - [ ] Safely remove temporary plaintext recovery material when no longer required.
 - [ ] Document complete restore procedures.
 - [ ] Execute and verify a real restore drill.
 - [ ] Verify representative restored application data.
 
-## P33-W08 — Exact-release deployment
+## P40-W08 — Exact-release deployment
 
 ### Contract
 
@@ -716,7 +743,7 @@ Do not edit application source manually inside running production containers.
 - [ ] Run post-switch readiness.
 - [ ] Keep application source immutable inside running containers.
 
-## P33-W09 — Rollback and migration safety
+## P40-W09 — Rollback and migration safety
 
 ### Contract
 
@@ -742,7 +769,7 @@ Risky or irreversible migrations require:
 - [ ] Document risky/irreversible migration procedure.
 - [ ] Test representative safe rollback.
 
-## P33-W10 — Operator commands and release metadata
+## P40-W10 — Operator commands and release metadata
 
 ### Contract
 
@@ -805,11 +832,11 @@ Status, readiness, logs, and Admin System Status must include safe aggregate Liv
 - [ ] Add safe LiveKit RTC, TURN, Egress, and recording-processing status/readiness checks.
 - [ ] Verify Egress failure isolation from normal Chat and Meeting participation.
 
-## P33-W11 — Production durability and operational acceptance
+## P40-W11 — Production durability and operational acceptance
 
 ### Contract
 
-Phase 33 must finish with a real production-like proof, not only configuration-file inspection.
+Phase 40 must finish with a real production-like proof, not only configuration-file inspection.
 
 At minimum test a clean supported host/VM installation workflow:
 
@@ -901,6 +928,9 @@ The proof must also exercise Atlas-managed LiveKit and separate Egress startup/r
 - [ ] Verify Diagnostics operational severity does not by itself fail liveness/readiness.
 - [ ] Verify Diagnostics retention scheduling and Managed Processes purge integration.
 - [ ] Verify no Sentry or external error-monitoring service was added to the installer/runtime.
+- [ ] Verify no previous Atlas Sentry package/integration/configuration/environment/runtime/browser/deployment hook remains.
+- [ ] Verify restored Admin-managed OIDC, webhook/integration, and other encrypted runtime settings remain decryptable through externally preserved key material.
+- [ ] Verify the private baseline does not expose `/api/v1` or webhook operations publicly by default.
 - [ ] Update production operations documentation.
 
 ## Required permanent operational guardrails
@@ -926,7 +956,7 @@ The proof must also exercise Atlas-managed LiveKit and separate Egress startup/r
 
 ## Completion criteria
 
-Phase 33 is complete only when:
+Phase 40 is complete only when:
 
 - [ ] Atlas can be installed on a clean supported internal production host using the canonical installer.
 - [ ] Production baseline is private/intranet/LAN/VPN rather than public-Internet dependent.
@@ -961,5 +991,5 @@ Phase 33 is complete only when:
 - [ ] Files-owned recordings and PostgreSQL-owned transcript state are covered by encryption, backup, restore, and recovery drills.
 - [ ] Exact-release deployment and rollback keep Atlas, Reverb, LiveKit, and Egress compatible.
 - [ ] Diagnostics persistence, User Bug Report Files, private source maps, release identity, correlation metadata, retention, and Health semantics are covered by production deployment and recovery.
-- [ ] No Sentry or external error-monitoring service is introduced by the production installer.
+- [ ] No Atlas Sentry package/integration/configuration/environment/runtime/browser/source-map/release/deployment hook remains, and no replacement external error-monitoring service is introduced by the production installer.
 - [ ] Canonical production documentation matches the implementation.

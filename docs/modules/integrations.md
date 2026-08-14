@@ -2,6 +2,8 @@
 
 Canonical current behavior for external adapters, credentials, retries, idempotency, circuit breaking, audit, API boundaries, and operational visibility.
 
+Phase 38 is the accepted later evolution of this existing Integrations/Integration Event/Outbox foundation. It will add the versioned event catalog, module-owned `/api/v1`, separate Service Accounts with API-only permissions, mandatory-expiry replacement tokens without token scopes, reproducible OpenAPI, and signed Admin-managed outgoing webhooks. These are not current implemented capabilities until Phase 38 closes.
+
 ## Scope
 
 The Integrations module is an Optional Foundation module for future concrete external systems. It does not enable any public external API by itself.

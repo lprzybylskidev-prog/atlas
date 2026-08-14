@@ -100,7 +100,7 @@ Backend:
 - Fortify backend with custom Inertia/Vue screens;
 - Spatie Laravel Permission with teams;
 - Laravel Scout and Meilisearch;
-- Sentry;
+- first-party Atlas Diagnostics after Phase 32; the existing Sentry integration is transitional, must receive no new dependencies, and is removed by Phase 32;
 
 Frontend:
 
@@ -229,7 +229,7 @@ Read [`docs/architecture/modular-monolith.md`](docs/architecture/modular-monolit
 - Use real foreign keys and appropriate indexes.
 - Default foreign-key behavior is `RESTRICT`; do not introduce cascading deletion casually.
 - Use `BIGINT` internal identifiers and ULID public identifiers where resources are exposed.
-- Use `Europe/Warsaw` for business time unless a documented contract says otherwise.
+- Until Phase 35 implements Team timezones, use the current documented `Europe/Warsaw` business-time behavior. The accepted final contract gives each Team one canonical IANA business timezone, keeps `APP_TIMEZONE` only as a technical fallback where no Team/business context exists, provides no per-user timezone, and pins the resolved timezone on wall-clock schedules/recurrences so later Team changes cannot reinterpret them.
 - Every Atlas-owned database column that stores a date-time or concrete instant must use PostgreSQL `timestamp with time zone` through Laravel `timestampTz()`, `dateTimeTz()`, `timestampsTz()`, or `softDeletesTz()`. Timezone-naive `timestamp()`, `dateTime()`, `timestamps()`, `nullableTimestamps()`, `softDeletes()`, and raw `timestamp`/`timestamp without time zone` definitions are forbidden because `APP_TIMEZONE` may change and stored instants must not be reinterpreted. Use `date` for genuine calendar dates and explicitly documented integer epoch fields only where a framework/runtime contract requires them.
 - Before the first production deployment, migrations may be edited in place.
 - Before the first production deployment, fix an incorrect not-yet-deployed create migration in its canonical create migration instead of adding a follow-up repair migration.
@@ -254,7 +254,7 @@ Read affected canonical documents before changing authentication, authorization,
 
 - Deny by default.
 - Never log secrets, raw credentials, authentication tokens, full sensitive payloads, or unnecessary personal data.
-- Redact sensitive context before logs and Sentry.
+- Redact sensitive context before logs and every diagnostic/error-capture boundary. Preserve the generic shared redaction capability when Phase 32 removes Sentry-specific integration.
 - Audit security-sensitive and irreversible operations.
 - Each module that performs meaningful mutating, security-sensitive, or irreversible operations must register a typed audit event catalog. Hardcoded audit action/result/source strings outside catalogs are forbidden.
 - Security-sensitive and irreversible operations must have success, rejection, and failure audit coverage unless a documented catalog entry explicitly states why an outcome is impossible.

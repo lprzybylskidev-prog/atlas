@@ -114,3 +114,7 @@ Current state: Authorization uses owner-owned Identity/Teams lookups and members
 Target state achieved for seeding: Authorization depends only through owner-owned public contracts, delegates membership mutation to the Teams owner, uses one user-team assignment workflow from user, team, and deterministic fixture contexts, persists truthful manual/preset/copy provenance, and has complete audit, authorization, UI, seeder, and architecture coverage.
 
 Tracked issue IDs: `P28-ARCH-001`, `P28-ARCH-004`, `P28-ARCH-011`, `P28-AUTH-003`, `P28-AUTH-004`, `P28-AUTH-005`, `P28-SEED-001`, `P28-MODAUD-002`.
+
+## Accepted later evolution
+
+Phase 35 will move Admin-created custom-role and similar dynamic labels to immutable technical codes plus locale-keyed translations requiring Polish and English initially. Phase 38 will add a separate Service Account principal restricted to registered `api.*` permissions, with no Team membership, active-Team context, browser login, or normal human permissions. Neither target is current behavior until its owning phase is implemented.

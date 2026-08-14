@@ -1,4 +1,4 @@
-# Phase 34 — Database Query Efficiency and Route Performance Audit
+# Phase 41 — Database Query Efficiency and Route Performance Audit
 
 **Status:** `not started`
 
@@ -20,9 +20,9 @@ The goals are:
 
 ## Dependencies
 
-- [Phase 33 — Private production deployment, installer, backup, restore, and rollback](phase-33-deployment-backup-rollback.md) must be complete.
-- All application foundations intended for the first base release must already be complete.
-- This phase must complete before [Phase 35 — Final test audit, full-app E2E review, and foundation verification](phase-35-final-verification.md) begins.
+- [Phase 40 — Private production deployment, installer, backup, restore, and rollback](phase-40-deployment-backup-rollback.md) must be complete.
+- All first-base-release foundations through [Phase 39](phase-39-developer-extension-contract-and-mdk.md) must already be complete.
+- This phase must complete before [Phase 42 — Final test audit, full-app E2E review, and foundation verification](phase-42-final-verification.md) begins.
 
 Do not reopen previous completed phases merely because an optimization opportunity is found. If a true correctness defect or broken architectural invariant is discovered, fix the smallest required owning implementation and record the evidence, but do not opportunistically redesign unrelated foundations.
 
@@ -143,6 +143,14 @@ Systematically cover the HTTP surface that exists when this phase begins. This i
 - Diagnostics;
 - Integrations;
 - API `/api/v1` routes;
+- module-owned route registration and shared route middleware introduced by Phase 34;
+- localized/dynamic Settings and Reference Dictionaries;
+- Team timezone resolution and Business Calendar lookups;
+- optimistic-lock conflict paths and safe cross-module reference resolution;
+- business-sequence issuance/configuration where HTTP-accessed;
+- OIDC login and account lookup where database work participates;
+- Service Account authentication and API permission evaluation;
+- webhook Admin/history UI and Integration Event/Outbox operational UI;
 - System Status and Health-adjacent UI endpoints where database queries are involved;
 - other enabled module HTTP entry points.
 
@@ -174,6 +182,8 @@ Explicitly detect and remediate where applicable:
 
 Do not reduce query count by breaking authorization correctness, stale-write protection, privacy boundaries, Audit semantics, or module ownership.
 
+Where API authorization affects queries, include a representative Service Account principal alongside user, manager, and Admin scenarios. Do not introduce persistent unsafe permission caching merely to reduce Service Account/API query counts.
+
 ### Permanent guardrails
 
 - Do not optimize by weakening Authorization.
@@ -203,7 +213,7 @@ Do not reduce query count by breaking authorization correctness, stale-write pro
 
 Workstreams are strictly sequential. Only the earliest incomplete workstream is active. Do not select work based on ease, speed, or file locality.
 
-### P34-W01 — Query instrumentation, route inventory, and representative fixtures
+### P41-W01 — Query instrumentation, route inventory, and representative fixtures
 
 - [ ] Define the canonical query-capture and instrumentation method used during this phase.
 - [ ] Create or reuse deterministic representative fixtures.
@@ -213,23 +223,23 @@ Workstreams are strictly sequential. Only the earliest incomplete workstream is 
 - [ ] Ensure instrumentation is not shipped as unsafe production debugging behavior.
 - [ ] Document the reproducible audit procedure and baseline evidence without arbitrary global query budgets; ad-hoc Telescope screenshots alone are insufficient.
 
-### P34-W02 — Shared request, shell, identity, Authorization, and Team query audit
+### P41-W02 — Shared request, shell, identity, Authorization, and Team query audit
 
 - [ ] Audit the authenticated principal, shared request context, Authorization, effective permissions, roles, Team membership and hierarchy, and Admin Mode where applicable.
 - [ ] Audit Settings, module gates, feature flags, locale and preferences, shared shell and Inertia state, and notification or shared counters where applicable.
 - [ ] Remove repeated request-scope queries where safe while preserving exact authorization semantics.
 
-### P34-W03 — Core, Admin, Profile, and system route audit
+### P41-W03 — Core, Admin, Profile, and system route audit
 
 - [ ] Audit enabled Core, Admin, profile, settings, system-management, privacy, security, Files, Search-associated, Integrations, and other platform route families not owned by later module-specific workstreams.
 - [ ] Fix proven N+1 behavior, duplicate queries, and avoidable database work in those route families.
 
-### P34-W04 — Module route audit
+### P41-W04 — Module route audit
 
 - [ ] Systematically audit all enabled module route families that exist at implementation time, including Calendar, Chat, Calls, Meetings, Diagnostics, Teams-specific interfaces not already fully covered, and other registered modules where present.
 - [ ] Maintain evidence of route-family coverage and do not silently skip a module because it appears expensive to review.
 
-### P34-W05 — DataTable, list, filtering, sorting, and scaling audit
+### P41-W05 — DataTable, list, filtering, sorting, and scaling audit
 
 - [ ] Exercise collection-heavy endpoints with representative populated datasets.
 - [ ] Verify query growth does not become N+1 and per-row authorization does not generate uncontrolled SQL.
@@ -237,12 +247,12 @@ Workstreams are strictly sequential. Only the earliest incomplete workstream is 
 - [ ] Verify full-page datasets do not multiply unrelated queries.
 - [ ] Where useful, add regression assertions comparing small and larger datasets without fragile exact counts unless an exact count is a deliberate stable contract.
 
-### P34-W06 — Mutation and authorization-path query audit
+### P41-W06 — Mutation and authorization-path query audit
 
 - [ ] Audit important POST, PUT, PATCH, DELETE, and action routes for repeated entity loads, database-backed permission checks, stale-write or version loads, relationship lookups, Team scope evaluation, equivalent existence checks, and unnecessary post-mutation reloads.
 - [ ] Correct proven inefficiencies without weakening authorization, optimistic locking, validation, Audit, transaction boundaries, or event and Outbox semantics.
 
-### P34-W07 — PostgreSQL query-plan and index corrections
+### P41-W07 — PostgreSQL query-plan and index corrections
 
 - [ ] Review only material query problems discovered by prior workstreams with PostgreSQL query-plan evidence.
 - [ ] Identify missing or ineffective indexes and redundant indexes where relevant.
@@ -250,7 +260,7 @@ Workstreams are strictly sequential. Only the earliest incomplete workstream is 
 - [ ] Ensure index changes follow existing migration and naming conventions and test affected filters, sorts, and joins.
 - [ ] Document the evidence for material index changes and add no speculative index without an identified consumer and query.
 
-### P34-W08 — Regression protection and complete route re-audit
+### P41-W08 — Regression protection and complete route re-audit
 
 - [ ] Rerun the route-family audit, representative principal scenarios, and populated dataset scenarios after fixes.
 - [ ] Verify duplicate-query fixes, N+1 elimination, and bounded scaling expectations.
@@ -259,7 +269,7 @@ Workstreams are strictly sequential. Only the earliest incomplete workstream is 
 - [ ] Use a route-specific upper bound only where stable and justified; do not create a brittle global query-count suite.
 - [ ] Ensure test instrumentation creates no production overhead.
 
-### P34-W09 — Documentation and acceptance closure
+### P41-W09 — Documentation and acceptance closure
 
 - [ ] Complete route-family coverage evidence.
 - [ ] Summarize material duplicate and N+1 patterns removed.
