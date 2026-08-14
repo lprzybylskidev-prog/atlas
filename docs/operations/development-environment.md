@@ -29,6 +29,7 @@ Development services:
 - php-fpm;
 - scheduler;
 - queue worker;
+- Reverb WebSocket server;
 - PostgreSQL;
 - Redis;
 - Meilisearch;
@@ -119,6 +120,8 @@ http://localhost:8000
 The `app` service is the VS Code/Codex workspace container and intentionally runs `sleep infinity`.
 HTTP traffic goes through the development `nginx` service and the separate `php-fpm` service. The `scheduler` service runs `php artisan schedule:work` against the same code mount so local readiness has a fresh scheduler heartbeat instead of becoming unhealthy after `ATLAS_SCHEDULER_HEARTBEAT_STALE_SECONDS`.
 
+The non-root `reverb` service runs `php artisan reverb:start` from the same mounted source and runtime image. Nginx proxies WebSocket upgrades through `http://localhost:8000`, so the internal Reverb port is not published directly. Restart it after Chat broadcasting changes with `docker compose -f .devcontainer/docker-compose.yml restart reverb`; no Dev Container rebuild is required.
+
 The `php-fpm`, `scheduler`, and `worker` runtime services use the production PHP image during local Compose development. That image includes Node.js and system Chromium so web readiness and queued PDF export execution validate the same PDF runtime chain that production uses. The separate VS Code `app` Dev Container still includes the broader Playwright browser set for E2E development.
 
 These three development runtime services run with `USER_UID` and `USER_GID` (both default to `1000`) so PHP-FPM, Horizon, the scheduler, and the Dev Container user share writable `storage` and `bootstrap/cache` bind mounts without broadening filesystem permissions. The production Compose stack does not use this development override and continues to run application commands as `www-data` against its owned runtime volume.
@@ -150,7 +153,7 @@ The Horizon worker timeout is intentionally long: 43,200 seconds, or 12 hours. M
 To apply nginx/php-fpm service changes without rebuilding the Dev Container:
 
 ```text
-docker compose -f .devcontainer/docker-compose.yml up -d --no-build nginx php-fpm scheduler worker
+docker compose -f .devcontainer/docker-compose.yml up -d --no-build nginx php-fpm reverb scheduler worker
 ```
 
 This may start existing runtime images and recreate only the affected runtime services. It must not rebuild the Dev Container.
@@ -159,7 +162,7 @@ If an existing terminal predates the `ATLAS_WORKSPACE_SOURCE` environment variab
 
 ```text
 export ATLAS_WORKSPACE_SOURCE=/absolute/host/path/to/atlas
-docker compose -f .devcontainer/docker-compose.yml up -d --no-build nginx php-fpm scheduler worker
+docker compose -f .devcontainer/docker-compose.yml up -d --no-build nginx php-fpm reverb scheduler worker
 ```
 
 ### Dev Container rebuild rule

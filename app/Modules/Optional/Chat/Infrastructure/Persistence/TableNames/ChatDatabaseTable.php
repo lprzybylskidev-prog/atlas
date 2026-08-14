@@ -34,6 +34,10 @@ final class ChatDatabaseTable
 
     public const MESSAGE_ATTACHMENTS = DatabaseSchema::OPTIONAL_CHAT.'.message_attachments';
 
+    public const CONVERSATION_REALTIME_STATES = DatabaseSchema::OPTIONAL_CHAT.'.conversation_realtime_states';
+
+    public const USER_PRESENCE = DatabaseSchema::OPTIONAL_CHAT.'.user_presence';
+
     public const CALLS = DatabaseSchema::OPTIONAL_CHAT.'.calls';
 
     public const MEETINGS = DatabaseSchema::OPTIONAL_CHAT.'.meetings';

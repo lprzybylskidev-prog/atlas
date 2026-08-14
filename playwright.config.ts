@@ -26,6 +26,23 @@ const e2eEnvironment = {
     SESSION_DRIVER: 'redis',
     TELESCOPE_ENABLED: 'false',
     DEBUGBAR_ENABLED: 'false',
+    BROADCAST_CONNECTION: 'reverb',
+    REVERB_APP_ID: 'atlas-e2e',
+    REVERB_APP_KEY: 'atlas-e2e-key',
+    REVERB_APP_SECRET: 'atlas-e2e-secret',
+    REVERB_HOST: '127.0.0.1',
+    REVERB_PORT: '8085',
+    REVERB_SCHEME: 'http',
+    REVERB_SERVER_HOST: '127.0.0.1',
+    REVERB_SERVER_PORT: '8085',
+    REVERB_ALLOWED_ORIGINS: '127.0.0.1',
+    REVERB_CLIENT_HOST: '127.0.0.1',
+    REVERB_CLIENT_PORT: '8085',
+    REVERB_CLIENT_SCHEME: 'http',
+    VITE_REVERB_APP_KEY: 'atlas-e2e-key',
+    VITE_REVERB_HOST: '127.0.0.1',
+    VITE_REVERB_PORT: '8085',
+    VITE_REVERB_SCHEME: 'http',
 };
 
 export default defineConfig({
@@ -54,6 +71,13 @@ export default defineConfig({
         {
             command: 'pnpm dev --host 127.0.0.1 --port 5174',
             url: `${viteUrl}/@vite/client`,
+            reuseExistingServer: false,
+            timeout: 120_000,
+        },
+        {
+            command: 'bash tools/testing/start-e2e-reverb.sh',
+            url: 'http://127.0.0.1:8086/favicon.svg',
+            env: e2eEnvironment,
             reuseExistingServer: false,
             timeout: 120_000,
         },

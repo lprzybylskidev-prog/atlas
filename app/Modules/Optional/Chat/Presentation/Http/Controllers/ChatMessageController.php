@@ -4,14 +4,18 @@ declare(strict_types=1);
 
 namespace App\Modules\Optional\Chat\Presentation\Http\Controllers;
 
-use App\Modules\Optional\Chat\Application\DTOs\VisibleMessage;
+use App\Modules\Optional\Chat\Application\Contracts\ChatRealtimePublisher;
 use App\Modules\Optional\Chat\Application\MessageManager;
+use App\Modules\Optional\Chat\Presentation\Support\ChatRealtimePayload;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 final readonly class ChatMessageController
 {
-    public function __construct(private MessageManager $messages) {}
+    public function __construct(
+        private MessageManager $messages,
+        private ChatRealtimePublisher $realtime,
+    ) {}
 
     public function store(Request $request, string $conversation): JsonResponse
     {
@@ -44,28 +48,13 @@ final readonly class ChatMessageController
             attachmentPublicIds: $this->strings($values['attachment_public_ids'] ?? null),
         );
 
-        return response()->json($this->payload($message), 201);
-    }
+        $payload = ChatRealtimePayload::message($message);
+        $this->realtime->conversation($conversation, 'chat.message.created', [
+            'conversationPublicId' => $conversation,
+            'message' => $payload,
+        ]);
 
-    /** @return array<string, mixed> */
-    private function payload(VisibleMessage $message): array
-    {
-        return [
-            'publicId' => $message->publicId,
-            'body' => $message->body,
-            'renderedHtml' => $message->renderedHtml,
-            'createdAt' => $message->createdAt->format(DATE_ATOM),
-            'attachments' => array_map(static fn ($attachment): array => [
-                'publicId' => $attachment->publicId,
-                'kind' => $attachment->kind->value,
-                'name' => $attachment->originalName,
-                'mimeType' => $attachment->mimeType,
-                'sizeBytes' => $attachment->sizeBytes,
-                'durationSeconds' => $attachment->durationSeconds,
-                'scanState' => $attachment->scanState->value,
-                'available' => $attachment->available(),
-            ], $message->attachments),
-        ];
+        return response()->json($payload, 201);
     }
 
     /** @return list<string> */

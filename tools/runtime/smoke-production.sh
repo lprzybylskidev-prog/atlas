@@ -42,6 +42,7 @@ write_secret mail_password 'atlas-smoke-mail-password'
 write_secret sentry_laravel_dsn ''
 write_secret files_s3_access_key_id 'atlas-smoke-access-key'
 write_secret files_s3_secret_access_key 'atlas-smoke-secret-key'
+write_secret reverb_app_secret 'atlas-smoke-reverb-secret'
 
 cat >"${ENV_FILE}" <<EOF
 ATLAS_RELEASE_VERSION=0.1.0-smoke
@@ -49,6 +50,12 @@ ATLAS_RELEASE_ID=p28-smoke
 APP_URL=http://127.0.0.1:${HTTP_PORT}
 ATLAS_HTTP_BIND=127.0.0.1
 ATLAS_HTTP_PORT=${HTTP_PORT}
+REVERB_APP_ID=atlas-smoke
+REVERB_APP_KEY=atlas-smoke-key
+REVERB_ALLOWED_ORIGINS=127.0.0.1
+REVERB_CLIENT_HOST=127.0.0.1
+REVERB_CLIENT_PORT=${HTTP_PORT}
+REVERB_CLIENT_SCHEME=http
 DB_DATABASE=atlas
 DB_USERNAME=atlas
 MAIL_HOST=smtp.example.invalid
@@ -64,6 +71,7 @@ ATLAS_SECRET_MAIL_PASSWORD_FILE=${DOCKER_SMOKE_DIR}/mail_password
 ATLAS_SECRET_SENTRY_LARAVEL_DSN_FILE=${DOCKER_SMOKE_DIR}/sentry_laravel_dsn
 ATLAS_SECRET_FILES_S3_ACCESS_KEY_ID_FILE=${DOCKER_SMOKE_DIR}/files_s3_access_key_id
 ATLAS_SECRET_FILES_S3_SECRET_ACCESS_KEY_FILE=${DOCKER_SMOKE_DIR}/files_s3_secret_access_key
+ATLAS_SECRET_REVERB_APP_SECRET_FILE=${DOCKER_SMOKE_DIR}/reverb_app_secret
 EOF
 
 compose=(docker compose --project-name "${PROJECT_NAME}" --env-file "${ENV_FILE}" -f "${COMPOSE_FILE}")
@@ -102,7 +110,7 @@ fi
 
 "${compose[@]}" up -d --wait postgres redis meilisearch clamav php-fpm
 "${compose[@]}" run --rm --no-deps php-fpm php artisan migrate --force
-"${compose[@]}" up -d --wait worker scheduler nginx
+"${compose[@]}" up -d --wait worker scheduler reverb nginx
 
 "${compose[@]}" exec -T nginx curl --fail --silent --show-error "http://127.0.0.1:8080/health/live" | grep -q '"status":"ok"'
 "${compose[@]}" exec -T nginx curl --fail --silent --show-error "http://127.0.0.1:8080/health/ready" | grep -Eq '"status":"(healthy|degraded)"'
@@ -113,6 +121,7 @@ asset_path="$("${compose[@]}" exec -T nginx sh -ec "find /var/www/html/public/bu
 "${compose[@]}" exec -T worker atlas-entrypoint php artisan horizon:status
 "${compose[@]}" exec -T php-fpm atlas-entrypoint php artisan system:queue-smoke --timeout=90
 "${compose[@]}" exec -T scheduler atlas-entrypoint php artisan system:scheduler-status
+"${compose[@]}" exec -T reverb atlas-entrypoint php -r '$s=fsockopen("127.0.0.1",8080); exit($s ? 0 : 1);'
 "${compose[@]}" exec -T meilisearch wget --no-verbose --spider http://127.0.0.1:7700/health
 
 "${compose[@]}" exec -T clamav sh -ec "printf '%s' 'X5O!P%@AP[4\\PZX54(P^)7CC)7}\$EICAR-STANDARD-ANTIVIRUS-TEST-FILE!\$H+H*' >/tmp/atlas-eicar.com"

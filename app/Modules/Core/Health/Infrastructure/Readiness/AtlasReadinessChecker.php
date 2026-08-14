@@ -35,6 +35,7 @@ final readonly class AtlasReadinessChecker implements ReadinessChecker
             $this->criticalConfiguration(),
             $this->postgresql(),
             $this->redis(),
+            $this->reverb(),
             $this->queues(),
             $this->storage(),
             $this->scheduler(),
@@ -184,6 +185,40 @@ final readonly class AtlasReadinessChecker implements ReadinessChecker
             description: 'Queue configuration is present.',
             metadata: ['connection' => $connection],
         );
+    }
+
+    private function reverb(): ReadinessCheckResult
+    {
+        if (Config::string('broadcasting.default') !== 'reverb') {
+            return ReadinessCheckResult::healthy(
+                key: 'reverb',
+                label: 'Reverb',
+                blocking: false,
+                description: 'Reverb is not selected as the broadcast transport.',
+            );
+        }
+
+        $host = Config::string('broadcasting.connections.reverb.options.host', '');
+        $port = Config::integer('broadcasting.connections.reverb.options.port', 0);
+        $blocking = Config::boolean('atlas.operations.health.reverb.critical', false);
+        $metadata = ['host' => $host, 'port' => $port];
+
+        if ($host === '' || $port < 1) {
+            return $blocking
+                ? ReadinessCheckResult::unhealthy('reverb', 'Reverb', true, 'Reverb is critical but its internal endpoint is incomplete.', $metadata)
+                : ReadinessCheckResult::degraded('reverb', 'Reverb', false, 'Reverb endpoint configuration is incomplete.', $metadata);
+        }
+
+        $socket = @fsockopen($host, $port, $errorCode, $errorMessage, 1.0);
+        if (is_resource($socket)) {
+            fclose($socket);
+
+            return ReadinessCheckResult::healthy('reverb', 'Reverb', $blocking, 'Reverb accepts TCP connections on its configured internal endpoint.', $metadata);
+        }
+
+        return $blocking
+            ? ReadinessCheckResult::unhealthy('reverb', 'Reverb', true, 'Critical Reverb endpoint is not reachable.', $metadata)
+            : ReadinessCheckResult::degraded('reverb', 'Reverb', false, 'Optional Reverb endpoint is not reachable.', $metadata);
     }
 
     private function storage(): ReadinessCheckResult

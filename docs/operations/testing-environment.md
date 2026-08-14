@@ -113,6 +113,8 @@ Permission-gated and module-gated UI behavior needs Playwright coverage when man
 
 `tests/e2e/time-tracking-workflows.spec.ts` is the Phase 29 TimeTracking workflow closure. It runs serially per browser project because each project creates and decides its own uniquely named operational records. It covers the mobile Polish user lifecycle, password-confirmed break and Other-work returns, correction creation, manager reports and decisions, direct notification delivery, hierarchy-scope denial, the removed legacy manager-report route, English Admin tables and filters, and maintenance-affected session details. Chromium and Firefox are both mandatory for this spec. Lifecycle intervals cross a measurable whole-second boundary before closure because TimeTracking persists exact integer-second durations, and mutating transitions await their return responses so the shared failed-request guard remains meaningful.
 
+`tests/e2e/chat-realtime.spec.ts` is the P31-W06 multi-context Reverb acceptance workflow. Chromium opens two independent authenticated browser contexts and verifies presence, message push, expiring typing, delivery/read cursors, mark-unread totals, reconnect backfill, manual status, and denial of a guessed presence channel. Playwright starts isolated Reverb and helper-health listeners on ports `8085` and `8086`. Firefox skips this one transport-matrix duplicate while the broader Firefox suite retains cross-browser coverage.
+
 ## Future CI
 
 Atlas does not bundle a CI provider. A derived project may add CI later by calling the public Composer and pnpm commands.

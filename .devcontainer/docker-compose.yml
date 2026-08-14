@@ -8,6 +8,8 @@ services:
         condition: service_started
       php-fpm:
         condition: service_started
+      reverb:
+        condition: service_started
     network_mode: service:app
     volumes:
       - ${ATLAS_WORKSPACE_SOURCE:-..}:/var/www/html:ro
@@ -32,6 +34,13 @@ services:
       ATLAS_HEALTH_CLAMAV_HOST: clamav
       ATLAS_HEALTH_CHROMIUM_BINARY: /usr/bin/chromium
       ATLAS_CHROMIUM_BINARY: /usr/bin/chromium
+      BROADCAST_CONNECTION: reverb
+      REVERB_HOST: reverb
+      REVERB_PORT: 8080
+      REVERB_SCHEME: http
+      REVERB_CLIENT_HOST: localhost
+      REVERB_CLIENT_PORT: 8000
+      REVERB_CLIENT_SCHEME: http
     volumes:
       - ${ATLAS_WORKSPACE_SOURCE:-..}:/var/www/html:cached
     depends_on:
@@ -43,6 +52,41 @@ services:
         condition: service_healthy
       clamav:
         condition: service_healthy
+    networks:
+      - atlas-dev
+
+  reverb:
+    image: atlas-php-fpm:latest
+    user: "${USER_UID:-1000}:${USER_GID:-1000}"
+    env_file:
+      - ../.env
+    environment:
+      APP_TIMEZONE: ${APP_TIMEZONE:-Europe/Warsaw}
+      TZ: ${APP_TIMEZONE:-Europe/Warsaw}
+      DB_HOST: postgres
+      REDIS_HOST: redis
+      BROADCAST_CONNECTION: reverb
+      REVERB_HOST: reverb
+      REVERB_PORT: 8080
+      REVERB_SCHEME: http
+      REVERB_SERVER_HOST: 0.0.0.0
+      REVERB_SERVER_PORT: 8080
+      REVERB_CLIENT_HOST: localhost
+      REVERB_CLIENT_PORT: 8000
+      REVERB_CLIENT_SCHEME: http
+    volumes:
+      - ${ATLAS_WORKSPACE_SOURCE:-..}:/var/www/html:cached
+    depends_on:
+      redis:
+        condition: service_healthy
+    command: ["php", "artisan", "reverb:start", "--host=0.0.0.0", "--port=8080"]
+    stop_grace_period: 30s
+    healthcheck:
+      test: ["CMD-SHELL", "php -r '$$s=@fsockopen(\"127.0.0.1\",8080); exit($$s ? 0 : 1);'"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
     networks:
       - atlas-dev
 

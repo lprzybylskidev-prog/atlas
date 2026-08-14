@@ -299,10 +299,48 @@ $$ language plpgsql
 SQL);
         DB::statement('create trigger message_edit_history_immutable before update on '.ChatDatabaseTable::MESSAGE_EDIT_HISTORY.' for each row execute function optional_chat.prevent_message_history_update()');
         DB::statement('create trigger message_deletions_immutable before update on '.ChatDatabaseTable::MESSAGE_DELETIONS.' for each row execute function optional_chat.prevent_message_history_update()');
+
+        Schema::create(ChatDatabaseTable::CONVERSATION_REALTIME_STATES, static function (Blueprint $table): void {
+            $table->id();
+            $table->unsignedBigInteger('conversation_id');
+            $table->unsignedBigInteger('user_id');
+            $table->unsignedBigInteger('last_delivered_message_id')->nullable();
+            $table->unsignedBigInteger('last_read_message_id')->nullable();
+            $table->unsignedBigInteger('unread_from_message_id')->nullable();
+            $table->timestampsTz();
+
+            $table->foreign('conversation_id')->references('id')->on(ChatDatabaseTable::CONVERSATIONS)->restrictOnDelete();
+            $table->foreign('user_id')->references('id')->on(IdentityDatabaseTable::USERS)->restrictOnDelete();
+            $table->foreign('last_delivered_message_id')->references('id')->on(ChatDatabaseTable::MESSAGES)->restrictOnDelete();
+            $table->foreign('last_read_message_id')->references('id')->on(ChatDatabaseTable::MESSAGES)->restrictOnDelete();
+            $table->foreign('unread_from_message_id')->references('id')->on(ChatDatabaseTable::MESSAGES)->restrictOnDelete();
+            $table->unique(['conversation_id', 'user_id']);
+            $table->index(['user_id', 'updated_at']);
+        });
+
+        Schema::create(ChatDatabaseTable::USER_PRESENCE, static function (Blueprint $table): void {
+            $table->id();
+            $table->unsignedBigInteger('user_id')->unique();
+            $table->string('manual_status', 24)->default('available');
+            $table->string('custom_text', 120)->nullable();
+            $table->string('custom_emoji', 32)->nullable();
+            $table->timestampTz('last_seen_at')->nullable();
+            $table->timestampTz('last_heartbeat_at')->nullable();
+            $table->timestampsTz();
+
+            $table->foreign('user_id')->references('id')->on(IdentityDatabaseTable::USERS)->restrictOnDelete();
+            $table->index('last_heartbeat_at');
+        });
+        DB::statement(sprintf(
+            "alter table %s add constraint chat_user_presence_status_check check (manual_status in ('available', 'busy', 'do_not_disturb', 'out_of_office'))",
+            ChatDatabaseTable::USER_PRESENCE,
+        ));
     }
 
     public function down(): void
     {
+        Schema::dropIfExists(ChatDatabaseTable::USER_PRESENCE);
+        Schema::dropIfExists(ChatDatabaseTable::CONVERSATION_REALTIME_STATES);
         DB::statement('drop trigger if exists message_deletions_immutable on '.ChatDatabaseTable::MESSAGE_DELETIONS);
         DB::statement('drop trigger if exists message_edit_history_immutable on '.ChatDatabaseTable::MESSAGE_EDIT_HISTORY);
         DB::statement('drop function if exists optional_chat.prevent_message_history_update()');

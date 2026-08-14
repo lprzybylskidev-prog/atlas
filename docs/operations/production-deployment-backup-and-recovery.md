@@ -144,7 +144,7 @@ During preflight/configuration, the installer reports the known or declared encr
 
 ## Production images and secrets
 
-`docker/production/php/Dockerfile` builds one versioned `atlas-runtime:<release-id>` artifact used unchanged by PHP-FPM, Horizon, and the scheduler. Composer installs from `composer.lock`; Vite assets build from `pnpm-lock.yaml`. Runtime artifacts come from repository source and lockfiles, not host `vendor`, `node_modules`, or local build leftovers. Application commands and runtime services operate as non-root users.
+`docker/production/php/Dockerfile` builds one versioned `atlas-runtime:<release-id>` artifact used unchanged by PHP-FPM, Horizon, Reverb, and the scheduler. Composer installs from `composer.lock`; Vite assets build from `pnpm-lock.yaml`. Runtime artifacts come from repository source and lockfiles, not host `vendor`, `node_modules`, or local build leftovers. Application commands and runtime services operate as non-root users.
 
 `docker/production/nginx/Dockerfile` builds the same locked Vite inputs, copies public files and generated assets into nginx, and forwards only `index.php` to PHP-FPM. Its internal HTTP listener does not itself claim TLS termination; Phase 40 supplies the selected reverse-proxy/TLS deployment configuration.
 
@@ -289,13 +289,13 @@ Run the isolated build and runtime proof from a Docker-capable trusted developme
 composer runtime:smoke
 ```
 
-The smoke command builds the production artifacts, verifies final-image boundaries and non-root execution, starts isolated PostgreSQL, Redis, Meilisearch, ClamAV, PHP-FPM, nginx, Horizon, and scheduler services, applies fresh migrations, and checks liveness/readiness and generated assets. It exercises queues, scheduler, ClamAV, PDF rendering, and PostgreSQL persistence across recreation before clean teardown.
+The smoke command builds the production artifacts, verifies final-image boundaries and non-root execution, starts isolated PostgreSQL, Redis, Meilisearch, ClamAV, PHP-FPM, nginx, Horizon, Reverb, and scheduler services, applies fresh migrations, and checks liveness/readiness and generated assets. It exercises queues, scheduler, Reverb TCP readiness, ClamAV, PDF rendering, and PostgreSQL persistence across recreation before clean teardown.
 
 This smoke remains a runtime prerequisite, not a deployment procedure. It does not install a production host, configure the selected network/TLS mode, manage releases, schedule database and Files backups, restore production state, or perform rollback. Those remain Phase 40 work.
 
 ## Manual Ubuntu/Debian runtime parity
 
-The non-container Ubuntu/Debian runtime contract remains relevant for behavioral parity, external dependency documentation, and supported operational mechanisms. It requires the same PHP extensions, locked Composer and Node dependencies, Chromium, ClamAV, PostgreSQL, Redis, Meilisearch, queues, scheduler, writable application storage, private Files storage, health checks, and non-root execution as the container runtime.
+The non-container Ubuntu/Debian runtime contract remains relevant for behavioral parity, external dependency documentation, and supported operational mechanisms. It requires the same PHP extensions, locked Composer and Node dependencies, Chromium, ClamAV, PostgreSQL, Redis, Meilisearch, queues, scheduler, a supervised non-root Reverb process behind the Atlas reverse proxy, writable application storage, private Files storage, health checks, and non-root execution as the container runtime.
 
 This parity contract does not replace the Phase 40 baseline installation workflow: the canonical production installer targets the company-controlled single-host/VM Docker Compose topology.
 

@@ -11,6 +11,7 @@ HTTP stack reads these host files through Compose secrets:
 - `sentry_laravel_dsn.txt` (may be empty while Sentry is intentionally disabled);
 - `files_s3_access_key_id.txt`;
 - `files_s3_secret_access_key.txt`.
+- `reverb_app_secret.txt` (the server-side Reverb application secret).
 
 Use owner-only permissions (`0600`). Every default path may be replaced with the
 matching `ATLAS_SECRET_*_FILE` variable from `docker/production/.env.example`.

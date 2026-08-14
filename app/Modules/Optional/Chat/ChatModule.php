@@ -54,6 +54,6 @@ final class ChatModule implements ModuleDefinition
 
     public function healthChecks(): array
     {
-        return [];
+        return ['reverb'];
     }
 }

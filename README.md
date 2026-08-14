@@ -180,7 +180,7 @@ The baseline frontend shell is available through Inertia/Vue with strict TypeScr
 
 Atlas-owned persistence is split across explicit PostgreSQL schemas such as `core_identity`, `core_teams`, `core_authorization`, `core_audit`, `core_settings`, `core_notifications`, `core_files`, `core_privacy`, `optional_feature_flags`, `optional_integrations`, and `shared`; the architecture map lives in [`docs/architecture/modular-monolith.md`](docs/architecture/modular-monolith.md).
 
-The Notifications foundation provides typed user/team notifications, in-app read state, optional email delivery, avatar-dropdown previews, and a shared-datatable notification center; realtime push integrations continue in Phase 15.
+The Notifications foundation provides typed user/team notifications, in-app read state, optional email delivery, avatar-dropdown previews, and a shared-datatable notification center. Chat extends the realtime foundation with Laravel Reverb and authorized private/presence channels while keeping Notifications persistence separate.
 
 The Files foundation provides private file metadata, generated storage paths, checksum-based deduplication, quarantine scan states, asynchronous malware scanning through a module-owned scanner contract, a ClamAV production adapter, a development-only fake scanner, clean-only download enforcement, scan evidence, lifecycle and retention-copy audit records, temporary scan cleanup, and an Admin metadata browser with rescan actions.
 

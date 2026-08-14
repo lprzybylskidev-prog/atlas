@@ -34,6 +34,20 @@ final class ChatPermissionCatalog implements ModulePermissionContribution
 
     public const VOICE_MESSAGE_STORE = ChatPermissionNames::VOICE_MESSAGE_STORE;
 
+    public const REALTIME_RECONCILE = ChatPermissionNames::REALTIME_RECONCILE;
+
+    public const REALTIME_HEARTBEAT = ChatPermissionNames::REALTIME_HEARTBEAT;
+
+    public const REALTIME_STATUS = ChatPermissionNames::REALTIME_STATUS;
+
+    public const REALTIME_DELIVERED = ChatPermissionNames::REALTIME_DELIVERED;
+
+    public const REALTIME_READ = ChatPermissionNames::REALTIME_READ;
+
+    public const REALTIME_UNREAD = ChatPermissionNames::REALTIME_UNREAD;
+
+    public const REALTIME_UNREAD_TOTAL = ChatPermissionNames::REALTIME_UNREAD_TOTAL;
+
     public const CALL_START = ChatPermissionNames::CALL_START;
 
     public const CALL_JOIN = ChatPermissionNames::CALL_JOIN;
@@ -83,6 +97,13 @@ final class ChatPermissionCatalog implements ModulePermissionContribution
             new ModulePermissionDefinition(self::ATTACHMENT_DESTROY, 'Discard an owned unsent Chat attachment.'),
             new ModulePermissionDefinition(self::ATTACHMENT_DOWNLOAD, 'Download or preview an authorized clean Chat attachment.'),
             new ModulePermissionDefinition(self::VOICE_MESSAGE_STORE, 'Send Chat voice messages through Files.'),
+            new ModulePermissionDefinition(self::REALTIME_RECONCILE, 'Reconcile authorized Chat state after connect or reconnect.'),
+            new ModulePermissionDefinition(self::REALTIME_HEARTBEAT, 'Refresh the current Chat presence heartbeat.'),
+            new ModulePermissionDefinition(self::REALTIME_STATUS, 'Set the current Chat manual status.'),
+            new ModulePermissionDefinition(self::REALTIME_DELIVERED, 'Acknowledge delivery of an authorized Chat message.'),
+            new ModulePermissionDefinition(self::REALTIME_READ, 'Advance the read cursor in an authorized conversation.'),
+            new ModulePermissionDefinition(self::REALTIME_UNREAD, 'Mark an authorized Chat message as unread.'),
+            new ModulePermissionDefinition(self::REALTIME_UNREAD_TOTAL, 'Read the current total Chat unread count.'),
             new ModulePermissionDefinition(self::CALL_START, 'Start direct, group, or Team audio/video Calls.'),
             new ModulePermissionDefinition(self::CALL_JOIN, 'Join authorized audio/video Calls and Meetings.'),
             new ModulePermissionDefinition(self::SCREEN_SHARE_STORE, 'Share the screen in an authorized Call or Meeting.'),

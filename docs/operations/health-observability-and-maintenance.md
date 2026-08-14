@@ -6,7 +6,7 @@ Current pre-Phase-32 observability still includes Sentry wiring documented below
 
 ## Phase 28 closure state
 
-Current state: health/readiness and Admin diagnostics use real technical availability checks consumed by ModuleGate. The Phase 28 foundation smoke covers nginx, php-fpm, application readiness, Horizon and every configured queue, scheduler heartbeat, PostgreSQL, Redis, Meilisearch, ClamAV/EICAR, storage, Chromium/PDF, clean teardown, and persisted PostgreSQL data.
+Current state: health/readiness and Admin diagnostics use real technical availability checks consumed by ModuleGate. The Phase 28 foundation smoke covers nginx, php-fpm, application readiness, Horizon and every configured queue, scheduler heartbeat, PostgreSQL, Redis, Meilisearch, ClamAV/EICAR, storage, Chromium/PDF, clean teardown, and persisted PostgreSQL data. Phase 31 adds the Reverb internal TCP readiness check and makes it blocking for the production Chat runtime.
 
 Health checks verify real dependency chains, report actionable non-secret degraded metadata, and distinguish technical unavailability from administrative module deactivation.
 

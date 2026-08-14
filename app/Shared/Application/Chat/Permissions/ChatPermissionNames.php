@@ -30,6 +30,20 @@ final class ChatPermissionNames
 
     public const VOICE_MESSAGE_STORE = 'chat.voice-messages.store';
 
+    public const REALTIME_RECONCILE = 'chat.realtime.reconcile';
+
+    public const REALTIME_HEARTBEAT = 'chat.realtime.heartbeat';
+
+    public const REALTIME_STATUS = 'chat.realtime.status';
+
+    public const REALTIME_DELIVERED = 'chat.realtime.delivered';
+
+    public const REALTIME_READ = 'chat.realtime.read';
+
+    public const REALTIME_UNREAD = 'chat.realtime.unread';
+
+    public const REALTIME_UNREAD_TOTAL = 'chat.realtime.unread-total';
+
     public const CALL_START = 'chat.calls.start';
 
     public const CALL_JOIN = 'chat.calls.join';

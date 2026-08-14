@@ -36,6 +36,7 @@ use Symfony\Component\HttpFoundation\Response;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
+        channels: __DIR__.'/../routes/channels.php',
         web: [
             __DIR__.'/../routes/web/auth.php',
             __DIR__.'/../routes/web/health.php',

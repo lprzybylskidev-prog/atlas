@@ -50,7 +50,7 @@ for template in .env.example phpunit.xml playwright.config.ts docker/production/
   [[ -f "${ROOT_DIR}/${template}" ]] || fail "Environment contract ${template} is missing."
 done
 
-for secret in APP_KEY DB_PASSWORD REDIS_PASSWORD MEILISEARCH_KEY MAIL_PASSWORD SENTRY_LARAVEL_DSN ATLAS_FILES_S3_ACCESS_KEY_ID ATLAS_FILES_S3_SECRET_ACCESS_KEY; do
+for secret in APP_KEY DB_PASSWORD REDIS_PASSWORD MEILISEARCH_KEY MAIL_PASSWORD SENTRY_LARAVEL_DSN ATLAS_FILES_S3_ACCESS_KEY_ID ATLAS_FILES_S3_SECRET_ACCESS_KEY REVERB_APP_SECRET; do
   rg -q "^[[:space:]]+${secret}$" "${ROOT_DIR}/docker/production/php/entrypoint.sh" \
     || fail "Runtime entrypoint does not register ${secret} for _FILE loading."
 done
@@ -68,6 +68,7 @@ grep -q 'profiles:' <<<"${compose_config}" || fail 'The preliminary backup inter
 grep -q 'ATLAS_FILES_SCANNER: clamav' <<<"${compose_config}" || fail 'Production Files scanner must be real ClamAV.'
 grep -q 'ATLAS_HEALTH_CLAMAV_CRITICAL: "true"' <<<"${compose_config}" || fail 'Production ClamAV readiness must be blocking.'
 grep -q 'ATLAS_HEALTH_CHROMIUM_CRITICAL: "true"' <<<"${compose_config}" || fail 'Production Chromium/PDF readiness must be blocking.'
+grep -q 'ATLAS_HEALTH_REVERB_CRITICAL: "true"' <<<"${compose_config}" || fail 'Production Reverb readiness must be blocking.'
 grep -q 'ATLAS_CHROMIUM_BINARY: /usr/bin/chromium' <<<"${compose_config}" || fail 'Production Chromium binary is not explicit.'
 
 canonical_queues='managed-processes,imports,exports,search,files,files-large,default'
@@ -77,8 +78,12 @@ rg -F -q 'command: ["php", "artisan", "horizon"]' "${COMPOSE_FILE}" \
   || fail 'Production worker is not managed by Horizon.'
 rg -F -q 'command: ["php", "artisan", "horizon"]' "${ROOT_DIR}/.devcontainer/docker-compose.yml" \
   || fail 'Development worker is not managed by Horizon.'
-[[ "$(rg -F -c 'user: "${USER_UID:-1000}:${USER_GID:-1000}"' "${ROOT_DIR}/.devcontainer/docker-compose.yml")" == "3" ]] \
-  || fail 'Development PHP-FPM, scheduler, and worker must use the bind-mount owner UID/GID.'
+[[ "$(rg -F -c 'user: "${USER_UID:-1000}:${USER_GID:-1000}"' "${ROOT_DIR}/.devcontainer/docker-compose.yml")" == "4" ]] \
+  || fail 'Development PHP-FPM, Reverb, scheduler, and worker must use the bind-mount owner UID/GID.'
+rg -F -q 'command: ["php", "artisan", "reverb:start", "--host=0.0.0.0", "--port=8080"]' "${COMPOSE_FILE}" \
+  || fail 'Production Reverb service is missing.'
+rg -F -q 'proxy_pass http://reverb:8080;' "${ROOT_DIR}/docker/production/nginx/default.conf" \
+  || fail 'Production nginx does not proxy Reverb WebSockets.'
 rg -F -q 'PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:-admin@atlas.example.com}' "${ROOT_DIR}/.devcontainer/docker-compose.yml" \
   || fail 'Development pgAdmin must use a default email accepted by pgAdmin validation.'
 rg -F -q '\"php artisan horizon\"' "${ROOT_DIR}/composer.json" \

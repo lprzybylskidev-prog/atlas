@@ -33,6 +33,9 @@ return [
                 'critical' => (bool) env('ATLAS_HEALTH_CHROMIUM_CRITICAL', false),
                 'binary' => env('ATLAS_HEALTH_CHROMIUM_BINARY') ?: null,
             ],
+            'reverb' => [
+                'critical' => (bool) env('ATLAS_HEALTH_REVERB_CRITICAL', false),
+            ],
         ],
         'alerts' => [
             'enabled' => (bool) env('ATLAS_ALERTS_ENABLED', false),

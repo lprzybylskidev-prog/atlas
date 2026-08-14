@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Modules\Optional\Chat\Application;
 
+use App\Modules\Optional\Chat\Application\Exceptions\ChatAccessDenied;
 use App\Shared\Application\Modules\Contracts\ModuleGate;
 use App\Shared\Application\Modules\ModuleAccessDecision;
 use App\Shared\Application\Modules\ModuleAccessRequest;
-use RuntimeException;
 
 final readonly class ChatModuleAccess
 {
@@ -36,13 +36,10 @@ final readonly class ChatModuleAccess
             $reason = $decision->denialReason;
 
             if ($reason === null) {
-                throw new RuntimeException('Chat module access denied: unknown.');
+                throw ChatAccessDenied::forReason('unknown');
             }
 
-            throw new RuntimeException(sprintf(
-                'Chat module access denied: %s.',
-                $reason->value,
-            ));
+            throw ChatAccessDenied::forReason($reason->value);
         }
     }
 }

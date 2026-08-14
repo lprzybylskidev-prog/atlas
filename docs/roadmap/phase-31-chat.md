@@ -1,6 +1,6 @@
 # Phase 31 — Optional internal company chat, calendar, calls, meetings, and realtime communication
 
-**Status:** `in progress` (`P31-W01` through `P31-W05` complete; `P31-W06` is next)
+**Status:** `in progress` (`P31-W01` through `P31-W06` complete; `P31-W07` is next)
 
 ## Objective
 
@@ -928,17 +928,17 @@ Support:
 
 ### Tasks
 
-- [ ] Extend existing Reverb foundation for Chat.
-- [ ] Add private/presence channels.
-- [ ] Add reconnect reconciliation.
-- [ ] Add presence.
-- [ ] Add manual status.
-- [ ] Add typing.
-- [ ] Add delivery/read state.
-- [ ] Add unread state.
-- [ ] Add multi-context browser tests.
-- [ ] Add channel-negative tests.
-- [ ] Update realtime documentation.
+- [x] Extend existing Reverb foundation for Chat.
+- [x] Add private/presence channels.
+- [x] Add reconnect reconciliation.
+- [x] Add presence.
+- [x] Add manual status.
+- [x] Add typing.
+- [x] Add delivery/read state.
+- [x] Add unread state.
+- [x] Add multi-context browser tests.
+- [x] Add channel-negative tests.
+- [x] Update realtime documentation.
 
 ---
 

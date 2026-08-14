@@ -1,6 +1,6 @@
 # Internal communication and Chat module
 
-Canonical current boundary and accepted target for the Atlas internal-communication capability. Phase 31 is in progress: P31-W01 through P31-W05 established the module boundary, shared Calendar, persistent conversation ownership, canonical message behavior, Files-backed attachments, content browsing, and voice messages; P31-W06 is the next sequential workstream. The phase file remains the binding implementation and acceptance contract.
+Canonical current boundary and accepted target for the Atlas internal-communication capability. Phase 31 is in progress: P31-W01 through P31-W06 established the module boundary, shared Calendar, persistent conversation ownership, canonical message behavior, Files-backed attachments, content browsing, voice messages, and Reverb messaging realtime; P31-W07 is the next sequential workstream. The phase file remains the binding implementation and acceptance contract.
 
 ## Purpose and boundary
 
@@ -86,6 +86,8 @@ Phase 31 extends the existing realtime foundation with canonical Laravel broadca
 Every private and presence channel requires explicit user/conversation/Team authorization. Guessing a conversation identifier grants no access.
 
 Chat supports online/offline/last-seen presence, informational manual statuses, expiring ephemeral typing indicators, direct sent/delivered/read state, group and Team read visibility, unread counts, a new-message separator, last-read cursors, and mark-as-unread. Presence and typing avoid excessive persistent writes; typing is neither persisted nor audited. `Do not disturb` is informational and does not mute delivery.
+
+The implemented transport uses a private per-user channel and participant-authorized per-conversation presence channels. Heartbeats are persisted at most once per 45 seconds, online state expires after 90 seconds, and browser typing indicators expire after five seconds. Delivery, read, and mark-unread use one cursor row per conversation membership. Initial connection and reconnect call the authoritative reconciliation endpoint and merge persisted messages by public identifier.
 
 ## Shell and browser experience
 

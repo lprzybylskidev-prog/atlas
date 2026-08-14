@@ -5,6 +5,12 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#0f766e">
         <meta name="csrf-token" content="{{ csrf_token() }}">
+        @if (config('broadcasting.default') === 'reverb')
+            <meta name="atlas-reverb-key" content="{{ config('reverb.client.key') }}">
+            <meta name="atlas-reverb-host" content="{{ config('reverb.client.host') }}">
+            <meta name="atlas-reverb-port" content="{{ config('reverb.client.port') }}">
+            <meta name="atlas-reverb-scheme" content="{{ config('reverb.client.scheme') }}">
+        @endif
 
         <title inertia>{{ config('app.name', 'Atlas') }}</title>
 

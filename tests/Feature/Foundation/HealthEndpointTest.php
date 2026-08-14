@@ -97,10 +97,11 @@ final class HealthEndpointTest extends TestCase
             ->assertJsonPath('data.degradedFailed', 2)
             ->assertJsonPath('data.checks.0.key', 'critical-configuration')
             ->assertJsonPath('data.checks.1.key', 'postgresql')
-            ->assertJsonPath('data.checks.5.key', 'scheduler')
-            ->assertJsonPath('data.checks.6.key', 'meilisearch')
-            ->assertJsonPath('data.checks.7.key', 'clamav')
-            ->assertJsonPath('data.checks.8.key', 'chromium-pdf');
+            ->assertJsonPath('data.checks.3.key', 'reverb')
+            ->assertJsonPath('data.checks.6.key', 'scheduler')
+            ->assertJsonPath('data.checks.7.key', 'meilisearch')
+            ->assertJsonPath('data.checks.8.key', 'clamav')
+            ->assertJsonPath('data.checks.9.key', 'chromium-pdf');
     }
 
     public function test_readiness_blocks_when_clamav_is_configured_as_critical_without_daemon(): void

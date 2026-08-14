@@ -313,6 +313,7 @@ final class ModuleRegistryTest extends TestCase
             'critical-configuration',
             'postgresql',
             'redis',
+            'reverb',
             'queues',
             'storage',
             'scheduler',

@@ -10,6 +10,7 @@ secret_names=(
   SENTRY_LARAVEL_DSN
   ATLAS_FILES_S3_ACCESS_KEY_ID
   ATLAS_FILES_S3_SECRET_ACCESS_KEY
+  REVERB_APP_SECRET
 )
 
 for name in "${secret_names[@]}"; do
@@ -71,7 +72,9 @@ if [[ "${APP_ENV:-}" == "production" ]]; then
     DB_HOST DB_PORT DB_DATABASE DB_USERNAME DB_PASSWORD DB_SEARCH_PATH \
     REDIS_HOST REDIS_PORT REDIS_PASSWORD MEILISEARCH_HOST MEILISEARCH_KEY \
     MAIL_MAILER MAIL_HOST MAIL_PORT MAIL_FROM_ADDRESS MAIL_FROM_NAME \
-    ATLAS_FILES_DISK ATLAS_FILES_SCANNER; do
+    ATLAS_FILES_DISK ATLAS_FILES_SCANNER BROADCAST_CONNECTION REVERB_APP_ID \
+    REVERB_APP_KEY REVERB_APP_SECRET REVERB_HOST REVERB_PORT REVERB_SCHEME \
+    REVERB_ALLOWED_ORIGINS; do
     require_non_empty "${name}"
   done
 
@@ -80,6 +83,7 @@ if [[ "${APP_ENV:-}" == "production" ]]; then
   require_port DB_PORT
   require_port REDIS_PORT
   require_port MAIL_PORT
+  require_port REVERB_PORT
 
   [[ "${APP_DEBUG}" == "false" || "${APP_DEBUG}" == "0" ]] || { echo 'APP_DEBUG must be false in production.' >&2; exit 78; }
   [[ "${PRODUCTION_DEPLOYED}" == "true" || "${PRODUCTION_DEPLOYED}" == "1" ]] || { echo 'PRODUCTION_DEPLOYED must be true in production.' >&2; exit 78; }
