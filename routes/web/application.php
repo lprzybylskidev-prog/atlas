@@ -21,7 +21,9 @@ use App\Modules\Core\Users\Presentation\Http\Controllers\UserProfileAvatarImageC
 use App\Modules\Core\Users\Presentation\Http\Controllers\UserProfileController;
 use App\Modules\Core\Users\Presentation\Http\Controllers\VerifyNotificationEmailAddressController;
 use App\Modules\Optional\Chat\Application\Permissions\ChatPermissionCatalog;
+use App\Modules\Optional\Chat\Presentation\Http\Controllers\CallHistoryController;
 use App\Modules\Optional\Chat\Presentation\Http\Controllers\ChatAttachmentController;
+use App\Modules\Optional\Chat\Presentation\Http\Controllers\ChatCallController;
 use App\Modules\Optional\Chat\Presentation\Http\Controllers\ChatConversationController;
 use App\Modules\Optional\Chat\Presentation\Http\Controllers\ChatMessageController;
 use App\Modules\Optional\Chat\Presentation\Http\Controllers\ChatRealtimeController;
@@ -76,6 +78,17 @@ Route::middleware(['auth', 'route.permission'])->group(function (): void {
     Route::post('/chat/conversations/{conversation}/attachments', [ChatAttachmentController::class, 'store'])->name(ChatPermissionCatalog::ATTACHMENT_STORE);
     Route::post('/chat/conversations/{conversation}/voice-messages', [ChatAttachmentController::class, 'storeVoice'])->name(ChatPermissionCatalog::VOICE_MESSAGE_STORE);
     Route::post('/chat/direct-conversations', [ChatConversationController::class, 'storeDirect'])->name(ChatPermissionCatalog::DIRECT_CONVERSATION_STORE);
+    Route::get('/user/calls', CallHistoryController::class)->name(ChatPermissionCatalog::CALL_INDEX);
+    Route::get('/chat/calls/current', [ChatCallController::class, 'current'])->name(ChatPermissionCatalog::CALL_CURRENT);
+    Route::post('/chat/conversations/{conversation}/calls', [ChatCallController::class, 'start'])->name(ChatPermissionCatalog::CALL_START);
+    Route::post('/chat/calls/{call}/join', [ChatCallController::class, 'join'])->name(ChatPermissionCatalog::CALL_JOIN);
+    Route::post('/chat/calls/{call}/decline', [ChatCallController::class, 'decline'])->name(ChatPermissionCatalog::CALL_DECLINE);
+    Route::post('/chat/calls/{call}/leave', [ChatCallController::class, 'leave'])->name(ChatPermissionCatalog::CALL_LEAVE);
+    Route::patch('/chat/calls/{call}/media', [ChatCallController::class, 'media'])->name(ChatPermissionCatalog::CALL_MEDIA_UPDATE);
+    Route::get('/chat/call-preferences', [ChatCallController::class, 'preferences'])->name(ChatPermissionCatalog::CALL_PREFERENCES_SHOW);
+    Route::patch('/chat/call-preferences', [ChatCallController::class, 'updatePreferences'])->name(ChatPermissionCatalog::CALL_PREFERENCES_UPDATE);
+    Route::post('/chat/calls/{call}/screen-share', [ChatCallController::class, 'startScreenShare'])->name(ChatPermissionCatalog::SCREEN_SHARE_STORE);
+    Route::delete('/chat/calls/{call}/screen-share', [ChatCallController::class, 'stopScreenShare'])->name(ChatPermissionCatalog::SCREEN_SHARE_DESTROY);
     Route::post('/calendar/events', [CalendarController::class, 'store'])->name(CalendarPermissionCatalog::EVENT_STORE);
     Route::patch('/calendar/events/{event}', [CalendarController::class, 'update'])->name(CalendarPermissionCatalog::EVENT_UPDATE);
     Route::delete('/calendar/events/{event}', [CalendarController::class, 'destroy'])->name(CalendarPermissionCatalog::EVENT_DESTROY);

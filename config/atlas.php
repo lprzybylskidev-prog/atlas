@@ -128,7 +128,7 @@ return [
                 "default-src 'self'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'; object-src 'none'; img-src 'self' data: blob:; media-src 'self' blob:; font-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self' ws: wss:",
             ),
             'referrer_policy' => env('ATLAS_SECURITY_REFERRER_POLICY', 'strict-origin-when-cross-origin'),
-            'permissions_policy' => env('ATLAS_SECURITY_PERMISSIONS_POLICY', 'camera=(), microphone=(self), geolocation=(), payment=(), usb=()'),
+            'permissions_policy' => env('ATLAS_SECURITY_PERMISSIONS_POLICY', 'camera=(self), microphone=(self), geolocation=(), payment=(), usb=()'),
         ],
         'dependency_audits' => [
             'composer' => [

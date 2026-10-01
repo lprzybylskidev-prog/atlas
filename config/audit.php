@@ -159,10 +159,13 @@ return [
             'request_type', 'requested_at', 'requires_manager_review', 'started_at',
         ]),
         'chat' => $catalog([
+            'chat.call.declined', 'chat.call.joined', 'chat.call.left',
+            'chat.call.preferences_updated', 'chat.call.screen_share_started',
+            'chat.call.screen_share_stopped', 'chat.call.started',
             'chat.group.closed', 'chat.group.created', 'chat.group.member_added',
             'chat.group.member_left', 'chat.group.member_removed',
             'chat.group.metadata_changed', 'chat.group.ownership_transferred',
-        ], ['conversation'], ['conversation'], [
+        ], ['call', 'conversation', 'user'], ['call', 'conversation', 'user'], [
             'member_count', 'member_public_id', 'new_owner_public_id',
         ]),
         'tests' => $catalog([

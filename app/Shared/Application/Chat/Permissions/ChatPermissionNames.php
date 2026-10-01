@@ -48,7 +48,23 @@ final class ChatPermissionNames
 
     public const CALL_JOIN = 'chat.calls.join';
 
+    public const CALL_INDEX = 'chat.calls.index';
+
+    public const CALL_CURRENT = 'chat.calls.current';
+
+    public const CALL_DECLINE = 'chat.calls.decline';
+
+    public const CALL_LEAVE = 'chat.calls.leave';
+
+    public const CALL_MEDIA_UPDATE = 'chat.calls.media.update';
+
+    public const CALL_PREFERENCES_UPDATE = 'chat.calls.preferences.update';
+
+    public const CALL_PREFERENCES_SHOW = 'chat.calls.preferences.show';
+
     public const SCREEN_SHARE_STORE = 'chat.screen-shares.store';
+
+    public const SCREEN_SHARE_DESTROY = 'chat.screen-shares.destroy';
 
     public const MEETING_STORE = 'chat.meetings.store';
 

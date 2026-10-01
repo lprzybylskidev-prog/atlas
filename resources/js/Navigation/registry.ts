@@ -17,6 +17,7 @@ import {
     IconPackage,
     IconPlayerPause,
     IconPlayerPlay,
+    IconPhoneCall,
     IconPlugConnected,
     IconPuzzle,
     IconRoute,
@@ -171,6 +172,9 @@ const groups: NavigationGroupDefinition[] = [
                 'application',
                 ['user'],
             ),
+            item('my-matters.call-history', 'navigation.call_history', '/user/calls', IconPhoneCall, 'chat.calls.index', 'application', [
+                'user',
+            ]),
         ],
     },
     {

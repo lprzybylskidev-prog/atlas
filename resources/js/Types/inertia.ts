@@ -1,4 +1,5 @@
 export interface AtlasUser {
+    publicId: string;
     name: string;
     email: string;
     avatar: {

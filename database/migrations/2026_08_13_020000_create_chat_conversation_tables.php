@@ -335,10 +335,92 @@ SQL);
             "alter table %s add constraint chat_user_presence_status_check check (manual_status in ('available', 'busy', 'do_not_disturb', 'out_of_office'))",
             ChatDatabaseTable::USER_PRESENCE,
         ));
+
+        Schema::create(ChatDatabaseTable::CALLS, static function (Blueprint $table): void {
+            $table->id();
+            $table->ulid('public_id')->unique();
+            $table->unsignedBigInteger('conversation_id');
+            $table->unsignedBigInteger('started_by_user_id');
+            $table->string('client_request_key', 120);
+            $table->string('request_hash', 64);
+            $table->string('room_name', 128)->unique();
+            $table->boolean('initial_camera_enabled')->default(false);
+            $table->string('status', 16);
+            $table->timestampTz('started_at');
+            $table->timestampTz('answered_at')->nullable();
+            $table->timestampTz('ended_at')->nullable();
+            $table->timestampsTz();
+
+            $table->foreign('conversation_id')->references('id')->on(ChatDatabaseTable::CONVERSATIONS)->restrictOnDelete();
+            $table->foreign('started_by_user_id')->references('id')->on(IdentityDatabaseTable::USERS)->restrictOnDelete();
+            $table->unique(['started_by_user_id', 'client_request_key'], 'chat_calls_starter_request_unique');
+            $table->index(['started_by_user_id', 'started_at']);
+            $table->index(['conversation_id', 'started_at']);
+        });
+        DB::statement(sprintf(
+            "alter table %s add constraint chat_calls_status_check check (status in ('ringing', 'active', 'ended', 'declined', 'busy', 'missed', 'failed'))",
+            ChatDatabaseTable::CALLS,
+        ));
+        DB::statement(sprintf(
+            "create unique index chat_calls_active_conversation_unique on %s (conversation_id) where status in ('ringing', 'active')",
+            ChatDatabaseTable::CALLS,
+        ));
+
+        Schema::create(ChatDatabaseTable::CALL_PARTICIPANTS, static function (Blueprint $table): void {
+            $table->id();
+            $table->ulid('public_id')->unique();
+            $table->unsignedBigInteger('call_id');
+            $table->unsignedBigInteger('user_id');
+            $table->string('role', 16);
+            $table->string('state', 16);
+            $table->boolean('camera_enabled')->default(false);
+            $table->boolean('microphone_enabled')->default(false);
+            $table->timestampTz('joined_at')->nullable();
+            $table->timestampTz('left_at')->nullable();
+            $table->timestampTz('screen_share_started_at')->nullable();
+            $table->timestampsTz();
+
+            $table->foreign('call_id')->references('id')->on(ChatDatabaseTable::CALLS)->restrictOnDelete();
+            $table->foreign('user_id')->references('id')->on(IdentityDatabaseTable::USERS)->restrictOnDelete();
+            $table->unique(['call_id', 'user_id']);
+            $table->index(['user_id', 'state']);
+            $table->index(['call_id', 'state']);
+        });
+        DB::statement(sprintf(
+            "alter table %s add constraint chat_call_participants_role_check check (role in ('starter', 'invitee', 'joiner'))",
+            ChatDatabaseTable::CALL_PARTICIPANTS,
+        ));
+        DB::statement(sprintf(
+            "alter table %s add constraint chat_call_participants_state_check check (state in ('ringing', 'notified', 'joined', 'declined', 'busy', 'missed', 'left', 'failed'))",
+            ChatDatabaseTable::CALL_PARTICIPANTS,
+        ));
+        DB::statement(sprintf(
+            "create unique index chat_call_participants_active_user_unique on %s (user_id) where state = 'joined'",
+            ChatDatabaseTable::CALL_PARTICIPANTS,
+        ));
+        DB::statement(sprintf(
+            'create unique index chat_call_participants_screen_share_unique on %s (call_id) where screen_share_started_at is not null',
+            ChatDatabaseTable::CALL_PARTICIPANTS,
+        ));
+
+        Schema::create(ChatDatabaseTable::CALL_PREFERENCES, static function (Blueprint $table): void {
+            $table->id();
+            $table->unsignedBigInteger('user_id')->unique();
+            $table->string('camera_device_id', 512)->nullable();
+            $table->string('microphone_device_id', 512)->nullable();
+            $table->string('speaker_device_id', 512)->nullable();
+            $table->boolean('outgoing_camera_enabled')->default(false);
+            $table->timestampsTz();
+
+            $table->foreign('user_id')->references('id')->on(IdentityDatabaseTable::USERS)->restrictOnDelete();
+        });
     }
 
     public function down(): void
     {
+        Schema::dropIfExists(ChatDatabaseTable::CALL_PREFERENCES);
+        Schema::dropIfExists(ChatDatabaseTable::CALL_PARTICIPANTS);
+        Schema::dropIfExists(ChatDatabaseTable::CALLS);
         Schema::dropIfExists(ChatDatabaseTable::USER_PRESENCE);
         Schema::dropIfExists(ChatDatabaseTable::CONVERSATION_REALTIME_STATES);
         DB::statement('drop trigger if exists message_deletions_immutable on '.ChatDatabaseTable::MESSAGE_DELETIONS);

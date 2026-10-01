@@ -18,6 +18,8 @@ interface ConversationStore
 
     public function findByPublicId(string $publicId, bool $lock = false): ?ConversationRecord;
 
+    public function findById(int $id): ?ConversationRecord;
+
     public function findDirect(int $lowerUserId, int $higherUserId): ?ConversationRecord;
 
     public function findTeam(string $teamPublicId): ?ConversationRecord;

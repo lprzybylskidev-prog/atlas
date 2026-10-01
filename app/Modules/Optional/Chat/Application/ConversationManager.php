@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Optional\Chat\Application;
 
 use App\Modules\Core\Identity\Application\Public\Contracts\UserLookup;
+use App\Modules\Optional\Chat\Application\Audit\ChatAuditEvents;
 use App\Modules\Optional\Chat\Application\Contracts\ChatTransaction;
 use App\Modules\Optional\Chat\Application\Contracts\ConversationStore;
 use App\Modules\Optional\Chat\Application\DTOs\ConversationMembershipRecord;
@@ -95,7 +96,7 @@ final readonly class ConversationManager implements TeamMembershipChangeParticip
                 $this->store->appendTimeline($conversation->id, TimelineEntryType::GroupMemberAdded, $actorId, $memberId);
             }
 
-            $this->auditGroup($actorPublicId, $conversation->publicId, 'chat.group.created', [], ['name' => $name, 'member_count' => count($ids) + 1]);
+            $this->auditGroup($actorPublicId, $conversation->publicId, ChatAuditEvents::GROUP_CREATED, [], ['name' => $name, 'member_count' => count($ids) + 1]);
 
             return $conversation;
         });
@@ -113,7 +114,7 @@ final readonly class ConversationManager implements TeamMembershipChangeParticip
             $before = ['name' => $conversation->name];
             $this->store->updateGroupMetadata($conversation->id, $name, $avatarFilePublicId);
             $this->store->appendTimeline($conversation->id, TimelineEntryType::GroupMetadataChanged, $actorId, metadata: ['name_changed' => $conversation->name !== $name]);
-            $this->auditGroup($actorPublicId, $conversation->publicId, 'chat.group.metadata_changed', $before, ['name' => $name]);
+            $this->auditGroup($actorPublicId, $conversation->publicId, ChatAuditEvents::GROUP_METADATA_CHANGED, $before, ['name' => $name]);
         });
     }
 
@@ -132,7 +133,7 @@ final readonly class ConversationManager implements TeamMembershipChangeParticip
             }
 
             $this->store->appendTimeline($conversation->id, TimelineEntryType::GroupMemberAdded, $actorId, $memberId);
-            $this->auditGroup($actorPublicId, $conversation->publicId, 'chat.group.member_added', [], ['member_public_id' => $memberPublicId]);
+            $this->auditGroup($actorPublicId, $conversation->publicId, ChatAuditEvents::GROUP_MEMBER_ADDED, [], ['member_public_id' => $memberPublicId]);
         });
     }
 
@@ -153,7 +154,7 @@ final readonly class ConversationManager implements TeamMembershipChangeParticip
 
             $this->store->endMembership($membership->id, 'removed');
             $this->store->appendTimeline($conversation->id, TimelineEntryType::GroupMemberRemoved, $actorId, $memberId);
-            $this->auditGroup($actorPublicId, $conversation->publicId, 'chat.group.member_removed', [], ['member_public_id' => $memberPublicId]);
+            $this->auditGroup($actorPublicId, $conversation->publicId, ChatAuditEvents::GROUP_MEMBER_REMOVED, [], ['member_public_id' => $memberPublicId]);
         });
     }
 
@@ -175,7 +176,7 @@ final readonly class ConversationManager implements TeamMembershipChangeParticip
             $this->store->changeRole($owner->id, ConversationMemberRole::Member);
             $this->store->changeRole($newOwner->id, ConversationMemberRole::Owner);
             $this->store->appendTimeline($conversation->id, TimelineEntryType::GroupOwnershipTransferred, $actorId, $newOwnerId);
-            $this->auditGroup($actorPublicId, $conversation->publicId, 'chat.group.ownership_transferred', [], ['new_owner_public_id' => $newOwnerPublicId]);
+            $this->auditGroup($actorPublicId, $conversation->publicId, ChatAuditEvents::GROUP_OWNERSHIP_TRANSFERRED, [], ['new_owner_public_id' => $newOwnerPublicId]);
         });
     }
 
@@ -195,12 +196,12 @@ final readonly class ConversationManager implements TeamMembershipChangeParticip
 
             $this->store->endMembership($membership->id, 'left');
             $this->store->appendTimeline($conversation->id, TimelineEntryType::GroupMemberLeft, $actorId, $actorId);
-            $this->auditGroup($actorPublicId, $conversation->publicId, 'chat.group.member_left');
+            $this->auditGroup($actorPublicId, $conversation->publicId, ChatAuditEvents::GROUP_MEMBER_LEFT);
 
             if (count($memberships) === 1) {
                 $this->store->close($conversation->id);
                 $this->store->appendTimeline($conversation->id, TimelineEntryType::GroupClosed, $actorId);
-                $this->auditGroup($actorPublicId, $conversation->publicId, 'chat.group.closed');
+                $this->auditGroup($actorPublicId, $conversation->publicId, ChatAuditEvents::GROUP_CLOSED);
             }
         });
     }

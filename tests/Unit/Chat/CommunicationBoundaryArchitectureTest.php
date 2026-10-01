@@ -28,7 +28,7 @@ final class CommunicationBoundaryArchitectureTest extends TestCase
         self::assertFalse($chat->supportsTeamActivation());
         self::assertSame(['reverb'], $chat->healthChecks(), 'RTC or Egress failure must not disable text Chat through ModuleGate.');
         self::assertSame(
-            ['identity', 'files', 'calendar', 'teams', 'audit'],
+            ['identity', 'files', 'calendar', 'teams', 'audit', 'notifications'],
             array_map(static fn ($key): string => $key->value, $chat->requiredDependencies()),
         );
     }
@@ -80,6 +80,19 @@ final class CommunicationBoundaryArchitectureTest extends TestCase
         }
 
         self::assertStringNotContainsString('VITE_LIVEKIT_API_SECRET', (string) file_get_contents($root.'/.env.example'));
+    }
+
+    public function test_ad_hoc_calls_have_no_recording_or_egress_surface(): void
+    {
+        $root = dirname(__DIR__, 3);
+        $manager = (string) file_get_contents($root.'/app/Modules/Optional/Chat/Application/CallManager.php');
+        $controller = (string) file_get_contents($root.'/app/Modules/Optional/Chat/Presentation/Http/Controllers/ChatCallController.php');
+        $overlay = (string) file_get_contents($root.'/resources/js/Components/Chat/CallOverlay.vue');
+
+        foreach ([$manager, $controller, $overlay] as $surface) {
+            self::assertStringNotContainsString('Egress', $surface);
+            self::assertStringNotContainsString('recording', strtolower($surface));
+        }
     }
 
     /** @return iterable<SplFileInfo> */

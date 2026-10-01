@@ -117,6 +117,8 @@ Permission-gated and module-gated UI behavior needs Playwright coverage when man
 
 `composer test:rtc` is the deterministic P31-W07 external-runtime lane. It starts the pinned development LiveKit Server and Egress images through the canonical Compose stack, waits for the real signaling and Egress health endpoints, then runs `LiveKitRtcInfrastructureTest`. The proof creates and removes a real room, verifies a signed room-scoped participant token, and checks the separate Egress health service. Ordinary `composer test` keeps this heavyweight external-runtime proof skipped; unit and feature coverage still enforce denial of guessed rooms, in-person rejection, token scope, health classification, secret omission, and Chat/Egress failure isolation.
 
+`CallLifecycleTest` is the deterministic P31-W08 PostgreSQL lane. It covers direct, group, and Team Calls; idempotent start; the active-conversation and active-user arbiters; Busy behavior; join, leave, and rejoin; single screen sharing; quiet Team alerts; missed timeline/Notification behavior; device preferences; and database-backed RTC admission. `chat-calls.spec.ts` covers the rendered Polish Call history, incoming choices, explicit pre-call device state, quiet Team alert, and refresh/rejoin offer without requiring a physical camera or a live media server. The real pinned LiveKit transport remains covered separately by `composer test:rtc`.
+
 ## Future CI
 
 Atlas does not bundle a CI provider. A derived project may add CI later by calling the public Composer and pnpm commands.

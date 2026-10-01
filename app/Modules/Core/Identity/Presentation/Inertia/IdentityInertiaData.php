@@ -29,6 +29,7 @@ final readonly class IdentityInertiaData implements InertiaSharedDataContributor
 
         return [
             'auth.user' => $user === null ? null : [
+                'publicId' => $user->public_id,
                 'name' => $user->name,
                 'email' => $user->email,
                 'avatar' => [

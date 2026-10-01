@@ -54,6 +54,11 @@ Breadcrumbs::for('users.notifications.index', function (Generator $breadcrumbs):
     $breadcrumbs->push(__('breadcrumbs.notifications'), route('users.notifications.index'));
 });
 
+Breadcrumbs::for('chat.calls.index', function (Generator $breadcrumbs): void {
+    atlas_user_panel_root($breadcrumbs);
+    $breadcrumbs->push(__('breadcrumbs.call_history'), route('chat.calls.index'));
+});
+
 Breadcrumbs::for('users.profile', function (Generator $breadcrumbs): void {
     atlas_user_panel_root($breadcrumbs);
     $breadcrumbs->push(__('breadcrumbs.user_dashboard'), route('users.profile'));

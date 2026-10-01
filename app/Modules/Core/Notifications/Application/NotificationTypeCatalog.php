@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Core\Notifications\Application;
 
 use App\Modules\Core\Notifications\Application\Public\Contracts\NotificationTypeDirectory;
+use App\Shared\Application\Chat\Permissions\ChatPermissionNames;
 
 final class NotificationTypeCatalog implements NotificationTypeDirectory
 {
@@ -14,6 +15,14 @@ final class NotificationTypeCatalog implements NotificationTypeDirectory
     public function types(): array
     {
         return [
+            [
+                'type' => 'chat.call.missed',
+                'labelKey' => 'notifications.types.chat.call_missed.label',
+                'descriptionKey' => 'notifications.types.chat.call_missed.description',
+                'bodyPreviewKey' => 'notifications.chat.call_missed.body',
+                'bodyPreviewParams' => ['caller' => 'Anna Kowalska'],
+                'permissionNames' => [ChatPermissionNames::CALL_INDEX],
+            ],
             [
                 'type' => 'report_export.available',
                 'labelKey' => 'notifications.types.report_export.available.label',

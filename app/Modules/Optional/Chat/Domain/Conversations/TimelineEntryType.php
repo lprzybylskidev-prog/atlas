@@ -18,4 +18,8 @@ enum TimelineEntryType: string
     case MeetingParticipantInvited = 'meeting.participant_invited';
     case MeetingParticipantRemoved = 'meeting.participant_removed';
     case MeetingParticipantResponseChanged = 'meeting.participant_response_changed';
+    case CallStarted = 'call.started';
+    case CallBusy = 'call.busy';
+    case CallMissed = 'call.missed';
+    case CallEnded = 'call.ended';
 }

@@ -42,6 +42,8 @@ final class RegisteredTables
 
     public const NOTIFICATIONS = 'notifications';
 
+    public const CALL_HISTORY = 'chat.call-history';
+
     public const TIME_TRACKING_USER_REPORT = 'time-tracking.user-report';
 
     public const TIME_TRACKING_USER_WORK_TIME_DAILY = 'users.work-time.daily';
@@ -358,6 +360,21 @@ final class RegisteredTables
                 new TableColumn('readAt', defaultVisible: false),
                 new TableColumn('deepLinkUrl', defaultVisible: false),
             ], 'createdAt', 'desc'),
+            self::CALL_HISTORY => new TableDefinition($key, [
+                new TableColumn('publicId', defaultVisible: false),
+                new TableColumn('conversationLabel'),
+                new TableColumn('conversationType', defaultVisible: false),
+                new TableColumn('conversationTypeLabel'),
+                new TableColumn('initialMode', defaultVisible: false),
+                new TableColumn('initialModeLabel'),
+                new TableColumn('direction', defaultVisible: false),
+                new TableColumn('directionLabel'),
+                new TableColumn('state', defaultVisible: false),
+                new TableColumn('stateLabel'),
+                new TableColumn('startedAt'),
+                new TableColumn('duration', searchable: false),
+                new TableColumn('canRejoin', searchable: false, defaultVisible: false),
+            ], 'startedAt', 'desc'),
             self::TIME_TRACKING_USER_REPORT => new TableDefinition($key, [
                 new TableColumn('publicId', defaultVisible: false),
                 new TableColumn('type'),
@@ -739,6 +756,7 @@ final class RegisteredTables
             self::APPLICATION_LOGS => new RegisteredTableAccess('admin.logs.index'),
             self::FAILED_JOBS => new RegisteredTableAccess('admin.queues.index'),
             self::NOTIFICATIONS => new RegisteredTableAccess('users.notifications.index'),
+            self::CALL_HISTORY => new RegisteredTableAccess('chat.calls.index', false),
             self::TIME_TRACKING_USER_REPORT,
             self::TIME_TRACKING_USER_WORK_TIME_DAILY,
             self::TIME_TRACKING_USER_OTHER_WORK,
@@ -794,6 +812,7 @@ final class RegisteredTables
             self::MODULE_DETAIL_HISTORY,
             self::MODULE_DETAIL_SCHEDULES,
             self::NOTIFICATIONS,
+            self::CALL_HISTORY,
             self::TIME_TRACKING_USER_REPORT,
             self::TIME_TRACKING_USER_WORK_TIME_DAILY,
             self::TIME_TRACKING_USER_OTHER_WORK,

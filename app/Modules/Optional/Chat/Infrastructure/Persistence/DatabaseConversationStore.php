@@ -34,6 +34,11 @@ final readonly class DatabaseConversationStore implements ConversationStore
         return $this->conversation($lock ? $query->lockForUpdate()->first() : $query->first());
     }
 
+    public function findById(int $id): ?ConversationRecord
+    {
+        return $this->conversation($this->database->table(ChatDatabaseTable::CONVERSATIONS)->where('id', $id)->first());
+    }
+
     public function findDirect(int $lowerUserId, int $higherUserId): ?ConversationRecord
     {
         $row = $this->database->table(ChatDatabaseTable::DIRECT_CONVERSATION_PAIRS.' as pairs')

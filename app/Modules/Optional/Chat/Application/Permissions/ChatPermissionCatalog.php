@@ -52,7 +52,23 @@ final class ChatPermissionCatalog implements ModulePermissionContribution
 
     public const CALL_JOIN = ChatPermissionNames::CALL_JOIN;
 
+    public const CALL_INDEX = ChatPermissionNames::CALL_INDEX;
+
+    public const CALL_CURRENT = ChatPermissionNames::CALL_CURRENT;
+
+    public const CALL_DECLINE = ChatPermissionNames::CALL_DECLINE;
+
+    public const CALL_LEAVE = ChatPermissionNames::CALL_LEAVE;
+
+    public const CALL_MEDIA_UPDATE = ChatPermissionNames::CALL_MEDIA_UPDATE;
+
+    public const CALL_PREFERENCES_UPDATE = ChatPermissionNames::CALL_PREFERENCES_UPDATE;
+
+    public const CALL_PREFERENCES_SHOW = ChatPermissionNames::CALL_PREFERENCES_SHOW;
+
     public const SCREEN_SHARE_STORE = ChatPermissionNames::SCREEN_SHARE_STORE;
+
+    public const SCREEN_SHARE_DESTROY = ChatPermissionNames::SCREEN_SHARE_DESTROY;
 
     public const MEETING_STORE = ChatPermissionNames::MEETING_STORE;
 
@@ -106,7 +122,15 @@ final class ChatPermissionCatalog implements ModulePermissionContribution
             new ModulePermissionDefinition(self::REALTIME_UNREAD_TOTAL, 'Read the current total Chat unread count.'),
             new ModulePermissionDefinition(self::CALL_START, 'Start direct, group, or Team audio/video Calls.'),
             new ModulePermissionDefinition(self::CALL_JOIN, 'Join authorized audio/video Calls and Meetings.'),
+            new ModulePermissionDefinition(self::CALL_INDEX, 'View personal Call history.'),
+            new ModulePermissionDefinition(self::CALL_CURRENT, 'Read the current authorized Call state.'),
+            new ModulePermissionDefinition(self::CALL_DECLINE, 'Decline an incoming authorized Call.'),
+            new ModulePermissionDefinition(self::CALL_LEAVE, 'Leave an active authorized Call.'),
+            new ModulePermissionDefinition(self::CALL_MEDIA_UPDATE, 'Update camera and microphone state in an authorized Call.'),
+            new ModulePermissionDefinition(self::CALL_PREFERENCES_UPDATE, 'Update personal Call device preferences.'),
+            new ModulePermissionDefinition(self::CALL_PREFERENCES_SHOW, 'Read personal Call device preferences.'),
             new ModulePermissionDefinition(self::SCREEN_SHARE_STORE, 'Share the screen in an authorized Call or Meeting.'),
+            new ModulePermissionDefinition(self::SCREEN_SHARE_DESTROY, 'Stop sharing the screen in an authorized Call or Meeting.'),
             new ModulePermissionDefinition(self::MEETING_STORE, 'Create immediate, scheduled, or recurring Meetings.'),
             new ModulePermissionDefinition(self::MEETING_INVITATION_STORE, 'Invite active Atlas users to owned Meetings.'),
             new ModulePermissionDefinition(self::MEETING_MODERATE, 'Moderate owned Meetings.'),

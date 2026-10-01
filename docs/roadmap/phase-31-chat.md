@@ -1,6 +1,6 @@
 # Phase 31 — Optional internal company chat, calendar, calls, meetings, and realtime communication
 
-**Status:** `in progress` (`P31-W01` through `P31-W07` complete; `P31-W08` is next)
+**Status:** `in progress` (`P31-W01` through `P31-W08` complete; `P31-W09` is next)
 
 ## Objective
 
@@ -1245,27 +1245,27 @@ Do not automatically re-enable mic/camera without user interaction.
 
 ### Tasks
 
-- [ ] Implement DM ad-hoc Calls.
-- [ ] Implement group ad-hoc Calls.
-- [ ] Implement Team ad-hoc Calls.
-- [ ] Enforce one active Call per conversation.
-- [ ] Enforce one active RTC session per user.
-- [ ] Add Busy behavior.
-- [ ] Add incoming Call UI state.
-- [ ] Add outgoing camera-default preference.
-- [ ] Persist preferred devices.
-- [ ] Add pre-call device screen.
-- [ ] Add in-call device switching.
-- [ ] Add camera toggle.
-- [ ] Add microphone toggle.
-- [ ] Add one-person screen share.
-- [ ] Keep ad-hoc Calls non-recordable.
-- [ ] Add Team join-style notification behavior.
-- [ ] Add Call history and filters.
-- [ ] Add missed Call timeline state.
-- [ ] Add missed Call Notifications/browser alert.
-- [ ] Add Rejoin Call flow.
-- [ ] Add Call lifecycle/idempotency/concurrency tests.
+- [x] Implement DM ad-hoc Calls.
+- [x] Implement group ad-hoc Calls.
+- [x] Implement Team ad-hoc Calls.
+- [x] Enforce one active Call per conversation.
+- [x] Enforce one active RTC session per user.
+- [x] Add Busy behavior.
+- [x] Add incoming Call UI state.
+- [x] Add outgoing camera-default preference.
+- [x] Persist preferred devices.
+- [x] Add pre-call device screen.
+- [x] Add in-call device switching.
+- [x] Add camera toggle.
+- [x] Add microphone toggle.
+- [x] Add one-person screen share.
+- [x] Keep ad-hoc Calls non-recordable.
+- [x] Add Team join-style notification behavior.
+- [x] Add Call history and filters.
+- [x] Add missed Call timeline state.
+- [x] Add missed Call Notifications/browser alert.
+- [x] Add Rejoin Call flow.
+- [x] Add Call lifecycle/idempotency/concurrency tests.
 
 ---
 

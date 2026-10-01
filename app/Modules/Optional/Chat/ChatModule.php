@@ -29,6 +29,7 @@ final class ChatModule implements ModuleDefinition
             new ModuleKey('calendar'),
             new ModuleKey('teams'),
             new ModuleKey('audit'),
+            new ModuleKey('notifications'),
         ];
     }
 

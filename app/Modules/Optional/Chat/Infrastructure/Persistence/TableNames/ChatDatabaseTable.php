@@ -40,6 +40,10 @@ final class ChatDatabaseTable
 
     public const CALLS = DatabaseSchema::OPTIONAL_CHAT.'.calls';
 
+    public const CALL_PARTICIPANTS = DatabaseSchema::OPTIONAL_CHAT.'.call_participants';
+
+    public const CALL_PREFERENCES = DatabaseSchema::OPTIONAL_CHAT.'.call_preferences';
+
     public const MEETINGS = DatabaseSchema::OPTIONAL_CHAT.'.meetings';
 
     public const MEETING_INVITATIONS = DatabaseSchema::OPTIONAL_CHAT.'.meeting_invitations';
