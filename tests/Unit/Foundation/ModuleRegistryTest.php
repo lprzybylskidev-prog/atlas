@@ -314,6 +314,8 @@ final class ModuleRegistryTest extends TestCase
             'postgresql',
             'redis',
             'reverb',
+            'livekit-rtc',
+            'livekit-egress',
             'queues',
             'storage',
             'scheduler',

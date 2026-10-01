@@ -41,6 +41,14 @@ services:
       REVERB_CLIENT_HOST: localhost
       REVERB_CLIENT_PORT: 8000
       REVERB_CLIENT_SCHEME: http
+      ATLAS_RTC_ENABLED: "true"
+      ATLAS_RTC_EGRESS_ENABLED: "true"
+      LIVEKIT_URL: http://livekit:7880
+      LIVEKIT_CLIENT_URL: ws://localhost:7880
+      LIVEKIT_API_KEY: ${LIVEKIT_API_KEY:-atlasdevkey}
+      LIVEKIT_API_SECRET: ${LIVEKIT_API_SECRET:-atlas_dev_livekit_secret_change_me}
+      ATLAS_HEALTH_LIVEKIT_HOST: livekit
+      ATLAS_HEALTH_LIVEKIT_EGRESS_HOST: livekit-egress
     volumes:
       - ${ATLAS_WORKSPACE_SOURCE:-..}:/var/www/html:cached
     depends_on:
@@ -51,6 +59,8 @@ services:
       meilisearch:
         condition: service_healthy
       clamav:
+        condition: service_healthy
+      livekit:
         condition: service_healthy
     networks:
       - atlas-dev
@@ -89,6 +99,57 @@ services:
       start_period: 10s
     networks:
       - atlas-dev
+
+  livekit:
+    image: livekit/livekit-server:v1.13.7
+    user: "10001:10001"
+    environment:
+      LIVEKIT_KEYS: "${LIVEKIT_API_KEY:-atlasdevkey}: ${LIVEKIT_API_SECRET:-atlas_dev_livekit_secret_change_me}"
+    command: ["--config", "/etc/livekit/livekit.yaml"]
+    volumes:
+      - ${ATLAS_WORKSPACE_SOURCE:-..}/docker/dev/livekit/livekit.yaml:/etc/livekit/livekit.yaml:ro
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--spider", "http://127.0.0.1:7880/"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 5s
+    networks:
+      - atlas-dev
+    ports:
+      - "127.0.0.1:7880:7880"
+      - "127.0.0.1:7881:7881"
+      - "127.0.0.1:50000-50020:50000-50020/udp"
+
+  livekit-egress:
+    image: livekit/egress:v1.14.1
+    environment:
+      EGRESS_CONFIG_FILE: /etc/livekit-egress.yaml
+      LIVEKIT_API_KEY: ${LIVEKIT_API_KEY:-atlasdevkey}
+      LIVEKIT_API_SECRET: ${LIVEKIT_API_SECRET:-atlas_dev_livekit_secret_change_me}
+    volumes:
+      - ${ATLAS_WORKSPACE_SOURCE:-..}/docker/dev/livekit/egress.yaml:/etc/livekit-egress.yaml:ro
+      - livekit-egress-data:/out
+    depends_on:
+      livekit:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--spider", "http://127.0.0.1:8081/"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+    networks:
+      - atlas-dev
+    ports:
+      - "127.0.0.1:8081:8081"
 
   scheduler:
     image: atlas-php-fpm:latest
@@ -316,6 +377,7 @@ volumes:
   clamav-data:
   pgadmin-data:
   redisinsight-data:
+  livekit-egress-data:
 
 networks:
   atlas-dev:

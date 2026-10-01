@@ -12,6 +12,7 @@
     "require": {
         "php": "^8.3",
         "diglactic/laravel-breadcrumbs": "^10.1",
+        "firebase/php-jwt": "^7.2",
         "guzzlehttp/guzzle": "^7.15.1",
         "inertiajs/inertia-laravel": "^3.1",
         "laravel/fortify": "^1.36",
@@ -110,6 +111,10 @@
         "test:integration": [
             "@test:prepare",
             "@php artisan test --testsuite=Integration"
+        ],
+        "test:rtc": [
+            "Composer\\Config::disableProcessTimeout",
+            "bash tools/testing/run-rtc-integration.sh"
         ],
         "test:feature": [
             "@test:prepare",

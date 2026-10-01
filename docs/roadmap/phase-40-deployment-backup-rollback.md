@@ -56,6 +56,8 @@ Phase 40 depends on the completed technical foundation, including:
 
 Phase 40 must build on those capabilities instead of replacing or redesigning them.
 
+Phase 31 P31-W07 established the development-only pinned LiveKit/Egress topology and recorded the LAN/VPN/TURN/TLS, certificate, firewall, secret, health, capacity, staging, exact-release, and failure-isolation requirements below. Phase 40 remains the owner of their production implementation and acceptance proof.
+
 ### Diagnostics deployment boundary
 
 Diagnostics PostgreSQL data is normal durable Atlas production data in the existing PostgreSQL deployment. Persistence, backup, and restore cover Technical Issues, aggregate history, retained detailed occurrences, User Bug Reports, issue/report links, lifecycle history, configuration, and safe Diagnostics settings. Do not create a separate Diagnostics database.

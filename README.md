@@ -32,7 +32,7 @@ Atlas is designed around:
 - PHPUnit, PHPStan/Larastan, and Pint
 - ESLint, Prettier, Stylelint, Vitest, and Playwright
 - Docker Compose and VS Code Dev Containers
-- Horizon, Sentry, Meilisearch, ClamAV, Chromium/Playwright, and local-only Laravel Telescope/Debugbar where their capabilities are active
+- Horizon, Sentry, Meilisearch, ClamAV, Chromium/Playwright, self-hosted LiveKit/Egress, and local-only Laravel Telescope/Debugbar where their capabilities are active
 
 The permanent PHP root namespace is:
 

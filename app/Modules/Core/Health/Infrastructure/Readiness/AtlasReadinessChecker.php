@@ -36,6 +36,8 @@ final readonly class AtlasReadinessChecker implements ReadinessChecker
             $this->postgresql(),
             $this->redis(),
             $this->reverb(),
+            $this->liveKitRtc(),
+            $this->liveKitEgress(),
             $this->queues(),
             $this->storage(),
             $this->scheduler(),
@@ -219,6 +221,83 @@ final readonly class AtlasReadinessChecker implements ReadinessChecker
         return $blocking
             ? ReadinessCheckResult::unhealthy('reverb', 'Reverb', true, 'Critical Reverb endpoint is not reachable.', $metadata)
             : ReadinessCheckResult::degraded('reverb', 'Reverb', false, 'Optional Reverb endpoint is not reachable.', $metadata);
+    }
+
+    private function liveKitRtc(): ReadinessCheckResult
+    {
+        if (! Config::boolean('livekit.rtc_enabled', false)) {
+            return ReadinessCheckResult::healthy(
+                key: 'livekit-rtc',
+                label: 'LiveKit RTC',
+                blocking: false,
+                description: 'LiveKit RTC is not enabled for this runtime.',
+            );
+        }
+
+        $host = Config::string('livekit.health.livekit.host', '');
+        $port = Config::integer('livekit.health.livekit.port', 0);
+        $critical = Config::boolean('livekit.health.livekit.critical', false);
+        $metadata = ['host' => $host, 'port' => $port];
+        $configurationComplete = $host !== ''
+            && $port > 0
+            && Config::string('livekit.server_url', '') !== ''
+            && Config::string('livekit.client_url', '') !== ''
+            && Config::string('livekit.api_key', '') !== ''
+            && Config::string('livekit.api_secret', '') !== '';
+
+        if (! $configurationComplete) {
+            return $critical
+                ? ReadinessCheckResult::unhealthy('livekit-rtc', 'LiveKit RTC', true, 'LiveKit RTC is enabled but its endpoint or credentials are incomplete.', $metadata)
+                : ReadinessCheckResult::degraded('livekit-rtc', 'LiveKit RTC', false, 'LiveKit RTC is enabled but its endpoint or credentials are incomplete.', $metadata);
+        }
+
+        if ($this->canOpenTcpConnection($host, $port)) {
+            return ReadinessCheckResult::healthy(
+                key: 'livekit-rtc',
+                label: 'LiveKit RTC',
+                blocking: $critical,
+                description: 'LiveKit RTC accepts connections on its internal signaling endpoint.',
+                metadata: $metadata,
+            );
+        }
+
+        return $critical
+            ? ReadinessCheckResult::unhealthy('livekit-rtc', 'LiveKit RTC', true, 'Critical LiveKit RTC signaling is not reachable.', $metadata)
+            : ReadinessCheckResult::degraded('livekit-rtc', 'LiveKit RTC', false, 'LiveKit RTC signaling is not reachable; text Chat remains available.', $metadata);
+    }
+
+    private function liveKitEgress(): ReadinessCheckResult
+    {
+        if (! Config::boolean('livekit.egress_enabled', false)) {
+            return ReadinessCheckResult::healthy(
+                key: 'livekit-egress',
+                label: 'LiveKit Egress',
+                blocking: false,
+                description: 'LiveKit Egress is not enabled for this runtime.',
+            );
+        }
+
+        $host = Config::string('livekit.health.egress.host', '');
+        $port = Config::integer('livekit.health.egress.port', 0);
+        $metadata = ['host' => $host, 'port' => $port];
+
+        if ($host !== '' && $this->canOpenTcpConnection($host, $port)) {
+            return ReadinessCheckResult::healthy(
+                key: 'livekit-egress',
+                label: 'LiveKit Egress',
+                blocking: false,
+                description: 'LiveKit Egress exposes its internal health endpoint.',
+                metadata: $metadata,
+            );
+        }
+
+        return ReadinessCheckResult::degraded(
+            key: 'livekit-egress',
+            label: 'LiveKit Egress',
+            blocking: false,
+            description: 'LiveKit Egress is unavailable; live RTC and text Chat remain available without recording.',
+            metadata: $metadata,
+        );
     }
 
     private function storage(): ReadinessCheckResult

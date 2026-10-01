@@ -6,7 +6,7 @@ Current pre-Phase-32 observability still includes Sentry wiring documented below
 
 ## Phase 28 closure state
 
-Current state: health/readiness and Admin diagnostics use real technical availability checks consumed by ModuleGate. The Phase 28 foundation smoke covers nginx, php-fpm, application readiness, Horizon and every configured queue, scheduler heartbeat, PostgreSQL, Redis, Meilisearch, ClamAV/EICAR, storage, Chromium/PDF, clean teardown, and persisted PostgreSQL data. Phase 31 adds the Reverb internal TCP readiness check and makes it blocking for the production Chat runtime.
+Current state: health/readiness and Admin diagnostics use real technical availability checks consumed by ModuleGate. The Phase 28 foundation smoke covers nginx, php-fpm, application readiness, Horizon and every configured queue, scheduler heartbeat, PostgreSQL, Redis, Meilisearch, ClamAV/EICAR, storage, Chromium/PDF, clean teardown, and persisted PostgreSQL data. Phase 31 adds Reverb, LiveKit RTC, and separate LiveKit Egress internal readiness checks.
 
 Health checks verify real dependency chains, report actionable non-secret degraded metadata, and distinguish technical unavailability from administrative module deactivation.
 
@@ -70,7 +70,9 @@ Public liveness is available at `GET /health/live`. It only confirms that the ap
 
 Public readiness is available at `GET /health/ready`. It evaluates blocking and degraded dependencies, returns HTTP `503` only for blocking failures, and keeps the public payload minimal by exposing only overall status, release version/ID, checked timestamp, and blocking/degraded counts. Detailed per-check diagnostics are available through Admin System Status.
 
-Current readiness checks cover critical configuration, PostgreSQL, required Redis capabilities, queue backend reachability/configuration, writable application storage, scheduler heartbeat freshness, Meilisearch optional availability, ClamAV, and Chromium/PDF rendering capability.
+Current readiness checks cover critical configuration, PostgreSQL, required Redis capabilities, Reverb, LiveKit RTC, LiveKit Egress, queue backend reachability/configuration, writable application storage, scheduler heartbeat freshness, Meilisearch optional availability, ClamAV, and Chromium/PDF rendering capability.
+
+LiveKit RTC readiness checks the configured internal signaling endpoint and verifies that enabled endpoint/credential configuration is complete without exposing credentials. It is degraded by default and becomes blocking only through `ATLAS_HEALTH_LIVEKIT_CRITICAL=true`. LiveKit is deliberately not a Chat ModuleGate health dependency, so a media outage does not disable Reverb-backed text Chat. Egress readiness checks its separate private health endpoint and is always non-blocking: an Egress outage disables recording work only and must not end live RTC or affect text Chat.
 
 Meilisearch is degraded by default and becomes blocking only when Atlas marks Search as critical through `ATLAS_HEALTH_MEILISEARCH_CRITICAL=true`.
 

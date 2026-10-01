@@ -26,6 +26,7 @@ final class CommunicationBoundaryArchitectureTest extends TestCase
         self::assertSame(ModuleCategory::Optional, $chat->category());
         self::assertTrue($chat->supportsGlobalActivation());
         self::assertFalse($chat->supportsTeamActivation());
+        self::assertSame(['reverb'], $chat->healthChecks(), 'RTC or Egress failure must not disable text Chat through ModuleGate.');
         self::assertSame(
             ['identity', 'files', 'calendar', 'teams', 'audit'],
             array_map(static fn ($key): string => $key->value, $chat->requiredDependencies()),
@@ -60,6 +61,25 @@ final class CommunicationBoundaryArchitectureTest extends TestCase
         self::assertNotContains('chat.admin.read', $names);
         self::assertNotContains('admin.chat.messages.show', $names);
         self::assertNotContains('admin.chat.conversations.show', $names);
+    }
+
+    public function test_livekit_api_secret_has_no_browser_configuration_surface(): void
+    {
+        $root = dirname(__DIR__, 3);
+        foreach ([$root.'/resources/js', $root.'/resources/views'] as $directory) {
+            foreach (new RecursiveIteratorIterator(new RecursiveDirectoryIterator($directory)) as $file) {
+                if (! $file instanceof SplFileInfo || ! $file->isFile() || ! in_array($file->getExtension(), ['php', 'ts', 'vue'], true)) {
+                    continue;
+                }
+
+                $contents = file_get_contents($file->getPathname());
+                self::assertIsString($contents);
+                self::assertStringNotContainsString('LIVEKIT_API_SECRET', $contents, $file->getPathname());
+                self::assertStringNotContainsString('livekit.api_secret', $contents, $file->getPathname());
+            }
+        }
+
+        self::assertStringNotContainsString('VITE_LIVEKIT_API_SECRET', (string) file_get_contents($root.'/.env.example'));
     }
 
     /** @return iterable<SplFileInfo> */

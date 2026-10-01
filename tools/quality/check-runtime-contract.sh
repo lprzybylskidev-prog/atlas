@@ -31,6 +31,22 @@ done
 
 rg -F -q 'image: clamav/clamav:1.4.5-debian13-slim' "${COMPOSE_FILE}" \
   || fail 'Production ClamAV image is not pinned.'
+rg -F -q 'image: livekit/livekit-server:v1.13.7' "${ROOT_DIR}/.devcontainer/docker-compose.yml" \
+  || fail 'Development LiveKit Server image is not pinned.'
+rg -F -q 'image: livekit/egress:v1.14.1' "${ROOT_DIR}/.devcontainer/docker-compose.yml" \
+  || fail 'Development LiveKit Egress image is not pinned.'
+rg -F -q 'user: "10001:10001"' "${ROOT_DIR}/.devcontainer/docker-compose.yml" \
+  || fail 'Development LiveKit Server must run as a non-root user.'
+rg -F -q 'http://127.0.0.1:7880/' "${ROOT_DIR}/.devcontainer/docker-compose.yml" \
+  || fail 'Development LiveKit Server health check is missing.'
+rg -F -q 'http://127.0.0.1:8081/' "${ROOT_DIR}/.devcontainer/docker-compose.yml" \
+  || fail 'Development LiveKit Egress health check is missing.'
+rg -F -q 'docker/dev/livekit/livekit.yaml:/etc/livekit/livekit.yaml:ro' "${ROOT_DIR}/.devcontainer/docker-compose.yml" \
+  || fail 'Development LiveKit configuration is not mounted read-only.'
+rg -F -q 'docker/dev/livekit/egress.yaml:/etc/livekit-egress.yaml:ro' "${ROOT_DIR}/.devcontainer/docker-compose.yml" \
+  || fail 'Development LiveKit Egress configuration is not mounted read-only.'
+! rg -q 'livekit-server|livekit/egress' "${ROOT_DIR}/docker/dev/app/Dockerfile" "${ROOT_DIR}/docker/production/php/Dockerfile" \
+  || fail 'LiveKit and Egress must remain sibling services outside PHP workspace/runtime images.'
 
 ! rg -n '^COPY[[:space:]]+(--[^[:space:]]+[[:space:]]+)*\.[[:space:]]' \
   "${ROOT_DIR}/docker/production/php/Dockerfile" \

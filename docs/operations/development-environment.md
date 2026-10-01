@@ -30,6 +30,8 @@ Development services:
 - scheduler;
 - queue worker;
 - Reverb WebSocket server;
+- LiveKit RTC server;
+- separate LiveKit Egress recording service;
 - PostgreSQL;
 - Redis;
 - Meilisearch;
@@ -89,7 +91,10 @@ Forwarded/local development ports:
 - `7700` for Meilisearch;
 - `8025` for Mailpit UI;
 - `5050` for pgAdmin;
-- `5540` for RedisInsight.
+- `5540` for RedisInsight;
+- `7880` for local LiveKit signaling/API;
+- `7881` and UDP `50000-50020` for local LiveKit media;
+- `8081` for the loopback-only Egress health endpoint.
 
 The default development-only pgAdmin sign-in is `admin@atlas.example.com`; its password comes from `PGADMIN_DEFAULT_PASSWORD`. This account is unrelated to the Atlas demo administrator at `admin@example.test`.
 
@@ -121,6 +126,10 @@ The `app` service is the VS Code/Codex workspace container and intentionally run
 HTTP traffic goes through the development `nginx` service and the separate `php-fpm` service. The `scheduler` service runs `php artisan schedule:work` against the same code mount so local readiness has a fresh scheduler heartbeat instead of becoming unhealthy after `ATLAS_SCHEDULER_HEARTBEAT_STALE_SECONDS`.
 
 The non-root `reverb` service runs `php artisan reverb:start` from the same mounted source and runtime image. Nginx proxies WebSocket upgrades through `http://localhost:8000`, so the internal Reverb port is not published directly. Restart it after Chat broadcasting changes with `docker compose -f .devcontainer/docker-compose.yml restart reverb`; no Dev Container rebuild is required.
+
+The pinned non-root `livekit` service and the separate pinned `livekit-egress` service are sibling infrastructure containers. Both use the canonical development Redis service; neither is installed in or mounted over the PHP workspace. LiveKit reads non-secret topology from `docker/dev/livekit/livekit.yaml` and credentials from server-side environment variables. Egress reads `docker/dev/livekit/egress.yaml`, receives the same credentials server-side, exposes only its loopback health port, and writes temporary development output to its own named volume. Start and verify both services with `composer test:rtc`; this command does not rebuild the active Dev Container.
+
+Local browser clients connect to `ws://localhost:7880`; the backend uses `http://livekit:7880`. The development media ports are loopback-bound and are not a production LAN/VPN topology. Phase 40 owns trusted network exposure, TURN/TLS, certificates, firewall policy, capacity, and production Egress staging.
 
 The `php-fpm`, `scheduler`, and `worker` runtime services use the production PHP image during local Compose development. That image includes Node.js and system Chromium so web readiness and queued PDF export execution validate the same PDF runtime chain that production uses. The separate VS Code `app` Dev Container still includes the broader Playwright browser set for E2E development.
 

@@ -139,12 +139,28 @@ fi
 run_analysis() {
   local -a batch=("$@")
   local -a args=(analyse "${batch[@]}" --memory-limit="${MEMORY_LIMIT}")
+  local attempt=1
+  local max_attempts=3
+  local exit_code
 
   if [[ "${DISABLE_PARALLEL}" == "1" ]]; then
     args+=(--debug)
   fi
 
-  vendor/bin/phpstan "${args[@]}"
+  while true; do
+    if vendor/bin/phpstan "${args[@]}"; then
+      return 0
+    else
+      exit_code=$?
+    fi
+
+    if [[ "${exit_code}" -ne 139 || "${attempt}" -ge "${max_attempts}" ]]; then
+      return "${exit_code}"
+    fi
+
+    echo "PHPStan terminated with exit code 139; retrying batch (attempt $((attempt + 1))/${max_attempts})." >&2
+    attempt=$((attempt + 1))
+  done
 }
 
 main_targets=()

@@ -1,6 +1,6 @@
 # Phase 31 — Optional internal company chat, calendar, calls, meetings, and realtime communication
 
-**Status:** `in progress` (`P31-W01` through `P31-W06` complete; `P31-W07` is next)
+**Status:** `in progress` (`P31-W01` through `P31-W07` complete; `P31-W08` is next)
 
 ## Objective
 
@@ -1042,23 +1042,23 @@ Such capacity failures must produce a clear user-facing result rather than a han
 
 ### Tasks
 
-- [ ] Add self-hosted LiveKit development service.
-- [ ] Add self-hosted LiveKit Egress development service.
-- [ ] Keep services separate from PHP workspace.
-- [ ] Define RTC gateway boundary.
-- [ ] Add LiveKit infrastructure implementation.
-- [ ] Add short-lived room-token authorization.
-- [ ] Keep LiveKit secrets server-side.
-- [ ] Preserve Reverb as messaging realtime.
-- [ ] Add LAN/VPN/TURN/TLS production requirements to Phase 40 planning.
-- [ ] Add RTC health/readiness hooks.
-- [ ] Isolate RTC failures from Chat messaging.
-- [ ] Isolate Egress failure from live Meetings.
-- [ ] Keep Meeting domain state independent from LiveKit room existence.
-- [ ] Prevent in-person Meetings from creating LiveKit rooms or participant tokens.
-- [ ] Keep in-person Meetings usable while LiveKit, TURN, or Egress is unavailable.
-- [ ] Add deterministic RTC integration test infrastructure.
-- [ ] Add unauthorized-room negative tests.
+- [x] Add self-hosted LiveKit development service.
+- [x] Add self-hosted LiveKit Egress development service.
+- [x] Keep services separate from PHP workspace.
+- [x] Define RTC gateway boundary.
+- [x] Add LiveKit infrastructure implementation.
+- [x] Add short-lived room-token authorization.
+- [x] Keep LiveKit secrets server-side.
+- [x] Preserve Reverb as messaging realtime.
+- [x] Add LAN/VPN/TURN/TLS production requirements to Phase 40 planning.
+- [x] Add RTC health/readiness hooks.
+- [x] Isolate RTC failures from Chat messaging.
+- [x] Isolate Egress failure from live Meetings.
+- [x] Keep Meeting domain state independent from LiveKit room existence.
+- [x] Prevent in-person Meetings from creating LiveKit rooms or participant tokens.
+- [x] Keep in-person Meetings usable while LiveKit, TURN, or Egress is unavailable.
+- [x] Add deterministic RTC integration test infrastructure.
+- [x] Add unauthorized-room negative tests.
 
 ---
 

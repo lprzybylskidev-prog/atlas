@@ -1,6 +1,6 @@
 # Internal communication and Chat module
 
-Canonical current boundary and accepted target for the Atlas internal-communication capability. Phase 31 is in progress: P31-W01 through P31-W06 established the module boundary, shared Calendar, persistent conversation ownership, canonical message behavior, Files-backed attachments, content browsing, voice messages, and Reverb messaging realtime; P31-W07 is the next sequential workstream. The phase file remains the binding implementation and acceptance contract.
+Canonical current boundary and accepted target for the Atlas internal-communication capability. Phase 31 is in progress: P31-W01 through P31-W07 established the module boundary, shared Calendar, persistent conversation ownership, canonical message behavior, Files-backed attachments, content browsing, voice messages, Reverb messaging realtime, and the self-hosted LiveKit/Egress RTC foundation; P31-W08 is the next sequential workstream. The phase file remains the binding implementation and acceptance contract.
 
 ## Purpose and boundary
 
@@ -63,7 +63,7 @@ Voice messages are Files-owned attachments with a server-enforced maximum record
 
 ## Shared Core Calendar boundary and target
 
-Calendar is registered as a shared Core capability rather than Chat-owned storage or a Meeting-only widget. Its narrow public API accepts owner-tagged event contributions and exposes privacy-safe Free/Busy windows. Chat's Meeting Calendar adapter uses that API and never Calendar persistence. The P31-W02 target adds private personal events, Month/Week/Day/Agenda views, Europe/Warsaw recurrence, reminders, and Free/Busy behavior without turning Calendar into task management or exposing private personal events to Administrators.
+Calendar is registered as a shared Core capability rather than Chat-owned storage or a Meeting-only widget. Its narrow public API accepts owner-tagged event contributions and exposes privacy-safe Free/Busy windows. Chat's Meeting Calendar adapter uses that API and never Calendar persistence. The P31-W02 implementation provides private personal events, Month/Week/Day/Agenda views, Europe/Warsaw recurrence, reminders, and Free/Busy behavior without turning Calendar into task management or exposing private personal events to Administrators.
 
 ## Calls and Meetings target
 
@@ -88,6 +88,12 @@ Every private and presence channel requires explicit user/conversation/Team auth
 Chat supports online/offline/last-seen presence, informational manual statuses, expiring ephemeral typing indicators, direct sent/delivered/read state, group and Team read visibility, unread counts, a new-message separator, last-read cursors, and mark-as-unread. Presence and typing avoid excessive persistent writes; typing is neither persisted nor audited. `Do not disturb` is informational and does not mute delivery.
 
 The implemented transport uses a private per-user channel and participant-authorized per-conversation presence channels. Heartbeats are persisted at most once per 45 seconds, online state expires after 90 seconds, and browser typing indicators expire after five seconds. Delivery, read, and mark-unread use one cursor row per conversation membership. Initial connection and reconnect call the authoritative reconciliation endpoint and merge persisted messages by public identifier.
+
+The RTC foundation uses pinned, self-hosted LiveKit Server and separate LiveKit Egress development services connected through the canonical Redis service. They remain sibling infrastructure containers and are not installed in the PHP workspace or runtime image. Reverb remains the only canonical Chat-message transport; LiveKit data channels do not store or deliver Atlas messages.
+
+The internal `RtcGateway` prepares and ends rooms, removes participants, and issues five-minute room-scoped participant credentials through a narrow Atlas-owned HTTP/JWT adapter to LiveKit's server API. Atlas exposes only the browser-visible LiveKit WebSocket URL and an authorized participant token; the API key and secret remain backend/service configuration. Session admission is a separate deny-by-default contract. P31-W08 and P31-W09 must implement it from their authoritative Call and Meeting state before any HTTP token endpoint is exposed, so a browser-supplied or guessed room identifier can never authorize access.
+
+RTC modes are explicit. Ad-hoc Calls and online/hybrid Meetings may use RTC, while an in-person Meeting is rejected before room preparation and again by the LiveKit adapter as defense in depth. RTC infrastructure owns no Meeting persistence. LiveKit outage produces a typed RTC-unavailable result without disabling Reverb or text Chat; Egress health is independently degraded and cannot disable live RTC. Chat's ModuleGate technical dependency remains Reverb only.
 
 ## Shell and browser experience
 

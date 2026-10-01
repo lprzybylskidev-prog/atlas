@@ -115,6 +115,8 @@ Permission-gated and module-gated UI behavior needs Playwright coverage when man
 
 `tests/e2e/chat-realtime.spec.ts` is the P31-W06 multi-context Reverb acceptance workflow. Chromium opens two independent authenticated browser contexts and verifies presence, message push, expiring typing, delivery/read cursors, mark-unread totals, reconnect backfill, manual status, and denial of a guessed presence channel. Playwright starts isolated Reverb and helper-health listeners on ports `8085` and `8086`. Firefox skips this one transport-matrix duplicate while the broader Firefox suite retains cross-browser coverage.
 
+`composer test:rtc` is the deterministic P31-W07 external-runtime lane. It starts the pinned development LiveKit Server and Egress images through the canonical Compose stack, waits for the real signaling and Egress health endpoints, then runs `LiveKitRtcInfrastructureTest`. The proof creates and removes a real room, verifies a signed room-scoped participant token, and checks the separate Egress health service. Ordinary `composer test` keeps this heavyweight external-runtime proof skipped; unit and feature coverage still enforce denial of guessed rooms, in-person rejection, token scope, health classification, secret omission, and Chat/Egress failure isolation.
+
 ## Future CI
 
 Atlas does not bundle a CI provider. A derived project may add CI later by calling the public Composer and pnpm commands.

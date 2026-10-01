@@ -8,6 +8,7 @@ use App\Modules\Core\Authorization\Application\Roles\InstallStarterRoles;
 use App\Modules\Core\Authorization\Application\Roles\StarterRoleName;
 use App\Modules\Core\Authorization\Infrastructure\Persistence\TableNames\AuthorizationDatabaseTable;
 use App\Modules\Core\Health\Application\Readiness\Contracts\ReadinessChecker;
+use App\Modules\Core\Health\Application\Readiness\HealthCheckStatus;
 use App\Modules\Core\Identity\Infrastructure\Persistence\User;
 use App\Modules\Core\Teams\Infrastructure\Persistence\TableNames\TeamsDatabaseTable;
 use App\Modules\Core\Teams\Infrastructure\Persistence\Team;
@@ -98,10 +99,12 @@ final class HealthEndpointTest extends TestCase
             ->assertJsonPath('data.checks.0.key', 'critical-configuration')
             ->assertJsonPath('data.checks.1.key', 'postgresql')
             ->assertJsonPath('data.checks.3.key', 'reverb')
-            ->assertJsonPath('data.checks.6.key', 'scheduler')
-            ->assertJsonPath('data.checks.7.key', 'meilisearch')
-            ->assertJsonPath('data.checks.8.key', 'clamav')
-            ->assertJsonPath('data.checks.9.key', 'chromium-pdf');
+            ->assertJsonPath('data.checks.4.key', 'livekit-rtc')
+            ->assertJsonPath('data.checks.5.key', 'livekit-egress')
+            ->assertJsonPath('data.checks.8.key', 'scheduler')
+            ->assertJsonPath('data.checks.9.key', 'meilisearch')
+            ->assertJsonPath('data.checks.10.key', 'clamav')
+            ->assertJsonPath('data.checks.11.key', 'chromium-pdf');
     }
 
     public function test_readiness_blocks_when_clamav_is_configured_as_critical_without_daemon(): void
@@ -136,12 +139,65 @@ final class HealthEndpointTest extends TestCase
         $this->useNonRedisRuntimeForDeterministicReadiness();
         Config::set('atlas.operations.health.chromium.critical', true);
         Config::set('atlas.operations.health.chromium.binary', null);
+        Config::set('livekit.rtc_enabled', false);
+        Config::set('livekit.egress_enabled', false);
         $this->app->make(SchedulerHeartbeatMonitor::class)->markHealthy(14);
 
         $this->get('/health/ready')
             ->assertStatus(503)
             ->assertJsonPath('status', 'unhealthy')
             ->assertJsonPath('blocking.failed', 1);
+    }
+
+    public function test_livekit_and_egress_outages_are_reported_without_disabling_text_chat(): void
+    {
+        $this->useNonRedisRuntimeForDeterministicReadiness();
+        Config::set('livekit.rtc_enabled', true);
+        Config::set('livekit.egress_enabled', true);
+        Config::set('livekit.server_url', 'http://127.0.0.1:1');
+        Config::set('livekit.client_url', 'ws://rtc.example.test');
+        Config::set('livekit.api_key', 'test-key');
+        Config::set('livekit.api_secret', 'test-secret');
+        Config::set('livekit.health.livekit.host', '127.0.0.1');
+        Config::set('livekit.health.livekit.port', 1);
+        Config::set('livekit.health.livekit.critical', false);
+        Config::set('livekit.health.egress.host', '127.0.0.1');
+        Config::set('livekit.health.egress.port', 1);
+        $this->app->make(SchedulerHeartbeatMonitor::class)->markHealthy(14);
+
+        $checks = collect($this->app->make(ReadinessChecker::class)->check()->checks)->keyBy('key');
+        $rtc = $checks->get('livekit-rtc');
+        $egress = $checks->get('livekit-egress');
+
+        self::assertNotNull($rtc);
+        self::assertSame(HealthCheckStatus::Degraded, $rtc->status);
+        self::assertFalse($rtc->blocking);
+        self::assertNotNull($egress);
+        self::assertSame(HealthCheckStatus::Degraded, $egress->status);
+        self::assertFalse($egress->blocking);
+    }
+
+    public function test_critical_livekit_runtime_blocks_readiness_without_exposing_credentials(): void
+    {
+        $this->useNonRedisRuntimeForDeterministicReadiness();
+        Config::set('livekit.rtc_enabled', true);
+        Config::set('livekit.server_url', 'http://127.0.0.1:1');
+        Config::set('livekit.client_url', 'wss://rtc.example.test');
+        Config::set('livekit.api_key', 'private-key');
+        Config::set('livekit.api_secret', 'never-expose-this-secret');
+        Config::set('livekit.health.livekit.host', '127.0.0.1');
+        Config::set('livekit.health.livekit.port', 1);
+        Config::set('livekit.health.livekit.critical', true);
+        $this->app->make(SchedulerHeartbeatMonitor::class)->markHealthy(14);
+
+        $report = $this->app->make(ReadinessChecker::class)->check();
+        $rtc = collect($report->checks)->firstWhere('key', 'livekit-rtc');
+
+        self::assertNotNull($rtc);
+        self::assertSame(HealthCheckStatus::Unhealthy, $rtc->status);
+        self::assertTrue($rtc->blocking);
+        self::assertStringNotContainsString('private-key', json_encode($rtc->toAdminArray(), JSON_THROW_ON_ERROR));
+        self::assertStringNotContainsString('never-expose-this-secret', json_encode($rtc->toAdminArray(), JSON_THROW_ON_ERROR));
     }
 
     public function test_readiness_accepts_configured_chromium_pdf_renderer_binary(): void
