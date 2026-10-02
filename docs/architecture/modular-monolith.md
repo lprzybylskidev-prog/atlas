@@ -235,7 +235,7 @@ Schema names are stable lowercase `snake_case` identifiers:
 - `core_exports` for reusable export request snapshots, generated artifact metadata, and render credentials;
 - `shared` for shared technical infrastructure such as Outbox, saved table views, module activation state, and framework runtime tables that Atlas intentionally owns centrally;
 - `optional_<module>` for optional foundation modules;
-- `application_<module>` for debt collection business modules.
+- `application_<module>` for concrete business modules.
 
 The `public` schema is allowed only for PostgreSQL extension metadata, the Laravel migration repository table unless a later operations decision moves it, and explicitly documented package-owned compatibility tables. New Atlas-owned tables must not be created in `public`.
 
@@ -390,9 +390,9 @@ Reports/exports/print and realtime/WebSockets are shared cross-cutting capabilit
 
 ### Application
 
-Business-specific modules of the Atlas.
+Business-specific modules built on Atlas.
 
-Shared foundation modules must not assume the internal rules of a specific debt collection `Application` module.
+Shared foundation modules must not assume the internal rules of a specific `Application` module.
 
 ---
 

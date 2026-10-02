@@ -197,8 +197,8 @@ final class AdminModeImpersonationTest extends TestCase
     {
         [$admin, $team] = $this->adminActor();
         $team->forceFill([
-            'name' => 'collections.north',
-            'display_name' => 'Windykacja Północ',
+            'name' => 'operations.north',
+            'display_name' => 'Operacje Północ',
         ])->save();
         $sensitive = User::factory()->create(['account_sensitivity' => 'sensitive']);
         $this->assignStarterRoleInTeam($sensitive, $team, StarterRoleName::WorkspaceAccess->value);
@@ -212,7 +212,7 @@ final class AdminModeImpersonationTest extends TestCase
             ])
             ->assertRedirect(route('dashboard'))
             ->assertSessionHas(ImpersonationManager::USER_PUBLIC_ID, (string) $sensitive->public_id)
-            ->assertSessionHas(ImpersonationManager::TEAM_NAME, 'Windykacja Północ');
+            ->assertSessionHas(ImpersonationManager::TEAM_NAME, 'Operacje Północ');
     }
 
     public function test_impersonation_uses_target_permissions_without_hidden_admin_bypass(): void

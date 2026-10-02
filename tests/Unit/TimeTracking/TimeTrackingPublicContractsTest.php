@@ -26,8 +26,8 @@ final class TimeTrackingPublicContractsTest extends TestCase
         $capturedAt = $this->instant('2026-08-01 08:00:00');
         $snapshot = new AnalysisContextSnapshot(
             teamPublicId: '01K1J7APZKQ63CJS7HZAH4NX2M',
-            teamName: 'Collection Team A',
-            roleKeys: ['collector', 'case_reviewer'],
+            teamName: 'Operations Team A',
+            roleKeys: ['operator', 'work_reviewer'],
             processPublicId: 'process-2026-08-01',
             processKey: 'case_review',
             moduleKey: 'cases',
@@ -50,14 +50,14 @@ final class TimeTrackingPublicContractsTest extends TestCase
 
         self::assertSame('cases:reviewed:123', $event->sourceEventId);
         self::assertSame('cases', $event->contextSnapshot->moduleKey);
-        self::assertSame(['collector', 'case_reviewer'], $event->contextSnapshot->roleKeys);
+        self::assertSame(['operator', 'work_reviewer'], $event->contextSnapshot->roleKeys);
         self::assertSame(1, $event->metricInputs['reviewed_cases']);
     }
 
     public function test_metric_definitions_are_versioned_and_results_are_traceable(): void
     {
         $definition = new MetricDefinition(
-            metricKey: 'cases.reviewed',
+            metricKey: 'work.items_reviewed',
             ownerModuleKey: 'cases',
             ruleVersion: 2,
             calculationRuleKey: 'sum.reviewed_cases',
@@ -65,7 +65,7 @@ final class TimeTrackingPublicContractsTest extends TestCase
             sourceEventKeys: ['case.reviewed'],
         );
         $result = new DerivedMetricResult(
-            metricKey: 'cases.reviewed',
+            metricKey: 'work.items_reviewed',
             ruleVersion: 2,
             value: 15.0,
             sourceEventIds: ['cases:reviewed:123'],
@@ -80,7 +80,7 @@ final class TimeTrackingPublicContractsTest extends TestCase
     public function test_recalculation_request_selects_a_metric_rule_version_and_range(): void
     {
         $definition = new MetricDefinition(
-            metricKey: 'cases.reviewed',
+            metricKey: 'work.items_reviewed',
             ownerModuleKey: 'cases',
             ruleVersion: 2,
             calculationRuleKey: 'sum.reviewed_cases',
@@ -91,7 +91,7 @@ final class TimeTrackingPublicContractsTest extends TestCase
             definitionSnapshot: new MetricDefinitionSnapshot($definition, $this->instant('2026-08-01 12:00:00')),
             results: [
                 new DerivedMetricResult(
-                    metricKey: 'cases.reviewed',
+                    metricKey: 'work.items_reviewed',
                     ruleVersion: 2,
                     value: 15.0,
                     sourceEventIds: ['cases:reviewed:123'],
@@ -100,14 +100,14 @@ final class TimeTrackingPublicContractsTest extends TestCase
             ],
         );
         $request = new MetricRecalculationRequest(
-            metricKey: 'cases.reviewed',
+            metricKey: 'work.items_reviewed',
             ruleVersion: 2,
             startsAt: $this->instant('2026-08-01 00:00:00'),
             endsAt: $this->instant('2026-08-02 00:00:00'),
             teamPublicId: '01K1J7APZKQ63CJS7HZAH4NX2M',
         );
 
-        self::assertSame('cases.reviewed', $request->metricKey);
+        self::assertSame('work.items_reviewed', $request->metricKey);
         self::assertSame(2, $request->ruleVersion);
         self::assertSame($definition, $result->definitionSnapshot->definition);
         self::assertCount(1, $result->results);
@@ -125,7 +125,7 @@ final class TimeTrackingPublicContractsTest extends TestCase
         $this->expectException(InvalidArgumentException::class);
 
         new DerivedMetricResult(
-            metricKey: 'cases.reviewed',
+            metricKey: 'work.items_reviewed',
             ruleVersion: 1,
             value: 1.0,
             sourceEventIds: [],

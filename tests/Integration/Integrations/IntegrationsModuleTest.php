@@ -39,11 +39,11 @@ final class IntegrationsModuleTest extends TestCase
         $this->expectException(ExternalApiAccessDisabled::class);
 
         $this->app->make(ExternalApiAccessPolicy::class)->assertExternalApiEnabled(new ExternalCredentialPolicy(
-            clientKey: 'collector-import',
-            scopes: ['cases.write'],
+            clientKey: 'records-import',
+            scopes: ['records.write'],
             allowedModules: ['imports'],
             externalApiEnabled: true,
-        ), 'imports', 'cases.write');
+        ), 'imports', 'records.write');
     }
 
     public function test_external_id_mapping_and_idempotency_are_persisted(): void
@@ -51,14 +51,14 @@ final class IntegrationsModuleTest extends TestCase
         $this->app->make(ExternalIdMappingStore::class)->map(new ExternalIdMapping(
             integrationKey: 'dialer',
             sourceSystem: 'dialer-api',
-            entityType: 'debtor',
+            entityType: 'record',
             externalId: 'EXT-123',
             internalPublicId: '01J00000000000000000000001',
         ));
 
         self::assertSame(
             '01J00000000000000000000001',
-            $this->app->make(ExternalIdMappingStore::class)->findInternalPublicId('dialer', 'dialer-api', 'debtor', 'EXT-123'),
+            $this->app->make(ExternalIdMappingStore::class)->findInternalPublicId('dialer', 'dialer-api', 'record', 'EXT-123'),
         );
 
         $store = $this->app->make(IntegrationIdempotencyStore::class);
@@ -161,7 +161,7 @@ final class SuccessfulFakeIntegrationAdapter implements IntegrationAdapter
             key: 'dialer',
             name: 'Dialer',
             adapterClass: self::class,
-            sourceOfTruth: 'Atlas owns collection case state; dialer owns call attempt telemetry.',
+            sourceOfTruth: 'Atlas owns record state; dialer owns call attempt telemetry.',
             providedScopes: ['calls.read'],
         );
     }

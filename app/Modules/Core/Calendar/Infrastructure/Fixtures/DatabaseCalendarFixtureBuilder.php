@@ -16,7 +16,7 @@ final readonly class DatabaseCalendarFixtureBuilder implements CalendarFixtureBu
     public function provideVisibilityEvents(int $userId): void
     {
         $this->database->transaction(function () use ($userId): void {
-            $this->upsert($userId, '01K2K7H1C00000000000000001', 'Weekly portfolio review', '2026-08-13 07:00:00+00', '2026-08-13 08:00:00+00', 'weekly', [4]);
+            $this->upsert($userId, '01K2K7H1C00000000000000001', 'Weekly team review', '2026-08-13 07:00:00+00', '2026-08-13 08:00:00+00', 'weekly', [4]);
             $this->upsert($userId, '01K2K7H1C00000000000000002', 'Court deadline', '2026-08-18 22:00:00+00', '2026-08-19 22:00:00+00', null, []);
         });
     }

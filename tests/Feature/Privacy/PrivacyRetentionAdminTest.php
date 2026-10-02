@@ -893,15 +893,15 @@ final class PrivacyTestSearchIndexRegistry implements SearchIndexRegistry
 
     public function get(string $indexKey): ?SearchIndexDescriptor
     {
-        return $indexKey === 'cases.people' ? $this->descriptor() : null;
+        return $indexKey === 'catalog.entries' ? $this->descriptor() : null;
     }
 
     private function descriptor(): SearchIndexDescriptor
     {
         return new SearchIndexDescriptor(
-            key: 'cases.people',
-            moduleKey: 'cases',
-            stableAlias: 'atlas_cases_people',
+            key: 'catalog.entries',
+            moduleKey: 'catalog',
+            stableAlias: 'atlas_catalog_entries',
             searchableFields: ['display_name'],
             filterableFields: ['module_key', 'team_public_ids', 'permission_keys'],
             sortableFields: ['display_name'],
@@ -938,7 +938,7 @@ final class PrivacyTestSearchLifecycleProjector implements SearchLifecycleProjec
 
     public function documentIdsFor(DataLifecycleSubject $subject, DataLifecycleOperation $operation): array
     {
-        return ['cases.people' => [$subject->identifier]];
+        return ['catalog.entries' => [$subject->identifier]];
     }
 }
 

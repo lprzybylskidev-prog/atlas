@@ -38,7 +38,7 @@ final class ManagerHierarchyAdministrationTest extends TestCase
         $teamLead = User::factory()->create(['name' => 'Team Lead']);
         $report = User::factory()->create(['name' => 'Report User']);
         $extraReport = User::factory()->create(['name' => 'Extra Report']);
-        $team = Team::query()->create(['name' => 'Collections']);
+        $team = Team::query()->create(['name' => 'Operations']);
         $this->assignStarterRoleInTeam($actor, $team, StarterRoleName::Administrator->value);
 
         foreach ([$firstManager, $secondManager, $teamLead, $report, $extraReport] as $user) {

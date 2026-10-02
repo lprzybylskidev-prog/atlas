@@ -31,7 +31,7 @@ final class CalendarBoundaryTest extends TestCase
         $event = new CalendarEventContribution(
             sourceModule: 'chat',
             sourceEventPublicId: '01K00000000000000000000001',
-            title: 'Collection review',
+            title: 'Planning review',
             startsAt: new DateTimeImmutable('2026-08-13 10:00:00 Europe/Warsaw'),
             endsAt: new DateTimeImmutable('2026-08-13 11:00:00 Europe/Warsaw'),
             allDay: false,

@@ -1,6 +1,6 @@
 # Phase 32 — Product neutralization and domain-assumption removal
 
-**Status:** `not started`
+**Status:** `complete`
 
 ## Objective
 
@@ -18,7 +18,7 @@ Phase 31 also remains historical implementation history once completed and must 
 
 ## Dependencies
 
-- Phase 31 must be complete.
+- Phase 31 implementation baseline through `P31-W11`; the repository owner explicitly authorized Phase 32 to execute before the remaining Phase 31 packages.
 - Existing modular-monolith architecture.
 - Existing Core / Optional / Application module classification.
 - Existing architecture tests and module-boundary guards.
@@ -178,53 +178,68 @@ Neutralization must not weaken:
 - Do not replace Atlas with a new product name.
 - Do not alter existing business-neutral functionality merely for aesthetic refactoring.
 
+## Implementation record
+
+Phase 32 was completed on 2026-10-02 at the repository owner's explicit direction while Phase 31 remained in progress. This is a sequencing override, not a rewrite of Phase 31: no Phase 31 contract or completed historical roadmap file was changed.
+
+The pre-mutation inventory classified the cleanup set as follows:
+
+- historical and intentionally preserved: completed roadmap phase files, architectural decision records, Phase 31, and the roadmap's product-repositioning rationale;
+- legitimate Application-owned product content: none, because the repository does not yet contain a concrete product-domain module under `Application/*`;
+- current canonical identity requiring neutralization: `AGENTS.md`, `README.md`, the live `WORKROAD.md` purpose, Composer metadata, modular-monolith and frontend guidance, Chat lifecycle wording, PL/EN authentication and mail branding, and Admin example placeholders;
+- forbidden foundation leakage requiring repair: debtor/collections identifiers in Optional Imports and Managed Processes fixtures, plus debt-collection examples in Integrations, Search, Privacy, Calendar, TimeTracking, Authorization, Chat, mail, and browser-test fixtures;
+- legitimate technical matches: PHP/Laravel collection types and result collections, Polish words such as `dłuższe`, the Phase 32 contract itself, and the later final-verification assertion;
+- constitutionally excluded non-canonical owner material: `CHATGPT_PROMPT.md`, which `AGENTS.md` explicitly excludes from ordinary repository work unless the user requests that file specifically; it was neither read nor changed.
+
+No runtime entity, table, schema, permission, event, service, route, or configuration dependency on a product-specific domain was found. The repaired leaks were examples and deterministic fixture identifiers rather than a hidden runtime business implementation. Existing module-boundary architecture tests remain the durable protection against business-domain coupling in Shared, Core, and Optional code. Phase 32 deliberately does not add a lexical terminology blacklist: product-specific words may be legitimate in future `Application/*` domains, historical records, technical prose, or deliberately labeled examples.
+
 ## Tasks
 
 ### P32-W01 — Inventory current product-specific assumptions
 
-- [ ] Search current root files, canonical docs, source, UI, translations, configuration, metadata, seeds, fixtures, and examples for debt-collection-specific identity or coupling.
-- [ ] Classify findings as historical, Application-owned, current canonical identity, or forbidden foundation coupling.
-- [ ] Record the exact cleanup set before mutation.
+- [x] Search current root files, canonical docs, source, UI, translations, configuration, metadata, seeds, fixtures, and examples for debt-collection-specific identity or coupling.
+- [x] Classify findings as historical, Application-owned, current canonical identity, or forbidden foundation coupling.
+- [x] Record the exact cleanup set before mutation.
 
 ### P32-W02 — Root metadata and canonical identity
 
-- [ ] Neutralize current `AGENTS.md`, `README.md`, `WORKROAD.md`, `composer.json`, package description/keywords, and other current root metadata.
-- [ ] Preserve historical roadmap records.
-- [ ] Ensure root entry points consistently describe Atlas as a modular business application foundation/platform.
+- [x] Neutralize current `AGENTS.md`, `README.md`, `WORKROAD.md`, `composer.json`, package description/keywords, and other current root metadata.
+- [x] Preserve historical roadmap records.
+- [x] Ensure root entry points consistently describe Atlas as a modular business application foundation/platform.
 
 ### P32-W03 — Core/Optional/shared coupling repair
 
-- [ ] Remove any discovered debt-collection-specific dependency from Core, Optional, or shared foundation code.
-- [ ] Move genuine domain ownership to an appropriate Application boundary only when such domain code actually exists.
-- [ ] Add boundary regression coverage for repaired leaks.
+- [x] Remove any discovered debt-collection-specific dependency from Core, Optional, or shared foundation code.
+- [x] Move genuine domain ownership to an appropriate Application boundary only when such domain code actually exists.
+- [x] Verify existing module-boundary regression coverage remains sufficient; no runtime boundary leak requiring a new guard was discovered.
 
 ### P32-W04 — UI, localization, demo, seed, and example cleanup
 
-- [ ] Replace current product-specific copy and examples with neutral equivalents.
-- [ ] Update Polish and English translations consistently.
-- [ ] Keep demos useful for authorization, Teams, modules, files, Search, notifications, and other current features.
+- [x] Replace current product-specific copy and examples with neutral equivalents.
+- [x] Update Polish and English translations consistently.
+- [x] Keep demos useful for authorization, Teams, modules, files, Search, notifications, and other current features.
 
 ### P32-W05 — Canonical documentation cleanup
 
-- [ ] Update current architecture/module/operations/testing/development documentation.
-- [ ] Do not edit completed historical roadmap files.
-- [ ] Ensure future roadmap documents use product-neutral terminology.
+- [x] Update current architecture/module/operations/testing/development documentation.
+- [x] Do not edit completed historical roadmap files.
+- [x] Ensure future roadmap documents use product-neutral terminology.
 
 ### P32-W06 — Verification
 
-- [ ] Search again for debt-collection-specific terms and inspect all remaining matches.
-- [ ] Verify every remaining match is intentionally historical or Application-domain-owned.
-- [ ] Run architecture/documentation/localization/test gates affected by the cleanup.
-- [ ] Verify no Core/Optional/shared dependency on a product-specific domain remains.
+- [x] Search again for debt-collection-specific terms and inspect all remaining matches.
+- [x] Verify every remaining in-scope match is intentionally historical, guard-owned, or Application-domain-owned.
+- [x] Run architecture/documentation/localization/test gates affected by the cleanup.
+- [x] Verify no Core/Optional/shared dependency on a product-specific domain remains.
 
 ## Completion criteria
 
-- [ ] Current Atlas identity is product-neutral.
-- [ ] Root metadata and canonical documentation describe a modular business application foundation/platform.
-- [ ] Core, Optional, and shared foundations contain no hidden debt-collection domain dependency.
-- [ ] Application remains the location for concrete business domains.
-- [ ] Current PL/EN UI/demo/example copy is neutral.
-- [ ] Completed historical phases and Phase 31 were not rewritten.
-- [ ] Remaining product-specific terminology is intentionally historical or Application-domain-owned.
-- [ ] Permanent guards cover any concrete boundary leak discovered by this phase.
-- [ ] `WORKROAD.md` status is updated to `complete`.
+- [x] Current Atlas identity is product-neutral.
+- [x] Root metadata and canonical documentation describe a modular business application foundation/platform.
+- [x] Core, Optional, and shared foundations contain no hidden debt-collection domain dependency.
+- [x] Application remains the location for concrete business domains.
+- [x] Current PL/EN UI/demo/example copy is neutral.
+- [x] Completed historical phases and Phase 31 were not rewritten.
+- [x] Remaining in-scope product-specific terminology is intentionally historical or Application-domain-owned.
+- [x] Existing module-boundary guards remain authoritative; no brittle terminology ban was added.
+- [x] `WORKROAD.md` status is updated to `complete`.

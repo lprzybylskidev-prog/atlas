@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This file is the lightweight, durable index of the **Atlas debt collection system** evolution roadmap.
+This file is the lightweight, durable index of the **Atlas modular business application foundation** evolution roadmap.
 
 Binding implementation contracts, task checkboxes, and phase history live in the linked files under `docs/roadmap/`.
 
@@ -40,7 +40,7 @@ Do not replace this index after the initial technical foundation is completed. C
 ## Current phase
 
 - Phase: [Phase 31 — Optional internal company chat, calendar, calls, meetings, and realtime communication](docs/roadmap/phase-31-chat.md)
-- Status: `in progress` (`P31-W01` through `P31-W10` complete; `P31-W11` is next)
+- Status: `in progress` (`P31-W01` through `P31-W11` complete; `P31-W12` is next)
 
 ## Roadmap dependency repair note
 
@@ -370,7 +370,7 @@ Depends on the completed Authorization, Teams, manager hierarchy, Audit, Setting
 
 ### Phase 31 — Optional internal company chat, calendar, calls, meetings, and realtime communication
 
-**Status:** `in progress` (`P31-W01` through `P31-W09` complete; `P31-W10` is next)
+**Status:** `in progress` (`P31-W01` through `P31-W11` complete; `P31-W12` is next)
 
 Implement Atlas-owned internal communication with direct/group/Team/Meeting Chat, a shared Core Calendar, audio/video Calls, online/in-person/hybrid Meetings, optional RTC for online/hybrid modes, screen sharing, Files-owned Meeting recordings, provider-neutral transcription readiness, Reverb and self-hosted LiveKit/Egress infrastructure, authorization-safe Search, privacy, retention, participant exports, and browser alerts.
 
@@ -380,11 +380,11 @@ Depends on the completed Files, Search, Teams, Authorization, Module Activation,
 
 ### Phase 32 — Product neutralization and domain-assumption removal
 
-**Status:** `not started`
+**Status:** `complete`
 
 Remove current debt-collection-specific identity, metadata, examples, copy, and hidden foundation assumptions from the live Atlas repository so Atlas becomes a neutral modular business application foundation while preserving historical roadmap records unchanged.
 
-Depends on Phase 31 being complete and on the existing modular architecture and documentation foundations.
+Executed early at the repository owner's direction while Phase 31 remains in progress. Phase 31 history and its active contract remain unchanged.
 
 [Open implementation contract and tasks](docs/roadmap/phase-32-product-neutralization.md)
 

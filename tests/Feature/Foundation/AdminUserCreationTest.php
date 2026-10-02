@@ -39,7 +39,7 @@ final class AdminUserCreationTest extends TestCase
         $actor = User::factory()->create();
         $team = Team::query()->create(['name' => 'Operations']);
         $this->assignStarterRoleInTeam($actor, $team, StarterRoleName::Administrator->value);
-        $this->createOnboardingPackage((string) $team->public_id, 'collections.agent', StarterRoleName::WorkspaceAccess->value);
+        $this->createOnboardingPackage((string) $team->public_id, 'operations.coordinator', StarterRoleName::WorkspaceAccess->value);
 
         $this->actingAs($actor)
             ->withSession($this->adminSession($team))
@@ -50,7 +50,7 @@ final class AdminUserCreationTest extends TestCase
                     [
                         'team_public_id' => $team->public_id,
                         'source' => 'package',
-                        'onboarding_package' => 'collections.agent',
+                        'onboarding_package' => 'operations.coordinator',
                     ],
                 ],
             ])
@@ -63,13 +63,13 @@ final class AdminUserCreationTest extends TestCase
         self::assertDatabaseHas(AuthorizationDatabaseTable::USER_ONBOARDING_PACKAGES, [
             'user_id' => $created->id,
             'team_id' => $team->id,
-            'package_name' => 'collections.agent',
+            'package_name' => 'operations.coordinator',
         ]);
         self::assertDatabaseHas(AuthorizationDatabaseTable::USER_TEAM_ASSIGNMENT_PROVENANCE, [
             'user_id' => $created->id,
             'team_id' => $team->id,
             'source_type' => 'preset',
-            'source_display_name_snapshot' => 'collections.agent',
+            'source_display_name_snapshot' => 'operations.coordinator',
             'preset_version' => 1,
             'version' => 1,
         ]);
@@ -455,8 +455,8 @@ final class AdminUserCreationTest extends TestCase
 
         $actor = User::factory()->create();
         $source = User::factory()->create();
-        $sourceTeam = Team::query()->create(['name' => 'Collections North']);
-        $targetTeam = Team::query()->create(['name' => 'Collections South']);
+        $sourceTeam = Team::query()->create(['name' => 'Operations North']);
+        $targetTeam = Team::query()->create(['name' => 'Operations South']);
         $this->assignStarterRoleInTeam($actor, $targetTeam, StarterRoleName::Administrator->value);
         $this->assignStarterRoleInTeam($source, $sourceTeam, StarterRoleName::TeamManagersRead->value);
 
@@ -489,8 +489,8 @@ final class AdminUserCreationTest extends TestCase
         Notification::fake();
 
         $actor = User::factory()->create();
-        $sourceTeam = Team::query()->create(['name' => 'Collections North']);
-        $targetTeam = Team::query()->create(['name' => 'Collections South']);
+        $sourceTeam = Team::query()->create(['name' => 'Operations North']);
+        $targetTeam = Team::query()->create(['name' => 'Operations South']);
         $this->assignStarterRoleInTeam($actor, $targetTeam, StarterRoleName::Administrator->value);
         $this->createOnboardingPackage((string) $sourceTeam->public_id, 'north.agent', StarterRoleName::WorkspaceAccess->value);
 

@@ -77,7 +77,7 @@ final class ConversationOwnershipTest extends TestCase
 
         foreach ([
             fn () => $manager->startDirect((string) $active->public_id, (string) $inactive->public_id, 'team'),
-            fn () => $manager->createGroup((string) $active->public_id, 'team', 'Collections', [(string) $inactive->public_id]),
+            fn () => $manager->createGroup((string) $active->public_id, 'team', 'Operations', [(string) $inactive->public_id]),
         ] as $operation) {
             try {
                 $operation();

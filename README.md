@@ -1,14 +1,14 @@
 # Atlas
 
-Atlas is a large debt collection system developed for a debt collection company.
+Atlas is a modular business application foundation for building secure, auditable, extensible business systems.
 
 The system is designed as a modular monolith with strict module boundaries, typed public contracts, explicit infrastructure, strong security controls, complete auditability, and documentation that remains usable as the project grows.
 
-The current roadmap begins with the technical and operational foundation required before the debt collection business modules are implemented. Atlas is the final product and is developed continuously as one system.
+The roadmap develops the shared technical and operational foundation before concrete business domains are introduced. Atlas is developed continuously as one coherent platform whose product-specific capabilities belong in `Application` modules.
 
 The current foundation includes a Core Audit module with append-only application and security audit records plus a read-only Admin audit browser. Earlier security-audit producers now write through this shared audit foundation instead of a separate legacy table.
 
-The foundation repair and consolidation work in [Phase 28](docs/roadmap/phase-28-foundation-repair-and-consolidation.md), acceptance closure in [Phase 29](docs/roadmap/phase-29-foundation-acceptance-repair.md), and Authorization/Team Structure repair in [Phase 30](docs/roadmap/phase-30-authorization-team-structure-feedback-repair.md) are complete. The current roadmap focus is [Phase 31 — optional internal Chat, Calendar, Calls, Meetings, and realtime communication](docs/roadmap/phase-31-chat.md), followed by Phase 32 product neutralization, Phase 33 first-party Diagnostics and Sentry removal, Phases 34–51 dependency-ordered foundation and Optional capability work, Phase 52 production deployment/recovery, Phase 53 database query-efficiency auditing, and Phase 54 final whole-application verification.
+The foundation repair and consolidation work in [Phase 28](docs/roadmap/phase-28-foundation-repair-and-consolidation.md), acceptance closure in [Phase 29](docs/roadmap/phase-29-foundation-acceptance-repair.md), Authorization/Team Structure repair in [Phase 30](docs/roadmap/phase-30-authorization-team-structure-feedback-repair.md), and product neutralization in [Phase 32](docs/roadmap/phase-32-product-neutralization.md) are complete. The current roadmap focus remains [Phase 31 — optional internal Chat, Calendar, Calls, Meetings, and realtime communication](docs/roadmap/phase-31-chat.md); it is followed by Phase 33 first-party Diagnostics and Sentry removal, Phases 34–51 dependency-ordered foundation and Optional capability work, Phase 52 production deployment/recovery, Phase 53 database query-efficiency auditing, and Phase 54 final whole-application verification.
 
 ## Core principles
 
@@ -135,7 +135,7 @@ The planned shared system capabilities include:
 - Reports, exports, PDF, charts, and print
 - TimeTracking
 
-Debt collection business functionality belongs in `Application` modules and will be added as later roadmap phases. These modules may cover areas such as portfolios, debtors, creditors, claims, cases, payments, settlements, contact history, documents, legal proceedings, enforcement proceedings, reporting, and integrations with external debt collection services. Exact scope is defined only through accepted roadmap decisions.
+Concrete business functionality belongs in `Application` modules. Atlas does not prescribe a universal business entity model; each product domain is introduced only through accepted roadmap decisions and communicates with the foundation through the documented public contracts.
 
 ## Development workflow
 

@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This repository contains **Atlas**, a large debt collection system developed for a debt collection company as a modular monolith.
+This repository contains **Atlas**, a modular business application foundation for building secure, auditable, extensible business systems as a modular monolith.
 
 This file is the permanent engineering constitution for agents working in the repository. It defines how to work, design, implement, test, document, review, and commit changes.
 
@@ -11,7 +11,7 @@ This file is the permanent engineering constitution for agents working in the re
 ## Project identity
 
 - System name: **Atlas**.
-- Business purpose: support the company's debt collection operations.
+- Business purpose: provide a reusable foundation for concrete business systems implemented through owned `Application` modules.
 - Permanent PHP root namespace: `App`.
 - Regular user UI: Polish and English, Polish by default.
 - Technical documentation, code, commits, technical errors, CLI output, and operational command output: English.
@@ -60,7 +60,7 @@ Do not ask questions whose answers already follow unambiguously from accepted co
 - Unstarted phases may be merged or replaced only after their scope is moved without loss into the new accepted phase.
 - Completed historical phases remain completed history; later findings are tracked in a new sequential phase or the current accepted repair phase without rewriting completed work.
 - Do not intentionally defer known requirements of a shared capability until after an earlier phase has started using that capability. If genuinely new requirements appear later and could not reasonably have been known, add a new sequential evolution phase instead of rewriting history.
-- Known foundation debt assigned to a repair phase must be closed in that phase and must not be pushed to a later phase merely because the current phase is large.
+- Known foundation obligations assigned to a repair phase must be closed in that phase and must not be pushed to a later phase merely because the current phase is large.
 - Phase checkboxes must reflect the actual repository state after each work package.
 
 ## Repository objective
@@ -74,9 +74,9 @@ Atlas must remain:
 - maintainable;
 - auditable;
 - operationally recoverable;
-- suitable for continued development of large debt collection workflows.
+- suitable for continued development of large business workflows.
 
-Shared Core and technical modules must not absorb business rules owned by a debt collection `Application` module.
+Shared Core and technical modules must not absorb business rules owned by a concrete `Application` module.
 
 ## Technology policy
 
@@ -276,7 +276,7 @@ Read [`docs/architecture/security-baseline.md`](docs/architecture/security-basel
 - Do not patch structurally poor or incoherent screens with local styling, explanatory copy, or duplicated components. Redesign the workflow around accepted shared primitives and documented ownership.
 - Authenticated application, user, manager, and administrator screens use the shared `AppLayout` with an explicit shell mode. Do not introduce separate shell layout wrappers such as `AdminLayout` when they only pass through to the same layout.
 - Page components must not contain reusable design-system decisions. Shared components, composables, services, formatters, forms, dialogs, toasts, tables, tooltips, cards, layouts, loading/empty/error states, and display primitives belong in the shared frontend layer.
-- Advanced form controls such as money/currency inputs, color pickers, file uploaders, image croppers, rich text editors, date/time pickers, tag selectors, and autocomplete inputs must be generic shared form components under `resources/js/Components/Form/`. Do not create feature-named controls such as `DebtEuroInput`, `AvatarColorPicker`, `ProfileUpload`, or case-specific pickers/croppers unless they only compose generic shared controls and contain no reusable design-system behavior.
+- Advanced form controls such as money/currency inputs, color pickers, file uploaders, image croppers, rich text editors, date/time pickers, tag selectors, and autocomplete inputs must be generic shared form components under `resources/js/Components/Form/`. Do not create feature-named controls such as `InvoiceEuroInput`, `AvatarColorPicker`, `ProfileUpload`, or case-specific pickers/croppers unless they only compose generic shared controls and contain no reusable design-system behavior.
 - Repeated frontend option builders, status/token labelers, dialog/form action footers, report/chart formatters, and relation-assignment previews must be extracted to shared components, composables, or utilities before a second page copies the pattern.
 - Do not copy local maps for statuses, actions, formatters, labels, fallback translations, or generic option builders into pages.
 - Desktop and mobile navigation must have route, label, active-state, permission, and module-gate parity.
@@ -396,7 +396,7 @@ Update the English README whenever a task changes information a new developer, a
 
 - system purpose or scope;
 - major modules and capabilities;
-- supported debt collection workflows;
+- supported business workflows;
 - setup and development entry points;
 - environments and deployment expectations;
 - major integrations;

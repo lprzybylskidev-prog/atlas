@@ -135,7 +135,7 @@ Authorized Admin retention operations may preview aggregate impact, run the conf
 
 Within the Atlas application, Administrator status never grants access to another user's private conversation, message bodies or edit history, voice messages, attachments, Search results, or exports. Direct root, database, or infrastructure access is governed by organizational procedures and is outside application authorization.
 
-Chat audits structural and administrative operations using its typed audit catalog, including group/membership/ownership/closure and retention operations. Audit does not copy ordinary message bodies, voice content, attachment content, or every message. Historical employee identity remains attributable after account deactivation and may be marked inactive; debtor anonymization rules do not automatically apply.
+Chat audits structural and administrative operations using its typed audit catalog, including group/membership/ownership/closure and retention operations. Audit does not copy ordinary message bodies, voice content, attachment content, or every message. Historical employee identity remains attributable after account deactivation and may be marked inactive; anonymization rules owned by concrete business domains do not automatically apply.
 
 ## Encryption boundary
 

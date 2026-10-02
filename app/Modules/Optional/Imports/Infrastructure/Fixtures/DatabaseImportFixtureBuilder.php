@@ -24,11 +24,11 @@ final readonly class DatabaseImportFixtureBuilder implements ImportFixtureBuilde
         $executionId = (int) DB::table(ImportsDatabaseTable::EXECUTIONS)->insertGetId([
             'public_id' => (string) Str::ulid(),
             'process_run_id' => $runId,
-            'import_key' => 'debtor-ledger-e2e',
+            'import_key' => 'sample-records-e2e',
             'source_type' => 'csv',
             'file_object_id' => null,
             'api_reference' => null,
-            'external_reference' => 'e2e-ledger-feed',
+            'external_reference' => 'e2e-record-feed',
             'mapping_snapshot' => json_encode(['mapping' => 'e2e'], JSON_THROW_ON_ERROR),
             'source_metadata' => json_encode(['rows' => 4], JSON_THROW_ON_ERROR),
             'statistics' => json_encode(['rows_total' => 4, 'rows_imported' => 2, 'rows_warned' => 2], JSON_THROW_ON_ERROR),

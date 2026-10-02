@@ -97,6 +97,9 @@ test.describe('frontend theme coverage', () => {
         await ensureLightTheme(page);
 
         await expect(page.getByRole('heading', { name: /Zaloguj się|Log in/ })).toBeVisible();
+        await expect(page.getByRole('heading', { name: /Bezpieczne operacje biznesowe|Secure business operations/ })).toBeVisible();
+        await expect(page.getByText(/Modularna platforma biznesowa|Modular Business Platform/).first()).toBeVisible();
+        await expect(page.getByText(/windyk|debt collection/i)).toHaveCount(0);
         await expectShellScreenshot(page, 'login-shell-light.png');
 
         await ensureDarkTheme(page);

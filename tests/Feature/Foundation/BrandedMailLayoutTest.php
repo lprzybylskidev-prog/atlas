@@ -29,7 +29,7 @@ final class BrandedMailLayoutTest extends TestCase
 
         $this->assertStringContainsString('brand-logo-cell', $html);
         $this->assertStringContainsString('/brand/atlas-mail-logo.png', $html);
-        $this->assertStringContainsString('Debt collection operations', $html);
+        $this->assertStringContainsString('Secure business operations', $html);
         $this->assertStringContainsString('#0f766e', $html);
         $this->assertStringContainsString('This message was generated automatically', $html);
         $this->assertStringContainsString('MESSAGE CONTENT BODY', $html);
@@ -48,12 +48,12 @@ final class BrandedMailLayoutTest extends TestCase
             ->line('MESSAGE CONTENT SECOND LINE')
             ->render();
 
-        $this->assertStringContainsString('System windykacyjny', $html);
+        $this->assertStringContainsString('Bezpieczne operacje biznesowe', $html);
         $this->assertStringContainsString('Ta wiadomość została wygenerowana automatycznie', $html);
         $this->assertStringContainsString('Z poważaniem', $html);
         $this->assertStringContainsString('Jeżeli masz problemy z kliknięciem przycisku', $html);
         $this->assertStringContainsString('MESSAGE CONTENT BODY', $html);
-        $this->assertStringNotContainsString('Debt collection operations', $html);
+        $this->assertStringNotContainsString('Secure business operations', $html);
         $this->assertStringNotContainsString('This message was generated automatically', $html);
     }
 
@@ -75,7 +75,7 @@ final class BrandedMailLayoutTest extends TestCase
         foreach ($renderedMessages as $html) {
             $this->assertStringContainsString('brand-logo-cell', $html);
             $this->assertStringContainsString('/brand/atlas-mail-logo.png', $html);
-            $this->assertStringContainsString('Debt collection operations', $html);
+            $this->assertStringContainsString('Secure business operations', $html);
             $this->assertStringNotContainsString('laravel.com/img/notification-logo', $html);
         }
     }

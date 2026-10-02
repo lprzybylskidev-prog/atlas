@@ -208,7 +208,7 @@ final class ManagedProcessesAdminTest extends TestCase
         $response = $this->actingAs($admin)
             ->withSession($this->adminSession($team))
             ->post('/admin/managed-processes/run', [
-                'process_key' => 'test.imports.debtor-ledger',
+                'process_key' => 'test.imports.sample-records',
                 'source_type' => 'file_import',
                 'input' => ['source_type' => 'csv', 'idempotency_key' => 'test-import-csv'],
             ])
@@ -217,7 +217,7 @@ final class ManagedProcessesAdminTest extends TestCase
 
         $this->assertDatabaseHas(ManagedProcessesDatabaseTable::RUNS, [
             'public_id' => $runPublicId,
-            'process_key' => 'test.imports.debtor-ledger',
+            'process_key' => 'test.imports.sample-records',
             'status' => 'succeeded_with_warnings',
         ]);
         $this->assertDatabaseHas(ImportsDatabaseTable::EXECUTIONS, [
@@ -237,7 +237,7 @@ final class ManagedProcessesAdminTest extends TestCase
             ->assertInertia(fn (AssertableInertia $page) => $page
                 ->component('Admin/ManagedProcesses/Runs')
                 ->where('runs.0.publicId', $runPublicId)
-                ->where('runs.0.importKey', 'debtor-ledger-test')
+                ->where('runs.0.importKey', 'sample-records-test')
                 ->where('runs.0.idempotencyKey', 'test-import-csv'));
 
         $this->assertFalse(Route::has('admin.imports.index'));
@@ -480,9 +480,9 @@ final class ManagedProcessesAdminTest extends TestCase
             queueName: 'managed-processes',
         ));
         $this->app->bind('tests.managed_processes.import_definition', fn (): ProcessDefinition => $this->makeProcessDefinition(
-            key: 'test.imports.debtor-ledger',
+            key: 'test.imports.sample-records',
             moduleKey: 'imports',
-            label: 'Test debtor ledger import',
+            label: 'Test sample records import',
             description: 'Test-only import process fixture.',
             queueName: 'imports',
         ));
@@ -673,7 +673,7 @@ final readonly class TestImportProcessHandler implements ManagedProcessHandler
 
     public function processKey(): string
     {
-        return 'test.imports.debtor-ledger';
+        return 'test.imports.sample-records';
     }
 
     public function handle(string $runPublicId): void
@@ -684,11 +684,11 @@ final readonly class TestImportProcessHandler implements ManagedProcessHandler
         $importExecutionId = DB::table(ImportsDatabaseTable::EXECUTIONS)->insertGetId([
             'public_id' => (string) Str::ulid(),
             'process_run_id' => $run->id,
-            'import_key' => 'debtor-ledger-test',
+            'import_key' => 'sample-records-test',
             'source_type' => 'csv',
             'file_object_id' => null,
             'api_reference' => null,
-            'external_reference' => 'test-ledger-feed',
+            'external_reference' => 'test-record-feed',
             'mapping_snapshot' => json_encode(['mapping' => 'test'], JSON_THROW_ON_ERROR),
             'source_metadata' => json_encode(['rows' => 4], JSON_THROW_ON_ERROR),
             'statistics' => json_encode(['rows_total' => 4, 'rows_imported' => 2, 'rows_warned' => 2], JSON_THROW_ON_ERROR),

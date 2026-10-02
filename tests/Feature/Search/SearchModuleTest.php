@@ -42,19 +42,19 @@ final class SearchModuleTest extends TestCase
     {
         $document = new SearchDocument(
             publicId: '01JZSEARCHDOC000000000001',
-            indexKey: 'cases.people',
-            moduleKey: 'cases',
+            indexKey: 'catalog.entries',
+            moduleKey: 'catalog',
             fields: ['display_name' => 'Jan Kowalski'],
             teamPublicIds: ['01JZTEAM000000000000001'],
-            permissionKeys: ['cases.people.view'],
+            permissionKeys: ['catalog.entries.view'],
             visibilityHash: 'visibility-v1',
         );
 
         $this->assertSame([
             'id' => '01JZSEARCHDOC000000000001',
-            'module_key' => 'cases',
+            'module_key' => 'catalog',
             'team_public_ids' => ['01JZTEAM000000000000001'],
-            'permission_keys' => ['cases.people.view'],
+            'permission_keys' => ['catalog.entries.view'],
             'visibility_hash' => 'visibility-v1',
             'display_name' => 'Jan Kowalski',
         ], $document->toMeilisearchPayload());
@@ -62,21 +62,21 @@ final class SearchModuleTest extends TestCase
 
     public function test_search_index_registry_reads_explicit_tagged_descriptors(): void
     {
-        $this->app->bind('tests.search.people_index', fn (): SearchIndexDescriptor => new SearchIndexDescriptor(
-            key: 'cases.people',
-            moduleKey: 'cases',
-            stableAlias: 'atlas_cases_people',
+        $this->app->bind('tests.search.catalog_index', fn (): SearchIndexDescriptor => new SearchIndexDescriptor(
+            key: 'catalog.entries',
+            moduleKey: 'catalog',
+            stableAlias: 'atlas_catalog_entries',
             searchableFields: ['display_name'],
             filterableFields: ['module_key', 'team_public_ids', 'permission_keys'],
             sortableFields: ['display_name'],
         ));
-        $this->app->tag(['tests.search.people_index'], 'atlas.search_index_descriptors');
+        $this->app->tag(['tests.search.catalog_index'], 'atlas.search_index_descriptors');
         $this->app->forgetInstance(SearchIndexRegistry::class);
 
         $registry = $this->app->make(SearchIndexRegistry::class);
 
         $this->assertCount(1, $registry->all());
-        $this->assertSame('atlas_cases_people', $registry->get('cases.people')?->stableAlias);
+        $this->assertSame('atlas_catalog_entries', $registry->get('catalog.entries')?->stableAlias);
     }
 
     public function test_search_contracts_reject_unsafe_visibility_shapes(): void
@@ -85,8 +85,8 @@ final class SearchModuleTest extends TestCase
 
         new SearchDocument(
             publicId: '01JZSEARCHDOC000000000002',
-            indexKey: 'cases.people',
-            moduleKey: 'cases',
+            indexKey: 'catalog.entries',
+            moduleKey: 'catalog',
             fields: ['permission_keys' => []],
         );
     }
@@ -96,7 +96,7 @@ final class SearchModuleTest extends TestCase
         $this->expectException(InvalidArgumentException::class);
 
         new SearchQuery(
-            indexKey: 'cases.people',
+            indexKey: 'catalog.entries',
             term: 'anna',
             activeTeamPublicId: '01JZTEAM000000000000001',
             userPublicId: '01JZUSER000000000000001',
@@ -106,15 +106,15 @@ final class SearchModuleTest extends TestCase
 
     public function test_search_service_enforces_module_gate_before_engine_query(): void
     {
-        $this->app->bind('tests.search.people_index', fn (): SearchIndexDescriptor => new SearchIndexDescriptor(
-            key: 'cases.people',
-            moduleKey: 'cases',
-            stableAlias: 'atlas_cases_people',
+        $this->app->bind('tests.search.catalog_index', fn (): SearchIndexDescriptor => new SearchIndexDescriptor(
+            key: 'catalog.entries',
+            moduleKey: 'catalog',
+            stableAlias: 'atlas_catalog_entries',
             searchableFields: ['display_name'],
             filterableFields: ['module_key', 'team_public_ids', 'permission_keys'],
             sortableFields: ['display_name'],
         ));
-        $this->app->tag(['tests.search.people_index'], 'atlas.search_index_descriptors');
+        $this->app->tag(['tests.search.catalog_index'], 'atlas.search_index_descriptors');
         $this->app->forgetInstance(SearchIndexRegistry::class);
 
         $service = new SearchService(
@@ -124,15 +124,15 @@ final class SearchModuleTest extends TestCase
         );
 
         $result = $service->search(new SearchQuery(
-            indexKey: 'cases.people',
+            indexKey: 'catalog.entries',
             term: 'anna',
             activeTeamPublicId: '01JZTEAM000000000000001',
             userPublicId: '01JZUSER000000000000001',
-            permissionKeys: ['cases.people.view'],
+            permissionKeys: ['catalog.entries.view'],
         ));
 
-        $this->assertSame('cases.people', $result->indexKey);
-        $this->assertSame('01JZPERSON0000000000001', $result->hits[0]->publicId);
+        $this->assertSame('catalog.entries', $result->indexKey);
+        $this->assertSame('01JZENTRY00000000000001', $result->hits[0]->publicId);
     }
 
     public function test_rebuild_command_requires_actor_and_team_context(): void
@@ -167,15 +167,15 @@ final class SearchModuleTest extends TestCase
 
     public function test_search_outbox_indexer_is_idempotent_and_writes_projected_documents(): void
     {
-        $this->app->bind('tests.search.people_index', fn (): SearchIndexDescriptor => new SearchIndexDescriptor(
-            key: 'cases.people',
-            moduleKey: 'cases',
-            stableAlias: 'atlas_cases_people',
+        $this->app->bind('tests.search.catalog_index', fn (): SearchIndexDescriptor => new SearchIndexDescriptor(
+            key: 'catalog.entries',
+            moduleKey: 'catalog',
+            stableAlias: 'atlas_catalog_entries',
             searchableFields: ['display_name'],
             filterableFields: ['module_key', 'team_public_ids', 'permission_keys'],
             sortableFields: ['display_name'],
         ));
-        $this->app->tag(['tests.search.people_index'], 'atlas.search_index_descriptors');
+        $this->app->tag(['tests.search.catalog_index'], 'atlas.search_index_descriptors');
         $this->app->forgetInstance(SearchIndexRegistry::class);
 
         $store = new RecordingSearchDocumentStore;
@@ -188,30 +188,30 @@ final class SearchModuleTest extends TestCase
         );
         $event = new IntegrationEventMessage(
             eventId: '01JZOUTBOXSEARCH00000000001',
-            eventType: 'cases.person_changed',
+            eventType: 'catalog.entry_changed',
             schemaVersion: 1,
-            sourceModule: 'cases',
-            payload: ['public_id' => '01JZPERSON0000000000001', 'display_name' => 'Anna Nowak'],
+            sourceModule: 'catalog',
+            payload: ['public_id' => '01JZENTRY00000000000001', 'display_name' => 'Reference entry'],
             occurredAt: new DateTimeImmutable('2026-07-20T10:00:00+00:00'),
             correlationId: 'corr-search-test',
         );
 
-        $this->assertTrue($indexer->handle($event, [new PersonChangedProjector]));
-        $this->assertFalse($indexer->handle($event, [new PersonChangedProjector]));
+        $this->assertTrue($indexer->handle($event, [new CatalogEntryChangedProjector]));
+        $this->assertFalse($indexer->handle($event, [new CatalogEntryChangedProjector]));
 
-        $this->assertSame(['atlas_cases_people'], $store->configuredAliases);
-        $this->assertSame('01JZPERSON0000000000001', $store->upserted[0]['id']);
+        $this->assertSame(['atlas_catalog_entries'], $store->configuredAliases);
+        $this->assertSame('01JZENTRY00000000000001', $store->upserted[0]['id']);
         $this->assertSame(['01JZTEAM000000000000001'], $store->upserted[0]['team_public_ids']);
-        $this->assertSame(['cases.people.view'], $store->upserted[0]['permission_keys']);
+        $this->assertSame(['catalog.entries.view'], $store->upserted[0]['permission_keys']);
         $this->assertCount(1, $store->upserted);
     }
 
     public function test_search_maintenance_rebuilds_physical_index_and_promotes_after_count_validation(): void
     {
         $descriptor = new SearchIndexDescriptor(
-            key: 'cases.people',
-            moduleKey: 'cases',
-            stableAlias: 'atlas_cases_people',
+            key: 'catalog.entries',
+            moduleKey: 'catalog',
+            stableAlias: 'atlas_catalog_entries',
             searchableFields: ['display_name'],
             filterableFields: ['module_key', 'team_public_ids', 'permission_keys'],
             sortableFields: ['display_name'],
@@ -219,46 +219,46 @@ final class SearchModuleTest extends TestCase
         $store = new RecordingSearchDocumentStore;
         $maintenance = new SearchIndexMaintenanceService(new FixedSearchIndexRegistry([$descriptor]), $store);
 
-        $reports = $maintenance->rebuild(null, null, [new PeopleRebuildProvider]);
+        $reports = $maintenance->rebuild(null, null, [new CatalogRebuildProvider]);
 
         $this->assertCount(1, $reports);
         $this->assertSame(1, $reports[0]->expectedDocuments);
         $this->assertSame(1, $reports[0]->indexedDocuments);
         $this->assertSame(0, $reports[0]->discrepancy);
-        $this->assertSame(['atlas_cases_people'], $store->promotedAliases);
+        $this->assertSame(['atlas_catalog_entries'], $store->promotedAliases);
     }
 
     public function test_search_data_lifecycle_deletes_projected_documents_idempotently(): void
     {
         $descriptor = new SearchIndexDescriptor(
-            key: 'cases.people',
-            moduleKey: 'cases',
-            stableAlias: 'atlas_cases_people',
+            key: 'catalog.entries',
+            moduleKey: 'catalog',
+            stableAlias: 'atlas_catalog_entries',
             searchableFields: ['display_name'],
             filterableFields: ['module_key', 'team_public_ids', 'permission_keys'],
             sortableFields: ['display_name'],
         );
         $store = new RecordingSearchDocumentStore;
         $participant = new SearchDataLifecycleParticipant(new FixedSearchIndexRegistry([$descriptor]), $store);
-        $this->app->bind('tests.search.lifecycle_projector', fn (): SearchLifecycleProjector => new PeopleLifecycleProjector);
+        $this->app->bind('tests.search.lifecycle_projector', fn (): SearchLifecycleProjector => new CatalogLifecycleProjector);
         $this->app->tag(['tests.search.lifecycle_projector'], 'atlas.search_lifecycle_projectors');
 
         $result = $participant->execute(
-            new DataLifecycleSubject('person', '01JZPERSON0000000000001'),
+            new DataLifecycleSubject('catalog_entry', '01JZENTRY00000000000001'),
             DataLifecycleOperation::Delete,
             'corr-lifecycle',
         );
 
         $this->assertTrue($result->completed());
-        $this->assertSame(['01JZPERSON0000000000001'], $store->deleted['atlas_cases_people'] ?? []);
+        $this->assertSame(['01JZENTRY00000000000001'], $store->deleted['atlas_catalog_entries'] ?? []);
     }
 }
 
-final class PersonChangedProjector implements SearchEventProjector
+final class CatalogEntryChangedProjector implements SearchEventProjector
 {
     public function supports(IntegrationEventMessage $event): bool
     {
-        return $event->eventType === 'cases.person_changed';
+        return $event->eventType === 'catalog.entry_changed';
     }
 
     public function documentsFor(IntegrationEventMessage $event): array
@@ -273,11 +273,11 @@ final class PersonChangedProjector implements SearchEventProjector
         return [
             new SearchDocument(
                 publicId: $publicId,
-                indexKey: 'cases.people',
-                moduleKey: 'cases',
+                indexKey: 'catalog.entries',
+                moduleKey: 'catalog',
                 fields: ['display_name' => $displayName],
                 teamPublicIds: ['01JZTEAM000000000000001'],
-                permissionKeys: ['cases.people.view'],
+                permissionKeys: ['catalog.entries.view'],
                 visibilityHash: 'visibility-v1',
             ),
         ];
@@ -367,11 +367,11 @@ final readonly class FixedSearchIndexRegistry implements SearchIndexRegistry
     }
 }
 
-final class PeopleRebuildProvider implements SearchRebuildDocumentProvider
+final class CatalogRebuildProvider implements SearchRebuildDocumentProvider
 {
     public function indexKey(): string
     {
-        return 'cases.people';
+        return 'catalog.entries';
     }
 
     public function expectedDocumentCount(): int
@@ -382,26 +382,26 @@ final class PeopleRebuildProvider implements SearchRebuildDocumentProvider
     public function documents(): iterable
     {
         yield new SearchDocument(
-            publicId: '01JZPERSON0000000000001',
-            indexKey: 'cases.people',
-            moduleKey: 'cases',
-            fields: ['display_name' => 'Anna Nowak'],
+            publicId: '01JZENTRY00000000000001',
+            indexKey: 'catalog.entries',
+            moduleKey: 'catalog',
+            fields: ['display_name' => 'Reference entry'],
             teamPublicIds: ['01JZTEAM000000000000001'],
-            permissionKeys: ['cases.people.view'],
+            permissionKeys: ['catalog.entries.view'],
         );
     }
 }
 
-final class PeopleLifecycleProjector implements SearchLifecycleProjector
+final class CatalogLifecycleProjector implements SearchLifecycleProjector
 {
     public function supports(DataLifecycleSubject $subject, DataLifecycleOperation $operation): bool
     {
-        return $subject->type === 'person' && $operation === DataLifecycleOperation::Delete;
+        return $subject->type === 'catalog_entry' && $operation === DataLifecycleOperation::Delete;
     }
 
     public function documentIdsFor(DataLifecycleSubject $subject, DataLifecycleOperation $operation): array
     {
-        return ['cases.people' => [$subject->identifier]];
+        return ['catalog.entries' => [$subject->identifier]];
     }
 }
 
@@ -411,7 +411,7 @@ final class FakeSearchClient implements SearchClient
     {
         return new SearchResult(
             indexKey: $query->indexKey,
-            hits: [new SearchHit('01JZPERSON0000000000001', 'cases', ['display_name' => 'Anna Nowak'])],
+            hits: [new SearchHit('01JZENTRY00000000000001', 'catalog', ['display_name' => 'Reference entry'])],
             estimatedTotal: 1,
         );
     }

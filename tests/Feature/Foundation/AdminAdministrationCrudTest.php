@@ -84,15 +84,15 @@ final class AdminAdministrationCrudTest extends TestCase
 
         $this->app->make(OnboardingPackageStore::class)->upsert(
             teamPublicId: (string) $activeTeam->public_id,
-            name: 'collections.agent',
-            label: 'Collections agent',
+            name: 'operations.coordinator',
+            label: 'Operations coordinator',
             initialRoleNames: [StarterRoleName::WorkspaceAccess->value],
             directPermissionNames: ['dashboard'],
             templatePermissionNames: ['dashboard'],
         );
         $packagePublicId = DB::table(AuthorizationDatabaseTable::AUTHORIZATION_ONBOARDING_PACKAGES)
             ->where('team_id', $activeTeam->id)
-            ->where('name', 'collections.agent')
+            ->where('name', 'operations.coordinator')
             ->value('public_id');
         self::assertIsString($packagePublicId);
 
@@ -126,7 +126,7 @@ final class AdminAdministrationCrudTest extends TestCase
         $this->actingAs($actor)
             ->withSession($session)
             ->patch('/admin/authorization/packages/'.$packagePublicId, [
-                'label' => 'Collections specialist',
+                'label' => 'Operations specialist',
                 'initial_roles' => [StarterRoleName::TeamManagersRead->value],
                 'direct_permissions' => ['dashboard', 'admin.users.index'],
             ])
@@ -147,8 +147,8 @@ final class AdminAdministrationCrudTest extends TestCase
         ]);
         self::assertDatabaseHas(AuthorizationDatabaseTable::AUTHORIZATION_ONBOARDING_PACKAGES, [
             'team_id' => $activeTeam->id,
-            'name' => 'collections.agent',
-            'label' => 'Collections specialist',
+            'name' => 'operations.coordinator',
+            'label' => 'Operations specialist',
         ]);
 
         $package = DB::table(AuthorizationDatabaseTable::AUTHORIZATION_ONBOARDING_PACKAGES)->where('public_id', $packagePublicId)->first();
@@ -517,8 +517,8 @@ final class AdminAdministrationCrudTest extends TestCase
 
         $this->app->make(OnboardingPackageStore::class)->upsert(
             teamPublicId: (string) $activeTeam->public_id,
-            name: 'collections.agent',
-            label: 'Collections agent',
+            name: 'operations.coordinator',
+            label: 'Operations coordinator',
             initialRoleNames: [StarterRoleName::WorkspaceAccess->value],
             directPermissionNames: [CoreAuthorizationPermissionCatalog::DASHBOARD],
             templatePermissionNames: [CoreAuthorizationPermissionCatalog::DASHBOARD],
@@ -526,7 +526,7 @@ final class AdminAdministrationCrudTest extends TestCase
 
         $packagePublicId = DB::table(AuthorizationDatabaseTable::AUTHORIZATION_ONBOARDING_PACKAGES)
             ->where('team_id', $activeTeam->id)
-            ->where('name', 'collections.agent')
+            ->where('name', 'operations.coordinator')
             ->value('public_id');
         self::assertIsString($packagePublicId);
 
@@ -541,7 +541,7 @@ final class AdminAdministrationCrudTest extends TestCase
                 ->where('table.key', 'admin.authorization.packages')
                 ->where('packages.0.publicId', $packagePublicId)
                 ->where('packages.0.teamName', 'Operations')
-                ->where('packages.0.label', 'Collections agent')
+                ->where('packages.0.label', 'Operations coordinator')
                 ->where('packages.0.initialRoles', [StarterRoleName::WorkspaceAccess->value])
                 ->where('packages.0.directPermissions', [CoreAuthorizationPermissionCatalog::DASHBOARD])
                 ->where('auth.availableAdminRoutes', fn ($routes): bool => $this->stringListContains($routes, 'admin.authorization.packages.index'))
@@ -592,8 +592,8 @@ final class AdminAdministrationCrudTest extends TestCase
                 ->component('Admin/Authorization/Packages/Edit')
                 ->where('package.publicId', $packagePublicId)
                 ->where('package.teamName', 'Operations')
-                ->where('package.name', 'collections.agent')
-                ->where('package.label', 'Collections agent')
+                ->where('package.name', 'operations.coordinator')
+                ->where('package.label', 'Operations coordinator')
                 ->where('package.initialRoles', [StarterRoleName::WorkspaceAccess->value])
                 ->where('package.directPermissions', [CoreAuthorizationPermissionCatalog::DASHBOARD])
                 ->where('roleOptions', fn ($roles): bool => $this->optionsContainValue($roles, StarterRoleName::WorkspaceAccess->value))

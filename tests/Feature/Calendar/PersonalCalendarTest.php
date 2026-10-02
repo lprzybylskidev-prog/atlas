@@ -33,7 +33,7 @@ final class PersonalCalendarTest extends TestCase
         [$owner, $team] = $this->calendarUser();
 
         $this->asCalendarUser($owner, $team)->post('/calendar/events', [
-            'title' => 'Private collection plan',
+            'title' => 'Private planning session',
             'description' => 'Confidential notes',
             'starts_at' => '2026-08-17T09:00:00',
             'ends_at' => '2026-08-17T10:00:00',
@@ -56,7 +56,7 @@ final class PersonalCalendarTest extends TestCase
             ->assertOk()
             ->assertInertia(fn (AssertableInertia $page) => $page
                 ->component('Calendar/Index')
-                ->where('events.0.title', 'Private collection plan')
+                ->where('events.0.title', 'Private planning session')
                 ->has('events', 4));
 
         $this->asCalendarUser($owner, $team)->patch('/calendar/preferences', [

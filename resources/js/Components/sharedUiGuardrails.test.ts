@@ -358,8 +358,8 @@ describe('shared UI guardrails', () => {
         const formImageCropper = Object.entries(vueFiles).find(([file]) => file.endsWith('/Form/FormImageCropper.vue'))?.[1];
         const formMoneyInput = Object.entries(vueFiles).find(([file]) => file.endsWith('/Form/FormMoneyInput.vue'))?.[1];
         const forbiddenFeatureControlFileName =
-            /(?:Debt|Case|User|Profile|Avatar|Team|Manager|Notification|TimeTracking|Module|Search|Queue|Audit|Integration)(?:Money|Euro|Currency|Color|Image|Date|DateTime|Tag|Autocomplete|Upload|Cropper|Picker|Input|Select|Textarea)\.vue$/;
-        const forbiddenKnownBadNames = ['DebtEuroInput', 'AvatarColorPicker', 'AvatarImageCropper', 'ProfileUpload', 'CaseDatePicker'];
+            /(?:Invoice|Case|User|Profile|Avatar|Team|Manager|Notification|TimeTracking|Module|Search|Queue|Audit|Integration)(?:Money|Euro|Currency|Color|Image|Date|DateTime|Tag|Autocomplete|Upload|Cropper|Picker|Input|Select|Textarea)\.vue$/;
+        const forbiddenKnownBadNames = ['InvoiceEuroInput', 'AvatarColorPicker', 'AvatarImageCropper', 'ProfileUpload', 'CaseDatePicker'];
 
         expect(formColorPicker).toBeDefined();
         expect(formImageCropper).toBeDefined();

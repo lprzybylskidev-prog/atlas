@@ -86,7 +86,7 @@ final class CallLifecycleTest extends TestCase
         $group = $conversations->createGroup(
             (string) $owner->public_id,
             'team',
-            'Collections',
+            'Operations',
             [(string) $first->public_id, (string) $second->public_id],
         );
         $started = $calls->start((string) $owner->public_id, 'team', $group->publicId, false, 'group-request');

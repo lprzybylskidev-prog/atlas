@@ -34,12 +34,12 @@ test.describe('Managed processes and imports Admin UI', () => {
         await page.getByLabel(/Rozpoczęto od|Started from/).click();
         await expect(page.getByRole('button', { name: /Poprzedni miesiąc|Previous month/ })).toBeVisible();
         await page.keyboard.press('Escape');
-        await expect(page.getByText('e2e.imports.debtor-ledger').first()).toBeVisible();
-        await expect(page.getByText('debtor-ledger-e2e')).toBeVisible();
+        await expect(page.getByText('e2e.imports.sample-records').first()).toBeVisible();
+        await expect(page.getByText('sample-records-e2e')).toBeVisible();
         await expect(page.getByText('e2e-import-csv')).toBeVisible();
 
         await page
-            .getByRole('row', { name: /debtor-ledger-e2e/ })
+            .getByRole('row', { name: /sample-records-e2e/ })
             .getByRole('button', { name: /Otwórz szczegóły|Open details/ })
             .click();
         await expect(page.getByRole('heading', { name: /Szczegóły uruchomienia|Process run details|Run details/ })).toBeVisible();

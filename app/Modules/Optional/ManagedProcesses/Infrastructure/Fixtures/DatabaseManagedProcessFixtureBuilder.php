@@ -19,7 +19,7 @@ final readonly class DatabaseManagedProcessFixtureBuilder implements ManagedProc
     public function provideImportVisibilityRun(string $actorUserPublicId, string $teamPublicId): int
     {
         $existing = DB::table(ManagedProcessesDatabaseTable::RUNS)
-            ->where('process_key', 'e2e.imports.debtor-ledger')
+            ->where('process_key', 'e2e.imports.sample-records')
             ->value('id');
 
         if (is_int($existing)) {
@@ -35,7 +35,7 @@ final readonly class DatabaseManagedProcessFixtureBuilder implements ManagedProc
 
         $runId = (int) DB::table(ManagedProcessesDatabaseTable::RUNS)->insertGetId([
             'public_id' => (string) Str::ulid(),
-            'process_key' => 'e2e.imports.debtor-ledger',
+            'process_key' => 'e2e.imports.sample-records',
             'module_key' => 'imports',
             'scope' => 'team',
             'team_id' => $teamId,

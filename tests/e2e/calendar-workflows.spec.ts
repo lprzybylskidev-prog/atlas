@@ -15,7 +15,7 @@ test('manages private events, reminders, preferences, and all Calendar views', a
 
     await expect(page.getByRole('heading', { level: 1, name: /Kalendarz|Calendar/ })).toBeVisible();
     await expect(page.getByTestId('calendar-month-view')).toBeVisible();
-    await expect(page.getByText('Weekly portfolio review').first()).toBeVisible();
+    await expect(page.getByText('Weekly team review').first()).toBeVisible();
 
     await page
         .getByRole('button', { name: /Utwórz wydarzenie|Create event/ })

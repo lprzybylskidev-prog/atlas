@@ -2,10 +2,11 @@
     "$schema": "https://getcomposer.org/schema.json",
     "name": "lprzybylskidev-prog/atlas",
     "type": "project",
-    "description": "Atlas debt collection system.",
+    "description": "Atlas modular business application foundation.",
     "keywords": [
         "atlas",
-        "debt-collection",
+        "business-application",
+        "modular-monolith",
         "laravel"
     ],
     "license": "MIT",

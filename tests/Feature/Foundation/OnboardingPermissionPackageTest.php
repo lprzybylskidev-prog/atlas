@@ -35,7 +35,7 @@ final class OnboardingPermissionPackageTest extends TestCase
         $team = Team::query()->create(['name' => 'Operations']);
         $this->createOnboardingPackage(
             teamPublicId: (string) $team->public_id,
-            name: 'collections.team_leader',
+            name: 'operations.team_leader',
             roleName: StarterRoleName::TeamManagersRead->value,
             templatePermissions: [
                 CoreAuthorizationPermissionCatalog::DASHBOARD,
@@ -44,7 +44,7 @@ final class OnboardingPermissionPackageTest extends TestCase
         );
 
         $manager = $this->app->make(PackageRoleManager::class);
-        $manager->createRoleFromPackage('collections.team_leader', 'support-manager');
+        $manager->createRoleFromPackage('operations.team_leader', 'support-manager');
 
         $role = Role::query()->where('name', 'support-manager')->firstOrFail();
 
@@ -54,12 +54,12 @@ final class OnboardingPermissionPackageTest extends TestCase
         $role->givePermissionTo($extra);
         $role->revokePermissionTo(CoreAuthorizationPermissionCatalog::DASHBOARD);
 
-        $diff = $manager->diff('collections.team_leader', 'support-manager');
+        $diff = $manager->diff('operations.team_leader', 'support-manager');
 
         self::assertSame([CoreAuthorizationPermissionCatalog::DASHBOARD], $diff->missingPermissionNames);
         self::assertContains(CoreAuthorizationPermissionCatalog::ADMIN_SYSTEM_STATUS, $diff->unchangedExtraPermissionNames);
 
-        $manager->addMissingPermissionsToRole('collections.team_leader', 'support-manager');
+        $manager->addMissingPermissionsToRole('operations.team_leader', 'support-manager');
         $role->refresh();
 
         self::assertTrue($role->hasPermissionTo(CoreAuthorizationPermissionCatalog::DASHBOARD));
@@ -72,7 +72,7 @@ final class OnboardingPermissionPackageTest extends TestCase
         $team = Team::query()->create(['name' => 'Operations']);
         $this->createOnboardingPackage(
             teamPublicId: (string) $team->public_id,
-            name: 'collections.team_leader',
+            name: 'operations.team_leader',
             roleName: StarterRoleName::TeamManagersRead->value,
             templatePermissions: [
                 CoreAuthorizationPermissionCatalog::DASHBOARD,
@@ -81,7 +81,7 @@ final class OnboardingPermissionPackageTest extends TestCase
         );
         $this->createOnboardingPackage(
             teamPublicId: (string) $team->public_id,
-            name: 'collections.agent',
+            name: 'operations.coordinator',
             roleName: StarterRoleName::WorkspaceAccess->value,
             templatePermissions: [
                 CoreAuthorizationPermissionCatalog::DASHBOARD,
@@ -90,12 +90,12 @@ final class OnboardingPermissionPackageTest extends TestCase
         $user = User::factory()->create();
 
         $applier = $this->app->make(ApplyOnboardingPackageToUser::class);
-        $applier->apply('collections.team_leader', $user->public_id, $team->public_id, null, duringUserCreation: true);
+        $applier->apply('operations.team_leader', $user->public_id, $team->public_id, null, duringUserCreation: true);
 
         self::assertDatabaseHas(AuthorizationDatabaseTable::USER_ONBOARDING_PACKAGES, [
             'user_id' => $user->id,
             'team_id' => $team->id,
-            'package_name' => 'collections.team_leader',
+            'package_name' => 'operations.team_leader',
         ]);
         self::assertDatabaseHas(AuditDatabaseTable::AUDIT_EVENTS, [
             'action' => 'authorization.user_onboarding_package_applied',
@@ -104,7 +104,7 @@ final class OnboardingPermissionPackageTest extends TestCase
 
         $this->expectException(InvalidArgumentException::class);
 
-        $applier->apply('collections.agent', $user->public_id, $team->public_id, null);
+        $applier->apply('operations.coordinator', $user->public_id, $team->public_id, null);
     }
 
     public function test_user_creation_can_apply_selected_onboarding_package_once(): void
@@ -114,7 +114,7 @@ final class OnboardingPermissionPackageTest extends TestCase
         $team = Team::query()->create(['name' => 'Operations']);
         $this->createOnboardingPackage(
             teamPublicId: (string) $team->public_id,
-            name: 'collections.team_leader',
+            name: 'operations.team_leader',
             roleName: StarterRoleName::TeamManagersRead->value,
             templatePermissions: [
                 CoreAuthorizationPermissionCatalog::DASHBOARD,
@@ -124,7 +124,7 @@ final class OnboardingPermissionPackageTest extends TestCase
         $created = $this->app->make(CreateUserAccount::class)->handle(new CreateUserAccountCommand(
             name: 'Packaged User',
             email: 'packaged@example.test',
-            onboardingPackageName: 'collections.team_leader',
+            onboardingPackageName: 'operations.team_leader',
             teamPublicId: (string) $team->public_id,
             actorPublicId: null,
         ));
@@ -134,7 +134,7 @@ final class OnboardingPermissionPackageTest extends TestCase
         self::assertDatabaseHas(AuthorizationDatabaseTable::USER_ONBOARDING_PACKAGES, [
             'user_id' => $user->id,
             'team_id' => $team->id,
-            'package_name' => 'collections.team_leader',
+            'package_name' => 'operations.team_leader',
         ]);
         self::assertDatabaseHas(AuditDatabaseTable::AUDIT_EVENTS, [
             'action' => 'authorization.user_onboarding_package_applied',

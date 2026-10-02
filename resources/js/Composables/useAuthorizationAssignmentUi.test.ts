@@ -4,37 +4,41 @@ import { effectivePermissions, roleGrantedPermissions, roleGrantsByPermission } 
 
 describe('authorization assignment state', () => {
     const rolePermissionMap = {
-        collector: ['cases.view', 'cases.update'],
-        reviewer: ['cases.view', 'cases.approve'],
+        operator: ['workspace.items.view', 'workspace.items.update'],
+        reviewer: ['workspace.items.view', 'workspace.items.approve'],
     };
 
     it('keeps role-derived, direct, and effective permissions distinct', () => {
         const assignment = {
-            role_names: ['collector', 'reviewer'],
-            direct_permission_names: ['cases.view', 'cases.export'],
+            role_names: ['operator', 'reviewer'],
+            direct_permission_names: ['workspace.items.view', 'workspace.items.export'],
         };
 
-        expect(roleGrantedPermissions(assignment, rolePermissionMap)).toEqual(['cases.approve', 'cases.update', 'cases.view']);
+        expect(roleGrantedPermissions(assignment, rolePermissionMap)).toEqual([
+            'workspace.items.approve',
+            'workspace.items.update',
+            'workspace.items.view',
+        ]);
         expect(roleGrantsByPermission(assignment, rolePermissionMap)).toEqual({
-            'cases.approve': ['reviewer'],
-            'cases.update': ['collector'],
-            'cases.view': ['collector', 'reviewer'],
+            'workspace.items.approve': ['reviewer'],
+            'workspace.items.update': ['operator'],
+            'workspace.items.view': ['operator', 'reviewer'],
         });
         expect(effectivePermissions(assignment, rolePermissionMap)).toEqual([
-            'cases.approve',
-            'cases.export',
-            'cases.update',
-            'cases.view',
+            'workspace.items.approve',
+            'workspace.items.export',
+            'workspace.items.update',
+            'workspace.items.view',
         ]);
-        expect(assignment.direct_permission_names).toEqual(['cases.view', 'cases.export']);
+        expect(assignment.direct_permission_names).toEqual(['workspace.items.view', 'workspace.items.export']);
     });
 
     it('recomputes effective permissions when selected roles change without creating direct grants', () => {
-        const assignment = { role_names: ['collector'], direct_permission_names: ['cases.view'] };
+        const assignment = { role_names: ['operator'], direct_permission_names: ['workspace.items.view'] };
 
-        expect(effectivePermissions(assignment, rolePermissionMap)).toEqual(['cases.update', 'cases.view']);
+        expect(effectivePermissions(assignment, rolePermissionMap)).toEqual(['workspace.items.update', 'workspace.items.view']);
         assignment.role_names = [];
-        expect(effectivePermissions(assignment, rolePermissionMap)).toEqual(['cases.view']);
-        expect(assignment.direct_permission_names).toEqual(['cases.view']);
+        expect(effectivePermissions(assignment, rolePermissionMap)).toEqual(['workspace.items.view']);
+        expect(assignment.direct_permission_names).toEqual(['workspace.items.view']);
     });
 });
