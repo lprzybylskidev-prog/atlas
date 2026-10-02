@@ -28,6 +28,7 @@ use App\Modules\Optional\Chat\Presentation\Http\Controllers\ChatConversationCont
 use App\Modules\Optional\Chat\Presentation\Http\Controllers\ChatMessageController;
 use App\Modules\Optional\Chat\Presentation\Http\Controllers\ChatRealtimeController;
 use App\Modules\Optional\Chat\Presentation\Http\Controllers\MeetingController;
+use App\Modules\Optional\Chat\Presentation\Http\Controllers\MeetingRtcController;
 use App\Modules\Optional\TimeTracking\Application\Permissions\TimeTrackingPermissionCatalog;
 use App\Modules\Optional\TimeTracking\Presentation\Http\Controllers\ActivityTrackerController;
 use App\Modules\Optional\TimeTracking\Presentation\Http\Controllers\AdminOtherWorkCategoryController;
@@ -98,6 +99,14 @@ Route::middleware(['auth', 'route.permission'])->group(function (): void {
     Route::post('/meetings/{meeting}/invitations', [MeetingController::class, 'invite'])->name(ChatPermissionCatalog::MEETING_INVITATION_STORE);
     Route::patch('/meetings/{meeting}/response', [MeetingController::class, 'respond'])->name(ChatPermissionCatalog::MEETING_RESPONSE_UPDATE);
     Route::delete('/meetings/{meeting}/participants/{participant}', [MeetingController::class, 'remove'])->name(ChatPermissionCatalog::MEETING_MODERATE);
+    Route::post('/meetings/{meeting}/rtc/join', [MeetingRtcController::class, 'join'])->name(ChatPermissionCatalog::MEETING_RTC_JOIN);
+    Route::post('/meetings/{meeting}/rtc/leave', [MeetingRtcController::class, 'leave'])->name(ChatPermissionCatalog::MEETING_RTC_LEAVE);
+    Route::patch('/meetings/{meeting}/rtc/media', [MeetingRtcController::class, 'media'])->name(ChatPermissionCatalog::MEETING_RTC_MEDIA_UPDATE);
+    Route::post('/meetings/{meeting}/rtc/screen-share', [MeetingRtcController::class, 'screenShare'])->name(ChatPermissionCatalog::MEETING_RTC_SCREEN_SHARE_STORE);
+    Route::delete('/meetings/{meeting}/rtc/screen-share', [MeetingRtcController::class, 'screenShare'])->name(ChatPermissionCatalog::MEETING_RTC_SCREEN_SHARE_DESTROY);
+    Route::post('/meetings/{meeting}/rtc/participants/{participant}/moderate', [MeetingRtcController::class, 'moderate'])->name(ChatPermissionCatalog::MEETING_RTC_MODERATE);
+    Route::patch('/meetings/{meeting}/rtc/lock', [MeetingRtcController::class, 'lock'])->name(ChatPermissionCatalog::MEETING_RTC_LOCK_UPDATE);
+    Route::post('/meetings/{meeting}/rtc/end', [MeetingRtcController::class, 'end'])->name(ChatPermissionCatalog::MEETING_RTC_END);
     Route::post('/calendar/events', [CalendarController::class, 'store'])->name(CalendarPermissionCatalog::EVENT_STORE);
     Route::patch('/calendar/events/{event}', [CalendarController::class, 'update'])->name(CalendarPermissionCatalog::EVENT_UPDATE);
     Route::delete('/calendar/events/{event}', [CalendarController::class, 'destroy'])->name(CalendarPermissionCatalog::EVENT_DESTROY);

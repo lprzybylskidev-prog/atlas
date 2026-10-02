@@ -40,7 +40,7 @@ Do not replace this index after the initial technical foundation is completed. C
 ## Current phase
 
 - Phase: [Phase 31 — Optional internal company chat, calendar, calls, meetings, and realtime communication](docs/roadmap/phase-31-chat.md)
-- Status: `in progress` (`P31-W01` through `P31-W09` complete; `P31-W10` is next)
+- Status: `in progress` (`P31-W01` through `P31-W10` complete; `P31-W11` is next)
 
 ## Roadmap dependency repair note
 

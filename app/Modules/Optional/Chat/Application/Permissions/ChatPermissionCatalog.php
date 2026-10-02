@@ -86,6 +86,22 @@ final class ChatPermissionCatalog implements ModulePermissionContribution
 
     public const MEETING_MODERATE = ChatPermissionNames::MEETING_MODERATE;
 
+    public const MEETING_RTC_JOIN = ChatPermissionNames::MEETING_RTC_JOIN;
+
+    public const MEETING_RTC_LEAVE = ChatPermissionNames::MEETING_RTC_LEAVE;
+
+    public const MEETING_RTC_MEDIA_UPDATE = ChatPermissionNames::MEETING_RTC_MEDIA_UPDATE;
+
+    public const MEETING_RTC_SCREEN_SHARE_STORE = ChatPermissionNames::MEETING_RTC_SCREEN_SHARE_STORE;
+
+    public const MEETING_RTC_SCREEN_SHARE_DESTROY = ChatPermissionNames::MEETING_RTC_SCREEN_SHARE_DESTROY;
+
+    public const MEETING_RTC_MODERATE = ChatPermissionNames::MEETING_RTC_MODERATE;
+
+    public const MEETING_RTC_LOCK_UPDATE = ChatPermissionNames::MEETING_RTC_LOCK_UPDATE;
+
+    public const MEETING_RTC_END = ChatPermissionNames::MEETING_RTC_END;
+
     public const RECORDING_MANAGE = ChatPermissionNames::RECORDING_MANAGE;
 
     public const RECORDING_SHOW = ChatPermissionNames::RECORDING_SHOW;
@@ -149,6 +165,14 @@ final class ChatPermissionCatalog implements ModulePermissionContribution
             new ModulePermissionDefinition(self::MEETING_RESPONSE_UPDATE, 'Accept, decline, or change a Meeting response.'),
             new ModulePermissionDefinition(self::MEETING_INVITATION_STORE, 'Invite active Atlas users to owned Meetings.'),
             new ModulePermissionDefinition(self::MEETING_MODERATE, 'Moderate owned Meetings.'),
+            new ModulePermissionDefinition(self::MEETING_RTC_JOIN, 'Join an authorized online or hybrid Meeting RTC session.'),
+            new ModulePermissionDefinition(self::MEETING_RTC_LEAVE, 'Leave an authorized Meeting RTC session.'),
+            new ModulePermissionDefinition(self::MEETING_RTC_MEDIA_UPDATE, 'Update own Meeting RTC media state.'),
+            new ModulePermissionDefinition(self::MEETING_RTC_SCREEN_SHARE_STORE, 'Start screen sharing in an authorized Meeting RTC session.'),
+            new ModulePermissionDefinition(self::MEETING_RTC_SCREEN_SHARE_DESTROY, 'Stop screen sharing in an authorized Meeting RTC session.'),
+            new ModulePermissionDefinition(self::MEETING_RTC_MODERATE, 'Moderate an owned Meeting RTC session.'),
+            new ModulePermissionDefinition(self::MEETING_RTC_LOCK_UPDATE, 'Lock or unlock an owned Meeting RTC session.'),
+            new ModulePermissionDefinition(self::MEETING_RTC_END, 'End an owned Meeting RTC session for everyone.'),
             new ModulePermissionDefinition(self::RECORDING_MANAGE, 'Manage recording for an owned Meeting.'),
             new ModulePermissionDefinition(self::RECORDING_SHOW, 'View authorized Meeting recordings.'),
             new ModulePermissionDefinition(self::RECORDING_DOWNLOAD, 'Download authorized Meeting recordings.'),

@@ -9,9 +9,14 @@ use App\Modules\Core\Calendar\Infrastructure\Persistence\TableNames\CalendarData
 use App\Modules\Core\Identity\Infrastructure\Persistence\User;
 use App\Modules\Core\Notifications\Application\Public\Contracts\NotificationPublisher;
 use App\Modules\Core\Notifications\Application\Public\DTOs\CreateNotification;
+use App\Modules\Optional\Chat\Application\Contracts\RtcGateway;
 use App\Modules\Optional\Chat\Application\DTOs\MeetingInput;
+use App\Modules\Optional\Chat\Application\DTOs\RtcParticipantAccess;
+use App\Modules\Optional\Chat\Application\DTOs\RtcSessionAdmission;
 use App\Modules\Optional\Chat\Application\Exceptions\MeetingOperationDenied;
 use App\Modules\Optional\Chat\Application\MeetingManager;
+use App\Modules\Optional\Chat\Application\MeetingRtcMaintenance;
+use App\Modules\Optional\Chat\Application\MeetingRtcManager;
 use App\Modules\Optional\Chat\Domain\Conversations\MeetingResponse;
 use App\Modules\Optional\Chat\Domain\Meetings\MeetingMode;
 use App\Modules\Optional\Chat\Domain\Meetings\MeetingMutationScope;
@@ -124,6 +129,52 @@ final class MeetingLifecycleTest extends TestCase
         self::assertSame('cancelled', $manager->show((string) $participant->public_id, 'team', $meeting->publicId)['status']);
     }
 
+    public function test_hybrid_rtc_attendance_and_empty_room_cleanup_do_not_change_meeting_domain_state(): void
+    {
+        [$organizer, $participant] = User::factory()->count(2)->create()->all();
+        $gateway = new RecordingMeetingRtcGateway;
+        $this->app->instance(RtcGateway::class, $gateway);
+        $this->app->forgetInstance(MeetingRtcManager::class);
+        $this->app->forgetInstance(MeetingRtcMaintenance::class);
+        $meeting = $this->app->make(MeetingManager::class)->create((string) $organizer->public_id, 'team', $this->input(MeetingMode::Hybrid, [(string) $participant->public_id], 'Room 1'))['meeting'];
+        $date = $meeting->startsAt->setTimezone(new \DateTimeZone('Europe/Warsaw'))->format('Y-m-d');
+        $rtc = $this->app->make(MeetingRtcManager::class);
+        $rtc->join((string) $participant->public_id, 'team', $meeting->publicId, $date, true, true);
+        $rtc->leave((string) $participant->public_id, 'team', $meeting->publicId, $date);
+        $this->assertDatabaseHas(ChatDatabaseTable::MEETING_ATTENDANCE, ['user_id' => $participant->id]);
+        DB::table(ChatDatabaseTable::MEETING_OCCURRENCES)->where('meeting_id', $meeting->id)->update(['rtc_empty_since' => now()->subMinutes(16)]);
+        self::assertSame(1, $this->app->make(MeetingRtcMaintenance::class)->endExpiredEmptySessions(new DateTimeImmutable('now')));
+        $this->assertDatabaseHas(ChatDatabaseTable::MEETINGS, ['id' => $meeting->id, 'status' => 'scheduled']);
+        $this->assertDatabaseHas(ChatDatabaseTable::MEETING_OCCURRENCES, ['meeting_id' => $meeting->id, 'rtc_status' => 'ended']);
+        self::assertCount(1, $gateway->endedRooms);
+    }
+
+    public function test_only_organizer_can_moderate_and_lock_an_online_meeting_occurrence(): void
+    {
+        [$organizer, $participant] = User::factory()->count(2)->create()->all();
+        $this->app->instance(RtcGateway::class, new RecordingMeetingRtcGateway);
+        $this->app->forgetInstance(MeetingRtcManager::class);
+        $meeting = $this->app->make(MeetingManager::class)->create((string) $organizer->public_id, 'team', $this->input(MeetingMode::Online, [(string) $participant->public_id], null))['meeting'];
+        $date = $meeting->startsAt->setTimezone(new \DateTimeZone('Europe/Warsaw'))->format('Y-m-d');
+        $rtc = $this->app->make(MeetingRtcManager::class);
+        $rtc->join((string) $organizer->public_id, 'team', $meeting->publicId, $date, false, true);
+        $rtc->join((string) $participant->public_id, 'team', $meeting->publicId, $date, true, true);
+        try {
+            $rtc->moderate((string) $participant->public_id, 'team', $meeting->publicId, $date, (string) $organizer->public_id, 'mute');
+            self::fail('Participant moderated the organizer.');
+        } catch (MeetingOperationDenied $exception) {
+            self::assertSame('Only the Meeting organizer may perform this operation.', $exception->getMessage());
+        }
+        $rtc->moderate((string) $organizer->public_id, 'team', $meeting->publicId, $date, (string) $participant->public_id, 'disable_microphone');
+        $rtc->lock((string) $organizer->public_id, 'team', $meeting->publicId, $date, true);
+        try {
+            $this->app->make(MeetingManager::class)->invite((string) $organizer->public_id, 'team', $meeting->publicId, (string) User::factory()->create()->public_id);
+            self::fail('Locked Meeting accepted an invitation.');
+        } catch (MeetingOperationDenied $exception) {
+            self::assertSame('The Meeting is locked.', $exception->getMessage());
+        }
+    }
+
     /** @param list<string> $invitees */
     private function input(MeetingMode $mode, array $invitees, ?string $location): MeetingInput
     {
@@ -152,5 +203,25 @@ final class RecordingMeetingNotifications implements NotificationPublisher
         $this->notifications[] = $notification;
 
         return 'notification-'.count($this->notifications);
+    }
+}
+
+final class RecordingMeetingRtcGateway implements RtcGateway
+{
+    /** @var list<string> */
+    public array $endedRooms = [];
+
+    public function prepareRoom(RtcSessionAdmission $admission): void {}
+
+    public function issueParticipantAccess(RtcSessionAdmission $admission): RtcParticipantAccess
+    {
+        return new RtcParticipantAccess('ws://rtc.test', $admission->roomName, 'user-'.$admission->userPublicId, 'token', new DateTimeImmutable('+5 minutes'));
+    }
+
+    public function removeParticipant(string $roomName, string $participantIdentity): void {}
+
+    public function endRoom(string $roomName): void
+    {
+        $this->endedRooms[] = $roomName;
     }
 }

@@ -20,6 +20,8 @@ use App\Modules\Optional\Chat\Application\Contracts\RtcGateway;
 use App\Modules\Optional\Chat\Application\Contracts\RtcSessionAccessAuthorizer;
 use App\Modules\Optional\Chat\Application\ConversationManager;
 use App\Modules\Optional\Chat\Application\MeetingManager;
+use App\Modules\Optional\Chat\Application\MeetingRtcMaintenance;
+use App\Modules\Optional\Chat\Application\MeetingRtcManager;
 use App\Modules\Optional\Chat\Application\MessageManager;
 use App\Modules\Optional\Chat\Application\Permissions\ChatPermissionCatalog;
 use App\Modules\Optional\Chat\Application\RealtimeManager;
@@ -71,6 +73,8 @@ final class ChatServiceProvider extends ServiceProvider
         $this->app->singleton(AttachmentManager::class);
         $this->app->singleton(MessageManager::class);
         $this->app->singleton(MeetingManager::class);
+        $this->app->singleton(MeetingRtcManager::class);
+        $this->app->singleton(MeetingRtcMaintenance::class);
         $this->app->singleton(RealtimeManager::class);
         $this->app->singleton(RtcAccessManager::class);
         $this->app->tag([ConversationManager::class], 'atlas.team_membership_change_participants');

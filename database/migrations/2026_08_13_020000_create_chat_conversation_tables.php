@@ -493,11 +493,33 @@ SQL);
             $table->boolean('rtc_enabled');
             $table->string('rtc_room_name', 128)->nullable()->unique();
             $table->string('rtc_status', 16)->nullable();
+            $table->boolean('rtc_locked')->default(false);
+            $table->timestampTz('rtc_started_at')->nullable();
+            $table->timestampTz('rtc_ended_at')->nullable();
+            $table->timestampTz('rtc_empty_since')->nullable();
             $table->timestampsTz();
             $table->foreign('meeting_id')->references('id')->on(ChatDatabaseTable::MEETINGS)->restrictOnDelete();
             $table->unique(['meeting_id', 'occurrence_date']);
         });
         DB::statement(sprintf('alter table %s add constraint chat_meeting_occurrences_rtc_check check ((rtc_enabled = false and rtc_room_name is null and rtc_status is null) or rtc_enabled = true)', ChatDatabaseTable::MEETING_OCCURRENCES));
+
+        Schema::create(ChatDatabaseTable::MEETING_RTC_PARTICIPANTS, static function (Blueprint $table): void {
+            $table->id();
+            $table->unsignedBigInteger('occurrence_id');
+            $table->unsignedBigInteger('user_id');
+            $table->boolean('microphone_enabled')->default(true);
+            $table->boolean('microphone_allowed')->default(true);
+            $table->boolean('camera_enabled')->default(false);
+            $table->boolean('screen_sharing')->default(false);
+            $table->timestampTz('joined_at')->nullable();
+            $table->timestampTz('left_at')->nullable();
+            $table->timestampTz('banned_at')->nullable();
+            $table->timestampsTz();
+            $table->foreign('occurrence_id')->references('id')->on(ChatDatabaseTable::MEETING_OCCURRENCES)->restrictOnDelete();
+            $table->foreign('user_id')->references('id')->on(IdentityDatabaseTable::USERS)->restrictOnDelete();
+            $table->unique(['occurrence_id', 'user_id']);
+            $table->index(['occurrence_id', 'joined_at', 'left_at']);
+        });
 
         Schema::create(ChatDatabaseTable::MEETING_RECORDINGS, static function (Blueprint $table): void {
             $table->id();
@@ -529,6 +551,7 @@ SQL);
     public function down(): void
     {
         Schema::dropIfExists(ChatDatabaseTable::MEETING_ATTENDANCE);
+        Schema::dropIfExists(ChatDatabaseTable::MEETING_RTC_PARTICIPANTS);
         Schema::dropIfExists(ChatDatabaseTable::MEETING_RECORDINGS);
         Schema::dropIfExists(ChatDatabaseTable::MEETING_OCCURRENCES);
         Schema::dropIfExists(ChatDatabaseTable::MEETING_MUTATIONS);

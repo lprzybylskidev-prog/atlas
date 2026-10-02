@@ -8,6 +8,7 @@ use App\Modules\Optional\Chat\Application\Contracts\MeetingStore;
 use App\Modules\Optional\Chat\Application\DTOs\MeetingInput;
 use App\Modules\Optional\Chat\Application\DTOs\MeetingInvitationRecord;
 use App\Modules\Optional\Chat\Application\DTOs\MeetingRecord;
+use App\Modules\Optional\Chat\Application\DTOs\MeetingRtcSession;
 use App\Modules\Optional\Chat\Domain\Conversations\MeetingResponse;
 use App\Modules\Optional\Chat\Domain\Meetings\MeetingMode;
 use App\Modules\Optional\Chat\Domain\Meetings\MeetingMutationScope;
@@ -170,6 +171,148 @@ final readonly class DatabaseMeetingStore implements MeetingStore
                 'payload' => $this->payloadArray($row->payload),
             ];
         })->all());
+    }
+
+    public function rtcSession(MeetingRecord $meeting, string $occurrenceDate, bool $forUpdate = false): ?MeetingRtcSession
+    {
+        $query = $this->database->table(ChatDatabaseTable::MEETING_OCCURRENCES)
+            ->where('meeting_id', $meeting->id)->where('occurrence_date', $occurrenceDate);
+        if ($forUpdate) {
+            $query->lockForUpdate();
+        }
+        $row = $query->first();
+        if (! $row instanceof stdClass || ! ($row->rtc_enabled === true || $row->rtc_enabled === 1)) {
+            return null;
+        }
+
+        return $this->mapRtcSession($row);
+    }
+
+    public function startRtcSession(int $occurrenceId, string $roomName): MeetingRtcSession
+    {
+        $this->database->table(ChatDatabaseTable::MEETING_OCCURRENCES)->where('id', $occurrenceId)->update([
+            'rtc_room_name' => $roomName, 'rtc_status' => 'active', 'rtc_started_at' => now(), 'rtc_ended_at' => null,
+            'rtc_empty_since' => null, 'updated_at' => now(),
+        ]);
+
+        return $this->sessionByOccurrence($occurrenceId);
+    }
+
+    public function joinRtcParticipant(int $occurrenceId, int $userId, bool $cameraEnabled, bool $microphoneEnabled): void
+    {
+        $existing = $this->database->table(ChatDatabaseTable::MEETING_RTC_PARTICIPANTS)
+            ->where('occurrence_id', $occurrenceId)->where('user_id', $userId)->lockForUpdate()->first();
+        if ($existing instanceof stdClass && $existing->banned_at !== null) {
+            throw new \LogicException('The participant is banned from this Meeting occurrence.');
+        }
+        $allowed = ! ($existing instanceof stdClass) || $existing->microphone_allowed === true || $existing->microphone_allowed === 1;
+        $this->database->table(ChatDatabaseTable::MEETING_RTC_PARTICIPANTS)->updateOrInsert(
+            ['occurrence_id' => $occurrenceId, 'user_id' => $userId],
+            ['camera_enabled' => $cameraEnabled, 'microphone_enabled' => $microphoneEnabled && $allowed,
+                'microphone_allowed' => $allowed, 'screen_sharing' => false, 'joined_at' => now(), 'left_at' => null, 'updated_at' => now(), 'created_at' => now()],
+        );
+        $this->database->table(ChatDatabaseTable::MEETING_OCCURRENCES)->where('id', $occurrenceId)->update(['rtc_empty_since' => null, 'updated_at' => now()]);
+        $this->database->table(ChatDatabaseTable::MEETING_ATTENDANCE)->insert(['occurrence_id' => $occurrenceId, 'user_id' => $userId, 'joined_at' => now(), 'created_at' => now(), 'updated_at' => now()]);
+    }
+
+    public function leaveRtcParticipant(int $occurrenceId, int $userId): void
+    {
+        $now = now();
+        $this->database->table(ChatDatabaseTable::MEETING_RTC_PARTICIPANTS)->where('occurrence_id', $occurrenceId)->where('user_id', $userId)->whereNull('left_at')->update(['left_at' => $now, 'screen_sharing' => false, 'updated_at' => $now]);
+        $attendance = $this->database->table(ChatDatabaseTable::MEETING_ATTENDANCE)->where('occurrence_id', $occurrenceId)->where('user_id', $userId)->whereNull('left_at')->latest('id')->first();
+        if ($attendance instanceof stdClass) {
+            $joined = new DateTimeImmutable($this->requiredString($attendance->joined_at));
+            $this->database->table(ChatDatabaseTable::MEETING_ATTENDANCE)->where('id', $attendance->id)->update(['left_at' => $now, 'duration_seconds' => max(0, $now->diffInSeconds($joined)), 'updated_at' => $now]);
+        }
+        $joinedCount = $this->database->table(ChatDatabaseTable::MEETING_RTC_PARTICIPANTS)->where('occurrence_id', $occurrenceId)->whereNull('left_at')->count();
+        if ($joinedCount === 0) {
+            $this->database->table(ChatDatabaseTable::MEETING_OCCURRENCES)->where('id', $occurrenceId)->whereNull('rtc_empty_since')->update(['rtc_empty_since' => $now, 'updated_at' => $now]);
+        }
+    }
+
+    public function setRtcParticipantMedia(int $occurrenceId, int $userId, bool $cameraEnabled, bool $microphoneEnabled): void
+    {
+        $participant = $this->database->table(ChatDatabaseTable::MEETING_RTC_PARTICIPANTS)->where('occurrence_id', $occurrenceId)->where('user_id', $userId)->whereNull('left_at')->lockForUpdate()->first();
+        if (! $participant instanceof stdClass) {
+            throw new \LogicException('The participant is not connected.');
+        }
+        $allowed = $participant->microphone_allowed === true || $participant->microphone_allowed === 1;
+        $this->database->table(ChatDatabaseTable::MEETING_RTC_PARTICIPANTS)->where('id', $participant->id)->update(['camera_enabled' => $cameraEnabled, 'microphone_enabled' => $microphoneEnabled && $allowed, 'updated_at' => now()]);
+    }
+
+    public function setRtcParticipantScreenShare(int $occurrenceId, int $userId, bool $active): void
+    {
+        if ($active && $this->database->table(ChatDatabaseTable::MEETING_RTC_PARTICIPANTS)->where('occurrence_id', $occurrenceId)->where('screen_sharing', true)->where('user_id', '!=', $userId)->exists()) {
+            throw new \LogicException('A screen share is already active.');
+        }
+        $this->database->table(ChatDatabaseTable::MEETING_RTC_PARTICIPANTS)->where('occurrence_id', $occurrenceId)->where('user_id', $userId)->whereNull('left_at')->update(['screen_sharing' => $active, 'updated_at' => now()]);
+    }
+
+    public function setRtcParticipantMicrophoneAllowed(int $occurrenceId, int $userId, bool $allowed): void
+    {
+        $this->database->table(ChatDatabaseTable::MEETING_RTC_PARTICIPANTS)->where('occurrence_id', $occurrenceId)->where('user_id', $userId)->whereNull('left_at')->update(['microphone_allowed' => $allowed, 'microphone_enabled' => $allowed ? $this->database->raw('microphone_enabled') : false, 'updated_at' => now()]);
+    }
+
+    public function banRtcParticipant(int $occurrenceId, int $userId): void
+    {
+        $this->database->table(ChatDatabaseTable::MEETING_RTC_PARTICIPANTS)->updateOrInsert(['occurrence_id' => $occurrenceId, 'user_id' => $userId], ['banned_at' => now(), 'left_at' => now(), 'screen_sharing' => false, 'updated_at' => now(), 'created_at' => now()]);
+    }
+
+    public function setRtcLocked(int $occurrenceId, bool $locked): void
+    {
+        $this->database->table(ChatDatabaseTable::MEETING_OCCURRENCES)->where('id', $occurrenceId)->update(['rtc_locked' => $locked, 'updated_at' => now()]);
+    }
+
+    public function endRtcSession(int $occurrenceId): void
+    {
+        $this->database->table(ChatDatabaseTable::MEETING_OCCURRENCES)->where('id', $occurrenceId)->update(['rtc_status' => 'ended', 'rtc_ended_at' => now(), 'rtc_empty_since' => null, 'updated_at' => now()]);
+    }
+
+    public function attendance(MeetingRecord $meeting): array
+    {
+        return array_values($this->database->table(ChatDatabaseTable::MEETING_ATTENDANCE.' as attendance')
+            ->join(ChatDatabaseTable::MEETING_OCCURRENCES.' as occurrences', 'occurrences.id', '=', 'attendance.occurrence_id')
+            ->where('occurrences.meeting_id', $meeting->id)->orderBy('attendance.joined_at')
+            ->get()->map(fn (stdClass $row): array => ['userId' => $this->requiredInt($row->user_id), 'joinedAt' => $this->requiredString($row->joined_at), 'leftAt' => is_string($row->left_at) ? $row->left_at : null, 'durationSeconds' => is_numeric($row->duration_seconds) ? (int) $row->duration_seconds : null, 'occurrenceDate' => $this->requiredString($row->occurrence_date)])->all());
+    }
+
+    public function endExpiredEmptyRtcSessions(DateTimeImmutable $now): array
+    {
+        $threshold = $now->modify('-15 minutes')->format(DATE_ATOM);
+        $rows = $this->database->table(ChatDatabaseTable::MEETING_OCCURRENCES)
+            ->where('rtc_status', 'active')->whereNotNull('rtc_empty_since')->where('rtc_empty_since', '<=', $threshold)
+            ->lockForUpdate()->get();
+        $rooms = [];
+        foreach ($rows as $row) {
+            if (! is_string($row->rtc_room_name)) {
+                continue;
+            }
+            $activeParticipants = $this->database->table(ChatDatabaseTable::MEETING_RTC_PARTICIPANTS)->where('occurrence_id', $row->id)->whereNull('left_at')->count();
+            if ($activeParticipants !== 0) {
+                continue;
+            }
+            $this->database->table(ChatDatabaseTable::MEETING_OCCURRENCES)->where('id', $row->id)->where('rtc_status', 'active')->update(['rtc_status' => 'ended', 'rtc_ended_at' => $now->format(DATE_ATOM), 'rtc_empty_since' => null, 'updated_at' => $now->format(DATE_ATOM)]);
+            $rooms[] = $row->rtc_room_name;
+        }
+
+        return $rooms;
+    }
+
+    private function sessionByOccurrence(int $occurrenceId): MeetingRtcSession
+    {
+        $row = $this->database->table(ChatDatabaseTable::MEETING_OCCURRENCES)->where('id', $occurrenceId)->first();
+        if (! $row instanceof stdClass) {
+            throw new \RuntimeException('Meeting occurrence is missing.');
+        }
+
+        return $this->mapRtcSession($row);
+    }
+
+    private function mapRtcSession(stdClass $row): MeetingRtcSession
+    {
+        $participants = array_values($this->database->table(ChatDatabaseTable::MEETING_RTC_PARTICIPANTS)->where('occurrence_id', $this->requiredInt($row->id))->orderBy('id')->get()->map(fn (stdClass $item): array => ['userId' => $this->requiredInt($item->user_id), 'microphoneEnabled' => $item->microphone_enabled === true || $item->microphone_enabled === 1, 'microphoneAllowed' => $item->microphone_allowed === true || $item->microphone_allowed === 1, 'cameraEnabled' => $item->camera_enabled === true || $item->camera_enabled === 1, 'screenSharing' => $item->screen_sharing === true || $item->screen_sharing === 1, 'joinedAt' => is_string($item->joined_at) ? $item->joined_at : null, 'leftAt' => is_string($item->left_at) ? $item->left_at : null, 'bannedAt' => is_string($item->banned_at) ? $item->banned_at : null])->all());
+
+        return new MeetingRtcSession($this->requiredInt($row->id), is_string($row->rtc_room_name) ? $row->rtc_room_name : '', $row->rtc_locked === true || $row->rtc_locked === 1, is_string($row->rtc_started_at) ? $row->rtc_started_at : null, is_string($row->rtc_ended_at) ? $row->rtc_ended_at : null, is_string($row->rtc_empty_since) ? $row->rtc_empty_since : null, $participants);
     }
 
     /** @return array<string,mixed> */

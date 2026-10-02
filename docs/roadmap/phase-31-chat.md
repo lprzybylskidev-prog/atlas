@@ -1,6 +1,6 @@
 # Phase 31 — Optional internal company chat, calendar, calls, meetings, and realtime communication
 
-**Status:** `in progress` (`P31-W01` through `P31-W09` complete; `P31-W10` is next)
+**Status:** `in progress` (`P31-W01` through `P31-W10` complete; `P31-W11` is next)
 
 ## Objective
 
@@ -1632,31 +1632,31 @@ After browser refresh, offer Rejoin rather than silently recreating media state.
 
 ### Tasks
 
-- [ ] Add Meeting pre-call device screen.
-- [ ] Keep RTC session controls limited to online/hybrid Meetings.
-- [ ] Keep in-person Meetings free of Join online/pre-call/media controls.
-- [ ] Keep in-person Meetings independent from LiveKit/TURN availability.
-- [ ] Keep Hybrid as one Meeting combining physical location with an optional Atlas RTC session.
-- [ ] Add mic/camera/device controls.
-- [ ] Add one active screen share.
-- [ ] Add organizer stop-screen-share.
-- [ ] Add organizer mute.
-- [ ] Add organizer microphone-disable/restore.
-- [ ] Add organizer camera-off.
-- [ ] Add kick/occurrence ban.
-- [ ] Add lock/unlock.
-- [ ] Disable invitations while locked.
-- [ ] Add Leave.
-- [ ] Add organizer End for everyone.
-- [ ] Add 15-minute empty-room termination.
-- [ ] Limit empty-room cleanup to RTC resources without changing Meeting domain state.
-- [ ] Add attendance join/leave/duration.
-- [ ] Prevent RTC attendance from falsely classifying physical attendance.
-- [ ] Expose attendance to participants.
-- [ ] Add minimized session state.
-- [ ] Add Rejoin behavior.
-- [ ] Add moderation and negative authorization tests.
-- [ ] Add multi-user browser acceptance.
+- [x] Add Meeting pre-call device screen.
+- [x] Keep RTC session controls limited to online/hybrid Meetings.
+- [x] Keep in-person Meetings free of Join online/pre-call/media controls.
+- [x] Keep in-person Meetings independent from LiveKit/TURN availability.
+- [x] Keep Hybrid as one Meeting combining physical location with an optional Atlas RTC session.
+- [x] Add mic/camera/device controls.
+- [x] Add one active screen share.
+- [x] Add organizer stop-screen-share.
+- [x] Add organizer mute.
+- [x] Add organizer microphone-disable/restore.
+- [x] Add organizer camera-off.
+- [x] Add kick/occurrence ban.
+- [x] Add lock/unlock.
+- [x] Disable invitations while locked.
+- [x] Add Leave.
+- [x] Add organizer End for everyone.
+- [x] Add 15-minute empty-room termination.
+- [x] Limit empty-room cleanup to RTC resources without changing Meeting domain state.
+- [x] Add attendance join/leave/duration.
+- [x] Prevent RTC attendance from falsely classifying physical attendance.
+- [x] Expose attendance to participants.
+- [x] Add minimized session state.
+- [x] Add Rejoin behavior.
+- [x] Add moderation and negative authorization tests.
+- [x] Add multi-user browser acceptance.
 
 ---
 

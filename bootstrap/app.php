@@ -19,6 +19,7 @@ use App\Modules\Core\Notifications\Presentation\Console\PruneNotificationsComman
 use App\Modules\Core\Notifications\Presentation\Console\PublishRealtimeEventCommand;
 use App\Modules\Core\Notifications\Presentation\Console\SendNotificationCommand;
 use App\Modules\Core\Settings\Presentation\Http\Middleware\SetLocaleFromSession;
+use App\Modules\Optional\Chat\Presentation\Console\EndExpiredEmptyMeetingRtcSessionsCommand;
 use App\Modules\Optional\Search\Presentation\Console\RebuildSearchIndexesCommand;
 use App\Shared\Infrastructure\Console\ResetDemoEnvironment;
 use App\Shared\Presentation\Console\ApplyDueModuleActivationSchedules;
@@ -49,6 +50,7 @@ return Application::configure(basePath: dirname(__DIR__))
         ApplyDueModuleActivationSchedules::class,
         DispatchOperationalAlertsCommand::class,
         PruneTemporaryFilesCommand::class,
+        EndExpiredEmptyMeetingRtcSessionsCommand::class,
         PruneNotificationsCommand::class,
         PublishRealtimeEventCommand::class,
         RecordSchedulerHeartbeatCommand::class,
@@ -62,6 +64,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $schedule->command('system:scheduler-heartbeat')->everyMinute()->withoutOverlapping();
         $schedule->command('system:operational-alerts')->everyFiveMinutes()->withoutOverlapping();
         $schedule->command('files:prune-temporary')->hourly()->withoutOverlapping();
+        $schedule->command('chat:meetings:end-empty-rtc-sessions')->everyMinute()->withoutOverlapping();
     })
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([

@@ -1,7 +1,19 @@
 <script setup lang="ts">
 import { Head, router, useForm } from '@inertiajs/vue3';
-import { IconCalendarEvent, IconMessage, IconUsers, IconVideo } from '@tabler/icons-vue';
-import { computed } from 'vue';
+import {
+    IconCalendarEvent,
+    IconDeviceDesktopShare,
+    IconLock,
+    IconMessage,
+    IconMicrophone,
+    IconMicrophoneOff,
+    IconPhoneOff,
+    IconUsers,
+    IconVideo,
+    IconVideoOff,
+} from '@tabler/icons-vue';
+import { computed, nextTick, ref } from 'vue';
+import DialogPanel from '../../Components/DialogPanel.vue';
 import FormButton from '../../Components/Form/FormButton.vue';
 import AtlasForm from '../../Components/Form/AtlasForm.vue';
 import FormDateInput from '../../Components/Form/FormDateInput.vue';
@@ -11,9 +23,12 @@ import FormSelect, { type FormSelectOption } from '../../Components/Form/FormSel
 import PageStack from '../../Components/PageStack.vue';
 import StatusBadge from '../../Components/StatusBadge.vue';
 import SurfaceCard from '../../Components/SurfaceCard.vue';
+import MediaDeviceSetup, { type MediaDevicePreparation } from '../../Components/Chat/MediaDeviceSetup.vue';
 import AppLayout from '../../Layouts/AppLayout.vue';
 import { useModal } from '../../Composables/useModal';
 import { useTranslator } from '../../Localization/translator';
+import { chatJson } from '../../Services/chatAttachments';
+import type { CallMediaSession } from '../../Services/callMediaSession';
 interface Participant {
     publicId: string;
     name: string;
@@ -25,6 +40,14 @@ interface UserOption {
     name: string;
     email: string;
 }
+interface Attendance {
+    publicId: string;
+    name: string;
+    joinedAt: string;
+    leftAt: string | null;
+    durationSeconds: number | null;
+    occurrenceDate: string;
+}
 interface Meeting {
     publicId: string;
     conversationPublicId: string;
@@ -32,7 +55,7 @@ interface Meeting {
     description: string | null;
     startsAt: string;
     endsAt: string;
-    mode: string;
+    mode: 'online' | 'in_person' | 'hybrid';
     location: string | null;
     status: string;
     recurring: boolean;
@@ -40,16 +63,33 @@ interface Meeting {
     role: string;
     response: string;
     canJoinOnline: boolean;
+    canRejoinOnline: boolean;
     recurrenceFrequency: string | null;
     recurrenceWeekdays: number[];
     recurrenceEndsOn: string | null;
     recurrenceCount: number | null;
     participants: Participant[];
+    attendance: Attendance[];
+}
+interface MediaDeviceSetupHandle {
+    prepare(requestedCamera?: boolean | null): Promise<MediaDevicePreparation>;
+    stop(): void;
 }
 const props = defineProps<{ meeting: Meeting; users: UserOption[] }>();
 const { t } = useTranslator();
 const { confirm } = useModal();
 const invite = useForm({ user_public_id: '' });
+const preCallOpen = ref(false);
+const preCallBusy = ref(false);
+const deviceSetup = ref<MediaDeviceSetupHandle | null>(null);
+const meetingSession = ref<CallMediaSession | null>(null);
+const rtcActive = ref(false);
+const rtcMinimized = ref(false);
+const cameraEnabled = ref(false);
+const microphoneEnabled = ref(true);
+const screenSharing = ref(false);
+const remoteMedia = ref<HTMLDivElement | null>(null);
+const canUseRtcSession = computed(() => props.meeting.canJoinOnline && props.meeting.mode !== 'in_person');
 const edit = useForm({
     title: props.meeting.title,
     description: props.meeting.description ?? '',
@@ -79,6 +119,107 @@ const scopeOptions = computed<FormSelectOption[]>(() =>
 );
 function respond(response: 'accepted' | 'declined'): void {
     router.patch(`/meetings/${props.meeting.publicId}/response`, { response });
+}
+async function openPreCall(): Promise<void> {
+    if (!canUseRtcSession.value) return;
+    preCallOpen.value = true;
+    preCallBusy.value = true;
+    await nextTick();
+    await deviceSetup.value?.prepare(null);
+    preCallBusy.value = false;
+}
+function closePreCall(): void {
+    if (rtcActive.value) {
+        rtcMinimized.value = true;
+        preCallOpen.value = false;
+        return;
+    }
+    deviceSetup.value?.stop();
+    preCallOpen.value = false;
+}
+async function joinOnline(): Promise<void> {
+    const preparation = await deviceSetup.value?.prepare(null);
+    if (!preparation) return;
+    preCallBusy.value = true;
+    try {
+        const response = await chatJson<{ rtc: { serverUrl: string; participantToken: string }; session: unknown }>(
+            `/meetings/${props.meeting.publicId}/rtc/join`,
+            'POST',
+            {
+                occurrence_date: props.meeting.startsAt.slice(0, 10),
+                camera_enabled: preparation.cameraEnabled,
+                microphone_enabled: preparation.microphoneEnabled,
+            },
+        );
+        const { CallMediaSession: MediaSession } = await import('../../Services/callMediaSession');
+        const media = new MediaSession();
+        media.onTrackSubscribed((element) => {
+            element.autoplay = true;
+            if (element instanceof HTMLVideoElement) element.playsInline = true;
+            remoteMedia.value?.appendChild(element);
+        });
+        await media.connect(
+            { ...response.rtc, roomName: '', expiresAt: '' },
+            { camera: preparation.cameraEnabled, microphone: preparation.microphoneEnabled },
+        );
+        meetingSession.value = media;
+        cameraEnabled.value = preparation.cameraEnabled;
+        microphoneEnabled.value = preparation.microphoneEnabled;
+        rtcActive.value = true;
+    } finally {
+        preCallBusy.value = false;
+    }
+}
+async function toggleMedia(kind: 'camera' | 'microphone'): Promise<void> {
+    const next = kind === 'camera' ? !cameraEnabled.value : !microphoneEnabled.value;
+    if (kind === 'camera') {
+        await meetingSession.value?.camera(next);
+        cameraEnabled.value = next;
+    } else {
+        await meetingSession.value?.microphone(next);
+        microphoneEnabled.value = next;
+    }
+    await chatJson(`/meetings/${props.meeting.publicId}/rtc/media`, 'PATCH', {
+        occurrence_date: props.meeting.startsAt.slice(0, 10),
+        camera_enabled: cameraEnabled.value,
+        microphone_enabled: microphoneEnabled.value,
+    });
+}
+async function toggleScreenShare(): Promise<void> {
+    const next = !screenSharing.value;
+    await chatJson(
+        `/meetings/${props.meeting.publicId}/rtc/screen-share?occurrence_date=${props.meeting.startsAt.slice(0, 10)}`,
+        next ? 'POST' : 'DELETE',
+    );
+    await meetingSession.value?.screenShare(next);
+    screenSharing.value = next;
+}
+async function leaveOnline(): Promise<void> {
+    await chatJson(`/meetings/${props.meeting.publicId}/rtc/leave`, 'POST', { occurrence_date: props.meeting.startsAt.slice(0, 10) });
+    meetingSession.value?.disconnect();
+    meetingSession.value = null;
+    rtcActive.value = false;
+    rtcMinimized.value = false;
+    closePreCall();
+}
+async function moderate(
+    participant: string,
+    action: 'mute' | 'disable_microphone' | 'restore_microphone' | 'camera_off' | 'stop_screen_share' | 'kick',
+): Promise<void> {
+    await chatJson(`/meetings/${props.meeting.publicId}/rtc/participants/${participant}/moderate`, 'POST', {
+        occurrence_date: props.meeting.startsAt.slice(0, 10),
+        action,
+    });
+}
+async function lockMeeting(locked: boolean): Promise<void> {
+    await chatJson(`/meetings/${props.meeting.publicId}/rtc/lock`, 'PATCH', {
+        occurrence_date: props.meeting.startsAt.slice(0, 10),
+        locked,
+    });
+}
+async function endMeeting(): Promise<void> {
+    await chatJson(`/meetings/${props.meeting.publicId}/rtc/end`, 'POST', { occurrence_date: props.meeting.startsAt.slice(0, 10) });
+    await leaveOnline();
 }
 async function cancel(): Promise<void> {
     if (
@@ -149,8 +290,10 @@ async function remove(id: string): Promise<void> {
                         <div class="contents">
                             <FormButton tone="danger" @click="respond('declined')">{{ t('meetings.actions.decline') }}</FormButton>
                         </div>
-                        <div v-if="meeting.canJoinOnline" class="contents">
-                            <FormButton :icon="IconVideo" disabled>{{ t('meetings.actions.join_online') }}</FormButton>
+                        <div v-if="canUseRtcSession" class="contents">
+                            <FormButton :icon="IconVideo" @click="openPreCall">
+                                {{ meeting.canRejoinOnline ? t('meetings.rtc.rejoin') : t('meetings.actions.join_online') }}
+                            </FormButton>
                         </div>
                         <div v-if="meeting.role === 'organizer'" class="contents">
                             <FormButton tone="danger" @click="cancel">{{ t('meetings.actions.cancel') }}</FormButton>
@@ -196,6 +339,29 @@ async function remove(id: string): Promise<void> {
                         >
                             {{ t('meetings.actions.remove') }}
                         </FormButton>
+                        <div
+                            v-if="meeting.role === 'organizer' && participant.role !== 'organizer' && rtcActive"
+                            class="flex flex-wrap gap-1"
+                        >
+                            <FormButton tone="neutral" @click="moderate(participant.publicId, 'mute')">
+                                {{ t('meetings.rtc.mute') }}
+                            </FormButton>
+                            <FormButton tone="neutral" @click="moderate(participant.publicId, 'disable_microphone')">
+                                {{ t('meetings.rtc.disable_microphone') }}
+                            </FormButton>
+                            <FormButton tone="neutral" @click="moderate(participant.publicId, 'restore_microphone')">
+                                {{ t('meetings.rtc.restore_microphone') }}
+                            </FormButton>
+                            <FormButton tone="neutral" @click="moderate(participant.publicId, 'camera_off')">
+                                {{ t('meetings.rtc.camera_off') }}
+                            </FormButton>
+                            <FormButton tone="neutral" @click="moderate(participant.publicId, 'stop_screen_share')">
+                                {{ t('meetings.rtc.stop_share') }}
+                            </FormButton>
+                            <FormButton tone="danger" @click="moderate(participant.publicId, 'kick')">
+                                {{ t('meetings.rtc.kick') }}
+                            </FormButton>
+                        </div>
                     </div>
                     <div v-if="options.length" class="flex items-end gap-2">
                         <div class="max-w-md flex-1">
@@ -208,6 +374,90 @@ async function remove(id: string): Promise<void> {
             <SurfaceCard :title="t('meetings.chat.title')" :icon="IconMessage">
                 <p class="text-sm text-zinc-600 dark:text-zinc-300">{{ t('meetings.chat.body') }}</p>
             </SurfaceCard>
+            <SurfaceCard v-if="meeting.attendance.length" :title="t('meetings.attendance.title')" :icon="IconUsers">
+                <ul class="space-y-2">
+                    <li
+                        v-for="entry in meeting.attendance"
+                        :key="`${entry.publicId}-${entry.joinedAt}`"
+                        class="flex justify-between gap-3 text-sm"
+                    >
+                        <span>{{ entry.name }}</span>
+                        <span>
+                            {{ new Date(entry.joinedAt).toLocaleString() }} ·
+                            {{
+                                entry.durationSeconds === null
+                                    ? t('meetings.attendance.active')
+                                    : `${Math.floor(entry.durationSeconds / 60)} min`
+                            }}
+                        </span>
+                    </li>
+                </ul>
+                <p class="mt-3 text-xs text-zinc-500 dark:text-zinc-400">{{ t('meetings.attendance.online_only') }}</p>
+            </SurfaceCard>
         </PageStack>
+        <aside
+            v-if="rtcMinimized"
+            class="fixed right-4 bottom-4 z-70 rounded-lg border bg-white p-3 shadow-xl dark:bg-zinc-950"
+            data-testid="minimized-meeting-session"
+        >
+            <div class="flex gap-2">
+                <FormButton
+                    :icon="IconVideo"
+                    @click="
+                        rtcMinimized = false;
+                        preCallOpen = true;
+                    "
+                >
+                    {{ t('meetings.rtc.rejoin') }}
+                </FormButton>
+                <FormButton tone="danger" @click="leaveOnline">
+                    {{ t('meetings.rtc.leave') }}
+                </FormButton>
+            </div>
+        </aside>
+        <DialogPanel
+            v-if="canUseRtcSession"
+            :open="preCallOpen"
+            :title="t('meetings.pre_call.title')"
+            :icon="IconVideo"
+            size="3xl"
+            :close-label="t('modal.close')"
+            @update:open="closePreCall"
+        >
+            <p class="mb-4">{{ t('meetings.pre_call.description') }}</p>
+            <MediaDeviceSetup ref="deviceSetup" test-id="meeting-preflight" @update:busy="preCallBusy = $event" />
+            <template #actions>
+                <FormButton v-if="!rtcActive" tone="neutral" :disabled="preCallBusy" @click="closePreCall">
+                    {{ t('actions.close') }}
+                </FormButton>
+                <FormButton v-if="!rtcActive" :loading="preCallBusy" @click="joinOnline">{{ t('meetings.rtc.join') }}</FormButton>
+                <template v-else>
+                    <FormButton tone="neutral" :icon="cameraEnabled ? IconVideo : IconVideoOff" @click="toggleMedia('camera')">
+                        {{ t('meetings.rtc.camera') }}
+                    </FormButton>
+                    <FormButton
+                        tone="neutral"
+                        :icon="microphoneEnabled ? IconMicrophone : IconMicrophoneOff"
+                        @click="toggleMedia('microphone')"
+                    >
+                        {{ t('meetings.rtc.microphone') }}
+                    </FormButton>
+                    <FormButton tone="neutral" :icon="IconDeviceDesktopShare" @click="toggleScreenShare">
+                        {{ t('meetings.rtc.share') }}
+                    </FormButton>
+                    <FormButton tone="danger" :icon="IconPhoneOff" @click="leaveOnline">{{ t('meetings.rtc.leave') }}</FormButton>
+                    <FormButton v-if="meeting.role === 'organizer'" tone="neutral" :icon="IconLock" @click="lockMeeting(true)">
+                        {{ t('meetings.rtc.lock') }}
+                    </FormButton>
+                    <FormButton v-if="meeting.role === 'organizer'" tone="neutral" @click="lockMeeting(false)">
+                        {{ t('meetings.rtc.unlock') }}
+                    </FormButton>
+                    <FormButton v-if="meeting.role === 'organizer'" tone="danger" @click="endMeeting">
+                        {{ t('meetings.rtc.end') }}
+                    </FormButton>
+                </template>
+            </template>
+            <div v-if="rtcActive" ref="remoteMedia" class="mt-4 grid min-h-48 gap-3 rounded-lg bg-zinc-950 p-3" />
+        </DialogPanel>
     </AppLayout>
 </template>

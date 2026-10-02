@@ -92,15 +92,25 @@ final readonly class MeetingManager
     public function show(string $actorPublicId, string $teamPublicId, string $meetingPublicId): array
     {
         $this->access->ensureAllowed($actorPublicId, $teamPublicId, ChatPermissionCatalog::MEETING_SHOW);
-        $meeting = $this->authorized($meetingPublicId, $this->activeUserId($actorPublicId));
+        $actorId = $this->activeUserId($actorPublicId);
+        $meeting = $this->authorized($meetingPublicId, $actorId);
         $invitations = $this->meetings->invitations($meeting->id);
         $summaries = $this->users->displaySummariesForInternalIds(array_map(static fn (MeetingInvitationRecord $item): int => $item->userId, $invitations));
 
-        return [...$this->view($meeting, $this->meetings->invitation($meeting->id, $this->activeUserId($actorPublicId)), $summaries[$meeting->organizerUserId]->name ?? ''),
+        $attendance = $this->meetings->attendance($meeting);
+        $attendanceUsers = $this->users->displaySummariesForInternalIds(array_values(array_unique(array_map(static fn (array $item): int => $item['userId'], $attendance))));
+
+        $occurrenceDate = $meeting->startsAt->setTimezone(new \DateTimeZone('Europe/Warsaw'))->format('Y-m-d');
+        $rtcSession = $this->meetings->rtcSession($meeting, $occurrenceDate);
+        $currentRtcParticipant = $rtcSession === null ? null : array_find($rtcSession->participants, static fn (array $participant): bool => $participant['userId'] === $actorId);
+
+        return [...$this->view($meeting, $this->meetings->invitation($meeting->id, $actorId), $summaries[$meeting->organizerUserId]->name ?? ''),
             'participants' => array_map(static fn (MeetingInvitationRecord $item): array => [
                 'publicId' => $summaries[$item->userId]->publicId ?? '', 'name' => $summaries[$item->userId]->name ?? '',
                 'role' => $item->role->value, 'response' => $item->response->value,
-            ], $invitations)];
+            ], $invitations),
+            'attendance' => array_map(static fn (array $item): array => ['publicId' => $attendanceUsers[$item['userId']]->publicId ?? '', 'name' => $attendanceUsers[$item['userId']]->name ?? '', ...$item], $attendance),
+            'canRejoinOnline' => $rtcSession !== null && $rtcSession->endedAt === null && $rtcSession->locked === false && $currentRtcParticipant !== null && $currentRtcParticipant['bannedAt'] === null];
     }
 
     public function invite(string $actorPublicId, string $teamPublicId, string $meetingPublicId, string $inviteePublicId): void
@@ -110,6 +120,11 @@ final readonly class MeetingManager
         $inviteeId = $this->activeUserId($inviteePublicId);
         $meeting = $this->transaction->run(function () use ($meetingPublicId, $actorId, $inviteeId, $actorPublicId, $inviteePublicId): MeetingRecord {
             $meeting = $this->authorized($meetingPublicId, $actorId, true);
+            $occurrenceDate = $meeting->startsAt->setTimezone(new \DateTimeZone('Europe/Warsaw'))->format('Y-m-d');
+            $session = $this->meetings->rtcSession($meeting, $occurrenceDate, true);
+            if ($session?->locked === true) {
+                throw MeetingOperationDenied::locked();
+            }
             if ($this->meetings->invitation($meeting->id, $inviteeId, true) !== null) {
                 throw MeetingOperationDenied::alreadyInvited();
             }

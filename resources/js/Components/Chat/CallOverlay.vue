@@ -14,8 +14,6 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue';
 
 import { useTranslator } from '../../Localization/translator';
 import {
-    availableMediaDevices,
-    callPreferences,
     CallRealtimeClient,
     currentCall,
     declineCall,
@@ -34,8 +32,13 @@ import type { CallMediaSession } from '../../Services/callMediaSession';
 import type { AtlasPageProps } from '../../Types/inertia';
 import DialogPanel from '../DialogPanel.vue';
 import FormButton from '../Form/FormButton.vue';
-import FormCheckbox from '../Form/FormCheckbox.vue';
 import FormSelect, { type FormSelectOption } from '../Form/FormSelect.vue';
+import MediaDeviceSetup, { type MediaDevicePreparation } from './MediaDeviceSetup.vue';
+
+interface MediaDeviceSetupHandle {
+    prepare(requestedCamera?: boolean | null): Promise<MediaDevicePreparation>;
+    stop(): void;
+}
 
 const realtimeRefreshers = new Set<() => void>();
 let sharedRealtime: CallRealtimeClient | null = null;
@@ -52,9 +55,8 @@ const screenSharing = ref(false);
 const busy = ref(false);
 const error = ref<string | null>(null);
 const resultMessage = ref<string | null>(null);
-const preview = ref<HTMLVideoElement | null>(null);
 const remoteMedia = ref<HTMLDivElement | null>(null);
-const previewStream = ref<MediaStream | null>(null);
+const deviceSetup = ref<MediaDeviceSetupHandle | null>(null);
 const session = ref<CallMediaSession | null>(null);
 const preferences = ref<CallPreferences>({
     cameraDeviceId: null,
@@ -162,18 +164,9 @@ async function prepareDevices(requestedCamera: boolean | null = cameraEnabled.va
     busy.value = true;
 
     try {
-        preferences.value = await callPreferences();
-        cameraEnabled.value = requestedCamera ?? preferences.value.outgoingCameraEnabled;
-        microphoneEnabled.value = true;
-        previewStream.value = await preferredMediaStream().catch(() =>
-            navigator.mediaDevices.getUserMedia({ audio: true, video: cameraEnabled.value }),
-        );
-        devices.value = await availableMediaDevices();
         await nextTick();
-        if (preview.value) preview.value.srcObject = previewStream.value;
-    } catch {
-        error.value = t('calls.errors.media_permission');
-        devices.value = await availableMediaDevices().catch(() => ({ cameras: [], microphones: [], speakers: [] }));
+        const preparation = await deviceSetup.value?.prepare(requestedCamera);
+        if (preparation) applyDevicePreparation(preparation);
     } finally {
         busy.value = false;
     }
@@ -257,33 +250,10 @@ async function toggleScreenShare(): Promise<void> {
 async function switchDevice(kind: MediaDeviceKind, deviceId: string | number | null): Promise<void> {
     if (deviceId === null) return;
     const value = String(deviceId);
-    if (stage.value === 'precall' && (kind === 'videoinput' || kind === 'audioinput')) {
-        stopPreview();
-        previewStream.value = await preferredMediaStream().catch(() =>
-            navigator.mediaDevices.getUserMedia({ audio: true, video: cameraEnabled.value }),
-        );
-        await nextTick();
-        if (preview.value) preview.value.srcObject = previewStream.value;
-    } else if (value !== '') {
+    if (value !== '') {
         await session.value?.switchDevice(kind, value);
     }
     await persistPreferences();
-}
-
-async function updatePreviewCamera(value: boolean | string[]): Promise<void> {
-    if (typeof value !== 'boolean') return;
-    const enabled = value;
-    cameraEnabled.value = enabled;
-    if (stage.value !== 'precall') return;
-    stopPreview();
-
-    try {
-        previewStream.value = await preferredMediaStream();
-        await nextTick();
-        if (preview.value) preview.value.srcObject = previewStream.value;
-    } catch {
-        error.value = t('calls.errors.media_permission');
-    }
 }
 
 async function leave(): Promise<void> {
@@ -320,9 +290,14 @@ async function persistPreferences(): Promise<void> {
 }
 
 function stopPreview(): void {
-    previewStream.value?.getTracks().forEach((track) => track.stop());
-    previewStream.value = null;
-    if (preview.value) preview.value.srcObject = null;
+    deviceSetup.value?.stop();
+}
+
+function applyDevicePreparation(preparation: MediaDevicePreparation): void {
+    cameraEnabled.value = preparation.cameraEnabled;
+    microphoneEnabled.value = preparation.microphoneEnabled;
+    preferences.value = preparation.preferences;
+    devices.value = preparation.devices;
 }
 
 function closeDialog(): void {
@@ -349,17 +324,6 @@ function deviceOptions(items: MediaDeviceInfo[], fallback: string): FormSelectOp
 function nullableDeviceId(value: string | number): string | null {
     const deviceId = String(value);
     return deviceId === '' ? null : deviceId;
-}
-
-function preferredMediaStream(): Promise<MediaStream> {
-    return navigator.mediaDevices.getUserMedia({
-        audio: preferences.value.microphoneDeviceId ? { deviceId: { exact: preferences.value.microphoneDeviceId } } : true,
-        video: cameraEnabled.value
-            ? preferences.value.cameraDeviceId
-                ? { deviceId: { exact: preferences.value.cameraDeviceId } }
-                : true
-            : false,
-    });
 }
 
 function isPrepareCallDetail(value: unknown): value is { conversationPublicId: string; cameraEnabled: boolean | null } {
@@ -417,45 +381,14 @@ function alertIncoming(value: CallSnapshot | null): void {
         :close-label="t('modal.close')"
         @update:open="closeDialog"
     >
-        <div v-if="stage === 'precall' || stage === 'connecting'" class="space-y-4" data-testid="call-preflight">
-            <video
-                v-if="cameraEnabled"
-                ref="preview"
-                autoplay
-                muted
-                playsinline
-                class="aspect-video w-full rounded-lg bg-zinc-950 object-cover"
-            />
-            <div v-else class="flex aspect-video items-center justify-center rounded-lg bg-zinc-900 text-zinc-300">
-                <IconVideoOff aria-hidden="true" class="h-10 w-10" :stroke-width="1.5" />
-            </div>
-            <p v-if="error" class="rounded-lg bg-rose-50 p-3 text-rose-800 dark:bg-rose-950 dark:text-rose-200" role="alert">{{ error }}</p>
-            <div class="grid gap-3 md:grid-cols-3">
-                <FormSelect
-                    v-model="cameraDeviceId"
-                    :label="t('calls.devices.camera')"
-                    :options="cameraOptions"
-                    @update:model-value="switchDevice('videoinput', $event)"
-                />
-                <FormSelect
-                    v-model="microphoneDeviceId"
-                    :label="t('calls.devices.microphone')"
-                    :options="microphoneOptions"
-                    @update:model-value="switchDevice('audioinput', $event)"
-                />
-                <FormSelect
-                    v-model="speakerDeviceId"
-                    :label="t('calls.devices.speaker')"
-                    :options="speakerOptions"
-                    @update:model-value="switchDevice('audiooutput', $event)"
-                />
-            </div>
-            <div class="flex flex-wrap gap-4">
-                <FormCheckbox :model-value="cameraEnabled" :label="t('calls.pre_call.camera')" @update:model-value="updatePreviewCamera" />
-                <FormCheckbox v-model="microphoneEnabled" :label="t('calls.pre_call.microphone')" />
-                <FormCheckbox v-model="preferences.outgoingCameraEnabled" :label="t('calls.pre_call.remember_camera')" />
-            </div>
-        </div>
+        <MediaDeviceSetup
+            v-if="stage === 'precall' || stage === 'connecting'"
+            ref="deviceSetup"
+            show-outgoing-camera-preference
+            test-id="call-preflight"
+            @change="applyDevicePreparation"
+            @update:busy="busy = $event"
+        />
 
         <div v-else-if="stage === 'connected'" class="space-y-4" data-testid="active-call">
             <div v-if="call" class="flex flex-wrap items-center justify-between gap-2">

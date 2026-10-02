@@ -82,6 +82,22 @@ final class ChatPermissionNames
 
     public const MEETING_MODERATE = 'chat.meetings.moderate';
 
+    public const MEETING_RTC_JOIN = 'chat.meetings.rtc.join';
+
+    public const MEETING_RTC_LEAVE = 'chat.meetings.rtc.leave';
+
+    public const MEETING_RTC_MEDIA_UPDATE = 'chat.meetings.rtc.media.update';
+
+    public const MEETING_RTC_SCREEN_SHARE_STORE = 'chat.meetings.rtc.screen-shares.store';
+
+    public const MEETING_RTC_SCREEN_SHARE_DESTROY = 'chat.meetings.rtc.screen-shares.destroy';
+
+    public const MEETING_RTC_MODERATE = 'chat.meetings.rtc.moderate';
+
+    public const MEETING_RTC_LOCK_UPDATE = 'chat.meetings.rtc.lock.update';
+
+    public const MEETING_RTC_END = 'chat.meetings.rtc.end';
+
     public const RECORDING_MANAGE = 'chat.meetings.recordings.manage';
 
     public const RECORDING_SHOW = 'chat.meetings.recordings.show';

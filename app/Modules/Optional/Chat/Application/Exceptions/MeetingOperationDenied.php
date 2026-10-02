@@ -32,4 +32,19 @@ final class MeetingOperationDenied extends RuntimeException
     {
         return new self('The user is already invited to this Meeting.');
     }
+
+    public static function rtcUnavailable(): self
+    {
+        return new self('The Meeting RTC session is unavailable.');
+    }
+
+    public static function invalidRtcAction(): self
+    {
+        return new self('The requested Meeting RTC action is invalid.');
+    }
+
+    public static function locked(): self
+    {
+        return new self('The Meeting is locked.');
+    }
 }

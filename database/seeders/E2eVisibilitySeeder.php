@@ -133,7 +133,10 @@ final class E2eVisibilitySeeder extends Seeder
             $current->sourceType === 'copy'
             && $current->sourcePublicId === $admin->publicId
             && $current->copiedFromUserPublicId === $admin->publicId
-            && $current->roleNames === [StarterRoleName::WorkspaceAccess->value]
+            && $current->roleNames === [
+                StarterRoleName::CommunicationAccess->value,
+                StarterRoleName::WorkspaceAccess->value,
+            ]
             && $current->directPermissionNames === [CoreAuthorizationPermissionCatalog::DASHBOARD]
         ) {
             return;
@@ -143,7 +146,10 @@ final class E2eVisibilitySeeder extends Seeder
             actorPublicId: $admin->publicId,
             userPublicId: $limited->publicId,
             teamPublicId: $teamPublicId,
-            roleNames: [StarterRoleName::WorkspaceAccess->value],
+            roleNames: [
+                StarterRoleName::CommunicationAccess->value,
+                StarterRoleName::WorkspaceAccess->value,
+            ],
             directPermissionNames: [CoreAuthorizationPermissionCatalog::DASHBOARD],
             reason: 'E2E copied-source and overlapping-direct-grant fixture.',
             sourceType: 'copy',
