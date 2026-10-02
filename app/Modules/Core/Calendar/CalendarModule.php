@@ -23,7 +23,10 @@ final class CalendarModule implements ModuleDefinition
 
     public function requiredDependencies(): array
     {
-        return [new ModuleKey('identity')];
+        return [
+            new ModuleKey('identity'),
+            new ModuleKey('notifications'),
+        ];
     }
 
     public function optionalDependencies(): array

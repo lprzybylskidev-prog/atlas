@@ -30,6 +30,7 @@ import { useSidebar } from '../Composables/useSidebar';
 import { useTheme } from '../Composables/useTheme';
 import { useTranslator } from '../Localization/translator';
 import { beginFullscreenTransitionLoading } from '../Services/fullscreenTransitionLoading';
+import { browserNotificationsEnabled } from '../Services/browserNotificationPreferences';
 import { clearTeamScopedState } from '../Services/teamScopedState';
 import type { AtlasPageProps } from '../Types/inertia';
 import type { ShellMode, ShellModeLink, ShellSubnavigationItem } from '../Types/navigation';
@@ -74,6 +75,7 @@ const userMenuButton = ref<HTMLElement | null>(null);
 const userMenuPanel = ref<HTMLElement | null>(null);
 const notificationSoundArmed = ref(false);
 const previousUnreadCount = ref(page.props.notifications.unreadCount);
+const previousLatestNotificationId = ref(page.props.notifications.latest[0]?.publicId ?? null);
 const teamSwitching = ref(false);
 const online = ref(typeof navigator === 'undefined' ? true : navigator.onLine);
 
@@ -255,6 +257,26 @@ watch(
     (nextCount) => {
         if (nextCount > previousUnreadCount.value) {
             playNotificationSound();
+            const latest = page.props.notifications.latest[0];
+            if (
+                latest &&
+                latest.publicId !== previousLatestNotificationId.value &&
+                typeof window !== 'undefined' &&
+                'Notification' in window &&
+                Notification.permission === 'granted' &&
+                page.props.notifications.browserEnabled &&
+                browserNotificationsEnabled('notifications', page.props.auth.user?.publicId)
+            ) {
+                const native = new Notification(latest.title, {
+                    body: latest.body ?? undefined,
+                    tag: `atlas-notification-${latest.publicId}`,
+                });
+                native.onclick = () => {
+                    window.focus();
+                    window.location.assign(notificationHref(latest.deepLinkUrl));
+                };
+            }
+            previousLatestNotificationId.value = latest?.publicId ?? null;
         }
 
         previousUnreadCount.value = nextCount;
@@ -349,6 +371,7 @@ watch(
             />
 
             <div class="order-2 flex w-full min-w-0 items-center justify-end gap-2 sm:w-auto">
+                <div id="chat-shell-slot" />
                 <IconButton
                     :label="isDark ? t('actions.switch_light_theme') : t('actions.switch_dark_theme')"
                     :icon="isDark ? IconSun : IconMoon"

@@ -5,7 +5,6 @@ import { Link, usePage } from '@inertiajs/vue3';
 import { IconActivityHeartbeat, IconLogout, IconWifi, IconWifiOff } from '@tabler/icons-vue';
 
 import DialogPanel from '../Components/DialogPanel.vue';
-import CallOverlay from '../Components/Chat/CallOverlay.vue';
 import FormButton from '../Components/Form/FormButton.vue';
 import MobileNavigation from '../Components/MobileNavigation.vue';
 import FullscreenTransitionLoader from '../Components/FullscreenTransitionLoader.vue';
@@ -144,7 +143,6 @@ const impersonationBannerText = computed(() =>
             @close="mobileMenuOpen = false"
         />
         <FullscreenTransitionLoader />
-        <CallOverlay v-if="page.props.auth.user !== null && page.props.auth.availableApplicationRoutes.includes('chat.calls.current')" />
         <ModalHost :ui-locale="uiLocale" />
         <DialogPanel
             v-model:open="activity.warningOpen"

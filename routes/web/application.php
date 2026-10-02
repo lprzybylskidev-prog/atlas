@@ -69,6 +69,8 @@ Route::middleware('auth')->group(function (): void {
 Route::middleware(['auth', 'route.permission'])->group(function (): void {
     Route::get('/', fn () => Inertia::render('Dashboard'))->name('dashboard');
     Route::get('/calendar', [CalendarController::class, 'index'])->name(CalendarPermissionCatalog::INDEX);
+    Route::get('/chat/conversations', [ChatConversationController::class, 'index'])->name(ChatPermissionCatalog::INDEX);
+    Route::patch('/chat/conversations/{conversation}/favorite', [ChatConversationController::class, 'favorite'])->name(ChatPermissionCatalog::FAVORITE_UPDATE);
     Route::get('/chat/conversations/{conversation}/content', [ChatAttachmentController::class, 'content'])->name(ChatPermissionCatalog::CONTENT_INDEX);
     Route::get('/chat/conversations/{conversation}/attachments/{attachment}', [ChatAttachmentController::class, 'show'])->name(ChatPermissionCatalog::ATTACHMENT_SHOW);
     Route::post('/chat/conversations/{conversation}/attachments/{attachment}/retry', [ChatAttachmentController::class, 'retry'])->name(ChatPermissionCatalog::ATTACHMENT_RETRY);

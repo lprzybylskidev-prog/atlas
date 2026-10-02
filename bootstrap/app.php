@@ -7,6 +7,7 @@ use App\Http\Middleware\AttachRequestId;
 use App\Http\Middleware\EnsureActiveTeamSelected;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Modules\Core\Authorization\Presentation\Http\Middleware\AuthorizeRoutePermission;
+use App\Modules\Core\Calendar\Presentation\Console\DispatchCalendarRemindersCommand;
 use App\Modules\Core\Files\Presentation\Console\PruneTemporaryFilesCommand;
 use App\Modules\Core\Identity\Presentation\Http\Middleware\ApplyImpersonationContext;
 use App\Modules\Core\Identity\Presentation\Http\Middleware\BlockProhibitedImpersonationOperations;
@@ -19,6 +20,7 @@ use App\Modules\Core\Notifications\Presentation\Console\PruneNotificationsComman
 use App\Modules\Core\Notifications\Presentation\Console\PublishRealtimeEventCommand;
 use App\Modules\Core\Notifications\Presentation\Console\SendNotificationCommand;
 use App\Modules\Core\Settings\Presentation\Http\Middleware\SetLocaleFromSession;
+use App\Modules\Optional\Chat\Presentation\Console\DispatchMeetingRemindersCommand;
 use App\Modules\Optional\Chat\Presentation\Console\EndExpiredEmptyMeetingRtcSessionsCommand;
 use App\Modules\Optional\Search\Presentation\Console\RebuildSearchIndexesCommand;
 use App\Shared\Infrastructure\Console\ResetDemoEnvironment;
@@ -51,6 +53,7 @@ return Application::configure(basePath: dirname(__DIR__))
         DispatchOperationalAlertsCommand::class,
         PruneTemporaryFilesCommand::class,
         EndExpiredEmptyMeetingRtcSessionsCommand::class,
+        DispatchMeetingRemindersCommand::class,
         PruneNotificationsCommand::class,
         PublishRealtimeEventCommand::class,
         RecordSchedulerHeartbeatCommand::class,
@@ -59,6 +62,7 @@ return Application::configure(basePath: dirname(__DIR__))
         RebuildSearchIndexesCommand::class,
         ResetDemoEnvironment::class,
         SendNotificationCommand::class,
+        DispatchCalendarRemindersCommand::class,
     ])
     ->withSchedule(function (Schedule $schedule): void {
         $schedule->command('system:scheduler-heartbeat')->everyMinute()->withoutOverlapping();
@@ -66,6 +70,8 @@ return Application::configure(basePath: dirname(__DIR__))
         $schedule->command('files:prune-temporary')->hourly()->withoutOverlapping();
         $schedule->command('chat:meetings:end-empty-rtc-sessions')->everyMinute()->withoutOverlapping();
         $schedule->command('chat:meetings:finalize-recordings')->everyMinute()->withoutOverlapping();
+        $schedule->command('calendar:dispatch-reminders')->everyMinute()->withoutOverlapping();
+        $schedule->command('chat:meetings:dispatch-reminders')->everyMinute()->withoutOverlapping();
         $schedule->command('chat:meetings:prune-recordings')->dailyAt('02:30')->withoutOverlapping();
     })
     ->withMiddleware(function (Middleware $middleware): void {

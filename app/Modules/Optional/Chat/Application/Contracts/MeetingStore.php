@@ -24,6 +24,13 @@ interface MeetingStore
     /** @return list<MeetingRecord> */
     public function forUser(int $userId): array;
 
+    /** @return list<MeetingRecord> */
+    public function scheduled(): array;
+
+    public function claimReminder(int $meetingId, int $userId, string $occurrenceDate, int $minutesBefore): bool;
+
+    public function markReminderDelivered(int $meetingId, int $userId, string $occurrenceDate, int $minutesBefore): void;
+
     /** @return list<MeetingInvitationRecord> */
     public function invitations(int $meetingId, bool $activeOnly = true): array;
 

@@ -47,6 +47,33 @@ final class ConversationOwnershipTest extends TestCase
         self::assertSame(2, DB::table(ChatDatabaseTable::CONVERSATION_MEMBERSHIPS)->where('conversation_id', $created->id)->count());
     }
 
+    public function test_conversation_list_exposes_human_names_meeting_type_and_private_favorites(): void
+    {
+        [$owner, $other] = User::factory()->count(2)->create()->all();
+        $owner->forceFill(['name' => 'List Owner'])->save();
+        $other->forceFill(['name' => 'Direct Colleague'])->save();
+        $manager = $this->manager();
+        $direct = $manager->startDirect((string) $owner->public_id, (string) $other->public_id, 'team');
+        $meeting = $manager->ensureMeetingConversation('meeting-01', null, (string) $owner->public_id, 'Quarterly planning');
+
+        $manager->setFavorite((string) $owner->public_id, 'team', $direct->publicId, true);
+        $items = $manager->listFor((string) $owner->public_id, 'team');
+        $directItem = $this->conversationItem($items, $direct->publicId);
+        $meetingItem = $this->conversationItem($items, $meeting->publicId);
+
+        self::assertSame('Direct Colleague', $directItem['name']);
+        self::assertTrue($directItem['favorite']);
+        self::assertSame('meeting', $meetingItem['type']);
+        self::assertSame('Quarterly planning', $meetingItem['name']);
+
+        $manager->ensureMeetingConversation('meeting-01', null, (string) $owner->public_id, 'Updated planning');
+        $updatedMeeting = $this->conversationItem($manager->listFor((string) $owner->public_id, 'team'), $meeting->publicId);
+        self::assertSame('Updated planning', $updatedMeeting['name']);
+
+        $otherDirect = $this->conversationItem($manager->listFor((string) $other->public_id, 'team'), $direct->publicId);
+        self::assertFalse($otherDirect['favorite']);
+    }
+
     public function test_database_arbiters_protect_canonical_conversations_and_single_active_ownership(): void
     {
         $indexes = DB::table('pg_indexes')
@@ -290,5 +317,20 @@ final class ConversationOwnershipTest extends TestCase
             scopePolicy: new ConversationScopePolicy,
             audit: $audit ?? $this->app->make(AuditRecorder::class),
         );
+    }
+
+    /**
+     * @param  list<array{publicId:string,type:string,name:string,favorite:bool,unreadCount:int}>  $items
+     * @return array{publicId:string,type:string,name:string,favorite:bool,unreadCount:int}
+     */
+    private function conversationItem(array $items, string $publicId): array
+    {
+        foreach ($items as $item) {
+            if ($item['publicId'] === $publicId) {
+                return $item;
+            }
+        }
+
+        self::fail('Expected conversation was not present in the list.');
     }
 }

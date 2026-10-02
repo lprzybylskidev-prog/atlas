@@ -21,6 +21,7 @@ use App\Modules\Optional\Chat\Application\MeetingRecordingAccessManager;
 use App\Modules\Optional\Chat\Application\MeetingRecordingFinalizer;
 use App\Modules\Optional\Chat\Application\MeetingRecordingManager;
 use App\Modules\Optional\Chat\Application\MeetingRecordingRetention;
+use App\Modules\Optional\Chat\Application\MeetingReminderDispatcher;
 use App\Modules\Optional\Chat\Application\MeetingRtcMaintenance;
 use App\Modules\Optional\Chat\Application\MeetingRtcManager;
 use App\Modules\Optional\Chat\Domain\Conversations\MeetingResponse;
@@ -264,6 +265,30 @@ final class MeetingLifecycleTest extends TestCase
 
         $this->expectException(MeetingOperationDenied::class);
         $this->app->make(MeetingRecordingManager::class)->control((string) $organizer->public_id, 'team', $meeting->publicId, $date, 'start');
+    }
+
+    public function test_accepted_meeting_participant_receives_one_preference_controlled_reminder(): void
+    {
+        $organizer = User::factory()->create();
+        $meeting = $this->app->make(MeetingManager::class)->create(
+            (string) $organizer->public_id,
+            'team',
+            $this->input(MeetingMode::InPerson, [], 'Room 2'),
+        )['meeting'];
+        $dispatcher = $this->app->make(MeetingReminderDispatcher::class);
+        $now = new DateTimeImmutable('2026-10-10 06:45 UTC');
+
+        self::assertSame(1, $dispatcher->dispatch($now));
+        self::assertSame(0, $dispatcher->dispatch($now));
+        self::assertCount(1, $this->notifications->notifications);
+        self::assertSame('chat.meeting.reminder', $this->notifications->notifications[0]->type);
+        self::assertTrue($this->notifications->notifications[0]->emailRequested);
+        $this->assertDatabaseHas(ChatDatabaseTable::MEETING_REMINDER_DELIVERIES, [
+            'meeting_id' => $meeting->id,
+            'user_id' => $organizer->id,
+            'occurrence_date' => '2026-10-10',
+            'minutes_before' => 15,
+        ]);
     }
 
     /** @param list<string> $invitees */

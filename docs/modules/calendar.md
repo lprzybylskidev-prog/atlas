@@ -6,7 +6,7 @@ The current Phase 31 implementation uses the documented `Europe/Warsaw` recurren
 
 ## Ownership and availability
 
-Calendar is a non-activatable Core module with key `calendar`. It owns Calendar persistence in the `core_calendar` PostgreSQL schema. Chat does not own Calendar tables and future modules must not create separate calendar engines or query Calendar persistence directly.
+Calendar is a non-activatable Core module with key `calendar`. It requires Identity for ownership and Notifications for reminder delivery, and owns Calendar persistence in the `core_calendar` PostgreSQL schema. Chat does not own Calendar tables and future modules must not create separate calendar engines or query Calendar persistence directly.
 
 Calendar remains usable without Chat. It provides private personal events and accepts projections from owning modules without importing their persistence or domain internals. Chat currently contributes invitee-authorized Meeting projections.
 
@@ -16,7 +16,7 @@ A personal event belongs to exactly one user and supports title, description, st
 
 Recurring mutations explicitly target one occurrence, that occurrence and the future series, or the whole series. Recurrence is expanded in `Europe/Warsaw` local time so the intended wall-clock time survives DST transitions. Personal events never contain participants, invitations, public sharing, task completion, colors, or categories.
 
-Users own a default reminder lead time, initially 15 minutes, and an email-delivery preference. An event may replace the default with zero or more event-specific reminder offsets. Notification dispatch remains owned by the later Phase 31 notification/reminder workstream; Calendar owns the persisted schedule and preference.
+Users own a default reminder lead time, initially 15 minutes, and an email-delivery preference. An event may replace the default with zero or more event-specific reminder offsets. The minute scheduler runs `calendar:dispatch-reminders`, claims each user/occurrence/offset delivery idempotently, and publishes `calendar.personal.reminder` through Notifications. In-app delivery remains available; the Calendar preference and the recipient's Notifications email preference both apply before email is sent.
 
 The regular Calendar surface is available at `/calendar` and provides Month, Week, Day, and Agenda views with localized create, edit, scoped recurring mutation, delete, and reminder-preference workflows.
 
@@ -35,7 +35,7 @@ The module catalog owns `calendar.index` and route-aligned personal-event create
 
 The ordinary workspace and `communication.access` starter bundles include standard Calendar use, personal-event mutation, and reminder-preference management. Backend ownership checks remain mandatory even when UI actions are hidden by route availability.
 
-Calendar persistence lives exclusively in `core_calendar`: personal events, reminders, recurrence exceptions, user preferences, and contributed event projections. Free/Busy responses intentionally omit event content. Administrator status and another user's Calendar permissions do not grant private-event access.
+Calendar persistence lives exclusively in `core_calendar`: personal events, reminders, recurrence exceptions, reminder-delivery claims, user preferences, and contributed event projections. Free/Busy responses intentionally omit event content. Administrator status and another user's Calendar permissions do not grant private-event access.
 
 ## Verification
 

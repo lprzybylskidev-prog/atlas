@@ -76,6 +76,7 @@ return new class extends Migration
             $table->string('role', 16);
             $table->string('source', 16);
             $table->string('meeting_response', 16)->nullable();
+            $table->timestampTz('favorite_at')->nullable();
             $table->timestampTz('joined_at');
             $table->timestampTz('ended_at')->nullable();
             $table->string('ended_reason', 32)->nullable();
@@ -85,6 +86,7 @@ return new class extends Migration
             $table->foreign('user_id')->references('id')->on(IdentityDatabaseTable::USERS)->restrictOnDelete();
             $table->index(['conversation_id', 'user_id']);
             $table->index(['user_id', 'ended_at']);
+            $table->index(['user_id', 'favorite_at']);
         });
         DB::statement(sprintf(
             "alter table %s add constraint chat_memberships_role_check check (role in ('owner', 'member'))",
@@ -471,6 +473,19 @@ SQL);
         DB::statement(sprintf('create unique index chat_meeting_invitations_active_user_unique on %s (meeting_id, user_id) where removed_at is null', ChatDatabaseTable::MEETING_INVITATIONS));
         DB::statement(sprintf("create unique index chat_meeting_invitations_active_organizer_unique on %s (meeting_id) where removed_at is null and role = 'organizer'", ChatDatabaseTable::MEETING_INVITATIONS));
 
+        Schema::create(ChatDatabaseTable::MEETING_REMINDER_DELIVERIES, static function (Blueprint $table): void {
+            $table->id();
+            $table->unsignedBigInteger('meeting_id');
+            $table->unsignedBigInteger('user_id');
+            $table->date('occurrence_date');
+            $table->unsignedInteger('minutes_before');
+            $table->timestampTz('delivered_at')->nullable();
+            $table->timestampsTz();
+            $table->foreign('meeting_id')->references('id')->on(ChatDatabaseTable::MEETINGS)->restrictOnDelete();
+            $table->foreign('user_id')->references('id')->on(IdentityDatabaseTable::USERS)->restrictOnDelete();
+            $table->unique(['meeting_id', 'user_id', 'occurrence_date', 'minutes_before'], 'chat_meeting_reminder_delivery_unique');
+        });
+
         Schema::create(ChatDatabaseTable::MEETING_MUTATIONS, static function (Blueprint $table): void {
             $table->id();
             $table->ulid('public_id')->unique();
@@ -657,6 +672,7 @@ SQL);
         Schema::dropIfExists(ChatDatabaseTable::MEETING_RECORDINGS);
         Schema::dropIfExists(ChatDatabaseTable::MEETING_OCCURRENCES);
         Schema::dropIfExists(ChatDatabaseTable::MEETING_MUTATIONS);
+        Schema::dropIfExists(ChatDatabaseTable::MEETING_REMINDER_DELIVERIES);
         Schema::dropIfExists(ChatDatabaseTable::MEETING_INVITATIONS);
         Schema::dropIfExists(ChatDatabaseTable::MEETINGS);
         Schema::dropIfExists(ChatDatabaseTable::CALL_PREFERENCES);

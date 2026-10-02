@@ -52,6 +52,7 @@ const startConversation = ref<string | null>(null);
 const cameraEnabled = ref(false);
 const microphoneEnabled = ref(true);
 const screenSharing = ref(false);
+const minimized = ref(false);
 const busy = ref(false);
 const error = ref<string | null>(null);
 const resultMessage = ref<string | null>(null);
@@ -68,7 +69,7 @@ const devices = ref<MediaDeviceOptions>({ cameras: [], microphones: [], speakers
 let pollTimer: number | null = null;
 let lastAlertedCall: string | null = null;
 
-const dialogOpen = computed(() => stage.value !== 'idle' || (call.value !== null && !call.value.teamJoinStyle));
+const dialogOpen = computed(() => !minimized.value && (stage.value !== 'idle' || (call.value !== null && !call.value.teamJoinStyle)));
 const teamBanner = computed(() => call.value?.teamJoinStyle === true && call.value.canRejoin && stage.value === 'idle');
 const canPrepare = computed(
     () =>
@@ -219,6 +220,7 @@ async function connectMedia(response: CallJoinResponse): Promise<void> {
     }
     session.value = media;
     stage.value = 'connected';
+    minimized.value = false;
 }
 
 async function toggleCamera(): Promise<void> {
@@ -264,6 +266,7 @@ async function leave(): Promise<void> {
         session.value?.disconnect();
         session.value = null;
         stage.value = 'idle';
+        minimized.value = false;
         screenSharing.value = false;
     } finally {
         busy.value = false;
@@ -301,7 +304,11 @@ function applyDevicePreparation(preparation: MediaDevicePreparation): void {
 }
 
 function closeDialog(): void {
-    if (stage.value === 'connected' || call.value?.incoming) return;
+    if (stage.value === 'connected') {
+        minimized.value = true;
+        return;
+    }
+    if (call.value?.incoming) return;
     stopPreview();
     stage.value = 'idle';
     startConversation.value = null;
@@ -340,7 +347,13 @@ function isPrepareCallDetail(value: unknown): value is { conversationPublicId: s
 function alertIncoming(value: CallSnapshot | null): void {
     if (value === null || (!value.incoming && !value.teamJoinStyle) || lastAlertedCall === value.publicId) return;
     lastAlertedCall = value.publicId;
-    if ('Notification' in window && Notification.permission === 'granted') {
+    if (
+        page.props.chat.browserNotificationsEnabled &&
+        'Notification' in window &&
+        Notification.permission === 'granted' &&
+        page.props.auth.user !== null &&
+        localStorage.getItem(`atlas.chat.native.${page.props.auth.user.publicId}`) === 'true'
+    ) {
         new Notification(value.teamJoinStyle ? t('calls.team_available.title') : t('calls.incoming.title'), {
             body: value.conversationLabel,
             tag: `atlas-call-${value.publicId}`,
@@ -350,6 +363,32 @@ function alertIncoming(value: CallSnapshot | null): void {
 </script>
 
 <template>
+    <aside
+        v-if="minimized && stage === 'connected' && call"
+        class="fixed right-4 bottom-4 z-70 w-[min(34rem,calc(100vw-2rem))] rounded-lg border border-zinc-200 bg-white p-3 shadow-xl dark:border-zinc-800 dark:bg-zinc-950"
+        role="region"
+        :aria-label="t('calls.minimized.label')"
+        data-testid="minimized-call-session"
+    >
+        <p class="mb-2 truncate text-sm font-semibold text-zinc-950 dark:text-zinc-50">{{ call.conversationLabel }}</p>
+        <div class="flex flex-wrap gap-2">
+            <FormButton tone="neutral" :icon="microphoneEnabled ? IconMicrophone : IconMicrophoneOff" @click="toggleMicrophone">
+                {{ t('calls.actions.microphone') }}
+            </FormButton>
+            <FormButton tone="neutral" :icon="cameraEnabled ? IconVideo : IconVideoOff" @click="toggleCamera">
+                {{ t('calls.actions.camera') }}
+            </FormButton>
+            <span
+                v-if="screenSharing"
+                class="inline-flex min-h-10 items-center gap-2 rounded-md bg-sky-50 px-3 text-sm text-sky-800 dark:bg-sky-950 dark:text-sky-200"
+            >
+                <IconDeviceDesktopShare aria-hidden="true" class="h-4 w-4" />
+                <span>{{ t('calls.minimized.sharing') }}</span>
+            </span>
+            <FormButton :icon="IconPhone" @click="minimized = false">{{ t('calls.minimized.return') }}</FormButton>
+            <FormButton tone="danger" :icon="IconPhoneOff" :loading="busy" @click="leave">{{ t('calls.actions.leave') }}</FormButton>
+        </div>
+    </aside>
     <aside
         v-if="teamBanner && call"
         class="fixed right-4 bottom-4 z-70 w-[min(26rem,calc(100vw-2rem))] rounded-lg border border-sky-200 bg-white p-4 shadow-xl dark:border-sky-900 dark:bg-zinc-950"
@@ -430,6 +469,7 @@ function alertIncoming(value: CallSnapshot | null): void {
                 />
             </div>
             <div class="flex flex-wrap justify-center gap-2">
+                <FormButton tone="neutral" @click="minimized = true">{{ t('calls.minimized.action') }}</FormButton>
                 <FormButton tone="neutral" :icon="cameraEnabled ? IconVideo : IconVideoOff" @click="toggleCamera">
                     {{ cameraEnabled ? t('calls.actions.camera_off') : t('calls.actions.camera_on') }}
                 </FormButton>

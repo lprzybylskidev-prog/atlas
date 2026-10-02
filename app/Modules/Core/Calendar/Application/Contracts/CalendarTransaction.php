@@ -8,6 +8,11 @@ use Closure;
 
 interface CalendarTransaction
 {
-    /** @param Closure(): void $operation */
-    public function run(Closure $operation): void;
+    /**
+     * @template T
+     *
+     * @param  Closure(): T  $operation
+     * @return T
+     */
+    public function run(Closure $operation): mixed;
 }

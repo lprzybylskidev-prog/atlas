@@ -59,6 +59,7 @@ use App\Modules\Optional\Chat\Infrastructure\Transcription\DeterministicTranscri
 use App\Modules\Optional\Chat\Infrastructure\Transcription\UnavailableTranscriptionProvider;
 use App\Modules\Optional\Chat\Presentation\Console\FinalizeMeetingRecordingsCommand;
 use App\Modules\Optional\Chat\Presentation\Console\PruneMeetingRecordingsCommand;
+use App\Modules\Optional\Chat\Presentation\Inertia\ChatInertiaData;
 use App\Modules\Optional\Chat\Presentation\Inertia\ChatRouteAvailability;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\ServiceProvider;
@@ -125,6 +126,7 @@ final class ChatServiceProvider extends ServiceProvider
         $this->app->tag([ConversationManager::class], 'atlas.team_membership_change_participants');
         $this->app->tag([ChatPermissionCatalog::class], 'atlas.permission_catalogs');
         $this->app->tag([ChatRouteAvailability::class], 'atlas.inertia_route_availability');
+        $this->app->tag([ChatInertiaData::class], 'atlas.inertia_shared_data');
         $this->app->tag(['chat.managed_process.recording_retention_definition'], 'atlas.managed_process_definitions');
         $this->app->tag(['chat.managed_process.transcription_definition'], 'atlas.managed_process_definitions');
         $this->app->tag([MeetingRecordingRetentionProcessHandler::class, TranscriptionProcessHandler::class], 'atlas.managed_process_handlers');

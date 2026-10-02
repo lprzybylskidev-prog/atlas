@@ -41,7 +41,7 @@ Email delivery:
 
 When adding a new notification type, update `NotificationTypeCatalog`, add Polish and English labels/descriptions, and make sure default email preferences are created for that type. Existing user addresses receive the new type as enabled the next time their notification-email preferences are loaded or delivery prepares an email payload.
 
-Chat registers user-configurable Meeting invitation, Meeting update, and Meeting cancellation notification types. Meeting delivery creates an in-app notification with a safe `/meetings/{publicId}` deep link and requests the normal preference-controlled email channel; message and ad-hoc Call alerts remain outside Meeting email behavior.
+Chat registers user-configurable Meeting invitation, Meeting update, Meeting cancellation, and Meeting reminder notification types. Calendar registers the personal Calendar reminder type. These deliveries create in-app notifications with safe owning-resource deep links and request the normal preference-controlled email channel where the owning Calendar/Meeting preference allows it. Chat messages, mentions, and ad-hoc Calls never request email delivery.
 
 Application UI:
 

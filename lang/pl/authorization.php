@@ -34,7 +34,7 @@ return [
         'delete' => 'Usuwanie', 'delivered' => 'Dostarczone', 'destroy' => 'Usuwanie', 'diff' => 'Podgląd zmian', 'disable' => 'Wyłączenie', 'download' => 'Pobieranie',
         'edit' => 'Otwarcie formularza edycji', 'end' => 'Zakończenie', 'enter' => 'Wejście', 'evaluate' => 'Ocena', 'events' => 'Zdarzenia',
         'execute' => 'Wykonanie', 'exit' => 'Wyjście', 'exports' => 'Eksporty', 'failed_jobs' => 'Nieudane zadania',
-        'feature_flags' => 'Flagi funkcji', 'files' => 'Pliki', 'force_close' => 'Wymuszone zamknięcie', 'global' => 'Globalnie',
+        'feature_flags' => 'Flagi funkcji', 'favorites' => 'Ulubione', 'files' => 'Pliki', 'force_close' => 'Wymuszone zamknięcie', 'global' => 'Globalnie',
         'groups' => 'Grupy', 'hard_delete' => 'Trwałe usunięcie', 'head' => 'Główny', 'head_manager' => 'Główny manager', 'high_risk' => 'Wysokie ryzyko',
         'heartbeat' => 'Sygnał obecności', 'history' => 'Historia', 'impersonate' => 'Podszywanie się', 'impersonation' => 'Podszywanie się', 'index' => 'Lista',
         'integrations' => 'Integracje', 'invalidate_sessions' => 'Unieważnienie sesji', 'legal_holds' => 'Blokady prawne', 'lock' => 'Blokada',

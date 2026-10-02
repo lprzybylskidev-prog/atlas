@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Head, router, useForm } from '@inertiajs/vue3';
+import { Head, router, useForm, usePage } from '@inertiajs/vue3';
 import {
     IconBell,
     IconCheck,
@@ -32,9 +32,14 @@ import Tooltip from '../../Components/Tooltip.vue';
 import AppLayout from '../../Layouts/AppLayout.vue';
 import { useTranslator } from '../../Localization/translator';
 import { beginFullscreenTransitionLoading } from '../../Services/fullscreenTransitionLoading';
+import {
+    browserNotificationsEnabled as storedBrowserNotificationsEnabled,
+    setBrowserNotificationsEnabled,
+} from '../../Services/browserNotificationPreferences';
 import { requestJson } from '../../Services/networkHandling';
 import { DEFAULT_AVATAR_COLOR, readableAvatarTextColor } from '../../Utils/avatar';
 import { formatDateTime as formatSharedDateTime } from '../../Utils/formatters';
+import type { AtlasPageProps } from '../../Types/inertia';
 
 interface NotificationEmail {
     publicId: string;
@@ -85,6 +90,7 @@ const props = defineProps<{
 }>();
 
 const { locale, t } = useTranslator();
+const page = usePage<AtlasPageProps>();
 const selectedEmailPublicId = ref(props.profile.notificationEmails[0]?.publicId ?? '');
 const selectedEmail = computed(
     () => props.profile.notificationEmails.find((email) => email.publicId === selectedEmailPublicId.value) ?? null,
@@ -95,6 +101,12 @@ const recoveryCodes = ref<string[]>([]);
 const mfaArtifactsVisible = ref(false);
 const mfaArtifactsLoading = ref(false);
 const mfaArtifactsError = ref(false);
+const browserNotificationsEnabled = ref(
+    typeof window !== 'undefined' &&
+        'Notification' in window &&
+        Notification.permission === 'granted' &&
+        storedBrowserNotificationsEnabled('notifications', page.props.auth.user?.publicId),
+);
 
 const passwordForm = useForm({
     current_password: '',
@@ -172,6 +184,17 @@ function submitPassword(): void {
         preserveScroll: true,
         onSuccess: () => passwordForm.reset(),
     });
+}
+
+async function enableBrowserNotifications(): Promise<void> {
+    if (!('Notification' in window)) return;
+    browserNotificationsEnabled.value = (await Notification.requestPermission()) === 'granted';
+    setBrowserNotificationsEnabled('notifications', page.props.auth.user?.publicId, browserNotificationsEnabled.value);
+}
+
+function disableBrowserNotifications(): void {
+    browserNotificationsEnabled.value = false;
+    setBrowserNotificationsEnabled('notifications', page.props.auth.user?.publicId, false);
 }
 
 function submitAvatar(): void {
@@ -536,6 +559,23 @@ function regenerateRecoveryCodes(): void {
             </div>
 
             <SurfaceCard v-if="hasNotificationTypes" :title="t('pages.user_panel.notifications.title')" :icon="IconBell" tone="zinc">
+                <div
+                    v-if="page.props.notifications.browserEnabled"
+                    class="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-zinc-200 p-3 dark:border-zinc-800"
+                >
+                    <div>
+                        <p class="font-medium text-zinc-900 dark:text-zinc-100">{{ t('pages.user_panel.notifications.browser_title') }}</p>
+                        <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+                            {{ t('pages.user_panel.notifications.browser_description') }}
+                        </p>
+                    </div>
+                    <FormButton v-if="!browserNotificationsEnabled" tone="neutral" :icon="IconBell" @click="enableBrowserNotifications">
+                        {{ t('pages.user_panel.notifications.browser_enable') }}
+                    </FormButton>
+                    <FormButton v-else tone="neutral" :icon="IconBell" @click="disableBrowserNotifications">
+                        {{ t('pages.user_panel.notifications.browser_disable') }}
+                    </FormButton>
+                </div>
                 <div class="grid gap-5 xl:grid-cols-[minmax(280px,360px)_minmax(0,1fr)]">
                     <div class="space-y-4">
                         <AtlasForm class="grid gap-3" :processing="emailForm.processing" @submit="addNotificationEmail">

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Core\Notifications\Application;
 
 use App\Modules\Core\Notifications\Application\Public\Contracts\NotificationTypeDirectory;
+use App\Shared\Application\Calendar\Permissions\CalendarPermissionNames;
 use App\Shared\Application\Chat\Permissions\ChatPermissionNames;
 
 final class NotificationTypeCatalog implements NotificationTypeDirectory
@@ -16,11 +17,27 @@ final class NotificationTypeCatalog implements NotificationTypeDirectory
     {
         return [
             [
+                'type' => 'calendar.personal.reminder',
+                'labelKey' => 'notifications.types.calendar.personal_reminder.label',
+                'descriptionKey' => 'notifications.types.calendar.personal_reminder.description',
+                'bodyPreviewKey' => 'notifications.calendar.reminder.body',
+                'bodyPreviewParams' => ['event' => 'Plan dnia', 'minutes' => 15],
+                'permissionNames' => [CalendarPermissionNames::INDEX],
+            ],
+            [
                 'type' => 'chat.meeting.invitation',
                 'labelKey' => 'notifications.types.chat.meeting_invitation.label',
                 'descriptionKey' => 'notifications.types.chat.meeting_invitation.description',
                 'bodyPreviewKey' => 'notifications.meeting.invitation.body',
                 'bodyPreviewParams' => ['meeting' => 'Plan tygodnia'],
+                'permissionNames' => [ChatPermissionNames::MEETING_SHOW],
+            ],
+            [
+                'type' => 'chat.meeting.reminder',
+                'labelKey' => 'notifications.types.chat.meeting_reminder.label',
+                'descriptionKey' => 'notifications.types.chat.meeting_reminder.description',
+                'bodyPreviewKey' => 'notifications.meeting.reminder.body',
+                'bodyPreviewParams' => ['meeting' => 'Plan tygodnia', 'minutes' => 15],
                 'permissionNames' => [ChatPermissionNames::MEETING_SHOW],
             ],
             [

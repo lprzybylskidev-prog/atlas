@@ -12,8 +12,11 @@ use App\Modules\Core\Calendar\Application\Public\Contracts\FreeBusyLookup;
 use App\Modules\Core\Calendar\Application\Public\DTOs\CalendarEventContribution;
 use App\Modules\Core\Calendar\Application\Public\DTOs\CalendarEventRecurrence;
 use App\Modules\Core\Calendar\Application\Public\DTOs\FreeBusyQuery;
+use App\Modules\Core\Calendar\Application\Services\CalendarReminderDispatcher;
 use App\Modules\Core\Calendar\Infrastructure\Persistence\TableNames\CalendarDatabaseTable;
 use App\Modules\Core\Identity\Infrastructure\Persistence\User;
+use App\Modules\Core\Notifications\Application\Public\Contracts\NotificationPublisher;
+use App\Modules\Core\Notifications\Application\Public\DTOs\CreateNotification;
 use App\Modules\Core\Teams\Infrastructure\Persistence\TableNames\TeamsDatabaseTable;
 use App\Modules\Core\Teams\Infrastructure\Persistence\Team;
 use DateTimeImmutable;
@@ -69,6 +72,28 @@ final class PersonalCalendarTest extends TestCase
             'default_reminder_minutes' => 45,
             'email_enabled' => false,
         ]);
+    }
+
+    public function test_due_personal_reminder_is_dispatched_once_and_respects_email_preference(): void
+    {
+        [$owner, $team] = $this->calendarUser();
+        $this->asCalendarUser($owner, $team)->post('/calendar/events', $this->eventPayload())->assertRedirect();
+        $this->asCalendarUser($owner, $team)->patch('/calendar/preferences', [
+            'default_reminder_minutes' => 15,
+            'email_enabled' => false,
+        ])->assertRedirect();
+        $publisher = new RecordingCalendarNotifications;
+        $this->app->instance(NotificationPublisher::class, $publisher);
+        $this->app->forgetInstance(CalendarReminderDispatcher::class);
+        $dispatcher = $this->app->make(CalendarReminderDispatcher::class);
+        $now = new DateTimeImmutable('2026-08-17 06:45 UTC');
+
+        self::assertSame(1, $dispatcher->dispatch($now));
+        self::assertSame(0, $dispatcher->dispatch($now));
+        self::assertCount(1, $publisher->notifications);
+        self::assertSame('calendar.personal.reminder', $publisher->notifications[0]->type);
+        self::assertFalse($publisher->notifications[0]->emailRequested);
+        self::assertNotNull(DB::table(CalendarDatabaseTable::REMINDER_DELIVERIES)->value('delivered_at'));
     }
 
     public function test_other_user_cannot_read_or_mutate_private_event(): void
@@ -191,5 +216,18 @@ final class PersonalCalendarTest extends TestCase
             'recurrence_weekdays' => [],
             'reminder_minutes' => [15],
         ];
+    }
+}
+
+final class RecordingCalendarNotifications implements NotificationPublisher
+{
+    /** @var list<CreateNotification> */
+    public array $notifications = [];
+
+    public function publish(CreateNotification $notification): string
+    {
+        $this->notifications[] = $notification;
+
+        return 'calendar-notification-'.count($this->notifications);
     }
 }

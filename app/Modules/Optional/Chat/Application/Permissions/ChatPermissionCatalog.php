@@ -12,6 +12,8 @@ final class ChatPermissionCatalog implements ModulePermissionContribution
 {
     public const INDEX = ChatPermissionNames::INDEX;
 
+    public const FAVORITE_UPDATE = ChatPermissionNames::FAVORITE_UPDATE;
+
     public const DIRECT_CONVERSATION_STORE = ChatPermissionNames::DIRECT_CONVERSATION_STORE;
 
     public const GROUP_STORE = ChatPermissionNames::GROUP_STORE;
@@ -136,6 +138,7 @@ final class ChatPermissionCatalog implements ModulePermissionContribution
     {
         return [
             new ModulePermissionDefinition(self::INDEX, 'Use internal Chat.'),
+            new ModulePermissionDefinition(self::FAVORITE_UPDATE, 'Manage own favorite Chat conversations.'),
             new ModulePermissionDefinition(self::DIRECT_CONVERSATION_STORE, 'Start direct conversations.'),
             new ModulePermissionDefinition(self::GROUP_STORE, 'Create Chat groups.'),
             new ModulePermissionDefinition(self::TEAM_CONVERSATION_SHOW, 'Open the authorized active Team conversation.'),

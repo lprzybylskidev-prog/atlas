@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-const components = import.meta.glob('./{Call,Media}*.vue', {
+const components = import.meta.glob('./{Call,Media,Global,Meeting}*.vue', {
     eager: true,
     import: 'default',
     query: '?raw',
@@ -29,5 +29,17 @@ describe('Call UI contract', () => {
         expect(setup).toContain('navigator.mediaDevices.getUserMedia');
         expect(setup.indexOf('getUserMedia')).toBeGreaterThan(setup.indexOf('async function prepare'));
         expect(setup).not.toMatch(/onMounted\([^)]*prepare/);
+    });
+
+    it('keeps global Call and minimized Meeting controls outside replaceable page layouts', () => {
+        const runtime = components['./GlobalChatRuntime.vue'] ?? '';
+        const meetingRuntime = components['./MeetingLiveRuntime.vue'] ?? '';
+        const minimized = components['./MeetingMinimizedControls.vue'] ?? '';
+
+        expect(runtime).toContain('<CallOverlay');
+        expect(runtime).toContain('<MeetingLiveRuntime');
+        expect(meetingRuntime).toContain('meetingLiveActive && meetingLiveMinimized');
+        expect(minimized).toContain('data-testid="minimized-meeting-session"');
+        expect(minimized).toContain('meetings.recording.indicator.paused');
     });
 });

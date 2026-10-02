@@ -31,6 +31,22 @@ final readonly class ChatConversationController
         ]);
     }
 
+    public function index(Request $request): JsonResponse
+    {
+        [$userPublicId, $teamPublicId] = $this->context($request);
+
+        return response()->json(['conversations' => $this->conversations->listFor($userPublicId, $teamPublicId)]);
+    }
+
+    public function favorite(Request $request, string $conversation): JsonResponse
+    {
+        $request->validate(['favorite' => ['required', 'boolean']]);
+        [$userPublicId, $teamPublicId] = $this->context($request);
+        $this->conversations->setFavorite($userPublicId, $teamPublicId, $conversation, $request->boolean('favorite'));
+
+        return response()->json(['ok' => true]);
+    }
+
     public function showTeam(Request $request): JsonResponse
     {
         $userPublicId = data_get($request->user(), 'public_id');
@@ -50,5 +66,18 @@ final readonly class ChatConversationController
             'publicId' => $conversation->publicId,
             'type' => $conversation->type->value,
         ]);
+    }
+
+    /** @return array{string,string} */
+    private function context(Request $request): array
+    {
+        $userPublicId = data_get($request->user(), 'public_id');
+        $teamPublicId = $request->hasSession() ? $request->session()->get('active_team_public_id') : null;
+
+        if (! is_string($userPublicId) || ! is_string($teamPublicId)) {
+            abort(403);
+        }
+
+        return [$userPublicId, $teamPublicId];
     }
 }

@@ -132,6 +132,16 @@ function meetNow(): void {
                         :error="form.errors.location"
                     />
                     <FormSelect v-model="form.recurrence_frequency" :label="t('meetings.fields.recurrence')" :options="recurrenceOptions" />
+                    <p class="rounded-lg bg-sky-50 p-3 text-sm text-sky-900 dark:bg-sky-950/40 dark:text-sky-100 md:col-span-2">
+                        {{ t(`meetings.mode_help.${form.mode}`) }}
+                    </p>
+                    <FormInput
+                        :model-value="String(form.reminder_minutes[0] ?? 15)"
+                        type="number"
+                        :label="t('meetings.fields.reminder_minutes')"
+                        :error="form.errors.reminder_minutes"
+                        @update:model-value="form.reminder_minutes = [Number($event)]"
+                    />
                     <fieldset v-if="form.recurrence_frequency === 'weekly'" class="grid gap-2 md:col-span-2 sm:grid-cols-2 lg:grid-cols-4">
                         <legend class="mb-2 text-sm font-medium text-zinc-700 dark:text-zinc-200">
                             {{ t('pages.calendar.form.weekdays') }}

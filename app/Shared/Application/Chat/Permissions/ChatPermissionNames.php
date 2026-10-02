@@ -8,6 +8,8 @@ final class ChatPermissionNames
 {
     public const INDEX = 'chat.index';
 
+    public const FAVORITE_UPDATE = 'chat.favorites.update';
+
     public const DIRECT_CONVERSATION_STORE = 'chat.direct-conversations.store';
 
     public const GROUP_STORE = 'chat.groups.store';

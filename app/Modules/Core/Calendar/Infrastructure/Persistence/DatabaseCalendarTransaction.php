@@ -12,8 +12,8 @@ final readonly class DatabaseCalendarTransaction implements CalendarTransaction
 {
     public function __construct(private ConnectionInterface $database) {}
 
-    public function run(Closure $operation): void
+    public function run(Closure $operation): mixed
     {
-        $this->database->transaction($operation);
+        return $this->database->transaction($operation);
     }
 }

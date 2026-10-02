@@ -29,6 +29,7 @@ final readonly class NotificationsInertiaData implements InertiaSharedDataContri
         if (! is_string($userPublicId)) {
             return [
                 'notifications' => [
+                    'browserEnabled' => (bool) config('notifications.browser_enabled', true),
                     'unreadCount' => 0,
                     'latest' => [],
                 ],
@@ -40,6 +41,7 @@ final readonly class NotificationsInertiaData implements InertiaSharedDataContri
 
         return [
             'notifications' => [
+                'browserEnabled' => (bool) config('notifications.browser_enabled', true),
                 'unreadCount' => $this->notifications->unreadCount($userPublicId, $team),
                 'latest' => array_map(
                     static fn (NotificationSummary $notification): array => [

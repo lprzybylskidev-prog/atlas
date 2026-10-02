@@ -18,6 +18,7 @@ use App\Modules\Optional\Chat\Domain\Meetings\MeetingStatus;
 use App\Modules\Optional\Chat\Infrastructure\Persistence\TableNames\ChatDatabaseTable;
 use DateTimeImmutable;
 use Illuminate\Database\ConnectionInterface;
+use Illuminate\Database\Query\Builder;
 use stdClass;
 use Symfony\Component\Uid\Ulid;
 
@@ -81,6 +82,36 @@ final readonly class DatabaseMeetingStore implements MeetingStore
             ->where('invitations.user_id', $userId)->whereNull('invitations.removed_at')
             ->orderBy('meetings.starts_at')->select('meetings.*', 'conversations.public_id as conversation_public_id')
             ->get()->map(fn (stdClass $row): MeetingRecord => $this->mapMeeting($row))->all());
+    }
+
+    public function scheduled(): array
+    {
+        return array_values($this->database->table(ChatDatabaseTable::MEETINGS.' as meetings')
+            ->join(ChatDatabaseTable::CONVERSATIONS.' as conversations', 'conversations.id', '=', 'meetings.conversation_id')
+            ->where('meetings.status', MeetingStatus::Scheduled->value)
+            ->orderBy('meetings.starts_at')
+            ->select('meetings.*', 'conversations.public_id as conversation_public_id')
+            ->get()->map(fn (stdClass $row): MeetingRecord => $this->mapMeeting($row))->all());
+    }
+
+    public function claimReminder(int $meetingId, int $userId, string $occurrenceDate, int $minutesBefore): bool
+    {
+        return $this->database->table(ChatDatabaseTable::MEETING_REMINDER_DELIVERIES)->insertOrIgnore([
+            'meeting_id' => $meetingId, 'user_id' => $userId, 'occurrence_date' => $occurrenceDate,
+            'minutes_before' => $minutesBefore, 'created_at' => now(), 'updated_at' => now(),
+        ]) === 1;
+    }
+
+    public function markReminderDelivered(int $meetingId, int $userId, string $occurrenceDate, int $minutesBefore): void
+    {
+        $this->reminderQuery($meetingId, $userId, $occurrenceDate, $minutesBefore)->update(['delivered_at' => now(), 'updated_at' => now()]);
+    }
+
+    private function reminderQuery(int $meetingId, int $userId, string $occurrenceDate, int $minutesBefore): Builder
+    {
+        return $this->database->table(ChatDatabaseTable::MEETING_REMINDER_DELIVERIES)
+            ->where('meeting_id', $meetingId)->where('user_id', $userId)
+            ->where('occurrence_date', $occurrenceDate)->where('minutes_before', $minutesBefore);
     }
 
     public function invitations(int $meetingId, bool $activeOnly = true): array
@@ -340,7 +371,7 @@ final readonly class DatabaseMeetingStore implements MeetingStore
             new DateTimeImmutable($this->requiredString($row->starts_at)), new DateTimeImmutable($this->requiredString($row->ends_at)), MeetingMode::from($this->requiredString($row->mode)),
             is_string($row->location) ? $row->location : null,
             $frequency === null ? null : new MeetingRecurrence($frequency, $this->ints($row->recurrence_weekdays), is_string($row->recurrence_ends_on) ? new DateTimeImmutable($row->recurrence_ends_on) : null, is_numeric($row->recurrence_count) ? (int) $row->recurrence_count : null),
-            MeetingStatus::from($this->requiredString($row->status)), $this->requiredInt($row->version));
+            MeetingStatus::from($this->requiredString($row->status)), $this->requiredInt($row->version), $this->ints($row->reminder_minutes));
     }
 
     private function mapInvitation(stdClass $row): MeetingInvitationRecord

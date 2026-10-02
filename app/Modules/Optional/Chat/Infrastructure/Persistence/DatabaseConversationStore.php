@@ -241,6 +241,46 @@ final readonly class DatabaseConversationStore implements ConversationStore
             ->exists();
     }
 
+    public function activeForUser(int $userId): array
+    {
+        $rows = $this->database->table(ChatDatabaseTable::CONVERSATION_MEMBERSHIPS.' as memberships')
+            ->join(ChatDatabaseTable::CONVERSATIONS.' as conversations', 'conversations.id', '=', 'memberships.conversation_id')
+            ->where('memberships.user_id', $userId)
+            ->whereNull('memberships.ended_at')
+            ->whereNull('conversations.closed_at')
+            ->orderByRaw('memberships.favorite_at desc nulls last')
+            ->orderByDesc('conversations.updated_at')
+            ->get(['conversations.*']);
+
+        return array_values(array_filter(array_map(fn (object $row): ?ConversationRecord => $this->conversation($row), $rows->all())));
+    }
+
+    public function isFavorite(int $conversationId, int $userId): bool
+    {
+        return $this->database->table(ChatDatabaseTable::CONVERSATION_MEMBERSHIPS)
+            ->where('conversation_id', $conversationId)
+            ->where('user_id', $userId)
+            ->whereNull('ended_at')
+            ->whereNotNull('favorite_at')
+            ->exists();
+    }
+
+    public function setFavorite(int $conversationId, int $userId, bool $favorite): void
+    {
+        $this->database->table(ChatDatabaseTable::CONVERSATION_MEMBERSHIPS)
+            ->where('conversation_id', $conversationId)
+            ->where('user_id', $userId)
+            ->whereNull('ended_at')
+            ->update(['favorite_at' => $favorite ? now() : null, 'updated_at' => now()]);
+    }
+
+    public function updateName(int $conversationId, string $name): void
+    {
+        $this->database->table(ChatDatabaseTable::CONVERSATIONS)
+            ->where('id', $conversationId)
+            ->update(['name' => $name, 'updated_at' => now()]);
+    }
+
     private function conversation(?object $row): ?ConversationRecord
     {
         if (! $row instanceof stdClass) {

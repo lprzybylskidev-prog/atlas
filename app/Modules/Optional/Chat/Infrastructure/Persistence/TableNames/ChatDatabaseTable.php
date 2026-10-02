@@ -48,6 +48,8 @@ final class ChatDatabaseTable
 
     public const MEETING_INVITATIONS = DatabaseSchema::OPTIONAL_CHAT.'.meeting_invitations';
 
+    public const MEETING_REMINDER_DELIVERIES = DatabaseSchema::OPTIONAL_CHAT.'.meeting_reminder_deliveries';
+
     public const MEETING_MUTATIONS = DatabaseSchema::OPTIONAL_CHAT.'.meeting_mutations';
 
     public const MEETING_OCCURRENCES = DatabaseSchema::OPTIONAL_CHAT.'.meeting_occurrences';

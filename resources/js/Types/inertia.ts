@@ -74,8 +74,12 @@ export interface AtlasPageProps {
         }[];
     };
     notifications: {
+        browserEnabled: boolean;
         unreadCount: number;
         latest: AtlasNotificationSummary[];
+    };
+    chat: {
+        browserNotificationsEnabled: boolean;
     };
     timeTracking: {
         activity: {

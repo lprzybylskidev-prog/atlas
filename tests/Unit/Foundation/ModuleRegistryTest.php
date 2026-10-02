@@ -283,11 +283,11 @@ final class ModuleRegistryTest extends TestCase
         self::assertSame([
             'identity',
             'authorization',
-            'calendar',
             'teams',
+            'notifications',
+            'calendar',
             'audit',
             'files',
-            'notifications',
             'users',
             'settings',
             'health',

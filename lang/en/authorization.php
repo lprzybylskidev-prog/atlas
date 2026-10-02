@@ -34,7 +34,7 @@ return [
         'delete' => 'Delete', 'delivered' => 'Delivered', 'destroy' => 'Delete', 'diff' => 'Preview changes', 'disable' => 'Disable', 'download' => 'Download',
         'edit' => 'Open edit form', 'end' => 'End', 'enter' => 'Enter', 'evaluate' => 'Evaluate', 'events' => 'Events',
         'execute' => 'Execute', 'exit' => 'Exit', 'exports' => 'Exports', 'failed_jobs' => 'Failed jobs',
-        'feature_flags' => 'Feature flags', 'files' => 'Files', 'force_close' => 'Force close', 'global' => 'Global',
+        'feature_flags' => 'Feature flags', 'favorites' => 'Favorites', 'files' => 'Files', 'force_close' => 'Force close', 'global' => 'Global',
         'groups' => 'Groups', 'hard_delete' => 'Hard delete', 'head' => 'Head', 'head_manager' => 'Head manager', 'high_risk' => 'High risk',
         'heartbeat' => 'Presence heartbeat', 'history' => 'History', 'impersonate' => 'Impersonate', 'impersonation' => 'Impersonation', 'index' => 'List',
         'integrations' => 'Integrations', 'invalidate_sessions' => 'Invalidate sessions', 'legal_holds' => 'Legal holds', 'lock' => 'Lock',

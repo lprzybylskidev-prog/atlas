@@ -11,6 +11,7 @@ async function signIn(page: import('@playwright/test').Page): Promise<void> {
 
 test('manages private events, reminders, preferences, and all Calendar views', async ({ page }) => {
     await signIn(page);
+    await page.waitForLoadState('networkidle');
     await page.goto('/calendar?view=month&date=2026-08-13');
 
     await expect(page.getByRole('heading', { level: 1, name: /Kalendarz|Calendar/ })).toBeVisible();
@@ -60,4 +61,5 @@ test('manages private events, reminders, preferences, and all Calendar views', a
     await page.getByLabel(/Domyślne przypomnienie|Default reminder/).fill('30');
     await page.getByRole('button', { name: /Zapisz|Save/ }).click();
     await expect(page.getByText(/Zaktualizowano ustawienia kalendarza|Calendar preferences updated/)).toBeVisible();
+    await page.waitForLoadState('networkidle');
 });

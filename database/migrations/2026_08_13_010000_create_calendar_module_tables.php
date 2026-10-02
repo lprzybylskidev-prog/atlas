@@ -96,10 +96,23 @@ return new class extends Migration
 
             $table->foreign('user_id')->references('id')->on(IdentityDatabaseTable::USERS)->restrictOnDelete();
         });
+
+        Schema::create(CalendarDatabaseTable::REMINDER_DELIVERIES, static function (Blueprint $table): void {
+            $table->id();
+            $table->ulid('event_public_id');
+            $table->date('occurrence_date');
+            $table->unsignedInteger('minutes_before');
+            $table->timestampTz('delivered_at')->nullable();
+            $table->timestampsTz();
+
+            $table->unique(['event_public_id', 'occurrence_date', 'minutes_before'], 'calendar_reminder_delivery_unique');
+            $table->index(['delivered_at', 'created_at']);
+        });
     }
 
     public function down(): void
     {
+        Schema::dropIfExists(CalendarDatabaseTable::REMINDER_DELIVERIES);
         Schema::dropIfExists(CalendarDatabaseTable::USER_PREFERENCES);
         Schema::dropIfExists(CalendarDatabaseTable::CONTRIBUTED_EVENTS);
         Schema::dropIfExists(CalendarDatabaseTable::RECURRENCE_EXCEPTIONS);

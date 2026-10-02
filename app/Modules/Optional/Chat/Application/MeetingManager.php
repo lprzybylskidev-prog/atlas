@@ -55,7 +55,7 @@ final readonly class MeetingManager
         $publicId = (string) new Ulid;
 
         $meeting = $this->transaction->run(function () use ($publicId, $actorPublicId, $organizerId, $input, $inviteeIds): MeetingRecord {
-            $conversation = $this->conversations->ensureMeetingConversation($publicId, $input->recurrence === null ? null : $publicId, $actorPublicId);
+            $conversation = $this->conversations->ensureMeetingConversation($publicId, $input->recurrence === null ? null : $publicId, $actorPublicId, $input->title);
             $meeting = $this->meetings->create($publicId, $organizerId, $conversation->publicId, $input);
             $this->meetings->invite($meeting->id, $organizerId, $organizerId, MeetingRole::Organizer, MeetingResponse::Accepted);
             foreach ($inviteeIds as $publicId => $userId) {
@@ -178,6 +178,9 @@ final readonly class MeetingManager
         $meeting = $this->transaction->run(function () use ($meetingPublicId, $actorId, $input, $scope, $occurrenceDate, $actorPublicId): MeetingRecord {
             $meeting = $this->organizerMeeting($meetingPublicId, $actorId, true);
             $this->meetings->update($meeting, $input, $scope, $occurrenceDate);
+            if ($scope === MeetingMutationScope::Series || $meeting->recurrence === null) {
+                $this->conversations->renameMeetingConversation($meeting->conversationPublicId, $input->title);
+            }
             $this->recordAudit($actorPublicId, $meeting, ChatAuditEvents::MEETING_UPDATED, ['scope' => $scope->value]);
 
             return $this->meetings->find($meetingPublicId) ?? $meeting;
@@ -285,7 +288,7 @@ final readonly class MeetingManager
     /** @return array<string,mixed> */
     private function view(MeetingRecord $m, ?MeetingInvitationRecord $i, string $organizer): array
     {
-        return ['publicId' => $m->publicId, 'conversationPublicId' => $m->conversationPublicId, 'title' => $m->title, 'description' => $m->description, 'startsAt' => $m->startsAt->format(DATE_ATOM), 'endsAt' => $m->endsAt->format(DATE_ATOM), 'mode' => $m->mode->value, 'location' => $m->location, 'status' => $m->status->value, 'recurring' => $m->recurrence !== null, 'recurrenceFrequency' => $m->recurrence?->frequency, 'recurrenceWeekdays' => $m->recurrence === null ? [] : $m->recurrence->weekdays, 'recurrenceEndsOn' => $m->recurrence?->endsOn?->format('Y-m-d'), 'recurrenceCount' => $m->recurrence?->occurrenceCount, 'organizer' => $organizer, 'role' => $i?->role->value, 'response' => $i?->response->value, 'canJoinOnline' => $m->mode->hasRtc() && $m->status->value !== 'cancelled', 'version' => $m->version];
+        return ['publicId' => $m->publicId, 'conversationPublicId' => $m->conversationPublicId, 'title' => $m->title, 'description' => $m->description, 'startsAt' => $m->startsAt->format(DATE_ATOM), 'endsAt' => $m->endsAt->format(DATE_ATOM), 'mode' => $m->mode->value, 'location' => $m->location, 'status' => $m->status->value, 'recurring' => $m->recurrence !== null, 'recurrenceFrequency' => $m->recurrence?->frequency, 'recurrenceWeekdays' => $m->recurrence === null ? [] : $m->recurrence->weekdays, 'recurrenceEndsOn' => $m->recurrence?->endsOn?->format('Y-m-d'), 'recurrenceCount' => $m->recurrence?->occurrenceCount, 'reminderMinutes' => $m->reminderMinutes, 'organizer' => $organizer, 'role' => $i?->role->value, 'response' => $i?->response->value, 'canJoinOnline' => $m->mode->hasRtc() && $m->status->value !== 'cancelled', 'version' => $m->version];
     }
 
     /** @param list<string> $recipients */

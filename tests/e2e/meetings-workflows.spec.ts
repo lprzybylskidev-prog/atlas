@@ -8,6 +8,7 @@ async function signInToVisibilityTeam(page: Page, email: string): Promise<void> 
     await page.getByLabel(/Hasło|Password/).fill('password');
     await page.getByRole('button', { name: /Zaloguj|Log in/ }).click();
     await completeSignIn(page, 'E2E Visibility Team');
+    await page.waitForLoadState('networkidle');
 }
 
 async function mockBroadcastingAuthorization(page: Page): Promise<void> {

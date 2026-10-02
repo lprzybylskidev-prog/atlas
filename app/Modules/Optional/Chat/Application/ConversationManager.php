@@ -8,6 +8,7 @@ use App\Modules\Core\Identity\Application\Public\Contracts\UserLookup;
 use App\Modules\Optional\Chat\Application\Audit\ChatAuditEvents;
 use App\Modules\Optional\Chat\Application\Contracts\ChatTransaction;
 use App\Modules\Optional\Chat\Application\Contracts\ConversationStore;
+use App\Modules\Optional\Chat\Application\Contracts\RealtimeStore;
 use App\Modules\Optional\Chat\Application\DTOs\ConversationMembershipRecord;
 use App\Modules\Optional\Chat\Application\DTOs\ConversationRecord;
 use App\Modules\Optional\Chat\Application\DTOs\ConversationTimelineEntry;
@@ -38,6 +39,7 @@ final readonly class ConversationManager implements TeamMembershipChangeParticip
         private UserTeamMembershipManager $teamMemberships,
         private ConversationScopePolicy $scopePolicy,
         private AuditRecorder $audit,
+        private ?RealtimeStore $realtime = null,
     ) {}
 
     public function startDirect(string $actorPublicId, string $targetPublicId, string $activeTeamPublicId): ConversationRecord
@@ -252,25 +254,86 @@ final readonly class ConversationManager implements TeamMembershipChangeParticip
         });
     }
 
-    public function ensureMeetingConversation(string $meetingPublicId, ?string $seriesPublicId, string $organizerPublicId): ConversationRecord
+    public function ensureMeetingConversation(string $meetingPublicId, ?string $seriesPublicId, string $organizerPublicId, ?string $title = null): ConversationRecord
     {
         $ownerKey = $seriesPublicId ?? $meetingPublicId;
         $organizerId = $this->activeUserIds($organizerPublicId)[0];
 
-        return $this->transaction->run(function () use ($ownerKey, $organizerId): ConversationRecord {
+        return $this->transaction->run(function () use ($ownerKey, $organizerId, $title): ConversationRecord {
             $this->store->lockCanonicalKey('chat:meeting:'.$ownerKey);
             $existing = $this->store->findMeeting($ownerKey);
 
             if ($existing !== null) {
+                if ($title !== null && $existing->name !== $title) {
+                    $this->store->updateName($existing->id, $title);
+                }
+
                 return $existing;
             }
 
-            $conversation = $this->store->create(ConversationType::Meeting, null, null, $ownerKey, true);
+            $conversation = $this->store->create(ConversationType::Meeting, $title, null, $ownerKey, true);
             $this->store->addMembership($conversation->id, $organizerId, ConversationMemberRole::Owner, ConversationType::Meeting, MeetingResponse::Accepted);
             $this->store->appendTimeline($conversation->id, TimelineEntryType::MeetingScheduled, $organizerId);
 
             return $conversation;
         });
+    }
+
+    /** @return list<array{publicId:string,type:string,name:string,favorite:bool,unreadCount:int}> */
+    public function listFor(string $userPublicId, string $activeTeamPublicId): array
+    {
+        $this->access->ensureAllowed($userPublicId, $activeTeamPublicId, ChatPermissionCatalog::INDEX);
+        $userId = $this->userId($userPublicId);
+        $items = [];
+
+        foreach ($this->store->activeForUser($userId) as $conversation) {
+            if (! $this->canAccess($userPublicId, $activeTeamPublicId, $conversation->publicId)) {
+                continue;
+            }
+
+            $name = $conversation->name;
+            if ($conversation->type === ConversationType::Direct) {
+                $otherIds = array_values(array_filter(
+                    array_map(static fn (ConversationMembershipRecord $membership): int => $membership->userId, $this->store->activeMemberships($conversation->id)),
+                    static fn (int $id): bool => $id !== $userId,
+                ));
+                $summaries = $this->users->displaySummariesForInternalIds($otherIds);
+                $name = $otherIds === [] ? null : ($summaries[$otherIds[0]]->name ?? null);
+            }
+
+            $items[] = [
+                'publicId' => $conversation->publicId,
+                'type' => $conversation->type->value,
+                'name' => $name ?? $conversation->publicId,
+                'favorite' => $this->store->isFavorite($conversation->id, $userId),
+                'unreadCount' => $this->realtime?->state($conversation->id, $userId)->unreadCount ?? 0,
+            ];
+        }
+
+        return $items;
+    }
+
+    public function setFavorite(string $userPublicId, string $activeTeamPublicId, string $conversationPublicId, bool $favorite): void
+    {
+        $this->access->ensureAllowed($userPublicId, $activeTeamPublicId, ChatPermissionCatalog::FAVORITE_UPDATE);
+        $userId = $this->userId($userPublicId);
+        $conversation = $this->store->findByPublicId($conversationPublicId) ?? throw new ConversationNotFound;
+
+        if (! $this->canAccess($userPublicId, $activeTeamPublicId, $conversationPublicId)) {
+            throw ConversationOperationDenied::notMember();
+        }
+
+        $this->store->setFavorite($conversation->id, $userId, $favorite);
+    }
+
+    public function renameMeetingConversation(string $conversationPublicId, string $title): void
+    {
+        $conversation = $this->store->findByPublicId($conversationPublicId) ?? throw new ConversationNotFound;
+        if ($conversation->type !== ConversationType::Meeting) {
+            throw ConversationOperationDenied::invalidConversationType();
+        }
+
+        $this->store->updateName($conversation->id, $title);
     }
 
     public function inviteMeetingParticipant(string $conversationPublicId, string $actorPublicId, string $participantPublicId): void

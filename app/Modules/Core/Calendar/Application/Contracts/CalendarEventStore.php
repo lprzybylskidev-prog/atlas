@@ -10,6 +10,9 @@ use DateTimeImmutable;
 
 interface CalendarEventStore
 {
+    /** @return list<int> */
+    public function ownerUserIds(): array;
+
     /** @return list<PersonalCalendarEvent> */
     public function forOwnerBefore(int $ownerUserId, DateTimeImmutable $rangeEndsAt): array;
 

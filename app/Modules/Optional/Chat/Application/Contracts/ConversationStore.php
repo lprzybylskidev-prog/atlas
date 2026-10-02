@@ -56,4 +56,13 @@ interface ConversationStore
     public function timeline(int $conversationId): array;
 
     public function hasActiveMembership(int $conversationId, int $userId): bool;
+
+    /** @return list<ConversationRecord> */
+    public function activeForUser(int $userId): array;
+
+    public function isFavorite(int $conversationId, int $userId): bool;
+
+    public function setFavorite(int $conversationId, int $userId, bool $favorite): void;
+
+    public function updateName(int $conversationId, string $name): void;
 }

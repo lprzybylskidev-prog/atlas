@@ -33,6 +33,10 @@ function modalActionFamily(expression: string, suffix: 'confirm' | 'description'
  * deleting the same key from PL and EN cannot make the localization audit pass.
  */
 export const dynamicTranslationFamilies: readonly DynamicTranslationFamily[] = [
+    family('chat.shell.types.${conversation.type}', 'chat.shell.types.', ['direct', 'group', 'team', 'meeting']),
+    family('meetings.mode_help.${form.mode}', 'meetings.mode_help.', ['online', 'in_person', 'hybrid']),
+    family('meetings.mode_help.${edit.mode}', 'meetings.mode_help.', ['online', 'in_person', 'hybrid']),
+    family('pages.calendar.meeting_mode.${event.mode}', 'pages.calendar.meeting_mode.', ['online', 'in_person', 'hybrid']),
     family('pages.calendar.weekday.${weekday.key}', 'pages.calendar.weekday.', [
         'monday',
         'tuesday',

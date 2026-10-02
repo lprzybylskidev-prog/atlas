@@ -1,6 +1,6 @@
 # Phase 31 — Optional internal company chat, calendar, calls, meetings, and realtime communication
 
-**Status:** `in progress` (`P31-W01` through `P31-W12` complete; `P31-W13` is next)
+**Status:** `in progress` (`P31-W01` through `P31-W13` complete; `P31-W14` is next)
 
 ## Objective
 
@@ -2328,28 +2328,28 @@ Protect:
 
 ### Tasks
 
-- [ ] Preserve Chat shell launcher.
-- [ ] Preserve unread dropdown/badge.
-- [ ] Add Meeting conversation list integration.
-- [ ] Preserve desktop Chat modal.
-- [ ] Preserve full-screen mobile Chat.
-- [ ] Add minimizable Call/Meeting modal.
-- [ ] Add persistent minimized controls.
-- [ ] Add mode-aware Meeting creation UI.
-- [ ] Hide RTC/recording/transcription controls for in-person Meeting creation and use.
-- [ ] Add global incoming Call UI.
-- [ ] Add Calendar Month/Week/Day/Agenda UI.
-- [ ] Add localized Meeting mode/location presentation in Calendar.
-- [ ] Add Meeting invitation/update/cancellation notifications.
-- [ ] Add Meeting email preferences.
-- [ ] Add Meeting reminder preferences.
-- [ ] Add personal Calendar reminders.
-- [ ] Add personal Calendar email preference.
-- [ ] Preserve Chat browser notification separation.
-- [ ] Add missed Call notification behavior.
-- [ ] Preserve no-Chat-email rule.
-- [ ] Add accessibility/focus behavior.
-- [ ] Add mobile/light/dark coverage.
+- [x] Preserve Chat shell launcher.
+- [x] Preserve unread dropdown/badge.
+- [x] Add Meeting conversation list integration.
+- [x] Preserve desktop Chat modal.
+- [x] Preserve full-screen mobile Chat.
+- [x] Add minimizable Call/Meeting modal.
+- [x] Add persistent minimized controls.
+- [x] Add mode-aware Meeting creation UI.
+- [x] Hide RTC/recording/transcription controls for in-person Meeting creation and use.
+- [x] Add global incoming Call UI.
+- [x] Add Calendar Month/Week/Day/Agenda UI.
+- [x] Add localized Meeting mode/location presentation in Calendar.
+- [x] Add Meeting invitation/update/cancellation notifications.
+- [x] Add Meeting email preferences.
+- [x] Add Meeting reminder preferences.
+- [x] Add personal Calendar reminders.
+- [x] Add personal Calendar email preference.
+- [x] Preserve Chat browser notification separation.
+- [x] Add missed Call notification behavior.
+- [x] Preserve no-Chat-email rule.
+- [x] Add accessibility/focus behavior.
+- [x] Add mobile/light/dark coverage.
 
 ---
 

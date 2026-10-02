@@ -32,6 +32,7 @@ final readonly class ChatRouteAvailability implements InertiaRouteAvailabilityCo
     {
         return $this->chatAvailable($request) ? [
             ChatPermissionCatalog::INDEX,
+            ChatPermissionCatalog::FAVORITE_UPDATE,
             ChatPermissionCatalog::DIRECT_CONVERSATION_STORE,
             ChatPermissionCatalog::GROUP_STORE,
             ChatPermissionCatalog::ATTACHMENT_STORE,

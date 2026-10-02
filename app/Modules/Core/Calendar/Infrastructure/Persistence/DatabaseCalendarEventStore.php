@@ -24,6 +24,16 @@ final readonly class DatabaseCalendarEventStore implements CalendarEventStore
 
     public function __construct(private ConnectionInterface $database) {}
 
+    public function ownerUserIds(): array
+    {
+        return array_values($this->database->table(CalendarDatabaseTable::PERSONAL_EVENTS)
+            ->distinct()
+            ->orderBy('user_id')
+            ->pluck('user_id')
+            ->map(fn (mixed $value): int => $this->requiredInt($value))
+            ->all());
+    }
+
     public function forOwnerBefore(int $ownerUserId, DateTimeImmutable $rangeEndsAt): array
     {
         return $this->eventsForQuery(

@@ -18,7 +18,7 @@ import {
     IconVideo,
     IconVideoOff,
 } from '@tabler/icons-vue';
-import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue';
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
 import DialogPanel from '../../Components/DialogPanel.vue';
 import ActionLink from '../../Components/ActionLink.vue';
 import FormButton from '../../Components/Form/FormButton.vue';
@@ -36,7 +36,20 @@ import AppLayout from '../../Layouts/AppLayout.vue';
 import { useModal } from '../../Composables/useModal';
 import { useTranslator } from '../../Localization/translator';
 import { chatJson } from '../../Services/chatAttachments';
-import type { CallMediaSession } from '../../Services/callMediaSession';
+import {
+    addMeetingRemoteElement,
+    clearMeetingLiveSession,
+    configureMeetingLiveSession,
+    meetingLiveActive,
+    meetingLiveCameraEnabled,
+    meetingLiveMicrophoneEnabled,
+    meetingLiveMinimized,
+    meetingLivePublicId,
+    meetingLiveRecordingStatus,
+    meetingLiveRemoteElements,
+    meetingLiveScreenSharing,
+    meetingLiveSession,
+} from '../../Services/meetingLiveSession';
 interface Participant {
     publicId: string;
     name: string;
@@ -77,6 +90,7 @@ interface Meeting {
     recurrenceWeekdays: number[];
     recurrenceEndsOn: string | null;
     recurrenceCount: number | null;
+    reminderMinutes: number[];
     participants: Participant[];
     attendance: Attendance[];
 }
@@ -144,12 +158,12 @@ const invite = useForm({ user_public_id: '' });
 const preCallOpen = ref(false);
 const preCallBusy = ref(false);
 const deviceSetup = ref<MediaDeviceSetupHandle | null>(null);
-const meetingSession = ref<CallMediaSession | null>(null);
-const rtcActive = ref(false);
-const rtcMinimized = ref(false);
-const cameraEnabled = ref(false);
-const microphoneEnabled = ref(true);
-const screenSharing = ref(false);
+const meetingSession = meetingLiveSession;
+const rtcActive = meetingLiveActive;
+const rtcMinimized = meetingLiveMinimized;
+const cameraEnabled = meetingLiveCameraEnabled;
+const microphoneEnabled = meetingLiveMicrophoneEnabled;
+const screenSharing = meetingLiveScreenSharing;
 const remoteMedia = ref<HTMLDivElement | null>(null);
 const recording = ref<RecordingState>(
     props.recording ?? {
@@ -184,7 +198,7 @@ const edit = useForm({
     recurrence_weekdays: props.meeting.recurrenceWeekdays,
     recurrence_ends_on: props.meeting.recurrenceEndsOn ?? '',
     recurrence_count: props.meeting.recurrenceCount,
-    reminder_minutes: [15],
+    reminder_minutes: props.meeting.reminderMinutes,
     mutation_scope: 'series',
     occurrence_date: props.meeting.startsAt.slice(0, 10),
 });
@@ -204,6 +218,7 @@ function respond(response: 'accepted' | 'declined'): void {
 }
 async function openPreCall(): Promise<void> {
     if (!canUseRtcSession.value) return;
+    configureLiveRuntime();
     preCallOpen.value = true;
     preCallBusy.value = true;
     await nextTick();
@@ -238,6 +253,7 @@ async function joinOnline(): Promise<void> {
         media.onTrackSubscribed((element) => {
             element.autoplay = true;
             if (element instanceof HTMLVideoElement) element.playsInline = true;
+            addMeetingRemoteElement(element);
             remoteMedia.value?.appendChild(element);
         });
         await media.connect(
@@ -281,11 +297,9 @@ async function toggleScreenShare(): Promise<void> {
 async function leaveOnline(): Promise<void> {
     await chatJson(`/meetings/${props.meeting.publicId}/rtc/leave`, 'POST', { occurrence_date: props.meeting.startsAt.slice(0, 10) });
     meetingSession.value?.disconnect();
-    meetingSession.value = null;
-    rtcActive.value = false;
     if (recordingPoll !== null) clearInterval(recordingPoll);
     recordingPoll = null;
-    rtcMinimized.value = false;
+    clearMeetingLiveSession();
     closePreCall();
 }
 async function refreshRecording(): Promise<void> {
@@ -395,13 +409,48 @@ async function controlRecording(action: 'start' | 'pause' | 'resume' | 'stop'): 
     }
 }
 onUnmounted(() => {
+    window.removeEventListener('atlas:meeting-live-restore', restoreLiveDialog);
+    if (rtcActive.value && meetingLivePublicId.value === props.meeting.publicId) rtcMinimized.value = true;
     if (recordingPoll !== null) clearInterval(recordingPoll);
     if (transcriptPoll !== null) clearInterval(transcriptPoll);
 });
 onMounted(() => {
+    configureLiveRuntime();
+    window.addEventListener('atlas:meeting-live-restore', restoreLiveDialog);
+    if (rtcActive.value && meetingLivePublicId.value === props.meeting.publicId) {
+        preCallOpen.value = true;
+        void nextTick(attachRemoteElements);
+    }
     void refreshRecordingDetails();
     if (transcription.value) setTranscript(transcription.value);
 });
+
+watch(
+    () => recording.value.status,
+    (status) => (meetingLiveRecordingStatus.value = status),
+    { immediate: true },
+);
+
+function configureLiveRuntime(): void {
+    if (rtcActive.value && meetingLivePublicId.value !== null && meetingLivePublicId.value !== props.meeting.publicId) return;
+    configureMeetingLiveSession(props.meeting.publicId, props.meeting.title, props.meeting.role === 'organizer', {
+        toggleMicrophone: () => toggleMedia('microphone'),
+        toggleCamera: () => toggleMedia('camera'),
+        leave: leaveOnline,
+        end: endMeeting,
+    });
+}
+
+function restoreLiveDialog(): void {
+    if (meetingLivePublicId.value !== props.meeting.publicId) return;
+    preCallOpen.value = true;
+    void nextTick(attachRemoteElements);
+}
+
+function attachRemoteElements(): void {
+    if (remoteMedia.value === null) return;
+    for (const element of meetingLiveRemoteElements.value) remoteMedia.value.appendChild(element);
+}
 async function moderate(
     participant: string,
     action: 'mute' | 'disable_microphone' | 'restore_microphone' | 'camera_off' | 'stop_screen_share' | 'kick',
@@ -512,6 +561,16 @@ async function remove(id: string): Promise<void> {
                     <FormInput v-model="edit.title" :label="t('meetings.fields.title')" :error="edit.errors.title" />
                     <FormSelect v-model="edit.mode" :label="t('meetings.fields.mode')" :options="modeOptions" />
                     <FormInput v-if="edit.mode !== 'online'" v-model="edit.location" :label="t('meetings.fields.location')" />
+                    <p class="rounded-lg bg-sky-50 p-3 text-sm text-sky-900 dark:bg-sky-950/40 dark:text-sky-100 md:col-span-2">
+                        {{ t(`meetings.mode_help.${edit.mode}`) }}
+                    </p>
+                    <FormInput
+                        :model-value="String(edit.reminder_minutes[0] ?? 15)"
+                        type="number"
+                        :label="t('meetings.fields.reminder_minutes')"
+                        :error="edit.errors.reminder_minutes"
+                        @update:model-value="edit.reminder_minutes = [Number($event)]"
+                    />
                     <FormSelect v-model="edit.mutation_scope" :label="t('meetings.fields.scope')" :options="scopeOptions" />
                     <FormDateInput v-model="edit.occurrence_date" :label="t('meetings.fields.occurrence_date')" />
                     <div class="md:col-span-2">
@@ -748,26 +807,6 @@ async function remove(id: string): Promise<void> {
                 <p class="mt-3 text-xs text-zinc-500 dark:text-zinc-400">{{ t('meetings.attendance.online_only') }}</p>
             </SurfaceCard>
         </PageStack>
-        <aside
-            v-if="rtcMinimized"
-            class="fixed right-4 bottom-4 z-70 rounded-lg border bg-white p-3 shadow-xl dark:bg-zinc-950"
-            data-testid="minimized-meeting-session"
-        >
-            <div class="flex gap-2">
-                <FormButton
-                    :icon="IconVideo"
-                    @click="
-                        rtcMinimized = false;
-                        preCallOpen = true;
-                    "
-                >
-                    {{ t('meetings.rtc.rejoin') }}
-                </FormButton>
-                <FormButton tone="danger" @click="leaveOnline">
-                    {{ t('meetings.rtc.leave') }}
-                </FormButton>
-            </div>
-        </aside>
         <DialogPanel
             v-if="canUseRtcSession"
             :open="preCallOpen"

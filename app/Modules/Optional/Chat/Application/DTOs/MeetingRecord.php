@@ -26,5 +26,7 @@ final readonly class MeetingRecord
         public ?MeetingRecurrence $recurrence,
         public MeetingStatus $status,
         public int $version,
+        /** @var list<int> */
+        public array $reminderMinutes = [15],
     ) {}
 }
