@@ -84,4 +84,4 @@ Tracked issue IDs: `P28-AUDIT-003`, `P28-LOC-001`, `P28-MODAUD-006`.
 
 ## Accepted later evolution
 
-Phase 35 will extend this existing Settings foundation rather than replace it. Its accepted target classifies deployment/bootstrap configuration separately from safe Admin-managed runtime Settings, adds write-only encrypted runtime secrets, locale-extensible dynamic labels and Reference Dictionaries, Team-owned IANA business timezones, and named Business Calendars. These capabilities are not current behavior until Phase 35 implements them.
+Phase 36 will extend this existing Settings foundation rather than replace it. Its accepted target classifies deployment/bootstrap configuration separately from safe Admin-managed runtime Settings, adds write-only encrypted runtime secrets, locale-extensible dynamic labels and Reference Dictionaries, Team-owned IANA business timezones, and named Business Calendars. These capabilities are not current behavior until Phase 36 implements them.

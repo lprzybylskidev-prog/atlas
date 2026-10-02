@@ -2,7 +2,7 @@
 
 Canonical current boundary for the shared Core Calendar capability introduced in Phase 31.
 
-The current Phase 31 implementation uses the documented `Europe/Warsaw` recurrence behavior. Phase 35 is the explicit future migration owner for Team IANA business timezones, recurrence-timezone pinning, and separate named Business Calendars. This current-state document must not present those later capabilities as implemented before Phase 35 closes.
+The current Phase 31 implementation uses the documented `Europe/Warsaw` recurrence behavior. Phase 36 is the explicit future migration owner for Team IANA business timezones, recurrence-timezone pinning, and separate named Business Calendars. This current-state document must not present those later capabilities as implemented before Phase 36 closes.
 
 ## Ownership and availability
 

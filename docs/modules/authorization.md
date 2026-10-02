@@ -117,4 +117,4 @@ Tracked issue IDs: `P28-ARCH-001`, `P28-ARCH-004`, `P28-ARCH-011`, `P28-AUTH-003
 
 ## Accepted later evolution
 
-Phase 35 will move Admin-created custom-role and similar dynamic labels to immutable technical codes plus locale-keyed translations requiring Polish and English initially. Phase 38 will add a separate Service Account principal restricted to registered `api.*` permissions, with no Team membership, active-Team context, browser login, or normal human permissions. Neither target is current behavior until its owning phase is implemented.
+Phase 36 will move Admin-created custom-role and similar dynamic labels to immutable technical codes plus locale-keyed translations requiring Polish and English initially. Phase 39 will add a separate Service Account principal restricted to registered `api.*` permissions, with no Team membership, active-Team context, browser login, or normal human permissions. Neither target is current behavior until its owning phase is implemented.

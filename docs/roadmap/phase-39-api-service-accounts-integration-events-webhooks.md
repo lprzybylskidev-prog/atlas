@@ -1,4 +1,4 @@
-# Phase 38 — Atlas API, Service Accounts, Integration Events, OpenAPI, and webhooks
+# Phase 39 — Atlas API, Service Accounts, Integration Events, OpenAPI, and webhooks
 
 **Status:** `not started`
 
@@ -10,9 +10,9 @@ Do not create a second Integrations, Outbox, or event platform.
 
 ## Dependencies
 
-- [Phase 33 — Foundation extension-point, duplication, and consumer audit](phase-33-foundation-extension-points-and-duplication-audit.md) must be complete.
-- [Phase 35 — Runtime Settings, localized reference data, Team timezones, and Business Calendars](phase-35-runtime-settings-localized-reference-data-team-timezones-business-calendars.md) must be complete.
-- [Phase 36 — Reusable data integrity and business-support primitives](phase-36-reusable-data-integrity-business-primitives.md) must be complete.
+- [Phase 34 — Foundation extension-point, duplication, and consumer audit](phase-34-foundation-extension-points-and-duplication-audit.md) must be complete.
+- [Phase 36 — Runtime Settings, localized reference data, Team timezones, and Business Calendars](phase-36-runtime-settings-localized-reference-data-team-timezones-business-calendars.md) must be complete.
+- [Phase 37 — Reusable data integrity and business-support primitives](phase-37-reusable-data-integrity-business-primitives.md) must be complete.
 - Existing Integrations, Authorization, Audit, Outbox/Integration Events, rate limiting, Health, and Managed Processes foundations.
 
 ## Related documentation
@@ -71,57 +71,57 @@ Sign deliveries through reviewed HMAC or equivalent and support stable event/del
 
 Workstreams are strictly sequential. Only the earliest incomplete workstream is active.
 
-### P38-W01 — Integration Event inventory, catalog, compatibility, and data policy
+### P39-W01 — Integration Event inventory, catalog, compatibility, and data policy
 
 - [ ] Inventory current Domain/Integration Events, publishers, consumers, payloads, and external eligibility.
 - [ ] Implement the canonical event catalog, schema compatibility policy, and sensitive-data classification.
 - [ ] Migrate duplicate/ad hoc registrations and add payload/privacy guards.
 
-### P38-W02 — Outbox, relay, idempotent-consumer hardening, and test helpers
+### P39-W02 — Outbox, relay, idempotent-consumer hardening, and test helpers
 
 - [ ] Verify and harden atomic persistence, after-commit relay, retries, dead letters, retention, replay, and correlation/causation.
 - [ ] Standardize consumer deduplication/idempotency and deterministic test helpers.
 - [ ] Add failure, concurrency, replay, compatibility, and operational tests without a second relay.
 
-### P38-W03 — API conventions, `/api/v1`, module exposure contract, and error model
+### P39-W03 — API conventions, `/api/v1`, module exposure contract, and error model
 
 - [ ] Define and implement canonical API routing, representation, errors, pagination, filtering, sorting, timestamps, versioning, and correlation.
 - [ ] Add explicit module-owned API registration and code-owned `api_name`/permission catalogs.
 - [ ] Enforce rate limiting, validation, Authorization, ModuleGate, and no automatic persistence exposure.
 
-### P38-W04 — Service Account principal and API-only authorization
+### P39-W04 — Service Account principal and API-only authorization
 
 - [ ] Implement a separate machine-principal model and Admin lifecycle.
 - [ ] Reuse appropriate Authorization infrastructure while limiting assignments to registered `api.*` permissions.
 - [ ] Permanently prohibit User/session/OIDC/MFA/impersonation/Team membership and normal UI permissions.
 
-### P38-W05 — Expiring token lifecycle, rotation, revocation, and Audit
+### P39-W05 — Expiring token lifecycle, rotation, revocation, and Audit
 
 - [ ] Implement multiple simultaneous credentials with mandatory expiry and safe verification storage.
 - [ ] Show plaintext exactly once; implement replacement-token rotation, revocation, and last-use metadata.
 - [ ] Prohibit null/indefinite expiry, expiry extension, token scopes, and environment-selector semantics.
 - [ ] Add secret-safe Audit and authentication failure coverage.
 
-### P38-W06 — Module-owned API endpoints, idempotency, rate limits, and OpenAPI
+### P39-W06 — Module-owned API endpoints, idempotency, rate limits, and OpenAPI
 
 - [ ] Implement accepted module-owned `/api/v1` endpoints through public/use-case boundaries.
 - [ ] Add explicit mutation idempotency where duplicate delivery is realistic.
 - [ ] Produce reproducible OpenAPI documentation and enforce route/schema/permission drift protection.
 - [ ] Test resource, error, pagination, filtering, authorization, rate-limit, and compatibility contracts.
 
-### P38-W07 — Admin-managed signed webhook subscriptions and delivery pipeline
+### P39-W07 — Admin-managed signed webhook subscriptions and delivery pipeline
 
 - [ ] Implement allowlisted event subscriptions and write-only signing-secret lifecycle.
 - [ ] Deliver through the existing Outbox/Integration Event foundation with reviewed signing and replay protection.
 - [ ] Prohibit public self-registration, arbitrary event selection, and secret/payload leakage.
 
-### P38-W08 — Retry, replay, history, health, and operational security
+### P39-W08 — Retry, replay, history, health, and operational security
 
 - [ ] Implement bounded retry/backoff, failure history, authorized replay, disable controls, and safe response metadata.
 - [ ] Add Health/System Status and Managed Process integration where appropriate without exposing payloads.
 - [ ] Verify revocation, disabled principals/subscriptions, replay identity, and failure isolation.
 
-### P38-W09 — Browser/Admin acceptance, API integration tests, compatibility tests, documentation, and closure
+### P39-W09 — Browser/Admin acceptance, API integration tests, compatibility tests, documentation, and closure
 
 - [ ] Add Admin browser acceptance for Service Accounts, token rotation, OpenAPI access, subscriptions, delivery history, replay, and secrets.
 - [ ] Add end-to-end API authentication, Authorization, idempotency, rate-limit, event compatibility, and webhook-signature tests.

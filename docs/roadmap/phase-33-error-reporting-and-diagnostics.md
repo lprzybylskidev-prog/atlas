@@ -1,4 +1,4 @@
-# Phase 32 — Error reporting, user bug reports, and application diagnostics
+# Phase 33 — Error reporting, user bug reports, and application diagnostics
 
 **Status:** `not started`
 
@@ -6,7 +6,7 @@
 
 Add a first-party Atlas diagnostics and bug-reporting capability that makes application failures and incorrect product behavior understandable without replacing the existing structured logging, health, Pulse, or Telescope foundations.
 
-Phase 32 provides two complementary inputs:
+Phase 33 provides two complementary inputs:
 
 1. automatic Technical Issues created from genuine application/runtime failures;
 2. manual User Bug Reports created by employees when Atlas behaves incorrectly even though no technical exception necessarily occurred.
@@ -38,7 +38,7 @@ Structured logs remain the fundamental diagnostic fallback when normal applicati
 
 This phase must not build a Sentry clone, Jira clone, APM platform, distributed tracing product, profiler, or session-replay engine.
 
-Do not add Sentry or another external error-monitoring dependency. Phase 32 explicitly replaces and removes Atlas's existing Sentry integration; first-party Diagnostics must not be built on top of the dependency it supersedes.
+Do not add Sentry or another external error-monitoring dependency. Phase 33 explicitly replaces and removes Atlas's existing Sentry integration; first-party Diagnostics must not be built on top of the dependency it supersedes.
 
 Atlas uses its own diagnostics capability.
 
@@ -48,7 +48,7 @@ Existing Pulse and Telescope remain separate technical tools and must not be rep
 
 ## Dependencies
 
-Phase 32 depends on the completed shared Atlas foundations including:
+Phase 33 depends on the completed shared Atlas foundations including:
 
 - Authorization;
 - Audit;
@@ -69,9 +69,11 @@ Phase 32 depends on the completed shared Atlas foundations including:
 - release/build metadata;
 - existing error and network handling.
 
-Phase 32 is implemented only after Phase 31 is actually complete.
+Phase 33 is implemented only after Phases 31 and 32 are actually complete.
 
-Planning Phase 32 while Phase 31 remains in progress does not authorize starting Phase 32 implementation.
+- [Phase 32 — Product neutralization and domain-assumption removal](phase-32-product-neutralization.md) must be complete.
+
+Planning Phase 33 while Phases 31 and 32 remain incomplete does not authorize starting Phase 33 implementation.
 
 ---
 
@@ -110,15 +112,15 @@ Do not automatically merge User Bug Reports based only on similar text.
 
 Workstreams are strictly sequential:
 
-1. `P32-W01` — Core boundary, persistence, permissions, privacy contracts
-2. `P32-W02` — Automatic capture, correlation, safe context, breadcrumbs, and source mapping
-3. `P32-W03` — Fingerprinting, deduplication, occurrences, severity, regression, and flood control
-4. `P32-W04` — User Bug Report workflow, screenshots, Files, and My Reports
-5. `P32-W05` — Admin Errors & Reports UI, linking, merging, investigation workflow, and diagnostics bundle
-6. `P32-W06` — Health/System Status integration and diagnostic Notifications
-7. `P32-W07` — Retention, sampling configuration, purge, and lifecycle cleanup
-8. `P32-W08` — Audit, operational failure safety, private source diagnostics, and development fixtures
-9. `P32-W09` — Browser acceptance, backend coverage, documentation, and final closure
+1. `P33-W01` — Core boundary, persistence, permissions, privacy contracts
+2. `P33-W02` — Automatic capture, correlation, safe context, breadcrumbs, and source mapping
+3. `P33-W03` — Fingerprinting, deduplication, occurrences, severity, regression, and flood control
+4. `P33-W04` — User Bug Report workflow, screenshots, Files, and My Reports
+5. `P33-W05` — Admin Errors & Reports UI, linking, merging, investigation workflow, and diagnostics bundle
+6. `P33-W06` — Health/System Status integration and diagnostic Notifications
+7. `P33-W07` — Retention, sampling configuration, purge, and lifecycle cleanup
+8. `P33-W08` — Audit, operational failure safety, private source diagnostics, and development fixtures
+9. `P33-W09` — Browser acceptance, backend coverage, documentation, and final closure
 
 Only the earliest incomplete workstream is active.
 
@@ -132,11 +134,11 @@ Do not calculate completion percentages or readiness percentages.
 
 ---
 
-## P32-W01 — Core boundary, persistence, permissions, privacy contracts
+## P33-W01 — Core boundary, persistence, permissions, privacy contracts
 
 ### Existing Sentry transition and removal
 
-Before building the first-party capture path, audit the actual repository for all Sentry-specific runtime and development wiring and remove every application-owned integration still present when Phase 32 begins. This includes:
+Before building the first-party capture path, audit the actual repository for all Sentry-specific runtime and development wiring and remove every application-owned integration still present when Phase 33 begins. This includes:
 
 - the direct `sentry/sentry-laravel` dependency and normal lockfile updates;
 - `config/sentry.php` and other Sentry-specific configuration;
@@ -344,7 +346,7 @@ Explicit User Bug Report description/expected/actual fields are intentional repo
 
 ---
 
-## P32-W02 — Automatic capture, correlation, safe context, breadcrumbs, and source mapping
+## P33-W02 — Automatic capture, correlation, safe context, breadcrumbs, and source mapping
 
 ### Automatic Technical Issue sources
 
@@ -576,7 +578,7 @@ If Diagnostics persistence fails:
 
 ---
 
-## P32-W03 — Fingerprinting, deduplication, occurrences, severity, regression, and flood control
+## P33-W03 — Fingerprinting, deduplication, occurrences, severity, regression, and flood control
 
 ### Technical Issue fingerprinting
 
@@ -771,7 +773,7 @@ Do not create a timeline entry for every occurrence.
 
 ---
 
-## P32-W04 — User Bug Report workflow, screenshots, Files, and My Reports
+## P33-W04 — User Bug Report workflow, screenshots, Files, and My Reports
 
 ### Global Report Bug action
 
@@ -860,7 +862,7 @@ Do not add a large/heavy screenshot subsystem solely to guarantee capture in eve
 
 ### Automatic report context
 
-A manual User Bug Report automatically includes the safe Diagnostics context defined in P32-W02, including where available:
+A manual User Bug Report automatically includes the safe Diagnostics context defined in P33-W02, including where available:
 
 - page/route;
 - timestamp;
@@ -961,7 +963,7 @@ Do not build a second email-preference subsystem.
 
 ---
 
-## P32-W05 — Admin Errors & Reports UI, linking, merging, investigation workflow, and diagnostics bundle
+## P33-W05 — Admin Errors & Reports UI, linking, merging, investigation workflow, and diagnostics bundle
 
 ### Admin navigation
 
@@ -1170,7 +1172,7 @@ Admin closes reports deliberately.
 
 ### Merge
 
-Provide authorized issue merge according to P32-W03.
+Provide authorized issue merge according to P33-W03.
 
 Old issue IDs remain historical aliases.
 
@@ -1272,7 +1274,7 @@ Copy text/JSON is sufficient.
 
 ---
 
-## P32-W06 — Health/System Status integration and diagnostic Notifications
+## P33-W06 — Health/System Status integration and diagnostic Notifications
 
 ### Health integration principle
 
@@ -1463,7 +1465,7 @@ An `Ignored` issue may still generate a meaningful impact-growth alert without c
 
 ---
 
-## P32-W07 — Retention, sampling configuration, purge, and lifecycle cleanup
+## P33-W07 — Retention, sampling configuration, purge, and lifecycle cleanup
 
 ### Detailed occurrence retention
 
@@ -1540,7 +1542,7 @@ Do not leave orphaned Files.
 
 ### Manual User Bug Report deletion
 
-Manual deletion remains available according to P32-W05 independently from automatic retention.
+Manual deletion remains available according to P33-W05 independently from automatic retention.
 
 ### Flood/sampling settings
 
@@ -1568,7 +1570,7 @@ Do not create a generalized event-processing rules engine.
 
 ---
 
-## P32-W08 — Audit, operational failure safety, private source diagnostics, and development fixtures
+## P33-W08 — Audit, operational failure safety, private source diagnostics, and development fixtures
 
 ### Audit
 
@@ -1682,7 +1684,7 @@ Do not add external infrastructure for this phase.
 
 ---
 
-## P32-W09 — Browser acceptance, backend coverage, documentation, and final closure
+## P33-W09 — Browser acceptance, backend coverage, documentation, and final closure
 
 ### Browser acceptance
 
@@ -1889,7 +1891,7 @@ Do not document Sentry as a dependency. Rewrite current-state Sentry documentati
 
 ## Explicit out of scope
 
-Phase 32 does not implement:
+Phase 33 does not implement:
 
 - Sentry;
 - Bugsnag;
@@ -1977,7 +1979,7 @@ Phase 32 does not implement:
 
 ## Completion criteria
 
-Phase 32 is complete only when:
+Phase 33 is complete only when:
 
 - [ ] backend technical failures are automatically captured;
 - [ ] frontend technical failures are automatically captured;
@@ -2029,4 +2031,4 @@ Phase 32 is complete only when:
 - [ ] no Atlas Sentry package/integration/configuration/environment/runtime/browser/source-map/release/deployment hook remains;
 - [ ] no replacement external error-monitoring dependency was added;
 - [ ] generic shared secret redaction remains functional and first-party Diagnostics owns issue behavior;
-- [ ] Phase 40 deployment implementation has not been started as part of this planning/implementation phase.
+- [ ] Phase 52 deployment implementation has not been started as part of this planning/implementation phase.

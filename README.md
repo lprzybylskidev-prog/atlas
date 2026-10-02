@@ -8,7 +8,7 @@ The current roadmap begins with the technical and operational foundation require
 
 The current foundation includes a Core Audit module with append-only application and security audit records plus a read-only Admin audit browser. Earlier security-audit producers now write through this shared audit foundation instead of a separate legacy table.
 
-The foundation repair and consolidation work in [Phase 28](docs/roadmap/phase-28-foundation-repair-and-consolidation.md), acceptance closure in [Phase 29](docs/roadmap/phase-29-foundation-acceptance-repair.md), and Authorization/Team Structure repair in [Phase 30](docs/roadmap/phase-30-authorization-team-structure-feedback-repair.md) are complete. The current roadmap focus is [Phase 31 — optional internal Chat, Calendar, Calls, Meetings, and realtime communication](docs/roadmap/phase-31-chat.md), followed by Phase 32 first-party Diagnostics and Sentry removal; Phases 33-39 extension, module-surface, runtime Settings/time/reference-data, reusable-primitives, OIDC, API/integration, and MDK foundations; Phase 40 production deployment/recovery; Phase 41 database query-efficiency auditing; and Phase 42 final whole-application verification.
+The foundation repair and consolidation work in [Phase 28](docs/roadmap/phase-28-foundation-repair-and-consolidation.md), acceptance closure in [Phase 29](docs/roadmap/phase-29-foundation-acceptance-repair.md), and Authorization/Team Structure repair in [Phase 30](docs/roadmap/phase-30-authorization-team-structure-feedback-repair.md) are complete. The current roadmap focus is [Phase 31 — optional internal Chat, Calendar, Calls, Meetings, and realtime communication](docs/roadmap/phase-31-chat.md), followed by Phase 32 product neutralization, Phase 33 first-party Diagnostics and Sentry removal, Phases 34–51 dependency-ordered foundation and Optional capability work, Phase 52 production deployment/recovery, Phase 53 database query-efficiency auditing, and Phase 54 final whole-application verification.
 
 ## Core principles
 
@@ -163,7 +163,7 @@ Staging is optional when operationally useful.
 
 The baseline production topology uses one host or VM with Docker Compose. PostgreSQL runs inside the production Compose stack with durable storage. Only the reverse proxy exposes public ports.
 
-Phase 28 provides reproducible production PHP/nginx images and an isolated loopback-only HTTP smoke stack. `composer runtime:check` validates the static runtime contract, while `composer runtime:smoke` builds the locked artifacts, migrates the isolated stack, exercises Laravel and Vite assets through nginx, and proves PostgreSQL 18 volume persistence. This is a runtime foundation only; HTTPS, host deployment, scheduled/off-host encrypted backups, restore, and rollback remain Phase 32.
+Phase 28 provides reproducible production PHP/nginx images and an isolated loopback-only HTTP smoke stack. `composer runtime:check` validates the static runtime contract, while `composer runtime:smoke` builds the locked artifacts, migrates the isolated stack, exercises Laravel and Vite assets through nginx, and proves PostgreSQL 18 volume persistence. This is a runtime foundation only; HTTPS, host deployment, scheduled/off-host encrypted backups, restore, and rollback remain Phase 52.
 
 The Dev Container no-rebuild restriction applies only to the development Dev Container after its first successful start. It does not restrict normal rebuilding of production images and containers.
 
@@ -196,7 +196,7 @@ The Search foundation is available as an optional module for module-owned Meilis
 
 The Feature Flags foundation is available as an optional module for typed rollout flags. Current contracts cover code-owned boolean flag definitions, global and per-team values, effective-value precedence, append-only history, Audit events, Admin management at `/admin/feature-flags`, and the rule that flags cannot replace module activation or authorization.
 
-The implementation status and first unfinished phase are always shown in [`WORKROAD.md`](WORKROAD.md). Phases 28 through 30 are complete; the current roadmap focus is Phase 31 optional internal Chat, shared Calendar, Calls, Meetings, recording, and provider-neutral transcription readiness, followed by Phase 32 Diagnostics/Sentry removal, Phases 33-39 post-communication foundation work, Phase 40 production deployment/recovery, Phase 41 database query-efficiency and route auditing, and Phase 42 final whole-application verification before the first debt collection business modules are introduced.
+The implementation status and first unfinished phase are always shown in [`WORKROAD.md`](WORKROAD.md). Phases 28 through 30 are complete; the current roadmap focus is Phase 31 optional internal Chat, shared Calendar, Calls, Meetings, recording, and provider-neutral transcription readiness, followed by Phase 32 product neutralization, Phase 33 Diagnostics/Sentry removal, Phases 34–51 post-communication foundation and Optional capability work, Phase 52 production deployment/recovery, Phase 53 database query-efficiency and route auditing, and Phase 54 final whole-application verification for future Application-domain development.
 
 As the project grows, this README must present the current high-level system scope, major modules, supported workflows, setup entry points, and operational expectations.
 

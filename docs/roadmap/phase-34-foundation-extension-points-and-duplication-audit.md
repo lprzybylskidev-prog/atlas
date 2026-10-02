@@ -1,4 +1,4 @@
-# Phase 33 — Foundation extension-point, duplication, and consumer audit
+# Phase 34 — Foundation extension-point, duplication, and consumer audit
 
 **Status:** `not started`
 
@@ -13,12 +13,13 @@ This is not an open-ended architecture review. It must produce a decisive first-
 ## Dependencies
 
 - [Phase 31 — Optional internal company chat, calendar, calls, meetings, and realtime communication](phase-31-chat.md) must be complete.
-- [Phase 32 — Error reporting, user bug reports, and application diagnostics](phase-32-error-reporting-and-diagnostics.md) must be complete.
+- [Phase 32 — Product neutralization and domain-assumption removal](phase-32-product-neutralization.md) must be complete.
+- [Phase 33 — Error reporting, user bug reports, and application diagnostics](phase-33-error-reporting-and-diagnostics.md) must be complete.
 - [Modular-monolith architecture](../architecture/modular-monolith.md)
 - [Module documentation index](../modules/README.md)
 - All completed shared Core and Optional Foundation capabilities and their current public-contract conventions.
 
-Phase 33 must complete before Phases 34 through 39 begin.
+Phase 34 must complete before Phases 35 through 51 begin.
 
 ## Related documentation
 
@@ -71,50 +72,50 @@ Do not extract an abstraction merely to remove a few repeated lines. Recommend c
 
 At completion:
 
-- every accepted post-Phase-31 foundation item has an owning Phase 34-39 or an explicit defer/reject outcome;
-- required hardening discovered here is added to an already planned Phase 34-39 where it fits the accepted scope;
+- every accepted post-Phase-31 foundation item has an owning Phase 35-51 or an explicit defer/reject outcome;
+- required hardening discovered here is added to an already planned Phase 35-51 where it fits the accepted scope;
 - no new phase is created for each finding;
 - only a genuinely incompatible architecture decision requires a new user decision;
 - later nice-to-have foundation ideas do not automatically become deployment blockers.
 
-Reusable generic Approvals are intentionally excluded from the first-base-release foundation. Future business workflow and approval semantics belong to real Application business modules. Do not add generic approval records, an approval engine, BPMN, a workflow/process designer, a business-rules engine, or low-code automation. Shared/Core foundations provide narrow reusable technical and business-support tools; Application modules own business workflow and domain behavior.
+Approvals remain outside the shared/Core base foundation. Phase 48 owns only the deliberately bounded Optional approval lifecycle accepted there; Application modules still own business consequences and workflow. Do not add approval behavior during this audit, BPMN, a workflow/process designer, a business-rules engine, or low-code automation.
 
 ## Tasks
 
 Workstreams are strictly sequential. Only the earliest incomplete workstream is active.
 
-### P33-W01 — Audit method, inventory, and evidence format
+### P34-W01 — Audit method, inventory, and evidence format
 
 - [ ] Define finite audit boundaries, inventory sources, evidence fields, and the six allowed dispositions.
 - [ ] Inventory the completed foundation, module manifests/providers, public contracts, consumers, and existing architecture guards.
 - [ ] Create durable audit documentation and a dependency map without turning the audit into implementation work.
 
-### P33-W02 — Core shared capabilities and public extension contracts
+### P34-W02 — Core shared capabilities and public extension contracts
 
 - [ ] Audit every shared capability listed in the implementation contract and its supported extension path.
 - [ ] Record real consumers, missing consumers, tests, documentation, and ownership for each capability.
 - [ ] Identify missing, overbroad, duplicated, or consumer-owned public contracts with evidence.
 
-### P33-W03 — Module consumers, duplicate mechanisms, and internal-boundary leaks
+### P34-W03 — Module consumers, duplicate mechanisms, and internal-boundary leaks
 
 - [ ] Inspect module consumers for forbidden imports, foreign persistence access, internal leakage, and service-location patterns.
 - [ ] Inventory semantically duplicated mechanisms without extracting speculative abstractions.
 - [ ] Map each confirmed leak or duplicate to its owning module or accepted later phase.
 
-### P33-W04 — Cross-cutting primitive and pattern audit
+### P34-W04 — Cross-cutting primitive and pattern audit
 
 - [ ] Audit concurrency, Change Reason, effective ranges, provenance, safe-reference, localized catalog, routing contribution, Integration Event, retry, and idempotency patterns.
 - [ ] Distinguish genuinely shared semantics from superficially similar module-owned behavior.
 - [ ] Record current tests and concrete consumer evidence for every consolidation candidate.
 
-### P33-W05 — Candidate classification, ownership, and later-phase mapping
+### P34-W05 — Candidate classification, ownership, and later-phase mapping
 
 - [ ] Give every candidate exactly one final disposition.
-- [ ] Assign every accepted hardening item to an existing Phase 34-39 and update that unstarted phase where it fits its accepted scope.
+- [ ] Assign every accepted hardening item to an existing Phase 35-51 and update that unstarted phase where it fits its accepted scope.
 - [ ] Record explicit defer, reject, and user-decision outcomes with rationale.
 - [ ] Confirm generic Approvals and workflow/rules engines remain outside the base foundation.
 
-### P33-W06 — First-release backlog freeze, documentation, and closure
+### P34-W06 — First-release backlog freeze, documentation, and closure
 
 - [ ] Freeze the accepted first-base-release foundation backlog.
 - [ ] Verify no actionable audit finding lacks an owner or explicit user decision.

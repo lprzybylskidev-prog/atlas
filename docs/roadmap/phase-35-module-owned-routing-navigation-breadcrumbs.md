@@ -1,4 +1,4 @@
-# Phase 34 — Module-owned routing, navigation, breadcrumbs, and application surfaces
+# Phase 35 — Module-owned routing, navigation, breadcrumbs, and application surfaces
 
 **Status:** `not started`
 
@@ -10,7 +10,7 @@ This is code ownership and extension architecture. It does not require an `/app/
 
 ## Dependencies
 
-- [Phase 33 — Foundation extension-point, duplication, and consumer audit](phase-33-foundation-extension-points-and-duplication-audit.md) must be complete.
+- [Phase 34 — Foundation extension-point, duplication, and consumer audit](phase-34-foundation-extension-points-and-duplication-audit.md) must be complete.
 - [Modular-monolith architecture](../architecture/modular-monolith.md)
 - Existing Authorization, ModuleGate, navigation registry, localization, breadcrumbs, frontend shell, and explicit module-provider contracts.
 
@@ -45,7 +45,7 @@ Preserve one canonical resolved application-navigation model. Module-owned contr
 
 ### Breadcrumbs
 
-Breadcrumb declarations live with module route/navigation ownership, not ad hoc in Vue pages or controllers. Dynamic resolution must respect Authorization and ModuleGate, use safe public contracts, avoid exposing inaccessible object names, use localization, and adopt Phase 36 safe references where appropriate after that capability exists.
+Breadcrumb declarations live with module route/navigation ownership, not ad hoc in Vue pages or controllers. Dynamic resolution must respect Authorization and ModuleGate, use safe public contracts, avoid exposing inaccessible object names, use localization, and adopt Phase 37 safe references where appropriate after that capability exists.
 
 ### Route contracts
 
@@ -59,50 +59,50 @@ Add permanent guards for route ownership, duplicate route names or registrations
 
 Workstreams are strictly sequential. Only the earliest incomplete workstream is active.
 
-### P34-W01 — Route, breadcrumb, navigation, and shell inventory
+### P35-W01 — Route, breadcrumb, navigation, and shell inventory
 
 - [ ] Inventory every route, controller owner, middleware stack, route name, breadcrumb, navigation contribution, shell, and application surface.
 - [ ] Classify genuinely root/shared/bootstrap declarations separately from module-owned declarations.
 - [ ] Record URL compatibility and dynamic breadcrumb privacy risks.
 
-### P34-W02 — Canonical module and surface registration contract
+### P35-W02 — Canonical module and surface registration contract
 
 - [ ] Define the explicit module-owned route, navigation, and breadcrumb contribution contracts.
 - [ ] Define App/User, Manager, and Admin surface metadata without role-name authorization.
 - [ ] Integrate declarations through explicit module providers without scanning magic.
 - [ ] Add collision and registration-order validation.
 
-### P34-W03 — Module-owned App/User routes and breadcrumbs
+### P35-W03 — Module-owned App/User routes and breadcrumbs
 
 - [ ] Move App/User route and breadcrumb declarations to their owning modules.
 - [ ] Preserve natural URLs, route names, middleware, permission checks, ModuleGate behavior, and deep links.
 - [ ] Remove migrated declarations from unrelated central files.
 
-### P34-W04 — Module-owned Manager routes and breadcrumbs
+### P35-W04 — Module-owned Manager routes and breadcrumbs
 
 - [ ] Move Manager route and breadcrumb declarations to their owning modules.
 - [ ] Preserve permission-, policy-, hierarchy-, Team-, and module-aware behavior without role-name checks.
 - [ ] Remove migrated declarations from unrelated central files.
 
-### P34-W05 — Module-owned Admin routes and breadcrumbs
+### P35-W05 — Module-owned Admin routes and breadcrumbs
 
 - [ ] Move Admin route and breadcrumb declarations to their owning modules.
 - [ ] Preserve Admin Mode, high-risk, permission, localization, and ModuleGate contracts.
 - [ ] Remove migrated declarations from unrelated central files.
 
-### P34-W06 — Canonical navigation contribution and resolution hardening
+### P35-W06 — Canonical navigation contribution and resolution hardening
 
 - [ ] Migrate module navigation declarations into the canonical resolver.
 - [ ] Enforce surface, route, label, icon/order, permission, and ModuleGate metadata.
 - [ ] Verify desktop/mobile parity and absence of functional entries for inaccessible modules.
 
-### P34-W07 — Dynamic breadcrumb privacy and safe deep-link behavior
+### P35-W07 — Dynamic breadcrumb privacy and safe deep-link behavior
 
 - [ ] Move dynamic breadcrumb resolution behind owner-owned safe public contracts.
 - [ ] Collapse inaccessible object data to privacy-safe output and prevent label leakage.
 - [ ] Verify localized text-only shell context and backward-compatible deep links.
 
-### P34-W08 — Architecture guards, browser acceptance, documentation, and legacy cleanup
+### P35-W08 — Architecture guards, browser acceptance, documentation, and legacy cleanup
 
 - [ ] Add permanent route, ownership, collision, role-check, ModuleGate, and breadcrumb privacy guards.
 - [ ] Add backend and browser coverage for every surface, navigation parity, disabled modules, and deep links.

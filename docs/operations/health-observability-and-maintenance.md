@@ -2,7 +2,7 @@
 
 Canonical runtime rules for health, readiness, maintenance, logging, correlation, alerts, diagnostics, and administrative operational visibility.
 
-Current pre-Phase-32 observability still includes Sentry wiring documented below. Phase 32 explicitly removes that integration, rewrites affected current-state guidance to first-party Atlas Diagnostics, and preserves the generic shared redaction capability. No new work may deepen the transitional Sentry dependency.
+Current pre-Phase-33 observability still includes Sentry wiring documented below. Phase 33 explicitly removes that integration, rewrites affected current-state guidance to first-party Atlas Diagnostics, and preserves the generic shared redaction capability. No new work may deepen the transitional Sentry dependency.
 
 ## Phase 28 closure state
 
@@ -132,7 +132,7 @@ Cache and assets use release versioning.
 
 ### Time
 
-Current pre-Phase-35 business time uses `APP_TIMEZONE`, defaulting to `Europe/Warsaw`. Phase 35 will make Team IANA timezone canonical for Team business context and retain `APP_TIMEZONE` only as the technical fallback; health metadata and checks must follow that final distinction once implemented.
+Current pre-Phase-36 business time uses `APP_TIMEZONE`, defaulting to `Europe/Warsaw`. Phase 36 will make Team IANA timezone canonical for Team business context and retain `APP_TIMEZONE` only as the technical fallback; health metadata and checks must follow that final distinction once implemented.
 
 Technical storage timestamps use UTC unless a later module contract states otherwise.
 

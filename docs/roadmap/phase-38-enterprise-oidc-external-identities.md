@@ -1,4 +1,4 @@
-# Phase 37 — Enterprise OIDC identities and authentication-method separation
+# Phase 38 — Enterprise OIDC identities and authentication-method separation
 
 **Status:** `not started`
 
@@ -10,7 +10,7 @@ The baseline supports Microsoft Entra ID, Keycloak, and generic standards-compli
 
 ## Dependencies
 
-- [Phase 35 — Runtime Settings, localized reference data, Team timezones, and Business Calendars](phase-35-runtime-settings-localized-reference-data-team-timezones-business-calendars.md) must be complete.
+- [Phase 36 — Runtime Settings, localized reference data, Team timezones, and Business Calendars](phase-36-runtime-settings-localized-reference-data-team-timezones-business-calendars.md) must be complete.
 - Existing Identity, Authorization, Sessions, MFA, Admin Mode/high-risk reauthentication, and Audit capabilities.
 
 ## Related documentation
@@ -52,7 +52,7 @@ Local sessions use canonical local reauthentication. OIDC sessions require fresh
 
 ### Provider configuration and lifecycle
 
-Admin UI uses Phase 35 runtime Settings and write-only secrets for provider preset/type, issuer/discovery URL, client ID, client secret, callback metadata, and necessary claim mapping. Admin can safely test configuration before enforcement without exposing secrets.
+Admin UI uses Phase 36 runtime Settings and write-only secrets for provider preset/type, issuer/discovery URL, client ID, client secret, callback metadata, and necessary claim mapping. Admin can safely test configuration before enforcement without exposing secrets.
 
 At most one provider is active installation-wide. The design stays provider-neutral for migration, without simultaneous multi-provider selection UX. Normal users cannot unlink identities; linking, unlinking, relinking, and provider migration are Admin-managed and audited.
 
@@ -62,49 +62,49 @@ Audit configuration, enable/disable, mode changes, identity lifecycle, failed se
 
 Workstreams are strictly sequential. Only the earliest incomplete workstream is active.
 
-### P37-W01 — Identity/authentication-method model and persistence
+### P38-W01 — Identity/authentication-method model and persistence
 
 - [ ] Model account eligibility independently from local and OIDC authentication methods.
 - [ ] Add provider-neutral external identity persistence keyed by issuer/provider and stable subject.
 - [ ] Preserve existing local authentication and privacy lifecycle contracts.
 
-### P37-W02 — Provider-neutral OIDC client, discovery, and secure callback flow
+### P38-W02 — Provider-neutral OIDC client, discovery, and secure callback flow
 
 - [ ] Implement standards-compliant discovery, state/nonce/PKCE and callback validation as appropriate.
 - [ ] Validate issuer, subject, claims, verified-email status, and authentication responses safely.
 - [ ] Prevent token, secret, and sensitive-claim leakage to logs, Audit, Diagnostics, and frontend props.
 
-### P37-W03 — Existing-user secure linking and Admin identity management
+### P38-W03 — Existing-user secure linking and Admin identity management
 
 - [ ] Implement exact, verified, unambiguous first linking to pre-created Users only.
 - [ ] Resolve subsequent login by stable issuer/subject and prohibit unsafe email relinking.
 - [ ] Add Admin-only link, unlink, relink, conflict-resolution, and provider-migration workflows.
 
-### P37-W04 — Local+OIDC and OIDC-only login policy
+### P38-W04 — Local+OIDC and OIDC-only login policy
 
 - [ ] Implement both installation-wide login modes and localized login UX.
 - [ ] Block ordinary local login in OIDC-only mode without blocking account-independent eligibility checks.
 - [ ] Preserve a canonical permission/security-based emergency local Admin path.
 
-### P37-W05 — MFA, high-risk reauthentication, and Admin Mode integration
+### P38-W05 — MFA, high-risk reauthentication, and Admin Mode integration
 
 - [ ] Keep Atlas MFA for local authentication and provider assurance for OIDC authentication.
 - [ ] Implement fresh provider reauthentication for OIDC high-risk/Admin Mode flows.
 - [ ] Prevent local password state from blocking OIDC-only Users or being requested from them.
 
-### P37-W06 — Entra, Keycloak, and generic OIDC provider acceptance
+### P38-W06 — Entra, Keycloak, and generic OIDC provider acceptance
 
 - [ ] Verify Microsoft Entra ID, Keycloak, and generic compliant-provider behavior.
 - [ ] Verify one-active-provider enforcement and safe provider migration.
 - [ ] Cover provider-disabled users, outage, claim differences, and failure recovery.
 
-### P37-W07 — Provider configuration UI, write-only secret handling, and test connection
+### P38-W07 — Provider configuration UI, write-only secret handling, and test connection
 
 - [ ] Add permission-protected Admin configuration through declared runtime Settings.
 - [ ] Keep client secrets write-only, replaceable, encrypted, and structurally audited.
 - [ ] Add a safe pre-enforcement configuration test with non-secret results.
 
-### P37-W08 — Failure/recovery security, Audit, browser acceptance, tests, and documentation
+### P38-W08 — Failure/recovery security, Audit, browser acceptance, tests, and documentation
 
 - [ ] Add security and Audit coverage for configuration, modes, linking lifecycle, failures, and recovery.
 - [ ] Cover critical flows in Chromium and Firefox, Polish and English, and applicable themes.

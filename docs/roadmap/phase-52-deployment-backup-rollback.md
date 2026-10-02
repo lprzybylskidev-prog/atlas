@@ -1,4 +1,4 @@
-# Phase 40 — Private production deployment, installer, backup, restore, and rollback
+# Phase 52 — Private production deployment, installer, backup, restore, and rollback
 
 **Status:** `not started`
 
@@ -8,7 +8,7 @@ Deliver a reproducible, private, self-hosted production deployment model for Atl
 
 Atlas is primarily an internal company system. The baseline production deployment does not require public Internet exposure.
 
-Phase 40 must provide:
+Phase 52 must provide:
 
 - private/intranet production topology;
 - one supported production installation workflow;
@@ -34,7 +34,9 @@ Kubernetes, Docker Swarm, distributed clustering, multi-node high availability, 
 
 ## Dependencies
 
-Phase 40 depends on the completed technical foundation, including:
+Phase 52 depends on all accepted first-base-release foundation and optional capability work through Phase 51.
+
+Phase 52 depends on the completed technical foundation, including:
 
 - production runtime images;
 - runtime configuration validation;
@@ -51,12 +53,12 @@ Phase 40 depends on the completed technical foundation, including:
 - security and privacy foundations;
 - completed Phase 28 and Phase 29 acceptance work;
 - completed Phase 31 communication scope, including Chat, Core Calendar, Calls, Meetings, Reverb, self-hosted LiveKit, Egress, recordings, and provider-neutral transcription state;
-- completed [Phase 32 Diagnostics and User Bug Reports](phase-32-error-reporting-and-diagnostics.md), including its persistence, Files, Health, retention, correlation, and private source-map contracts.
-- completed [Phase 39 developer extension contract and MDK](phase-39-developer-extension-contract-and-mdk.md), and therefore all accepted first-base-release foundations in Phases 33 through 38.
+- completed [Phase 33 Diagnostics and User Bug Reports](phase-33-error-reporting-and-diagnostics.md), including its persistence, Files, Health, retention, correlation, and private source-map contracts.
+- completed [Phase 51 developer extension contract and MDK](phase-51-developer-extension-contract-and-mdk.md), and therefore all accepted first-base-release foundations and Optional capabilities through Phase 50.
 
-Phase 40 must build on those capabilities instead of replacing or redesigning them.
+Phase 52 must build on those capabilities instead of replacing or redesigning them.
 
-Phase 31 P31-W07 established the development-only pinned LiveKit/Egress topology and recorded the LAN/VPN/TURN/TLS, certificate, firewall, secret, health, capacity, staging, exact-release, and failure-isolation requirements below. Phase 40 remains the owner of their production implementation and acceptance proof.
+Phase 31 P31-W07 established the development-only pinned LiveKit/Egress topology and recorded the LAN/VPN/TURN/TLS, certificate, firewall, secret, health, capacity, staging, exact-release, and failure-isolation requirements below. Phase 52 remains the owner of their production implementation and acceptance proof.
 
 ### Diagnostics deployment boundary
 
@@ -72,11 +74,11 @@ Diagnostics operational severity may report Degraded or Unhealthy in System Stat
 
 The canonical scheduler and queue configuration runs Diagnostics retention. Large manual occurrence purge uses Managed Processes. Diagnostics adds no third-party runtime service.
 
-The production installer must not add Sentry, a Sentry DSN or Cloud requirement, self-hosted Sentry, or another external error-monitoring service. Phase 40 must verify that Phase 32 removed the previous Atlas Sentry package, configuration, environment, runtime, browser, source-map upload, release, and deployment integration. Atlas Diagnostics is first-party.
+The production installer must not add Sentry, a Sentry DSN or Cloud requirement, self-hosted Sentry, or another external error-monitoring service. Phase 52 must verify that Phase 33 removed the previous Atlas Sentry package, configuration, environment, runtime, browser, source-map upload, release, and deployment integration. Atlas Diagnostics is first-party.
 
 ### Runtime Settings and deployment boundary
 
-Phase 40 must respect the Phase 35 Settings boundary. The installer collects deployment/bootstrap values only and is not the normal editor for runtime Admin Settings. It must not configure OIDC business/runtime policy managed through Admin UI.
+Phase 52 must respect the Phase 36 Settings boundary. The installer collects deployment/bootstrap values only and is not the normal editor for runtime Admin Settings. It must not configure OIDC business/runtime policy managed through Admin UI.
 
 `APP_TIMEZONE` is a technical fallback rather than the installation-wide business timezone. The installer may collect that fallback where required, but Team timezone is canonical for Team business context and is Admin-managed after bootstrap. Do not reintroduce hardcoded `Europe/Warsaw` as one universal installation timezone.
 
@@ -88,11 +90,64 @@ Admin-managed encrypted runtime settings are normal durable Atlas data. Backup a
 
 Production readiness, backup, and restore cover, where applicable, Team timezone settings, Reference Dictionaries, Business Calendar definitions/defaults, sequence state, consumer-owned provenance/safe-reference persistence, external OIDC mappings, Service Accounts, API token verification metadata, webhook subscriptions/delivery metadata, and Integration Event/Outbox state. Atlas cannot back up plaintext API token secrets because plaintext is never stored after creation.
 
+### Optional business-capability runtime and provider deployment
+
+Production deployment must support the runtime boundaries introduced through Phase 51.
+
+This includes where enabled:
+
+- WorkSchedule persistence/configuration;
+- WorkManagement queues/Notifications/Search;
+- TimeTracking integrations;
+- DocumentGeneration render runtime;
+- OCR runtime;
+- built-in Tesseract binary/language data;
+- external OCR provider configuration/secrets;
+- DocumentExtraction provider configuration/secrets;
+- DuplicateDetection provider configuration/secrets;
+- Address Validation provider configuration/secrets;
+- Correspondence provider configuration/secrets;
+- correspondence polling/scheduler;
+- correspondence callbacks/webhooks;
+- BusinessTimeline async materialization where applicable.
+
+Optional modules that are inactive must not force unrelated production services to be configured unless the shared runtime is already required elsewhere.
+
+### Tesseract parity
+
+For the built-in Tesseract provider, the Dev Container, production image/runtime, manual Ubuntu/Debian installation, Health checks, and operations documentation must agree on supported runtime requirements.
+
+Production cannot use a fake OCR implementation.
+
+Pin/document compatible package/runtime expectations according to existing Atlas dependency policy.
+
+### Provider secrets
+
+All external provider secrets follow the canonical deployment/runtime Settings distinction.
+
+Do not bake secrets into images.
+
+Write-only Admin-managed runtime secrets remain encrypted and never redisplayed.
+
+Startup/deployment secrets remain deployment-owned where the existing Settings classification requires.
+
+### New capability backup/restore
+
+Backup/restore must include persistent state for all enabled new modules.
+
+Files-owned generated documents/attachments remain covered by Files backup.
+
+Do not duplicate file bytes into module-specific backup mechanisms.
+
+Restore verification must prove database/module state, Files references, template/version metadata, OCR/extraction result linkage, Task/schedule/time relationships, correspondence numbers/external references/status history, approval history, and timeline entries remain consistent.
+
+External provider services themselves are not backed up by Atlas; Atlas backs up its own configuration/state according to secret/recovery policy.
+
 ### Network and API boundary
 
-The baseline remains private, intranet, and self-hosted. Phase 38 API capability does not require public Internet exposure. Any future customer/partner exposure is an installation/network-policy decision and must not weaken the baseline firewall and security topology.
+The baseline remains private, intranet, and self-hosted. Phase 39 API capability does not require public Internet exposure. Any future customer/partner exposure is an installation/network-policy decision and must not weaken the baseline firewall and security topology.
 
-## P40-W01 — Private production topology
+## P52-W01 — Private production topology
 
 ### Contract
 
@@ -126,7 +181,7 @@ Normal Atlas HTTP remains reverse-proxy fronted. Browser WebRTC is an intentiona
 
 PostgreSQL, Redis, Meilisearch, ClamAV, PHP-FPM, Horizon, workers, scheduler, Chromium, Egress control/health endpoints, recording staging, and LiveKit API/Admin credentials must remain private.
 
-The roadmap does not freeze default port numbers. Phase 40 must derive and document the concrete firewall exposure from the pinned LiveKit configuration and version selected for the release, following current official LiveKit self-hosting guidance.
+The roadmap does not freeze default port numbers. Phase 52 must derive and document the concrete firewall exposure from the pinned LiveKit configuration and version selected for the release, following current official LiveKit self-hosting guidance.
 
 Network exposure must be configurable so the host administrator can bind Atlas to an internal interface, trusted subnet, VPN-accessible interface, or equivalent company-controlled network.
 
@@ -147,7 +202,7 @@ Host/network administrators remain responsible for infrastructure-level network 
 - [ ] Add production topology checks where practical.
 - [ ] Document Kubernetes, Swarm, clustering, and public SaaS deployment as out of baseline scope.
 
-## P40-W02 — Production TLS and reverse proxy
+## P52-W02 — Production TLS and reverse proxy
 
 ### Contract
 
@@ -181,7 +236,7 @@ LiveKit signaling/media and TURN/TLS must work for the selected LAN/VPN/browser 
 - [ ] Configure and verify trusted LiveKit and TURN/TLS endpoints for the selected LAN/VPN topology.
 - [ ] Document the concrete configured RTC/TURN firewall and certificate requirements.
 
-## P40-W03 — Durable PostgreSQL and local Files storage
+## P52-W03 — Durable PostgreSQL and local Files storage
 
 ### Contract
 
@@ -208,7 +263,7 @@ storage abstraction
 
 Atlas business code and the Files module must not become hardcoded to a specific storage backend.
 
-S3-compatible storage is not required by Phase 40.
+S3-compatible storage is not required by Phase 52.
 
 Do not implement AWS-specific coupling merely for future flexibility.
 
@@ -232,7 +287,7 @@ Final Meeting recordings are Files-owned durable artifacts. LiveKit Egress outpu
 - [ ] Keep Diagnostics persistence in the canonical durable PostgreSQL deployment without a separate database.
 - [ ] Keep User Bug Report screenshots and attachments in canonical Files storage without a separate volume.
 
-## P40-W04 — Production storage and backup encryption at rest
+## P52-W04 — Production storage and backup encryption at rest
 
 ### Contract
 
@@ -376,7 +431,7 @@ Restore must:
 - [ ] Document organizational/root-access boundaries accurately.
 - [ ] Add production-like verification for encrypted backup/decrypt/verify/restore behavior.
 
-## P40-W05 — Interactive production installer
+## P52-W05 — Interactive production installer
 
 ### Contract
 
@@ -545,14 +600,19 @@ The installer must not automatically repartition, format, or encrypt host disks.
 - [ ] Configure Diagnostics retention through the canonical scheduler and queue model.
 - [ ] Preserve Managed Processes execution for large manual diagnostic-occurrence purge.
 - [ ] Keep the installer free of Sentry and other external error-monitoring configuration.
-- [ ] Verify Phase 32 left no Sentry package, configuration, environment, runtime, browser, release, or deployment hook.
+- [ ] Verify Phase 33 left no Sentry package, configuration, environment, runtime, browser, release, or deployment hook.
+- [ ] Add Tesseract production/dev/manual-install runtime parity and Health verification.
+- [ ] Add optional provider secret/configuration validation for OCR, extraction, duplicate detection, address validation, and correspondence.
+- [ ] Add correspondence polling/callback scheduler/runtime verification.
+- [ ] Add module-activation deployment matrix proving inactive optional providers do not create false readiness failures.
+- [ ] Update installer/config validation for enabled required module/provider dependencies.
 - [ ] Print useful release and operational information after success.
 - [ ] Fail safely when preflight or readiness fails.
 - [ ] Detect an existing installation and never destroy it on installer rerun.
 - [ ] Document the fresh-host installation procedure.
 - [ ] Test installation against a clean supported production-like host/VM.
 
-## P40-W06 — Database and Files backup
+## P52-W06 — Database and Files backup
 
 ### Contract
 
@@ -588,7 +648,7 @@ Possible deployment-specific destinations may include:
 - S3-compatible object storage;
 - another future backend.
 
-Phase 40 must not build multiple speculative backup adapters merely to support every possible destination.
+Phase 52 must not build multiple speculative backup adapters merely to support every possible destination.
 
 It is acceptable for Atlas to produce stable backup artifacts that company infrastructure then copies off-host.
 
@@ -617,6 +677,7 @@ The backup destination must remain deployment-neutral and must not be hardcoded 
 - [ ] Include User Bug Report Files-owned screenshots and attachments in Files backup and recovery.
 - [ ] Include Team timezone settings, Reference Dictionaries, Business Calendars/defaults, sequence state, external OIDC mappings, Service Accounts, API token verification metadata, webhook metadata, and Integration Event/Outbox state where applicable.
 - [ ] Include consumer-owned provenance and safe-reference persistence through each owner's normal durable storage.
+- [ ] Add backup/restore coverage for all enabled new module schemas and Files associations.
 - [ ] Preserve encrypted runtime-setting state without expecting plaintext API token secrets that Atlas never stores.
 - [ ] Exclude or safely clean temporary Egress staging rather than treating it as a second canonical recording backup.
 - [ ] Define a safe Files backup procedure.
@@ -627,7 +688,7 @@ The backup destination must remain deployment-neutral and must not be hardcoded 
 - [ ] Keep S3-compatible backup storage optional.
 - [ ] Document that same-host-only backup does not protect against complete host loss.
 
-## P40-W07 — Restore and recovery
+## P52-W07 — Restore and recovery
 
 ### Contract
 
@@ -685,7 +746,7 @@ safe cleanup of temporary plaintext material
 - [ ] Execute and verify a real restore drill.
 - [ ] Verify representative restored application data.
 
-## P40-W08 — Exact-release deployment
+## P52-W08 — Exact-release deployment
 
 ### Contract
 
@@ -745,7 +806,7 @@ Do not edit application source manually inside running production containers.
 - [ ] Run post-switch readiness.
 - [ ] Keep application source immutable inside running containers.
 
-## P40-W09 — Rollback and migration safety
+## P52-W09 — Rollback and migration safety
 
 ### Contract
 
@@ -771,7 +832,7 @@ Risky or irreversible migrations require:
 - [ ] Document risky/irreversible migration procedure.
 - [ ] Test representative safe rollback.
 
-## P40-W10 — Operator commands and release metadata
+## P52-W10 — Operator commands and release metadata
 
 ### Contract
 
@@ -834,11 +895,11 @@ Status, readiness, logs, and Admin System Status must include safe aggregate Liv
 - [ ] Add safe LiveKit RTC, TURN, Egress, and recording-processing status/readiness checks.
 - [ ] Verify Egress failure isolation from normal Chat and Meeting participation.
 
-## P40-W11 — Production durability and operational acceptance
+## P52-W11 — Production durability and operational acceptance
 
 ### Contract
 
-Phase 40 must finish with a real production-like proof, not only configuration-file inspection.
+Phase 52 must finish with a real production-like proof, not only configuration-file inspection.
 
 At minimum test a clean supported host/VM installation workflow:
 
@@ -958,7 +1019,7 @@ The proof must also exercise Atlas-managed LiveKit and separate Egress startup/r
 
 ## Completion criteria
 
-Phase 40 is complete only when:
+Phase 52 is complete only when:
 
 - [ ] Atlas can be installed on a clean supported internal production host using the canonical installer.
 - [ ] Production baseline is private/intranet/LAN/VPN rather than public-Internet dependent.
@@ -994,4 +1055,9 @@ Phase 40 is complete only when:
 - [ ] Exact-release deployment and rollback keep Atlas, Reverb, LiveKit, and Egress compatible.
 - [ ] Diagnostics persistence, User Bug Report Files, private source maps, release identity, correlation metadata, retention, and Health semantics are covered by production deployment and recovery.
 - [ ] No Atlas Sentry package/integration/configuration/environment/runtime/browser/source-map/release/deployment hook remains, and no replacement external error-monitoring service is introduced by the production installer.
+- [ ] Built-in Tesseract works in every supported execution mode when OCR/Tesseract is enabled.
+- [ ] Optional provider dependencies do not break deployments where the relevant module/profile is disabled.
+- [ ] Provider secrets are handled through canonical secure configuration.
+- [ ] Backup/restore covers all enabled new module state without duplicating Files ownership.
+- [ ] Correspondence tracking/scheduler/callback runtime is operationally recoverable.
 - [ ] Canonical production documentation matches the implementation.

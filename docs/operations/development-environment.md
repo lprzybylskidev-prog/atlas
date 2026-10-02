@@ -129,7 +129,7 @@ The non-root `reverb` service runs `php artisan reverb:start` from the same moun
 
 The pinned non-root `livekit` service and the separate pinned `livekit-egress` service are sibling infrastructure containers. Both use the canonical development Redis service; neither is installed in or mounted over the PHP workspace. LiveKit reads non-secret topology from `docker/dev/livekit/livekit.yaml` and credentials from server-side environment variables. Egress reads `docker/dev/livekit/egress.yaml`, receives the same credentials server-side, exposes only its loopback health port, and writes temporary development output to its own named volume. Start and verify both services with `composer test:rtc`; this command does not rebuild the active Dev Container.
 
-Local browser clients connect to `ws://localhost:7880`; the backend uses `http://livekit:7880`. The development media ports are loopback-bound and are not a production LAN/VPN topology. Phase 40 owns trusted network exposure, TURN/TLS, certificates, firewall policy, capacity, and production Egress staging.
+Local browser clients connect to `ws://localhost:7880`; the backend uses `http://livekit:7880`. The development media ports are loopback-bound and are not a production LAN/VPN topology. Phase 52 owns trusted network exposure, TURN/TLS, certificates, firewall policy, capacity, and production Egress staging.
 
 The `php-fpm`, `scheduler`, and `worker` runtime services use the production PHP image during local Compose development. That image includes Node.js and system Chromium so web readiness and queued PDF export execution validate the same PDF runtime chain that production uses. The separate VS Code `app` Dev Container still includes the broader Playwright browser set for E2E development.
 

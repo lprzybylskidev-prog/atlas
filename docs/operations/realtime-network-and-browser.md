@@ -86,7 +86,7 @@ Meeting identity and non-RTC lifecycle never depend on LiveKit room existence. I
 
 Self-hosted LiveKit Egress is the separate room-composite recording service for RTC-enabled online and hybrid Meetings. It has an independent non-blocking health result and is not part of Chat ModuleGate or live RTC authorization. Ad-hoc Calls and in-person Meetings cannot invoke it. Egress renders the Atlas-owned `/rtc/recording-template`, which uses a screen-share-first composition when screen media exists and a responsive participant grid otherwise. Pause/resume creates private internal MP4 segments; the scheduler runs `chat:meetings:finalize-recordings`, uses `ffmpeg` to produce one final MP4, imports that artifact through Files, and removes staging only after the Files reference commits. `LIVEKIT_EGRESS_OUTPUT_DIRECTORY` is the Egress-side volume path and `LIVEKIT_EGRESS_STAGING_DIRECTORY` is the matching Atlas-side mount. The future production topology permits trusted LAN/VPN clients to reach only the configured LiveKit WebRTC/TURN endpoints in addition to the Atlas reverse proxy; internal API/control, Egress, Redis, staging, the template credentials, and recording segments remain private.
 
-The RTC infrastructure, ad-hoc Call persistence/admission, user-facing Call/Meeting media sessions, and Meeting recording orchestration are implemented. Production TURN/TLS deployment remains in Phase 40.
+The RTC infrastructure, ad-hoc Call persistence/admission, user-facing Call/Meeting media sessions, and Meeting recording orchestration are implemented. Production TURN/TLS deployment remains in Phase 52.
 
 Preserve non-sensitive form data where appropriate.
 
