@@ -100,6 +100,10 @@ function openCreate(date = props.selectedDate): void {
 }
 
 function openEvent(event: CalendarOccurrence): void {
+    if (!event.editable && event.deepLinkUrl) {
+        router.visit(event.deepLinkUrl);
+        return;
+    }
     selectedEvent.value = event;
     draftDate.value = event.occurrenceDate;
     eventDialogOpen.value = true;

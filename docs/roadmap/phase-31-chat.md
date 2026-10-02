@@ -1,6 +1,6 @@
 # Phase 31 — Optional internal company chat, calendar, calls, meetings, and realtime communication
 
-**Status:** `in progress` (`P31-W01` through `P31-W08` complete; `P31-W09` is next)
+**Status:** `in progress` (`P31-W01` through `P31-W09` complete; `P31-W10` is next)
 
 ## Objective
 
@@ -1456,35 +1456,35 @@ Newly invited authorized participants may access the existing Meeting conversati
 
 ### Tasks
 
-- [ ] Implement Meet now.
-- [ ] Implement scheduled Meetings.
-- [ ] Add explicit online / in-person / hybrid Meeting mode.
-- [ ] Keep Meeting domain ownership independent from RTC room existence.
-- [ ] Add physical location behavior for in-person/hybrid Meetings.
-- [ ] Implement organizer/participant roles.
-- [ ] Implement invitation state.
-- [ ] Add accept/decline/change-response.
-- [ ] Allow participants to invite additional Atlas users.
-- [ ] Keep newly invited users pending until response.
-- [ ] Allow organizer removal.
-- [ ] Keep Meeting internal-only.
-- [ ] Keep no-lobby behavior.
-- [ ] Allow joining before scheduled start.
-- [ ] Allow Meeting without organizer present.
-- [ ] Add recurring Meeting rules.
-- [ ] Add occurrence/future/series editing.
-- [ ] Add one Meeting chat per recurring series.
-- [ ] Keep all invitation/RSVP/recurrence/Calendar/chat behavior across all Meeting modes.
-- [ ] Prevent in-person Meetings from creating LiveKit rooms/tokens.
-- [ ] Preserve RTC capability only for online/hybrid Meetings.
-- [ ] Add occurrence-specific optional RTC/attendance/recording.
-- [ ] Publish Meetings into Core Calendar.
-- [ ] Add Calendar mode/location presentation.
-- [ ] Add conflict warnings.
-- [ ] Preserve cancelled history.
-- [ ] Add Meeting invitation/update/cancellation Notifications/email behavior.
-- [ ] Add mode-specific authorization/domain tests.
-- [ ] Add authorization/recurrence/browser tests.
+- [x] Implement Meet now.
+- [x] Implement scheduled Meetings.
+- [x] Add explicit online / in-person / hybrid Meeting mode.
+- [x] Keep Meeting domain ownership independent from RTC room existence.
+- [x] Add physical location behavior for in-person/hybrid Meetings.
+- [x] Implement organizer/participant roles.
+- [x] Implement invitation state.
+- [x] Add accept/decline/change-response.
+- [x] Allow participants to invite additional Atlas users.
+- [x] Keep newly invited users pending until response.
+- [x] Allow organizer removal.
+- [x] Keep Meeting internal-only.
+- [x] Keep no-lobby behavior.
+- [x] Allow joining before scheduled start.
+- [x] Allow Meeting without organizer present.
+- [x] Add recurring Meeting rules.
+- [x] Add occurrence/future/series editing.
+- [x] Add one Meeting chat per recurring series.
+- [x] Keep all invitation/RSVP/recurrence/Calendar/chat behavior across all Meeting modes.
+- [x] Prevent in-person Meetings from creating LiveKit rooms/tokens.
+- [x] Preserve RTC capability only for online/hybrid Meetings.
+- [x] Add occurrence-specific optional RTC/attendance/recording.
+- [x] Publish Meetings into Core Calendar.
+- [x] Add Calendar mode/location presentation.
+- [x] Add conflict warnings.
+- [x] Preserve cancelled history.
+- [x] Add Meeting invitation/update/cancellation Notifications/email behavior.
+- [x] Add mode-specific authorization/domain tests.
+- [x] Add authorization/recurrence/browser tests.
 
 ---
 

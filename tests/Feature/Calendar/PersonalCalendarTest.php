@@ -7,7 +7,10 @@ namespace Tests\Feature\Calendar;
 use App\Modules\Core\Authorization\Application\Roles\InstallStarterRoles;
 use App\Modules\Core\Authorization\Infrastructure\Persistence\TableNames\AuthorizationDatabaseTable;
 use App\Modules\Core\Calendar\Application\Permissions\CalendarPermissionCatalog;
+use App\Modules\Core\Calendar\Application\Public\Contracts\CalendarEventPublisher;
 use App\Modules\Core\Calendar\Application\Public\Contracts\FreeBusyLookup;
+use App\Modules\Core\Calendar\Application\Public\DTOs\CalendarEventContribution;
+use App\Modules\Core\Calendar\Application\Public\DTOs\CalendarEventRecurrence;
 use App\Modules\Core\Calendar\Application\Public\DTOs\FreeBusyQuery;
 use App\Modules\Core\Calendar\Infrastructure\Persistence\TableNames\CalendarDatabaseTable;
 use App\Modules\Core\Identity\Infrastructure\Persistence\User;
@@ -118,6 +121,21 @@ final class PersonalCalendarTest extends TestCase
         ])->assertRedirect();
 
         $this->assertDatabaseHas(CalendarDatabaseTable::PERSONAL_EVENTS, ['title' => 'Allowed overlap']);
+    }
+
+    public function test_authorized_contributed_meeting_is_rendered_with_mode_location_and_recurrence(): void
+    {
+        [$owner, $team] = $this->calendarUser();
+        $this->app->make(CalendarEventPublisher::class)->upsert(new CalendarEventContribution(
+            sourceModule: 'chat', sourceEventPublicId: (string) Str::ulid(), title: 'Hybrid planning',
+            startsAt: new DateTimeImmutable('2026-10-05 09:00 Europe/Warsaw'), endsAt: new DateTimeImmutable('2026-10-05 10:00 Europe/Warsaw'),
+            allDay: false, participantUserPublicIds: [(string) $owner->public_id], location: 'Room 7',
+            recurrence: new CalendarEventRecurrence('weekly', [1], occurrenceCount: 3), kind: 'meeting', mode: 'hybrid', deepLinkUrl: '/meetings/example',
+        ));
+
+        $this->asCalendarUser($owner, $team)->get('/calendar?view=agenda&date=2026-10-05')->assertOk()->assertInertia(
+            fn (AssertableInertia $page) => $page->has('events', 3)->where('events.0.kind', 'meeting')->where('events.0.mode', 'hybrid')->where('events.0.location', 'Room 7')->where('events.0.editable', false),
+        );
     }
 
     /** @return array{User, Team} */

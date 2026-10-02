@@ -6,6 +6,12 @@ namespace App\Modules\Optional\Chat\Application\Audit;
 
 final class ChatAuditEvents
 {
+    public const MEETING_CREATED = 'chat.meeting.created';
+
+    public const MEETING_UPDATED = 'chat.meeting.updated';
+
+    public const MEETING_CANCELLED = 'chat.meeting.cancelled';
+
     public const CALL_STARTED = 'chat.call.started';
 
     public const CALL_JOINED = 'chat.call.joined';

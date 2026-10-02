@@ -414,10 +414,126 @@ SQL);
 
             $table->foreign('user_id')->references('id')->on(IdentityDatabaseTable::USERS)->restrictOnDelete();
         });
+
+        Schema::create(ChatDatabaseTable::MEETINGS, static function (Blueprint $table): void {
+            $table->id();
+            $table->ulid('public_id')->unique();
+            $table->ulid('series_public_id')->index();
+            $table->unsignedBigInteger('organizer_user_id');
+            $table->unsignedBigInteger('conversation_id')->unique();
+            $table->string('title', 200);
+            $table->text('description')->nullable();
+            $table->timestampTz('starts_at');
+            $table->timestampTz('ends_at');
+            $table->string('mode', 16);
+            $table->string('location', 300)->nullable();
+            $table->string('recurrence_frequency', 16)->nullable();
+            $table->jsonb('recurrence_weekdays')->nullable();
+            $table->date('recurrence_ends_on')->nullable();
+            $table->unsignedSmallInteger('recurrence_count')->nullable();
+            $table->jsonb('reminder_minutes')->default('[15]');
+            $table->string('status', 16)->default('scheduled');
+            $table->timestampTz('cancelled_at')->nullable();
+            $table->unsignedInteger('version')->default(1);
+            $table->timestampsTz();
+
+            $table->foreign('organizer_user_id')->references('id')->on(IdentityDatabaseTable::USERS)->restrictOnDelete();
+            $table->foreign('conversation_id')->references('id')->on(ChatDatabaseTable::CONVERSATIONS)->restrictOnDelete();
+            $table->index(['starts_at', 'ends_at']);
+        });
+        DB::statement(sprintf("alter table %s add constraint chat_meetings_mode_check check (mode in ('online', 'in_person', 'hybrid'))", ChatDatabaseTable::MEETINGS));
+        DB::statement(sprintf("alter table %s add constraint chat_meetings_location_check check ((mode = 'online' and location is null) or (mode in ('in_person', 'hybrid') and nullif(btrim(location), '') is not null))", ChatDatabaseTable::MEETINGS));
+        DB::statement(sprintf("alter table %s add constraint chat_meetings_status_check check (status in ('scheduled', 'cancelled'))", ChatDatabaseTable::MEETINGS));
+        DB::statement(sprintf('alter table %s add constraint chat_meetings_time_check check (ends_at > starts_at)', ChatDatabaseTable::MEETINGS));
+
+        Schema::create(ChatDatabaseTable::MEETING_INVITATIONS, static function (Blueprint $table): void {
+            $table->id();
+            $table->ulid('public_id')->unique();
+            $table->unsignedBigInteger('meeting_id');
+            $table->unsignedBigInteger('user_id');
+            $table->unsignedBigInteger('invited_by_user_id');
+            $table->string('role', 16);
+            $table->string('response', 16);
+            $table->timestampTz('responded_at')->nullable();
+            $table->unsignedBigInteger('removed_by_user_id')->nullable();
+            $table->timestampTz('removed_at')->nullable();
+            $table->timestampsTz();
+
+            $table->foreign('meeting_id')->references('id')->on(ChatDatabaseTable::MEETINGS)->restrictOnDelete();
+            $table->foreign('user_id')->references('id')->on(IdentityDatabaseTable::USERS)->restrictOnDelete();
+            $table->foreign('invited_by_user_id')->references('id')->on(IdentityDatabaseTable::USERS)->restrictOnDelete();
+            $table->foreign('removed_by_user_id')->references('id')->on(IdentityDatabaseTable::USERS)->restrictOnDelete();
+            $table->index(['meeting_id', 'user_id']);
+            $table->index(['user_id', 'removed_at']);
+        });
+        DB::statement(sprintf("alter table %s add constraint chat_meeting_invitations_role_check check (role in ('organizer', 'participant'))", ChatDatabaseTable::MEETING_INVITATIONS));
+        DB::statement(sprintf("alter table %s add constraint chat_meeting_invitations_response_check check (response in ('pending', 'accepted', 'declined'))", ChatDatabaseTable::MEETING_INVITATIONS));
+        DB::statement(sprintf('create unique index chat_meeting_invitations_active_user_unique on %s (meeting_id, user_id) where removed_at is null', ChatDatabaseTable::MEETING_INVITATIONS));
+        DB::statement(sprintf("create unique index chat_meeting_invitations_active_organizer_unique on %s (meeting_id) where removed_at is null and role = 'organizer'", ChatDatabaseTable::MEETING_INVITATIONS));
+
+        Schema::create(ChatDatabaseTable::MEETING_MUTATIONS, static function (Blueprint $table): void {
+            $table->id();
+            $table->ulid('public_id')->unique();
+            $table->unsignedBigInteger('meeting_id');
+            $table->date('effective_date');
+            $table->string('scope', 16);
+            $table->boolean('cancelled')->default(false);
+            $table->jsonb('payload')->nullable();
+            $table->timestampsTz();
+            $table->foreign('meeting_id')->references('id')->on(ChatDatabaseTable::MEETINGS)->restrictOnDelete();
+            $table->unique(['meeting_id', 'effective_date', 'scope']);
+        });
+        DB::statement(sprintf("alter table %s add constraint chat_meeting_mutations_scope_check check (scope in ('occurrence', 'future'))", ChatDatabaseTable::MEETING_MUTATIONS));
+
+        Schema::create(ChatDatabaseTable::MEETING_OCCURRENCES, static function (Blueprint $table): void {
+            $table->id();
+            $table->ulid('public_id')->unique();
+            $table->unsignedBigInteger('meeting_id');
+            $table->date('occurrence_date');
+            $table->boolean('rtc_enabled');
+            $table->string('rtc_room_name', 128)->nullable()->unique();
+            $table->string('rtc_status', 16)->nullable();
+            $table->timestampsTz();
+            $table->foreign('meeting_id')->references('id')->on(ChatDatabaseTable::MEETINGS)->restrictOnDelete();
+            $table->unique(['meeting_id', 'occurrence_date']);
+        });
+        DB::statement(sprintf('alter table %s add constraint chat_meeting_occurrences_rtc_check check ((rtc_enabled = false and rtc_room_name is null and rtc_status is null) or rtc_enabled = true)', ChatDatabaseTable::MEETING_OCCURRENCES));
+
+        Schema::create(ChatDatabaseTable::MEETING_RECORDINGS, static function (Blueprint $table): void {
+            $table->id();
+            $table->ulid('public_id')->unique();
+            $table->unsignedBigInteger('occurrence_id');
+            $table->string('status', 24);
+            $table->string('file_public_id', 26)->nullable()->unique();
+            $table->timestampTz('started_at')->nullable();
+            $table->timestampTz('ended_at')->nullable();
+            $table->timestampsTz();
+            $table->foreign('occurrence_id')->references('id')->on(ChatDatabaseTable::MEETING_OCCURRENCES)->restrictOnDelete();
+            $table->index(['occurrence_id', 'status']);
+        });
+
+        Schema::create(ChatDatabaseTable::MEETING_ATTENDANCE, static function (Blueprint $table): void {
+            $table->id();
+            $table->unsignedBigInteger('occurrence_id');
+            $table->unsignedBigInteger('user_id');
+            $table->timestampTz('joined_at');
+            $table->timestampTz('left_at')->nullable();
+            $table->unsignedInteger('duration_seconds')->nullable();
+            $table->timestampsTz();
+            $table->foreign('occurrence_id')->references('id')->on(ChatDatabaseTable::MEETING_OCCURRENCES)->restrictOnDelete();
+            $table->foreign('user_id')->references('id')->on(IdentityDatabaseTable::USERS)->restrictOnDelete();
+            $table->index(['occurrence_id', 'user_id']);
+        });
     }
 
     public function down(): void
     {
+        Schema::dropIfExists(ChatDatabaseTable::MEETING_ATTENDANCE);
+        Schema::dropIfExists(ChatDatabaseTable::MEETING_RECORDINGS);
+        Schema::dropIfExists(ChatDatabaseTable::MEETING_OCCURRENCES);
+        Schema::dropIfExists(ChatDatabaseTable::MEETING_MUTATIONS);
+        Schema::dropIfExists(ChatDatabaseTable::MEETING_INVITATIONS);
+        Schema::dropIfExists(ChatDatabaseTable::MEETINGS);
         Schema::dropIfExists(ChatDatabaseTable::CALL_PREFERENCES);
         Schema::dropIfExists(ChatDatabaseTable::CALL_PARTICIPANTS);
         Schema::dropIfExists(ChatDatabaseTable::CALLS);

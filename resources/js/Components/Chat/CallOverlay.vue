@@ -37,6 +37,10 @@ import FormButton from '../Form/FormButton.vue';
 import FormCheckbox from '../Form/FormCheckbox.vue';
 import FormSelect, { type FormSelectOption } from '../Form/FormSelect.vue';
 
+const realtimeRefreshers = new Set<() => void>();
+let sharedRealtime: CallRealtimeClient | null = null;
+let sharedRealtimeUserPublicId: string | null = null;
+
 const { t } = useTranslator();
 const page = usePage<AtlasPageProps>();
 const call = ref<CallSnapshot | null>(null);
@@ -61,7 +65,6 @@ const preferences = ref<CallPreferences>({
 const devices = ref<MediaDeviceOptions>({ cameras: [], microphones: [], speakers: [] });
 let pollTimer: number | null = null;
 let lastAlertedCall: string | null = null;
-let realtime: CallRealtimeClient | null = null;
 
 const dialogOpen = computed(() => stage.value !== 'idle' || (call.value !== null && !call.value.teamJoinStyle));
 const teamBanner = computed(() => call.value?.teamJoinStyle === true && call.value.canRejoin && stage.value === 'idle');
@@ -99,21 +102,26 @@ const speakerDeviceId = computed({
 
 onMounted(() => {
     window.addEventListener('atlas:call-prepare', handlePrepare);
+    realtimeRefreshers.add(refresh);
     void refresh();
     pollTimer = window.setInterval(() => void refresh(), 8_000);
     const userPublicId = page.props.auth.user?.publicId;
-    if (userPublicId) {
-        realtime = new CallRealtimeClient(userPublicId, () => void refresh());
-        realtime.start();
+    if (userPublicId && sharedRealtimeUserPublicId !== userPublicId) {
+        sharedRealtime?.stop();
+        sharedRealtime = new CallRealtimeClient(userPublicId, () => {
+            realtimeRefreshers.forEach((refresher) => void refresher());
+        });
+        sharedRealtimeUserPublicId = userPublicId;
+        sharedRealtime.start();
     }
 });
 
 onBeforeUnmount(() => {
     window.removeEventListener('atlas:call-prepare', handlePrepare);
+    realtimeRefreshers.delete(refresh);
     if (pollTimer !== null) window.clearInterval(pollTimer);
     stopPreview();
     session.value?.disconnect();
-    realtime?.stop();
 });
 
 async function refresh(): Promise<void> {

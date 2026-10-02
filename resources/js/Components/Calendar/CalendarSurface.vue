@@ -68,6 +68,10 @@ function timeLabel(event: CalendarOccurrence): string {
 
     return `${event.startsAt.slice(11, 16)}–${event.endsAt.slice(11, 16)}`;
 }
+
+function modeLabel(event: CalendarOccurrence): string | null {
+    return event.kind === 'meeting' && event.mode ? t(`meetings.modes.${event.mode}`) : null;
+}
 </script>
 
 <template>
@@ -106,6 +110,7 @@ function timeLabel(event: CalendarOccurrence): string {
                             @click="emit('selectEvent', event)"
                         >
                             <span class="block truncate font-semibold">{{ event.title }}</span>
+                            <span v-if="modeLabel(event)" class="block truncate">{{ modeLabel(event) }}</span>
                             <span class="block text-teal-700 dark:text-teal-300">{{ timeLabel(event) }}</span>
                         </button>
                     </div>
@@ -136,6 +141,7 @@ function timeLabel(event: CalendarOccurrence): string {
                     @click="emit('selectEvent', event)"
                 >
                     <span class="block font-semibold text-zinc-900 dark:text-zinc-50">{{ event.title }}</span>
+                    <span v-if="modeLabel(event)" class="mt-1 block text-xs text-teal-700 dark:text-teal-300">{{ modeLabel(event) }}</span>
                     <span class="mt-1 flex items-center gap-1 text-xs text-zinc-500 dark:text-zinc-400">
                         <IconClock class="h-3.5 w-3.5" />
                         {{ timeLabel(event) }}
@@ -162,6 +168,9 @@ function timeLabel(event: CalendarOccurrence): string {
                     <IconMapPin class="h-4 w-4" />
                     {{ event.location }}
                 </span>
+                <span v-if="modeLabel(event)" class="mt-2 block text-xs font-semibold text-teal-700 dark:text-teal-300">{{
+                    modeLabel(event)
+                }}</span>
                 <span v-if="event.recurring" class="mt-2 flex items-center gap-1 text-xs text-teal-700 dark:text-teal-300">
                     <IconRepeat class="h-4 w-4" />
                     {{ t('pages.calendar.event.recurring') }}
@@ -193,6 +202,9 @@ function timeLabel(event: CalendarOccurrence): string {
                             <strong class="block text-zinc-950 dark:text-zinc-50">{{ event.title }}</strong>
                             <span v-if="event.location" class="mt-1 block text-sm text-zinc-500 dark:text-zinc-400">{{
                                 event.location
+                            }}</span>
+                            <span v-if="modeLabel(event)" class="mt-1 block text-xs font-semibold text-teal-700 dark:text-teal-300">{{
+                                modeLabel(event)
                             }}</span>
                         </span>
                         <span class="text-sm text-zinc-500 dark:text-zinc-400">{{ timeLabel(event) }}</span>

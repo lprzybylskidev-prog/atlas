@@ -72,6 +72,16 @@ final class ChatPermissionCatalog implements ModulePermissionContribution
 
     public const MEETING_STORE = ChatPermissionNames::MEETING_STORE;
 
+    public const MEETING_INDEX = ChatPermissionNames::MEETING_INDEX;
+
+    public const MEETING_SHOW = ChatPermissionNames::MEETING_SHOW;
+
+    public const MEETING_UPDATE = ChatPermissionNames::MEETING_UPDATE;
+
+    public const MEETING_CANCEL = ChatPermissionNames::MEETING_CANCEL;
+
+    public const MEETING_RESPONSE_UPDATE = ChatPermissionNames::MEETING_RESPONSE_UPDATE;
+
     public const MEETING_INVITATION_STORE = ChatPermissionNames::MEETING_INVITATION_STORE;
 
     public const MEETING_MODERATE = ChatPermissionNames::MEETING_MODERATE;
@@ -132,6 +142,11 @@ final class ChatPermissionCatalog implements ModulePermissionContribution
             new ModulePermissionDefinition(self::SCREEN_SHARE_STORE, 'Share the screen in an authorized Call or Meeting.'),
             new ModulePermissionDefinition(self::SCREEN_SHARE_DESTROY, 'Stop sharing the screen in an authorized Call or Meeting.'),
             new ModulePermissionDefinition(self::MEETING_STORE, 'Create immediate, scheduled, or recurring Meetings.'),
+            new ModulePermissionDefinition(self::MEETING_INDEX, 'List Meetings to which the user is invited.'),
+            new ModulePermissionDefinition(self::MEETING_SHOW, 'View an invited Meeting.'),
+            new ModulePermissionDefinition(self::MEETING_UPDATE, 'Update owned Meetings.'),
+            new ModulePermissionDefinition(self::MEETING_CANCEL, 'Cancel owned Meetings while preserving history.'),
+            new ModulePermissionDefinition(self::MEETING_RESPONSE_UPDATE, 'Accept, decline, or change a Meeting response.'),
             new ModulePermissionDefinition(self::MEETING_INVITATION_STORE, 'Invite active Atlas users to owned Meetings.'),
             new ModulePermissionDefinition(self::MEETING_MODERATE, 'Moderate owned Meetings.'),
             new ModulePermissionDefinition(self::RECORDING_MANAGE, 'Manage recording for an owned Meeting.'),

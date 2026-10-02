@@ -18,6 +18,12 @@ export interface CalendarOccurrence {
     recurrenceCount: number | null;
     reminderMinutes: number[];
     version: number;
+    source: string;
+    kind: string | null;
+    mode: 'online' | 'in_person' | 'hybrid' | null;
+    deepLinkUrl: string | null;
+    cancelled: boolean;
+    editable: boolean;
 }
 
 export interface CalendarPreference {

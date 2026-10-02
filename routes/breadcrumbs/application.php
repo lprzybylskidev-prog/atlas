@@ -49,6 +49,17 @@ Breadcrumbs::for('calendar.index', function (Generator $breadcrumbs): void {
     $breadcrumbs->push(__('breadcrumbs.calendar'), route('calendar.index'));
 });
 
+Breadcrumbs::for('chat.meetings.index', function (Generator $breadcrumbs): void {
+    atlas_application_root($breadcrumbs);
+    $breadcrumbs->push(__('breadcrumbs.meetings'), route('chat.meetings.index'));
+});
+
+Breadcrumbs::for('chat.meetings.show', function (Generator $breadcrumbs, string $meeting): void {
+    atlas_application_root($breadcrumbs);
+    $breadcrumbs->push(__('breadcrumbs.meetings'), route('chat.meetings.index'));
+    $breadcrumbs->push($meeting, route('chat.meetings.show', $meeting));
+});
+
 Breadcrumbs::for('users.notifications.index', function (Generator $breadcrumbs): void {
     atlas_user_panel_root($breadcrumbs);
     $breadcrumbs->push(__('breadcrumbs.notifications'), route('users.notifications.index'));

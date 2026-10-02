@@ -68,6 +68,16 @@ final class ChatPermissionNames
 
     public const MEETING_STORE = 'chat.meetings.store';
 
+    public const MEETING_INDEX = 'chat.meetings.index';
+
+    public const MEETING_SHOW = 'chat.meetings.show';
+
+    public const MEETING_UPDATE = 'chat.meetings.update';
+
+    public const MEETING_CANCEL = 'chat.meetings.cancel';
+
+    public const MEETING_RESPONSE_UPDATE = 'chat.meetings.response.update';
+
     public const MEETING_INVITATION_STORE = 'chat.meetings.invitations.store';
 
     public const MEETING_MODERATE = 'chat.meetings.moderate';

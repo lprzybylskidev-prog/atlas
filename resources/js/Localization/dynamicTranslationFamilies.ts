@@ -33,6 +33,15 @@ function modalActionFamily(expression: string, suffix: 'confirm' | 'description'
  * deleting the same key from PL and EN cannot make the localization audit pass.
  */
 export const dynamicTranslationFamilies: readonly DynamicTranslationFamily[] = [
+    family('pages.calendar.weekday.${weekday.key}', 'pages.calendar.weekday.', [
+        'monday',
+        'tuesday',
+        'wednesday',
+        'thursday',
+        'friday',
+        'saturday',
+        'sunday',
+    ]),
     family('chat.attachments.state.${state}', 'chat.attachments.state.', [
         'uploading',
         'pending',

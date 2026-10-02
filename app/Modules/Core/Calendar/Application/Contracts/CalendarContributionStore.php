@@ -14,6 +14,9 @@ interface CalendarContributionStore
 
     public function remove(string $sourceModule, string $sourceEventPublicId): void;
 
+    /** @return list<CalendarEventContribution> */
+    public function visibleFor(string $userPublicId, DateTimeImmutable $rangeEndsAt): array;
+
     /**
      * @param  list<string>  $userPublicIds
      * @return list<FreeBusyWindow>

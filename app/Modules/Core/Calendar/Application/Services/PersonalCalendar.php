@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Core\Calendar\Application\Services;
 
+use App\Modules\Core\Calendar\Application\Contracts\CalendarContributionStore;
 use App\Modules\Core\Calendar\Application\Contracts\CalendarEventStore;
 use App\Modules\Core\Calendar\Application\Contracts\CalendarPreferenceStore;
 use App\Modules\Core\Calendar\Application\Contracts\CalendarTransaction;
@@ -12,10 +13,14 @@ use App\Modules\Core\Calendar\Application\DTOs\CalendarOccurrenceView;
 use App\Modules\Core\Calendar\Application\DTOs\CalendarPreference;
 use App\Modules\Core\Calendar\Application\Exceptions\CalendarEventNotFound;
 use App\Modules\Core\Calendar\Application\Exceptions\StaleCalendarEvent;
+use App\Modules\Core\Calendar\Application\Public\DTOs\CalendarEventMutation;
+use App\Modules\Core\Calendar\Domain\Events\CalendarAvailability;
 use App\Modules\Core\Calendar\Domain\Events\CalendarOccurrence;
 use App\Modules\Core\Calendar\Domain\Events\PersonalCalendarEvent;
 use App\Modules\Core\Calendar\Domain\Events\RecurrenceExpander;
+use App\Modules\Core\Calendar\Domain\Events\RecurrenceFrequency;
 use App\Modules\Core\Calendar\Domain\Events\RecurrenceRule;
+use App\Modules\Core\Identity\Application\Public\Contracts\UserLookup;
 use DateTimeImmutable;
 use DateTimeZone;
 use InvalidArgumentException;
@@ -30,6 +35,8 @@ final readonly class PersonalCalendar
         private CalendarPreferenceStore $preferences,
         private CalendarTransaction $transaction,
         private RecurrenceExpander $recurrence,
+        private CalendarContributionStore $contributions,
+        private UserLookup $users,
     ) {}
 
     /** @return list<CalendarOccurrenceView> */
@@ -70,6 +77,44 @@ final readonly class PersonalCalendar
             }
         }
 
+        $userPublicId = $this->users->publicIdForInternalId($ownerUserId);
+        if ($userPublicId !== null) {
+            foreach ($this->contributions->visibleFor($userPublicId, $rangeEndsAt) as $contribution) {
+                $recurrence = $contribution->recurrence === null ? null : new RecurrenceRule(
+                    frequency: RecurrenceFrequency::from($contribution->recurrence->frequency),
+                    interval: 1,
+                    weekdays: $contribution->recurrence->weekdays,
+                    endsOn: $contribution->recurrence->endsOn,
+                    occurrenceCount: $contribution->recurrence->occurrenceCount,
+                );
+                $projected = new PersonalCalendarEvent(
+                    publicId: $contribution->sourceEventPublicId, ownerUserId: $ownerUserId, title: $contribution->title,
+                    description: $contribution->description, startsAt: $contribution->startsAt, endsAt: $contribution->endsAt,
+                    allDay: $contribution->allDay, location: $contribution->location,
+                    availability: CalendarAvailability::Busy,
+                    recurrence: $recurrence, reminderMinutes: [], version: 1,
+                );
+                foreach ($this->recurrence->expand($projected, $rangeStartsAt, $rangeEndsAt) as $occurrence) {
+                    $mutation = $this->contributionMutation($contribution->mutations, $occurrence->occurrenceDate);
+                    if ($mutation?->cancelled === true) {
+                        continue;
+                    }
+                    $timezone = new DateTimeZone(self::TIMEZONE);
+                    [$startsAt, $endsAt] = $this->contributionTimes($occurrence->startsAt, $occurrence->endsAt, $mutation, $timezone);
+                    $views[] = new CalendarOccurrenceView(
+                        eventPublicId: $projected->publicId, occurrenceDate: $occurrence->occurrenceDate, title: $mutation === null ? $projected->title : ($mutation->title ?? $projected->title),
+                        description: $mutation === null ? $projected->description : ($mutation->description ?? $projected->description), startsAt: $startsAt->format('Y-m-d\TH:i:sP'),
+                        endsAt: $endsAt->format('Y-m-d\TH:i:sP'), allDay: $projected->allDay,
+                        location: $mutation === null ? $projected->location : ($mutation->location ?? $projected->location), availability: 'busy', recurring: $recurrence !== null,
+                        recurrenceFrequency: $recurrence?->frequency->value, recurrenceInterval: 1, recurrenceWeekdays: $recurrence === null ? [] : $recurrence->weekdays,
+                        recurrenceEndsOn: $recurrence?->endsOn?->format('Y-m-d'), recurrenceCount: $recurrence?->occurrenceCount,
+                        reminderMinutes: [], version: 1, source: $contribution->sourceModule, kind: $contribution->kind,
+                        mode: $mutation === null ? $contribution->mode : ($mutation->mode ?? $contribution->mode), deepLinkUrl: $contribution->deepLinkUrl, cancelled: $contribution->cancelled, editable: false,
+                    );
+                }
+            }
+        }
+
         usort($views, static fn (CalendarOccurrenceView $left, CalendarOccurrenceView $right): int => [
             $left->startsAt,
             $left->title,
@@ -79,6 +124,38 @@ final readonly class PersonalCalendar
         ]);
 
         return $views;
+    }
+
+    /** @param list<CalendarEventMutation> $mutations */
+    private function contributionMutation(array $mutations, string $occurrenceDate): ?CalendarEventMutation
+    {
+        $future = null;
+        foreach ($mutations as $mutation) {
+            if ($mutation->scope === 'occurrence' && $mutation->effectiveDate === $occurrenceDate) {
+                return $mutation;
+            }
+            if ($mutation->scope === 'future' && $mutation->effectiveDate <= $occurrenceDate) {
+                $future = $mutation;
+            }
+        }
+
+        return $future;
+    }
+
+    /** @return array{DateTimeImmutable, DateTimeImmutable} */
+    private function contributionTimes(DateTimeImmutable $start, DateTimeImmutable $end, ?CalendarEventMutation $mutation, DateTimeZone $timezone): array
+    {
+        if ($mutation?->startsAt === null || $mutation->endsAt === null) {
+            return [$start->setTimezone($timezone), $end->setTimezone($timezone)];
+        }
+        if ($mutation->scope === 'occurrence') {
+            return [$mutation->startsAt->setTimezone($timezone), $mutation->endsAt->setTimezone($timezone)];
+        }
+        $localStart = $mutation->startsAt->setTimezone($timezone);
+        $duration = $mutation->endsAt->getTimestamp() - $mutation->startsAt->getTimestamp();
+        $adjustedStart = new DateTimeImmutable($start->setTimezone($timezone)->format('Y-m-d').' '.$localStart->format('H:i:s'), $timezone);
+
+        return [$adjustedStart, $adjustedStart->modify('+'.$duration.' seconds')];
     }
 
     public function create(int $ownerUserId, CalendarEventInput $input): string

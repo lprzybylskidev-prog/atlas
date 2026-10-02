@@ -119,6 +119,8 @@ Permission-gated and module-gated UI behavior needs Playwright coverage when man
 
 `CallLifecycleTest` is the deterministic P31-W08 PostgreSQL lane. It covers direct, group, and Team Calls; idempotent start; the active-conversation and active-user arbiters; Busy behavior; join, leave, and rejoin; single screen sharing; quiet Team alerts; missed timeline/Notification behavior; device preferences; and database-backed RTC admission. `chat-calls.spec.ts` covers the rendered Polish Call history, incoming choices, explicit pre-call device state, quiet Team alert, and refresh/rejoin offer without requiring a physical camera or a live media server. The real pinned LiveKit transport remains covered separately by `composer test:rtc`.
 
+`MeetingLifecycleTest` is the deterministic P31-W09 PostgreSQL lane. It covers all Meeting modes, invitation/RSVP/removal authorization, one series chat, scoped recurrence mutations, Calendar projections, notifications, RTC eligibility, and cancelled history. `meetings-workflows.spec.ts` covers the rendered Polish in-person scheduling flow, pending invitation, absence of online joining, and Calendar mode/location presentation while retaining the shared console/request guards.
+
 ## Future CI
 
 Atlas does not bundle a CI provider. A derived project may add CI later by calling the public Composer and pnpm commands.

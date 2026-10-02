@@ -158,7 +158,6 @@ export class CallRealtimeClient {
     }
 
     stop(): void {
-        this.echo.leave(`chat.user.${this.userPublicId}`);
         this.echo.disconnect();
     }
 }

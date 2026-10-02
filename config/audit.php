@@ -165,8 +165,9 @@ return [
             'chat.group.closed', 'chat.group.created', 'chat.group.member_added',
             'chat.group.member_left', 'chat.group.member_removed',
             'chat.group.metadata_changed', 'chat.group.ownership_transferred',
-        ], ['call', 'conversation', 'user'], ['call', 'conversation', 'user'], [
-            'member_count', 'member_public_id', 'new_owner_public_id',
+            'chat.meeting.created', 'chat.meeting.updated', 'chat.meeting.cancelled',
+        ], ['call', 'conversation', 'meeting', 'user'], ['call', 'conversation', 'meeting', 'user'], [
+            'member_count', 'member_public_id', 'new_owner_public_id', 'mode',
         ]),
         'tests' => $catalog([
             'audit.append_only_probe', 'audit.atomicity_probe', 'audit.impersonated_action_probe',

@@ -16,6 +16,30 @@ final class NotificationTypeCatalog implements NotificationTypeDirectory
     {
         return [
             [
+                'type' => 'chat.meeting.invitation',
+                'labelKey' => 'notifications.types.chat.meeting_invitation.label',
+                'descriptionKey' => 'notifications.types.chat.meeting_invitation.description',
+                'bodyPreviewKey' => 'notifications.meeting.invitation.body',
+                'bodyPreviewParams' => ['meeting' => 'Plan tygodnia'],
+                'permissionNames' => [ChatPermissionNames::MEETING_SHOW],
+            ],
+            [
+                'type' => 'chat.meeting.updated',
+                'labelKey' => 'notifications.types.chat.meeting_updated.label',
+                'descriptionKey' => 'notifications.types.chat.meeting_updated.description',
+                'bodyPreviewKey' => 'notifications.meeting.updated.body',
+                'bodyPreviewParams' => ['meeting' => 'Plan tygodnia'],
+                'permissionNames' => [ChatPermissionNames::MEETING_SHOW],
+            ],
+            [
+                'type' => 'chat.meeting.cancelled',
+                'labelKey' => 'notifications.types.chat.meeting_cancelled.label',
+                'descriptionKey' => 'notifications.types.chat.meeting_cancelled.description',
+                'bodyPreviewKey' => 'notifications.meeting.cancelled.body',
+                'bodyPreviewParams' => ['meeting' => 'Plan tygodnia'],
+                'permissionNames' => [ChatPermissionNames::MEETING_SHOW],
+            ],
+            [
                 'type' => 'chat.call.missed',
                 'labelKey' => 'notifications.types.chat.call_missed.label',
                 'descriptionKey' => 'notifications.types.chat.call_missed.description',

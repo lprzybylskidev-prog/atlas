@@ -98,11 +98,13 @@ reset_atlas_schemas() {
     core_files
     core_privacy
     core_exports
+    core_calendar
     optional_integrations
     optional_managed_processes
     optional_imports
     optional_feature_flags
     optional_time_tracking
+    optional_chat
     shared
   )
   local schema

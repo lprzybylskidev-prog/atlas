@@ -29,6 +29,7 @@ import {
     IconUserCircle,
     IconUsers,
     IconUsersGroup,
+    IconVideo,
 } from '@tabler/icons-vue';
 import type { Component } from 'vue';
 
@@ -122,6 +123,16 @@ const groups: NavigationGroupDefinition[] = [
                 'application',
                 ['app', 'user', 'manager', 'admin'],
                 { activePrefixes: ['/calendar'] },
+            ),
+            item(
+                'workspace.meetings',
+                'navigation.meetings',
+                '/meetings',
+                IconVideo,
+                'chat.meetings.index',
+                'application',
+                ['app', 'user', 'manager', 'admin'],
+                { activePrefixes: ['/meetings'] },
             ),
             item('workspace.user-profile', 'navigation.user_dashboard', '/user', IconUserCircle, 'users.profile', 'application', ['user'], {
                 exact: true,

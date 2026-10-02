@@ -82,6 +82,7 @@ final class E2eVisibilitySeeder extends Seeder
             userPublicId: $admin->publicId,
             teamPublicId: $team->publicId,
         );
+        $this->ensureCommunicationAuthorization($admin, $team->publicId);
         $this->activateModules($team->publicId);
         app(ImportFixtureBuilder::class)->provideVisibilityImport($admin->publicId, $team->publicId);
         app(CalendarFixtureBuilder::class)->provideVisibilityEvents($admin->internalId);
@@ -92,6 +93,32 @@ final class E2eVisibilitySeeder extends Seeder
         $this->enableTimeTracking($limited, $team->publicId);
 
         $this->auditEvents($admin->publicId, $team->publicId);
+    }
+
+    private function ensureCommunicationAuthorization(VerifiedUserFixture $admin, string $teamPublicId): void
+    {
+        $authorization = app(UserTeamAuthorizationManager::class);
+        $current = $authorization->assignmentsForUserTeam($admin->publicId, $teamPublicId);
+        $roles = array_values(array_unique([
+            ...$current->roleNames,
+            StarterRoleName::CommunicationAccess->value,
+            StarterRoleName::CommunicationMeetingHost->value,
+        ]));
+        sort($roles);
+
+        if ($roles === $current->roleNames) {
+            return;
+        }
+
+        $authorization->replaceAssignmentsForUserTeam(
+            actorPublicId: $admin->publicId,
+            userPublicId: $admin->publicId,
+            teamPublicId: $teamPublicId,
+            roleNames: $roles,
+            directPermissionNames: $current->directPermissionNames,
+            reason: 'E2E communication and Meeting workflow fixture.',
+            sourceType: 'manual',
+        );
     }
 
     private function seedCopiedAuthorizationAssignment(

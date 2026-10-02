@@ -46,7 +46,7 @@ return [
         'preview' => 'Podgląd', 'print' => 'Drukowanie', 'privacy_retention' => 'Prywatność i retencja', 'profile' => 'Profil',
         'pulse' => 'Pulse', 'query' => 'Wyszukiwanie', 'queues' => 'Kolejki', 'rate_limits' => 'Limity żądań', 'read' => 'Odczyt',
         'readiness' => 'Gotowość', 'realtime' => 'Czas rzeczywisty', 'rebuild' => 'Przebudowa', 'reconcile' => 'Uzgadnianie stanu', 'record' => 'Rejestrowanie',
-        'recording_retention' => 'Retencja nagrań', 'recordings' => 'Nagrania', 'relationships' => 'Relacje', 'release' => 'Wydanie', 'request' => 'Żądanie', 'retention' => 'Retencja',
+        'recording_retention' => 'Retencja nagrań', 'recordings' => 'Nagrania', 'relationships' => 'Relacje', 'release' => 'Wydanie', 'request' => 'Żądanie', 'response' => 'Odpowiedź', 'retention' => 'Retencja',
         'require_email_verification' => 'Wymaganie weryfikacji e-mail', 'rescan' => 'Ponowne skanowanie',
         'resend_first_password' => 'Ponowne wysłanie linku pierwszego hasła', 'reset' => 'Reset', 'reset_mfa' => 'Reset MFA',
         'retry' => 'Ponowienie', 'roles' => 'Role', 'run' => 'Uruchomienie', 'schedule' => 'Zaplanowanie', 'scheduler' => 'Harmonogram',

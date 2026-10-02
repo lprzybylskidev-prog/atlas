@@ -8,7 +8,7 @@ The current Phase 31 implementation uses the documented `Europe/Warsaw` recurren
 
 Calendar is a non-activatable Core module with key `calendar`. It owns Calendar persistence in the `core_calendar` PostgreSQL schema. Chat does not own Calendar tables and future modules must not create separate calendar engines or query Calendar persistence directly.
 
-Calendar remains usable without Chat. It provides private personal events and accepts projections from future owning modules without importing their persistence or domain internals.
+Calendar remains usable without Chat. It provides private personal events and accepts projections from owning modules without importing their persistence or domain internals. Chat currently contributes invitee-authorized Meeting projections.
 
 ## Personal events
 
@@ -27,7 +27,7 @@ Calendar exposes only the cross-module operations already required by accepted P
 - `CalendarEventPublisher` lets an owning module upsert or remove its event projection using a stable source module and source event identifier;
 - `FreeBusyLookup` returns only user/time windows and cannot expose titles, descriptions, locations, reminders, or other private event content.
 
-`CalendarEventContribution`, `FreeBusyQuery`, `FreeBusyWindow`, and `FreeBusyConflict` are immutable boundary DTOs. `FreeBusyLookup` exposes busy windows and per-user conflict counts only. A conflict is advisory and never blocks event creation. Meeting definitions and invitations remain Chat-owned; Chat publishes authorized Meeting events through `CalendarEventPublisher` instead of writing Calendar tables.
+`CalendarEventContribution`, its recurrence/mutation DTOs, `FreeBusyQuery`, `FreeBusyWindow`, and `FreeBusyConflict` are immutable boundary DTOs. Contributed recurrence is expanded through the same Warsaw-time engine and supports occurrence/future mutation overlays. Meeting projections carry product-safe kind, mode, location, cancellation, and owning-module deep-link metadata. `FreeBusyLookup` exposes busy windows and per-user conflict counts only. A conflict is advisory and never blocks event creation. Meeting definitions and invitations remain Chat-owned; Chat publishes authorized Meeting events through `CalendarEventPublisher` instead of writing Calendar tables.
 
 ## Authorization and privacy
 
@@ -39,4 +39,4 @@ Calendar persistence lives exclusively in `core_calendar`: personal events, remi
 
 ## Verification
 
-Unit tests cover recurrence rules and Warsaw DST behavior. Feature tests cover persistence, reminders, preferences, owner-only access, privacy-safe Free/Busy, and non-blocking overlaps. Playwright covers the four views and visible personal-event and preference workflows using deterministic non-production fixtures.
+Unit tests cover recurrence rules and Warsaw DST behavior. Feature tests cover persistence, reminders, preferences, owner-only access, privacy-safe Free/Busy, non-blocking overlaps, and contributed Meeting recurrence/mutations. Playwright covers the four views, personal-event/preferences workflows, and Meeting mode/location presentation using deterministic non-production fixtures.

@@ -28,5 +28,11 @@ final readonly class CalendarOccurrenceView
         public ?int $recurrenceCount,
         public array $reminderMinutes,
         public int $version,
+        public string $source = 'personal',
+        public ?string $kind = null,
+        public ?string $mode = null,
+        public ?string $deepLinkUrl = null,
+        public bool $cancelled = false,
+        public bool $editable = true,
     ) {}
 }

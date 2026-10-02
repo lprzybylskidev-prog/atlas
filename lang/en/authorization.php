@@ -46,7 +46,7 @@ return [
         'preview' => 'Preview', 'print' => 'Print', 'privacy_retention' => 'Privacy and retention', 'profile' => 'Profile',
         'pulse' => 'Pulse', 'query' => 'Query', 'queues' => 'Queues', 'rate_limits' => 'Rate limits', 'read' => 'Read',
         'readiness' => 'Readiness', 'realtime' => 'Realtime', 'rebuild' => 'Rebuild', 'reconcile' => 'Reconcile', 'record' => 'Record',
-        'recording_retention' => 'Recording retention', 'recordings' => 'Recordings', 'relationships' => 'Relationships', 'release' => 'Release', 'request' => 'Request', 'retention' => 'Retention',
+        'recording_retention' => 'Recording retention', 'recordings' => 'Recordings', 'relationships' => 'Relationships', 'release' => 'Release', 'request' => 'Request', 'response' => 'Response', 'retention' => 'Retention',
         'require_email_verification' => 'Require email verification', 'rescan' => 'Rescan',
         'resend_first_password' => 'Resend first-password link', 'reset' => 'Reset', 'reset_mfa' => 'Reset MFA',
         'retry' => 'Retry', 'roles' => 'Roles', 'run' => 'Run', 'schedule' => 'Schedule', 'scheduler' => 'Scheduler',

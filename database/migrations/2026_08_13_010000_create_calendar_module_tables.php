@@ -72,6 +72,15 @@ return new class extends Migration
             $table->boolean('all_day')->default(false);
             $table->string('location', 300)->nullable();
             $table->jsonb('participant_user_public_ids');
+            $table->string('recurrence_frequency', 16)->nullable();
+            $table->jsonb('recurrence_weekdays')->nullable();
+            $table->date('recurrence_ends_on')->nullable();
+            $table->unsignedSmallInteger('recurrence_count')->nullable();
+            $table->string('kind', 32)->nullable();
+            $table->string('mode', 32)->nullable();
+            $table->string('deep_link_url', 500)->nullable();
+            $table->boolean('cancelled')->default(false);
+            $table->jsonb('recurrence_mutations')->default('[]');
             $table->timestampsTz();
 
             $table->unique(['source_module', 'source_event_public_id']);
