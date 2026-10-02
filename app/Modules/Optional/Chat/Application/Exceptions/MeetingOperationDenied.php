@@ -47,4 +47,19 @@ final class MeetingOperationDenied extends RuntimeException
     {
         return new self('The Meeting is locked.');
     }
+
+    public static function transcriptionUnavailable(): self
+    {
+        return new self('Meeting transcription is unavailable.');
+    }
+
+    public static function recordingRequired(): self
+    {
+        return new self('An eligible retained Meeting recording is required.');
+    }
+
+    public static function transcriptNotReady(): self
+    {
+        return new self('The Meeting transcript is not ready.');
+    }
 }

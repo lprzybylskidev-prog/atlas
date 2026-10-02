@@ -122,6 +122,8 @@ final class ChatPermissionCatalog implements ModulePermissionContribution
 
     public const TRANSCRIPTION_SHARE = ChatPermissionNames::TRANSCRIPTION_SHARE;
 
+    public const TRANSCRIPTION_SHARE_REVOKE = ChatPermissionNames::TRANSCRIPTION_SHARE_REVOKE;
+
     public const ADMIN_OPERATIONS_INDEX = ChatPermissionNames::ADMIN_OPERATIONS_INDEX;
 
     public const ADMIN_RETENTION_UPDATE = ChatPermissionNames::ADMIN_RETENTION_UPDATE;
@@ -189,6 +191,7 @@ final class ChatPermissionCatalog implements ModulePermissionContribution
             new ModulePermissionDefinition(self::TRANSCRIPTION_SHOW, 'View authorized Meeting transcripts.'),
             new ModulePermissionDefinition(self::TRANSCRIPTION_UPDATE, 'Edit authorized Meeting transcripts.'),
             new ModulePermissionDefinition(self::TRANSCRIPTION_SHARE, 'Share authorized Meeting transcripts with selected Atlas users.'),
+            new ModulePermissionDefinition(self::TRANSCRIPTION_SHARE_REVOKE, 'Revoke own Meeting transcript shares.'),
             new ModulePermissionDefinition(self::ADMIN_OPERATIONS_INDEX, 'View aggregate Chat operational status without private communication content.'),
             new ModulePermissionDefinition(self::ADMIN_RETENTION_UPDATE, 'Administer Chat retention without private communication content access.'),
             new ModulePermissionDefinition(self::ADMIN_RECORDING_RETENTION_UPDATE, 'Administer Meeting recording retention without private communication content access.'),

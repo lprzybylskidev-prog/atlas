@@ -24,6 +24,18 @@ final readonly class ManagedProcessRunnerReporter implements ManagedProcessRepor
         $this->runner->updateProgress($runPublicId, ProcessRunStatus::Running, $stage, $current, $total, $label, $counters);
     }
 
+    /** @param array<string, int>|null $counters */
+    public function waiting(string $runPublicId, ?string $stage = null, ?string $label = null, ?array $counters = null): void
+    {
+        $this->runner->updateProgress($runPublicId, ProcessRunStatus::Waiting, $stage, null, null, $label, $counters);
+    }
+
+    /** @param array<string, int>|null $counters */
+    public function failed(string $runPublicId, string $stage, string $label, string $safeErrorSummary, ?array $counters = null): void
+    {
+        $this->runner->updateProgress($runPublicId, ProcessRunStatus::Failed, $stage, null, null, $label, $counters, null, $safeErrorSummary);
+    }
+
     public function succeeded(string $runPublicId, ?string $stage = null, ?int $current = null, ?int $total = null, ?string $label = null, ?array $counters = null, ?array $resultSummary = null): void
     {
         $this->runner->updateProgress($runPublicId, ProcessRunStatus::Succeeded, $stage, $current, $total, $label, $counters, $resultSummary);

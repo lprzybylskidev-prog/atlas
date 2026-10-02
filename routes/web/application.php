@@ -32,6 +32,7 @@ use App\Modules\Optional\Chat\Presentation\Http\Controllers\MeetingRecordingAcce
 use App\Modules\Optional\Chat\Presentation\Http\Controllers\MeetingRecordingController;
 use App\Modules\Optional\Chat\Presentation\Http\Controllers\MeetingRecordingTemplateController;
 use App\Modules\Optional\Chat\Presentation\Http\Controllers\MeetingRtcController;
+use App\Modules\Optional\Chat\Presentation\Http\Controllers\MeetingTranscriptionController;
 use App\Modules\Optional\TimeTracking\Application\Permissions\TimeTrackingPermissionCatalog;
 use App\Modules\Optional\TimeTracking\Presentation\Http\Controllers\ActivityTrackerController;
 use App\Modules\Optional\TimeTracking\Presentation\Http\Controllers\AdminOtherWorkCategoryController;
@@ -118,6 +119,11 @@ Route::middleware(['auth', 'route.permission'])->group(function (): void {
     Route::get('/meeting-recordings/{recording}/download', [MeetingRecordingAccessController::class, 'download'])->name(ChatPermissionCatalog::RECORDING_DOWNLOAD);
     Route::post('/meeting-recordings/{recording}/shares', [MeetingRecordingAccessController::class, 'share'])->name(ChatPermissionCatalog::RECORDING_SHARE);
     Route::delete('/meeting-recordings/{recording}/shares/{share}', [MeetingRecordingAccessController::class, 'revoke'])->name(ChatPermissionCatalog::RECORDING_SHARE_REVOKE);
+    Route::post('/meeting-recordings/{recording}/transcription', [MeetingTranscriptionController::class, 'store'])->name(ChatPermissionCatalog::TRANSCRIPTION_STORE);
+    Route::get('/meeting-transcriptions/{transcription}', [MeetingTranscriptionController::class, 'show'])->name(ChatPermissionCatalog::TRANSCRIPTION_SHOW);
+    Route::patch('/meeting-transcriptions/{transcription}', [MeetingTranscriptionController::class, 'update'])->name(ChatPermissionCatalog::TRANSCRIPTION_UPDATE);
+    Route::post('/meeting-transcriptions/{transcription}/shares', [MeetingTranscriptionController::class, 'share'])->name(ChatPermissionCatalog::TRANSCRIPTION_SHARE);
+    Route::delete('/meeting-transcriptions/{transcription}/shares/{share}', [MeetingTranscriptionController::class, 'revoke'])->name(ChatPermissionCatalog::TRANSCRIPTION_SHARE_REVOKE);
     Route::post('/calendar/events', [CalendarController::class, 'store'])->name(CalendarPermissionCatalog::EVENT_STORE);
     Route::patch('/calendar/events/{event}', [CalendarController::class, 'update'])->name(CalendarPermissionCatalog::EVENT_UPDATE);
     Route::delete('/calendar/events/{event}', [CalendarController::class, 'destroy'])->name(CalendarPermissionCatalog::EVENT_DESTROY);

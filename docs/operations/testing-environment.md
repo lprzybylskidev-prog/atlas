@@ -123,6 +123,8 @@ Permission-gated and module-gated UI behavior needs Playwright coverage when man
 
 The same Meeting integration lane covers P31-W11 recording authorization, online/hybrid lifecycle and segments, final Files ownership, participant and explicit-share access, revocation, retention removal, and in-person denial. The Meeting browser workflow protects the absence of RTC/recording controls for in-person Meetings and the aggregate Admin recording-retention surface; the frontend contract test protects organizer controls and the participant-visible `REC`/`Paused` state.
 
+`tests/Integration/Chat/TranscriptionLifecycleTest.php` covers P31-W12 with a deterministic provider: queued sync completion, async submit/poll/result continuation in one Managed Process, duplicate suppression, bounded retry/backoff and safe failure, historical retained-recording eligibility, participant editing and immutable versions, recipient privacy and no onward sharing, revocation, and coordinated recording-retention deletion. `meetingTranscriptionContract.test.ts` protects the browser gating that removes the whole transcript surface when the provider or eligible online/hybrid recording is absent.
+
 ## Future CI
 
 Atlas does not bundle a CI provider. A derived project may add CI later by calling the public Composer and pnpm commands.

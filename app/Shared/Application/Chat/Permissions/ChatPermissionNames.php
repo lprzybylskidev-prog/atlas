@@ -118,6 +118,8 @@ final class ChatPermissionNames
 
     public const TRANSCRIPTION_SHARE = 'chat.meetings.transcriptions.share';
 
+    public const TRANSCRIPTION_SHARE_REVOKE = 'chat.meetings.transcriptions.shares.revoke';
+
     public const ADMIN_OPERATIONS_INDEX = 'admin.chat.operations.index';
 
     public const ADMIN_RETENTION_UPDATE = 'admin.chat.retention.update';

@@ -570,6 +570,60 @@ SQL);
         });
         DB::statement(sprintf('create unique index chat_meeting_recording_shares_active_unique on %s (recording_id, recipient_user_id) where revoked_at is null', ChatDatabaseTable::MEETING_RECORDING_SHARES));
 
+        Schema::create(ChatDatabaseTable::MEETING_TRANSCRIPTIONS, static function (Blueprint $table): void {
+            $table->id();
+            $table->ulid('public_id')->unique();
+            $table->unsignedBigInteger('recording_id')->unique();
+            $table->unsignedBigInteger('requested_by_user_id');
+            $table->string('status', 24);
+            $table->string('provider_key', 80);
+            $table->string('provider_job_id', 255)->nullable();
+            $table->ulid('managed_process_run_public_id')->nullable();
+            $table->unsignedSmallInteger('attempt_count')->default(0);
+            $table->text('current_text')->nullable();
+            $table->jsonb('current_segments')->nullable();
+            $table->string('failure_code', 80)->nullable();
+            $table->timestampTz('submitted_at')->nullable();
+            $table->timestampTz('completed_at')->nullable();
+            $table->timestampTz('failed_at')->nullable();
+            $table->timestampsTz();
+            $table->foreign('recording_id')->references('id')->on(ChatDatabaseTable::MEETING_RECORDINGS)->restrictOnDelete();
+            $table->foreign('requested_by_user_id')->references('id')->on(IdentityDatabaseTable::USERS)->restrictOnDelete();
+            $table->index(['status', 'updated_at']);
+        });
+        DB::statement(sprintf("alter table %s add constraint chat_meeting_transcriptions_status_check check (status in ('queued', 'submitted', 'processing', 'completed', 'failed'))", ChatDatabaseTable::MEETING_TRANSCRIPTIONS));
+
+        Schema::create(ChatDatabaseTable::MEETING_TRANSCRIPT_VERSIONS, static function (Blueprint $table): void {
+            $table->id();
+            $table->ulid('public_id')->unique();
+            $table->unsignedBigInteger('transcription_id');
+            $table->unsignedInteger('version');
+            $table->string('source', 16);
+            $table->unsignedBigInteger('created_by_user_id')->nullable();
+            $table->text('text');
+            $table->jsonb('segments')->nullable();
+            $table->timestampTz('created_at');
+            $table->foreign('transcription_id')->references('id')->on(ChatDatabaseTable::MEETING_TRANSCRIPTIONS)->restrictOnDelete();
+            $table->foreign('created_by_user_id')->references('id')->on(IdentityDatabaseTable::USERS)->restrictOnDelete();
+            $table->unique(['transcription_id', 'version']);
+        });
+        DB::statement(sprintf("alter table %s add constraint chat_meeting_transcript_versions_source_check check (source in ('provider', 'edit'))", ChatDatabaseTable::MEETING_TRANSCRIPT_VERSIONS));
+
+        Schema::create(ChatDatabaseTable::MEETING_TRANSCRIPT_SHARES, static function (Blueprint $table): void {
+            $table->id();
+            $table->ulid('public_id')->unique();
+            $table->unsignedBigInteger('transcription_id');
+            $table->unsignedBigInteger('recipient_user_id');
+            $table->unsignedBigInteger('shared_by_user_id');
+            $table->timestampTz('revoked_at')->nullable();
+            $table->timestampsTz();
+            $table->foreign('transcription_id')->references('id')->on(ChatDatabaseTable::MEETING_TRANSCRIPTIONS)->restrictOnDelete();
+            $table->foreign('recipient_user_id')->references('id')->on(IdentityDatabaseTable::USERS)->restrictOnDelete();
+            $table->foreign('shared_by_user_id')->references('id')->on(IdentityDatabaseTable::USERS)->restrictOnDelete();
+            $table->index(['recipient_user_id', 'revoked_at']);
+        });
+        DB::statement(sprintf('create unique index chat_meeting_transcript_shares_active_unique on %s (transcription_id, recipient_user_id) where revoked_at is null', ChatDatabaseTable::MEETING_TRANSCRIPT_SHARES));
+
         Schema::create(ChatDatabaseTable::MEETING_ATTENDANCE, static function (Blueprint $table): void {
             $table->id();
             $table->unsignedBigInteger('occurrence_id');
@@ -594,6 +648,9 @@ SQL);
     {
         Schema::dropIfExists(ChatDatabaseTable::SETTINGS);
         Schema::dropIfExists(ChatDatabaseTable::MEETING_ATTENDANCE);
+        Schema::dropIfExists(ChatDatabaseTable::MEETING_TRANSCRIPT_SHARES);
+        Schema::dropIfExists(ChatDatabaseTable::MEETING_TRANSCRIPT_VERSIONS);
+        Schema::dropIfExists(ChatDatabaseTable::MEETING_TRANSCRIPTIONS);
         Schema::dropIfExists(ChatDatabaseTable::MEETING_RECORDING_SHARES);
         Schema::dropIfExists(ChatDatabaseTable::MEETING_RECORDING_SEGMENTS);
         Schema::dropIfExists(ChatDatabaseTable::MEETING_RTC_PARTICIPANTS);

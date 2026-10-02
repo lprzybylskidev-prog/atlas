@@ -28,7 +28,7 @@ final class CommunicationBoundaryArchitectureTest extends TestCase
         self::assertFalse($chat->supportsTeamActivation());
         self::assertSame(['reverb'], $chat->healthChecks(), 'RTC or Egress failure must not disable text Chat through ModuleGate.');
         self::assertSame(
-            ['identity', 'files', 'calendar', 'teams', 'audit', 'notifications'],
+            ['identity', 'files', 'calendar', 'teams', 'audit', 'notifications', 'managed_processes'],
             array_map(static fn ($key): string => $key->value, $chat->requiredDependencies()),
         );
     }
@@ -76,6 +76,8 @@ final class CommunicationBoundaryArchitectureTest extends TestCase
                 self::assertIsString($contents);
                 self::assertStringNotContainsString('LIVEKIT_API_SECRET', $contents, $file->getPathname());
                 self::assertStringNotContainsString('livekit.api_secret', $contents, $file->getPathname());
+                self::assertStringNotContainsString('ATLAS_TRANSCRIPTION_PROVIDER_CREDENTIAL', $contents, $file->getPathname());
+                self::assertStringNotContainsString('transcription.credential', $contents, $file->getPathname());
             }
         }
 

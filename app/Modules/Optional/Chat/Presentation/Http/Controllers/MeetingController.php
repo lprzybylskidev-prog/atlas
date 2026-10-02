@@ -10,6 +10,7 @@ use App\Modules\Optional\Chat\Application\DTOs\MeetingInput;
 use App\Modules\Optional\Chat\Application\MeetingManager;
 use App\Modules\Optional\Chat\Application\MeetingRecordingManager;
 use App\Modules\Optional\Chat\Application\Permissions\ChatPermissionCatalog;
+use App\Modules\Optional\Chat\Application\TranscriptionManager;
 use App\Modules\Optional\Chat\Domain\Conversations\MeetingResponse;
 use App\Modules\Optional\Chat\Domain\Meetings\MeetingMode;
 use App\Modules\Optional\Chat\Domain\Meetings\MeetingMutationScope;
@@ -26,7 +27,7 @@ final readonly class MeetingController
 {
     private const TIMEZONE = 'Europe/Warsaw';
 
-    public function __construct(private MeetingManager $meetings, private UserLookup $users, private ChatModuleAccess $access, private MeetingRecordingManager $recordings) {}
+    public function __construct(private MeetingManager $meetings, private UserLookup $users, private ChatModuleAccess $access, private MeetingRecordingManager $recordings, private TranscriptionManager $transcriptions) {}
 
     public function index(Request $request): Response
     {
@@ -51,8 +52,14 @@ final readonly class MeetingController
         $recording = ($view['mode'] ?? null) !== 'in_person' && is_string($startsAt) && $this->access->allows($user, $team, ChatPermissionCatalog::RECORDING_STATE)
             ? $this->recordings->state($user, $team, $meeting, substr($startsAt, 0, 10))
             : null;
+        $recordingPublicId = is_array($recording) ? ($recording['publicId'] ?? null) : null;
+        $transcription = is_string($recordingPublicId)
+            && ($recording['ready'] ?? false) === true
+            && $this->access->allows($user, $team, ChatPermissionCatalog::TRANSCRIPTION_SHOW)
+            ? $this->transcriptions->forRecording($user, $team, $recordingPublicId)
+            : null;
 
-        return Inertia::render('Meetings/Show', ['meeting' => $view, 'recording' => $recording,
+        return Inertia::render('Meetings/Show', ['meeting' => $view, 'recording' => $recording, 'transcription' => $transcription,
             'users' => array_map(static fn ($item): array => ['publicId' => $item->publicId, 'name' => $item->name, 'email' => $item->email], $this->users->allActiveDisplaySummaries())]);
     }
 

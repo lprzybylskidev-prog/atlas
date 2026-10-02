@@ -170,10 +170,13 @@ return [
             'chat.meeting_recording.resumed', 'chat.meeting_recording.share_revoked',
             'chat.meeting_recording.shared', 'chat.meeting_recording.started',
             'chat.meeting_recording.stopped',
+            'chat.meeting_transcript.edited', 'chat.meeting_transcript.share_revoked',
+            'chat.meeting_transcript.shared', 'chat.meeting_transcription.completed',
+            'chat.meeting_transcription.failed', 'chat.meeting_transcription.requested',
             'chat.recording_retention.configured',
-        ], ['call', 'conversation', 'meeting', 'meeting_recording', 'recording_retention_policy', 'user'], ['call', 'conversation', 'meeting', 'meeting_recording', 'recording_retention_policy', 'user'], [
+        ], ['call', 'conversation', 'meeting', 'meeting_recording', 'meeting_transcription', 'recording_retention_policy', 'user'], ['call', 'conversation', 'meeting', 'meeting_recording', 'meeting_transcription', 'recording_retention_policy', 'user'], [
             'days', 'member_count', 'member_public_id', 'mode', 'new_owner_public_id',
-            'occurrence_date', 'recipient_public_id', 'share_public_id',
+            'occurrence_date', 'provider', 'recipient_public_id', 'share_public_id', 'version',
         ]),
         'tests' => $catalog([
             'audit.append_only_probe', 'audit.atomicity_probe', 'audit.impersonated_action_probe',

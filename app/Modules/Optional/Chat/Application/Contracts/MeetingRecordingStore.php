@@ -17,6 +17,8 @@ interface MeetingRecordingStore
 
     public function find(string $publicId, bool $forUpdate = false): ?MeetingRecording;
 
+    public function findByInternalId(int $id): ?MeetingRecording;
+
     public function create(int $occurrenceId, int $initiatedByUserId): MeetingRecording;
 
     public function nextSegmentSequence(int $recordingId): int;
@@ -38,6 +40,8 @@ interface MeetingRecordingStore
     public function markReady(int $recordingId, string $filePublicId, int $durationSeconds): void;
 
     public function participantHasAccess(int $recordingId, int $userId): bool;
+
+    public function eligibleForTranscription(int $recordingId): bool;
 
     public function sharedRecipientHasAccess(int $recordingId, int $userId): bool;
 

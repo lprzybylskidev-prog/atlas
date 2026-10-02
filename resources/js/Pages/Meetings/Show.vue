@@ -4,6 +4,7 @@ import {
     IconCalendarEvent,
     IconDeviceDesktopShare,
     IconDownload,
+    IconFileText,
     IconLock,
     IconMessage,
     IconMicrophone,
@@ -26,6 +27,7 @@ import FormDateInput from '../../Components/Form/FormDateInput.vue';
 import FormDateTimeInput from '../../Components/Form/FormDateTimeInput.vue';
 import FormInput from '../../Components/Form/FormInput.vue';
 import FormSelect, { type FormSelectOption } from '../../Components/Form/FormSelect.vue';
+import FormTextarea from '../../Components/Form/FormTextarea.vue';
 import PageStack from '../../Components/PageStack.vue';
 import StatusBadge from '../../Components/StatusBadge.vue';
 import SurfaceCard from '../../Components/SurfaceCard.vue';
@@ -106,7 +108,36 @@ interface RecordingDetails {
     canShare: boolean;
     shares: { publicId: string; recipientPublicId: string; recipientName: string }[];
 }
-const props = defineProps<{ meeting: Meeting; users: UserOption[]; recording: RecordingState | null }>();
+interface TranscriptVersion {
+    publicId: string;
+    version: number;
+    source: 'provider' | 'edit';
+    editorName: string | null;
+    text: string;
+    createdAt: string;
+}
+interface TranscriptState {
+    publicId: string;
+    status: 'queued' | 'submitted' | 'processing' | 'completed' | 'failed';
+    text: string | null;
+    failureCode: string | null;
+    version: number;
+    canEdit: boolean;
+    canShare: boolean;
+    history: TranscriptVersion[];
+    shares: { publicId: string; recipientPublicId: string; recipientName: string }[];
+}
+interface TranscriptionCapability {
+    eligible: boolean;
+    canRequest: boolean;
+    transcription: TranscriptState | null;
+}
+const props = defineProps<{
+    meeting: Meeting;
+    users: UserOption[];
+    recording: RecordingState | null;
+    transcription: TranscriptionCapability | null;
+}>();
 const { t } = useTranslator();
 const { confirm } = useModal();
 const invite = useForm({ user_public_id: '' });
@@ -134,7 +165,12 @@ const recordingBusy = ref(false);
 const recordingDetails = ref<RecordingDetails | null>(null);
 const shareRecipient = ref('');
 const shareBusy = ref(false);
+const transcription = ref<TranscriptState | null>(props.transcription?.transcription ?? null);
+const transcriptBusy = ref(false);
+const transcriptDraft = ref(props.transcription?.transcription?.text ?? '');
+const transcriptShareRecipient = ref('');
 let recordingPoll: ReturnType<typeof setInterval> | null = null;
+let transcriptPoll: ReturnType<typeof setInterval> | null = null;
 const canUseRtcSession = computed(() => props.meeting.canJoinOnline && props.meeting.mode !== 'in_person');
 const edit = useForm({
     title: props.meeting.title,
@@ -259,7 +295,12 @@ async function refreshRecording(): Promise<void> {
         'GET',
     );
     recording.value = response.recording;
-    if (recording.value.status === 'ready') await refreshRecordingDetails();
+    if (recording.value.status === 'ready') {
+        await refreshRecordingDetails();
+        if (!props.transcription) {
+            router.reload({ only: ['recording', 'transcription'] });
+        }
+    }
 }
 async function refreshRecordingDetails(): Promise<void> {
     if (!recording.value.publicId || recording.value.status !== 'ready') return;
@@ -282,6 +323,66 @@ async function revokeRecordingShare(share: string): Promise<void> {
     await chatJson(`/meeting-recordings/${recording.value.publicId}/shares/${share}`, 'DELETE');
     await refreshRecordingDetails();
 }
+async function createTranscript(): Promise<void> {
+    if (!recording.value.publicId) return;
+    transcriptBusy.value = true;
+    try {
+        const response = await chatJson<{ transcription: TranscriptState }>(
+            `/meeting-recordings/${recording.value.publicId}/transcription`,
+            'POST',
+        );
+        setTranscript(response.transcription);
+    } finally {
+        transcriptBusy.value = false;
+    }
+}
+async function refreshTranscript(): Promise<void> {
+    if (!transcription.value?.publicId) return;
+    const response = await chatJson<{ transcription: TranscriptState }>(`/meeting-transcriptions/${transcription.value.publicId}`, 'GET');
+    setTranscript(response.transcription);
+}
+function setTranscript(next: TranscriptState): void {
+    transcription.value = next;
+    transcriptDraft.value = next.text ?? '';
+    if (['queued', 'submitted', 'processing'].includes(next.status) && transcriptPoll === null) {
+        transcriptPoll = setInterval(() => void refreshTranscript(), 3000);
+    } else if (!['queued', 'submitted', 'processing'].includes(next.status) && transcriptPoll !== null) {
+        clearInterval(transcriptPoll);
+        transcriptPoll = null;
+    }
+}
+async function saveTranscript(): Promise<void> {
+    if (!transcription.value?.canEdit) return;
+    transcriptBusy.value = true;
+    try {
+        const response = await chatJson<{ transcription: TranscriptState }>(
+            `/meeting-transcriptions/${transcription.value.publicId}`,
+            'PATCH',
+            { text: transcriptDraft.value, expected_version: transcription.value.version },
+        );
+        setTranscript(response.transcription);
+    } finally {
+        transcriptBusy.value = false;
+    }
+}
+async function shareTranscript(): Promise<void> {
+    if (!transcription.value?.canShare || !transcriptShareRecipient.value) return;
+    transcriptBusy.value = true;
+    try {
+        await chatJson(`/meeting-transcriptions/${transcription.value.publicId}/shares`, 'POST', {
+            recipient_public_id: transcriptShareRecipient.value,
+        });
+        transcriptShareRecipient.value = '';
+        await refreshTranscript();
+    } finally {
+        transcriptBusy.value = false;
+    }
+}
+async function revokeTranscriptShare(share: string): Promise<void> {
+    if (!transcription.value) return;
+    await chatJson(`/meeting-transcriptions/${transcription.value.publicId}/shares/${share}`, 'DELETE');
+    await refreshTranscript();
+}
 async function controlRecording(action: 'start' | 'pause' | 'resume' | 'stop'): Promise<void> {
     recordingBusy.value = true;
     try {
@@ -295,8 +396,12 @@ async function controlRecording(action: 'start' | 'pause' | 'resume' | 'stop'): 
 }
 onUnmounted(() => {
     if (recordingPoll !== null) clearInterval(recordingPoll);
+    if (transcriptPoll !== null) clearInterval(transcriptPoll);
 });
-onMounted(() => void refreshRecordingDetails());
+onMounted(() => {
+    void refreshRecordingDetails();
+    if (transcription.value) setTranscript(transcription.value);
+});
 async function moderate(
     participant: string,
     action: 'mute' | 'disable_microphone' | 'restore_microphone' | 'camera_off' | 'stop_screen_share' | 'kick',
@@ -525,6 +630,100 @@ async function remove(id: string): Promise<void> {
                                 </li>
                             </ul>
                         </div>
+                    </template>
+                </div>
+            </SurfaceCard>
+            <SurfaceCard
+                v-if="props.transcription?.eligible && recording.ready"
+                :title="t('meetings.transcription.title')"
+                :icon="IconFileText"
+            >
+                <div class="space-y-4">
+                    <div v-if="!transcription" class="space-y-3">
+                        <p class="text-sm text-zinc-600 dark:text-zinc-300">{{ t('meetings.transcription.ready_to_create') }}</p>
+                        <FormButton v-if="props.transcription?.canRequest" :loading="transcriptBusy" @click="createTranscript">
+                            {{ t('meetings.transcription.actions.create') }}
+                        </FormButton>
+                    </div>
+                    <template v-else>
+                        <StatusBadge
+                            :label="t(`meetings.transcription.statuses.${transcription.status}`)"
+                            :tone="
+                                transcription.status === 'completed' ? 'success' : transcription.status === 'failed' ? 'danger' : 'warning'
+                            "
+                        />
+                        <p
+                            v-if="['queued', 'submitted', 'processing'].includes(transcription.status)"
+                            class="text-sm text-zinc-600 dark:text-zinc-300"
+                            role="status"
+                        >
+                            {{ t('meetings.transcription.processing') }}
+                        </p>
+                        <div v-if="transcription.status === 'failed'" class="space-y-3">
+                            <p class="text-sm text-rose-700 dark:text-rose-300">{{ t('meetings.transcription.failed') }}</p>
+                            <FormButton v-if="props.transcription?.canRequest" :loading="transcriptBusy" @click="createTranscript">
+                                {{ t('meetings.transcription.actions.retry') }}
+                            </FormButton>
+                        </div>
+                        <template v-if="transcription.status === 'completed'">
+                            <div v-if="transcription.canEdit" class="space-y-3">
+                                <FormTextarea v-model="transcriptDraft" :rows="12" :label="t('meetings.transcription.fields.text')" />
+                                <FormButton :loading="transcriptBusy" @click="saveTranscript">
+                                    {{ t('meetings.transcription.actions.save') }}
+                                </FormButton>
+                            </div>
+                            <div v-else class="whitespace-pre-wrap rounded-lg bg-zinc-50 p-4 text-sm dark:bg-zinc-900">
+                                {{ transcription.text }}
+                            </div>
+                            <details v-if="transcription.history.length" class="rounded-lg border border-zinc-200 p-3 dark:border-zinc-800">
+                                <summary class="cursor-pointer font-medium">{{ t('meetings.transcription.history.title') }}</summary>
+                                <ol class="mt-3 space-y-3">
+                                    <li v-for="version in transcription.history" :key="version.publicId" class="text-sm">
+                                        <p class="font-medium">
+                                            {{ t('meetings.transcription.history.version', { version: version.version }) }} ·
+                                            {{ version.editorName ?? t('meetings.transcription.history.provider') }}
+                                        </p>
+                                        <p class="text-xs text-zinc-500">{{ new Date(version.createdAt).toLocaleString() }}</p>
+                                        <p class="mt-1 whitespace-pre-wrap">{{ version.text }}</p>
+                                    </li>
+                                </ol>
+                            </details>
+                            <div v-if="transcription.canShare" class="space-y-3 border-t border-zinc-200 pt-4 dark:border-zinc-800">
+                                <div class="flex items-end gap-2">
+                                    <div class="max-w-md flex-1">
+                                        <FormSelect
+                                            v-model="transcriptShareRecipient"
+                                            :label="t('meetings.transcription.share.recipient')"
+                                            :options="
+                                                users
+                                                    .filter(
+                                                        (user) =>
+                                                            !meeting.participants.some(
+                                                                (participant) => participant.publicId === user.publicId,
+                                                            ),
+                                                    )
+                                                    .map((user) => ({ value: user.publicId, label: user.name, description: user.email }))
+                                            "
+                                        />
+                                    </div>
+                                    <FormButton :loading="transcriptBusy" :disabled="!transcriptShareRecipient" @click="shareTranscript">
+                                        {{ t('meetings.transcription.share.action') }}
+                                    </FormButton>
+                                </div>
+                                <ul v-if="transcription.shares.length" class="space-y-2">
+                                    <li
+                                        v-for="share in transcription.shares"
+                                        :key="share.publicId"
+                                        class="flex items-center justify-between gap-3 text-sm"
+                                    >
+                                        <span>{{ share.recipientName }}</span>
+                                        <FormButton tone="danger" @click="revokeTranscriptShare(share.publicId)">
+                                            {{ t('meetings.transcription.share.revoke') }}
+                                        </FormButton>
+                                    </li>
+                                </ul>
+                            </div>
+                        </template>
                     </template>
                 </div>
             </SurfaceCard>

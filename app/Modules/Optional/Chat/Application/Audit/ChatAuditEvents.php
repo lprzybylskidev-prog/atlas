@@ -28,6 +28,18 @@ final class ChatAuditEvents
 
     public const RECORDING_REMOVED_BY_RETENTION = 'chat.meeting_recording.removed_by_retention';
 
+    public const TRANSCRIPTION_REQUESTED = 'chat.meeting_transcription.requested';
+
+    public const TRANSCRIPTION_COMPLETED = 'chat.meeting_transcription.completed';
+
+    public const TRANSCRIPTION_FAILED = 'chat.meeting_transcription.failed';
+
+    public const TRANSCRIPT_EDITED = 'chat.meeting_transcript.edited';
+
+    public const TRANSCRIPT_SHARED = 'chat.meeting_transcript.shared';
+
+    public const TRANSCRIPT_SHARE_REVOKED = 'chat.meeting_transcript.share_revoked';
+
     public const CALL_STARTED = 'chat.call.started';
 
     public const CALL_JOINED = 'chat.call.joined';

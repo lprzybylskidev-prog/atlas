@@ -16,6 +16,12 @@ interface ManagedProcessReporter
      */
     public function running(string $runPublicId, ?string $stage = null, ?int $current = null, ?int $total = null, ?string $label = null, ?array $counters = null): void;
 
+    /** @param array<string, int>|null $counters */
+    public function waiting(string $runPublicId, ?string $stage = null, ?string $label = null, ?array $counters = null): void;
+
+    /** @param array<string, int>|null $counters */
+    public function failed(string $runPublicId, string $stage, string $label, string $safeErrorSummary, ?array $counters = null): void;
+
     /**
      * @param  array<string, int>|null  $counters
      * @param  array<string, scalar|null>|null  $resultSummary

@@ -175,6 +175,7 @@ final class StarterRoleCatalog
                 ChatPermissionNames::TRANSCRIPTION_SHOW,
                 ChatPermissionNames::TRANSCRIPTION_UPDATE,
                 ChatPermissionNames::TRANSCRIPTION_SHARE,
+                ChatPermissionNames::TRANSCRIPTION_SHARE_REVOKE,
             ]),
             new StarterRoleDefinition(StarterRoleName::CommunicationOperations, [
                 ChatPermissionNames::INDEX,

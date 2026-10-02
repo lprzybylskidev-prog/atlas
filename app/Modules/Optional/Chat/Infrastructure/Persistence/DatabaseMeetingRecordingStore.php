@@ -46,6 +46,13 @@ final readonly class DatabaseMeetingRecordingStore implements MeetingRecordingSt
         return $row instanceof stdClass ? $this->recording($row) : null;
     }
 
+    public function findByInternalId(int $id): ?MeetingRecording
+    {
+        $row = $this->database->table(ChatDatabaseTable::MEETING_RECORDINGS)->where('id', $id)->first();
+
+        return $row instanceof stdClass ? $this->recording($row) : null;
+    }
+
     public function create(int $occurrenceId, int $initiatedByUserId): MeetingRecording
     {
         $id = (int) $this->database->table(ChatDatabaseTable::MEETING_RECORDINGS)->insertGetId([
@@ -166,6 +173,19 @@ final readonly class DatabaseMeetingRecordingStore implements MeetingRecordingSt
             })->exists();
     }
 
+    public function eligibleForTranscription(int $recordingId): bool
+    {
+        return $this->database->table(ChatDatabaseTable::MEETING_RECORDINGS.' as recordings')
+            ->join(ChatDatabaseTable::MEETING_OCCURRENCES.' as occurrences', 'occurrences.id', '=', 'recordings.occurrence_id')
+            ->join(ChatDatabaseTable::MEETINGS.' as meetings', 'meetings.id', '=', 'occurrences.meeting_id')
+            ->where('recordings.id', $recordingId)
+            ->where('recordings.status', MeetingRecordingStatus::Ready->value)
+            ->whereNotNull('recordings.file_public_id')
+            ->whereNull('recordings.retention_removed_at')
+            ->whereIn('meetings.mode', ['online', 'hybrid'])
+            ->exists();
+    }
+
     public function sharedRecipientHasAccess(int $recordingId, int $userId): bool
     {
         return $this->database->table(ChatDatabaseTable::MEETING_RECORDING_SHARES)
@@ -208,6 +228,11 @@ final readonly class DatabaseMeetingRecordingStore implements MeetingRecordingSt
     {
         $this->database->table(ChatDatabaseTable::MEETING_RECORDING_SHARES)->where('recording_id', $recordingId)->delete();
         if (Schema::hasTable(ChatDatabaseTable::MEETING_TRANSCRIPTIONS)) {
+            $transcriptionIds = $this->database->table(ChatDatabaseTable::MEETING_TRANSCRIPTIONS)->where('recording_id', $recordingId)->pluck('id')->all();
+            if ($transcriptionIds !== []) {
+                $this->database->table(ChatDatabaseTable::MEETING_TRANSCRIPT_SHARES)->whereIn('transcription_id', $transcriptionIds)->delete();
+                $this->database->table(ChatDatabaseTable::MEETING_TRANSCRIPT_VERSIONS)->whereIn('transcription_id', $transcriptionIds)->delete();
+            }
             $this->database->table(ChatDatabaseTable::MEETING_TRANSCRIPTIONS)->where('recording_id', $recordingId)->delete();
         }
         $this->database->table(ChatDatabaseTable::MEETING_RECORDINGS)->where('id', $recordingId)->update([

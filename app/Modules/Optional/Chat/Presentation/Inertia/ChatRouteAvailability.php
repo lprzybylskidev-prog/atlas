@@ -65,6 +65,7 @@ final readonly class ChatRouteAvailability implements InertiaRouteAvailabilityCo
             ChatPermissionCatalog::TRANSCRIPTION_SHOW,
             ChatPermissionCatalog::TRANSCRIPTION_UPDATE,
             ChatPermissionCatalog::TRANSCRIPTION_SHARE,
+            ChatPermissionCatalog::TRANSCRIPTION_SHARE_REVOKE,
         ] : [];
     }
 

@@ -1,6 +1,6 @@
 # Phase 31 — Optional internal company chat, calendar, calls, meetings, and realtime communication
 
-**Status:** `in progress` (`P31-W01` through `P31-W11` complete; `P31-W12` is next)
+**Status:** `in progress` (`P31-W01` through `P31-W12` complete; `P31-W13` is next)
 
 ## Objective
 
@@ -2125,32 +2125,32 @@ When recording retention deletes the recording:
 
 ### Tasks
 
-- [ ] Add provider-neutral transcription contract.
-- [ ] Support sync provider adapter behavior.
-- [ ] Support async submit/poll/result provider behavior.
-- [ ] Run all transcription through queue/Managed Processes.
-- [ ] Add idempotency.
-- [ ] Add retry/backoff/failure state.
-- [ ] Add provider configuration boundary.
-- [ ] Keep credentials secret.
-- [ ] Keep concrete production provider optional/unimplemented.
-- [ ] Add deterministic test provider.
-- [ ] Hide user transcript UI while provider unavailable.
-- [ ] Require an eligible retained online/hybrid Meeting recording for transcription.
-- [ ] Keep in-person Meetings without recordings free of transcript UI and jobs.
-- [ ] Preserve transcript eligibility for retained online/hybrid recordings when the provider is enabled.
-- [ ] Add manual Create transcript flow when enabled.
-- [ ] Allow historical recording transcription.
-- [ ] Prevent duplicate active transcription requests.
-- [ ] Persist text and optional timestamps/speaker segments.
-- [ ] Add transcript version history.
-- [ ] Allow participant editing with permission.
-- [ ] Add participant transcript sharing.
-- [ ] Prevent onward sharing by recipient.
-- [ ] Hide edit history from share recipient.
-- [ ] Delete transcript with recording retention.
-- [ ] Prevent live or microphone-direct transcription outside the recording workflow.
-- [ ] Add provider/queue/privacy/versioning tests.
+- [x] Add provider-neutral transcription contract.
+- [x] Support sync provider adapter behavior.
+- [x] Support async submit/poll/result provider behavior.
+- [x] Run all transcription through queue/Managed Processes.
+- [x] Add idempotency.
+- [x] Add retry/backoff/failure state.
+- [x] Add provider configuration boundary.
+- [x] Keep credentials secret.
+- [x] Keep concrete production provider optional/unimplemented.
+- [x] Add deterministic test provider.
+- [x] Hide user transcript UI while provider unavailable.
+- [x] Require an eligible retained online/hybrid Meeting recording for transcription.
+- [x] Keep in-person Meetings without recordings free of transcript UI and jobs.
+- [x] Preserve transcript eligibility for retained online/hybrid recordings when the provider is enabled.
+- [x] Add manual Create transcript flow when enabled.
+- [x] Allow historical recording transcription.
+- [x] Prevent duplicate active transcription requests.
+- [x] Persist text and optional timestamps/speaker segments.
+- [x] Add transcript version history.
+- [x] Allow participant editing with permission.
+- [x] Add participant transcript sharing.
+- [x] Prevent onward sharing by recipient.
+- [x] Hide edit history from share recipient.
+- [x] Delete transcript with recording retention.
+- [x] Prevent live or microphone-direct transcription outside the recording workflow.
+- [x] Add provider/queue/privacy/versioning tests.
 
 ---
 
