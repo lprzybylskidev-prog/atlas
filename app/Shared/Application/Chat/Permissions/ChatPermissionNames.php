@@ -100,11 +100,15 @@ final class ChatPermissionNames
 
     public const RECORDING_MANAGE = 'chat.meetings.recordings.manage';
 
+    public const RECORDING_STATE = 'chat.meetings.recordings.state';
+
     public const RECORDING_SHOW = 'chat.meetings.recordings.show';
 
     public const RECORDING_DOWNLOAD = 'chat.meetings.recordings.download';
 
     public const RECORDING_SHARE = 'chat.meetings.recordings.share';
+
+    public const RECORDING_SHARE_REVOKE = 'chat.meetings.recordings.shares.revoke';
 
     public const TRANSCRIPTION_STORE = 'chat.meetings.transcriptions.store';
 
@@ -119,4 +123,6 @@ final class ChatPermissionNames
     public const ADMIN_RETENTION_UPDATE = 'admin.chat.retention.update';
 
     public const ADMIN_RECORDING_RETENTION_UPDATE = 'admin.chat.recording-retention.update';
+
+    public const ADMIN_RECORDING_RETENTION_RUN = 'admin.chat.recording-retention.run';
 }

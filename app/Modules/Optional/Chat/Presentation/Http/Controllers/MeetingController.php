@@ -5,8 +5,11 @@ declare(strict_types=1);
 namespace App\Modules\Optional\Chat\Presentation\Http\Controllers;
 
 use App\Modules\Core\Identity\Application\Public\Contracts\UserLookup;
+use App\Modules\Optional\Chat\Application\ChatModuleAccess;
 use App\Modules\Optional\Chat\Application\DTOs\MeetingInput;
 use App\Modules\Optional\Chat\Application\MeetingManager;
+use App\Modules\Optional\Chat\Application\MeetingRecordingManager;
+use App\Modules\Optional\Chat\Application\Permissions\ChatPermissionCatalog;
 use App\Modules\Optional\Chat\Domain\Conversations\MeetingResponse;
 use App\Modules\Optional\Chat\Domain\Meetings\MeetingMode;
 use App\Modules\Optional\Chat\Domain\Meetings\MeetingMutationScope;
@@ -23,7 +26,7 @@ final readonly class MeetingController
 {
     private const TIMEZONE = 'Europe/Warsaw';
 
-    public function __construct(private MeetingManager $meetings, private UserLookup $users) {}
+    public function __construct(private MeetingManager $meetings, private UserLookup $users, private ChatModuleAccess $access, private MeetingRecordingManager $recordings) {}
 
     public function index(Request $request): Response
     {
@@ -40,7 +43,16 @@ final readonly class MeetingController
     {
         [$user, $team] = $this->context($request);
 
-        return Inertia::render('Meetings/Show', ['meeting' => $this->meetings->show($user, $team, $meeting),
+        $view = $this->meetings->show($user, $team, $meeting);
+        $view['canManageRecording'] = ($view['role'] ?? null) === 'organizer'
+            && ($view['mode'] ?? null) !== 'in_person'
+            && $this->access->allows($user, $team, ChatPermissionCatalog::RECORDING_MANAGE);
+        $startsAt = $view['startsAt'] ?? null;
+        $recording = ($view['mode'] ?? null) !== 'in_person' && is_string($startsAt) && $this->access->allows($user, $team, ChatPermissionCatalog::RECORDING_STATE)
+            ? $this->recordings->state($user, $team, $meeting, substr($startsAt, 0, 10))
+            : null;
+
+        return Inertia::render('Meetings/Show', ['meeting' => $view, 'recording' => $recording,
             'users' => array_map(static fn ($item): array => ['publicId' => $item->publicId, 'name' => $item->name, 'email' => $item->email], $this->users->allActiveDisplaySummaries())]);
     }
 

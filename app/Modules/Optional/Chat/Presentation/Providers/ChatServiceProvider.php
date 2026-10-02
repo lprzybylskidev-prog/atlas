@@ -13,6 +13,8 @@ use App\Modules\Optional\Chat\Application\Contracts\ChatRealtimePublisher;
 use App\Modules\Optional\Chat\Application\Contracts\ChatTransaction;
 use App\Modules\Optional\Chat\Application\Contracts\ConversationStore;
 use App\Modules\Optional\Chat\Application\Contracts\MarkdownRenderer;
+use App\Modules\Optional\Chat\Application\Contracts\MeetingRecordingAssembler;
+use App\Modules\Optional\Chat\Application\Contracts\MeetingRecordingStore;
 use App\Modules\Optional\Chat\Application\Contracts\MeetingStore;
 use App\Modules\Optional\Chat\Application\Contracts\MessageStore;
 use App\Modules\Optional\Chat\Application\Contracts\RealtimeStore;
@@ -20,6 +22,11 @@ use App\Modules\Optional\Chat\Application\Contracts\RtcGateway;
 use App\Modules\Optional\Chat\Application\Contracts\RtcSessionAccessAuthorizer;
 use App\Modules\Optional\Chat\Application\ConversationManager;
 use App\Modules\Optional\Chat\Application\MeetingManager;
+use App\Modules\Optional\Chat\Application\MeetingRecordingAccessManager;
+use App\Modules\Optional\Chat\Application\MeetingRecordingFinalizer;
+use App\Modules\Optional\Chat\Application\MeetingRecordingManager;
+use App\Modules\Optional\Chat\Application\MeetingRecordingRetention;
+use App\Modules\Optional\Chat\Application\MeetingRecordingRetentionProcess;
 use App\Modules\Optional\Chat\Application\MeetingRtcMaintenance;
 use App\Modules\Optional\Chat\Application\MeetingRtcManager;
 use App\Modules\Optional\Chat\Application\MessageManager;
@@ -32,12 +39,17 @@ use App\Modules\Optional\Chat\Infrastructure\Persistence\DatabaseAttachmentStore
 use App\Modules\Optional\Chat\Infrastructure\Persistence\DatabaseCallStore;
 use App\Modules\Optional\Chat\Infrastructure\Persistence\DatabaseChatTransaction;
 use App\Modules\Optional\Chat\Infrastructure\Persistence\DatabaseConversationStore;
+use App\Modules\Optional\Chat\Infrastructure\Persistence\DatabaseMeetingRecordingStore;
 use App\Modules\Optional\Chat\Infrastructure\Persistence\DatabaseMeetingStore;
 use App\Modules\Optional\Chat\Infrastructure\Persistence\DatabaseMessageStore;
 use App\Modules\Optional\Chat\Infrastructure\Persistence\DatabaseRealtimeStore;
 use App\Modules\Optional\Chat\Infrastructure\Rtc\DatabaseCallSessionAccessAuthorizer;
+use App\Modules\Optional\Chat\Infrastructure\Rtc\FfmpegMeetingRecordingAssembler;
 use App\Modules\Optional\Chat\Infrastructure\Rtc\LiveKitRtcGateway;
 use App\Modules\Optional\Chat\Infrastructure\Rtc\UnavailableRtcGateway;
+use App\Modules\Optional\Chat\Infrastructure\Runtime\MeetingRecordingRetentionProcessHandler;
+use App\Modules\Optional\Chat\Presentation\Console\FinalizeMeetingRecordingsCommand;
+use App\Modules\Optional\Chat\Presentation\Console\PruneMeetingRecordingsCommand;
 use App\Modules\Optional\Chat\Presentation\Inertia\ChatRouteAvailability;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\ServiceProvider;
@@ -53,6 +65,11 @@ final class ChatServiceProvider extends ServiceProvider
         $this->app->bind(ConversationStore::class, DatabaseConversationStore::class);
         $this->app->bind(MessageStore::class, DatabaseMessageStore::class);
         $this->app->bind(MeetingStore::class, DatabaseMeetingStore::class);
+        $this->app->bind(MeetingRecordingStore::class, DatabaseMeetingRecordingStore::class);
+        $this->app->singleton(MeetingRecordingAssembler::class, static fn (): MeetingRecordingAssembler => new FfmpegMeetingRecordingAssembler(
+            Config::string('livekit.egress_staging_directory'),
+            Config::string('livekit.ffmpeg_binary'),
+        ));
         $this->app->bind(RealtimeStore::class, DatabaseRealtimeStore::class);
         $this->app->singleton(ChatRealtimePublisher::class, LaravelChatRealtimePublisher::class);
         $this->app->singleton(MarkdownRenderer::class, SafeMarkdownRenderer::class);
@@ -66,6 +83,9 @@ final class ChatServiceProvider extends ServiceProvider
                 tokenTtlSeconds: Config::integer('livekit.participant_token_ttl_seconds'),
                 emptyRoomTimeoutSeconds: Config::integer('livekit.empty_room_timeout_seconds'),
                 requestTimeoutSeconds: Config::integer('livekit.request_timeout_seconds'),
+                egressEnabled: Config::boolean('livekit.egress_enabled', false),
+                recordingTemplateUrl: Config::string('livekit.recording_template_url'),
+                egressOutputDirectory: Config::string('livekit.egress_output_directory'),
             )
             : new UnavailableRtcGateway);
         $this->app->singleton(ConversationManager::class);
@@ -74,11 +94,23 @@ final class ChatServiceProvider extends ServiceProvider
         $this->app->singleton(MessageManager::class);
         $this->app->singleton(MeetingManager::class);
         $this->app->singleton(MeetingRtcManager::class);
+        $this->app->singleton(MeetingRecordingManager::class);
+        $this->app->singleton(MeetingRecordingFinalizer::class);
+        $this->app->singleton(MeetingRecordingAccessManager::class);
+        $this->app->singleton(MeetingRecordingRetention::class);
         $this->app->singleton(MeetingRtcMaintenance::class);
         $this->app->singleton(RealtimeManager::class);
         $this->app->singleton(RtcAccessManager::class);
+        $this->app->bind('chat.managed_process.recording_retention_definition', fn () => MeetingRecordingRetentionProcess::definition());
         $this->app->tag([ConversationManager::class], 'atlas.team_membership_change_participants');
         $this->app->tag([ChatPermissionCatalog::class], 'atlas.permission_catalogs');
         $this->app->tag([ChatRouteAvailability::class], 'atlas.inertia_route_availability');
+        $this->app->tag(['chat.managed_process.recording_retention_definition'], 'atlas.managed_process_definitions');
+        $this->app->tag([MeetingRecordingRetentionProcessHandler::class], 'atlas.managed_process_handlers');
+    }
+
+    public function boot(): void
+    {
+        $this->commands([FinalizeMeetingRecordingsCommand::class, PruneMeetingRecordingsCommand::class]);
     }
 }

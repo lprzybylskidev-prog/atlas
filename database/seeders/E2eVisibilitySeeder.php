@@ -103,6 +103,7 @@ final class E2eVisibilitySeeder extends Seeder
             ...$current->roleNames,
             StarterRoleName::CommunicationAccess->value,
             StarterRoleName::CommunicationMeetingHost->value,
+            StarterRoleName::CommunicationOperations->value,
         ]));
         sort($roles);
 

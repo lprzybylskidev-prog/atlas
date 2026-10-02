@@ -121,6 +121,8 @@ Permission-gated and module-gated UI behavior needs Playwright coverage when man
 
 `MeetingLifecycleTest` is the deterministic P31-W09 PostgreSQL lane. It covers all Meeting modes, invitation/RSVP/removal authorization, one series chat, scoped recurrence mutations, Calendar projections, notifications, RTC eligibility, and cancelled history. `meetings-workflows.spec.ts` covers the rendered Polish in-person scheduling flow, pending invitation, absence of online joining, and Calendar mode/location presentation while retaining the shared console/request guards.
 
+The same Meeting integration lane covers P31-W11 recording authorization, online/hybrid lifecycle and segments, final Files ownership, participant and explicit-share access, revocation, retention removal, and in-person denial. The Meeting browser workflow protects the absence of RTC/recording controls for in-person Meetings and the aggregate Admin recording-retention surface; the frontend contract test protects organizer controls and the participant-visible `REC`/`Paused` state.
+
 ## Future CI
 
 Atlas does not bundle a CI provider. A derived project may add CI later by calling the public Composer and pnpm commands.

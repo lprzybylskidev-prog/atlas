@@ -866,6 +866,7 @@ describe('shared UI guardrails', () => {
             '../Pages/Admin/Authorization/Roles.vue',
             '../Pages/Admin/Authorization/Roles/Create.vue',
             '../Pages/Admin/Authorization/Roles/Edit.vue',
+            '../Pages/Admin/Chat/Operations.vue',
             '../Pages/Admin/FeatureFlags/Index.vue',
             '../Pages/Admin/Files/Index.vue',
             '../Pages/Admin/Impersonation/Start.vue',

@@ -24,6 +24,7 @@ RUN apt-get update \
       bubblewrap \
       ca-certificates \
       curl \
+      ffmpeg \
       git \
       gnupg \
       libfreetype6-dev \

@@ -104,11 +104,15 @@ final class ChatPermissionCatalog implements ModulePermissionContribution
 
     public const RECORDING_MANAGE = ChatPermissionNames::RECORDING_MANAGE;
 
+    public const RECORDING_STATE = ChatPermissionNames::RECORDING_STATE;
+
     public const RECORDING_SHOW = ChatPermissionNames::RECORDING_SHOW;
 
     public const RECORDING_DOWNLOAD = ChatPermissionNames::RECORDING_DOWNLOAD;
 
     public const RECORDING_SHARE = ChatPermissionNames::RECORDING_SHARE;
+
+    public const RECORDING_SHARE_REVOKE = ChatPermissionNames::RECORDING_SHARE_REVOKE;
 
     public const TRANSCRIPTION_STORE = ChatPermissionNames::TRANSCRIPTION_STORE;
 
@@ -123,6 +127,8 @@ final class ChatPermissionCatalog implements ModulePermissionContribution
     public const ADMIN_RETENTION_UPDATE = ChatPermissionNames::ADMIN_RETENTION_UPDATE;
 
     public const ADMIN_RECORDING_RETENTION_UPDATE = ChatPermissionNames::ADMIN_RECORDING_RETENTION_UPDATE;
+
+    public const ADMIN_RECORDING_RETENTION_RUN = ChatPermissionNames::ADMIN_RECORDING_RETENTION_RUN;
 
     public function permissions(): array
     {
@@ -174,9 +180,11 @@ final class ChatPermissionCatalog implements ModulePermissionContribution
             new ModulePermissionDefinition(self::MEETING_RTC_LOCK_UPDATE, 'Lock or unlock an owned Meeting RTC session.'),
             new ModulePermissionDefinition(self::MEETING_RTC_END, 'End an owned Meeting RTC session for everyone.'),
             new ModulePermissionDefinition(self::RECORDING_MANAGE, 'Manage recording for an owned Meeting.'),
+            new ModulePermissionDefinition(self::RECORDING_STATE, 'See the recording state in an authorized live Meeting.'),
             new ModulePermissionDefinition(self::RECORDING_SHOW, 'View authorized Meeting recordings.'),
             new ModulePermissionDefinition(self::RECORDING_DOWNLOAD, 'Download authorized Meeting recordings.'),
             new ModulePermissionDefinition(self::RECORDING_SHARE, 'Share authorized Meeting recordings with selected Atlas users.'),
+            new ModulePermissionDefinition(self::RECORDING_SHARE_REVOKE, 'Revoke own Meeting recording shares.'),
             new ModulePermissionDefinition(self::TRANSCRIPTION_STORE, 'Request transcription of an authorized Meeting recording.'),
             new ModulePermissionDefinition(self::TRANSCRIPTION_SHOW, 'View authorized Meeting transcripts.'),
             new ModulePermissionDefinition(self::TRANSCRIPTION_UPDATE, 'Edit authorized Meeting transcripts.'),
@@ -184,6 +192,7 @@ final class ChatPermissionCatalog implements ModulePermissionContribution
             new ModulePermissionDefinition(self::ADMIN_OPERATIONS_INDEX, 'View aggregate Chat operational status without private communication content.'),
             new ModulePermissionDefinition(self::ADMIN_RETENTION_UPDATE, 'Administer Chat retention without private communication content access.'),
             new ModulePermissionDefinition(self::ADMIN_RECORDING_RETENTION_UPDATE, 'Administer Meeting recording retention without private communication content access.'),
+            new ModulePermissionDefinition(self::ADMIN_RECORDING_RETENTION_RUN, 'Run Meeting recording retention without private communication content access.'),
         ];
     }
 }

@@ -36,4 +36,18 @@ describe('Meeting pre-call contract', () => {
         expect(setup).toContain('saveCallPreferences');
         expect(setup).toContain('previewStream.value?.getTracks().forEach((track) => track.stop())');
     });
+
+    it('shows organizer recording controls and a participant-visible recording state only inside RTC Meetings', () => {
+        const page = pages['./Show.vue'] ?? '';
+
+        expect(page).toContain('v-if="meeting.canManageRecording && recording.status === \'not_recording\'"');
+        expect(page).toContain('@click="controlRecording(\'start\')"');
+        expect(page).toContain('@click="controlRecording(\'pause\')"');
+        expect(page).toContain('@click="controlRecording(\'resume\')"');
+        expect(page).toContain('@click="controlRecording(\'stop\')"');
+        expect(page).toContain('data-testid="meeting-recording-state"');
+        expect(page).toContain('aria-live="polite"');
+        expect(page).toContain("meeting.mode !== 'in_person' && recording.publicId");
+        expect(page).toContain('v-if="canUseRtcSession"');
+    });
 });

@@ -65,6 +65,8 @@ return Application::configure(basePath: dirname(__DIR__))
         $schedule->command('system:operational-alerts')->everyFiveMinutes()->withoutOverlapping();
         $schedule->command('files:prune-temporary')->hourly()->withoutOverlapping();
         $schedule->command('chat:meetings:end-empty-rtc-sessions')->everyMinute()->withoutOverlapping();
+        $schedule->command('chat:meetings:finalize-recordings')->everyMinute()->withoutOverlapping();
+        $schedule->command('chat:meetings:prune-recordings')->dailyAt('02:30')->withoutOverlapping();
     })
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([

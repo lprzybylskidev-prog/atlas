@@ -46,6 +46,7 @@ Current rules:
 - uploaded physical paths are generated and do not use the original filename;
 - clean duplicate uploads may reuse the canonical physical object by checksum and size while preserving separate metadata records;
 - uploaded files enter `pending` quarantine and are unavailable until scan completion;
+- trusted Atlas-generated artifacts may be streamed from a server-owned path through `storeGeneratedFromPath`; they become private clean Files records without loading a potentially large artifact into PHP memory, and callers retain only the Files public identifier;
 - only `clean` files may be returned by the download use case;
 - `pending`, `scanning`, `infected`, `failed`, and `unsupported` files remain blocked;
 - checksum mismatch between stored metadata and scan evidence invalidates the result and returns the file to `pending`;

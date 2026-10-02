@@ -165,6 +165,44 @@ final readonly class DatabaseFileStorage implements FileAvailability, FileLifecy
         );
     }
 
+    public function storeGeneratedFromPath(string $filename, string $mimeType, string $sourcePath, ?int $actorId = null, ?int $teamId = null, array $metadata = []): StoredFile
+    {
+        if (! is_file($sourcePath) || ! is_readable($sourcePath)) {
+            throw new InvalidArgumentException('Generated file source is not readable.');
+        }
+        $checksum = hash_file('sha256', $sourcePath);
+        $sizeBytes = filesize($sourcePath);
+        $stream = fopen($sourcePath, 'rb');
+        if (! is_string($checksum) || ! is_int($sizeBytes) || $stream === false) {
+            throw new InvalidArgumentException('Generated file source metadata could not be read.');
+        }
+
+        try {
+            $disk = Config::string('atlas.files.disk', 'atlas_files');
+            $extension = strtolower((string) pathinfo($filename, PATHINFO_EXTENSION));
+            $publicId = (string) Str::ulid();
+            $path = sprintf('%s/%s/%s', now('UTC')->format('Y/m/d'), Str::lower(Str::random(12)), Str::lower((string) Str::ulid()).($extension === '' ? '' : '.'.$extension));
+            if (! Storage::disk($disk)->put($path, $stream, ['visibility' => 'private'])) {
+                throw new InvalidArgumentException('Generated file could not be stored.');
+            }
+
+            $id = (int) $this->db->table(FilesDatabaseTable::FILE_OBJECTS)->insertGetId([
+                'public_id' => $publicId, 'disk' => $disk, 'path' => $path, 'canonical_file_object_id' => null,
+                'physical_owner' => true, 'original_name' => $filename, 'extension' => $extension, 'mime_type' => $mimeType,
+                'size_bytes' => $sizeBytes, 'checksum_sha256' => $checksum, 'scan_state' => FileScanState::Clean->value,
+                'scan_state_changed_at' => now(), 'scan_attempts' => 0, 'available_at' => now(), 'quarantined_at' => now(),
+                'metadata' => $this->json($metadata), 'created_at' => now(), 'updated_at' => now(),
+            ]);
+            $this->recordAudit('file.generated', 'succeeded', $actorId, $teamId, $publicId, [
+                'original_name' => $filename, 'mime_type' => $mimeType, 'size_bytes' => $sizeBytes, 'checksum_sha256' => $checksum,
+            ]);
+
+            return new StoredFile($publicId, $filename, $mimeType, $sizeBytes, $checksum, FileScanState::Clean, false, $id);
+        } finally {
+            fclose($stream);
+        }
+    }
+
     public function cleanDownloadPath(string $publicId, ?int $actorId = null, ?int $teamId = null): string
     {
         return $this->cleanDownloadFile($publicId, $actorId, $teamId)->path;

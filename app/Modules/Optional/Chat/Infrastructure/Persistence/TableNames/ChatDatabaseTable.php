@@ -58,5 +58,11 @@ final class ChatDatabaseTable
 
     public const MEETING_RECORDINGS = DatabaseSchema::OPTIONAL_CHAT.'.meeting_recordings';
 
+    public const MEETING_RECORDING_SEGMENTS = DatabaseSchema::OPTIONAL_CHAT.'.meeting_recording_segments';
+
+    public const MEETING_RECORDING_SHARES = DatabaseSchema::OPTIONAL_CHAT.'.meeting_recording_shares';
+
     public const MEETING_TRANSCRIPTIONS = DatabaseSchema::OPTIONAL_CHAT.'.meeting_transcriptions';
+
+    public const SETTINGS = DatabaseSchema::OPTIONAL_CHAT.'.settings';
 }

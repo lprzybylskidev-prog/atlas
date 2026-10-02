@@ -41,6 +41,7 @@ RUN apt-get update \
       chromium \
       chromium-sandbox \
       curl \
+      ffmpeg \
       libfreetype6 \
       libfreetype6-dev \
       libicu72 \

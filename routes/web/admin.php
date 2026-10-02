@@ -37,6 +37,8 @@ use App\Modules\Core\Users\Presentation\Http\Controllers\StoreUserAccountControl
 use App\Modules\Core\Users\Presentation\Http\Controllers\UpdateUserAccountController;
 use App\Modules\Core\Users\Presentation\Http\Controllers\UserAccountActionController;
 use App\Modules\Core\Users\Presentation\Http\Controllers\UserAdministrationController;
+use App\Modules\Optional\Chat\Application\Permissions\ChatPermissionCatalog;
+use App\Modules\Optional\Chat\Presentation\Http\Controllers\AdminChatOperationsController;
 use App\Modules\Optional\FeatureFlags\Presentation\Http\Controllers\AdminFeatureFlagsController;
 use App\Modules\Optional\Integrations\Presentation\Http\Controllers\AdminIntegrationsController;
 use App\Modules\Optional\ManagedProcesses\Presentation\Http\Controllers\AdminManagedProcessesController;
@@ -132,6 +134,9 @@ Route::middleware(['auth', 'admin.mode', 'route.permission'])->group(function ()
     Route::post('/admin/queues/failed-jobs/retry', [AdminFailedJobController::class, 'retry'])->name('admin.queues.retry');
     Route::post('/admin/queues/failed-jobs/acknowledge', [AdminFailedJobController::class, 'acknowledge'])->name('admin.queues.acknowledge');
     Route::get('/admin/files', [AdminFilesController::class, 'index'])->name('admin.files.index');
+    Route::get('/admin/chat/operations', [AdminChatOperationsController::class, 'index'])->name(ChatPermissionCatalog::ADMIN_OPERATIONS_INDEX);
+    Route::patch('/admin/chat/recording-retention', [AdminChatOperationsController::class, 'update'])->name(ChatPermissionCatalog::ADMIN_RECORDING_RETENTION_UPDATE);
+    Route::post('/admin/chat/recording-retention/run', [AdminChatOperationsController::class, 'run'])->name(ChatPermissionCatalog::ADMIN_RECORDING_RETENTION_RUN);
     Route::post('/admin/files/acknowledge', [AdminFilesController::class, 'acknowledge'])->name('admin.files.acknowledge');
     Route::post('/admin/files/{file}/rescan', [AdminFilesController::class, 'rescan'])->name('admin.files.rescan');
     Route::get('/admin/work-time/summary', [AdminTimeTrackingOperationsController::class, 'daily'])->name('admin.work-time.summary.index');

@@ -343,6 +343,15 @@ const groups: NavigationGroupDefinition[] = [
             item('system-configuration.queues', 'navigation.queues', '/admin/queues', IconRoute, 'admin.queues.index', 'admin', ['admin']),
             item('system-configuration.files', 'navigation.files', '/admin/files', IconFiles, 'admin.files.index', 'admin', ['admin']),
             item(
+                'system-configuration.chat-operations',
+                'navigation.chat_operations',
+                '/admin/chat/operations',
+                IconVideo,
+                'admin.chat.operations.index',
+                'admin',
+                ['admin'],
+            ),
+            item(
                 'system-configuration.privacy-retention',
                 'navigation.privacy_retention',
                 '/admin/privacy-retention',

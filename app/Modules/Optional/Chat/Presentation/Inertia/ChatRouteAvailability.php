@@ -24,6 +24,7 @@ final readonly class ChatRouteAvailability implements InertiaRouteAvailabilityCo
             ChatPermissionCatalog::ADMIN_OPERATIONS_INDEX,
             ChatPermissionCatalog::ADMIN_RETENTION_UPDATE,
             ChatPermissionCatalog::ADMIN_RECORDING_RETENTION_UPDATE,
+            ChatPermissionCatalog::ADMIN_RECORDING_RETENTION_RUN,
         ] : [];
     }
 
@@ -55,9 +56,11 @@ final readonly class ChatRouteAvailability implements InertiaRouteAvailabilityCo
             ChatPermissionCatalog::MEETING_INVITATION_STORE,
             ChatPermissionCatalog::MEETING_MODERATE,
             ChatPermissionCatalog::RECORDING_MANAGE,
+            ChatPermissionCatalog::RECORDING_STATE,
             ChatPermissionCatalog::RECORDING_SHOW,
             ChatPermissionCatalog::RECORDING_DOWNLOAD,
             ChatPermissionCatalog::RECORDING_SHARE,
+            ChatPermissionCatalog::RECORDING_SHARE_REVOKE,
             ChatPermissionCatalog::TRANSCRIPTION_STORE,
             ChatPermissionCatalog::TRANSCRIPTION_SHOW,
             ChatPermissionCatalog::TRANSCRIPTION_UPDATE,

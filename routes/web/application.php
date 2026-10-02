@@ -28,6 +28,9 @@ use App\Modules\Optional\Chat\Presentation\Http\Controllers\ChatConversationCont
 use App\Modules\Optional\Chat\Presentation\Http\Controllers\ChatMessageController;
 use App\Modules\Optional\Chat\Presentation\Http\Controllers\ChatRealtimeController;
 use App\Modules\Optional\Chat\Presentation\Http\Controllers\MeetingController;
+use App\Modules\Optional\Chat\Presentation\Http\Controllers\MeetingRecordingAccessController;
+use App\Modules\Optional\Chat\Presentation\Http\Controllers\MeetingRecordingController;
+use App\Modules\Optional\Chat\Presentation\Http\Controllers\MeetingRecordingTemplateController;
 use App\Modules\Optional\Chat\Presentation\Http\Controllers\MeetingRtcController;
 use App\Modules\Optional\TimeTracking\Application\Permissions\TimeTrackingPermissionCatalog;
 use App\Modules\Optional\TimeTracking\Presentation\Http\Controllers\ActivityTrackerController;
@@ -45,6 +48,8 @@ use App\Modules\Optional\TimeTracking\Presentation\Http\Controllers\UserTimeRepo
 use App\Shared\Presentation\Http\Controllers\TableSavedViewController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
+
+Route::get('/rtc/recording-template', MeetingRecordingTemplateController::class)->name('chat.rtc.recording-template');
 
 Route::middleware('auth')->group(function (): void {
     Route::get('/team/select', [ActiveTeamController::class, 'select'])->name('team.select');
@@ -107,6 +112,12 @@ Route::middleware(['auth', 'route.permission'])->group(function (): void {
     Route::post('/meetings/{meeting}/rtc/participants/{participant}/moderate', [MeetingRtcController::class, 'moderate'])->name(ChatPermissionCatalog::MEETING_RTC_MODERATE);
     Route::patch('/meetings/{meeting}/rtc/lock', [MeetingRtcController::class, 'lock'])->name(ChatPermissionCatalog::MEETING_RTC_LOCK_UPDATE);
     Route::post('/meetings/{meeting}/rtc/end', [MeetingRtcController::class, 'end'])->name(ChatPermissionCatalog::MEETING_RTC_END);
+    Route::get('/meetings/{meeting}/recording', [MeetingRecordingController::class, 'show'])->name(ChatPermissionCatalog::RECORDING_STATE);
+    Route::post('/meetings/{meeting}/recording/{action}', [MeetingRecordingController::class, 'control'])->name(ChatPermissionCatalog::RECORDING_MANAGE);
+    Route::get('/meeting-recordings/{recording}', [MeetingRecordingAccessController::class, 'show'])->name(ChatPermissionCatalog::RECORDING_SHOW);
+    Route::get('/meeting-recordings/{recording}/download', [MeetingRecordingAccessController::class, 'download'])->name(ChatPermissionCatalog::RECORDING_DOWNLOAD);
+    Route::post('/meeting-recordings/{recording}/shares', [MeetingRecordingAccessController::class, 'share'])->name(ChatPermissionCatalog::RECORDING_SHARE);
+    Route::delete('/meeting-recordings/{recording}/shares/{share}', [MeetingRecordingAccessController::class, 'revoke'])->name(ChatPermissionCatalog::RECORDING_SHARE_REVOKE);
     Route::post('/calendar/events', [CalendarController::class, 'store'])->name(CalendarPermissionCatalog::EVENT_STORE);
     Route::patch('/calendar/events/{event}', [CalendarController::class, 'update'])->name(CalendarPermissionCatalog::EVENT_UPDATE);
     Route::delete('/calendar/events/{event}', [CalendarController::class, 'destroy'])->name(CalendarPermissionCatalog::EVENT_DESTROY);

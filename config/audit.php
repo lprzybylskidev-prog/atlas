@@ -166,8 +166,14 @@ return [
             'chat.group.member_left', 'chat.group.member_removed',
             'chat.group.metadata_changed', 'chat.group.ownership_transferred',
             'chat.meeting.created', 'chat.meeting.updated', 'chat.meeting.cancelled',
-        ], ['call', 'conversation', 'meeting', 'user'], ['call', 'conversation', 'meeting', 'user'], [
-            'member_count', 'member_public_id', 'new_owner_public_id', 'mode',
+            'chat.meeting_recording.paused', 'chat.meeting_recording.removed_by_retention',
+            'chat.meeting_recording.resumed', 'chat.meeting_recording.share_revoked',
+            'chat.meeting_recording.shared', 'chat.meeting_recording.started',
+            'chat.meeting_recording.stopped',
+            'chat.recording_retention.configured',
+        ], ['call', 'conversation', 'meeting', 'meeting_recording', 'recording_retention_policy', 'user'], ['call', 'conversation', 'meeting', 'meeting_recording', 'recording_retention_policy', 'user'], [
+            'days', 'member_count', 'member_public_id', 'mode', 'new_owner_public_id',
+            'occurrence_date', 'recipient_public_id', 'share_public_id',
         ]),
         'tests' => $catalog([
             'audit.append_only_probe', 'audit.atomicity_probe', 'audit.impersonated_action_probe',

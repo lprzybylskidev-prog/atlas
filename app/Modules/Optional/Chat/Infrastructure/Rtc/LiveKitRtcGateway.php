@@ -6,6 +6,7 @@ namespace App\Modules\Optional\Chat\Infrastructure\Rtc;
 
 use App\Modules\Optional\Chat\Application\Contracts\RtcGateway;
 use App\Modules\Optional\Chat\Application\DTOs\RtcParticipantAccess;
+use App\Modules\Optional\Chat\Application\DTOs\RtcRecordingStart;
 use App\Modules\Optional\Chat\Application\DTOs\RtcSessionAdmission;
 use App\Modules\Optional\Chat\Application\Exceptions\RtcAccessDenied;
 use App\Modules\Optional\Chat\Application\Exceptions\RtcUnavailable;
@@ -32,6 +33,9 @@ final readonly class LiveKitRtcGateway implements RtcGateway
         private int $emptyRoomTimeoutSeconds,
         int $requestTimeoutSeconds,
         ?ClientInterface $httpClient = null,
+        private bool $egressEnabled = true,
+        private string $recordingTemplateUrl = 'http://app/rtc/recording-template',
+        private string $egressOutputDirectory = '/out',
     ) {
         foreach ([$serverUrl, $clientUrl, $apiKey, $apiSecret] as $value) {
             if (trim($value) === '') {
@@ -126,6 +130,40 @@ final readonly class LiveKitRtcGateway implements RtcGateway
         ]);
     }
 
+    public function startRoomCompositeRecording(string $roomName, string $recordingPublicId, int $segment): RtcRecordingStart
+    {
+        if (! $this->egressEnabled) {
+            throw RtcUnavailable::disabled();
+        }
+
+        $relativePath = sprintf('meeting-recordings/%s/segment-%03d.mp4', strtolower($recordingPublicId), $segment);
+        $response = $this->callEgressService('StartRoomCompositeEgress', [
+            'room_name' => $roomName,
+            'layout' => 'custom',
+            'custom_base_url' => $this->recordingTemplateUrl,
+            'audio_only' => false,
+            'video_only' => false,
+            'file_outputs' => [[
+                'filepath' => rtrim($this->egressOutputDirectory, '/').'/'.$relativePath,
+                'disable_manifest' => true,
+            ]],
+        ]);
+        $egressId = $response['egress_id'] ?? null;
+        if (! is_string($egressId) || trim($egressId) === '') {
+            throw RtcUnavailable::invalidEgressResponse();
+        }
+
+        return new RtcRecordingStart($egressId, $relativePath);
+    }
+
+    public function stopRoomCompositeRecording(string $egressId): void
+    {
+        if (! $this->egressEnabled) {
+            throw RtcUnavailable::disabled();
+        }
+        $this->callEgressService('StopEgress', ['egress_id' => $egressId]);
+    }
+
     /**
      * @param  array<string, bool|string|int>  $payload
      * @param  array<string, bool|string>  $videoGrant
@@ -147,6 +185,38 @@ final readonly class LiveKitRtcGateway implements RtcGateway
                 ],
                 'json' => $payload,
             ]);
+        } catch (Throwable $exception) {
+            throw RtcUnavailable::infrastructure($exception);
+        }
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     * @return array<string, mixed>
+     */
+    private function callEgressService(string $method, array $payload): array
+    {
+        try {
+            $issuedAt = time();
+            $token = $this->encodeToken(['video' => ['roomRecord' => true]], $issuedAt, $issuedAt + self::SERVICE_TOKEN_TTL_SECONDS);
+            $response = $this->httpClient->request('POST', 'twirp/livekit.Egress/'.$method, [
+                'headers' => ['Authorization' => 'Bearer '.$token, 'Content-Type' => 'application/json'],
+                'json' => $payload,
+            ]);
+            $decoded = json_decode((string) $response->getBody(), true, flags: JSON_THROW_ON_ERROR);
+            if (! is_array($decoded)) {
+                return [];
+            }
+            $normalized = [];
+            foreach ($decoded as $key => $value) {
+                if (is_string($key)) {
+                    $normalized[$key] = $value;
+                }
+            }
+
+            return $normalized;
+        } catch (RtcUnavailable $exception) {
+            throw $exception;
         } catch (Throwable $exception) {
             throw RtcUnavailable::infrastructure($exception);
         }

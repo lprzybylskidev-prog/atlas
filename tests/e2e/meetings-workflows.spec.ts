@@ -127,6 +127,9 @@ test('creates an in-person Meeting with pending invitation and Calendar presenta
     await expect(page.getByRole('button', { name: /Dołącz online|Join online/ })).toHaveCount(0);
     await expect(page.getByRole('dialog', { name: /Sprawdź urządzenia przed spotkaniem|Check devices before the Meeting/ })).toHaveCount(0);
     await expect(page.getByTestId('meeting-preflight')).toHaveCount(0);
+    await expect(page.getByRole('button', { name: /Rozpocznij nagrywanie|Start recording/ })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: /Wstrzymaj nagrywanie|Pause recording/ })).toHaveCount(0);
+    await expect(page.getByTestId('meeting-recording-state')).toHaveCount(0);
 
     await page.waitForLoadState('networkidle');
     await page
@@ -139,6 +142,24 @@ test('creates an in-person Meeting with pending invitation and Calendar presenta
     await expect(page.getByText(title)).toBeVisible();
     await expect(page.getByText(/Stacjonarne|In person/).first()).toBeVisible();
     await expect(page.getByText(location)).toBeVisible();
+});
+
+test('configures aggregate Meeting recording retention without exposing recording content', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'chromium', 'The recording-retention Admin workflow is covered once in Chromium.');
+    await signInToVisibilityTeam(page, 'admin@example.test');
+    await page.goto('/admin-mode');
+    await page.getByLabel(/Hasło|Password/).fill('password');
+    await page.getByRole('button', { name: /Potwierdź|Confirm/ }).click();
+    await page.waitForLoadState('networkidle');
+    await page.goto('/admin/chat/operations');
+
+    await expect(page.getByRole('heading', { level: 1, name: /Operacje komunikacji|Communication operations/ })).toBeVisible();
+    const retention = page.getByLabel(/Retencja \(dni\)|Retention \(days\)/);
+    await retention.fill('30');
+    await page.getByRole('button', { name: /Zapisz|Save/, exact: true }).click();
+    await expect(retention).toHaveValue('30');
+    await expect(page.getByText('30', { exact: true }).first()).toBeVisible();
+    await expect(page.locator('video')).toHaveCount(0);
 });
 
 test('keeps one hybrid Meeting visible and RTC-ready for organizer and invited participant in separate browsers', async ({

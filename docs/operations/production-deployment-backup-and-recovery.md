@@ -295,7 +295,7 @@ This smoke remains a runtime prerequisite, not a deployment procedure. It does n
 
 ## Manual Ubuntu/Debian runtime parity
 
-The non-container Ubuntu/Debian runtime contract remains relevant for behavioral parity, external dependency documentation, and supported operational mechanisms. It requires the same PHP extensions, locked Composer and Node dependencies, Chromium, ClamAV, PostgreSQL, Redis, Meilisearch, queues, scheduler, a supervised non-root Reverb process behind the Atlas reverse proxy, writable application storage, private Files storage, health checks, and non-root execution as the container runtime.
+The non-container Ubuntu/Debian runtime contract remains relevant for behavioral parity, external dependency documentation, and supported operational mechanisms. It requires the same PHP extensions, locked Composer and Node dependencies, Chromium, `ffmpeg`, ClamAV, PostgreSQL, Redis, Meilisearch, queues, scheduler, a supervised non-root Reverb process behind the Atlas reverse proxy, writable application storage, a private LiveKit Egress staging directory shared with the scheduler, private Files storage, health checks, and non-root execution as the container runtime.
 
 This parity contract does not replace the Phase 40 baseline installation workflow: the canonical production installer targets the company-controlled single-host/VM Docker Compose topology.
 

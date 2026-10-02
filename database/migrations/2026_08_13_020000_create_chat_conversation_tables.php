@@ -524,15 +524,51 @@ SQL);
         Schema::create(ChatDatabaseTable::MEETING_RECORDINGS, static function (Blueprint $table): void {
             $table->id();
             $table->ulid('public_id')->unique();
-            $table->unsignedBigInteger('occurrence_id');
+            $table->unsignedBigInteger('occurrence_id')->unique();
+            $table->unsignedBigInteger('initiated_by_user_id');
             $table->string('status', 24);
             $table->string('file_public_id', 26)->nullable()->unique();
             $table->timestampTz('started_at')->nullable();
             $table->timestampTz('ended_at')->nullable();
+            $table->unsignedInteger('duration_seconds')->nullable();
+            $table->timestampTz('retention_removed_at')->nullable();
+            $table->string('failure_code', 80)->nullable();
             $table->timestampsTz();
             $table->foreign('occurrence_id')->references('id')->on(ChatDatabaseTable::MEETING_OCCURRENCES)->restrictOnDelete();
-            $table->index(['occurrence_id', 'status']);
+            $table->foreign('initiated_by_user_id')->references('id')->on(IdentityDatabaseTable::USERS)->restrictOnDelete();
+            $table->index('status');
         });
+        DB::statement(sprintf("alter table %s add constraint chat_meeting_recordings_status_check check (status in ('starting', 'recording', 'pausing', 'paused', 'resuming', 'stopping', 'processing', 'ready', 'failed', 'removed'))", ChatDatabaseTable::MEETING_RECORDINGS));
+
+        Schema::create(ChatDatabaseTable::MEETING_RECORDING_SEGMENTS, static function (Blueprint $table): void {
+            $table->id();
+            $table->unsignedBigInteger('recording_id');
+            $table->unsignedSmallInteger('sequence');
+            $table->string('egress_id', 128)->unique();
+            $table->string('staging_path', 512)->unique();
+            $table->string('status', 16);
+            $table->timestampTz('started_at')->nullable();
+            $table->timestampTz('ended_at')->nullable();
+            $table->timestampsTz();
+            $table->foreign('recording_id')->references('id')->on(ChatDatabaseTable::MEETING_RECORDINGS)->restrictOnDelete();
+            $table->unique(['recording_id', 'sequence']);
+        });
+        DB::statement(sprintf("alter table %s add constraint chat_meeting_recording_segments_status_check check (status in ('starting', 'recording', 'stopping', 'processing', 'ready', 'failed'))", ChatDatabaseTable::MEETING_RECORDING_SEGMENTS));
+
+        Schema::create(ChatDatabaseTable::MEETING_RECORDING_SHARES, static function (Blueprint $table): void {
+            $table->id();
+            $table->ulid('public_id')->unique();
+            $table->unsignedBigInteger('recording_id');
+            $table->unsignedBigInteger('recipient_user_id');
+            $table->unsignedBigInteger('shared_by_user_id');
+            $table->timestampTz('revoked_at')->nullable();
+            $table->timestampsTz();
+            $table->foreign('recording_id')->references('id')->on(ChatDatabaseTable::MEETING_RECORDINGS)->restrictOnDelete();
+            $table->foreign('recipient_user_id')->references('id')->on(IdentityDatabaseTable::USERS)->restrictOnDelete();
+            $table->foreign('shared_by_user_id')->references('id')->on(IdentityDatabaseTable::USERS)->restrictOnDelete();
+            $table->index(['recipient_user_id', 'revoked_at']);
+        });
+        DB::statement(sprintf('create unique index chat_meeting_recording_shares_active_unique on %s (recording_id, recipient_user_id) where revoked_at is null', ChatDatabaseTable::MEETING_RECORDING_SHARES));
 
         Schema::create(ChatDatabaseTable::MEETING_ATTENDANCE, static function (Blueprint $table): void {
             $table->id();
@@ -546,11 +582,20 @@ SQL);
             $table->foreign('user_id')->references('id')->on(IdentityDatabaseTable::USERS)->restrictOnDelete();
             $table->index(['occurrence_id', 'user_id']);
         });
+
+        Schema::create(ChatDatabaseTable::SETTINGS, static function (Blueprint $table): void {
+            $table->string('key', 100)->primary();
+            $table->jsonb('value')->nullable();
+            $table->timestampsTz();
+        });
     }
 
     public function down(): void
     {
+        Schema::dropIfExists(ChatDatabaseTable::SETTINGS);
         Schema::dropIfExists(ChatDatabaseTable::MEETING_ATTENDANCE);
+        Schema::dropIfExists(ChatDatabaseTable::MEETING_RECORDING_SHARES);
+        Schema::dropIfExists(ChatDatabaseTable::MEETING_RECORDING_SEGMENTS);
         Schema::dropIfExists(ChatDatabaseTable::MEETING_RTC_PARTICIPANTS);
         Schema::dropIfExists(ChatDatabaseTable::MEETING_RECORDINGS);
         Schema::dropIfExists(ChatDatabaseTable::MEETING_OCCURRENCES);

@@ -8,6 +8,7 @@ use App\Modules\Optional\Chat\Application\ChatModuleAccess;
 use App\Modules\Optional\Chat\Application\Contracts\RtcGateway;
 use App\Modules\Optional\Chat\Application\Contracts\RtcSessionAccessAuthorizer;
 use App\Modules\Optional\Chat\Application\DTOs\RtcParticipantAccess;
+use App\Modules\Optional\Chat\Application\DTOs\RtcRecordingStart;
 use App\Modules\Optional\Chat\Application\DTOs\RtcSessionAdmission;
 use App\Modules\Optional\Chat\Application\Exceptions\RtcAccessDenied;
 use App\Modules\Optional\Chat\Application\RtcAccessManager;
@@ -182,4 +183,11 @@ final class RecordingRtcGateway implements RtcGateway
     public function removeParticipant(string $roomName, string $participantIdentity): void {}
 
     public function endRoom(string $roomName): void {}
+
+    public function startRoomCompositeRecording(string $roomName, string $recordingPublicId, int $segment): RtcRecordingStart
+    {
+        return new RtcRecordingStart('egress-'.$segment, 'recordings/'.$recordingPublicId.'/'.$segment.'.mp4');
+    }
+
+    public function stopRoomCompositeRecording(string $egressId): void {}
 }

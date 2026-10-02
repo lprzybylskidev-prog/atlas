@@ -102,6 +102,36 @@ final class LiveKitRtcGatewayTest extends TestCase
         $gateway->prepareRoom($this->admission(RtcSessionMode::OnlineMeeting));
     }
 
+    public function test_room_composite_recording_uses_atlas_template_and_private_segment_path(): void
+    {
+        $handler = new MockHandler([new Response(200, [], '{"egress_id":"EG_test"}')]);
+        $gateway = $this->gateway(new Client([
+            'base_uri' => 'http://livekit.example.test/',
+            'handler' => HandlerStack::create($handler),
+        ]));
+
+        $started = $gateway->startRoomCompositeRecording('atlas-meeting-1', '01TESTRECORDING00000000000', 2);
+
+        self::assertSame('EG_test', $started->egressId);
+        self::assertSame('meeting-recordings/01testrecording00000000000/segment-002.mp4', $started->stagingPath);
+        $request = $handler->getLastRequest();
+        self::assertNotNull($request);
+        self::assertSame('/twirp/livekit.Egress/StartRoomCompositeEgress', $request->getUri()->getPath());
+        $payload = json_decode((string) $request->getBody(), true, flags: JSON_THROW_ON_ERROR);
+        self::assertIsArray($payload);
+        self::assertSame('custom', $payload['layout']);
+        self::assertSame('http://app/rtc/recording-template', $payload['custom_base_url']);
+        $fileOutputs = $payload['file_outputs'] ?? null;
+        self::assertIsArray($fileOutputs);
+        $firstOutput = $fileOutputs[0] ?? null;
+        self::assertIsArray($firstOutput);
+        self::assertSame('/out/meeting-recordings/01testrecording00000000000/segment-002.mp4', $firstOutput['filepath']);
+        $claims = JWT::decode(substr($request->getHeaderLine('Authorization'), 7), new Key('test-secret-at-least-32-characters-long', 'HS256'));
+        $video = $claims->video;
+        self::assertIsObject($video);
+        self::assertTrue(get_object_vars($video)['roomRecord']);
+    }
+
     private function gateway(?Client $httpClient = null): LiveKitRtcGateway
     {
         return new LiveKitRtcGateway(

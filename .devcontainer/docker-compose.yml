@@ -51,6 +51,7 @@ services:
       ATLAS_HEALTH_LIVEKIT_EGRESS_HOST: livekit-egress
     volumes:
       - ${ATLAS_WORKSPACE_SOURCE:-..}:/var/www/html:cached
+      - livekit-egress-data:/var/lib/atlas/livekit-egress
     depends_on:
       postgres:
         condition: service_healthy
@@ -169,6 +170,7 @@ services:
       ATLAS_CHROMIUM_BINARY: /usr/bin/chromium
     volumes:
       - ${ATLAS_WORKSPACE_SOURCE:-..}:/var/www/html:cached
+      - livekit-egress-data:/var/lib/atlas/livekit-egress
     depends_on:
       php-fpm:
         condition: service_started
@@ -208,6 +210,7 @@ services:
       ATLAS_CHROMIUM_BINARY: /usr/bin/chromium
     volumes:
       - ${ATLAS_WORKSPACE_SOURCE:-..}:/var/www/html:cached
+      - livekit-egress-data:/var/lib/atlas/livekit-egress
     depends_on:
       php-fpm:
         condition: service_started
@@ -247,6 +250,7 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
       - composer-cache:/home/vscode/.composer/cache
       - pnpm-store:/home/vscode/.local/share/pnpm/store
+      - livekit-egress-data:/var/lib/atlas/livekit-egress
     depends_on:
       postgres:
         condition: service_healthy

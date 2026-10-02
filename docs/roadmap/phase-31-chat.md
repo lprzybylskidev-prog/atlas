@@ -1,6 +1,6 @@
 # Phase 31 — Optional internal company chat, calendar, calls, meetings, and realtime communication
 
-**Status:** `in progress` (`P31-W01` through `P31-W10` complete; `P31-W11` is next)
+**Status:** `in progress` (`P31-W01` through `P31-W11` complete; `P31-W12` is next)
 
 ## Objective
 
@@ -1874,36 +1874,36 @@ Use queue/Managed Processes for large cleanup.
 
 ### Tasks
 
-- [ ] Add RTC-enabled Meeting recording permission/organizer enforcement.
-- [ ] Allow online Meetings to be recorded under the existing organizer/permission rules.
-- [ ] Allow hybrid Meetings to be recorded under the existing organizer/permission rules.
-- [ ] Prevent in-person Meetings from starting Atlas RTC recording.
-- [ ] Keep in-person Meeting UI free of recording controls.
-- [ ] Limit hybrid recordings to media actually published into LiveKit.
-- [ ] Keep all ad-hoc Calls non-recordable.
-- [ ] Add start/pause/resume/stop UX.
-- [ ] Add clear REC/Paused participant state.
-- [ ] Integrate self-hosted LiveKit Egress.
-- [ ] Add Atlas-owned composite recording template.
-- [ ] Add screen-share-first recording layout.
-- [ ] Add internal segment model where needed.
-- [ ] Produce one final playable/downloadable file.
-- [ ] Add Processing/Ready/Failed states.
-- [ ] Add recording structural timeline events.
-- [ ] Import final recording into Files.
-- [ ] Keep recording lifecycle Files-owned after Egress finalization.
-- [ ] Clean Egress staging safely.
-- [ ] Add participant recording view/download authorization.
-- [ ] Add explicit participant-created recording shares.
-- [ ] Prevent share recipient onward sharing.
-- [ ] Add share revocation.
-- [ ] Prevent public/external sharing.
-- [ ] Add nullable separate recording retention.
-- [ ] Add recording-retention cleanup.
-- [ ] Delete transcript and shares with removed recording.
-- [ ] Preserve lightweight recording metadata.
-- [ ] Add Admin aggregate recording-retention operations.
-- [ ] Add recording/privacy/retention browser and integration tests.
+- [x] Add RTC-enabled Meeting recording permission/organizer enforcement.
+- [x] Allow online Meetings to be recorded under the existing organizer/permission rules.
+- [x] Allow hybrid Meetings to be recorded under the existing organizer/permission rules.
+- [x] Prevent in-person Meetings from starting Atlas RTC recording.
+- [x] Keep in-person Meeting UI free of recording controls.
+- [x] Limit hybrid recordings to media actually published into LiveKit.
+- [x] Keep all ad-hoc Calls non-recordable.
+- [x] Add start/pause/resume/stop UX.
+- [x] Add clear REC/Paused participant state.
+- [x] Integrate self-hosted LiveKit Egress.
+- [x] Add Atlas-owned composite recording template.
+- [x] Add screen-share-first recording layout.
+- [x] Add internal segment model where needed.
+- [x] Produce one final playable/downloadable file.
+- [x] Add Processing/Ready/Failed states.
+- [x] Add recording structural timeline events.
+- [x] Import final recording into Files.
+- [x] Keep recording lifecycle Files-owned after Egress finalization.
+- [x] Clean Egress staging safely.
+- [x] Add participant recording view/download authorization.
+- [x] Add explicit participant-created recording shares.
+- [x] Prevent share recipient onward sharing.
+- [x] Add share revocation.
+- [x] Prevent public/external sharing.
+- [x] Add nullable separate recording retention.
+- [x] Add recording-retention cleanup.
+- [x] Delete transcript and shares with removed recording.
+- [x] Preserve lightweight recording metadata.
+- [x] Add Admin aggregate recording-retention operations.
+- [x] Add recording/privacy/retention browser and integration tests.
 
 ---
 

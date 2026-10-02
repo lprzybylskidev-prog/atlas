@@ -64,6 +64,10 @@ final class ModuleKeyResolver
             return 'files';
         }
 
+        if (str_starts_with($permission, 'admin.chat.') || str_starts_with($permission, 'chat.')) {
+            return 'chat';
+        }
+
         if (str_starts_with($permission, 'admin.privacy-retention.') || str_starts_with($permission, 'privacy.')) {
             return 'privacy';
         }

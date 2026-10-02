@@ -20,6 +20,13 @@ interface FileStorage
      */
     public function storeGenerated(string $filename, string $mimeType, string $contents, ?int $actorId = null, ?int $teamId = null, array $metadata = []): StoredFile;
 
+    /**
+     * Import a trusted Atlas-generated artifact without loading it into application memory.
+     *
+     * @param  array<string, scalar|null>  $metadata
+     */
+    public function storeGeneratedFromPath(string $filename, string $mimeType, string $sourcePath, ?int $actorId = null, ?int $teamId = null, array $metadata = []): StoredFile;
+
     public function cleanDownloadPath(string $publicId, ?int $actorId = null, ?int $teamId = null): string;
 
     public function cleanDownloadFile(string $publicId, ?int $actorId = null, ?int $teamId = null): DownloadableFile;

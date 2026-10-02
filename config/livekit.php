@@ -12,6 +12,10 @@ return [
     'participant_token_ttl_seconds' => (int) env('LIVEKIT_PARTICIPANT_TOKEN_TTL_SECONDS', 300),
     'empty_room_timeout_seconds' => (int) env('LIVEKIT_EMPTY_ROOM_TIMEOUT_SECONDS', 900),
     'request_timeout_seconds' => (int) env('LIVEKIT_REQUEST_TIMEOUT_SECONDS', 5),
+    'recording_template_url' => env('LIVEKIT_RECORDING_TEMPLATE_URL', 'http://app/rtc/recording-template'),
+    'egress_output_directory' => env('LIVEKIT_EGRESS_OUTPUT_DIRECTORY', '/out'),
+    'egress_staging_directory' => env('LIVEKIT_EGRESS_STAGING_DIRECTORY', '/var/lib/atlas/livekit-egress'),
+    'ffmpeg_binary' => env('LIVEKIT_FFMPEG_BINARY', '/usr/bin/ffmpeg'),
     'health' => [
         'livekit' => [
             'host' => env('ATLAS_HEALTH_LIVEKIT_HOST', 'livekit'),

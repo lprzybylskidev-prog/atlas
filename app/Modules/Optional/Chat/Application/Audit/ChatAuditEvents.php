@@ -12,6 +12,22 @@ final class ChatAuditEvents
 
     public const MEETING_CANCELLED = 'chat.meeting.cancelled';
 
+    public const RECORDING_RETENTION_CONFIGURED = 'chat.recording_retention.configured';
+
+    public const RECORDING_STARTED = 'chat.meeting_recording.started';
+
+    public const RECORDING_PAUSED = 'chat.meeting_recording.paused';
+
+    public const RECORDING_RESUMED = 'chat.meeting_recording.resumed';
+
+    public const RECORDING_STOPPED = 'chat.meeting_recording.stopped';
+
+    public const RECORDING_SHARED = 'chat.meeting_recording.shared';
+
+    public const RECORDING_SHARE_REVOKED = 'chat.meeting_recording.share_revoked';
+
+    public const RECORDING_REMOVED_BY_RETENTION = 'chat.meeting_recording.removed_by_retention';
+
     public const CALL_STARTED = 'chat.call.started';
 
     public const CALL_JOINED = 'chat.call.joined';

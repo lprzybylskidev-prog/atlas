@@ -3,17 +3,23 @@ import { Head, router, useForm } from '@inertiajs/vue3';
 import {
     IconCalendarEvent,
     IconDeviceDesktopShare,
+    IconDownload,
     IconLock,
     IconMessage,
     IconMicrophone,
     IconMicrophoneOff,
     IconPhoneOff,
+    IconPlayerPause,
+    IconPlayerPlay,
+    IconPlayerRecord,
+    IconPlayerStop,
     IconUsers,
     IconVideo,
     IconVideoOff,
 } from '@tabler/icons-vue';
-import { computed, nextTick, ref } from 'vue';
+import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue';
 import DialogPanel from '../../Components/DialogPanel.vue';
+import ActionLink from '../../Components/ActionLink.vue';
 import FormButton from '../../Components/Form/FormButton.vue';
 import AtlasForm from '../../Components/Form/AtlasForm.vue';
 import FormDateInput from '../../Components/Form/FormDateInput.vue';
@@ -64,6 +70,7 @@ interface Meeting {
     response: string;
     canJoinOnline: boolean;
     canRejoinOnline: boolean;
+    canManageRecording: boolean;
     recurrenceFrequency: string | null;
     recurrenceWeekdays: number[];
     recurrenceEndsOn: string | null;
@@ -75,7 +82,31 @@ interface MediaDeviceSetupHandle {
     prepare(requestedCamera?: boolean | null): Promise<MediaDevicePreparation>;
     stop(): void;
 }
-const props = defineProps<{ meeting: Meeting; users: UserOption[] }>();
+type RecordingStatus =
+    | 'not_recording'
+    | 'starting'
+    | 'recording'
+    | 'pausing'
+    | 'paused'
+    | 'resuming'
+    | 'stopping'
+    | 'processing'
+    | 'ready'
+    | 'failed'
+    | 'removed';
+interface RecordingState {
+    publicId: string | null;
+    status: RecordingStatus;
+    startedAt: string | null;
+    endedAt: string | null;
+    durationSeconds: number | null;
+    ready: boolean;
+}
+interface RecordingDetails {
+    canShare: boolean;
+    shares: { publicId: string; recipientPublicId: string; recipientName: string }[];
+}
+const props = defineProps<{ meeting: Meeting; users: UserOption[]; recording: RecordingState | null }>();
 const { t } = useTranslator();
 const { confirm } = useModal();
 const invite = useForm({ user_public_id: '' });
@@ -89,6 +120,21 @@ const cameraEnabled = ref(false);
 const microphoneEnabled = ref(true);
 const screenSharing = ref(false);
 const remoteMedia = ref<HTMLDivElement | null>(null);
+const recording = ref<RecordingState>(
+    props.recording ?? {
+        publicId: null,
+        status: 'not_recording',
+        startedAt: null,
+        endedAt: null,
+        durationSeconds: null,
+        ready: false,
+    },
+);
+const recordingBusy = ref(false);
+const recordingDetails = ref<RecordingDetails | null>(null);
+const shareRecipient = ref('');
+const shareBusy = ref(false);
+let recordingPoll: ReturnType<typeof setInterval> | null = null;
 const canUseRtcSession = computed(() => props.meeting.canJoinOnline && props.meeting.mode !== 'in_person');
 const edit = useForm({
     title: props.meeting.title,
@@ -166,6 +212,8 @@ async function joinOnline(): Promise<void> {
         cameraEnabled.value = preparation.cameraEnabled;
         microphoneEnabled.value = preparation.microphoneEnabled;
         rtcActive.value = true;
+        await refreshRecording();
+        recordingPoll = setInterval(() => void refreshRecording(), 3000);
     } finally {
         preCallBusy.value = false;
     }
@@ -199,9 +247,56 @@ async function leaveOnline(): Promise<void> {
     meetingSession.value?.disconnect();
     meetingSession.value = null;
     rtcActive.value = false;
+    if (recordingPoll !== null) clearInterval(recordingPoll);
+    recordingPoll = null;
     rtcMinimized.value = false;
     closePreCall();
 }
+async function refreshRecording(): Promise<void> {
+    if (!canUseRtcSession.value || !rtcActive.value) return;
+    const response = await chatJson<{ recording: RecordingState }>(
+        `/meetings/${props.meeting.publicId}/recording?occurrence_date=${props.meeting.startsAt.slice(0, 10)}`,
+        'GET',
+    );
+    recording.value = response.recording;
+    if (recording.value.status === 'ready') await refreshRecordingDetails();
+}
+async function refreshRecordingDetails(): Promise<void> {
+    if (!recording.value.publicId || recording.value.status !== 'ready') return;
+    const response = await chatJson<{ recording: RecordingDetails }>(`/meeting-recordings/${recording.value.publicId}`, 'GET');
+    recordingDetails.value = response.recording;
+}
+async function shareRecording(): Promise<void> {
+    if (!recording.value.publicId || !shareRecipient.value) return;
+    shareBusy.value = true;
+    try {
+        await chatJson(`/meeting-recordings/${recording.value.publicId}/shares`, 'POST', { recipient_public_id: shareRecipient.value });
+        shareRecipient.value = '';
+        await refreshRecordingDetails();
+    } finally {
+        shareBusy.value = false;
+    }
+}
+async function revokeRecordingShare(share: string): Promise<void> {
+    if (!recording.value.publicId) return;
+    await chatJson(`/meeting-recordings/${recording.value.publicId}/shares/${share}`, 'DELETE');
+    await refreshRecordingDetails();
+}
+async function controlRecording(action: 'start' | 'pause' | 'resume' | 'stop'): Promise<void> {
+    recordingBusy.value = true;
+    try {
+        const response = await chatJson<{ recording: RecordingState }>(`/meetings/${props.meeting.publicId}/recording/${action}`, 'POST', {
+            occurrence_date: props.meeting.startsAt.slice(0, 10),
+        });
+        recording.value = response.recording;
+    } finally {
+        recordingBusy.value = false;
+    }
+}
+onUnmounted(() => {
+    if (recordingPoll !== null) clearInterval(recordingPoll);
+});
+onMounted(() => void refreshRecordingDetails());
 async function moderate(
     participant: string,
     action: 'mute' | 'disable_microphone' | 'restore_microphone' | 'camera_off' | 'stop_screen_share' | 'kick',
@@ -374,6 +469,65 @@ async function remove(id: string): Promise<void> {
             <SurfaceCard :title="t('meetings.chat.title')" :icon="IconMessage">
                 <p class="text-sm text-zinc-600 dark:text-zinc-300">{{ t('meetings.chat.body') }}</p>
             </SurfaceCard>
+            <SurfaceCard
+                v-if="meeting.mode !== 'in_person' && recording.publicId"
+                :title="t('meetings.recording.title')"
+                :icon="IconPlayerRecord"
+            >
+                <div class="space-y-4">
+                    <StatusBadge
+                        :label="t(`meetings.recording.statuses.${recording.status}`)"
+                        :tone="recording.status === 'ready' ? 'success' : recording.status === 'failed' ? 'danger' : 'warning'"
+                    />
+                    <p v-if="recording.status === 'processing'" class="text-sm text-zinc-600 dark:text-zinc-300">
+                        {{ t('meetings.recording.processing') }}
+                    </p>
+                    <template v-if="recording.status === 'ready'">
+                        <video
+                            class="w-full rounded-lg bg-black"
+                            controls
+                            preload="metadata"
+                            :src="`/meeting-recordings/${recording.publicId}/download?preview=1`"
+                        />
+                        <ActionLink :href="`/meeting-recordings/${recording.publicId}/download`" :icon="IconDownload">
+                            {{ t('meetings.recording.actions.download') }}
+                        </ActionLink>
+                        <div v-if="recordingDetails?.canShare" class="space-y-3 border-t border-zinc-200 pt-4 dark:border-zinc-800">
+                            <div class="flex items-end gap-2">
+                                <div class="max-w-md flex-1">
+                                    <FormSelect
+                                        v-model="shareRecipient"
+                                        :label="t('meetings.recording.share.recipient')"
+                                        :options="
+                                            users
+                                                .filter(
+                                                    (user) =>
+                                                        !meeting.participants.some((participant) => participant.publicId === user.publicId),
+                                                )
+                                                .map((user) => ({ value: user.publicId, label: user.name, description: user.email }))
+                                        "
+                                    />
+                                </div>
+                                <FormButton :loading="shareBusy" :disabled="!shareRecipient" @click="shareRecording">
+                                    {{ t('meetings.recording.share.action') }}
+                                </FormButton>
+                            </div>
+                            <ul v-if="recordingDetails.shares.length" class="space-y-2">
+                                <li
+                                    v-for="share in recordingDetails.shares"
+                                    :key="share.publicId"
+                                    class="flex items-center justify-between gap-3 text-sm"
+                                >
+                                    <span>{{ share.recipientName }}</span>
+                                    <FormButton tone="danger" @click="revokeRecordingShare(share.publicId)">
+                                        {{ t('meetings.recording.share.revoke') }}
+                                    </FormButton>
+                                </li>
+                            </ul>
+                        </div>
+                    </template>
+                </div>
+            </SurfaceCard>
             <SurfaceCard v-if="meeting.attendance.length" :title="t('meetings.attendance.title')" :icon="IconUsers">
                 <ul class="space-y-2">
                     <li
@@ -424,6 +578,24 @@ async function remove(id: string): Promise<void> {
             :close-label="t('modal.close')"
             @update:open="closePreCall"
         >
+            <div
+                v-if="rtcActive && ['starting', 'recording', 'pausing', 'paused', 'resuming', 'stopping'].includes(recording.status)"
+                class="mb-4 flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-semibold"
+                :class="
+                    recording.status === 'paused'
+                        ? 'border-amber-400 bg-amber-50 text-amber-800 dark:bg-amber-950/40 dark:text-amber-200'
+                        : 'border-rose-400 bg-rose-50 text-rose-800 dark:bg-rose-950/40 dark:text-rose-200'
+                "
+                role="status"
+                aria-live="polite"
+                data-testid="meeting-recording-state"
+            >
+                <span
+                    class="h-2.5 w-2.5 rounded-full"
+                    :class="recording.status === 'paused' ? 'bg-amber-500' : 'animate-pulse bg-rose-600'"
+                />
+                {{ recording.status === 'paused' ? t('meetings.recording.indicator.paused') : t('meetings.recording.indicator.active') }}
+            </div>
             <p class="mb-4">{{ t('meetings.pre_call.description') }}</p>
             <MediaDeviceSetup ref="deviceSetup" test-id="meeting-preflight" @update:busy="preCallBusy = $event" />
             <template #actions>
@@ -444,6 +616,42 @@ async function remove(id: string): Promise<void> {
                     </FormButton>
                     <FormButton tone="neutral" :icon="IconDeviceDesktopShare" @click="toggleScreenShare">
                         {{ t('meetings.rtc.share') }}
+                    </FormButton>
+                    <FormButton
+                        v-if="meeting.canManageRecording && recording.status === 'not_recording'"
+                        tone="danger"
+                        :icon="IconPlayerRecord"
+                        :loading="recordingBusy"
+                        @click="controlRecording('start')"
+                    >
+                        {{ t('meetings.recording.actions.start') }}
+                    </FormButton>
+                    <FormButton
+                        v-if="meeting.canManageRecording && recording.status === 'recording'"
+                        tone="neutral"
+                        :icon="IconPlayerPause"
+                        :loading="recordingBusy"
+                        @click="controlRecording('pause')"
+                    >
+                        {{ t('meetings.recording.actions.pause') }}
+                    </FormButton>
+                    <FormButton
+                        v-if="meeting.canManageRecording && recording.status === 'paused'"
+                        tone="danger"
+                        :icon="IconPlayerPlay"
+                        :loading="recordingBusy"
+                        @click="controlRecording('resume')"
+                    >
+                        {{ t('meetings.recording.actions.resume') }}
+                    </FormButton>
+                    <FormButton
+                        v-if="meeting.canManageRecording && ['recording', 'paused'].includes(recording.status)"
+                        tone="neutral"
+                        :icon="IconPlayerStop"
+                        :loading="recordingBusy"
+                        @click="controlRecording('stop')"
+                    >
+                        {{ t('meetings.recording.actions.stop') }}
                     </FormButton>
                     <FormButton tone="danger" :icon="IconPhoneOff" @click="leaveOnline">{{ t('meetings.rtc.leave') }}</FormButton>
                     <FormButton v-if="meeting.role === 'organizer'" tone="neutral" :icon="IconLock" @click="lockMeeting(true)">

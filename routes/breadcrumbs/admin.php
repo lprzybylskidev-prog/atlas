@@ -270,6 +270,11 @@ Breadcrumbs::for('admin.privacy-retention.operations.index', function (Generator
     $breadcrumbs->push(__('breadcrumbs.privacy_operations'));
 });
 
+Breadcrumbs::for('admin.chat.operations.index', function (Generator $breadcrumbs): void {
+    atlas_admin_panel_root($breadcrumbs);
+    $breadcrumbs->push(__('breadcrumbs.chat_operations'));
+});
+
 Breadcrumbs::for('admin.feature-flags.index', function (Generator $breadcrumbs): void {
     atlas_admin_panel_root($breadcrumbs);
     $breadcrumbs->push(__('breadcrumbs.feature_flags'));

@@ -18,4 +18,9 @@ final class RtcUnavailable extends RuntimeException
     {
         return new self('RTC media infrastructure is currently unavailable.', previous: $previous);
     }
+
+    public static function invalidEgressResponse(): self
+    {
+        return new self('RTC recording infrastructure returned an invalid response.');
+    }
 }

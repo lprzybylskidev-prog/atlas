@@ -9,12 +9,18 @@ use App\Modules\Core\Calendar\Infrastructure\Persistence\TableNames\CalendarData
 use App\Modules\Core\Identity\Infrastructure\Persistence\User;
 use App\Modules\Core\Notifications\Application\Public\Contracts\NotificationPublisher;
 use App\Modules\Core\Notifications\Application\Public\DTOs\CreateNotification;
+use App\Modules\Optional\Chat\Application\Contracts\MeetingRecordingAssembler;
 use App\Modules\Optional\Chat\Application\Contracts\RtcGateway;
 use App\Modules\Optional\Chat\Application\DTOs\MeetingInput;
 use App\Modules\Optional\Chat\Application\DTOs\RtcParticipantAccess;
+use App\Modules\Optional\Chat\Application\DTOs\RtcRecordingStart;
 use App\Modules\Optional\Chat\Application\DTOs\RtcSessionAdmission;
 use App\Modules\Optional\Chat\Application\Exceptions\MeetingOperationDenied;
 use App\Modules\Optional\Chat\Application\MeetingManager;
+use App\Modules\Optional\Chat\Application\MeetingRecordingAccessManager;
+use App\Modules\Optional\Chat\Application\MeetingRecordingFinalizer;
+use App\Modules\Optional\Chat\Application\MeetingRecordingManager;
+use App\Modules\Optional\Chat\Application\MeetingRecordingRetention;
 use App\Modules\Optional\Chat\Application\MeetingRtcMaintenance;
 use App\Modules\Optional\Chat\Application\MeetingRtcManager;
 use App\Modules\Optional\Chat\Domain\Conversations\MeetingResponse;
@@ -175,6 +181,91 @@ final class MeetingLifecycleTest extends TestCase
         }
     }
 
+    public function test_online_and_hybrid_recordings_are_organizer_controlled_segmented_and_structurally_recorded(): void
+    {
+        [$organizer, $participant, $recipient, $other] = User::factory()->count(4)->create()->all();
+        $gateway = new RecordingMeetingRtcGateway;
+        $this->app->instance(RtcGateway::class, $gateway);
+        $this->app->forgetInstance(MeetingRtcManager::class);
+        $this->app->forgetInstance(MeetingRecordingManager::class);
+        $this->app->instance(MeetingRecordingAssembler::class, new ReadyMeetingRecordingAssembler);
+        $this->app->forgetInstance(MeetingRecordingFinalizer::class);
+
+        foreach ([MeetingMode::Online, MeetingMode::Hybrid] as $mode) {
+            $meeting = $this->app->make(MeetingManager::class)->create(
+                (string) $organizer->public_id,
+                'team',
+                $this->input($mode, [(string) $participant->public_id], $mode === MeetingMode::Hybrid ? 'Room 1' : null),
+            )['meeting'];
+            $date = $meeting->startsAt->setTimezone(new \DateTimeZone('Europe/Warsaw'))->format('Y-m-d');
+            $this->app->make(MeetingRtcManager::class)->join((string) $organizer->public_id, 'team', $meeting->publicId, $date, false, true);
+            $recordings = $this->app->make(MeetingRecordingManager::class);
+
+            try {
+                $recordings->control((string) $participant->public_id, 'team', $meeting->publicId, $date, 'start');
+                self::fail('A non-organizer started Meeting recording.');
+            } catch (MeetingOperationDenied $exception) {
+                self::assertSame('Only the Meeting organizer may perform this operation.', $exception->getMessage());
+            }
+
+            self::assertSame('recording', $recordings->control((string) $organizer->public_id, 'team', $meeting->publicId, $date, 'start')['status']);
+            self::assertSame('paused', $recordings->control((string) $organizer->public_id, 'team', $meeting->publicId, $date, 'pause')['status']);
+            self::assertSame('recording', $recordings->control((string) $organizer->public_id, 'team', $meeting->publicId, $date, 'resume')['status']);
+            self::assertSame('processing', $recordings->control((string) $organizer->public_id, 'team', $meeting->publicId, $date, 'stop')['status']);
+        }
+
+        self::assertCount(4, $gateway->startedRecordings);
+        self::assertCount(4, $gateway->stoppedEgressIds);
+        self::assertSame(4, DB::table(ChatDatabaseTable::MEETING_RECORDING_SEGMENTS)->count());
+        self::assertSame(8, DB::table(ChatDatabaseTable::CONVERSATION_TIMELINE_ENTRIES)->where('type', 'like', 'meeting.recording_%')->count());
+        self::assertSame(['ready' => 2, 'failed' => 0, 'pending' => 0], $this->app->make(MeetingRecordingFinalizer::class)->finalizePending());
+        self::assertSame(2, DB::table(ChatDatabaseTable::MEETING_RECORDINGS)->where('status', 'ready')->whereNotNull('file_public_id')->count());
+
+        $recordingPublicId = DB::table(ChatDatabaseTable::MEETING_RECORDINGS)->orderBy('id')->value('public_id');
+        self::assertIsString($recordingPublicId);
+        $access = $this->app->make(MeetingRecordingAccessManager::class);
+        self::assertNotNull($access->details((string) $participant->public_id, 'team', $recordingPublicId)['downloadUrl']);
+        self::assertSame('video/mp4', $access->downloadable((string) $participant->public_id, 'team', $recordingPublicId)->mimeType);
+        $share = $access->share((string) $organizer->public_id, 'team', $recordingPublicId, (string) $recipient->public_id);
+        self::assertSame('ready', $access->details((string) $recipient->public_id, 'other-team', $recordingPublicId)['status']);
+        try {
+            $access->share((string) $recipient->public_id, 'team', $recordingPublicId, (string) $other->public_id);
+            self::fail('A recording share recipient created an onward share.');
+        } catch (MeetingOperationDenied $exception) {
+            self::assertSame('Meeting access requires an active invitation.', $exception->getMessage());
+        }
+        $access->revoke((string) $organizer->public_id, 'team', $recordingPublicId, $share['publicId']);
+        try {
+            $access->details((string) $recipient->public_id, 'team', $recordingPublicId);
+            self::fail('A revoked recording recipient retained access.');
+        } catch (MeetingOperationDenied $exception) {
+            self::assertSame('Meeting not found.', $exception->getMessage());
+        }
+
+        $access->share((string) $organizer->public_id, 'team', $recordingPublicId, (string) $recipient->public_id);
+        DB::table(ChatDatabaseTable::MEETING_RECORDINGS)->where('public_id', $recordingPublicId)->update(['ended_at' => now()->subDays(2)]);
+        config(['chat.recording_retention_days' => 1]);
+        self::assertSame(['removed' => 1, 'failed' => 0, 'disabled' => false], $this->app->make(MeetingRecordingRetention::class)->cleanup());
+        $this->assertDatabaseHas(ChatDatabaseTable::MEETING_RECORDINGS, [
+            'public_id' => $recordingPublicId,
+            'status' => 'removed',
+            'file_public_id' => null,
+        ]);
+        self::assertSame(0, DB::table(ChatDatabaseTable::MEETING_RECORDING_SHARES)->where('recording_id', DB::table(ChatDatabaseTable::MEETING_RECORDINGS)->where('public_id', $recordingPublicId)->value('id'))->count());
+    }
+
+    public function test_in_person_meeting_cannot_start_recording(): void
+    {
+        $organizer = User::factory()->create();
+        $this->app->instance(RtcGateway::class, new RecordingMeetingRtcGateway);
+        $this->app->forgetInstance(MeetingRecordingManager::class);
+        $meeting = $this->app->make(MeetingManager::class)->create((string) $organizer->public_id, 'team', $this->input(MeetingMode::InPerson, [], 'Room 2'))['meeting'];
+        $date = $meeting->startsAt->setTimezone(new \DateTimeZone('Europe/Warsaw'))->format('Y-m-d');
+
+        $this->expectException(MeetingOperationDenied::class);
+        $this->app->make(MeetingRecordingManager::class)->control((string) $organizer->public_id, 'team', $meeting->publicId, $date, 'start');
+    }
+
     /** @param list<string> $invitees */
     private function input(MeetingMode $mode, array $invitees, ?string $location): MeetingInput
     {
@@ -190,6 +281,27 @@ final class MeetingLifecycleTest extends TestCase
         } catch (MeetingOperationDenied $exception) {
             self::assertSame('Meeting access requires an active invitation.', $exception->getMessage());
         }
+    }
+}
+
+final class ReadyMeetingRecordingAssembler implements MeetingRecordingAssembler
+{
+    public function segmentsReady(array $segmentPaths): bool
+    {
+        return $segmentPaths !== [];
+    }
+
+    public function assemble(array $segmentPaths, string $recordingPublicId): string
+    {
+        $path = sys_get_temp_dir().'/atlas-recording-'.$recordingPublicId.'.mp4';
+        file_put_contents($path, 'finalized recording');
+
+        return $path;
+    }
+
+    public function cleanup(array $segmentPaths, string $finalPath): void
+    {
+        @unlink($finalPath);
     }
 }
 
@@ -211,6 +323,12 @@ final class RecordingMeetingRtcGateway implements RtcGateway
     /** @var list<string> */
     public array $endedRooms = [];
 
+    /** @var list<string> */
+    public array $startedRecordings = [];
+
+    /** @var list<string> */
+    public array $stoppedEgressIds = [];
+
     public function prepareRoom(RtcSessionAdmission $admission): void {}
 
     public function issueParticipantAccess(RtcSessionAdmission $admission): RtcParticipantAccess
@@ -223,5 +341,18 @@ final class RecordingMeetingRtcGateway implements RtcGateway
     public function endRoom(string $roomName): void
     {
         $this->endedRooms[] = $roomName;
+    }
+
+    public function startRoomCompositeRecording(string $roomName, string $recordingPublicId, int $segment): RtcRecordingStart
+    {
+        $egressId = 'egress-'.count($this->startedRecordings).'-'.$segment;
+        $this->startedRecordings[] = $roomName;
+
+        return new RtcRecordingStart($egressId, 'recordings/'.$recordingPublicId.'/'.$segment.'.mp4');
+    }
+
+    public function stopRoomCompositeRecording(string $egressId): void
+    {
+        $this->stoppedEgressIds[] = $egressId;
     }
 }
