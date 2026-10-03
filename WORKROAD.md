@@ -39,8 +39,8 @@ Do not replace this index after the initial technical foundation is completed. C
 
 ## Current phase
 
-- Phase: [Phase 31 — Optional internal company chat, calendar, calls, meetings, and realtime communication](docs/roadmap/phase-31-chat.md)
-- Status: `in progress` (`P31-W16` implementation and browser acceptance complete; production runtime smoke pending host Docker access)
+- Phase: [Phase 33 — Error reporting, user bug reports, and application diagnostics](docs/roadmap/phase-33-error-reporting-and-diagnostics.md)
+- Status: `not started` (Phases 31 and 32 complete)
 
 ## Roadmap dependency repair note
 
@@ -370,7 +370,7 @@ Depends on the completed Authorization, Teams, manager hierarchy, Audit, Setting
 
 ### Phase 31 — Optional internal company chat, calendar, calls, meetings, and realtime communication
 
-**Status:** `in progress` (`P31-W16` implementation and browser acceptance complete; production runtime smoke pending host Docker access)
+**Status:** `complete`
 
 Implement Atlas-owned internal communication with direct/group/Team/Meeting Chat, a shared Core Calendar, audio/video Calls, online/in-person/hybrid Meetings, optional RTC for online/hybrid modes, screen sharing, Files-owned Meeting recordings, provider-neutral transcription readiness, Reverb and self-hosted LiveKit/Egress infrastructure, authorization-safe Search, privacy, retention, participant exports, and browser alerts.
 

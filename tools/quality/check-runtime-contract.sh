@@ -94,6 +94,8 @@ rg -F -q 'command: ["php", "artisan", "horizon"]' "${COMPOSE_FILE}" \
   || fail 'Production worker is not managed by Horizon.'
 rg -F -q 'command: ["php", "artisan", "horizon"]' "${ROOT_DIR}/.devcontainer/docker-compose.yml" \
   || fail 'Development worker is not managed by Horizon.'
+rg -F -q '      - "${DOCKER_GID:-998}"' "${ROOT_DIR}/.devcontainer/docker-compose.yml" \
+  || fail 'Development app must receive the host Docker socket group at runtime.'
 [[ "$(rg -F -c 'user: "${USER_UID:-1000}:${USER_GID:-1000}"' "${ROOT_DIR}/.devcontainer/docker-compose.yml")" == "4" ]] \
   || fail 'Development PHP-FPM, Reverb, scheduler, and worker must use the bind-mount owner UID/GID.'
 rg -F -q 'command: ["php", "artisan", "reverb:start", "--host=0.0.0.0", "--port=8080"]' "${COMPOSE_FILE}" \

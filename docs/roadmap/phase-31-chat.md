@@ -1,6 +1,6 @@
 # Phase 31 — Optional internal company chat, calendar, calls, meetings, and realtime communication
 
-**Status:** `in progress` (`P31-W01` through `P31-W15` complete; `P31-W16` implementation and browser acceptance complete, production runtime smoke pending host Docker access)
+**Status:** `complete` (`P31-W01` through `P31-W16` complete; full foundation quality gate passed)
 
 ## Objective
 
@@ -2877,9 +2877,13 @@ Update production requirements consumed by Phase 52.
 - [x] Run targeted frontend tests.
 - [x] Run Chromium Playwright.
 - [x] Run Firefox Playwright.
-- [ ] Run complete required foundation quality gate (production runtime smoke pending host Docker access).
+- [x] Run complete required foundation quality gate.
 - [x] Update all affected canonical documentation.
 - [x] Confirm Phase 52 has not been implemented from this Phase 31 planning task.
+
+### Foundation acceptance evidence
+
+`composer check:foundation` passed after repairing the running Dev Container's Docker socket group membership. The complete sequential run passed static analysis and guardrails, PHPUnit (743 passed, 2 explicitly skipped external-runtime tests), TypeScript, Vitest (125 passed), the production frontend build, and Playwright (65 passed, 9 configured Chromium-only workflow duplicates skipped in Firefox). The isolated production smoke built the PHP, nginx, and backup images and verified non-root runtime commands, fresh migrations, HTTP/assets, every configured Horizon queue, scheduler heartbeat, Reverb, Meilisearch, real ClamAV/EICAR detection, Chromium/PDF generation, and PostgreSQL persistence across container recreation. Its temporary containers, volumes, and secrets were removed after the run. Production LiveKit/TURN/Egress deployment remains Phase 52 scope.
 
 ---
 
@@ -3229,6 +3233,6 @@ Phase 31 is complete only when:
 - [x] Polish and English UI is complete;
 - [x] light/dark UI is covered;
 - [x] console/runtime/request cleanliness remains protected;
-- [ ] complete required foundation quality gates pass (production runtime smoke pending host Docker access);
+- [x] complete required foundation quality gates pass;
 - [x] canonical documentation reflects the final contract;
 - [x] Phase 52 deployment has not been implemented as part of this Phase 31 planning task.

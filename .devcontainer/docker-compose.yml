@@ -242,6 +242,8 @@ services:
         USER_GID: ${USER_GID:-1000}
         DOCKER_GID: ${DOCKER_GID:-998}
         PNPM_VERSION: 11.18.0
+    group_add:
+      - "${DOCKER_GID:-998}"
     environment:
       APP_TIMEZONE: ${APP_TIMEZONE:-Europe/Warsaw}
       TZ: ${APP_TIMEZONE:-Europe/Warsaw}

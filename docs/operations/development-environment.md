@@ -80,7 +80,15 @@ The documented default is:
 DOCKER_GID=998
 ```
 
-If the host uses a different socket group id, keep `.env.example` as the documented default and set the local `.env` override instead.
+If the host uses a different socket group id, keep `.env.example` as the documented default and set the local `.env` override for Compose commands that explicitly use `--env-file .env`. VS Code may launch Compose with `.devcontainer` as its working directory without loading the repository-root `.env`; that override alone does not guarantee the correct group during a Dev Container rebuild. Start VS Code from a host shell with the socket group exported so its Dev Containers process inherits the value:
+
+```text
+export DOCKER_GID="$(stat -c '%g' /var/run/docker.sock)"
+code .
+```
+
+Close existing VS Code processes first if they would otherwise retain the old environment. After reopening, verify that `id` includes the socket's numeric group and `docker info` succeeds without `sudo`.
+Compose adds that numeric group id to the `app` container at runtime, while the image build creates the matching `docker` group for a stable fresh-image setup. After changing `DOCKER_GID` or introducing this runtime group mapping, recreate or rebuild the Dev Container; restarting the existing container process alone does not change its supplementary groups.
 
 Forwarded/local development ports:
 
