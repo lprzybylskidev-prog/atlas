@@ -278,6 +278,10 @@ final readonly class CallManager
                     'call_public_id' => $call->publicId,
                     'missed_count' => count($missedUserIds),
                 ]);
+                $this->audit($userPublicId, $call->publicId, ChatAuditEvents::CALL_ENDED, [
+                    'team_public_id' => $activeTeamPublicId,
+                    'result_status' => $status->value,
+                ]);
             }
 
             $this->audit($userPublicId, $call->publicId, ChatAuditEvents::CALL_LEFT, ['team_public_id' => $activeTeamPublicId]);

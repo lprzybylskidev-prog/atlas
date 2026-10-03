@@ -155,11 +155,21 @@ test('configures aggregate Meeting recording retention without exposing recordin
     await page.goto('/admin/chat/operations');
 
     await expect(page.getByRole('heading', { level: 1, name: /Operacje komunikacji|Communication operations/ })).toBeVisible();
-    const retention = page.getByLabel(/Retencja \(dni\)|Retention \(days\)/);
+    const retention = page.getByLabel(/Retencja nagrań \(dni\)|Recording retention \(days\)/);
+    const retentionForm = retention.locator('xpath=ancestor::form');
     await retention.fill('30');
-    await page.getByRole('button', { name: /Zapisz|Save/, exact: true }).click();
+    const updateResponse = page.waitForResponse(
+        (response) =>
+            response.request().method() === 'PATCH' &&
+            new URL(response.url()).pathname === '/admin/chat/recording-retention' &&
+            response.status() < 400,
+    );
+    await retentionForm.getByRole('button', { name: /Zapisz|Save/, exact: true }).click();
+    await updateResponse;
     await expect(retention).toHaveValue('30');
     await expect(page.getByText('30', { exact: true }).first()).toBeVisible();
+    await expect(page.getByLabel(/Retencja czatu \(dni\)|Chat retention \(days\)/)).toBeVisible();
+    await expect(page.getByText(/LiveKit RTC/)).toBeVisible();
     await expect(page.locator('video')).toHaveCount(0);
 });
 

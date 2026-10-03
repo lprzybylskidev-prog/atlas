@@ -55,7 +55,7 @@ Ordinary CRUD, filters, forms, pagination, and user-triggered mutations continue
 
 The Chat launcher, unread state, current Call watcher, and minimized Call/Meeting controls run in the persistent authenticated application runtime rather than inside a replaceable page layout. Inertia navigation therefore does not disconnect an active media session or restart global polling/subscriptions. Browser-native system Notification delivery and Chat delivery remain independently controlled by `ATLAS_BROWSER_NOTIFICATIONS_ENABLED` and `ATLAS_CHAT_BROWSER_NOTIFICATIONS_ENABLED`, separate browser-local user choices, and browser permission; Atlas requests permission only from an explicit enable action.
 
-The scheduler runs `calendar:dispatch-reminders` and `chat:meetings:dispatch-reminders` every minute. Both commands use database delivery claims so retries and overlapping scheduler invocations cannot publish the same user/occurrence/offset reminder twice.
+The scheduler runs `calendar:dispatch-reminders` and `chat:meetings:dispatch-reminders` every minute. Both commands use database delivery claims so retries and overlapping scheduler invocations cannot publish the same user/occurrence/offset reminder twice. It also runs nullable Chat-message retention through `chat:prune` at 02:00 and the separately configured Meeting-recording retention through `chat:meetings:prune-recordings` at 02:30. `ATLAS_CHAT_RETENTION_DAYS` and `ATLAS_CHAT_RECORDING_RETENTION_DAYS` are independent; an empty value retains the corresponding content indefinitely.
 
 ### Reverb runtime
 

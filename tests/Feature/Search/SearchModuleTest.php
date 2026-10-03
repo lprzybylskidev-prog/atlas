@@ -75,7 +75,7 @@ final class SearchModuleTest extends TestCase
 
         $registry = $this->app->make(SearchIndexRegistry::class);
 
-        $this->assertCount(1, $registry->all());
+        $this->assertCount(2, $registry->all());
         $this->assertSame('atlas_catalog_entries', $registry->get('catalog.entries')?->stableAlias);
     }
 

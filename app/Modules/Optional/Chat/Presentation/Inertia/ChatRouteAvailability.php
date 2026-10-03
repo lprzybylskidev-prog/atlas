@@ -23,6 +23,7 @@ final readonly class ChatRouteAvailability implements InertiaRouteAvailabilityCo
         return $this->chatAvailable($request) ? [
             ChatPermissionCatalog::ADMIN_OPERATIONS_INDEX,
             ChatPermissionCatalog::ADMIN_RETENTION_UPDATE,
+            ChatPermissionCatalog::ADMIN_RETENTION_RUN,
             ChatPermissionCatalog::ADMIN_RECORDING_RETENTION_UPDATE,
             ChatPermissionCatalog::ADMIN_RECORDING_RETENTION_RUN,
         ] : [];
@@ -32,6 +33,8 @@ final readonly class ChatRouteAvailability implements InertiaRouteAvailabilityCo
     {
         return $this->chatAvailable($request) ? [
             ChatPermissionCatalog::INDEX,
+            ChatPermissionCatalog::SEARCH_INDEX,
+            ChatPermissionCatalog::EXPORT_STORE,
             ChatPermissionCatalog::FAVORITE_UPDATE,
             ChatPermissionCatalog::DIRECT_CONVERSATION_STORE,
             ChatPermissionCatalog::GROUP_STORE,

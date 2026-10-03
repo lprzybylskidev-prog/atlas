@@ -28,7 +28,7 @@ final class CommunicationBoundaryArchitectureTest extends TestCase
         self::assertFalse($chat->supportsTeamActivation());
         self::assertSame(['reverb'], $chat->healthChecks(), 'RTC or Egress failure must not disable text Chat through ModuleGate.');
         self::assertSame(
-            ['identity', 'files', 'calendar', 'teams', 'audit', 'notifications', 'managed_processes'],
+            ['identity', 'files', 'calendar', 'teams', 'audit', 'notifications', 'managed_processes', 'search', 'exports'],
             array_map(static fn ($key): string => $key->value, $chat->requiredDependencies()),
         );
     }

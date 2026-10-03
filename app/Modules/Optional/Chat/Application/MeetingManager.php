@@ -130,6 +130,7 @@ final readonly class MeetingManager
             }
             $this->meetings->invite($meeting->id, $inviteeId, $actorId, MeetingRole::Participant, MeetingResponse::Pending);
             $this->conversations->inviteMeetingParticipant($meeting->conversationPublicId, $actorPublicId, $inviteePublicId);
+            $this->recordAudit($actorPublicId, $meeting, ChatAuditEvents::MEETING_PARTICIPANT_INVITED, ['participant_public_id' => $inviteePublicId]);
 
             return $meeting;
         });
@@ -165,6 +166,7 @@ final readonly class MeetingManager
             }
             $this->meetings->remove($invitation->id, $actorId);
             $this->conversations->removeMeetingParticipant($meeting->conversationPublicId, $actorPublicId, $participantPublicId);
+            $this->recordAudit($actorPublicId, $meeting, ChatAuditEvents::MEETING_PARTICIPANT_REMOVED, ['participant_public_id' => $participantPublicId]);
 
             return $meeting;
         });

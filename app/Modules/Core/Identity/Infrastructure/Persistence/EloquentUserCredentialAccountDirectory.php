@@ -139,13 +139,14 @@ final class EloquentUserCredentialAccountDirectory implements UserCredentialAcco
 
         foreach (User::query()
             ->whereIn('public_id', array_values(array_unique($userPublicIds)))
-            ->get(['public_id', 'name', 'email'])
+            ->get(['public_id', 'name', 'email', 'is_active'])
             ->all() as $user) {
             $publicId = (string) $user->public_id;
             $summaries[$publicId] = new UserDisplaySummary(
                 publicId: $publicId,
                 name: $user->name,
                 email: $user->email,
+                active: (bool) $user->is_active,
             );
         }
 
@@ -164,7 +165,7 @@ final class EloquentUserCredentialAccountDirectory implements UserCredentialAcco
 
         foreach (User::query()
             ->whereIn('id', array_values(array_unique($userIds)))
-            ->get(['id', 'public_id', 'name', 'email'])
+            ->get(['id', 'public_id', 'name', 'email', 'is_active'])
             ->all() as $user) {
             $id = $user->id;
 
@@ -172,6 +173,7 @@ final class EloquentUserCredentialAccountDirectory implements UserCredentialAcco
                 publicId: (string) $user->public_id,
                 name: $user->name,
                 email: $user->email,
+                active: (bool) $user->is_active,
             );
         }
 
@@ -187,12 +189,13 @@ final class EloquentUserCredentialAccountDirectory implements UserCredentialAcco
         foreach (User::query()
             ->orderBy('name')
             ->orderBy('email')
-            ->get(['public_id', 'name', 'email'])
+            ->get(['public_id', 'name', 'email', 'is_active'])
             ->all() as $user) {
             $summaries[] = new UserDisplaySummary(
                 publicId: (string) $user->public_id,
                 name: $user->name,
                 email: $user->email,
+                active: (bool) $user->is_active,
             );
         }
 
@@ -207,12 +210,13 @@ final class EloquentUserCredentialAccountDirectory implements UserCredentialAcco
             ->where('is_active', true)
             ->orderBy('name')
             ->orderBy('email')
-            ->get(['public_id', 'name', 'email'])
+            ->get(['public_id', 'name', 'email', 'is_active'])
             ->all() as $user) {
             $summaries[] = new UserDisplaySummary(
                 publicId: (string) $user->public_id,
                 name: $user->name,
                 email: $user->email,
+                active: (bool) $user->is_active,
             );
         }
 

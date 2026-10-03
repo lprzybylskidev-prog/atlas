@@ -34,12 +34,14 @@ The current implementation preserves the Phase 24 lifecycle while moving ownersh
 - Download delivery delegates clean-file checks and storage path resolution to the Files public `FileStorage` contract.
 - Retention cleanup expires old export requests and artifacts, then deletes linked file objects through the Files public `FileLifecycle` contract.
 - Operators can run `php artisan exports:cleanup-expired` to execute export retention cleanup.
-- CSV and XLSX generation are available through the shared export generator registry for registered data providers.
+- CSV, JSON, and XLSX generation are available through the shared export generator registry for registered data providers.
 - CSV, XLSX, PDF, and browser-print output use the immutable request snapshot's effective locale, filters, sorting, active team, visible columns, column order, and authorization snapshot. Pre-locale local records use Polish as a compatibility fallback.
 - Tabular export generation intersects visible columns with authorization `allowed_columns` and provider columns before rendering, so request-visible but unauthorized columns are excluded.
 - CSV, XLSX, PDF, and browser-print output include the shared baseline `Total rows` total computed from the final exported row set.
 - CSV and XLSX cells are rendered from scalar, stringable, date, boolean, or null values; cells that could be interpreted as spreadsheet formulas are prefixed before export.
 - XLSX output is generated with PhpSpreadsheet and writes values as explicit strings rather than spreadsheet formulas.
+- JSON output uses the same authorized column intersection and scalar-safe row normalization as other tabular exports and emits a deterministic `rows` plus `total_rows` document.
+- Chat registers a participant-authorized conversation provider for PDF, CSV, and JSON. Request dispatch checks the Core Exports request capability, generation rechecks the Chat export capability and current conversation access, delete-for-me rows are omitted, and Administrator status is never treated as conversation membership. The standard workspace and communication-access bundles include the base request/download capabilities together with the Chat export capability.
 - PDF generation renders the shared HTML report table layout through Node, Playwright, and Chromium, stores the PDF privately through Files, and publishes an artifact only after storage metadata is complete.
 - PDF rendering uses an internal short-lived render credential instead of a live authenticated browser session and consumes that credential after successful rendering.
 - PDF rendering passes an Atlas-discovered Chromium executable to Playwright when available, so the renderer can use a system browser on Docker images or ordinary Ubuntu hosts instead of depending only on Playwright-managed browser downloads.

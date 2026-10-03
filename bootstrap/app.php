@@ -72,6 +72,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $schedule->command('chat:meetings:finalize-recordings')->everyMinute()->withoutOverlapping();
         $schedule->command('calendar:dispatch-reminders')->everyMinute()->withoutOverlapping();
         $schedule->command('chat:meetings:dispatch-reminders')->everyMinute()->withoutOverlapping();
+        $schedule->command('chat:prune')->dailyAt('02:00')->withoutOverlapping();
         $schedule->command('chat:meetings:prune-recordings')->dailyAt('02:30')->withoutOverlapping();
     })
     ->withMiddleware(function (Middleware $middleware): void {

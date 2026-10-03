@@ -7,6 +7,7 @@ namespace App\Modules\Core\Authorization\Application\Roles;
 use App\Modules\Core\Authorization\Application\Permissions\CoreAuthorizationPermissionCatalog;
 use App\Shared\Application\Calendar\Permissions\CalendarPermissionNames;
 use App\Shared\Application\Chat\Permissions\ChatPermissionNames;
+use App\Shared\Application\Exports\ExportPermissions;
 use App\Shared\Application\Notifications\Permissions\NotificationPermissionNames;
 use App\Shared\Application\Teams\Permissions\TeamPermissionNames;
 use App\Shared\Application\Users\Permissions\UserPermissionNames;
@@ -39,12 +40,17 @@ final class StarterRoleCatalog
                 CalendarPermissionNames::EVENT_DESTROY,
                 CalendarPermissionNames::PREFERENCE_UPDATE,
                 ChatPermissionNames::INDEX,
+                ChatPermissionNames::SEARCH_INDEX,
+                'search.query',
                 ChatPermissionNames::FAVORITE_UPDATE,
                 ChatPermissionNames::DIRECT_CONVERSATION_STORE,
                 ChatPermissionNames::GROUP_STORE,
                 ChatPermissionNames::TEAM_CONVERSATION_SHOW,
                 ChatPermissionNames::MESSAGE_STORE,
                 ChatPermissionNames::CONTENT_INDEX,
+                ChatPermissionNames::EXPORT_STORE,
+                ExportPermissions::REQUEST,
+                ExportPermissions::DOWNLOAD,
                 ChatPermissionNames::ATTACHMENT_STORE,
                 ChatPermissionNames::ATTACHMENT_SHOW,
                 ChatPermissionNames::ATTACHMENT_RETRY,
@@ -92,12 +98,17 @@ final class StarterRoleCatalog
                 CalendarPermissionNames::EVENT_DESTROY,
                 CalendarPermissionNames::PREFERENCE_UPDATE,
                 ChatPermissionNames::INDEX,
+                ChatPermissionNames::SEARCH_INDEX,
+                'search.query',
                 ChatPermissionNames::FAVORITE_UPDATE,
                 ChatPermissionNames::DIRECT_CONVERSATION_STORE,
                 ChatPermissionNames::GROUP_STORE,
                 ChatPermissionNames::TEAM_CONVERSATION_SHOW,
                 ChatPermissionNames::MESSAGE_STORE,
                 ChatPermissionNames::CONTENT_INDEX,
+                ChatPermissionNames::EXPORT_STORE,
+                ExportPermissions::REQUEST,
+                ExportPermissions::DOWNLOAD,
                 ChatPermissionNames::ATTACHMENT_STORE,
                 ChatPermissionNames::ATTACHMENT_SHOW,
                 ChatPermissionNames::ATTACHMENT_RETRY,
@@ -183,6 +194,7 @@ final class StarterRoleCatalog
                 ChatPermissionNames::INDEX,
                 ChatPermissionNames::ADMIN_OPERATIONS_INDEX,
                 ChatPermissionNames::ADMIN_RETENTION_UPDATE,
+                ChatPermissionNames::ADMIN_RETENTION_RUN,
                 ChatPermissionNames::ADMIN_RECORDING_RETENTION_UPDATE,
                 ChatPermissionNames::ADMIN_RECORDING_RETENTION_RUN,
             ]),

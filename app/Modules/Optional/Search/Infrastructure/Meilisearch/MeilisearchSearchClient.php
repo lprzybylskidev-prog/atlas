@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace App\Modules\Optional\Search\Infrastructure\Meilisearch;
 
 use App\Modules\Optional\Search\Application\Contracts\SearchIndexRegistry;
-use App\Modules\Optional\Search\Application\Exceptions\SearchUnavailable;
 use App\Modules\Optional\Search\Application\Public\Contracts\SearchClient;
 use App\Modules\Optional\Search\Application\Public\DTOs\SearchHit;
 use App\Modules\Optional\Search\Application\Public\DTOs\SearchQuery;
 use App\Modules\Optional\Search\Application\Public\DTOs\SearchResult;
+use App\Modules\Optional\Search\Application\Public\Exceptions\SearchUnavailable;
 use Meilisearch\Client;
 use Throwable;
 
@@ -30,7 +30,7 @@ final readonly class MeilisearchSearchClient implements SearchClient
 
         try {
             $response = $this->client->index($descriptor->stableAlias)->search($query->term, [
-                'filter' => $this->filters($query),
+                'filter' => $this->filters($query, $descriptor->filterableFields),
                 'limit' => $query->limit,
                 'offset' => $query->offset,
             ]);
@@ -61,12 +61,18 @@ final readonly class MeilisearchSearchClient implements SearchClient
     }
 
     /**
+     * @param  list<string>  $filterableFields
      * @return list<string>
      */
-    private function filters(SearchQuery $query): array
+    private function filters(SearchQuery $query, array $filterableFields): array
     {
+        $teamFilter = sprintf('team_public_ids = "%s"', addcslashes($query->activeTeamPublicId, '"\\'));
+        if (in_array('global_scope', $filterableFields, true)) {
+            $teamFilter = sprintf('(%s OR global_scope = true)', $teamFilter);
+        }
+
         $filters = [
-            sprintf('team_public_ids = "%s"', addcslashes($query->activeTeamPublicId, '"\\')),
+            $teamFilter,
             'permission_keys IN ['.$this->quotedList($query->permissionKeys).']',
         ];
 
@@ -75,10 +81,34 @@ final readonly class MeilisearchSearchClient implements SearchClient
                 continue;
             }
 
-            $filters[] = sprintf('%s = "%s"', $field, addcslashes((string) $value, '"\\'));
+            [$baseField, $operator] = $this->filterField($field);
+            if (! in_array($baseField, $filterableFields, true)) {
+                continue;
+            }
+
+            $filters[] = sprintf('%s %s "%s"', $baseField, $operator, addcslashes((string) $value, '"\\'));
         }
 
         return $filters;
+    }
+
+    /** @return array{string,string} */
+    private function filterField(string $field): array
+    {
+        $operator = '=';
+        foreach (['__gte' => '>=', '__lte' => '<='] as $suffix => $candidate) {
+            if (str_ends_with($field, $suffix)) {
+                $field = substr($field, 0, -strlen($suffix));
+                $operator = $candidate;
+                break;
+            }
+        }
+
+        if (preg_match('/^[a-z][a-z0-9_]*$/', $field) !== 1) {
+            throw new SearchUnavailable('Search filter is invalid.');
+        }
+
+        return [$field, $operator];
     }
 
     /**

@@ -6,13 +6,31 @@ namespace App\Modules\Optional\Chat\Application\Audit;
 
 final class ChatAuditEvents
 {
+    public const RETENTION_CONFIGURED = 'chat.retention.configured';
+
+    public const RETENTION_RUN_REQUESTED = 'chat.retention.run_requested';
+
     public const MEETING_CREATED = 'chat.meeting.created';
 
     public const MEETING_UPDATED = 'chat.meeting.updated';
 
     public const MEETING_CANCELLED = 'chat.meeting.cancelled';
 
+    public const MEETING_PARTICIPANT_INVITED = 'chat.meeting.participant_invited';
+
+    public const MEETING_PARTICIPANT_REMOVED = 'chat.meeting.participant_removed';
+
+    public const MEETING_PARTICIPANT_KICKED = 'chat.meeting.participant_kicked';
+
+    public const MEETING_LOCKED = 'chat.meeting.locked';
+
+    public const MEETING_UNLOCKED = 'chat.meeting.unlocked';
+
+    public const MEETING_RTC_ENDED = 'chat.meeting.rtc_ended';
+
     public const RECORDING_RETENTION_CONFIGURED = 'chat.recording_retention.configured';
+
+    public const RECORDING_RETENTION_RUN_REQUESTED = 'chat.recording_retention.run_requested';
 
     public const RECORDING_STARTED = 'chat.meeting_recording.started';
 
@@ -47,6 +65,8 @@ final class ChatAuditEvents
     public const CALL_DECLINED = 'chat.call.declined';
 
     public const CALL_LEFT = 'chat.call.left';
+
+    public const CALL_ENDED = 'chat.call.ended';
 
     public const CALL_SCREEN_SHARE_STARTED = 'chat.call.screen_share_started';
 

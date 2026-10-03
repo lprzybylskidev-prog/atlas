@@ -8,6 +8,7 @@ use App\Modules\Core\Files\Application\Public\Contracts\FileLifecycle;
 use App\Modules\Optional\Chat\Application\Audit\ChatAuditEvents;
 use App\Modules\Optional\Chat\Application\Contracts\ChatTransaction;
 use App\Modules\Optional\Chat\Application\Contracts\MeetingRecordingStore;
+use App\Modules\Optional\Chat\Application\Contracts\TranscriptionStore;
 use App\Shared\Application\Audit\Contracts\AuditRecorder;
 use App\Shared\Application\Audit\DTOs\AuditEvent;
 use DateTimeImmutable;
@@ -20,6 +21,8 @@ final readonly class MeetingRecordingRetention
         private FileLifecycle $files,
         private ChatTransaction $transaction,
         private AuditRecorder $audit,
+        private TranscriptionStore $transcriptions,
+        private ?ChatSearchProjectionUpdater $search = null,
     ) {}
 
     public function configuredDays(): ?int
@@ -56,6 +59,16 @@ final readonly class MeetingRecordingRetention
         });
     }
 
+    public function auditRunRequested(string $actorPublicId, string $teamPublicId, string $processPublicId): void
+    {
+        $this->audit->record(new AuditEvent(
+            module: 'chat', action: ChatAuditEvents::RECORDING_RETENTION_RUN_REQUESTED, result: 'succeeded', source: 'admin',
+            actorPublicId: $actorPublicId, teamPublicId: $teamPublicId,
+            targetType: 'recording_retention_policy', targetPublicId: 'global', aggregateType: 'recording_retention_policy', aggregatePublicId: 'global',
+            metadata: ['process_public_id' => $processPublicId],
+        ));
+    }
+
     /** @return array{removed:int,failed:int,disabled:bool} */
     public function cleanup(DateTimeImmutable $now = new DateTimeImmutable): array
     {
@@ -71,8 +84,12 @@ final readonly class MeetingRecordingRetention
 
                 continue;
             }
-            $this->transaction->run(function () use ($recording): void {
+            $transcriptionPublicId = $this->transcriptions->forRecording($recording->id)?->publicId;
+            $this->transaction->run(function () use ($recording, $transcriptionPublicId): void {
                 $this->recordings->markRemovedByRetention($recording->id);
+                if ($transcriptionPublicId !== null) {
+                    $this->search?->refresh('transcript', $transcriptionPublicId);
+                }
                 $this->audit->record(new AuditEvent(
                     module: 'chat', action: ChatAuditEvents::RECORDING_REMOVED_BY_RETENTION, result: 'succeeded', source: 'scheduler',
                     targetType: 'meeting_recording', targetPublicId: $recording->publicId,

@@ -30,6 +30,7 @@ final readonly class TranscriptionManager
         private ChatModuleAccess $access,
         private UserLookup $users,
         private AuditRecorder $audit,
+        private ?ChatSearchProjectionUpdater $search = null,
     ) {}
 
     public function available(): bool
@@ -174,6 +175,7 @@ final readonly class TranscriptionManager
                 throw MeetingOperationDenied::transcriptNotReady();
             }
             $this->transcriptions->edit($transcription->id, $expectedVersion, $actorId, $text);
+            $this->search?->refresh('transcript', $transcription->publicId);
             $this->audit->record(new AuditEvent(
                 module: 'chat', action: ChatAuditEvents::TRANSCRIPT_EDITED, result: 'succeeded', source: 'application',
                 actorPublicId: $actor, targetType: 'meeting_transcription', targetPublicId: $transcription->publicId,

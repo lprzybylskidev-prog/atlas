@@ -7,6 +7,7 @@ namespace Tests\Integration\Chat;
 use App\Modules\Core\Files\Application\Public\Contracts\FileStorage;
 use App\Modules\Core\Identity\Infrastructure\Persistence\User;
 use App\Modules\Core\Teams\Infrastructure\Persistence\Team;
+use App\Modules\Optional\Chat\Application\Contracts\ChatSearchProjectionStore;
 use App\Modules\Optional\Chat\Application\Contracts\TranscriptionProvider;
 use App\Modules\Optional\Chat\Application\DTOs\MeetingInput;
 use App\Modules\Optional\Chat\Application\DTOs\TranscriptionProviderResponse;
@@ -81,9 +82,15 @@ final class TranscriptionLifecycleTest extends TestCase
         self::assertSame(1, DB::table(ManagedProcessesDatabaseTable::RUNS)->where('process_key', TranscriptionProcess::KEY)->count(), 'A repeated request must not create another active or completed transcription run.');
 
         $transcriptionPublicId = $this->requiredString($completed, 'publicId');
+        $projection = $this->app->make(ChatSearchProjectionStore::class);
+        self::assertNotNull($projection->resolve('transcript-'.$transcriptionPublicId, $participant->id));
+        self::assertNull($projection->resolve('transcript-'.$transcriptionPublicId, $recipient->id));
         $edited = $manager->edit((string) $participant->public_id, (string) $team->public_id, $transcriptionPublicId, 1, 'Participant correction.');
         $edited = $manager->edit((string) $organizer->public_id, (string) $team->public_id, $transcriptionPublicId, 2, 'Organizer correction.');
         self::assertSame(3, $edited['version']);
+        $transcriptDocuments = $projection->documentsForSource('transcript', $transcriptionPublicId);
+        self::assertCount(1, $transcriptDocuments);
+        self::assertSame('Organizer correction.', $transcriptDocuments[0]->fields['body'] ?? null);
         $history = $this->requiredArray($edited, 'history');
         self::assertCount(3, $history);
         $initialVersion = $history[0] ?? null;
@@ -96,6 +103,11 @@ final class TranscriptionLifecycleTest extends TestCase
         self::assertSame([], $recipientView['history']);
         self::assertFalse($recipientView['canEdit']);
         self::assertFalse($recipientView['canShare']);
+        $sharedProjection = $this->app->make(ChatSearchProjectionStore::class);
+        $sharedSearchResult = $sharedProjection->resolve('transcript-'.$transcriptionPublicId, $recipient->id);
+        self::assertNotNull($sharedSearchResult);
+        self::assertSame('', $sharedSearchResult->title, 'A transcript-only share must not reveal the Meeting name.');
+        self::assertNull($sharedSearchResult->conversationPublicId, 'A transcript-only share must not reveal or open Meeting chat.');
         try {
             $manager->share((string) $recipient->public_id, (string) $team->public_id, $transcriptionPublicId, (string) $other->public_id);
             self::fail('A transcript share recipient created an onward share.');
@@ -104,6 +116,7 @@ final class TranscriptionLifecycleTest extends TestCase
         }
         $manager->revoke((string) $participant->public_id, (string) $team->public_id, $transcriptionPublicId, $share['publicId']);
         $this->expectMeetingNotFound(fn () => $manager->view((string) $recipient->public_id, (string) $team->public_id, $transcriptionPublicId));
+        self::assertNull($projection->resolve('transcript-'.$transcriptionPublicId, $recipient->id));
 
         DB::table(ChatDatabaseTable::MEETING_RECORDINGS)->where('id', $recording['id'])->update(['ended_at' => now()->subDays(2)]);
         config(['chat.recording_retention_days' => 1]);
@@ -111,6 +124,11 @@ final class TranscriptionLifecycleTest extends TestCase
         self::assertSame(0, DB::table(ChatDatabaseTable::MEETING_TRANSCRIPTIONS)->count());
         self::assertSame(0, DB::table(ChatDatabaseTable::MEETING_TRANSCRIPT_VERSIONS)->count());
         self::assertSame(0, DB::table(ChatDatabaseTable::MEETING_TRANSCRIPT_SHARES)->count());
+        self::assertNull($projection->resolve('transcript-'.$transcriptionPublicId, $participant->id));
+        self::assertSame(
+            ['transcript-'.$transcriptionPublicId],
+            $projection->deletedDocumentIdsForSource('transcript', $transcriptionPublicId),
+        );
     }
 
     public function test_async_provider_submit_poll_and_result_stay_in_one_waiting_managed_process(): void

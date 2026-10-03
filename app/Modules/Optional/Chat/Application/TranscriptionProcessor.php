@@ -35,6 +35,7 @@ final readonly class TranscriptionProcessor
         private ManagedProcessReporter $reporter,
         private ChatTransaction $transaction,
         private AuditRecorder $audit,
+        private ?ChatSearchProjectionUpdater $search = null,
     ) {}
 
     public function process(string $runPublicId): void
@@ -142,6 +143,7 @@ final readonly class TranscriptionProcessor
                 return;
             }
             $this->transcriptions->complete($current->id, $result);
+            $this->search?->refresh('transcript', $current->publicId);
             $this->audit->record(new AuditEvent(
                 module: 'chat', action: ChatAuditEvents::TRANSCRIPTION_COMPLETED, result: 'succeeded', source: 'queue',
                 actorPublicId: $actor, targetType: 'meeting_transcription', targetPublicId: $current->publicId,

@@ -12,6 +12,8 @@ final class ChatPermissionCatalog implements ModulePermissionContribution
 {
     public const INDEX = ChatPermissionNames::INDEX;
 
+    public const SEARCH_INDEX = ChatPermissionNames::SEARCH_INDEX;
+
     public const FAVORITE_UPDATE = ChatPermissionNames::FAVORITE_UPDATE;
 
     public const DIRECT_CONVERSATION_STORE = ChatPermissionNames::DIRECT_CONVERSATION_STORE;
@@ -23,6 +25,8 @@ final class ChatPermissionCatalog implements ModulePermissionContribution
     public const MESSAGE_STORE = ChatPermissionNames::MESSAGE_STORE;
 
     public const CONTENT_INDEX = ChatPermissionNames::CONTENT_INDEX;
+
+    public const EXPORT_STORE = ChatPermissionNames::EXPORT_STORE;
 
     public const ATTACHMENT_STORE = ChatPermissionNames::ATTACHMENT_STORE;
 
@@ -130,6 +134,8 @@ final class ChatPermissionCatalog implements ModulePermissionContribution
 
     public const ADMIN_RETENTION_UPDATE = ChatPermissionNames::ADMIN_RETENTION_UPDATE;
 
+    public const ADMIN_RETENTION_RUN = ChatPermissionNames::ADMIN_RETENTION_RUN;
+
     public const ADMIN_RECORDING_RETENTION_UPDATE = ChatPermissionNames::ADMIN_RECORDING_RETENTION_UPDATE;
 
     public const ADMIN_RECORDING_RETENTION_RUN = ChatPermissionNames::ADMIN_RECORDING_RETENTION_RUN;
@@ -138,12 +144,14 @@ final class ChatPermissionCatalog implements ModulePermissionContribution
     {
         return [
             new ModulePermissionDefinition(self::INDEX, 'Use internal Chat.'),
+            new ModulePermissionDefinition(self::SEARCH_INDEX, 'Search authorized Chat and Meeting content.'),
             new ModulePermissionDefinition(self::FAVORITE_UPDATE, 'Manage own favorite Chat conversations.'),
             new ModulePermissionDefinition(self::DIRECT_CONVERSATION_STORE, 'Start direct conversations.'),
             new ModulePermissionDefinition(self::GROUP_STORE, 'Create Chat groups.'),
             new ModulePermissionDefinition(self::TEAM_CONVERSATION_SHOW, 'Open the authorized active Team conversation.'),
             new ModulePermissionDefinition(self::MESSAGE_STORE, 'Send messages in authorized conversations.'),
             new ModulePermissionDefinition(self::CONTENT_INDEX, 'Browse authorized conversation media, files, and links.'),
+            new ModulePermissionDefinition(self::EXPORT_STORE, 'Export authorized participant-visible conversation content.'),
             new ModulePermissionDefinition(self::ATTACHMENT_STORE, 'Upload Chat attachments through Files.'),
             new ModulePermissionDefinition(self::ATTACHMENT_SHOW, 'View authorized Chat attachment status.'),
             new ModulePermissionDefinition(self::ATTACHMENT_RETRY, 'Retry scanning an owned Chat attachment.'),
@@ -197,6 +205,7 @@ final class ChatPermissionCatalog implements ModulePermissionContribution
             new ModulePermissionDefinition(self::TRANSCRIPTION_SHARE_REVOKE, 'Revoke own Meeting transcript shares.'),
             new ModulePermissionDefinition(self::ADMIN_OPERATIONS_INDEX, 'View aggregate Chat operational status without private communication content.'),
             new ModulePermissionDefinition(self::ADMIN_RETENTION_UPDATE, 'Administer Chat retention without private communication content access.'),
+            new ModulePermissionDefinition(self::ADMIN_RETENTION_RUN, 'Run Chat retention without private communication content access.'),
             new ModulePermissionDefinition(self::ADMIN_RECORDING_RETENTION_UPDATE, 'Administer Meeting recording retention without private communication content access.'),
             new ModulePermissionDefinition(self::ADMIN_RECORDING_RETENTION_RUN, 'Run Meeting recording retention without private communication content access.'),
         ];

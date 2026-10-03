@@ -9,9 +9,11 @@ use App\Modules\Optional\Search\Application\Contracts\SearchIndexRegistry;
 use App\Modules\Optional\Search\Application\Exports\AdminSearchIndexesDataTableExportProvider;
 use App\Modules\Optional\Search\Application\Exports\AdminSearchRebuildsDataTableExportProvider;
 use App\Modules\Optional\Search\Application\Indexing\SearchOutboxEventDispatcher;
+use App\Modules\Optional\Search\Application\Indexing\SearchProjectionWriteService;
 use App\Modules\Optional\Search\Application\Lifecycle\SearchDataLifecycleParticipant;
 use App\Modules\Optional\Search\Application\Permissions\SearchPermissionCatalog;
 use App\Modules\Optional\Search\Application\Public\Contracts\SearchClient;
+use App\Modules\Optional\Search\Application\Public\Contracts\SearchProjectionWriter;
 use App\Modules\Optional\Search\Application\Query\SearchService;
 use App\Modules\Optional\Search\Application\SearchRebuildProcess;
 use App\Modules\Optional\Search\Infrastructure\Meilisearch\MeilisearchDocumentStore;
@@ -34,6 +36,7 @@ final class SearchServiceProvider extends ServiceProvider
             config()->string('scout.meilisearch.key', ''),
         ));
         $this->app->bind(SearchDocumentStore::class, MeilisearchDocumentStore::class);
+        $this->app->bind(SearchProjectionWriter::class, SearchProjectionWriteService::class);
         $this->app->bind('search.engine_client', MeilisearchSearchClient::class);
         $this->app->bind(SearchClient::class, fn (): SearchClient => new SearchService(
             $this->app->make(SearchIndexRegistry::class),

@@ -125,6 +125,8 @@ The same Meeting integration lane covers P31-W11 recording authorization, online
 
 `tests/Integration/Chat/TranscriptionLifecycleTest.php` covers P31-W12 with a deterministic provider: queued sync completion, async submit/poll/result continuation in one Managed Process, duplicate suppression, bounded retry/backoff and safe failure, historical retained-recording eligibility, participant editing and immutable versions, recipient privacy and no onward sharing, revocation, and coordinated recording-retention deletion. `meetingTranscriptionContract.test.ts` protects the browser gating that removes the whole transcript surface when the provider or eligible online/hybrid recording is absent.
 
+P31-W14 Search coverage verifies all Chat projection result types, current transcript replacement and retention deletion, delete-for-me, stale group and Meeting membership hits, explicit transcript share/revocation, and the absence of an Administrator bypass. `chat-shell.spec.ts` covers the rendered localized Search panel, advanced filter request, message and transcript result presentation, responsive modal behavior, dark mode, and the shared console/request guards.
+
 ## Future CI
 
 Atlas does not bundle a CI provider. A derived project may add CI later by calling the public Composer and pnpm commands.

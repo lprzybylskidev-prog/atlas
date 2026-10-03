@@ -7,6 +7,7 @@ namespace App\Shared\Application\Exports\Enums;
 enum ReportExportFormat: string
 {
     case Csv = 'csv';
+    case Json = 'json';
     case Xlsx = 'xlsx';
     case Pdf = 'pdf';
     case BrowserPrint = 'browser_print';

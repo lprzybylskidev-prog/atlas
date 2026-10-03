@@ -39,6 +39,7 @@ final readonly class MessageManager
         private ConversationScopePolicy $scopePolicy,
         private MarkdownRenderer $markdown,
         private ?AttachmentStore $attachments = null,
+        private ?ChatSearchProjectionUpdater $search = null,
     ) {}
 
     /**
@@ -83,6 +84,7 @@ final readonly class MessageManager
             $this->messages->replaceMentions($message->id, $mentionIds, $everyone, $online);
             $this->attachments?->attachToMessage($attachmentIds, $message->id);
             $this->messages->clearDraft($conversation->id, $actorId);
+            $this->search?->refresh('message', $message->publicId);
 
             return $this->visible($message, $actorId);
         });
@@ -121,6 +123,7 @@ final readonly class MessageManager
             $mentionIds = $this->mentionIds($conversation, $mentionedUserPublicIds);
             [$everyone, $online] = $this->groupMentions($body);
             $this->messages->replaceMentions($message->id, $mentionIds, $everyone, $online);
+            $this->search?->refresh('message', $message->publicId);
 
             return $this->visible($this->messages->findByPublicId($messagePublicId) ?? throw MessageOperationDenied::unavailableMessage(), $actorId);
         });
@@ -193,6 +196,7 @@ final readonly class MessageManager
 
             $message = $this->messages->create($destination->id, $actorId, $source->body, null, $source->id, $clientMessageKey, $hash);
             $this->messages->addRevision($message->id, 1, $source->body, $actorId);
+            $this->search?->refresh('message', $message->publicId);
 
             return $this->visible($message, $actorId);
         });

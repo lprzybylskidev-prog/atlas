@@ -31,6 +31,8 @@ final class ChatModule implements ModuleDefinition
             new ModuleKey('audit'),
             new ModuleKey('notifications'),
             new ModuleKey('managed_processes'),
+            new ModuleKey('search'),
+            new ModuleKey('exports'),
         ];
     }
 

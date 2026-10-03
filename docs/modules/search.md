@@ -31,6 +31,7 @@ Current foundation contracts:
 - `SearchQuery` requires an index key, non-empty term, active team public ID, user public ID, and caller permission scope. `SearchClient` enforces Search module availability and the indexed module availability before querying Meilisearch.
 - `SearchRebuildDocumentProvider` supplies module-owned rebuild documents and expected counts. Rebuilds write to a new physical index, validate counts, and promote it through the stable alias only after successful validation.
 - `SearchLifecycleProjector` maps delete/anonymize lifecycle subjects to indexed document IDs so Search can remove projected data idempotently during privacy workflows.
+- `SearchProjectionWriter` is the narrow public write boundary used by an owning module's queued source refresh when the current source record, rather than an event payload, is authoritative. It still applies registered-index and module-availability guards before changing Meilisearch.
 - `SearchIndexMaintenanceService` provides rebuild, count comparison, discrepancy, and lag report summaries used by managed-process rebuilds and Admin Search.
 - Search permissions are registered as `search.query`, `admin.search.index`, and `admin.search.rebuild`.
 - `search.rebuild` is registered as a managed process on the `search` queue. With no registered index descriptors it succeeds as a safe no-op; concrete modules add descriptors before rebuild orchestration can index their documents.
@@ -47,6 +48,8 @@ Current foundation contracts:
 - Do not index sensitive data without an explicit module-level need.
 
 Every Meilisearch query includes the active team and permission scope as filters. Backend use cases must still authorize and scope the operation before calling Search; the Meilisearch filters are projection constraints, not the only security control.
+
+Chat registers the sensitive `chat.content` index and its rebuild provider. The projection contains active users, conversations, current messages, attachment filenames, extracted HTTP(S) links, Meeting chat content, and current completed transcript text. Its query supports global member-scoped records alongside Team-scoped records and exact author, conversation, date-range, and result-type filters. Chat resolves every hit against current source state and its own authorization policy before rendering it; transcript-only shares deliberately omit Meeting metadata and recording retention deletes the transcript document.
 
 ## Availability
 

@@ -12,6 +12,7 @@ use App\Modules\Core\Exports\Application\Contracts\ReportPdfRenderer;
 use App\Modules\Core\Exports\Application\Contracts\ReportRenderReadinessProbe;
 use App\Modules\Core\Exports\Application\CsvReportExportGenerator;
 use App\Modules\Core\Exports\Application\ExportsDeactivationGuard;
+use App\Modules\Core\Exports\Application\JsonReportExportGenerator;
 use App\Modules\Core\Exports\Application\Lifecycle\ExportDataLifecycleParticipant;
 use App\Modules\Core\Exports\Application\PdfReportExportGenerator;
 use App\Modules\Core\Exports\Application\Public\Contracts\ReportExportArtifactAccess;
@@ -63,7 +64,7 @@ final class ExportsServiceProvider extends ServiceProvider
         $this->app->bind('exports.managed_process.generation_definition', fn () => ReportExportGenerationProcess::definition());
 
         $this->app->tag([ReportsPermissionCatalog::class], 'atlas.permission_catalogs');
-        $this->app->tag([CsvReportExportGenerator::class, XlsxReportExportGenerator::class, PdfReportExportGenerator::class], 'atlas.export_generators');
+        $this->app->tag([CsvReportExportGenerator::class, JsonReportExportGenerator::class, XlsxReportExportGenerator::class, PdfReportExportGenerator::class], 'atlas.export_generators');
         $this->app->tag([ExportsDeactivationGuard::class], 'atlas.module_deactivation_guards');
         $this->app->tag([ExportDataLifecycleParticipant::class], 'atlas.data_lifecycle_participants');
         $this->app->tag(['exports.managed_process.generation_definition'], 'atlas.managed_process_definitions');

@@ -40,6 +40,7 @@ final readonly class ConversationManager implements TeamMembershipChangeParticip
         private ConversationScopePolicy $scopePolicy,
         private AuditRecorder $audit,
         private ?RealtimeStore $realtime = null,
+        private ?ChatSearchProjectionUpdater $search = null,
     ) {}
 
     public function startDirect(string $actorPublicId, string $targetPublicId, string $activeTeamPublicId): ConversationRecord
@@ -70,6 +71,7 @@ final readonly class ConversationManager implements TeamMembershipChangeParticip
 
             $this->store->addMembership($conversation->id, $lowerUserId, ConversationMemberRole::Member, ConversationType::Direct);
             $this->store->addMembership($conversation->id, $higherUserId, ConversationMemberRole::Member, ConversationType::Direct);
+            $this->search?->refresh('conversation', $conversation->publicId);
 
             return $conversation;
         });
@@ -99,6 +101,7 @@ final readonly class ConversationManager implements TeamMembershipChangeParticip
             }
 
             $this->auditGroup($actorPublicId, $conversation->publicId, ChatAuditEvents::GROUP_CREATED, [], ['name' => $name, 'member_count' => count($ids) + 1]);
+            $this->search?->refresh('conversation', $conversation->publicId);
 
             return $conversation;
         });
@@ -117,6 +120,7 @@ final readonly class ConversationManager implements TeamMembershipChangeParticip
             $this->store->updateGroupMetadata($conversation->id, $name, $avatarFilePublicId);
             $this->store->appendTimeline($conversation->id, TimelineEntryType::GroupMetadataChanged, $actorId, metadata: ['name_changed' => $conversation->name !== $name]);
             $this->auditGroup($actorPublicId, $conversation->publicId, ChatAuditEvents::GROUP_METADATA_CHANGED, $before, ['name' => $name]);
+            $this->search?->refresh('conversation', $conversation->publicId);
         });
     }
 
@@ -136,6 +140,7 @@ final readonly class ConversationManager implements TeamMembershipChangeParticip
 
             $this->store->appendTimeline($conversation->id, TimelineEntryType::GroupMemberAdded, $actorId, $memberId);
             $this->auditGroup($actorPublicId, $conversation->publicId, ChatAuditEvents::GROUP_MEMBER_ADDED, [], ['member_public_id' => $memberPublicId]);
+            $this->search?->refresh('conversation', $conversation->publicId);
         });
     }
 
@@ -157,6 +162,7 @@ final readonly class ConversationManager implements TeamMembershipChangeParticip
             $this->store->endMembership($membership->id, 'removed');
             $this->store->appendTimeline($conversation->id, TimelineEntryType::GroupMemberRemoved, $actorId, $memberId);
             $this->auditGroup($actorPublicId, $conversation->publicId, ChatAuditEvents::GROUP_MEMBER_REMOVED, [], ['member_public_id' => $memberPublicId]);
+            $this->search?->refresh('conversation', $conversation->publicId);
         });
     }
 
@@ -250,6 +256,8 @@ final readonly class ConversationManager implements TeamMembershipChangeParticip
                 $this->store->appendTimeline($conversation->id, TimelineEntryType::TeamMembershipSynchronized, subjectUserId: $membership->userId, metadata: ['change' => 'removed']);
             }
 
+            $this->search?->refresh('conversation', $conversation->publicId);
+
             return $conversation;
         });
     }
@@ -266,6 +274,7 @@ final readonly class ConversationManager implements TeamMembershipChangeParticip
             if ($existing !== null) {
                 if ($title !== null && $existing->name !== $title) {
                     $this->store->updateName($existing->id, $title);
+                    $this->search?->refresh('conversation', $existing->publicId);
                 }
 
                 return $existing;
@@ -274,6 +283,7 @@ final readonly class ConversationManager implements TeamMembershipChangeParticip
             $conversation = $this->store->create(ConversationType::Meeting, $title, null, $ownerKey, true);
             $this->store->addMembership($conversation->id, $organizerId, ConversationMemberRole::Owner, ConversationType::Meeting, MeetingResponse::Accepted);
             $this->store->appendTimeline($conversation->id, TimelineEntryType::MeetingScheduled, $organizerId);
+            $this->search?->refresh('conversation', $conversation->publicId);
 
             return $conversation;
         });
@@ -334,6 +344,7 @@ final readonly class ConversationManager implements TeamMembershipChangeParticip
         }
 
         $this->store->updateName($conversation->id, $title);
+        $this->search?->refresh('conversation', $conversation->publicId);
     }
 
     public function inviteMeetingParticipant(string $conversationPublicId, string $actorPublicId, string $participantPublicId): void
@@ -347,6 +358,7 @@ final readonly class ConversationManager implements TeamMembershipChangeParticip
 
             if ($this->store->addMembership($conversation->id, $participantId, ConversationMemberRole::Member, ConversationType::Meeting, MeetingResponse::Pending)) {
                 $this->store->appendTimeline($conversation->id, TimelineEntryType::MeetingParticipantInvited, $actorId, $participantId);
+                $this->search?->refresh('conversation', $conversation->publicId);
             }
         });
     }
@@ -379,6 +391,7 @@ final readonly class ConversationManager implements TeamMembershipChangeParticip
 
             $this->store->endMembership($participant->id, 'meeting_removed');
             $this->store->appendTimeline($conversation->id, TimelineEntryType::MeetingParticipantRemoved, $actorId, $participantId);
+            $this->search?->refresh('conversation', $conversation->publicId);
         });
     }
 

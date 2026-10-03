@@ -1,6 +1,6 @@
 # Phase 31 — Optional internal company chat, calendar, calls, meetings, and realtime communication
 
-**Status:** `in progress` (`P31-W01` through `P31-W13` complete; `P31-W14` is next)
+**Status:** `in progress` (`P31-W01` through `P31-W15` complete; `P31-W16` is next)
 
 ## Objective
 
@@ -2436,19 +2436,19 @@ Update Search visibility on:
 
 ### Tasks
 
-- [ ] Preserve Chat Search projection.
-- [ ] Search conversations/users/messages/files/links.
-- [ ] Add Meeting chat Search.
-- [ ] Add current transcript Search.
-- [ ] Add filters.
-- [ ] Enforce content authorization before rendering results.
-- [ ] Prevent Admin bypass.
-- [ ] Respect delete-for-me.
-- [ ] Respect Meeting access removal.
-- [ ] Respect transcript shares/revocation.
-- [ ] Remove retained/deleted recording transcript documents.
-- [ ] Add negative mutation tests.
-- [ ] Add browser Search coverage.
+- [x] Preserve Chat Search projection.
+- [x] Search conversations/users/messages/files/links.
+- [x] Add Meeting chat Search.
+- [x] Add current transcript Search.
+- [x] Add filters.
+- [x] Enforce content authorization before rendering results.
+- [x] Prevent Admin bypass.
+- [x] Respect delete-for-me.
+- [x] Respect Meeting access removal.
+- [x] Respect transcript shares/revocation.
+- [x] Remove retained/deleted recording transcript documents.
+- [x] Add negative mutation tests.
+- [x] Add browser Search coverage.
 
 ---
 
@@ -2608,18 +2608,18 @@ Recording download is handled by recording Files authorization rather than prete
 
 ### Tasks
 
-- [ ] Preserve nullable Chat retention.
-- [ ] Keep recording retention separate.
-- [ ] Add coordinated cleanup.
-- [ ] Add safe Admin Chat/RTC/Egress aggregates.
-- [ ] Add safe provider/transcription operational state.
-- [ ] Prevent Admin private-content access.
-- [ ] Audit structural Calls/Meetings/recording/transcription events.
-- [ ] Keep content bodies out of Audit.
-- [ ] Preserve historical employee identity.
-- [ ] Preserve participant-authorized Chat exports.
-- [ ] Prevent Admin export bypass.
-- [ ] Add retention/privacy/Audit/export tests.
+- [x] Preserve nullable Chat retention.
+- [x] Keep recording retention separate.
+- [x] Add coordinated cleanup.
+- [x] Add safe Admin Chat/RTC/Egress aggregates.
+- [x] Add safe provider/transcription operational state.
+- [x] Prevent Admin private-content access.
+- [x] Audit structural Calls/Meetings/recording/transcription events.
+- [x] Keep content bodies out of Audit.
+- [x] Preserve historical employee identity.
+- [x] Preserve participant-authorized Chat exports.
+- [x] Prevent Admin export bypass.
+- [x] Add retention/privacy/Audit/export tests.
 
 ---
 

@@ -10,5 +10,6 @@ final readonly class UserDisplaySummary
         public string $publicId,
         public string $name,
         public string $email,
+        public bool $active = true,
     ) {}
 }

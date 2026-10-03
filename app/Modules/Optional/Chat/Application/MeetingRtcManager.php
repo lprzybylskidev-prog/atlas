@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Optional\Chat\Application;
 
 use App\Modules\Core\Identity\Application\Public\Contracts\UserLookup;
+use App\Modules\Optional\Chat\Application\Audit\ChatAuditEvents;
 use App\Modules\Optional\Chat\Application\Contracts\ChatTransaction;
 use App\Modules\Optional\Chat\Application\Contracts\MeetingStore;
 use App\Modules\Optional\Chat\Application\Contracts\RtcGateway;
@@ -15,10 +16,12 @@ use App\Modules\Optional\Chat\Application\DTOs\RtcSessionAdmission;
 use App\Modules\Optional\Chat\Application\Exceptions\MeetingOperationDenied;
 use App\Modules\Optional\Chat\Application\Permissions\ChatPermissionCatalog;
 use App\Modules\Optional\Chat\Domain\Rtc\RtcSessionMode;
+use App\Shared\Application\Audit\Contracts\AuditRecorder;
+use App\Shared\Application\Audit\DTOs\AuditEvent;
 
 final readonly class MeetingRtcManager
 {
-    public function __construct(private MeetingStore $meetings, private ChatTransaction $transaction, private ChatModuleAccess $access, private UserLookup $users, private RtcGateway $gateway) {}
+    public function __construct(private MeetingStore $meetings, private ChatTransaction $transaction, private ChatModuleAccess $access, private UserLookup $users, private RtcGateway $gateway, private AuditRecorder $audit) {}
 
     /** @return array{session:MeetingRtcSession,rtc:RtcParticipantAccess} */
     public function join(string $actor, string $team, string $meetingPublicId, string $occurrenceDate, bool $camera, bool $microphone): array
@@ -81,7 +84,7 @@ final readonly class MeetingRtcManager
         $this->access->ensureAllowed($actor, $team, ChatPermissionCatalog::MEETING_MODERATE);
         $actorId = $this->userId($actor);
         $participantId = $this->userId($participant);
-        $session = $this->transaction->run(function () use ($meetingPublicId, $occurrenceDate, $actorId, $participantId, $action): MeetingRtcSession {
+        $session = $this->transaction->run(function () use ($meetingPublicId, $occurrenceDate, $actorId, $participantId, $action, $actor, $participant): MeetingRtcSession {
             $meeting = $this->meeting($meetingPublicId, $actorId, true);
             if ($meeting->organizerUserId !== $actorId || $participantId === $actorId) {
                 throw MeetingOperationDenied::organizerOnly();
@@ -96,6 +99,9 @@ final readonly class MeetingRtcManager
                 'kick' => $this->meetings->banRtcParticipant($session->occurrenceId, $participantId),
                 default => throw MeetingOperationDenied::invalidRtcAction(),
             };
+            if ($action === 'kick') {
+                $this->recordAudit($actor, $meetingPublicId, ChatAuditEvents::MEETING_PARTICIPANT_KICKED, $occurrenceDate, ['participant_public_id' => $participant]);
+            }
 
             return $this->session($meeting, $occurrenceDate, true);
         });
@@ -110,7 +116,7 @@ final readonly class MeetingRtcManager
     {
         return $this->organizerMutation($actor, $team, $meetingPublicId, $occurrenceDate, function (MeetingRtcSession $s): void {
             $this->meetings->setRtcLocked($s->occurrenceId, true);
-        }, $locked);
+        }, $locked, $locked ? ChatAuditEvents::MEETING_LOCKED : ChatAuditEvents::MEETING_UNLOCKED);
     }
 
     public function end(string $actor, string $team, string $meetingPublicId, string $occurrenceDate): MeetingRtcSession
@@ -120,15 +126,15 @@ final readonly class MeetingRtcManager
             if ($s->roomName !== '') {
                 $this->gateway->endRoom($s->roomName);
             }
-        });
+        }, auditAction: ChatAuditEvents::MEETING_RTC_ENDED);
     }
 
-    private function organizerMutation(string $actor, string $team, string $meetingPublicId, string $date, callable $mutation, ?bool $locked = null): MeetingRtcSession
+    private function organizerMutation(string $actor, string $team, string $meetingPublicId, string $date, callable $mutation, ?bool $locked = null, ?string $auditAction = null): MeetingRtcSession
     {
         $this->access->ensureAllowed($actor, $team, ChatPermissionCatalog::MEETING_MODERATE);
         $id = $this->userId($actor);
 
-        return $this->transaction->run(function () use ($meetingPublicId, $date, $mutation, $id, $locked): MeetingRtcSession {
+        return $this->transaction->run(function () use ($actor, $meetingPublicId, $date, $mutation, $id, $locked, $auditAction): MeetingRtcSession {
             $m = $this->meeting($meetingPublicId, $id, true);
             if ($m->organizerUserId !== $id) {
                 throw MeetingOperationDenied::organizerOnly();
@@ -137,6 +143,9 @@ final readonly class MeetingRtcManager
                 $this->meetings->setRtcLocked($s->occurrenceId, $locked);
             } else {
                 $mutation($s);
+            }
+            if ($auditAction !== null) {
+                $this->recordAudit($actor, $meetingPublicId, $auditAction, $date);
             }
 
             return $this->session($m, $date, true);
@@ -197,5 +206,15 @@ final readonly class MeetingRtcManager
         }
 
         return false;
+    }
+
+    /** @param array<string, scalar|null> $metadata */
+    private function recordAudit(string $actor, string $meetingPublicId, string $action, string $occurrenceDate, array $metadata = []): void
+    {
+        $this->audit->record(new AuditEvent(
+            module: 'chat', action: $action, result: 'succeeded', source: 'application', actorPublicId: $actor,
+            targetType: 'meeting', targetPublicId: $meetingPublicId, aggregateType: 'meeting', aggregatePublicId: $meetingPublicId,
+            metadata: ['occurrence_date' => $occurrenceDate] + $metadata,
+        ));
     }
 }

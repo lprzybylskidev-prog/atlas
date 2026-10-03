@@ -6,11 +6,16 @@ namespace Tests\Integration\Chat;
 
 use App\Modules\Core\Calendar\Application\Services\PersonalCalendar;
 use App\Modules\Core\Calendar\Infrastructure\Persistence\TableNames\CalendarDatabaseTable;
+use App\Modules\Core\Identity\Application\Public\Contracts\UserLookup;
 use App\Modules\Core\Identity\Infrastructure\Persistence\User;
 use App\Modules\Core\Notifications\Application\Public\Contracts\NotificationPublisher;
 use App\Modules\Core\Notifications\Application\Public\DTOs\CreateNotification;
+use App\Modules\Optional\Chat\Application\ChatModuleAccess;
+use App\Modules\Optional\Chat\Application\ChatSearch;
+use App\Modules\Optional\Chat\Application\Contracts\ChatSearchProjectionStore;
 use App\Modules\Optional\Chat\Application\Contracts\MeetingRecordingAssembler;
 use App\Modules\Optional\Chat\Application\Contracts\RtcGateway;
+use App\Modules\Optional\Chat\Application\ConversationManager;
 use App\Modules\Optional\Chat\Application\DTOs\MeetingInput;
 use App\Modules\Optional\Chat\Application\DTOs\RtcParticipantAccess;
 use App\Modules\Optional\Chat\Application\DTOs\RtcRecordingStart;
@@ -29,6 +34,10 @@ use App\Modules\Optional\Chat\Domain\Meetings\MeetingMode;
 use App\Modules\Optional\Chat\Domain\Meetings\MeetingMutationScope;
 use App\Modules\Optional\Chat\Domain\Meetings\MeetingRecurrence;
 use App\Modules\Optional\Chat\Infrastructure\Persistence\TableNames\ChatDatabaseTable;
+use App\Modules\Optional\Search\Application\Public\Contracts\SearchClient;
+use App\Modules\Optional\Search\Application\Public\DTOs\SearchHit;
+use App\Modules\Optional\Search\Application\Public\DTOs\SearchQuery;
+use App\Modules\Optional\Search\Application\Public\DTOs\SearchResult;
 use App\Shared\Application\Modules\Contracts\ModuleGate;
 use App\Shared\Application\Modules\ModuleAccessDecision;
 use App\Shared\Application\Modules\ModuleAccessRequest;
@@ -89,6 +98,36 @@ final class MeetingLifecycleTest extends TestCase
             $manager->respond((string) $participant->public_id, 'team', $meeting->publicId, MeetingResponse::Accepted);
             $manager->invite((string) $participant->public_id, 'team', $meeting->publicId, (string) $additional->public_id);
             self::assertSame('pending', $manager->show((string) $additional->public_id, 'team', $meeting->publicId)['response']);
+            $search = new ChatSearch(
+                new MeetingStaleSearchClient('conversation-'.$meeting->conversationPublicId),
+                $this->app->make(ChatSearchProjectionStore::class),
+                $this->app->make(ConversationManager::class),
+                $this->app->make(ChatModuleAccess::class),
+                $this->app->make(UserLookup::class),
+            );
+            self::assertCount(1, $search->query((string) $additional->public_id, 'team', 'Meeting')['items']);
+
+            if ($mode->hasRtc()) {
+                $occurrenceId = DB::table(ChatDatabaseTable::MEETING_OCCURRENCES)->where('meeting_id', $meeting->id)->value('id');
+                self::assertIsNumeric($occurrenceId);
+                DB::table(ChatDatabaseTable::MEETING_OCCURRENCES)->where('id', $occurrenceId)->update([
+                    'rtc_status' => 'active',
+                    'rtc_started_at' => now(),
+                ]);
+                DB::table(ChatDatabaseTable::MEETING_RTC_PARTICIPANTS)->insert([
+                    'occurrence_id' => (int) $occurrenceId,
+                    'user_id' => $additional->id,
+                    'banned_at' => now(),
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+                self::assertSame([], $search->query((string) $additional->public_id, 'team', 'Meeting')['items']);
+                DB::table(ChatDatabaseTable::MEETING_OCCURRENCES)->where('id', $occurrenceId)->update([
+                    'rtc_status' => 'ended',
+                    'rtc_ended_at' => now(),
+                ]);
+                self::assertCount(1, $search->query((string) $additional->public_id, 'team', 'Meeting')['items']);
+            }
 
             try {
                 $manager->remove((string) $participant->public_id, 'team', $meeting->publicId, (string) $additional->public_id);
@@ -99,6 +138,7 @@ final class MeetingLifecycleTest extends TestCase
 
             $manager->remove((string) $organizer->public_id, 'team', $meeting->publicId, (string) $additional->public_id);
             $this->expectAccessDenied(fn () => $manager->show((string) $additional->public_id, 'team', $meeting->publicId));
+            self::assertSame([], $search->query((string) $additional->public_id, 'team', 'Meeting')['items']);
         }
 
         self::assertCount(6, $this->notifications->notifications);
@@ -306,6 +346,16 @@ final class MeetingLifecycleTest extends TestCase
         } catch (MeetingOperationDenied $exception) {
             self::assertSame('Meeting access requires an active invitation.', $exception->getMessage());
         }
+    }
+}
+
+final readonly class MeetingStaleSearchClient implements SearchClient
+{
+    public function __construct(private string $documentId) {}
+
+    public function search(SearchQuery $query): SearchResult
+    {
+        return new SearchResult($query->indexKey, [new SearchHit($this->documentId, 'chat', [])], 1);
     }
 }
 

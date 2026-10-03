@@ -1,9 +1,12 @@
 <script setup lang="ts">
-import { IconChevronDown, IconMessageCircle, IconSend, IconStar, IconStarFilled, IconX } from '@tabler/icons-vue';
+import { IconChevronDown, IconDownload, IconMessageCircle, IconSearch, IconSend, IconStar, IconStarFilled, IconX } from '@tabler/icons-vue';
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
-import { usePage } from '@inertiajs/vue3';
+import { router, usePage } from '@inertiajs/vue3';
 
 import FormButton from '../Form/FormButton.vue';
+import FormDateInput from '../Form/FormDateInput.vue';
+import FormInput from '../Form/FormInput.vue';
+import FormSelect from '../Form/FormSelect.vue';
 import FormTextarea from '../Form/FormTextarea.vue';
 import IconButton from '../IconButton.vue';
 import UiState from '../UiState.vue';
@@ -22,6 +25,17 @@ interface ConversationSummary {
     favorite: boolean;
     unreadCount: number;
 }
+interface SearchItem {
+    type: 'user' | 'conversation' | 'message' | 'file' | 'link' | 'transcript';
+    publicId: string;
+    title: string;
+    snippet: string;
+    conversationPublicId: string | null;
+    messagePublicId: string | null;
+    transcriptionPublicId: string | null;
+    occurredAt: string | null;
+    authorName: string | null;
+}
 
 const page = usePage<AtlasPageProps>();
 const { t } = useTranslator();
@@ -35,6 +49,17 @@ const draft = ref('');
 const loading = ref(false);
 const sending = ref(false);
 const error = ref(false);
+const searchOpen = ref(false);
+const searchTerm = ref('');
+const searchAuthor = ref('');
+const searchConversation = ref('');
+const searchDateFrom = ref('');
+const searchDateTo = ref('');
+const searchType = ref('');
+const searchResults = ref<SearchItem[]>([]);
+const searchLoading = ref(false);
+const searchError = ref(false);
+const exportFormat = ref<'csv' | 'json' | 'pdf'>('pdf');
 const nativeEnabled = ref(false);
 const shell = ref<HTMLElement | null>(null);
 const launcher = ref<HTMLElement | null>(null);
@@ -42,6 +67,9 @@ let client: ChatRealtimeClient | null = null;
 let refreshTimer: number | null = null;
 
 const active = computed(() => conversations.value.find((item) => item.publicId === activeId.value) ?? null);
+const canSearch = computed(() => page.props.auth.availableApplicationRoutes.includes('chat.search.index'));
+const canStartDirect = computed(() => page.props.auth.availableApplicationRoutes.includes('chat.direct-conversations.store'));
+const canExport = computed(() => page.props.auth.availableApplicationRoutes.includes('chat.exports.store'));
 const totalUnread = computed(() => conversations.value.reduce((total, item) => total + item.unreadCount, 0));
 const unreadConversations = computed(() => conversations.value.filter((item) => item.unreadCount > 0));
 const filtered = computed(() => {
@@ -60,6 +88,22 @@ const filters: { value: typeof filter.value; label: string }[] = [
     { value: 'group', label: t('chat.shell.filters.groups') },
     { value: 'team', label: t('chat.shell.filters.team') },
     { value: 'meeting', label: t('chat.shell.filters.meeting') },
+];
+const searchTypes = computed(() => [
+    { value: '', label: t('chat.search.types.all') },
+    ...(['user', 'conversation', 'message', 'file', 'link', 'transcript'] as const).map((value) => ({
+        value,
+        label: t(`chat.search.types.${value}`),
+    })),
+]);
+const searchConversations = computed(() => [
+    { value: '', label: t('chat.search.conversations_all') },
+    ...conversations.value.map((conversation) => ({ value: conversation.publicId, label: conversation.name })),
+]);
+const exportFormats = [
+    { value: 'pdf', label: 'PDF' },
+    { value: 'csv', label: 'CSV' },
+    { value: 'json', label: 'JSON' },
 ];
 
 async function loadConversations(): Promise<void> {
@@ -82,6 +126,47 @@ async function loadConversations(): Promise<void> {
     } finally {
         loading.value = false;
     }
+}
+
+async function runSearch(): Promise<void> {
+    if (searchTerm.value.trim().length < 2 || searchLoading.value) return;
+    searchLoading.value = true;
+    searchError.value = false;
+    const params = new URLSearchParams({ q: searchTerm.value.trim() });
+    if (searchAuthor.value) params.set('author', searchAuthor.value);
+    if (searchConversation.value) params.set('conversation', searchConversation.value);
+    if (searchDateFrom.value) params.set('date_from', searchDateFrom.value);
+    if (searchDateTo.value) params.set('date_to', searchDateTo.value);
+    if (searchType.value) params.set('type', searchType.value);
+    try {
+        const response = await chatJson<{ items: SearchItem[] }>(`/chat/search?${params.toString()}`);
+        searchResults.value = response.items;
+    } catch {
+        searchError.value = true;
+        searchResults.value = [];
+    } finally {
+        searchLoading.value = false;
+    }
+}
+
+async function openSearchResult(item: SearchItem): Promise<void> {
+    if (item.type === 'user') {
+        if (!canStartDirect.value) return;
+        const conversation = await chatJson<{ publicId: string; type: ConversationType }>('/chat/direct-conversations', 'POST', {
+            target_user_public_id: item.publicId,
+        });
+        await loadConversations();
+        const summary = conversations.value.find((candidate) => candidate.publicId === conversation.publicId);
+        if (summary) await show(summary);
+        return;
+    }
+    if (item.conversationPublicId === null) return;
+    const summary = conversations.value.find((candidate) => candidate.publicId === item.conversationPublicId);
+    if (summary) await show(summary);
+}
+
+function searchResultActionable(item: SearchItem): boolean {
+    return item.type === 'user' ? canStartDirect.value : item.conversationPublicId !== null;
 }
 
 async function enableNativeNotifications(): Promise<void> {
@@ -112,10 +197,20 @@ function close(): void {
     nextTick(() => launcher.value?.focus());
 }
 
+function toggleSearch(): void {
+    searchOpen.value = !searchOpen.value;
+    if (searchOpen.value) activeId.value = null;
+}
+
 async function toggleFavorite(conversation: ConversationSummary): Promise<void> {
     const favorite = !conversation.favorite;
     await chatJson(`/chat/conversations/${conversation.publicId}/favorite`, 'PATCH', { favorite });
     conversation.favorite = favorite;
+}
+
+function exportConversation(): void {
+    if (!active.value || !canExport.value) return;
+    router.post(`/chat/conversations/${active.value.publicId}/exports`, { format: exportFormat.value }, { preserveScroll: true });
 }
 
 async function send(): Promise<void> {
@@ -148,7 +243,7 @@ function handleKeydown(event: KeyboardEvent): void {
     }
     if (!open.value || event.key !== 'Tab' || shell.value === null) return;
     const controls = shell.value.querySelectorAll<HTMLElement>(
-        'button:not([disabled]), textarea:not([disabled]), [href], [tabindex]:not([tabindex="-1"])',
+        'button:not([disabled]), input:not([disabled]), textarea:not([disabled]), [href], [tabindex]:not([tabindex="-1"])',
     );
     if (controls.length === 0) return;
     const first = controls[0];
@@ -209,7 +304,7 @@ onBeforeUnmount(() => {
                 :aria-label="t('chat.shell.open')"
                 @click="open = true"
             >
-                <IconMessageCircle aria-hidden="true" class="h-5 w-5" />
+                <IconMessageCircle v-once aria-hidden="true" class="h-5 w-5" />
                 <span class="hidden xl:inline">{{ t('chat.shell.title') }}</span>
                 <span v-if="totalUnread" class="min-w-5 rounded-full bg-rose-600 px-1.5 text-center text-xs leading-5 text-white">{{
                     Math.min(totalUnread, 99)
@@ -223,7 +318,7 @@ onBeforeUnmount(() => {
                 aria-haspopup="menu"
                 @click="unreadOpen = !unreadOpen"
             >
-                <IconChevronDown aria-hidden="true" class="h-4 w-4" />
+                <IconChevronDown v-once aria-hidden="true" class="h-4 w-4" />
             </button>
             <div
                 v-if="unreadOpen"
@@ -279,9 +374,42 @@ onBeforeUnmount(() => {
                 >
                     <div class="flex items-center justify-between border-b border-zinc-200 p-3 dark:border-zinc-800">
                         <h2 class="font-semibold">{{ t('chat.shell.title') }}</h2>
-                        <IconButton :label="t('actions.close')" :icon="IconX" @click="close" />
+                        <div class="flex items-center gap-1">
+                            <IconButton v-if="canSearch" :label="t('chat.search.open')" :icon="IconSearch" @click="toggleSearch" />
+                            <IconButton :label="t('actions.close')" :icon="IconX" @click="close" />
+                        </div>
                     </div>
-                    <div class="flex gap-1 overflow-x-auto border-b border-zinc-200 p-2 dark:border-zinc-800" role="tablist">
+                    <form v-if="searchOpen" class="space-y-2 border-b border-zinc-200 p-3 dark:border-zinc-800" @submit.prevent="runSearch">
+                        <FormInput
+                            v-model="searchTerm"
+                            :label="t('chat.search.query')"
+                            :placeholder="t('chat.search.placeholder')"
+                            :leading-icon="IconSearch"
+                            inputmode="search"
+                        />
+                        <details>
+                            <summary class="cursor-pointer text-sm font-medium text-teal-700 dark:text-teal-300">
+                                {{ t('chat.search.filters') }}
+                            </summary>
+                            <div class="mt-2 space-y-2">
+                                <FormInput v-model="searchAuthor" :label="t('chat.search.author')" />
+                                <FormSelect
+                                    v-model="searchConversation"
+                                    :label="t('chat.search.conversation')"
+                                    :options="searchConversations"
+                                />
+                                <div class="grid grid-cols-2 gap-2">
+                                    <FormDateInput v-model="searchDateFrom" :label="t('chat.search.date_from')" />
+                                    <FormDateInput v-model="searchDateTo" :label="t('chat.search.date_to')" />
+                                </div>
+                                <FormSelect v-model="searchType" :label="t('chat.search.type')" :options="searchTypes" />
+                            </div>
+                        </details>
+                        <FormButton type="submit" :icon="IconSearch" :loading="searchLoading" :disabled="searchTerm.trim().length < 2">
+                            {{ t('chat.search.submit') }}
+                        </FormButton>
+                    </form>
+                    <div v-else class="flex gap-1 overflow-x-auto border-b border-zinc-200 p-2 dark:border-zinc-800" role="tablist">
                         <button
                             v-for="item in filters"
                             :key="item.value"
@@ -300,29 +428,56 @@ onBeforeUnmount(() => {
                         </button>
                     </div>
                     <div class="flex-1 overflow-y-auto p-2">
-                        <button
-                            v-for="conversation in filtered"
-                            :key="conversation.publicId"
-                            type="button"
-                            class="mb-1 flex min-h-14 w-full items-center gap-2 rounded-lg px-3 text-left hover:bg-teal-50 focus-visible:outline-2 focus-visible:outline-amber-500 dark:hover:bg-teal-950"
-                            @click="show(conversation)"
-                        >
-                            <span class="min-w-0 flex-1">
-                                <strong class="block truncate text-sm">{{ conversation.name }}</strong>
-                                <span class="block truncate text-xs text-zinc-500">{{ t(`chat.shell.types.${conversation.type}`) }}</span>
-                            </span>
-                            <IconStarFilled v-if="conversation.favorite" aria-hidden="true" class="h-4 w-4 text-amber-500" />
-                            <span v-if="conversation.unreadCount" class="rounded-full bg-rose-600 px-2 text-xs text-white">{{
-                                conversation.unreadCount
-                            }}</span>
-                        </button>
-                        <UiState
-                            v-if="!loading && filtered.length === 0"
-                            variant="empty"
-                            :icon="IconMessageCircle"
-                            :title="t('chat.shell.empty')"
-                        />
-                        <UiState v-if="error" variant="error" :icon="IconMessageCircle" :title="t('chat.shell.error')" />
+                        <template v-if="searchOpen">
+                            <button
+                                v-for="item in searchResults"
+                                :key="`${item.type}-${item.publicId}`"
+                                type="button"
+                                class="mb-1 block min-h-14 w-full rounded-lg px-3 py-2 text-left enabled:hover:bg-teal-50 enabled:focus-visible:outline-2 enabled:focus-visible:outline-amber-500 disabled:cursor-default dark:enabled:hover:bg-teal-950"
+                                :disabled="!searchResultActionable(item)"
+                                @click="openSearchResult(item)"
+                            >
+                                <span class="block text-xs font-semibold uppercase text-teal-700 dark:text-teal-300">{{
+                                    t(`chat.search.types.${item.type}`)
+                                }}</span>
+                                <strong class="block truncate text-sm">{{ item.title || t('chat.search.shared_transcript') }}</strong>
+                                <span class="line-clamp-2 text-xs text-zinc-500">{{ item.snippet }}</span>
+                            </button>
+                            <UiState v-if="searchError" variant="error" :icon="IconSearch" :title="t('chat.search.unavailable')" />
+                            <UiState
+                                v-else-if="!searchLoading && searchTerm.trim().length >= 2 && searchResults.length === 0"
+                                variant="empty"
+                                :icon="IconSearch"
+                                :title="t('chat.search.empty')"
+                            />
+                        </template>
+                        <template v-else>
+                            <button
+                                v-for="conversation in filtered"
+                                :key="conversation.publicId"
+                                type="button"
+                                class="mb-1 flex min-h-14 w-full items-center gap-2 rounded-lg px-3 text-left hover:bg-teal-50 focus-visible:outline-2 focus-visible:outline-amber-500 dark:hover:bg-teal-950"
+                                @click="show(conversation)"
+                            >
+                                <span class="min-w-0 flex-1">
+                                    <strong class="block truncate text-sm">{{ conversation.name }}</strong>
+                                    <span class="block truncate text-xs text-zinc-500">{{
+                                        t(`chat.shell.types.${conversation.type}`)
+                                    }}</span>
+                                </span>
+                                <IconStarFilled v-if="conversation.favorite" aria-hidden="true" class="h-4 w-4 text-amber-500" />
+                                <span v-if="conversation.unreadCount" class="rounded-full bg-rose-600 px-2 text-xs text-white">{{
+                                    conversation.unreadCount
+                                }}</span>
+                            </button>
+                            <UiState
+                                v-if="!loading && filtered.length === 0"
+                                variant="empty"
+                                :icon="IconMessageCircle"
+                                :title="t('chat.shell.empty')"
+                            />
+                            <UiState v-if="error" variant="error" :icon="IconMessageCircle" :title="t('chat.shell.error')" />
+                        </template>
                     </div>
                 </aside>
                 <div v-if="active" class="flex min-w-0 flex-1 flex-col">
@@ -331,6 +486,15 @@ onBeforeUnmount(() => {
                             {{ t('chat.shell.back') }}
                         </button>
                         <h2 class="min-w-0 flex-1 truncate font-semibold">{{ active.name }}</h2>
+                        <div v-if="canExport" class="flex items-center gap-1">
+                            <FormSelect
+                                v-model="exportFormat"
+                                :aria-label="t('chat.exports.format')"
+                                :options="exportFormats"
+                                button-class="min-h-9 w-24 py-1"
+                            />
+                            <IconButton :label="t('chat.exports.action')" :icon="IconDownload" @click="exportConversation" />
+                        </div>
                         <IconButton
                             :label="active.favorite ? t('chat.shell.unfavorite') : t('chat.shell.favorite')"
                             :icon="active.favorite ? IconStarFilled : IconStar"

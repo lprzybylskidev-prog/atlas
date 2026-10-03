@@ -414,6 +414,12 @@ final class ModuleActivationAdministrationTest extends TestCase
             enabled: true,
             reason: 'Enable search for schedule guard test.',
         ));
+        $activation->change(new ModuleActivationChange(
+            moduleKey: 'chat',
+            scope: ModuleActivationScope::Global,
+            enabled: false,
+            reason: 'Isolate the Search process-schedule deactivation guard.',
+        ));
 
         $schedulePublicId = (string) Str::ulid();
         DB::table(ManagedProcessesDatabaseTable::SCHEDULES)->insert([

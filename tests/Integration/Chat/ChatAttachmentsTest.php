@@ -15,6 +15,7 @@ use App\Modules\Core\Identity\Infrastructure\Persistence\User;
 use App\Modules\Optional\Chat\Application\AttachmentManager;
 use App\Modules\Optional\Chat\Application\ChatModuleAccess;
 use App\Modules\Optional\Chat\Application\Contracts\AttachmentStore;
+use App\Modules\Optional\Chat\Application\Contracts\ChatSearchProjectionStore;
 use App\Modules\Optional\Chat\Application\Contracts\ChatTransaction;
 use App\Modules\Optional\Chat\Application\Contracts\ConversationStore;
 use App\Modules\Optional\Chat\Application\Contracts\MarkdownRenderer;
@@ -67,6 +68,17 @@ final class ChatAttachmentsTest extends TestCase
 
         $message = $this->messages()->send((string) $author->public_id, 'team', $conversation->publicId, 'See https://atlas.example/help', 'attachment-001', attachmentPublicIds: [$attachment->publicId]);
         self::assertCount(1, $message->attachments);
+        $projectionTypes = array_map(
+            static function ($document): string {
+                $type = $document->fields['result_type'] ?? null;
+
+                return is_string($type) ? $type : '';
+            },
+            iterator_to_array($this->app->make(ChatSearchProjectionStore::class)->documents()),
+        );
+        foreach (['user', 'conversation', 'message', 'file', 'link'] as $expectedType) {
+            self::assertContains($expectedType, $projectionTypes);
+        }
         $content = $attachments->content((string) $member->public_id, 'team', $conversation->publicId);
         self::assertCount(1, $content->files);
         self::assertSame(['https://atlas.example/help'], $content->links);

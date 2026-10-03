@@ -8,6 +8,8 @@ final class ChatPermissionNames
 {
     public const INDEX = 'chat.index';
 
+    public const SEARCH_INDEX = 'chat.search.index';
+
     public const FAVORITE_UPDATE = 'chat.favorites.update';
 
     public const DIRECT_CONVERSATION_STORE = 'chat.direct-conversations.store';
@@ -19,6 +21,8 @@ final class ChatPermissionNames
     public const MESSAGE_STORE = 'chat.messages.store';
 
     public const CONTENT_INDEX = 'chat.content.index';
+
+    public const EXPORT_STORE = 'chat.exports.store';
 
     public const ATTACHMENT_STORE = 'chat.attachments.store';
 
@@ -125,6 +129,8 @@ final class ChatPermissionNames
     public const ADMIN_OPERATIONS_INDEX = 'admin.chat.operations.index';
 
     public const ADMIN_RETENTION_UPDATE = 'admin.chat.retention.update';
+
+    public const ADMIN_RETENTION_RUN = 'admin.chat.retention.run';
 
     public const ADMIN_RECORDING_RETENTION_UPDATE = 'admin.chat.recording-retention.update';
 

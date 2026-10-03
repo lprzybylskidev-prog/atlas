@@ -159,13 +159,16 @@ return [
             'request_type', 'requested_at', 'requires_manager_review', 'started_at',
         ]),
         'chat' => $catalog([
-            'chat.call.declined', 'chat.call.joined', 'chat.call.left',
+            'chat.call.declined', 'chat.call.ended', 'chat.call.joined', 'chat.call.left',
             'chat.call.preferences_updated', 'chat.call.screen_share_started',
             'chat.call.screen_share_stopped', 'chat.call.started',
             'chat.group.closed', 'chat.group.created', 'chat.group.member_added',
             'chat.group.member_left', 'chat.group.member_removed',
             'chat.group.metadata_changed', 'chat.group.ownership_transferred',
             'chat.meeting.created', 'chat.meeting.updated', 'chat.meeting.cancelled',
+            'chat.meeting.participant_invited', 'chat.meeting.participant_removed',
+            'chat.meeting.participant_kicked', 'chat.meeting.locked', 'chat.meeting.unlocked',
+            'chat.meeting.rtc_ended',
             'chat.meeting_recording.paused', 'chat.meeting_recording.removed_by_retention',
             'chat.meeting_recording.resumed', 'chat.meeting_recording.share_revoked',
             'chat.meeting_recording.shared', 'chat.meeting_recording.started',
@@ -173,10 +176,12 @@ return [
             'chat.meeting_transcript.edited', 'chat.meeting_transcript.share_revoked',
             'chat.meeting_transcript.shared', 'chat.meeting_transcription.completed',
             'chat.meeting_transcription.failed', 'chat.meeting_transcription.requested',
-            'chat.recording_retention.configured',
-        ], ['call', 'conversation', 'meeting', 'meeting_recording', 'meeting_transcription', 'recording_retention_policy', 'user'], ['call', 'conversation', 'meeting', 'meeting_recording', 'meeting_transcription', 'recording_retention_policy', 'user'], [
+            'chat.recording_retention.configured', 'chat.recording_retention.run_requested',
+            'chat.retention.configured', 'chat.retention.run_requested',
+        ], ['call', 'chat_retention_policy', 'conversation', 'meeting', 'meeting_recording', 'meeting_transcription', 'recording_retention_policy', 'user'], ['call', 'chat_retention_policy', 'conversation', 'meeting', 'meeting_recording', 'meeting_transcription', 'recording_retention_policy', 'user'], [
             'days', 'member_count', 'member_public_id', 'mode', 'new_owner_public_id',
-            'occurrence_date', 'provider', 'recipient_public_id', 'share_public_id', 'version',
+            'occurrence_date', 'participant_public_id', 'provider', 'recipient_public_id', 'share_public_id', 'version',
+            'process_public_id', 'result_status',
         ]),
         'tests' => $catalog([
             'audit.append_only_probe', 'audit.atomicity_probe', 'audit.impersonated_action_probe',

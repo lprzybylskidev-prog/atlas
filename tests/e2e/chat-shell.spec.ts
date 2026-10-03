@@ -13,6 +13,39 @@ async function signIn(page: Page): Promise<void> {
 
 test('Chat shell keeps separate unread controls and desktop/mobile accessible modal behavior', async ({ page }, testInfo) => {
     test.skip(testInfo.project.name !== 'chromium', 'Responsive Chat shell acceptance is covered once in Chromium.');
+    await page.route('**/chat/search?*', async (route) => {
+        await route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: JSON.stringify({
+                items: [
+                    {
+                        type: 'message',
+                        publicId: '01MESSAGESEARCH00000000001',
+                        title: 'E2E Visibility Team',
+                        snippet: 'Searchable project decision',
+                        conversationPublicId: '01CONVERSATIONSEARCH00001',
+                        messagePublicId: '01MESSAGESEARCH00000000001',
+                        transcriptionPublicId: null,
+                        occurredAt: '2026-10-02T10:00:00+00:00',
+                        authorName: 'Atlas Administrator',
+                    },
+                    {
+                        type: 'transcript',
+                        publicId: '01TRANSCRIPTSEARCH00000001',
+                        title: '',
+                        snippet: 'Shared transcript decision',
+                        conversationPublicId: null,
+                        messagePublicId: null,
+                        transcriptionPublicId: '01TRANSCRIPTSEARCH00000001',
+                        occurredAt: '2026-10-02T11:00:00+00:00',
+                        authorName: null,
+                    },
+                ],
+                estimatedTotal: 2,
+            }),
+        });
+    });
     await signIn(page);
     await page.request.get('/chat/team-conversation');
     await page.reload();
@@ -23,7 +56,28 @@ test('Chat shell keeps separate unread controls and desktop/mobile accessible mo
     const dialog = page.getByRole('dialog', { name: /Czat|Chat/ });
     await expect(dialog).toBeVisible();
     await expect(dialog.getByRole('tab', { name: /Spotkania|Meeting/ })).toBeVisible();
-    await expect(dialog.getByText('E2E Visibility Team')).toBeVisible();
+    await dialog.getByRole('button', { name: /E2E Visibility Team/ }).click();
+    await expect(dialog.getByRole('button', { name: /Eksportuj konwersację|Export conversation/ })).toBeVisible();
+    await expect(dialog.getByRole('combobox', { name: /Format eksportu|Export format/ })).toBeVisible();
+    await dialog.getByRole('button', { name: /Przeszukaj Czat|Search Chat/ }).click();
+    await expect(dialog.getByLabel(/Wyszukiwanie|Search/, { exact: true })).toBeVisible();
+    await dialog.getByText(/Filtry|Filters/, { exact: true }).click();
+    await dialog.getByLabel(/Osoba lub autor|Person or author/).fill('Atlas Administrator');
+    await dialog.getByRole('combobox', { name: /Typ|Type/ }).click();
+    await dialog.getByRole('option', { name: /Wiadomość|Message/ }).click();
+    await dialog.getByLabel(/Wyszukiwanie|Search/, { exact: true }).fill('decision');
+    const response = page.waitForResponse((candidate) => {
+        const url = new URL(candidate.url());
+        return (
+            url.pathname === '/chat/search' &&
+            url.searchParams.get('author') === 'Atlas Administrator' &&
+            url.searchParams.get('type') === 'message'
+        );
+    });
+    await dialog.getByRole('button', { name: /Szukaj|Search/, exact: true }).click();
+    await response;
+    await expect(dialog.getByText('Searchable project decision')).toBeVisible();
+    await expect(dialog.locator('strong').filter({ hasText: /^(Udostępniona transkrypcja|Shared transcript)$/ })).toBeVisible();
     await page.keyboard.press('Escape');
     await expect(dialog).toHaveCount(0);
 

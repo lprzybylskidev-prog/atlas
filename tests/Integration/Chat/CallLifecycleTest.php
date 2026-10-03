@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Integration\Chat;
 
+use App\Modules\Core\Audit\Infrastructure\Persistence\TableNames\AuditDatabaseTable;
 use App\Modules\Core\Identity\Application\Public\Contracts\UserLookup;
 use App\Modules\Core\Identity\Infrastructure\Persistence\User;
 use App\Modules\Core\Notifications\Application\Public\Contracts\NotificationPublisher;
@@ -156,6 +157,11 @@ final class CallLifecycleTest extends TestCase
         self::assertSame('chat.call.missed', $this->notificationPublisher->notifications[0]->type);
         self::assertFalse($this->notificationPublisher->notifications[0]->emailRequested);
         self::assertSame('missed', $calls->history((string) $recipient->public_id, 'team')[0]->state);
+        self::assertSame([
+            'chat.call.ended',
+            'chat.call.left',
+            'chat.call.started',
+        ], DB::table(AuditDatabaseTable::AUDIT_EVENTS)->where('aggregate_public_id', $started->call->publicId)->orderBy('action')->pluck('action')->all());
     }
 
     public function test_preferences_rtc_authorization_and_database_arbiters_are_enforced(): void
