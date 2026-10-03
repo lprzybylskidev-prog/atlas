@@ -1,6 +1,6 @@
 # Phase 31 — Optional internal company chat, calendar, calls, meetings, and realtime communication
 
-**Status:** `in progress` (`P31-W01` through `P31-W15` complete; `P31-W16` is next)
+**Status:** `in progress` (`P31-W01` through `P31-W15` complete; `P31-W16` implementation and browser acceptance complete, production runtime smoke pending host Docker access)
 
 ## Objective
 
@@ -975,7 +975,7 @@ Egress is deployed separately from the LiveKit server.
 
 Use canonical Redis connectivity required by the accepted LiveKit/Egress topology.
 
-Production topology and installer work belongs to Phase 40, but Phase 31 must provide a reproducible development/test topology.
+Production topology and installer work belongs to Phase 52, but Phase 31 must provide a reproducible development/test topology.
 
 ### Media gateway
 
@@ -1050,7 +1050,7 @@ Such capacity failures must produce a clear user-facing result rather than a han
 - [x] Add short-lived room-token authorization.
 - [x] Keep LiveKit secrets server-side.
 - [x] Preserve Reverb as messaging realtime.
-- [x] Add LAN/VPN/TURN/TLS production requirements to Phase 40 planning.
+- [x] Add LAN/VPN/TURN/TLS production requirements to Phase 52 planning.
 - [x] Add RTC health/readiness hooks.
 - [x] Isolate RTC failures from Chat messaging.
 - [x] Isolate Egress failure from live Meetings.
@@ -2522,7 +2522,7 @@ Do not implement:
 - RTC E2EE system;
 - custom recording encryption layer.
 
-Production encryption at rest belongs to Phase 40 infrastructure.
+Production encryption at rest belongs to Phase 52 infrastructure.
 
 ### Admin operational visibility
 
@@ -2834,52 +2834,52 @@ Protect:
 
 At Phase 31 completion update canonical documentation so current behavior is no longer described using the old "calls/video/screen sharing out of scope" contract.
 
-Update production requirements consumed by Phase 40.
+Update production requirements consumed by Phase 52.
 
 ### Tasks
 
-- [ ] Add realistic company-scale fixtures.
-- [ ] Add cursor message history.
-- [ ] Verify query/N+1 behavior.
-- [ ] Verify bounded presence/typing.
-- [ ] Add messaging multi-user E2E.
-- [ ] Add group E2E.
-- [ ] Add Team Chat E2E.
-- [ ] Add Files/voice E2E.
-- [ ] Add Calendar E2E.
-- [ ] Add direct Call E2E.
-- [ ] Add group Call E2E.
-- [ ] Add Team Call E2E.
-- [ ] Add device/pre-call E2E.
-- [ ] Add Busy/Rejoin E2E.
-- [ ] Add Meeting scheduling/invitation E2E.
-- [ ] Add in-person Meeting mode/location/Calendar/chat E2E without RTC controls or dependency.
-- [ ] Preserve online Meeting RTC E2E.
-- [ ] Add hybrid Meeting location plus RTC E2E.
-- [ ] Prove hybrid physical attendance is not inferred from RTC absence.
-- [ ] Add recurring Meeting E2E.
-- [ ] Add Meeting moderation E2E.
-- [ ] Add attendance E2E.
-- [ ] Add screen-share E2E.
-- [ ] Add Meeting recording E2E.
-- [ ] Prove recording is limited to RTC-enabled online/hybrid Meetings.
-- [ ] Prove in-person Meetings expose no recording or transcription controls.
-- [ ] Add recording sharing/retention E2E.
-- [ ] Add provider-disabled transcription UI coverage.
-- [ ] Add fake-provider transcription E2E.
-- [ ] Add Search authorization E2E.
-- [ ] Add browser-native notification coverage.
-- [ ] Add critical mobile workflows.
-- [ ] Cover PL/EN.
-- [ ] Cover light/dark.
-- [ ] Enforce console/runtime/request cleanliness.
-- [ ] Run targeted backend tests.
-- [ ] Run targeted frontend tests.
-- [ ] Run Chromium Playwright.
-- [ ] Run Firefox Playwright.
-- [ ] Run complete required foundation quality gate.
-- [ ] Update all affected canonical documentation.
-- [ ] Confirm Phase 40 has not been implemented from this Phase 31 planning task.
+- [x] Add realistic company-scale fixtures.
+- [x] Add cursor message history.
+- [x] Verify query/N+1 behavior.
+- [x] Verify bounded presence/typing.
+- [x] Add messaging multi-user E2E.
+- [x] Add group E2E.
+- [x] Add Team Chat E2E.
+- [x] Add Files/voice E2E.
+- [x] Add Calendar E2E.
+- [x] Add direct Call E2E.
+- [x] Add group Call E2E.
+- [x] Add Team Call E2E.
+- [x] Add device/pre-call E2E.
+- [x] Add Busy/Rejoin E2E.
+- [x] Add Meeting scheduling/invitation E2E.
+- [x] Add in-person Meeting mode/location/Calendar/chat E2E without RTC controls or dependency.
+- [x] Preserve online Meeting RTC E2E.
+- [x] Add hybrid Meeting location plus RTC E2E.
+- [x] Prove hybrid physical attendance is not inferred from RTC absence.
+- [x] Add recurring Meeting E2E.
+- [x] Add Meeting moderation E2E.
+- [x] Add attendance E2E.
+- [x] Add screen-share E2E.
+- [x] Add Meeting recording E2E.
+- [x] Prove recording is limited to RTC-enabled online/hybrid Meetings.
+- [x] Prove in-person Meetings expose no recording or transcription controls.
+- [x] Add recording sharing/retention E2E.
+- [x] Add provider-disabled transcription UI coverage.
+- [x] Add fake-provider transcription E2E.
+- [x] Add Search authorization E2E.
+- [x] Add browser-native notification coverage.
+- [x] Add critical mobile workflows.
+- [x] Cover PL/EN.
+- [x] Cover light/dark.
+- [x] Enforce console/runtime/request cleanliness.
+- [x] Run targeted backend tests.
+- [x] Run targeted frontend tests.
+- [x] Run Chromium Playwright.
+- [x] Run Firefox Playwright.
+- [ ] Run complete required foundation quality gate (production runtime smoke pending host Docker access).
+- [x] Update all affected canonical documentation.
+- [x] Confirm Phase 52 has not been implemented from this Phase 31 planning task.
 
 ---
 
@@ -3110,60 +3110,60 @@ Do not create another future phase for these items during this planning task.
 
 ## Permanent guardrails
 
-- [ ] Exactly one canonical DM exists per unordered user pair.
-- [ ] Direct/group Chat does not become active-Team scoped.
-- [ ] Team Chat membership remains Teams-owned.
-- [ ] Meeting conversation is system-owned and invitation-scoped.
-- [ ] Recurring series has one shared Meeting chat.
-- [ ] Meeting mode is explicitly `online`, `in_person`, or `hybrid`.
-- [ ] Meeting domain state does not depend on LiveKit room existence.
-- [ ] In-person Meetings never create LiveKit RTC sessions or participant tokens.
-- [ ] Hybrid Meetings remain one Meeting rather than separate physical/online records.
-- [ ] In-person Meetings remain usable while LiveKit, TURN, or Egress is unavailable.
-- [ ] Meeting chat works independently from RTC mode and availability.
-- [ ] Physical location is Meeting product data rather than RTC metadata.
-- [ ] In-person Meetings expose no RTC device, screen-share, moderation, or rejoin controls.
-- [ ] In-person Meetings expose no Atlas recording controls.
-- [ ] Recording remains limited to RTC-enabled online/hybrid Meetings.
-- [ ] Transcript creation requires an eligible retained recording.
-- [ ] RTC attendance is never treated as proof of physical absence.
-- [ ] The 15-minute empty-room rule terminates RTC resources rather than the Meeting domain object.
-- [ ] No physical-room hardware, check-in, geolocation, or automatic attendance system is introduced.
-- [ ] Admin never gains private Chat/Call/Meeting content access by status alone.
-- [ ] Chat Search cannot leak unauthorized content.
-- [ ] Reverb remains canonical message/application realtime.
-- [ ] LiveKit remains RTC/media infrastructure only.
-- [ ] LiveKit secret never reaches browser.
-- [ ] Calls/Meetings cannot join unauthorized rooms.
-- [ ] One user cannot remain actively connected to multiple RTC sessions.
-- [ ] Ad-hoc Calls cannot invoke recording.
-- [ ] Meeting recording requires organizer + permission.
-- [ ] Recording participants always see REC/Paused state.
-- [ ] Final recording is one Files-owned artifact.
-- [ ] Egress staging is not permanent content storage.
-- [ ] Recording share does not grant Meeting membership.
-- [ ] Recording share recipient cannot re-share.
-- [ ] Recording retention does not leave orphan Files.
-- [ ] Recording deletion also deletes transcript content/shares/Search.
-- [ ] Transcript does not exist without a retained source recording.
-- [ ] Transcription cannot run synchronously in user HTTP request.
-- [ ] No concrete STT provider is required for baseline completion.
-- [ ] User transcript UI is absent while provider is disabled.
-- [ ] Transcript edit history cannot be silently overwritten.
-- [ ] Transcript share recipient cannot see edit history.
-- [ ] Transcript Search cannot bypass access.
-- [ ] Personal Calendar event contents remain private.
-- [ ] Free/Busy does not expose event details.
-- [ ] Europe/Warsaw recurrence behavior remains consistent.
-- [ ] Meeting lock prevents new joins/invites.
-- [ ] Kick blocks rejoin for the current occurrence.
-- [ ] Organizer cannot remotely enable another user's mic/camera.
-- [ ] Only one screen share is active.
-- [ ] Empty RTC rooms release live-media resources after 15 continuous minutes without ending the Meeting domain object.
-- [ ] Chat messages remain outside Notifications persistence/email.
-- [ ] Calls/Meetings do not introduce application-level E2EE.
-- [ ] No public guest/public Meeting mode appears.
-- [ ] PL/EN/light/dark/mobile/accessibility/browser-quality guards remain intact.
+- [x] Exactly one canonical DM exists per unordered user pair.
+- [x] Direct/group Chat does not become active-Team scoped.
+- [x] Team Chat membership remains Teams-owned.
+- [x] Meeting conversation is system-owned and invitation-scoped.
+- [x] Recurring series has one shared Meeting chat.
+- [x] Meeting mode is explicitly `online`, `in_person`, or `hybrid`.
+- [x] Meeting domain state does not depend on LiveKit room existence.
+- [x] In-person Meetings never create LiveKit RTC sessions or participant tokens.
+- [x] Hybrid Meetings remain one Meeting rather than separate physical/online records.
+- [x] In-person Meetings remain usable while LiveKit, TURN, or Egress is unavailable.
+- [x] Meeting chat works independently from RTC mode and availability.
+- [x] Physical location is Meeting product data rather than RTC metadata.
+- [x] In-person Meetings expose no RTC device, screen-share, moderation, or rejoin controls.
+- [x] In-person Meetings expose no Atlas recording controls.
+- [x] Recording remains limited to RTC-enabled online/hybrid Meetings.
+- [x] Transcript creation requires an eligible retained recording.
+- [x] RTC attendance is never treated as proof of physical absence.
+- [x] The 15-minute empty-room rule terminates RTC resources rather than the Meeting domain object.
+- [x] No physical-room hardware, check-in, geolocation, or automatic attendance system is introduced.
+- [x] Admin never gains private Chat/Call/Meeting content access by status alone.
+- [x] Chat Search cannot leak unauthorized content.
+- [x] Reverb remains canonical message/application realtime.
+- [x] LiveKit remains RTC/media infrastructure only.
+- [x] LiveKit secret never reaches browser.
+- [x] Calls/Meetings cannot join unauthorized rooms.
+- [x] One user cannot remain actively connected to multiple RTC sessions.
+- [x] Ad-hoc Calls cannot invoke recording.
+- [x] Meeting recording requires organizer + permission.
+- [x] Recording participants always see REC/Paused state.
+- [x] Final recording is one Files-owned artifact.
+- [x] Egress staging is not permanent content storage.
+- [x] Recording share does not grant Meeting membership.
+- [x] Recording share recipient cannot re-share.
+- [x] Recording retention does not leave orphan Files.
+- [x] Recording deletion also deletes transcript content/shares/Search.
+- [x] Transcript does not exist without a retained source recording.
+- [x] Transcription cannot run synchronously in user HTTP request.
+- [x] No concrete STT provider is required for baseline completion.
+- [x] User transcript UI is absent while provider is disabled.
+- [x] Transcript edit history cannot be silently overwritten.
+- [x] Transcript share recipient cannot see edit history.
+- [x] Transcript Search cannot bypass access.
+- [x] Personal Calendar event contents remain private.
+- [x] Free/Busy does not expose event details.
+- [x] Europe/Warsaw recurrence behavior remains consistent.
+- [x] Meeting lock prevents new joins/invites.
+- [x] Kick blocks rejoin for the current occurrence.
+- [x] Organizer cannot remotely enable another user's mic/camera.
+- [x] Only one screen share is active.
+- [x] Empty RTC rooms release live-media resources after 15 continuous minutes without ending the Meeting domain object.
+- [x] Chat messages remain outside Notifications persistence/email.
+- [x] Calls/Meetings do not introduce application-level E2EE.
+- [x] No public guest/public Meeting mode appears.
+- [x] PL/EN/light/dark/mobile/accessibility/browser-quality guards remain intact.
 
 ---
 
@@ -3171,64 +3171,64 @@ Do not create another future phase for these items during this planning task.
 
 Phase 31 is complete only when:
 
-- [ ] original Chat messaging scope is complete;
-- [ ] direct/group/Team conversations work;
-- [ ] Meeting conversation type works;
-- [ ] messaging/replies/edits/history/reactions/mentions/forwarding/pins/bookmarks/drafts work;
-- [ ] Files attachments and voice messages work;
-- [ ] Reverb messaging/presence/read/unread/reconnect works;
-- [ ] Core Calendar works for private personal events;
-- [ ] Month/Week/Day/Agenda work;
-- [ ] recurrence/reminders/Free-Busy work;
-- [ ] direct audio/video Calls work;
-- [ ] group Calls work;
-- [ ] Team Calls work;
-- [ ] device preferences and pre-call setup work;
-- [ ] only one active RTC session per user is enforced;
-- [ ] Call history/missed Calls work;
-- [ ] self-hosted LiveKit development/runtime integration works;
-- [ ] Calls/Meetings remain authorization-safe;
-- [ ] Meetings can be immediate or scheduled;
-- [ ] online Meetings preserve the accepted RTC workflow;
-- [ ] in-person Meetings work without LiveKit, TURN, Egress, online Join, or media controls;
-- [ ] hybrid Meetings combine one physical location with an Atlas RTC option;
-- [ ] Calendar clearly presents Meeting mode and physical location where applicable;
-- [ ] every Meeting mode preserves invitations, RSVP, recurrence, reminders, cancellation, and Meeting chat;
-- [ ] recurring Meetings work;
-- [ ] invitation/RSVP/invite-more/remove behavior works;
-- [ ] Meeting chat works before/during/after;
-- [ ] participant moderation works;
-- [ ] one screen share works;
-- [ ] lock/kick/End/empty-room behavior works;
-- [ ] RTC attendance works without falsely inferring physical presence or absence;
-- [ ] live modal may be minimized and rejoined;
-- [ ] ad-hoc Calls cannot be recorded;
-- [ ] Meeting recording start/pause/resume/stop works only for RTC-enabled online/hybrid Meetings;
-- [ ] in-person Meetings expose no recording controls;
-- [ ] LiveKit Egress composite recording works;
-- [ ] final recording is one Files-owned file;
-- [ ] recording sharing works without Meeting-membership leakage;
-- [ ] separate recording retention works;
-- [ ] provider-neutral transcription boundary exists;
-- [ ] transcription remains queued;
-- [ ] no concrete production STT provider is required;
-- [ ] transcript UI is absent with no provider;
-- [ ] transcription requires an eligible retained Meeting recording;
-- [ ] in-person Meetings without recordings expose no transcription workflow;
-- [ ] fake-provider tests prove transcription lifecycle;
-- [ ] transcript editing/versioning/sharing works under authorization;
-- [ ] transcript is removed with recording retention;
-- [ ] Meilisearch does not leak Chat/Meeting/transcript content;
-- [ ] Admin remains unable to read private communication content;
-- [ ] safe operational RTC/Egress/transcription aggregates exist;
-- [ ] Notifications/browser/email preferences follow accepted ownership;
-- [ ] participant-authorized exports remain functional;
-- [ ] Chromium and Firefox cover critical workflows;
-- [ ] browser tests cover online, in-person, hybrid, and recurring mode behavior;
-- [ ] mobile flows are covered;
-- [ ] Polish and English UI is complete;
-- [ ] light/dark UI is covered;
-- [ ] console/runtime/request cleanliness remains protected;
-- [ ] complete required foundation quality gates pass;
-- [ ] canonical documentation reflects the final contract;
-- [ ] Phase 40 deployment has not been implemented as part of this Phase 31 planning task.
+- [x] original Chat messaging scope is complete;
+- [x] direct/group/Team conversations work;
+- [x] Meeting conversation type works;
+- [x] messaging/replies/edits/history/reactions/mentions/forwarding/pins/bookmarks/drafts work;
+- [x] Files attachments and voice messages work;
+- [x] Reverb messaging/presence/read/unread/reconnect works;
+- [x] Core Calendar works for private personal events;
+- [x] Month/Week/Day/Agenda work;
+- [x] recurrence/reminders/Free-Busy work;
+- [x] direct audio/video Calls work;
+- [x] group Calls work;
+- [x] Team Calls work;
+- [x] device preferences and pre-call setup work;
+- [x] only one active RTC session per user is enforced;
+- [x] Call history/missed Calls work;
+- [x] self-hosted LiveKit development/runtime integration works;
+- [x] Calls/Meetings remain authorization-safe;
+- [x] Meetings can be immediate or scheduled;
+- [x] online Meetings preserve the accepted RTC workflow;
+- [x] in-person Meetings work without LiveKit, TURN, Egress, online Join, or media controls;
+- [x] hybrid Meetings combine one physical location with an Atlas RTC option;
+- [x] Calendar clearly presents Meeting mode and physical location where applicable;
+- [x] every Meeting mode preserves invitations, RSVP, recurrence, reminders, cancellation, and Meeting chat;
+- [x] recurring Meetings work;
+- [x] invitation/RSVP/invite-more/remove behavior works;
+- [x] Meeting chat works before/during/after;
+- [x] participant moderation works;
+- [x] one screen share works;
+- [x] lock/kick/End/empty-room behavior works;
+- [x] RTC attendance works without falsely inferring physical presence or absence;
+- [x] live modal may be minimized and rejoined;
+- [x] ad-hoc Calls cannot be recorded;
+- [x] Meeting recording start/pause/resume/stop works only for RTC-enabled online/hybrid Meetings;
+- [x] in-person Meetings expose no recording controls;
+- [x] LiveKit Egress composite recording works;
+- [x] final recording is one Files-owned file;
+- [x] recording sharing works without Meeting-membership leakage;
+- [x] separate recording retention works;
+- [x] provider-neutral transcription boundary exists;
+- [x] transcription remains queued;
+- [x] no concrete production STT provider is required;
+- [x] transcript UI is absent with no provider;
+- [x] transcription requires an eligible retained Meeting recording;
+- [x] in-person Meetings without recordings expose no transcription workflow;
+- [x] fake-provider tests prove transcription lifecycle;
+- [x] transcript editing/versioning/sharing works under authorization;
+- [x] transcript is removed with recording retention;
+- [x] Meilisearch does not leak Chat/Meeting/transcript content;
+- [x] Admin remains unable to read private communication content;
+- [x] safe operational RTC/Egress/transcription aggregates exist;
+- [x] Notifications/browser/email preferences follow accepted ownership;
+- [x] participant-authorized exports remain functional;
+- [x] Chromium and Firefox cover critical workflows;
+- [x] browser tests cover online, in-person, hybrid, and recurring mode behavior;
+- [x] mobile flows are covered;
+- [x] Polish and English UI is complete;
+- [x] light/dark UI is covered;
+- [x] console/runtime/request cleanliness remains protected;
+- [ ] complete required foundation quality gates pass (production runtime smoke pending host Docker access);
+- [x] canonical documentation reflects the final contract;
+- [x] Phase 52 deployment has not been implemented as part of this Phase 31 planning task.

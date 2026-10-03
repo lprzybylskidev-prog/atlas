@@ -8,7 +8,28 @@ export interface ChatRealtimeMessage {
     authorPublicId: string;
     body: string | null;
     renderedHtml: string | null;
+    replyToMessagePublicId: string | null;
+    forwarded: boolean;
+    version: number;
+    edited: boolean;
+    deletedForViewer: boolean;
+    pinned: boolean;
+    bookmarked: boolean;
+    reactions: { emoji: string; userPublicId: string }[];
+    mentionedUserPublicIds: string[];
+    mentionsEveryone: boolean;
+    mentionsOnline: boolean;
     createdAt: string;
+    attachments: {
+        publicId: string;
+        kind: 'file' | 'voice';
+        name: string;
+        mimeType: string;
+        sizeBytes: number;
+        durationSeconds: number | null;
+        scanState: string;
+        available: boolean;
+    }[];
 }
 
 export interface ChatPresence {
@@ -40,6 +61,10 @@ export interface ChatReconciliation {
     participantCursors: ChatCursor[];
     presence: ChatPresence[];
     totalUnread: number;
+    hasOlder: boolean;
+    hasNewer: boolean;
+    oldestMessagePublicId: string | null;
+    newestMessagePublicId: string | null;
 }
 
 export interface ChatRealtimeCallbacks {
@@ -91,7 +116,9 @@ function realtimeMeta(name: string, fallback: string | undefined): string | unde
 export function mergeChatMessages(current: ChatRealtimeMessage[], incoming: ChatRealtimeMessage[]): ChatRealtimeMessage[] {
     const messages = new Map(current.map((message) => [message.publicId, message]));
     for (const message of incoming) messages.set(message.publicId, message);
-    return [...messages.values()].sort((left, right) => left.createdAt.localeCompare(right.createdAt));
+    return [...messages.values()].sort(
+        (left, right) => left.createdAt.localeCompare(right.createdAt) || left.publicId.localeCompare(right.publicId),
+    );
 }
 
 export class ChatRealtimeClient {
@@ -153,8 +180,9 @@ export class ChatRealtimeClient {
         connection.unbind('connected', this.handleConnected);
         connection.unbind('disconnected', this.handleDisconnected);
         connection.unbind('error', this.handleError);
-        this.echo.leave(`chat.conversation.${this.conversationPublicId}`);
-        this.echo.leave(`chat.user.${this.currentUserPublicId}`);
+        // Closing the dedicated connection also removes both subscriptions. Sending
+        // unsubscribe frames immediately before disconnect can race the socket close
+        // and surface a browser-level WebSocket error during navigation or teardown.
         this.echo.disconnect();
         if (this.heartbeatTimer !== null) window.clearInterval(this.heartbeatTimer);
         this.heartbeatTimer = null;
@@ -173,6 +201,7 @@ export class ChatRealtimeClient {
         if (this.stopped) return;
         const query = this.lastMessagePublicId === null ? '' : `?after_message_public_id=${encodeURIComponent(this.lastMessagePublicId)}`;
         const snapshot = await chatJson<ChatReconciliation>(`/chat/conversations/${this.conversationPublicId}/realtime${query}`);
+        if (this.stopped) return;
         const last = snapshot.messages.at(-1);
         if (last !== undefined) {
             this.lastMessagePublicId = last.publicId;
@@ -182,6 +211,13 @@ export class ChatRealtimeClient {
         for (const presence of snapshot.presence) this.presenceMembers.set(presence.userPublicId, presence);
         this.callbacks.reconciled(snapshot);
         this.publishPresence();
+        if (snapshot.hasNewer && this.lastMessagePublicId !== null) await this.reconcile();
+    }
+
+    async loadOlder(beforeMessagePublicId: string): Promise<ChatReconciliation> {
+        return chatJson<ChatReconciliation>(
+            `/chat/conversations/${this.conversationPublicId}/realtime?before_message_public_id=${encodeURIComponent(beforeMessagePublicId)}`,
+        );
     }
 
     heartbeat(): Promise<ChatPresence> {

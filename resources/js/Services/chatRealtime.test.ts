@@ -3,7 +3,25 @@ import { describe, expect, it } from 'vitest';
 import { mergeChatMessages, type ChatRealtimeMessage } from './chatRealtime';
 
 function message(publicId: string, createdAt: string, body = publicId): ChatRealtimeMessage {
-    return { publicId, authorPublicId: 'user', body, renderedHtml: body, createdAt };
+    return {
+        publicId,
+        authorPublicId: 'user',
+        body,
+        renderedHtml: body,
+        replyToMessagePublicId: null,
+        forwarded: false,
+        version: 1,
+        edited: false,
+        deletedForViewer: false,
+        pinned: false,
+        bookmarked: false,
+        reactions: [],
+        mentionedUserPublicIds: [],
+        mentionsEveryone: false,
+        mentionsOnline: false,
+        createdAt,
+        attachments: [],
+    };
 }
 
 describe('Chat realtime reconciliation', () => {

@@ -5,7 +5,6 @@ import type { DefineComponent } from 'vue';
 import { createApp, h } from 'vue';
 
 import GlobalChatRuntime from './Components/Chat/GlobalChatRuntime.vue';
-
 import { registerNetworkHandling } from './Services/networkHandling';
 import { registerRealtimeEvents } from './Services/realtimeEvents';
 

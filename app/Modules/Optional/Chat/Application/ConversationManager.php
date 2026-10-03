@@ -336,6 +336,56 @@ final readonly class ConversationManager implements TeamMembershipChangeParticip
         $this->store->setFavorite($conversation->id, $userId, $favorite);
     }
 
+    /** @return list<array{publicId:string,name:string}> */
+    public function groupCandidates(string $actorPublicId, string $activeTeamPublicId): array
+    {
+        $this->access->ensureAllowed($actorPublicId, $activeTeamPublicId, ChatPermissionCatalog::GROUP_CANDIDATES_INDEX);
+
+        return array_values(array_map(
+            static fn ($summary): array => ['publicId' => $summary->publicId, 'name' => $summary->name],
+            array_filter(
+                $this->users->allActiveDisplaySummaries(),
+                static fn ($summary): bool => $summary->publicId !== $actorPublicId,
+            ),
+        ));
+    }
+
+    /** @return array{publicId:string,name:string,isOwner:bool,members:list<array{publicId:string,name:string,role:string}>} */
+    public function groupDetails(string $actorPublicId, string $activeTeamPublicId, string $conversationPublicId): array
+    {
+        $this->access->ensureAllowed($actorPublicId, $activeTeamPublicId, ChatPermissionCatalog::GROUP_SHOW);
+        $actorId = $this->userId($actorPublicId);
+        $conversation = $this->store->findByPublicId($conversationPublicId) ?? throw new ConversationNotFound;
+
+        if ($conversation->type !== ConversationType::Group || ! $this->canAccess($actorPublicId, $activeTeamPublicId, $conversationPublicId)) {
+            throw ConversationOperationDenied::invalidConversationType();
+        }
+
+        $memberships = $this->store->activeMemberships($conversation->id);
+        $summaries = $this->users->displaySummariesForInternalIds(array_map(
+            static fn (ConversationMembershipRecord $membership): int => $membership->userId,
+            $memberships,
+        ));
+        $members = [];
+        $isOwner = false;
+
+        foreach ($memberships as $membership) {
+            $summary = $summaries[$membership->userId] ?? null;
+            if ($summary === null) {
+                continue;
+            }
+            $members[] = ['publicId' => $summary->publicId, 'name' => $summary->name, 'role' => $membership->role->value];
+            $isOwner = $isOwner || ($membership->userId === $actorId && $membership->role === ConversationMemberRole::Owner);
+        }
+
+        return [
+            'publicId' => $conversation->publicId,
+            'name' => $conversation->name ?? $conversation->publicId,
+            'isOwner' => $isOwner,
+            'members' => $members,
+        ];
+    }
+
     public function renameMeetingConversation(string $conversationPublicId, string $title): void
     {
         $conversation = $this->store->findByPublicId($conversationPublicId) ?? throw new ConversationNotFound;

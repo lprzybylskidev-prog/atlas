@@ -248,6 +248,33 @@ final readonly class DatabaseFileStorage implements FileAvailability, FileLifecy
             return null;
         }
 
+        return $this->fileStatus($row);
+    }
+
+    public function statuses(array $publicIds): array
+    {
+        $publicIds = array_values(array_unique($publicIds));
+
+        if ($publicIds === []) {
+            return [];
+        }
+
+        $statuses = [];
+
+        foreach ($this->db->table(FilesDatabaseTable::FILE_OBJECTS)
+            ->whereIn('public_id', $publicIds)
+            ->get(['public_id', 'original_name', 'mime_type', 'size_bytes', 'scan_state', 'deleted_at']) as $row) {
+            $status = $this->fileStatus($row);
+            $statuses[$status->publicId] = $status;
+        }
+
+        return $statuses;
+    }
+
+    private function fileStatus(object $row): FileStatus
+    {
+        $publicId = $this->string($row->public_id ?? null) ?? '';
+
         return new FileStatus(
             publicId: $publicId,
             originalName: $this->string($row->original_name ?? null) ?? $publicId,

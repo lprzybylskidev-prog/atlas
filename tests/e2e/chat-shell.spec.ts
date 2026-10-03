@@ -60,12 +60,12 @@ test('Chat shell keeps separate unread controls and desktop/mobile accessible mo
     await expect(dialog.getByRole('button', { name: /Eksportuj konwersację|Export conversation/ })).toBeVisible();
     await expect(dialog.getByRole('combobox', { name: /Format eksportu|Export format/ })).toBeVisible();
     await dialog.getByRole('button', { name: /Przeszukaj Czat|Search Chat/ }).click();
-    await expect(dialog.getByLabel(/Wyszukiwanie|Search/, { exact: true })).toBeVisible();
+    await expect(dialog.getByRole('textbox', { name: /^(Wyszukiwanie|Search)$/ })).toBeVisible();
     await dialog.getByText(/Filtry|Filters/, { exact: true }).click();
     await dialog.getByLabel(/Osoba lub autor|Person or author/).fill('Atlas Administrator');
     await dialog.getByRole('combobox', { name: /Typ|Type/ }).click();
     await dialog.getByRole('option', { name: /Wiadomość|Message/ }).click();
-    await dialog.getByLabel(/Wyszukiwanie|Search/, { exact: true }).fill('decision');
+    await dialog.getByRole('textbox', { name: /^(Wyszukiwanie|Search)$/ }).fill('decision');
     const response = page.waitForResponse((candidate) => {
         const url = new URL(candidate.url());
         return (
@@ -74,7 +74,7 @@ test('Chat shell keeps separate unread controls and desktop/mobile accessible mo
             url.searchParams.get('type') === 'message'
         );
     });
-    await dialog.getByRole('button', { name: /Szukaj|Search/, exact: true }).click();
+    await dialog.getByRole('button', { name: /^(Szukaj|Search)$/ }).click();
     await response;
     await expect(dialog.getByText('Searchable project decision')).toBeVisible();
     await expect(dialog.locator('strong').filter({ hasText: /^(Udostępniona transkrypcja|Shared transcript)$/ })).toBeVisible();

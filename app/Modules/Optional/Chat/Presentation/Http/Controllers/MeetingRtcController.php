@@ -7,6 +7,7 @@ namespace App\Modules\Optional\Chat\Presentation\Http\Controllers;
 use App\Modules\Optional\Chat\Application\DTOs\MeetingRtcSession;
 use App\Modules\Optional\Chat\Application\DTOs\RtcParticipantAccess;
 use App\Modules\Optional\Chat\Application\Exceptions\MeetingOperationDenied;
+use App\Modules\Optional\Chat\Application\Exceptions\RtcUnavailable;
 use App\Modules\Optional\Chat\Application\MeetingRtcManager;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -86,6 +87,8 @@ final readonly class MeetingRtcController
             return response()->json($value);
         } catch (MeetingOperationDenied|\LogicException $e) {
             return response()->json(['code' => 'meeting_rtc_denied'], Response::HTTP_FORBIDDEN);
+        } catch (RtcUnavailable) {
+            return response()->json(['code' => 'rtc_unavailable'], Response::HTTP_SERVICE_UNAVAILABLE);
         }
     }
 

@@ -59,32 +59,33 @@ final readonly class ConversationExportProvider implements ReportExportDataProvi
             || ! $this->conversations->canAccess($request->requestingUserPublicId, $request->activeTeamPublicId, $conversation)) {
             throw new RuntimeException('Conversation export is no longer authorized.');
         }
-        $messages = $this->messages->messages($request->requestingUserPublicId, $request->activeTeamPublicId, $conversation);
-        $authors = $this->users->displaySummariesForPublicIds(array_values(array_unique(array_map(static fn ($message): string => $message->authorPublicId, $messages))));
-        foreach ($messages as $message) {
-            if ($message->deletedForViewer) {
-                continue;
+        foreach ($this->messages->messageBatches($request->requestingUserPublicId, $request->activeTeamPublicId, $conversation) as $messages) {
+            $authors = $this->users->displaySummariesForPublicIds(array_values(array_unique(array_map(static fn ($message): string => $message->authorPublicId, $messages))));
+            foreach ($messages as $message) {
+                if ($message->deletedForViewer) {
+                    continue;
+                }
+                $history = $this->messages->editHistory($request->requestingUserPublicId, $request->activeTeamPublicId, $conversation, $message->publicId);
+                yield [
+                    'message_public_id' => $message->publicId,
+                    'author' => isset($authors[$message->authorPublicId])
+                        ? $authors[$message->authorPublicId]->name.($authors[$message->authorPublicId]->active ? '' : ' ('.trans('glossary.status.inactive', [], $request->locale).')')
+                        : $message->authorPublicId,
+                    'body' => $message->body,
+                    'created_at' => $message->createdAt,
+                    'edited' => $message->edited,
+                    'edit_history' => $message->edited ? json_encode(array_map(static fn ($revision): array => [
+                        'version' => $revision->version,
+                        'body' => $revision->body,
+                        'created_at' => $revision->createdAt->format(DATE_ATOM),
+                    ], $history), JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR) : '',
+                    'forwarded' => $message->forwarded,
+                    'attachments' => implode(', ', array_map(
+                        static fn ($attachment): string => $attachment->originalName,
+                        array_filter($message->attachments, static fn ($attachment): bool => ! $attachment->discarded && $attachment->scanState === FileScanState::Clean),
+                    )),
+                ];
             }
-            $history = $this->messages->editHistory($request->requestingUserPublicId, $request->activeTeamPublicId, $conversation, $message->publicId);
-            yield [
-                'message_public_id' => $message->publicId,
-                'author' => isset($authors[$message->authorPublicId])
-                    ? $authors[$message->authorPublicId]->name.($authors[$message->authorPublicId]->active ? '' : ' ('.trans('glossary.status.inactive', [], $request->locale).')')
-                    : $message->authorPublicId,
-                'body' => $message->body,
-                'created_at' => $message->createdAt,
-                'edited' => $message->edited,
-                'edit_history' => $message->edited ? json_encode(array_map(static fn ($revision): array => [
-                    'version' => $revision->version,
-                    'body' => $revision->body,
-                    'created_at' => $revision->createdAt->format(DATE_ATOM),
-                ], $history), JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR) : '',
-                'forwarded' => $message->forwarded,
-                'attachments' => implode(', ', array_map(
-                    static fn ($attachment): string => $attachment->originalName,
-                    array_filter($message->attachments, static fn ($attachment): bool => ! $attachment->discarded && $attachment->scanState === FileScanState::Clean),
-                )),
-            ];
         }
     }
 }

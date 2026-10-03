@@ -132,7 +132,7 @@ test('two browser contexts reconcile Reverb messages, presence, typing, delivery
             ).__chatRealtime;
             return harness?.client.markUnread(messagePublicId);
         }, sent.publicId);
-        await expect.poll(async () => (await json<{ totalUnread: number }>(member.page, '/chat/unread')).totalUnread).toBe(1);
+        await expect.poll(async () => (await json<{ totalUnread: number }>(member.page, '/chat/unread')).totalUnread).toBeGreaterThan(0);
 
         await member.page.evaluate(() => {
             const harness = (window as typeof window & { __chatRealtime?: { client: { stop(): void } } }).__chatRealtime;

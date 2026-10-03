@@ -157,6 +157,7 @@ const { confirm } = useModal();
 const invite = useForm({ user_public_id: '' });
 const preCallOpen = ref(false);
 const preCallBusy = ref(false);
+const rtcError = ref<string | null>(null);
 const deviceSetup = ref<MediaDeviceSetupHandle | null>(null);
 const meetingSession = meetingLiveSession;
 const rtcActive = meetingLiveActive;
@@ -217,6 +218,7 @@ function respond(response: 'accepted' | 'declined'): void {
     router.patch(`/meetings/${props.meeting.publicId}/response`, { response });
 }
 async function openPreCall(): Promise<void> {
+    rtcError.value = null;
     if (!canUseRtcSession.value) return;
     configureLiveRuntime();
     preCallOpen.value = true;
@@ -235,6 +237,7 @@ function closePreCall(): void {
     preCallOpen.value = false;
 }
 async function joinOnline(): Promise<void> {
+    rtcError.value = null;
     const preparation = await deviceSetup.value?.prepare(null);
     if (!preparation) return;
     preCallBusy.value = true;
@@ -266,6 +269,8 @@ async function joinOnline(): Promise<void> {
         rtcActive.value = true;
         await refreshRecording();
         recordingPoll = setInterval(() => void refreshRecording(), 3000);
+    } catch {
+        rtcError.value = t('meetings.rtc.unavailable');
     } finally {
         preCallBusy.value = false;
     }
@@ -835,6 +840,13 @@ async function remove(id: string): Promise<void> {
                 {{ recording.status === 'paused' ? t('meetings.recording.indicator.paused') : t('meetings.recording.indicator.active') }}
             </div>
             <p class="mb-4">{{ t('meetings.pre_call.description') }}</p>
+            <p
+                v-if="rtcError"
+                role="alert"
+                class="mb-4 rounded-md bg-rose-50 p-3 text-sm text-rose-800 dark:bg-rose-950/40 dark:text-rose-200"
+            >
+                {{ rtcError }}
+            </p>
             <MediaDeviceSetup ref="deviceSetup" test-id="meeting-preflight" @update:busy="preCallBusy = $event" />
             <template #actions>
                 <FormButton v-if="!rtcActive" tone="neutral" :disabled="preCallBusy" @click="closePreCall">

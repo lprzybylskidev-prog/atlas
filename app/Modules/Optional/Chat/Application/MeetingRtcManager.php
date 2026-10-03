@@ -18,6 +18,7 @@ use App\Modules\Optional\Chat\Application\Permissions\ChatPermissionCatalog;
 use App\Modules\Optional\Chat\Domain\Rtc\RtcSessionMode;
 use App\Shared\Application\Audit\Contracts\AuditRecorder;
 use App\Shared\Application\Audit\DTOs\AuditEvent;
+use Throwable;
 
 final readonly class MeetingRtcManager
 {
@@ -28,7 +29,7 @@ final readonly class MeetingRtcManager
     {
         $this->access->ensureAllowed($actor, $team, ChatPermissionCatalog::CALL_JOIN);
         $userId = $this->userId($actor);
-        [$meeting, $session] = $this->transaction->run(function () use ($meetingPublicId, $occurrenceDate, $userId, $camera, $microphone): array {
+        [$meeting, $session, $createdSession] = $this->transaction->run(function () use ($meetingPublicId, $occurrenceDate, $userId, $camera, $microphone): array {
             $meeting = $this->meeting($meetingPublicId, $userId, true);
             if (! $meeting->mode->hasRtc() || $meeting->status->value === 'cancelled') {
                 throw MeetingOperationDenied::rtcUnavailable();
@@ -41,19 +42,39 @@ final readonly class MeetingRtcManager
                 throw MeetingOperationDenied::rtcUnavailable();
             }
             $room = $session->roomName === '' ? 'atlas-meeting-'.strtolower($meeting->publicId).'-'.str_replace('-', '', $occurrenceDate) : $session->roomName;
-            if ($session->roomName === '') {
+            $createdSession = $session->roomName === '';
+            if ($createdSession) {
                 $session = $this->meetings->startRtcSession($session->occurrenceId, $room);
             }
             $this->meetings->joinRtcParticipant($session->occurrenceId, $userId, $camera, $microphone);
 
-            return [$meeting, $this->meetings->rtcSession($meeting, $occurrenceDate, true) ?? throw MeetingOperationDenied::rtcUnavailable()];
+            return [$meeting, $this->meetings->rtcSession($meeting, $occurrenceDate, true) ?? throw MeetingOperationDenied::rtcUnavailable(), $createdSession];
         });
         $summaries = $this->users->displaySummariesForPublicIds([$actor]);
         $displayName = array_key_exists($actor, $summaries) ? $summaries[$actor]->name : 'Atlas user';
         $admission = new RtcSessionAdmission($meeting->publicId, $session->roomName, $meeting->mode->value === 'hybrid' ? RtcSessionMode::HybridMeeting : RtcSessionMode::OnlineMeeting, $actor, $displayName);
-        $this->gateway->prepareRoom($admission);
+        try {
+            $this->gateway->prepareRoom($admission);
 
-        return ['session' => $session, 'rtc' => $this->gateway->issueParticipantAccess($admission)];
+            return ['session' => $session, 'rtc' => $this->gateway->issueParticipantAccess($admission)];
+        } catch (Throwable $exception) {
+            $this->transaction->run(function () use ($meeting, $occurrenceDate, $userId, $createdSession): void {
+                $current = $this->meetings->rtcSession($meeting, $occurrenceDate, true);
+                if ($current === null) {
+                    return;
+                }
+                $this->meetings->leaveRtcParticipant($current->occurrenceId, $userId);
+                $remaining = array_filter(
+                    ($this->meetings->rtcSession($meeting, $occurrenceDate, true) ?? $current)->participants,
+                    static fn (array $participant): bool => $participant['leftAt'] === null,
+                );
+                if ($createdSession && $remaining === []) {
+                    $this->meetings->endRtcSession($current->occurrenceId);
+                }
+            });
+
+            throw $exception;
+        }
     }
 
     public function leave(string $actor, string $team, string $meetingPublicId, string $occurrenceDate): MeetingRtcSession

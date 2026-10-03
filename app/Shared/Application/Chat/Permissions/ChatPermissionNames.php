@@ -16,9 +16,21 @@ final class ChatPermissionNames
 
     public const GROUP_STORE = 'chat.groups.store';
 
+    public const GROUP_SHOW = 'chat.groups.show';
+
+    public const GROUP_UPDATE = 'chat.groups.update';
+
+    public const GROUP_CANDIDATES_INDEX = 'chat.groups.candidates.index';
+
     public const TEAM_CONVERSATION_SHOW = 'chat.team-conversation.show';
 
     public const MESSAGE_STORE = 'chat.messages.store';
+
+    public const MESSAGE_UPDATE = 'chat.messages.update';
+
+    public const MESSAGE_HISTORY = 'chat.messages.history';
+
+    public const DRAFT_UPDATE = 'chat.drafts.update';
 
     public const CONTENT_INDEX = 'chat.content.index';
 

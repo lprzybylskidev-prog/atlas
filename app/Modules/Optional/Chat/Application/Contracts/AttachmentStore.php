@@ -25,6 +25,12 @@ interface AttachmentStore
     /** @return list<MessageAttachment> */
     public function forMessage(int $messageId): array;
 
+    /**
+     * @param  list<int>  $messageIds
+     * @return array<int, list<MessageAttachment>>
+     */
+    public function forMessages(array $messageIds): array;
+
     /** @return list<MessageAttachment> */
     public function attachedForConversation(int $conversationId): array;
 

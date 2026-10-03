@@ -16,6 +16,7 @@ use App\Modules\Optional\Chat\Application\Contracts\MessageStore;
 use App\Modules\Optional\Chat\Application\DTOs\ConversationContent;
 use App\Modules\Optional\Chat\Application\DTOs\ConversationRecord;
 use App\Modules\Optional\Chat\Application\DTOs\MessageAttachment;
+use App\Modules\Optional\Chat\Application\DTOs\MessageRecord;
 use App\Modules\Optional\Chat\Application\Permissions\ChatPermissionCatalog;
 use App\Modules\Optional\Chat\Domain\Messages\AttachmentKind;
 use App\Modules\Optional\Chat\Domain\Messages\Exceptions\MessageOperationDenied;
@@ -110,9 +111,14 @@ final readonly class AttachmentManager
         [$conversation, $actorId] = $this->participant($actorPublicId, $activeTeamPublicId, $conversationPublicId);
         $media = [];
         $files = [];
+        $attachments = $this->attachments->attachedForConversation($conversation->id);
+        $hiddenAttachmentMessageIds = $this->messages->hiddenMessageIds(array_values(array_unique(array_map(
+            static fn (MessageAttachment $attachment): int => (int) $attachment->messageId,
+            $attachments,
+        ))), $actorId);
 
-        foreach ($this->attachments->attachedForConversation($conversation->id) as $attachment) {
-            if ($this->messages->isHiddenForUser((int) $attachment->messageId, $actorId)) {
+        foreach ($attachments as $attachment) {
+            if (isset($hiddenAttachmentMessageIds[(int) $attachment->messageId])) {
                 continue;
             }
 
@@ -124,16 +130,27 @@ final readonly class AttachmentManager
         }
 
         $links = [];
-        foreach ($this->messages->conversationMessages($conversation->id) as $message) {
-            if ($this->messages->isHiddenForUser($message->id, $actorId)) {
-                continue;
+        $afterMessageId = 0;
+        do {
+            $page = $this->messages->conversationMessagesPage($conversation->id, 100, afterMessageId: $afterMessageId);
+            $hiddenMessageIds = $this->messages->hiddenMessageIds(array_map(
+                static fn (MessageRecord $message): int => $message->id,
+                $page->messages,
+            ), $actorId);
+
+            foreach ($page->messages as $message) {
+                if (isset($hiddenMessageIds[$message->id])) {
+                    continue;
+                }
+
+                preg_match_all('#https?://[^\s<>"\']+#iu', $message->body, $matches);
+                foreach ($matches[0] as $link) {
+                    $links[] = rtrim((string) $link, '.,;:!?)]');
+                }
             }
 
-            preg_match_all('#https?://[^\s<>"\']+#iu', $message->body, $matches);
-            foreach ($matches[0] as $link) {
-                $links[] = rtrim((string) $link, '.,;:!?)]');
-            }
-        }
+            $afterMessageId = $page->messages === [] ? $afterMessageId : $page->messages[array_key_last($page->messages)]->id;
+        } while ($page->hasNewer);
 
         return new ConversationContent($media, $files, array_values(array_unique($links)));
     }

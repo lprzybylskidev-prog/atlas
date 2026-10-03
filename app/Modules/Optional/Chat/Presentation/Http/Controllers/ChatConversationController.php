@@ -47,6 +47,57 @@ final readonly class ChatConversationController
         return response()->json(['ok' => true]);
     }
 
+    public function groupCandidates(Request $request): JsonResponse
+    {
+        [$userPublicId, $teamPublicId] = $this->context($request);
+
+        return response()->json(['users' => $this->conversations->groupCandidates($userPublicId, $teamPublicId)]);
+    }
+
+    public function storeGroup(Request $request): JsonResponse
+    {
+        $request->validate([
+            'name' => ['required', 'string', 'max:120'],
+            'member_public_ids' => ['array'],
+            'member_public_ids.*' => ['string', 'size:26'],
+        ]);
+        [$userPublicId, $teamPublicId] = $this->context($request);
+        $members = $this->strings($request->input('member_public_ids', []));
+        $group = $this->conversations->createGroup($userPublicId, $teamPublicId, $request->string('name')->toString(), $members);
+
+        return response()->json(['publicId' => $group->publicId, 'type' => $group->type->value], 201);
+    }
+
+    public function showGroup(Request $request, string $conversation): JsonResponse
+    {
+        [$userPublicId, $teamPublicId] = $this->context($request);
+
+        return response()->json(['group' => $this->conversations->groupDetails($userPublicId, $teamPublicId, $conversation)]);
+    }
+
+    public function updateGroup(Request $request, string $conversation): JsonResponse
+    {
+        $request->validate([
+            'action' => ['required', 'string', 'in:rename,add_member,remove_member,transfer_owner,leave'],
+            'name' => ['nullable', 'string', 'max:120'],
+            'member_public_id' => ['nullable', 'string', 'size:26'],
+        ]);
+        [$userPublicId, $teamPublicId] = $this->context($request);
+        $action = $request->string('action')->toString();
+        $memberPublicId = $request->string('member_public_id')->toString();
+
+        match ($action) {
+            'rename' => $this->conversations->renameGroup($userPublicId, $teamPublicId, $conversation, $request->string('name')->toString()),
+            'add_member' => $this->conversations->addGroupMember($userPublicId, $teamPublicId, $conversation, $memberPublicId),
+            'remove_member' => $this->conversations->removeGroupMember($userPublicId, $teamPublicId, $conversation, $memberPublicId),
+            'transfer_owner' => $this->conversations->transferGroupOwnership($userPublicId, $teamPublicId, $conversation, $memberPublicId),
+            'leave' => $this->conversations->leaveGroup($userPublicId, $teamPublicId, $conversation),
+            default => abort(422),
+        };
+
+        return response()->json(['ok' => true]);
+    }
+
     public function showTeam(Request $request): JsonResponse
     {
         $userPublicId = data_get($request->user(), 'public_id');
@@ -79,5 +130,24 @@ final readonly class ChatConversationController
         }
 
         return [$userPublicId, $teamPublicId];
+    }
+
+    /** @return list<string> */
+    private function strings(mixed $value): array
+    {
+        if (! is_array($value)) {
+            return [];
+        }
+
+        $strings = [];
+        foreach ($value as $item) {
+            if (! is_string($item)) {
+                abort(422);
+            }
+
+            $strings[] = $item;
+        }
+
+        return $strings;
     }
 }

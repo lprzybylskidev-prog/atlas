@@ -109,9 +109,17 @@ final readonly class DatabaseRealtimeStore implements RealtimeStore
             ->orderBy('memberships.user_id')
             ->get(['memberships.user_id', 'states.last_delivered_message_id', 'states.last_read_message_id']);
         $result = [];
+        $userIds = [];
 
         foreach ($rows as $row) {
-            $publicId = $this->users->publicIdForInternalId($this->integer(data_get($row, 'user_id')));
+            $userIds[] = $this->integer(data_get($row, 'user_id'));
+        }
+
+        $users = $this->users->displaySummariesForInternalIds($userIds);
+
+        foreach ($rows as $row) {
+            $userId = $this->integer(data_get($row, 'user_id'));
+            $publicId = $users[$userId]->publicId ?? null;
 
             if ($publicId !== null) {
                 $result[] = new ParticipantCursor(

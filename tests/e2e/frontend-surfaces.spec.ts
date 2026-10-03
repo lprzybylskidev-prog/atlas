@@ -106,8 +106,10 @@ async function ensureDarkTheme(page: Page): Promise<void> {
 
 async function ensurePolishLocale(page: Page): Promise<void> {
     await page.goto('/');
+    const localeButton = page.getByRole('button', { name: /^(Zmień język|Change language)$/ });
+    await expect(localeButton).toBeVisible();
 
-    if (await page.getByRole('heading', { level: 1, name: 'Application dashboard' }).isVisible()) {
+    if (await page.getByRole('button', { name: 'Change language' }).isVisible()) {
         await Promise.all([
             page.waitForResponse(
                 (response) => new URL(response.url()).pathname === '/' && response.request().method() === 'GET' && response.status() < 400,
@@ -122,8 +124,10 @@ async function ensurePolishLocale(page: Page): Promise<void> {
 
 async function ensureEnglishLocale(page: Page): Promise<void> {
     await page.goto('/');
+    const localeButton = page.getByRole('button', { name: /^(Zmień język|Change language)$/ });
+    await expect(localeButton).toBeVisible();
 
-    if (await page.getByRole('heading', { level: 1, name: 'Pulpit aplikacji' }).isVisible()) {
+    if (await page.getByRole('button', { name: 'Zmień język' }).isVisible()) {
         await Promise.all([
             page.waitForResponse(
                 (response) => new URL(response.url()).pathname === '/' && response.request().method() === 'GET' && response.status() < 400,

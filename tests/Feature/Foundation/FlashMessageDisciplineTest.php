@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Feature\Foundation;
 
 use App\Shared\Presentation\Support\FlashMessage;
+use Illuminate\Support\Facades\Route;
 use PHPUnit\Framework\Attributes\Test;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
@@ -21,6 +22,28 @@ final class FlashMessageDisciplineTest extends TestCase
 
         self::assertMatchesRegularExpression('/^[0-9A-HJKMNP-TV-Z]{26}$/', $first['id']);
         self::assertNotSame($first['id'], $second['id']);
+    }
+
+    #[Test]
+    public function background_json_requests_do_not_consume_pending_ui_flash_messages(): void
+    {
+        Route::middleware('web')->get('/_test/background-flash', static fn () => response()->json(['ok' => true]));
+        Route::middleware('web')->get('/_test/page-flash', static fn () => response(
+            json_encode(session()->get('flash.messages', []), JSON_THROW_ON_ERROR),
+            headers: ['Content-Type' => 'text/plain'],
+        ));
+
+        $message = FlashMessage::success('flash.teams.updated');
+        $response = $this->withSession([
+            'flash.messages' => [$message],
+            '_flash' => ['new' => ['flash.messages'], 'old' => []],
+        ])->getJson('/_test/background-flash');
+
+        $response->assertOk()->assertSessionHas('flash.messages', [$message]);
+        $this
+            ->get('/_test/page-flash')
+            ->assertOk()
+            ->assertSee($message['id']);
     }
 
     #[Test]

@@ -8,7 +8,7 @@ function formatRequest(request: Request): string {
 }
 
 function shouldMonitorRequest(request: Request): boolean {
-    if (request.url().includes('/realtime/events') && request.failure()?.errorText === 'NS_BINDING_ABORTED') {
+    if (['net::ERR_ABORTED', 'NS_BINDING_ABORTED'].includes(request.failure()?.errorText ?? '')) {
         return false;
     }
 

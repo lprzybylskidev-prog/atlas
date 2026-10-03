@@ -155,6 +155,7 @@ SQL);
             $table->foreign('reply_to_message_id')->references('id')->on(ChatDatabaseTable::MESSAGES)->restrictOnDelete();
             $table->foreign('forwarded_from_message_id')->references('id')->on(ChatDatabaseTable::MESSAGES)->restrictOnDelete();
             $table->unique(['author_user_id', 'client_message_key'], 'chat_messages_author_client_key_unique');
+            $table->index(['conversation_id', 'id'], 'chat_messages_conversation_cursor_index');
             $table->index(['conversation_id', 'created_at', 'id']);
             $table->index('reply_to_message_id');
         });

@@ -223,6 +223,16 @@ final class RecordingFileLifecycle implements FileLifecycle, FileLookup
         return new FileStatus($publicId, 'file', 'application/octet-stream', 1, FileScanState::Clean, in_array($publicId, $this->deleted, true));
     }
 
+    public function statuses(array $publicIds): array
+    {
+        $statuses = [];
+        foreach (array_values(array_unique($publicIds)) as $publicId) {
+            $statuses[$publicId] = $this->status($publicId);
+        }
+
+        return $statuses;
+    }
+
     public function displaySummariesForInternalIds(array $fileIds): array
     {
         return [];

@@ -8,8 +8,10 @@ use App\Modules\Core\Identity\Application\Public\Contracts\UserLookup;
 use App\Modules\Optional\Chat\Application\Contracts\MarkdownRenderer;
 use App\Modules\Optional\Chat\Application\Contracts\MessageStore;
 use App\Modules\Optional\Chat\Application\DTOs\MessageDraft;
+use App\Modules\Optional\Chat\Application\DTOs\MessagePresentationState;
 use App\Modules\Optional\Chat\Application\DTOs\MessageReaction;
 use App\Modules\Optional\Chat\Application\DTOs\MessageRecord;
+use App\Modules\Optional\Chat\Application\DTOs\MessageRecordPage;
 use App\Modules\Optional\Chat\Application\DTOs\MessageRevision;
 use App\Modules\Optional\Chat\Domain\Messages\MentionType;
 use App\Modules\Optional\Chat\Infrastructure\Persistence\TableNames\ChatDatabaseTable;
@@ -36,6 +38,29 @@ final readonly class DatabaseMessageStore implements MessageStore
     public function findById(int $id): ?MessageRecord
     {
         return $this->message($this->database->table(ChatDatabaseTable::MESSAGES)->where('id', $id)->first());
+    }
+
+    /**
+     * @param  list<int>  $ids
+     * @return array<int, MessageRecord>
+     */
+    public function findByIds(array $ids): array
+    {
+        $ids = array_values(array_unique($ids));
+
+        if ($ids === []) {
+            return [];
+        }
+
+        $messages = [];
+        foreach ($this->database->table(ChatDatabaseTable::MESSAGES)->whereIn('id', $ids)->get() as $row) {
+            $message = $this->message($row);
+            if ($message !== null) {
+                $messages[$message->id] = $message;
+            }
+        }
+
+        return $messages;
     }
 
     public function findByIdempotencyKey(int $authorUserId, string $clientMessageKey): ?MessageRecord
@@ -119,19 +144,131 @@ final readonly class DatabaseMessageStore implements MessageStore
         return $revisions;
     }
 
-    public function conversationMessages(int $conversationId): array
+    public function conversationMessagesPage(int $conversationId, int $limit, ?int $beforeMessageId = null, ?int $afterMessageId = null): MessageRecordPage
     {
-        $messages = [];
+        if ($limit < 1 || $limit > 100 || ($beforeMessageId !== null && $afterMessageId !== null)) {
+            throw new UnexpectedValueException('Invalid Chat message page request.');
+        }
 
-        foreach ($this->database->table(ChatDatabaseTable::MESSAGES)
-            ->where('conversation_id', $conversationId)
-            ->orderBy('created_at')
-            ->orderBy('id')
-            ->get() as $row) {
+        $query = $this->database->table(ChatDatabaseTable::MESSAGES)->where('conversation_id', $conversationId);
+        $descending = $afterMessageId === null;
+
+        if ($beforeMessageId !== null) {
+            $query->where('id', '<', $beforeMessageId);
+        } elseif ($afterMessageId !== null) {
+            $query->where('id', '>', $afterMessageId);
+        }
+
+        $rows = $query->orderBy('id', $descending ? 'desc' : 'asc')->limit($limit + 1)->get()->all();
+        $hasExtra = count($rows) > $limit;
+        $rows = array_slice($rows, 0, $limit);
+
+        if ($descending) {
+            $rows = array_reverse($rows);
+        }
+
+        $messages = [];
+        foreach ($rows as $row) {
             $messages[] = $this->message($row) ?? throw new UnexpectedValueException('Invalid Chat message row.');
         }
 
-        return $messages;
+        return new MessageRecordPage(
+            messages: $messages,
+            hasOlder: $descending && $hasExtra,
+            hasNewer: ! $descending && $hasExtra,
+        );
+    }
+
+    public function presentationStates(array $messages, int $viewerUserId): array
+    {
+        if ($messages === []) {
+            return [];
+        }
+
+        $messageIds = array_map(static fn (MessageRecord $message): int => $message->id, $messages);
+        $replyIds = array_values(array_unique(array_filter(array_map(
+            static fn (MessageRecord $message): ?int => $message->replyToMessageId,
+            $messages,
+        ))));
+        $hiddenIds = $this->integerSet($this->database->table(ChatDatabaseTable::MESSAGE_DELETIONS)
+            ->where('user_id', $viewerUserId)
+            ->whereIn('message_id', [...$messageIds, ...$replyIds])
+            ->pluck('message_id')
+            ->all());
+        $pinnedIds = $this->integerSet($this->database->table(ChatDatabaseTable::MESSAGE_PINS)
+            ->whereIn('message_id', $messageIds)
+            ->pluck('message_id')
+            ->all());
+        $bookmarkedIds = $this->integerSet($this->database->table(ChatDatabaseTable::MESSAGE_BOOKMARKS)
+            ->where('user_id', $viewerUserId)
+            ->whereIn('message_id', $messageIds)
+            ->pluck('message_id')
+            ->all());
+        $mentionRows = $this->database->table(ChatDatabaseTable::MESSAGE_MENTIONS)
+            ->whereIn('message_id', $messageIds)
+            ->orderBy('id')
+            ->get();
+        $reactionRows = $this->database->table(ChatDatabaseTable::MESSAGE_REACTIONS)
+            ->whereIn('message_id', $messageIds)
+            ->orderBy('id')
+            ->get();
+        $userIds = [];
+
+        foreach ([$mentionRows, $reactionRows] as $rows) {
+            foreach ($rows as $row) {
+                $userId = $row->mentioned_user_id ?? $row->user_id ?? null;
+                if (is_numeric($userId)) {
+                    $userIds[] = (int) $userId;
+                }
+            }
+        }
+
+        $users = $this->users->displaySummariesForInternalIds(array_values(array_unique($userIds)));
+        $mentions = [];
+        foreach ($mentionRows as $row) {
+            $values = get_object_vars($row);
+            $messageId = $this->int($values, 'message_id');
+            $type = MentionType::from($this->string($values, 'type'));
+            $mentions[$messageId] ??= ['users' => [], 'everyone' => false, 'online' => false];
+            if ($type === MentionType::User && is_numeric($row->mentioned_user_id ?? null)) {
+                $summary = $users[(int) $row->mentioned_user_id] ?? null;
+                if ($summary !== null) {
+                    $mentions[$messageId]['users'][] = $summary->publicId;
+                }
+            } elseif ($type === MentionType::Everyone) {
+                $mentions[$messageId]['everyone'] = true;
+            } elseif ($type === MentionType::Online) {
+                $mentions[$messageId]['online'] = true;
+            }
+        }
+
+        $reactions = [];
+        foreach ($reactionRows as $row) {
+            $values = get_object_vars($row);
+            $messageId = $this->int($values, 'message_id');
+            $userId = $this->int($values, 'user_id');
+            $summary = $users[$userId] ?? null;
+            if ($summary !== null) {
+                $reactions[$messageId][] = new MessageReaction($this->string($values, 'emoji'), $summary->publicId);
+            }
+        }
+
+        $states = [];
+        foreach ($messages as $message) {
+            $mention = $mentions[$message->id] ?? ['users' => [], 'everyone' => false, 'online' => false];
+            $states[$message->id] = new MessagePresentationState(
+                hidden: isset($hiddenIds[$message->id]),
+                replyHidden: $message->replyToMessageId !== null && isset($hiddenIds[$message->replyToMessageId]),
+                pinned: isset($pinnedIds[$message->id]),
+                bookmarked: isset($bookmarkedIds[$message->id]),
+                reactions: $reactions[$message->id] ?? [],
+                mentionedUserPublicIds: $mention['users'],
+                mentionsEveryone: $mention['everyone'],
+                mentionsOnline: $mention['online'],
+            );
+        }
+
+        return $states;
     }
 
     public function hideForUser(int $messageId, int $userId): void
@@ -142,6 +279,23 @@ final readonly class DatabaseMessageStore implements MessageStore
             'deleted_at' => now(),
         ]);
         $this->removeBookmark($messageId, $userId);
+    }
+
+    /**
+     * @param  list<int>  $messageIds
+     * @return array<int, true>
+     */
+    public function hiddenMessageIds(array $messageIds, int $userId): array
+    {
+        if ($messageIds === []) {
+            return [];
+        }
+
+        return $this->integerSet($this->database->table(ChatDatabaseTable::MESSAGE_DELETIONS)
+            ->where('user_id', $userId)
+            ->whereIn('message_id', $messageIds)
+            ->pluck('message_id')
+            ->all());
     }
 
     public function isHiddenForUser(int $messageId, int $userId): bool
@@ -418,5 +572,21 @@ final readonly class DatabaseMessageStore implements MessageStore
     private function nullableInt(mixed $value): ?int
     {
         return is_numeric($value) ? (int) $value : null;
+    }
+
+    /**
+     * @param  array<array-key, mixed>  $values
+     * @return array<int, true>
+     */
+    private function integerSet(array $values): array
+    {
+        $set = [];
+        foreach ($values as $value) {
+            if (is_numeric($value)) {
+                $set[(int) $value] = true;
+            }
+        }
+
+        return $set;
     }
 }

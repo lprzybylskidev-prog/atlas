@@ -21,6 +21,7 @@ use App\Modules\Optional\Chat\Application\DTOs\RtcParticipantAccess;
 use App\Modules\Optional\Chat\Application\DTOs\RtcRecordingStart;
 use App\Modules\Optional\Chat\Application\DTOs\RtcSessionAdmission;
 use App\Modules\Optional\Chat\Application\Exceptions\MeetingOperationDenied;
+use App\Modules\Optional\Chat\Application\Exceptions\RtcUnavailable;
 use App\Modules\Optional\Chat\Application\MeetingManager;
 use App\Modules\Optional\Chat\Application\MeetingRecordingAccessManager;
 use App\Modules\Optional\Chat\Application\MeetingRecordingFinalizer;
@@ -194,6 +195,36 @@ final class MeetingLifecycleTest extends TestCase
         $this->assertDatabaseHas(ChatDatabaseTable::MEETINGS, ['id' => $meeting->id, 'status' => 'scheduled']);
         $this->assertDatabaseHas(ChatDatabaseTable::MEETING_OCCURRENCES, ['meeting_id' => $meeting->id, 'rtc_status' => 'ended']);
         self::assertCount(1, $gateway->endedRooms);
+    }
+
+    public function test_rtc_capacity_failure_compensates_the_join_and_ends_a_new_empty_session(): void
+    {
+        $organizer = User::factory()->create();
+        $this->app->instance(RtcGateway::class, new CapacityFailingMeetingRtcGateway);
+        $this->app->forgetInstance(MeetingRtcManager::class);
+        $meeting = $this->app->make(MeetingManager::class)->create(
+            (string) $organizer->public_id,
+            'team',
+            $this->input(MeetingMode::Online, [], null),
+        )['meeting'];
+        $date = $meeting->startsAt->setTimezone(new \DateTimeZone('Europe/Warsaw'))->format('Y-m-d');
+
+        try {
+            $this->app->make(MeetingRtcManager::class)->join((string) $organizer->public_id, 'team', $meeting->publicId, $date, false, true);
+            self::fail('RTC capacity failure did not reject the Meeting join.');
+        } catch (RtcUnavailable $exception) {
+            self::assertSame('RTC media infrastructure is currently unavailable.', $exception->getMessage());
+        }
+
+        $this->assertDatabaseHas(ChatDatabaseTable::MEETING_OCCURRENCES, [
+            'meeting_id' => $meeting->id,
+            'rtc_status' => 'ended',
+        ]);
+        $this->assertDatabaseHas(ChatDatabaseTable::MEETING_RTC_PARTICIPANTS, [
+            'user_id' => $organizer->id,
+        ]);
+        self::assertNotNull(DB::table(ChatDatabaseTable::MEETING_RTC_PARTICIPANTS)->where('user_id', $organizer->id)->value('left_at'));
+        self::assertNotNull(DB::table(ChatDatabaseTable::MEETING_ATTENDANCE)->where('user_id', $organizer->id)->value('left_at'));
     }
 
     public function test_only_organizer_can_moderate_and_lock_an_online_meeting_occurrence(): void
@@ -393,7 +424,7 @@ final class RecordingMeetingNotifications implements NotificationPublisher
     }
 }
 
-final class RecordingMeetingRtcGateway implements RtcGateway
+class RecordingMeetingRtcGateway implements RtcGateway
 {
     /** @var list<string> */
     public array $endedRooms = [];
@@ -429,5 +460,13 @@ final class RecordingMeetingRtcGateway implements RtcGateway
     public function stopRoomCompositeRecording(string $egressId): void
     {
         $this->stoppedEgressIds[] = $egressId;
+    }
+}
+
+final class CapacityFailingMeetingRtcGateway extends RecordingMeetingRtcGateway
+{
+    public function prepareRoom(RtcSessionAdmission $admission): void
+    {
+        throw RtcUnavailable::infrastructure(new \RuntimeException('capacity'));
     }
 }

@@ -16,9 +16,16 @@ final readonly class ChatRealtimeController
 
     public function reconcile(Request $request, string $conversation): JsonResponse
     {
-        $values = $request->validate(['after_message_public_id' => ['nullable', 'string', 'size:26']]);
+        $values = $request->validate([
+            'after_message_public_id' => ['nullable', 'string', 'size:26'],
+            'before_message_public_id' => ['nullable', 'string', 'size:26'],
+        ]);
 
         if (! is_array($values)) {
+            abort(422);
+        }
+
+        if (isset($values['after_message_public_id'], $values['before_message_public_id'])) {
             abort(422);
         }
 
@@ -28,6 +35,7 @@ final readonly class ChatRealtimeController
             $teamPublicId,
             $conversation,
             is_string($values['after_message_public_id'] ?? null) ? $values['after_message_public_id'] : null,
+            is_string($values['before_message_public_id'] ?? null) ? $values['before_message_public_id'] : null,
         );
 
         return response()->json([
@@ -36,6 +44,10 @@ final readonly class ChatRealtimeController
             'participantCursors' => array_map([ChatRealtimePayload::class, 'cursor'], $result['participantCursors']),
             'presence' => array_map([ChatRealtimePayload::class, 'presence'], $result['presence']),
             'totalUnread' => $result['totalUnread'],
+            'hasOlder' => $result['hasOlder'],
+            'hasNewer' => $result['hasNewer'],
+            'oldestMessagePublicId' => $result['oldestMessagePublicId'],
+            'newestMessagePublicId' => $result['newestMessagePublicId'],
         ]);
     }
 

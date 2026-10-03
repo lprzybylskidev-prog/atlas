@@ -72,6 +72,10 @@ Route::middleware(['auth', 'route.permission'])->group(function (): void {
     Route::get('/', fn () => Inertia::render('Dashboard'))->name('dashboard');
     Route::get('/calendar', [CalendarController::class, 'index'])->name(CalendarPermissionCatalog::INDEX);
     Route::get('/chat/conversations', [ChatConversationController::class, 'index'])->name(ChatPermissionCatalog::INDEX);
+    Route::get('/chat/group-candidates', [ChatConversationController::class, 'groupCandidates'])->name(ChatPermissionCatalog::GROUP_CANDIDATES_INDEX);
+    Route::post('/chat/groups', [ChatConversationController::class, 'storeGroup'])->name(ChatPermissionCatalog::GROUP_STORE);
+    Route::get('/chat/conversations/{conversation}/group', [ChatConversationController::class, 'showGroup'])->name(ChatPermissionCatalog::GROUP_SHOW);
+    Route::patch('/chat/conversations/{conversation}/group', [ChatConversationController::class, 'updateGroup'])->name(ChatPermissionCatalog::GROUP_UPDATE);
     Route::get('/chat/search', ChatSearchController::class)->name(ChatPermissionCatalog::SEARCH_INDEX);
     Route::patch('/chat/conversations/{conversation}/favorite', [ChatConversationController::class, 'favorite'])->name(ChatPermissionCatalog::FAVORITE_UPDATE);
     Route::get('/chat/conversations/{conversation}/content', [ChatAttachmentController::class, 'content'])->name(ChatPermissionCatalog::CONTENT_INDEX);
@@ -81,6 +85,9 @@ Route::middleware(['auth', 'route.permission'])->group(function (): void {
     Route::delete('/chat/conversations/{conversation}/attachments/{attachment}', [ChatAttachmentController::class, 'destroy'])->name(ChatPermissionCatalog::ATTACHMENT_DESTROY);
     Route::get('/chat/conversations/{conversation}/attachments/{attachment}/download', [ChatAttachmentController::class, 'download'])->name(ChatPermissionCatalog::ATTACHMENT_DOWNLOAD);
     Route::post('/chat/conversations/{conversation}/messages', [ChatMessageController::class, 'store'])->name(ChatPermissionCatalog::MESSAGE_STORE);
+    Route::patch('/chat/conversations/{conversation}/messages/{message}', [ChatMessageController::class, 'update'])->name(ChatPermissionCatalog::MESSAGE_UPDATE);
+    Route::get('/chat/conversations/{conversation}/messages/{message}/history', [ChatMessageController::class, 'history'])->name(ChatPermissionCatalog::MESSAGE_HISTORY);
+    Route::match(['get', 'put'], '/chat/conversations/{conversation}/draft', [ChatMessageController::class, 'draft'])->name(ChatPermissionCatalog::DRAFT_UPDATE);
     Route::get('/chat/conversations/{conversation}/realtime', [ChatRealtimeController::class, 'reconcile'])->name(ChatPermissionCatalog::REALTIME_RECONCILE);
     Route::post('/chat/realtime/heartbeat', [ChatRealtimeController::class, 'heartbeat'])->name(ChatPermissionCatalog::REALTIME_HEARTBEAT);
     Route::patch('/chat/realtime/status', [ChatRealtimeController::class, 'status'])->name(ChatPermissionCatalog::REALTIME_STATUS);

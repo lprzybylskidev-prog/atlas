@@ -62,12 +62,24 @@ async function signIn(page: Page, user = appUser): Promise<void> {
 
 async function ensurePolishLocale(page: Page): Promise<void> {
     await page.goto('/');
+    const localeButton = page.getByRole('button', { name: /^(Zmień język|Change language)$/ });
+    await expect(localeButton).toBeVisible();
 
     if (await page.getByRole('button', { name: 'Change language' }).isVisible()) {
         await page.getByRole('button', { name: 'Change language' }).click();
     }
 
     await expect(page.getByRole('button', { name: 'Zmień język' })).toBeVisible();
+}
+
+async function stabilizeChatConversations(page: Page): Promise<void> {
+    await page.route('**/chat/conversations', async (route) => {
+        await route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: JSON.stringify({ conversations: [] }),
+        });
+    });
 }
 
 async function confirmAdminPassword(page: Page): Promise<void> {
@@ -107,6 +119,7 @@ test.describe('frontend theme coverage', () => {
     });
 
     test('renders the application shell in light and dark themes', async ({ page }) => {
+        await stabilizeChatConversations(page);
         await signIn(page);
         await ensurePolishLocale(page);
         await stabilizeVisuals(page);
@@ -120,6 +133,7 @@ test.describe('frontend theme coverage', () => {
     });
 
     test('renders the admin shell in light and dark themes', async ({ page }) => {
+        await stabilizeChatConversations(page);
         await signIn(page, adminUser);
         await ensurePolishLocale(page);
         await page.goto('/admin');

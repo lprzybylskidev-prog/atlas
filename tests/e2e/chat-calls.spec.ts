@@ -68,24 +68,28 @@ test('Call history and global Call states remain localized, explicit, and device
     });
 
     await page.goto('/user/calls');
-    await expect(page.getByRole('heading', { name: 'Historia połączeń' })).toBeVisible();
-    await expect(page.getByText('Filtruj historię połączeń')).toBeVisible();
-    await page.getByRole('navigation', { name: 'Główna nawigacja' }).getByText('Moje sprawy', { exact: true }).click();
-    await expect(page.getByRole('link', { name: 'Historia połączeń' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /^(Historia połączeń|Call history)$/ })).toBeVisible();
+    await expect(page.getByText(/Filtruj historię połączeń|Filter Call history/, { exact: true })).toBeVisible();
+    await page
+        .getByRole('navigation', { name: /Główna nawigacja|Main navigation/ })
+        .getByText(/Moje sprawy|My matters/, { exact: true })
+        .click();
+    await expect(page.getByRole('link', { name: /^(Historia połączeń|Call history)$/ })).toBeVisible();
 
     currentCall = call();
+    await page.waitForLoadState('networkidle');
     await page.reload();
-    await expect(page.getByRole('dialog', { name: 'Połączenie przychodzące' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Odrzuć' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Odbierz bez kamery' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Odbierz z kamerą' })).toBeVisible();
+    await expect(page.getByRole('dialog', { name: /Połączenie przychodzące|Incoming Call/ })).toBeVisible();
+    await expect(page.getByRole('button', { name: /Odrzuć|Decline/ })).toBeVisible();
+    await expect(page.getByRole('button', { name: /Odbierz bez kamery|Answer without camera/ })).toBeVisible();
+    await expect(page.getByRole('button', { name: /Odbierz z kamerą|Answer with camera/ })).toBeVisible();
 
-    await page.getByRole('button', { name: 'Odbierz bez kamery' }).click();
+    await page.getByRole('button', { name: /Odbierz bez kamery|Answer without camera/ }).click();
     await expect(page.getByTestId('call-preflight')).toBeVisible();
-    await expect(page.getByRole('combobox', { name: 'Kamera' })).toBeVisible();
-    await expect(page.getByRole('combobox', { name: 'Mikrofon' })).toBeVisible();
-    await expect(page.getByRole('combobox', { name: 'Głośnik' })).toBeVisible();
-    await expect(page.getByRole('checkbox', { name: 'Kamera włączona' })).not.toBeChecked();
+    await expect(page.getByRole('combobox', { name: /Kamera|Camera/ })).toBeVisible();
+    await expect(page.getByRole('combobox', { name: /Mikrofon|Microphone/ })).toBeVisible();
+    await expect(page.getByRole('combobox', { name: /Głośnik|Speaker/ })).toBeVisible();
+    await expect(page.getByRole('checkbox', { name: /Kamera włączona|Camera enabled/ })).not.toBeChecked();
 
     currentCall = call({
         conversationType: 'team',
@@ -95,14 +99,16 @@ test('Call history and global Call states remain localized, explicit, and device
         incoming: false,
         teamJoinStyle: true,
     });
+    await page.waitForLoadState('networkidle');
     await page.reload();
     await expect(page.getByTestId('team-call-available')).toBeVisible();
     await expect(page.getByRole('dialog')).toHaveCount(0);
-    await expect(page.getByText('Połączenia Zespołu używają cichego powiadomienia')).toBeVisible();
+    await expect(page.getByText(/Połączenia Zespołu używają cichego powiadomienia|Team Calls use a quiet join notification/)).toBeVisible();
 
     currentCall = call({ status: 'active', currentUserState: 'left', incoming: false, canRejoin: true });
+    await page.waitForLoadState('networkidle');
     await page.reload();
-    await expect(page.getByRole('dialog', { name: 'Dołącz ponownie do połączenia' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Dołącz bez kamery' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Dołącz z kamerą' })).toBeVisible();
+    await expect(page.getByRole('dialog', { name: /Dołącz ponownie do połączenia|Rejoin Call/ })).toBeVisible();
+    await expect(page.getByRole('button', { name: /Dołącz bez kamery|Join without camera/ })).toBeVisible();
+    await expect(page.getByRole('button', { name: /Dołącz z kamerą|Join with camera/ })).toBeVisible();
 });

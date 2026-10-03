@@ -12,6 +12,12 @@ interface FileLookup
     public function status(string $publicId): ?FileStatus;
 
     /**
+     * @param  list<string>  $publicIds
+     * @return array<string, FileStatus>
+     */
+    public function statuses(array $publicIds): array;
+
+    /**
      * @param  list<int>  $fileIds
      * @return array<int, FileDisplaySummary>
      */

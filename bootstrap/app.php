@@ -6,6 +6,7 @@ use App\Http\Middleware\ApplySecurityHeaders;
 use App\Http\Middleware\AttachRequestId;
 use App\Http\Middleware\EnsureActiveTeamSelected;
 use App\Http\Middleware\HandleInertiaRequests;
+use App\Http\Middleware\PreserveFlashForBackgroundRequests;
 use App\Modules\Core\Authorization\Presentation\Http\Middleware\AuthorizeRoutePermission;
 use App\Modules\Core\Calendar\Presentation\Console\DispatchCalendarRemindersCommand;
 use App\Modules\Core\Files\Presentation\Console\PruneTemporaryFilesCommand;
@@ -92,6 +93,7 @@ return Application::configure(basePath: dirname(__DIR__))
             EnsureActiveTeamSelected::class,
             EnforceConfiguredMfaRequirement::class,
             BlockProhibitedImpersonationOperations::class,
+            PreserveFlashForBackgroundRequests::class,
             HandleInertiaRequests::class,
         ]);
     })

@@ -1,5 +1,20 @@
 <script setup lang="ts">
-import { IconChevronDown, IconDownload, IconMessageCircle, IconSearch, IconSend, IconStar, IconStarFilled, IconX } from '@tabler/icons-vue';
+import {
+    IconBookmark,
+    IconChevronDown,
+    IconDownload,
+    IconEdit,
+    IconHistory,
+    IconMessageCircle,
+    IconPinned,
+    IconSearch,
+    IconSend,
+    IconStar,
+    IconStarFilled,
+    IconTrash,
+    IconUsersPlus,
+    IconX,
+} from '@tabler/icons-vue';
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { router, usePage } from '@inertiajs/vue3';
 
@@ -8,6 +23,7 @@ import FormDateInput from '../Form/FormDateInput.vue';
 import FormInput from '../Form/FormInput.vue';
 import FormSelect from '../Form/FormSelect.vue';
 import FormTextarea from '../Form/FormTextarea.vue';
+import CheckboxList from '../CheckboxList.vue';
 import IconButton from '../IconButton.vue';
 import UiState from '../UiState.vue';
 import { useTranslator } from '../../Localization/translator';
@@ -36,6 +52,21 @@ interface SearchItem {
     occurredAt: string | null;
     authorName: string | null;
 }
+interface UserOption {
+    publicId: string;
+    name: string;
+}
+interface GroupDetails {
+    publicId: string;
+    name: string;
+    isOwner: boolean;
+    members: (UserOption & { role: 'owner' | 'member' })[];
+}
+interface MessageRevision {
+    version: number;
+    body: string;
+    createdAt: string;
+}
 
 const page = usePage<AtlasPageProps>();
 const { t } = useTranslator();
@@ -48,6 +79,8 @@ const filter = ref<'all' | 'unread' | ConversationType>('all');
 const draft = ref('');
 const loading = ref(false);
 const sending = ref(false);
+const loadingOlder = ref(false);
+const hasOlder = ref(false);
 const error = ref(false);
 const searchOpen = ref(false);
 const searchTerm = ref('');
@@ -61,14 +94,31 @@ const searchLoading = ref(false);
 const searchError = ref(false);
 const exportFormat = ref<'csv' | 'json' | 'pdf'>('pdf');
 const nativeEnabled = ref(false);
+const groupComposerOpen = ref(false);
+const groupName = ref('');
+const groupMemberIds = ref<string[]>([]);
+const groupCandidates = ref<UserOption[]>([]);
+const groupDetails = ref<GroupDetails | null>(null);
+const groupMemberSelection = ref('');
+const replyTarget = ref<ChatRealtimeMessage | null>(null);
+const editingMessage = ref<ChatRealtimeMessage | null>(null);
+const revisions = ref<Record<string, MessageRevision[]>>({});
+const forwardDestinations = ref<Record<string, string>>({});
 const shell = ref<HTMLElement | null>(null);
 const launcher = ref<HTMLElement | null>(null);
 let client: ChatRealtimeClient | null = null;
 let refreshTimer: number | null = null;
+let draftTimer: number | null = null;
+let stopInertiaStartListener: (() => void) | null = null;
+let stopInertiaFinishListener: (() => void) | null = null;
+let restoringDraft = false;
+let disposed = false;
+let inertiaVisitInProgress = false;
 
 const active = computed(() => conversations.value.find((item) => item.publicId === activeId.value) ?? null);
 const canSearch = computed(() => page.props.auth.availableApplicationRoutes.includes('chat.search.index'));
 const canStartDirect = computed(() => page.props.auth.availableApplicationRoutes.includes('chat.direct-conversations.store'));
+const canCreateGroup = computed(() => page.props.auth.availableApplicationRoutes.includes('chat.groups.store'));
 const canExport = computed(() => page.props.auth.availableApplicationRoutes.includes('chat.exports.store'));
 const totalUnread = computed(() => conversations.value.reduce((total, item) => total + item.unreadCount, 0));
 const unreadConversations = computed(() => conversations.value.filter((item) => item.unreadCount > 0));
@@ -105,12 +155,22 @@ const exportFormats = [
     { value: 'csv', label: 'CSV' },
     { value: 'json', label: 'JSON' },
 ];
+const groupCandidateOptions = computed(() => [
+    { value: '', label: t('chat.groups.choose_member') },
+    ...groupCandidates.value.map((user) => ({ value: user.publicId, label: user.name })),
+]);
+const groupCandidateCheckboxOptions = computed(() => groupCandidates.value.map((user) => ({ value: user.publicId, label: user.name })));
+const forwardingOptions = computed(() => [
+    { value: '', label: t('chat.messages.forward_choose') },
+    ...conversations.value.map((conversation) => ({ value: conversation.publicId, label: conversation.name })),
+]);
 
 async function loadConversations(): Promise<void> {
     loading.value = true;
     error.value = false;
     try {
         const response = await chatJson<{ conversations: ConversationSummary[] }>('/chat/conversations');
+        if (disposed) return;
         const previous = totalUnread.value;
         conversations.value = response.conversations;
         if (
@@ -122,9 +182,9 @@ async function loadConversations(): Promise<void> {
             new Notification(t('chat.shell.new_message'), { body: t('chat.shell.new_message_body'), tag: 'atlas-chat' });
         }
     } catch {
-        error.value = true;
+        if (!disposed) error.value = true;
     } finally {
-        loading.value = false;
+        if (!disposed) loading.value = false;
     }
 }
 
@@ -186,7 +246,71 @@ async function show(conversation: ConversationSummary): Promise<void> {
     unreadOpen.value = false;
     activeId.value = conversation.publicId;
     messages.value = [];
+    hasOlder.value = false;
+    replyTarget.value = null;
+    editingMessage.value = null;
+    groupDetails.value = null;
+    restoringDraft = true;
+    const saved = await chatJson<{ draft: { body: string; replyToMessagePublicId: string | null } | null }>(
+        `/chat/conversations/${conversation.publicId}/draft`,
+    );
+    draft.value = saved.draft?.body ?? '';
+    restoringDraft = false;
+    if (conversation.type === 'group') {
+        const response = await chatJson<{ group: GroupDetails }>(`/chat/conversations/${conversation.publicId}/group`);
+        groupDetails.value = response.group;
+        if (response.group.isOwner && groupCandidates.value.length === 0) {
+            const candidates = await chatJson<{ users: UserOption[] }>('/chat/group-candidates');
+            groupCandidates.value = candidates.users;
+        }
+    }
     await nextTick();
+}
+
+async function openGroupComposer(): Promise<void> {
+    groupComposerOpen.value = true;
+    if (groupCandidates.value.length === 0) {
+        const response = await chatJson<{ users: UserOption[] }>('/chat/group-candidates');
+        groupCandidates.value = response.users;
+    }
+}
+
+async function createGroup(): Promise<void> {
+    const created = await chatJson<{ publicId: string }>('/chat/groups', 'POST', {
+        name: groupName.value,
+        member_public_ids: groupMemberIds.value,
+    });
+    groupName.value = '';
+    groupMemberIds.value = [];
+    groupComposerOpen.value = false;
+    await loadConversations();
+    const conversation = conversations.value.find((item) => item.publicId === created.publicId);
+    if (conversation) await show(conversation);
+}
+
+async function updateGroup(action: string, values: Record<string, unknown> = {}): Promise<void> {
+    if (active.value === null) return;
+    await chatJson(`/chat/conversations/${active.value.publicId}/group`, 'PATCH', { action, ...values });
+    await loadConversations();
+    if (action === 'leave') {
+        activeId.value = null;
+        return;
+    }
+    const response = await chatJson<{ group: GroupDetails }>(`/chat/conversations/${active.value.publicId}/group`);
+    groupDetails.value = response.group;
+}
+
+async function loadOlder(): Promise<void> {
+    const oldest = messages.value[0];
+    if (client === null || oldest === undefined || loadingOlder.value || !hasOlder.value) return;
+    loadingOlder.value = true;
+    try {
+        const snapshot = await client.loadOlder(oldest.publicId);
+        messages.value = mergeChatMessages(messages.value, snapshot.messages);
+        hasOlder.value = snapshot.hasOlder;
+    } finally {
+        loadingOlder.value = false;
+    }
 }
 
 function close(): void {
@@ -217,16 +341,59 @@ async function send(): Promise<void> {
     if (active.value === null || draft.value.trim() === '' || sending.value) return;
     sending.value = true;
     try {
-        const message = await chatJson<ChatRealtimeMessage>(`/chat/conversations/${active.value.publicId}/messages`, 'POST', {
-            body: draft.value,
-            client_message_key: crypto.randomUUID(),
-        });
+        const message = editingMessage.value
+            ? await chatJson<ChatRealtimeMessage>(
+                  `/chat/conversations/${active.value.publicId}/messages/${editingMessage.value.publicId}`,
+                  'PATCH',
+                  { action: 'edit', body: draft.value, expected_version: editingMessage.value.version },
+              )
+            : await chatJson<ChatRealtimeMessage>(`/chat/conversations/${active.value.publicId}/messages`, 'POST', {
+                  body: draft.value,
+                  client_message_key: crypto.randomUUID(),
+                  reply_to_message_public_id: replyTarget.value?.publicId ?? null,
+              });
         messages.value = mergeChatMessages(messages.value, [message]);
         draft.value = '';
+        replyTarget.value = null;
+        editingMessage.value = null;
         await markRead(message);
     } finally {
         sending.value = false;
     }
+}
+
+async function messageAction(message: ChatRealtimeMessage, action: string, values: Record<string, unknown> = {}): Promise<void> {
+    if (active.value === null) return;
+    const updated = await chatJson<ChatRealtimeMessage>(
+        `/chat/conversations/${active.value.publicId}/messages/${message.publicId}`,
+        'PATCH',
+        { action, ...values },
+    );
+    if (action === 'forward') return;
+    messages.value = mergeChatMessages(messages.value, [updated]);
+}
+
+function beginEdit(message: ChatRealtimeMessage): void {
+    editingMessage.value = message;
+    replyTarget.value = null;
+    draft.value = message.body ?? '';
+}
+
+async function showHistory(message: ChatRealtimeMessage): Promise<void> {
+    if (active.value === null) return;
+    const response = await chatJson<{ revisions: MessageRevision[] }>(
+        `/chat/conversations/${active.value.publicId}/messages/${message.publicId}/history`,
+    );
+    revisions.value = { ...revisions.value, [message.publicId]: response.revisions };
+}
+
+async function forwardMessage(message: ChatRealtimeMessage): Promise<void> {
+    const destination = forwardDestinations.value[message.publicId];
+    if (!destination) return;
+    await messageAction(message, 'forward', {
+        destination_conversation_public_id: destination,
+        client_message_key: crypto.randomUUID(),
+    });
 }
 
 async function markRead(message: ChatRealtimeMessage): Promise<void> {
@@ -261,17 +428,21 @@ function handleKeydown(event: KeyboardEvent): void {
 watch(activeId, (id) => {
     client?.stop();
     client = null;
-    if (id === null || page.props.auth.user === null) return;
+    if (disposed || id === null || page.props.auth.user === null) return;
     client = new ChatRealtimeClient(id, page.props.auth.user.publicId, {
         reconciled: (snapshot) => {
+            if (disposed) return;
             messages.value = mergeChatMessages(messages.value, snapshot.messages);
+            if (messages.value.length === snapshot.messages.length || snapshot.hasOlder) hasOlder.value = snapshot.hasOlder;
             if (snapshot.messages.length > 0) void markRead(snapshot.messages.at(-1)!);
         },
         message: (message) => {
+            if (disposed) return;
             messages.value = mergeChatMessages(messages.value, [message]);
             if (open.value) void markRead(message);
         },
         state: (state) => {
+            if (disposed) return;
             const total = state.unreadCount;
             if (typeof total === 'number' && active.value !== null) active.value.unreadCount = total;
         },
@@ -281,82 +452,105 @@ watch(activeId, (id) => {
     client.start();
 });
 
+watch(draft, (body) => {
+    if (restoringDraft || active.value === null || editingMessage.value !== null) return;
+    if (draftTimer !== null) window.clearTimeout(draftTimer);
+    draftTimer = window.setTimeout(() => {
+        if (!disposed && active.value !== null) {
+            void chatJson(`/chat/conversations/${active.value.publicId}/draft`, 'PUT', {
+                body,
+                reply_to_message_public_id: replyTarget.value?.publicId ?? null,
+            });
+        }
+    }, 500);
+});
+
 onMounted(() => {
     document.addEventListener('keydown', handleKeydown);
+    stopInertiaStartListener = router.on('start', () => {
+        inertiaVisitInProgress = true;
+    });
+    stopInertiaFinishListener = router.on('finish', () => {
+        inertiaVisitInProgress = false;
+    });
     nativeEnabled.value = browserNotificationsEnabled('chat', page.props.auth.user?.publicId);
     void loadConversations();
-    refreshTimer = window.setInterval(() => void loadConversations(), 30_000);
+    refreshTimer = window.setInterval(() => {
+        if (!inertiaVisitInProgress && document.visibilityState === 'visible') void loadConversations();
+    }, 30_000);
 });
 onBeforeUnmount(() => {
+    disposed = true;
     document.removeEventListener('keydown', handleKeydown);
     client?.stop();
+    stopInertiaStartListener?.();
+    stopInertiaFinishListener?.();
     if (refreshTimer !== null) window.clearInterval(refreshTimer);
+    if (draftTimer !== null) window.clearTimeout(draftTimer);
 });
 </script>
 
 <template>
-    <Teleport to="#chat-shell-slot">
-        <div class="relative flex items-center">
+    <div class="relative flex items-center">
+        <button
+            ref="launcher"
+            type="button"
+            class="relative inline-flex h-10 items-center gap-2 rounded-l-lg border border-zinc-200 px-3 text-sm font-medium text-zinc-700 hover:bg-teal-50 hover:text-teal-800 focus-visible:outline-2 focus-visible:outline-amber-500 dark:border-zinc-800 dark:text-zinc-200 dark:hover:bg-teal-950"
+            :aria-label="t('chat.shell.open')"
+            @click="open = true"
+        >
+            <IconMessageCircle v-once aria-hidden="true" class="h-5 w-5" />
+            <span class="hidden xl:inline">{{ t('chat.shell.title') }}</span>
+            <span v-if="totalUnread" class="min-w-5 rounded-full bg-rose-600 px-1.5 text-center text-xs leading-5 text-white">{{
+                Math.min(totalUnread, 99)
+            }}</span>
+        </button>
+        <button
+            type="button"
+            class="inline-flex h-10 w-9 items-center justify-center rounded-r-lg border border-l-0 border-zinc-200 text-zinc-600 hover:bg-zinc-100 focus-visible:outline-2 focus-visible:outline-amber-500 dark:border-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-800"
+            :aria-label="t('chat.shell.unread_menu')"
+            :aria-expanded="unreadOpen"
+            aria-haspopup="menu"
+            @click="unreadOpen = !unreadOpen"
+        >
+            <IconChevronDown v-once aria-hidden="true" class="h-4 w-4" />
+        </button>
+        <div
+            v-if="unreadOpen"
+            class="absolute right-0 top-12 z-60 w-80 rounded-lg border border-zinc-200 bg-white p-2 shadow-xl dark:border-zinc-800 dark:bg-zinc-900"
+            role="menu"
+        >
+            <p class="px-2 py-1 text-xs font-semibold uppercase text-zinc-500">{{ t('chat.shell.unread') }}</p>
             <button
-                ref="launcher"
+                v-for="conversation in unreadConversations"
+                :key="conversation.publicId"
                 type="button"
-                class="relative inline-flex h-10 items-center gap-2 rounded-l-lg border border-zinc-200 px-3 text-sm font-medium text-zinc-700 hover:bg-teal-50 hover:text-teal-800 focus-visible:outline-2 focus-visible:outline-amber-500 dark:border-zinc-800 dark:text-zinc-200 dark:hover:bg-teal-950"
-                :aria-label="t('chat.shell.open')"
-                @click="open = true"
+                class="flex min-h-11 w-full items-center justify-between rounded-md px-2 text-left hover:bg-teal-50 dark:hover:bg-teal-950"
+                role="menuitem"
+                @click="show(conversation)"
             >
-                <IconMessageCircle v-once aria-hidden="true" class="h-5 w-5" />
-                <span class="hidden xl:inline">{{ t('chat.shell.title') }}</span>
-                <span v-if="totalUnread" class="min-w-5 rounded-full bg-rose-600 px-1.5 text-center text-xs leading-5 text-white">{{
-                    Math.min(totalUnread, 99)
-                }}</span>
+                <span class="truncate">{{ conversation.name }}</span>
+                <span class="ml-2 rounded-full bg-rose-600 px-2 text-xs text-white">{{ conversation.unreadCount }}</span>
+            </button>
+            <p v-if="unreadConversations.length === 0" class="px-2 py-3 text-sm text-zinc-500">{{ t('chat.shell.unread_empty') }}</p>
+            <button
+                v-if="page.props.chat.browserNotificationsEnabled && !nativeEnabled"
+                type="button"
+                class="mt-2 min-h-10 w-full rounded-md border border-zinc-200 px-2 text-sm text-teal-700 dark:border-zinc-700 dark:text-teal-300"
+                @click="enableNativeNotifications"
+            >
+                {{ t('chat.shell.enable_browser') }}
             </button>
             <button
+                v-if="page.props.chat.browserNotificationsEnabled && nativeEnabled"
                 type="button"
-                class="inline-flex h-10 w-9 items-center justify-center rounded-r-lg border border-l-0 border-zinc-200 text-zinc-600 hover:bg-zinc-100 focus-visible:outline-2 focus-visible:outline-amber-500 dark:border-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-800"
-                :aria-label="t('chat.shell.unread_menu')"
-                :aria-expanded="unreadOpen"
-                aria-haspopup="menu"
-                @click="unreadOpen = !unreadOpen"
+                class="mt-2 min-h-10 w-full rounded-md border border-zinc-200 px-2 text-sm text-zinc-700 dark:border-zinc-700 dark:text-zinc-200"
+                @click="disableNativeNotifications"
             >
-                <IconChevronDown v-once aria-hidden="true" class="h-4 w-4" />
+                {{ t('chat.shell.disable_browser') }}
             </button>
-            <div
-                v-if="unreadOpen"
-                class="absolute right-0 top-12 z-60 w-80 rounded-lg border border-zinc-200 bg-white p-2 shadow-xl dark:border-zinc-800 dark:bg-zinc-900"
-                role="menu"
-            >
-                <p class="px-2 py-1 text-xs font-semibold uppercase text-zinc-500">{{ t('chat.shell.unread') }}</p>
-                <button
-                    v-for="conversation in unreadConversations"
-                    :key="conversation.publicId"
-                    type="button"
-                    class="flex min-h-11 w-full items-center justify-between rounded-md px-2 text-left hover:bg-teal-50 dark:hover:bg-teal-950"
-                    role="menuitem"
-                    @click="show(conversation)"
-                >
-                    <span class="truncate">{{ conversation.name }}</span>
-                    <span class="ml-2 rounded-full bg-rose-600 px-2 text-xs text-white">{{ conversation.unreadCount }}</span>
-                </button>
-                <p v-if="unreadConversations.length === 0" class="px-2 py-3 text-sm text-zinc-500">{{ t('chat.shell.unread_empty') }}</p>
-                <button
-                    v-if="page.props.chat.browserNotificationsEnabled && !nativeEnabled"
-                    type="button"
-                    class="mt-2 min-h-10 w-full rounded-md border border-zinc-200 px-2 text-sm text-teal-700 dark:border-zinc-700 dark:text-teal-300"
-                    @click="enableNativeNotifications"
-                >
-                    {{ t('chat.shell.enable_browser') }}
-                </button>
-                <button
-                    v-if="page.props.chat.browserNotificationsEnabled && nativeEnabled"
-                    type="button"
-                    class="mt-2 min-h-10 w-full rounded-md border border-zinc-200 px-2 text-sm text-zinc-700 dark:border-zinc-700 dark:text-zinc-200"
-                    @click="disableNativeNotifications"
-                >
-                    {{ t('chat.shell.disable_browser') }}
-                </button>
-            </div>
         </div>
-    </Teleport>
+    </div>
 
     <Teleport to="body">
         <div v-if="open" class="fixed inset-0 z-80 flex bg-zinc-950/60 md:items-center md:justify-center md:p-4">
@@ -375,10 +569,34 @@ onBeforeUnmount(() => {
                     <div class="flex items-center justify-between border-b border-zinc-200 p-3 dark:border-zinc-800">
                         <h2 class="font-semibold">{{ t('chat.shell.title') }}</h2>
                         <div class="flex items-center gap-1">
+                            <IconButton
+                                v-if="canCreateGroup"
+                                :label="t('chat.groups.create')"
+                                :icon="IconUsersPlus"
+                                @click="openGroupComposer"
+                            />
                             <IconButton v-if="canSearch" :label="t('chat.search.open')" :icon="IconSearch" @click="toggleSearch" />
                             <IconButton :label="t('actions.close')" :icon="IconX" @click="close" />
                         </div>
                     </div>
+                    <form
+                        v-if="groupComposerOpen"
+                        class="space-y-3 border-b border-zinc-200 p-3 dark:border-zinc-800"
+                        @submit.prevent="createGroup"
+                    >
+                        <FormInput v-model="groupName" :label="t('chat.groups.name')" />
+                        <CheckboxList
+                            v-model="groupMemberIds"
+                            :label="t('chat.groups.members')"
+                            :options="groupCandidateCheckboxOptions"
+                            max-height="max-h-40"
+                            :item-monospace="false"
+                        />
+                        <div class="flex gap-2">
+                            <FormButton type="submit" :disabled="!groupName.trim()">{{ t('chat.groups.create') }}</FormButton>
+                            <FormButton tone="neutral" @click="groupComposerOpen = false">{{ t('actions.cancel') }}</FormButton>
+                        </div>
+                    </form>
                     <form v-if="searchOpen" class="space-y-2 border-b border-zinc-200 p-3 dark:border-zinc-800" @submit.prevent="runSearch">
                         <FormInput
                             v-model="searchTerm"
@@ -486,6 +704,55 @@ onBeforeUnmount(() => {
                             {{ t('chat.shell.back') }}
                         </button>
                         <h2 class="min-w-0 flex-1 truncate font-semibold">{{ active.name }}</h2>
+                        <details v-if="groupDetails" class="relative">
+                            <summary class="min-h-10 cursor-pointer rounded-md px-2 py-2 text-sm text-teal-700 dark:text-teal-300">
+                                {{ t('chat.groups.manage') }}
+                            </summary>
+                            <div
+                                class="absolute right-0 top-11 z-20 w-80 space-y-3 rounded-lg border border-zinc-200 bg-white p-3 shadow-xl dark:border-zinc-700 dark:bg-zinc-900"
+                            >
+                                <p class="text-sm font-semibold">{{ t('chat.groups.members') }}</p>
+                                <div v-for="member in groupDetails.members" :key="member.publicId" class="flex items-center gap-2 text-sm">
+                                    <span class="min-w-0 flex-1 truncate">{{ member.name }}</span>
+                                    <span v-if="member.role === 'owner'" class="text-xs text-zinc-500">{{ t('chat.groups.owner') }}</span>
+                                    <button
+                                        v-if="groupDetails.isOwner && member.role !== 'owner'"
+                                        type="button"
+                                        class="text-xs text-rose-700 dark:text-rose-300"
+                                        @click="updateGroup('remove_member', { member_public_id: member.publicId })"
+                                    >
+                                        {{ t('actions.remove') }}
+                                    </button>
+                                    <button
+                                        v-if="groupDetails.isOwner && member.role !== 'owner'"
+                                        type="button"
+                                        class="text-xs text-teal-700 dark:text-teal-300"
+                                        @click="updateGroup('transfer_owner', { member_public_id: member.publicId })"
+                                    >
+                                        {{ t('chat.groups.transfer') }}
+                                    </button>
+                                </div>
+                                <template v-if="groupDetails.isOwner">
+                                    <FormInput v-model="groupDetails.name" :label="t('chat.groups.name')" />
+                                    <FormButton tone="neutral" @click="updateGroup('rename', { name: groupDetails.name })">
+                                        {{ t('actions.save') }}
+                                    </FormButton>
+                                    <FormSelect
+                                        v-model="groupMemberSelection"
+                                        :label="t('chat.groups.add_member')"
+                                        :options="groupCandidateOptions"
+                                    />
+                                    <FormButton
+                                        tone="neutral"
+                                        :disabled="!groupMemberSelection"
+                                        @click="updateGroup('add_member', { member_public_id: groupMemberSelection })"
+                                    >
+                                        {{ t('chat.groups.add_member') }}
+                                    </FormButton>
+                                </template>
+                                <FormButton tone="danger" @click="updateGroup('leave')">{{ t('chat.groups.leave') }}</FormButton>
+                            </div>
+                        </details>
                         <div v-if="canExport" class="flex items-center gap-1">
                             <FormSelect
                                 v-model="exportFormat"
@@ -503,17 +770,132 @@ onBeforeUnmount(() => {
                         <IconButton :label="t('actions.close')" :icon="IconX" @click="close" />
                     </div>
                     <div class="flex-1 space-y-3 overflow-y-auto p-4" aria-live="polite">
+                        <div v-if="hasOlder" class="text-center">
+                            <FormButton tone="neutral" :loading="loadingOlder" @click="loadOlder">
+                                {{ t('chat.shell.load_older') }}
+                            </FormButton>
+                        </div>
                         <article
                             v-for="message in messages"
                             :key="message.publicId"
                             class="max-w-3xl rounded-lg bg-zinc-100 px-3 py-2 text-sm dark:bg-zinc-900"
                             :class="message.authorPublicId === page.props.auth.user?.publicId ? 'ml-auto bg-teal-50 dark:bg-teal-950' : ''"
                         >
-                            <p class="whitespace-pre-wrap">{{ message.body }}</p>
+                            <p v-if="message.forwarded" class="mb-1 text-xs text-zinc-500">{{ t('chat.messages.forwarded') }}</p>
+                            <p v-if="message.replyToMessagePublicId" class="mb-1 text-xs text-zinc-500">{{ t('chat.messages.reply') }}</p>
+                            <p v-if="message.deletedForViewer" class="italic text-zinc-500">{{ t('chat.messages.deleted_for_me') }}</p>
+                            <!-- eslint-disable-next-line vue/no-v-html -- Chat Markdown is sanitized by the authoritative backend renderer. -->
+                            <div v-else class="prose prose-sm max-w-none dark:prose-invert" v-html="message.renderedHtml"></div>
+                            <div v-for="attachment in message.attachments" :key="attachment.publicId" class="mt-2 text-xs">
+                                <audio
+                                    v-if="attachment.kind === 'voice' && attachment.available && active"
+                                    controls
+                                    preload="metadata"
+                                    :aria-label="t('chat.messages.voice_playback')"
+                                    :src="`/chat/conversations/${active.publicId}/attachments/${attachment.publicId}/download`"
+                                ></audio>
+                                <span v-else>{{ attachment.name }} · {{ attachment.scanState }}</span>
+                            </div>
+                            <div v-if="!message.deletedForViewer" class="mt-2 flex flex-wrap items-center gap-1 text-xs">
+                                <span v-if="message.edited" class="text-zinc-500">{{ t('chat.messages.edited') }}</span>
+                                <span v-if="message.pinned" class="text-amber-700 dark:text-amber-300">{{
+                                    t('chat.messages.pinned')
+                                }}</span>
+                                <span v-if="message.bookmarked" class="text-teal-700 dark:text-teal-300">{{
+                                    t('chat.messages.bookmarked')
+                                }}</span>
+                                <span v-for="reaction in message.reactions" :key="`${reaction.userPublicId}-${reaction.emoji}`">{{
+                                    reaction.emoji
+                                }}</span>
+                                <button
+                                    type="button"
+                                    class="rounded px-1 hover:bg-zinc-200 dark:hover:bg-zinc-800"
+                                    @click="replyTarget = message"
+                                >
+                                    {{ t('chat.messages.reply') }}
+                                </button>
+                                <button
+                                    type="button"
+                                    class="rounded px-1 hover:bg-zinc-200 dark:hover:bg-zinc-800"
+                                    @click="
+                                        messageAction(
+                                            message,
+                                            message.reactions.some(
+                                                (item) => item.userPublicId === page.props.auth.user?.publicId && item.emoji === '👍',
+                                            )
+                                                ? 'remove_reaction'
+                                                : 'react',
+                                            { emoji: '👍' },
+                                        )
+                                    "
+                                >
+                                    👍
+                                </button>
+                                <IconButton
+                                    :label="message.pinned ? t('chat.messages.unpin') : t('chat.messages.pin')"
+                                    :icon="IconPinned"
+                                    @click="messageAction(message, message.pinned ? 'unpin' : 'pin')"
+                                />
+                                <IconButton
+                                    :label="message.bookmarked ? t('chat.messages.unbookmark') : t('chat.messages.bookmark')"
+                                    :icon="IconBookmark"
+                                    @click="messageAction(message, message.bookmarked ? 'remove_bookmark' : 'bookmark')"
+                                />
+                                <IconButton
+                                    v-if="message.authorPublicId === page.props.auth.user?.publicId"
+                                    :label="t('chat.messages.edit')"
+                                    :icon="IconEdit"
+                                    @click="beginEdit(message)"
+                                />
+                                <IconButton :label="t('chat.messages.history')" :icon="IconHistory" @click="showHistory(message)" />
+                                <IconButton
+                                    :label="t('chat.messages.delete_for_me')"
+                                    :icon="IconTrash"
+                                    @click="messageAction(message, 'delete_for_me')"
+                                />
+                            </div>
+                            <div v-if="!message.deletedForViewer" class="mt-2 flex items-end gap-1">
+                                <FormSelect
+                                    v-model="forwardDestinations[message.publicId]"
+                                    :aria-label="t('chat.messages.forward_choose')"
+                                    :options="forwardingOptions"
+                                    button-class="min-h-8 py-1"
+                                />
+                                <button
+                                    type="button"
+                                    class="min-h-8 rounded px-2 text-xs text-teal-700 hover:bg-zinc-200 dark:text-teal-300 dark:hover:bg-zinc-800"
+                                    :disabled="!forwardDestinations[message.publicId]"
+                                    @click="forwardMessage(message)"
+                                >
+                                    {{ t('chat.messages.forward') }}
+                                </button>
+                            </div>
+                            <ol v-if="revisions[message.publicId]" class="mt-2 border-t border-zinc-200 pt-2 text-xs dark:border-zinc-700">
+                                <li v-for="revision in revisions[message.publicId]" :key="revision.version">
+                                    {{ t('chat.messages.version', { version: revision.version }) }}: {{ revision.body }}
+                                </li>
+                            </ol>
                         </article>
                         <p v-if="messages.length === 0" class="text-center text-sm text-zinc-500">{{ t('chat.shell.messages_empty') }}</p>
                     </div>
                     <form class="border-t border-zinc-200 p-3 dark:border-zinc-800" @submit.prevent="send">
+                        <div
+                            v-if="replyTarget || editingMessage"
+                            class="mb-2 flex items-center justify-between text-xs text-zinc-600 dark:text-zinc-300"
+                        >
+                            <span>{{ editingMessage ? t('chat.messages.editing') : t('chat.messages.replying') }}</span>
+                            <button
+                                type="button"
+                                class="text-teal-700 dark:text-teal-300"
+                                @click="
+                                    replyTarget = null;
+                                    editingMessage = null;
+                                    draft = '';
+                                "
+                            >
+                                {{ t('actions.cancel') }}
+                            </button>
+                        </div>
                         <div class="flex items-end gap-2">
                             <FormTextarea
                                 v-model="draft"

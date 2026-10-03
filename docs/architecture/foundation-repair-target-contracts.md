@@ -4,8 +4,8 @@ This document records the accepted and implemented Phase 28 foundation contracts
 
 ## Status
 
-- Current implementation: Phases 27, 27a, 28, 29, and 30 are complete. All 110 Phase 28 issue IDs and all 15 Phase 29 acceptance-repair issue IDs are reconciled to implementation, tests, permanent guardrails, canonical documentation, and package evidence; Phase 30 completed its Authorization, Team Structure, and mutation-feedback repair contract.
-- Current roadmap order after the later accepted Team Structure repair insertion and Phase 30 completion: Phase 31 is implementing optional internal Chat, shared Calendar, Calls, Meetings, recording, and provider-neutral transcription readiness; Phase 32 owns product neutralization; Phase 33 owns first-party Diagnostics, User Bug Reports, and removal of the existing Sentry integration; Phases 34 through 51 own the dependency-ordered post-communication foundation and Optional capability backlog; Phase 52 owns deployment, backup, restore, and rollback; Phase 53 owns the database query-efficiency and HTTP route audit; and Phase 54 owns the distinct final release audit. Phase 31 is `in progress`; Phases 32 through 54 remain `not started`.
+- Current implementation: Phases 27, 27a, 28, 29, 30, and 32 are complete. Phase 31 internal communication implementation and browser acceptance are complete, with its production runtime smoke pending host Docker access.
+- Current roadmap order: Phase 31 closes after that smoke; Phase 33 then owns first-party Diagnostics, User Bug Reports, and removal of the existing Sentry integration; Phases 34 through 51 own the dependency-ordered post-communication foundation and Optional capability backlog; Phase 52 owns deployment, backup, restore, and rollback; Phase 53 owns the database query-efficiency and HTTP route audit; and Phase 54 owns the distinct final release audit.
 
 ## Module graph and public contracts
 

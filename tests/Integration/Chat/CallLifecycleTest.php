@@ -224,6 +224,29 @@ final class CallLifecycleTest extends TestCase
         }
     }
 
+    public function test_rtc_capacity_failure_marks_the_only_joined_participant_and_call_failed(): void
+    {
+        [$first, $second] = User::factory()->count(2)->create()->all();
+        [$conversations, $calls] = $this->managers();
+        $conversation = $conversations->startDirect((string) $first->public_id, (string) $second->public_id, 'team');
+        $started = $calls->start((string) $first->public_id, 'team', $conversation->publicId, false, 'capacity-failure');
+
+        $calls->markJoinFailed((string) $first->public_id, $started->call->publicId);
+
+        $this->assertDatabaseHas(ChatDatabaseTable::CALLS, [
+            'public_id' => $started->call->publicId,
+            'status' => 'failed',
+        ]);
+        $callId = DB::table(ChatDatabaseTable::CALLS)->where('public_id', $started->call->publicId)->value('id');
+        self::assertIsNumeric($callId);
+        $this->assertDatabaseHas(ChatDatabaseTable::CALL_PARTICIPANTS, [
+            'call_id' => (int) $callId,
+            'user_id' => $first->id,
+            'state' => 'failed',
+        ]);
+        self::assertNull($calls->current((string) $first->public_id, 'team'));
+    }
+
     /** @return array{ConversationManager, CallManager} */
     private function managers(): array
     {

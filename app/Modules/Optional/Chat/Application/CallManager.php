@@ -222,6 +222,13 @@ final readonly class CallManager
 
             if ($participant?->state === CallParticipantState::Joined) {
                 $this->calls->setParticipantState($participant->id, CallParticipantState::Failed);
+                if ($this->joinedParticipants($call->id) === [] && $call->status->acceptsParticipants()) {
+                    $this->calls->setStatus($call->id, CallStatus::Failed, ended: true);
+                    $this->conversations->appendTimeline($call->conversationId, TimelineEntryType::CallEnded, $userId, metadata: [
+                        'call_public_id' => $call->publicId,
+                        'result_status' => CallStatus::Failed->value,
+                    ]);
+                }
             }
         });
     }

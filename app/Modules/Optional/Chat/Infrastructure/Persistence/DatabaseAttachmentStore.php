@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Optional\Chat\Infrastructure\Persistence;
 
 use App\Modules\Core\Files\Application\Public\Contracts\FileLookup;
+use App\Modules\Core\Files\Application\Public\DTOs\FileStatus;
 use App\Modules\Core\Files\Application\Public\Enums\FileScanState;
 use App\Modules\Optional\Chat\Application\Contracts\AttachmentStore;
 use App\Modules\Optional\Chat\Application\DTOs\MessageAttachment;
@@ -51,7 +52,44 @@ final readonly class DatabaseAttachmentStore implements AttachmentStore
 
     public function forMessage(int $messageId): array
     {
-        return $this->rows($this->database->table(ChatDatabaseTable::MESSAGE_ATTACHMENTS)->where('message_id', $messageId)->orderBy('id')->get()->all());
+        return $this->forMessages([$messageId])[$messageId] ?? [];
+    }
+
+    public function forMessages(array $messageIds): array
+    {
+        $messageIds = array_values(array_unique($messageIds));
+
+        if ($messageIds === []) {
+            return [];
+        }
+
+        $rows = $this->database->table(ChatDatabaseTable::MESSAGE_ATTACHMENTS)
+            ->whereIn('message_id', $messageIds)
+            ->orderBy('message_id')
+            ->orderBy('id')
+            ->get()
+            ->all();
+        $filePublicIds = [];
+
+        foreach ($rows as $row) {
+            if (is_string($row->file_public_id ?? null)) {
+                $filePublicIds[] = $row->file_public_id;
+            }
+        }
+
+        $statuses = $this->files->statuses($filePublicIds);
+        $attachments = [];
+
+        foreach ($rows as $row) {
+            $filePublicId = $this->string($row->file_public_id ?? null);
+            $attachment = $this->attachment($row, $statuses[$filePublicId] ?? null);
+
+            if ($attachment !== null && $attachment->messageId !== null) {
+                $attachments[$attachment->messageId][] = $attachment;
+            }
+        }
+
+        return $attachments;
     }
 
     public function attachedForConversation(int $conversationId): array
@@ -110,14 +148,14 @@ final readonly class DatabaseAttachmentStore implements AttachmentStore
         return $attachments;
     }
 
-    private function attachment(?object $row): ?MessageAttachment
+    private function attachment(?object $row, ?FileStatus $knownStatus = null): ?MessageAttachment
     {
         if (! is_object($row)) {
             return null;
         }
 
         $filePublicId = $this->string($row->file_public_id ?? null);
-        $file = $this->files->status($filePublicId);
+        $file = $knownStatus ?? $this->files->status($filePublicId);
 
         return new MessageAttachment(
             id: $this->integer($row->id ?? null),

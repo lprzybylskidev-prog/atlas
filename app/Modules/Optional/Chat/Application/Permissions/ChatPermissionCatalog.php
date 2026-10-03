@@ -20,9 +20,21 @@ final class ChatPermissionCatalog implements ModulePermissionContribution
 
     public const GROUP_STORE = ChatPermissionNames::GROUP_STORE;
 
+    public const GROUP_SHOW = ChatPermissionNames::GROUP_SHOW;
+
+    public const GROUP_UPDATE = ChatPermissionNames::GROUP_UPDATE;
+
+    public const GROUP_CANDIDATES_INDEX = ChatPermissionNames::GROUP_CANDIDATES_INDEX;
+
     public const TEAM_CONVERSATION_SHOW = ChatPermissionNames::TEAM_CONVERSATION_SHOW;
 
     public const MESSAGE_STORE = ChatPermissionNames::MESSAGE_STORE;
+
+    public const MESSAGE_UPDATE = ChatPermissionNames::MESSAGE_UPDATE;
+
+    public const MESSAGE_HISTORY = ChatPermissionNames::MESSAGE_HISTORY;
+
+    public const DRAFT_UPDATE = ChatPermissionNames::DRAFT_UPDATE;
 
     public const CONTENT_INDEX = ChatPermissionNames::CONTENT_INDEX;
 
@@ -148,8 +160,14 @@ final class ChatPermissionCatalog implements ModulePermissionContribution
             new ModulePermissionDefinition(self::FAVORITE_UPDATE, 'Manage own favorite Chat conversations.'),
             new ModulePermissionDefinition(self::DIRECT_CONVERSATION_STORE, 'Start direct conversations.'),
             new ModulePermissionDefinition(self::GROUP_STORE, 'Create Chat groups.'),
+            new ModulePermissionDefinition(self::GROUP_SHOW, 'View authorized Chat group membership.'),
+            new ModulePermissionDefinition(self::GROUP_UPDATE, 'Manage owned Chat groups.'),
+            new ModulePermissionDefinition(self::GROUP_CANDIDATES_INDEX, 'List active users when composing a Chat group.'),
             new ModulePermissionDefinition(self::TEAM_CONVERSATION_SHOW, 'Open the authorized active Team conversation.'),
             new ModulePermissionDefinition(self::MESSAGE_STORE, 'Send messages in authorized conversations.'),
+            new ModulePermissionDefinition(self::MESSAGE_UPDATE, 'Manage own and participant-scoped Chat message state.'),
+            new ModulePermissionDefinition(self::MESSAGE_HISTORY, 'View authorized Chat message edit history.'),
+            new ModulePermissionDefinition(self::DRAFT_UPDATE, 'Read and update own Chat drafts.'),
             new ModulePermissionDefinition(self::CONTENT_INDEX, 'Browse authorized conversation media, files, and links.'),
             new ModulePermissionDefinition(self::EXPORT_STORE, 'Export authorized participant-visible conversation content.'),
             new ModulePermissionDefinition(self::ATTACHMENT_STORE, 'Upload Chat attachments through Files.'),

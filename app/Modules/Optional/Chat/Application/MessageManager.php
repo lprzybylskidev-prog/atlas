@@ -15,6 +15,7 @@ use App\Modules\Optional\Chat\Application\DTOs\MessageDraft;
 use App\Modules\Optional\Chat\Application\DTOs\MessageRecord;
 use App\Modules\Optional\Chat\Application\DTOs\MessageRevision;
 use App\Modules\Optional\Chat\Application\DTOs\VisibleMessage;
+use App\Modules\Optional\Chat\Application\DTOs\VisibleMessagePage;
 use App\Modules\Optional\Chat\Application\Permissions\ChatPermissionCatalog;
 use App\Modules\Optional\Chat\Domain\Conversations\ConversationScopeContext;
 use App\Modules\Optional\Chat\Domain\Conversations\ConversationScopePolicy;
@@ -259,9 +260,44 @@ final readonly class MessageManager
     /** @return list<VisibleMessage> */
     public function messages(string $actorPublicId, string $activeTeamPublicId, string $conversationPublicId): array
     {
-        [$conversation, $actorId] = $this->participant($actorPublicId, $activeTeamPublicId, $conversationPublicId);
+        return $this->messagePage($actorPublicId, $activeTeamPublicId, $conversationPublicId)->messages;
+    }
 
-        return array_map(fn (MessageRecord $message): VisibleMessage => $this->visible($message, $actorId), $this->messages->conversationMessages($conversation->id));
+    public function messagePage(
+        string $actorPublicId,
+        string $activeTeamPublicId,
+        string $conversationPublicId,
+        ?string $beforeMessagePublicId = null,
+        ?string $afterMessagePublicId = null,
+        int $limit = 50,
+    ): VisibleMessagePage {
+        [$conversation, $actorId] = $this->participant($actorPublicId, $activeTeamPublicId, $conversationPublicId);
+        $beforeId = $beforeMessagePublicId === null ? null : $this->messageInConversation($beforeMessagePublicId, $conversation->id)->id;
+        $afterId = $afterMessagePublicId === null ? null : $this->messageInConversation($afterMessagePublicId, $conversation->id)->id;
+        $page = $this->messages->conversationMessagesPage($conversation->id, $limit, $beforeId, $afterId);
+
+        return new VisibleMessagePage(
+            messages: $this->visibleMany($page->messages, $actorId),
+            hasOlder: $page->hasOlder,
+            hasNewer: $page->hasNewer,
+        );
+    }
+
+    /** @return iterable<list<VisibleMessage>> */
+    public function messageBatches(string $actorPublicId, string $activeTeamPublicId, string $conversationPublicId, int $limit = 50): iterable
+    {
+        [$conversation, $actorId] = $this->participant($actorPublicId, $activeTeamPublicId, $conversationPublicId);
+        $afterId = 0;
+
+        do {
+            $page = $this->messages->conversationMessagesPage($conversation->id, $limit, afterMessageId: $afterId);
+            if ($page->messages === []) {
+                return;
+            }
+
+            yield $this->visibleMany($page->messages, $actorId);
+            $afterId = $page->messages[array_key_last($page->messages)]->id;
+        } while ($page->hasNewer);
     }
 
     private function reaction(string $actorPublicId, string $activeTeamPublicId, string $conversationPublicId, string $messagePublicId, string $emoji, bool $add): VisibleMessage
@@ -380,39 +416,57 @@ final readonly class MessageManager
 
     private function visible(MessageRecord $message, int $viewerId): VisibleMessage
     {
-        $hidden = $this->messages->isHiddenForUser($message->id, $viewerId);
-        $reply = $message->replyToMessageId === null ? null : $this->messages->findById($message->replyToMessageId);
-        $replyVisible = $reply !== null && ! $this->messages->isHiddenForUser($reply->id, $viewerId);
-        $mentions = $this->messages->mentions($message->id);
-        $mentionedPublicIds = [];
+        return $this->visibleMany([$message], $viewerId)[0];
+    }
 
-        foreach ($mentions['userIds'] as $userId) {
-            $publicId = $this->users->publicIdForInternalId($userId);
-
-            if ($publicId !== null) {
-                $mentionedPublicIds[] = $publicId;
-            }
+    /**
+     * @param  list<MessageRecord>  $messages
+     * @return list<VisibleMessage>
+     */
+    private function visibleMany(array $messages, int $viewerId): array
+    {
+        if ($messages === []) {
+            return [];
         }
 
-        return new VisibleMessage(
-            publicId: $message->publicId,
-            authorPublicId: $this->users->publicIdForInternalId($message->authorUserId) ?? '',
-            body: $hidden ? null : $message->body,
-            renderedHtml: $hidden ? null : $this->markdown->render($message->body),
-            replyToMessagePublicId: $hidden || ! $replyVisible ? null : $reply->publicId,
-            forwarded: ! $hidden && $message->forwardedFromMessageId !== null,
-            version: $message->version,
-            edited: $message->editedAt !== null,
-            deletedForViewer: $hidden,
-            pinned: ! $hidden && $this->messages->isPinned($message->id),
-            bookmarked: ! $hidden && $this->messages->isBookmarked($message->id, $viewerId),
-            reactions: $hidden ? [] : $this->messages->reactions($message->id),
-            mentionedUserPublicIds: $hidden ? [] : $mentionedPublicIds,
-            mentionsEveryone: ! $hidden && $mentions['everyone'],
-            mentionsOnline: ! $hidden && $mentions['online'],
-            createdAt: $message->createdAt,
-            attachments: $hidden ? [] : ($this->attachments?->forMessage($message->id) ?? []),
-        );
+        $states = $this->messages->presentationStates($messages, $viewerId);
+        $replyIds = array_values(array_unique(array_filter(array_map(
+            static fn (MessageRecord $message): ?int => $message->replyToMessageId,
+            $messages,
+        ))));
+        $replies = $this->messages->findByIds($replyIds);
+        $userIds = array_map(static fn (MessageRecord $message): int => $message->authorUserId, $messages);
+        $users = $this->users->displaySummariesForInternalIds(array_values(array_unique($userIds)));
+        $attachments = $this->attachments?->forMessages(array_map(static fn (MessageRecord $message): int => $message->id, $messages)) ?? [];
+        $visible = [];
+
+        foreach ($messages as $message) {
+            $state = $states[$message->id] ?? throw new InvalidArgumentException('Missing Chat message presentation state.');
+            $reply = $message->replyToMessageId === null ? null : ($replies[$message->replyToMessageId] ?? null);
+            $hidden = $state->hidden;
+
+            $visible[] = new VisibleMessage(
+                publicId: $message->publicId,
+                authorPublicId: $users[$message->authorUserId]->publicId ?? '',
+                body: $hidden ? null : $message->body,
+                renderedHtml: $hidden ? null : $this->markdown->render($message->body),
+                replyToMessagePublicId: $hidden || $state->replyHidden ? null : $reply?->publicId,
+                forwarded: ! $hidden && $message->forwardedFromMessageId !== null,
+                version: $message->version,
+                edited: $message->editedAt !== null,
+                deletedForViewer: $hidden,
+                pinned: ! $hidden && $state->pinned,
+                bookmarked: ! $hidden && $state->bookmarked,
+                reactions: $hidden ? [] : $state->reactions,
+                mentionedUserPublicIds: $hidden ? [] : $state->mentionedUserPublicIds,
+                mentionsEveryone: ! $hidden && $state->mentionsEveryone,
+                mentionsOnline: ! $hidden && $state->mentionsOnline,
+                createdAt: $message->createdAt,
+                attachments: $hidden ? [] : ($attachments[$message->id] ?? []),
+            );
+        }
+
+        return $visible;
     }
 
     private function ensureVisible(MessageRecord $message, int $viewerId): void

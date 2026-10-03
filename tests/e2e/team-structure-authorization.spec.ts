@@ -572,6 +572,27 @@ test.describe('Integrated team structure and authorization workflow', () => {
         await changeStructureRole(page, candidateName, /^Manager$/, 'E2E mobile relationship manager.');
 
         const employee = page.locator('[data-testid^="team-structure-member-"]').filter({ hasText: 'Structure Report' });
+        let candidate = page.locator('[data-testid^="team-structure-member-"]').filter({ hasText: candidateEmail });
+        await employee.dragTo(candidate);
+
+        if ((await page.getByRole('dialog').count()) === 0) {
+            const dataTransfer = await page.evaluateHandle(() => new DataTransfer());
+            await employee.dispatchEvent('dragstart', { dataTransfer });
+            await candidate.dispatchEvent('dragenter', { dataTransfer });
+            await candidate.dispatchEvent('dragover', { dataTransfer });
+            await candidate.dispatchEvent('drop', { dataTransfer });
+            await employee.dispatchEvent('dragend', { dataTransfer });
+        }
+
+        await page.getByLabel(/^Powód$|^Reason$/).fill('E2E mobile relationship fixture.');
+        await Promise.all([
+            page.waitForResponse(
+                (response) => response.request().method() === 'POST' && response.url().endsWith('/structure/relationships'),
+            ),
+            page.getByRole('button', { name: /Dodaj relację z managerem|Add manager relationship/ }).click(),
+        ]);
+        await expect(candidate).toContainText(/Bezpośredni podwładni: 1|Direct reports: 1/);
+
         const disclosure = employee.getByRole('button', { name: /Rozwiń szczegóły|Expand details/ });
         await disclosure.focus();
         await expect(disclosure).toBeFocused();
@@ -585,7 +606,7 @@ test.describe('Integrated team structure and authorization workflow', () => {
         await history.press('Enter');
         await expect(page.getByText('Visibility Admin', { exact: true }).last()).toBeVisible();
 
-        let candidate = page.locator('[data-testid^="team-structure-member-"]').filter({ hasText: candidateEmail });
+        candidate = page.locator('[data-testid^="team-structure-member-"]').filter({ hasText: candidateEmail });
         let candidateDisclosure = candidate.getByRole('button', {
             name: /Rozwiń szczegóły|Expand details|Zwiń szczegóły|Collapse details/,
         });

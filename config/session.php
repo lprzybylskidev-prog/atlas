@@ -6,6 +6,10 @@ use App\Modules\Core\Identity\Infrastructure\Persistence\TableNames\IdentityData
 
 return [
     'driver' => env('SESSION_DRIVER', 'redis'),
+    'block' => true,
+    'block_store' => 'redis',
+    'block_lock_seconds' => 10,
+    'block_wait_seconds' => 10,
     'lifetime' => (int) env('SESSION_LIFETIME', 120),
     'expire_on_close' => false,
     'encrypt' => (bool) env('SESSION_ENCRYPT', false),

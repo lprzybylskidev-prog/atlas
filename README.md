@@ -8,7 +8,7 @@ The roadmap develops the shared technical and operational foundation before conc
 
 The current foundation includes a Core Audit module with append-only application and security audit records plus a read-only Admin audit browser. Earlier security-audit producers now write through this shared audit foundation instead of a separate legacy table.
 
-The foundation repair and consolidation work in [Phase 28](docs/roadmap/phase-28-foundation-repair-and-consolidation.md), acceptance closure in [Phase 29](docs/roadmap/phase-29-foundation-acceptance-repair.md), Authorization/Team Structure repair in [Phase 30](docs/roadmap/phase-30-authorization-team-structure-feedback-repair.md), and product neutralization in [Phase 32](docs/roadmap/phase-32-product-neutralization.md) are complete. The current roadmap focus remains [Phase 31 — optional internal Chat, Calendar, Calls, Meetings, and realtime communication](docs/roadmap/phase-31-chat.md); it is followed by Phase 33 first-party Diagnostics and Sentry removal, Phases 34–51 dependency-ordered foundation and Optional capability work, Phase 52 production deployment/recovery, Phase 53 database query-efficiency auditing, and Phase 54 final whole-application verification.
+The foundation repair and consolidation work in [Phase 28](docs/roadmap/phase-28-foundation-repair-and-consolidation.md), acceptance closure in [Phase 29](docs/roadmap/phase-29-foundation-acceptance-repair.md), Authorization/Team Structure repair in [Phase 30](docs/roadmap/phase-30-authorization-team-structure-feedback-repair.md), and product neutralization in [Phase 32](docs/roadmap/phase-32-product-neutralization.md) are complete. Phase 31 internal communication implementation and browser acceptance are complete, with only the production runtime smoke awaiting host Docker access; Phase 33 first-party Diagnostics and Sentry removal follows that closure.
 
 ## Core principles
 
@@ -121,7 +121,7 @@ The planned shared system capabilities include:
 - Settings and localization
 - Notifications
 - Shared Core Calendar with private personal events, recurrence, reminders, Free/Busy, and Month/Week/Day/Agenda views
-- Optional internal Chat boundary for conversations, Calls, and Meetings (Phase 31 implementation in progress)
+- Optional internal Chat for conversations, Calls, Meetings, recording, and provider-neutral transcription readiness
 - Files
 - Privacy, retention, hard-delete, and anonymization readiness
 - Admin operations
@@ -196,7 +196,7 @@ The Search foundation is available as an optional module for module-owned Meilis
 
 The Feature Flags foundation is available as an optional module for typed rollout flags. Current contracts cover code-owned boolean flag definitions, global and per-team values, effective-value precedence, append-only history, Audit events, Admin management at `/admin/feature-flags`, and the rule that flags cannot replace module activation or authorization.
 
-The implementation status and first unfinished phase are always shown in [`WORKROAD.md`](WORKROAD.md). Phases 28 through 30 are complete; the current roadmap focus is Phase 31 optional internal Chat, shared Calendar, Calls, Meetings, recording, and provider-neutral transcription readiness, followed by Phase 32 product neutralization, Phase 33 Diagnostics/Sentry removal, Phases 34–51 post-communication foundation and Optional capability work, Phase 52 production deployment/recovery, Phase 53 database query-efficiency and route auditing, and Phase 54 final whole-application verification for future Application-domain development.
+The implementation status and first unfinished phase are always shown in [`WORKROAD.md`](WORKROAD.md). Phases 28 through 30 and Phase 32 are complete; Phase 31 awaits only its production runtime smoke, followed by Phase 33 Diagnostics/Sentry removal, Phases 34–51 post-communication foundation and Optional capability work, Phase 52 production deployment/recovery, Phase 53 database query-efficiency and route auditing, and Phase 54 final whole-application verification for future Application-domain development.
 
 As the project grows, this README must present the current high-level system scope, major modules, supported workflows, setup entry points, and operational expectations.
 

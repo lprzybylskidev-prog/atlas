@@ -22,6 +22,7 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import type { Component } from 'vue';
 
 import IconButton from './IconButton.vue';
+import ChatShell from './Chat/ChatShell.vue';
 import FormSelect from './Form/FormSelect.vue';
 import ShellSubnavigation from './ShellSubnavigation.vue';
 import TruncatedText from './TruncatedText.vue';
@@ -118,6 +119,7 @@ const userAvatarColor = computed(() => page.props.auth.user?.avatar.color ?? DEF
 const userAvatarImageUrl = computed(() => page.props.auth.user?.avatar.imageUrl ?? null);
 const userAvatarTextColor = computed(() => readableAvatarTextColor(userAvatarColor.value));
 const activeTeamName = computed(() => page.props.auth.teams.active?.name ?? t('shell.context.no_active_team'));
+const canUseChat = computed(() => page.props.auth.user !== null && page.props.auth.availableApplicationRoutes.includes('chat.index'));
 
 const updateNetworkStatus = (): void => {
     online.value = navigator.onLine;
@@ -371,7 +373,7 @@ watch(
             />
 
             <div class="order-2 flex w-full min-w-0 items-center justify-end gap-2 sm:w-auto">
-                <div id="chat-shell-slot" />
+                <ChatShell v-if="canUseChat" />
                 <IconButton
                     :label="isDark ? t('actions.switch_light_theme') : t('actions.switch_dark_theme')"
                     :icon="isDark ? IconSun : IconMoon"

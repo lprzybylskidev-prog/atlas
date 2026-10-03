@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace App\Modules\Optional\Chat\Application\Contracts;
 
 use App\Modules\Optional\Chat\Application\DTOs\MessageDraft;
+use App\Modules\Optional\Chat\Application\DTOs\MessagePresentationState;
 use App\Modules\Optional\Chat\Application\DTOs\MessageReaction;
 use App\Modules\Optional\Chat\Application\DTOs\MessageRecord;
+use App\Modules\Optional\Chat\Application\DTOs\MessageRecordPage;
 use App\Modules\Optional\Chat\Application\DTOs\MessageRevision;
 
 interface MessageStore
@@ -14,6 +16,12 @@ interface MessageStore
     public function findByPublicId(string $publicId, bool $lock = false): ?MessageRecord;
 
     public function findById(int $id): ?MessageRecord;
+
+    /**
+     * @param  list<int>  $ids
+     * @return array<int, MessageRecord>
+     */
+    public function findByIds(array $ids): array;
 
     public function findByIdempotencyKey(int $authorUserId, string $clientMessageKey): ?MessageRecord;
 
@@ -34,10 +42,26 @@ interface MessageStore
     /** @return list<MessageRevision> */
     public function revisions(int $messageId, MarkdownRenderer $renderer): array;
 
-    /** @return list<MessageRecord> */
-    public function conversationMessages(int $conversationId): array;
+    public function conversationMessagesPage(
+        int $conversationId,
+        int $limit,
+        ?int $beforeMessageId = null,
+        ?int $afterMessageId = null,
+    ): MessageRecordPage;
+
+    /**
+     * @param  list<MessageRecord>  $messages
+     * @return array<int, MessagePresentationState>
+     */
+    public function presentationStates(array $messages, int $viewerUserId): array;
 
     public function hideForUser(int $messageId, int $userId): void;
+
+    /**
+     * @param  list<int>  $messageIds
+     * @return array<int, true>
+     */
+    public function hiddenMessageIds(array $messageIds, int $userId): array;
 
     public function isHiddenForUser(int $messageId, int $userId): bool;
 

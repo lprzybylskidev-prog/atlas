@@ -42,34 +42,39 @@ final readonly class RealtimeManager
      *     state: ConversationRealtimeState,
      *     participantCursors: list<ParticipantCursor>,
      *     presence: list<PresenceSummary>,
-     *     totalUnread: int
+     *     totalUnread: int,
+     *     hasOlder: bool,
+     *     hasNewer: bool,
+     *     oldestMessagePublicId: ?string,
+     *     newestMessagePublicId: ?string
      * }
      */
-    public function reconcile(string $userPublicId, string $activeTeamPublicId, string $conversationPublicId, ?string $afterMessagePublicId): array
-    {
+    public function reconcile(
+        string $userPublicId,
+        string $activeTeamPublicId,
+        string $conversationPublicId,
+        ?string $afterMessagePublicId,
+        ?string $beforeMessagePublicId = null,
+    ): array {
         [$conversation, $userId] = $this->participant($userPublicId, $activeTeamPublicId, $conversationPublicId);
-        $afterId = null;
-
-        if ($afterMessagePublicId !== null) {
-            $after = $this->messageInConversation($afterMessagePublicId, $conversation->id);
-            $afterId = $after->id;
-        }
-
-        $visible = $this->messageManager->messages($userPublicId, $activeTeamPublicId, $conversationPublicId);
-        if ($afterId !== null) {
-            $ids = [];
-            foreach ($this->messages->conversationMessages($conversation->id) as $record) {
-                $ids[$record->publicId] = $record->id;
-            }
-            $visible = array_values(array_filter($visible, static fn ($message): bool => ($ids[$message->publicId] ?? 0) > $afterId));
-        }
+        $page = $this->messageManager->messagePage(
+            $userPublicId,
+            $activeTeamPublicId,
+            $conversationPublicId,
+            beforeMessagePublicId: $beforeMessagePublicId,
+            afterMessagePublicId: $afterMessagePublicId,
+        );
 
         return [
-            'messages' => $visible,
+            'messages' => $page->messages,
             'state' => $this->realtime->state($conversation->id, $userId),
             'participantCursors' => $this->realtime->participantCursors($conversation->id),
             'presence' => $this->realtime->presenceForConversation($conversation->id),
             'totalUnread' => $this->realtime->totalUnread($userId),
+            'hasOlder' => $page->hasOlder,
+            'hasNewer' => $page->hasNewer,
+            'oldestMessagePublicId' => $page->oldestMessagePublicId(),
+            'newestMessagePublicId' => $page->newestMessagePublicId(),
         ];
     }
 

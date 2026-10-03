@@ -24,6 +24,15 @@ final class ChatRealtimePayload
             'version' => $message->version,
             'edited' => $message->edited,
             'deletedForViewer' => $message->deletedForViewer,
+            'pinned' => $message->pinned,
+            'bookmarked' => $message->bookmarked,
+            'reactions' => array_map(static fn ($reaction): array => [
+                'emoji' => $reaction->emoji,
+                'userPublicId' => $reaction->userPublicId,
+            ], $message->reactions),
+            'mentionedUserPublicIds' => $message->mentionedUserPublicIds,
+            'mentionsEveryone' => $message->mentionsEveryone,
+            'mentionsOnline' => $message->mentionsOnline,
             'createdAt' => $message->createdAt->format(DATE_ATOM),
             'attachments' => array_map(static fn ($attachment): array => [
                 'publicId' => $attachment->publicId,
